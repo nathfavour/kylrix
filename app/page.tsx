@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Container, 
@@ -10,9 +10,12 @@ import {
   Grid2 as Grid, 
   Paper,
   alpha,
-  useTheme
+  useTheme,
+  Avatar,
+  IconButton,
+  Chip
 } from '@mui/material';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { 
   ShieldCheck, 
   Zap, 
@@ -24,289 +27,360 @@ import {
   MessageSquare,
   Lock,
   StickyNote,
-  Terminal
+  Terminal,
+  Activity,
+  Layers,
+  ArrowRight,
+  Menu,
+  Fingerprint
 } from 'lucide-react';
 import Link from 'next/link';
 
-// Mock Component to simulate live app behavior
-const LiveAppWidget = ({ name, icon: Icon, color }: any) => (
-  <motion.div
-    whileHover={{ scale: 1.02, y: -5 }}
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-  >
-    <Paper 
-      sx={{ 
-        p: 3, 
-        height: '100%',
-        background: alpha('#0A0A0A', 0.4),
-        border: `1px solid ${alpha(color, 0.2)}`,
-        transition: 'all 0.4s ease',
-        '&:hover': {
-          background: alpha(color, 0.05),
-          borderColor: alpha(color, 0.4),
-          boxShadow: `0 20px 40px ${alpha(color, 0.1)}`,
-        }
-      }}
+// Dynamic Island Navigation
+const DynamicIslandNav = () => {
+  const [scrolled, setScrolled] = useState(false);
+  const { scrollY } = useScroll();
+
+  useEffect(() => {
+    return scrollY.onChange((latest) => {
+      setScrolled(latest > 50);
+    });
+  }, [scrollY]);
+
+  return (
+    <Box sx={{ position: 'fixed', top: 32, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 1000 }}>
+      <motion.div
+        animate={{ 
+          width: scrolled ? 'fit-content' : '100%',
+          maxWidth: scrolled ? '600px' : '1200px',
+          borderRadius: scrolled ? 40 : 16,
+          padding: scrolled ? '12px 24px' : '16px 32px'
+        }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="glass-card"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: scrolled ? '32px' : '12px'
+        }}
+      >
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            fontSize: scrolled ? '1.2rem' : '1.8rem',
+            fontWeight: 900,
+            letterSpacing: '-0.05em',
+            color: '#fff'
+          }}
+        >
+          KYLRIX
+        </Typography>
+
+        <Stack direction="row" spacing={3} sx={{ display: { xs: 'none', md: 'flex' } }}>
+          {['Products', 'Docs', 'Downloads'].map((item) => (
+            <Link key={item} href={`/${item.toLowerCase()}`}>
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase',
+                  opacity: 0.6,
+                  '&:hover': { opacity: 1, color: '#00F5FF' },
+                  transition: 'all 0.2s'
+                }}
+              >
+                {item}
+              </Typography>
+            </Link>
+          ))}
+        </Stack>
+
+        <Stack direction="row" spacing={1} alignItems="center">
+          <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.4)' }}>
+            <Activity size={18} />
+          </IconButton>
+          <Button 
+            size={scrolled ? "small" : "medium"} 
+            variant="contained" 
+            sx={{ borderRadius: 10 }}
+          >
+            Launch
+          </Button>
+        </Stack>
+      </motion.div>
+    </Box>
+  );
+};
+
+// High-Fidelity App UI Widget
+const LivingWidget = ({ app }: any) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
     >
-      <Stack spacing={2}>
-        <Box 
-          sx={{ 
-            width: 48, 
-            height: 48, 
-            borderRadius: '12px', 
-            background: alpha(color, 0.1),
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: color
-          }}
-        >
-          <Icon size={24} />
+      <Paper 
+        className="glass-card"
+        sx={{ 
+          p: 1, 
+          height: 480, 
+          display: 'flex', 
+          flexDirection: 'column',
+          overflow: 'hidden',
+          transition: 'border 0.4s',
+          '&:hover': { borderColor: alpha(app.color, 0.4) }
+        }}
+      >
+        {/* App Title Bar */}
+        <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box sx={{ width: 32, height: 32, borderRadius: 1, bgcolor: alpha(app.color, 0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', color: app.color }}>
+              <app.icon size={18} />
+            </Box>
+            <Typography variant="body2" sx={{ fontWeight: 800 }}>Kylrix {app.name}</Typography>
+          </Stack>
+          <Stack direction="row" spacing={1}>
+             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.1)' }} />
+             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.1)' }} />
+          </Stack>
         </Box>
-        <Box>
-          <Typography variant="h4" gutterBottom>{name}</Typography>
-          <Typography variant="body2">Experience the future of {name.toLowerCase()} with zero-knowledge security and AI-driven orchestration.</Typography>
+
+        {/* Dynamic App Content Sim */}
+        <Box sx={{ p: 3, flex: 1, position: 'relative' }}>
+          {app.name === 'Flow' && (
+            <Stack spacing={2}>
+              {[1, 2, 3].map(i => (
+                <motion.div key={i} whileHover={{ x: 10 }} style={{ background: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <Stack direction="row" justifyContent="space-between">
+                    <Box sx={{ height: 10, width: 100, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 5 }} />
+                    <Chip size="small" label="High" sx={{ height: 16, fontSize: '0.6rem', color: app.color, bgcolor: alpha(app.color, 0.1) }} />
+                  </Stack>
+                </motion.div>
+              ))}
+              <Box sx={{ mt: 4, p: 2, borderRadius: 3, bgcolor: alpha(app.color, 0.05), border: `1px dashed ${alpha(app.color, 0.2)}` }}>
+                <Typography variant="caption" sx={{ color: app.color }}>AI Orchestration Active...</Typography>
+              </Box>
+            </Stack>
+          )}
+
+          {app.name === 'Vault' && (
+             <Stack spacing={3} alignItems="center" sx={{ pt: 4 }}>
+                <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 4 }}>
+                  <Fingerprint size={80} color={app.color} opacity={0.3} />
+                </motion.div>
+                <Typography variant="body2" sx={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.3em' }}>AES-256-GCM</Typography>
+                <Box sx={{ width: '100%', height: 40, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.05)' }} />
+             </Stack>
+          )}
+
+          {app.name === 'CLI' && (
+             <Box sx={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: '#00F5FF', p: 1 }}>
+                <div style={{ opacity: 0.5 }}>$ kylrix connect --shared-id=XYZ</div>
+                <div style={{ color: '#fff' }}>Establishing P2P link...</div>
+                <div>[OK] Handshake complete</div>
+                <div>[OK] Encryption active</div>
+                <motion.div animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.8 }} style={{ display: 'inline-block', width: 6, height: 12, background: '#00F5FF' }} />
+             </Box>
+          )}
+
+          <Box sx={{ position: 'absolute', bottom: 20, left: 20, right: 20 }}>
+            <Typography variant="h4" sx={{ mb: 1 }}>{app.name}</Typography>
+            <Typography variant="body2" sx={{ opacity: 0.5, fontSize: '0.8rem' }}>{app.desc}</Typography>
+          </Box>
         </Box>
-        <Button 
-          variant="outlined" 
-          endIcon={<ChevronRight size={16} />}
-          sx={{ 
-            width: 'fit-content',
-            borderColor: alpha(color, 0.2),
-            '&:hover': { borderColor: color, color: color }
-          }}
-        >
-          Explore
-        </Button>
-      </Stack>
-    </Paper>
-  </motion.div>
-);
+      </Paper>
+    </motion.div>
+  );
+};
 
 export default function LandingPage() {
   const theme = useTheme();
   const { scrollYProgress } = useScroll();
-  const y1 = useTransform(scrollYProgress, [0, 1], [0, -200]);
+  const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95]);
+  const opacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
+
+  const apps = [
+    { name: 'Flow', icon: LayoutDashboard, color: '#00F5FF', desc: 'Context-driven orchestration for tasks and events.' },
+    { name: 'Vault', icon: Lock, color: '#F43F5E', desc: 'Zero-knowledge management for keys and passwords.' },
+    { name: 'Connect', icon: MessageSquare, color: '#A855F7', desc: 'Secure P2P communication with AI support.' },
+    { name: 'CLI', icon: Terminal, color: '#10B981', desc: 'Native terminal client for the Kylrix ecosystem.' },
+    { name: 'Note', icon: StickyNote, color: '#F59E0B', desc: 'Privacy-focused AI note-taking & intelligence.' },
+    { name: 'Accounts', icon: ShieldCheck, color: '#6366F1', desc: 'Unified identity and WebAuthn management.' },
+  ];
 
   return (
     <Box component="main">
-      {/* Navigation */}
-      <Box 
-        component="nav" 
-        sx={{ 
-          position: 'fixed', 
-          top: 0, 
-          width: '100%', 
-          zIndex: 1000,
-          p: 3,
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-        }}
-      >
-        <Container maxWidth="xl">
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography 
-              variant="h4" 
-              sx={{ 
-                letterSpacing: '-0.05em', 
-                fontWeight: 900,
-                background: 'linear-gradient(90deg, #F2F2F2 0%, #00F5FF 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              KYLRIX
-            </Typography>
-            <Stack direction="row" spacing={4} sx={{ display: { xs: 'none', md: 'flex' } }}>
-              {['Products', 'Docs', 'Developers', 'Downloads'].map((item) => (
-                <Link key={item} href={`/${item.toLowerCase()}`}>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontWeight: 600, 
-                      color: 'rgba(255,255,255,0.6)',
-                      '&:hover': { color: '#00F5FF' },
-                      transition: 'color 0.2s'
-                    }}
-                  >
-                    {item}
-                  </Typography>
-                </Link>
-              ))}
-            </Stack>
-            <Button variant="contained">Get Started</Button>
-          </Stack>
-        </Container>
-      </Box>
+      <DynamicIslandNav />
+      <div className="light-leak" style={{ top: '-10%', left: '-10%' }} />
+      <div className="light-leak" style={{ bottom: '-10%', right: '-10%', animationDelay: '-5s' }} />
 
       {/* Hero Section */}
-      <Container maxWidth="lg" sx={{ pt: 25, pb: 20 }}>
-        <Stack spacing={4} alignItems="center" textAlign="center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8 }}
-          >
-            <Typography 
-              variant="subtitle2" 
-              sx={{ 
-                px: 2, 
-                py: 1, 
-                borderRadius: '50px', 
-                border: '1px solid rgba(0, 245, 255, 0.3)',
-                background: 'rgba(0, 245, 255, 0.05)',
-                mb: 3,
-                display: 'inline-block'
-              }}
+      <Container maxWidth="lg">
+        <motion.div style={{ scale, opacity }}>
+          <Stack spacing={4} alignItems="center" textAlign="center" sx={{ pt: 35, pb: 25 }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
             >
-              AI-POWERED ORCHESTRATION IS HERE
+              <Typography 
+                variant="subtitle2" 
+                className="glass-card"
+                sx={{ 
+                  px: 3, 
+                  py: 1, 
+                  borderRadius: 10,
+                  mb: 4,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  letterSpacing: '0.15em',
+                  color: '#fff'
+                }}
+              >
+                <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#00F5FF' }} />
+                NEXT-GEN AI ORCHESTRATION
+              </Typography>
+            </motion.div>
+            
+            <Typography variant="h1" className="text-gradient">
+              The Architecture of <br />
+              <Box component="span" className="accent-gradient">Digital Intelligence.</Box>
             </Typography>
-          </motion.div>
-          
-          <Typography variant="h1">
-            Redefining the <Box component="span" sx={{ color: '#00F5FF' }}>Ecosystem</Box> <br />
-            of Intelligent Tools.
-          </Typography>
-          
-          <Typography variant="subtitle1" sx={{ maxWidth: 700 }}>
-            Kylrix is a unified suite of ultra-secure applications designed for the modern creator. 
-            Experience zero-knowledge privacy and seamless AI intelligence across your entire workflow.
-          </Typography>
+            
+            <Typography variant="subtitle1" sx={{ maxWidth: 700, opacity: 0.7 }}>
+              A premium suite of secure, AI-driven applications engineered for those 
+              who demand absolute privacy and maximum productivity.
+            </Typography>
 
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ pt: 4 }}>
-            <Button size="large" variant="contained">Explore the Suite</Button>
-            <Button size="large" variant="outlined" startIcon={<Download size={20} />}>Download Clients</Button>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} sx={{ pt: 6 }}>
+              <Button size="large" variant="contained" endIcon={<ArrowRight size={20} />} sx={{ px: 5, py: 2 }}>Get Started Free</Button>
+              <Button size="large" variant="outlined" sx={{ px: 5, py: 2 }}>Ecosystem Docs</Button>
+            </Stack>
           </Stack>
-        </Stack>
+        </motion.div>
       </Container>
 
-      {/* Flagship Products Grid */}
-      <Box sx={{ py: 15, background: 'rgba(5,5,5,0.5)' }}>
+      {/* Product Showcase */}
+      <Box sx={{ py: 20, position: 'relative' }}>
         <Container maxWidth="xl">
-          <Stack spacing={1} mb={8} textAlign="center">
-            <Typography variant="subtitle2">THE FLAGSHIPS</Typography>
-            <Typography variant="h2">Engineered for Excellence.</Typography>
+          <Stack spacing={1} mb={12} textAlign="center">
+            <Typography variant="subtitle2" className="accent-gradient">THE FLAGSHIPS</Typography>
+            <Typography variant="h2" className="text-gradient">Engineered for absolute performance.</Typography>
           </Stack>
 
           <Grid container spacing={4}>
-            {[
-              { name: 'Flow', icon: LayoutDashboard, color: '#00F5FF' },
-              { name: 'Connect', icon: MessageSquare, color: '#A855F7' },
-              { name: 'Vault', icon: Lock, color: '#F43F5E' },
-              { name: 'Note', icon: StickyNote, color: '#F59E0B' },
-              { name: 'CLI', icon: Terminal, color: '#10B981' },
-              { name: 'Accounts', icon: ShieldCheck, color: '#6366F1' },
-            ].map((app) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={app.name}>
-                <LiveAppWidget {...app} />
+            {apps.map((app) => (
+              <Grid size={{ xs: 12, md: 4 }} key={app.name}>
+                <LivingWidget app={app} />
               </Grid>
             ))}
           </Grid>
         </Container>
       </Box>
 
-      {/* Tech Stack / Stats */}
-      <Container maxWidth="lg" sx={{ py: 20 }}>
-        <Grid container spacing={8} alignItems="center">
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Typography variant="h2" gutterBottom>Built for the <br />High-Speed Web.</Typography>
-            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.6)', mb: 4 }}>
-              Leveraging Next.js, Material UI, and Appwrite to deliver a desktop-grade experience in the browser. 
-              Our zero-knowledge architecture ensures that your data belongs exclusively to you.
-            </Typography>
-            <Stack spacing={3}>
-              {[
-                { icon: ShieldCheck, title: 'Zero-Knowledge Security', desc: 'AES-256-GCM encryption on the client-side.' },
-                { icon: Zap, title: 'Instant Synchronization', desc: 'Real-time state updates across all your devices.' },
-                { icon: Cpu, title: 'AI Orchestration', desc: 'Smart context-aware features that learn with you.' },
-              ].map((feature, i) => (
-                <Stack key={i} direction="row" spacing={3} alignItems="flex-start">
-                  <Box sx={{ p: 1, borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#00F5FF' }}>
-                    <feature.icon size={20} />
-                  </Box>
+      {/* Deep Tech Section */}
+      <Box sx={{ py: 20, background: 'linear-gradient(180deg, transparent 0%, rgba(0, 245, 255, 0.03) 100%)' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={12} alignItems="center">
+            <Grid size={{ xs: 12, md: 6 }}>
+               <Stack spacing={4}>
                   <Box>
-                    <Typography variant="h4" sx={{ fontSize: '1.1rem', mb: 0.5 }}>{feature.title}</Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.7 }}>{feature.desc}</Typography>
+                    <Typography variant="subtitle2" sx={{ color: '#00F5FF', mb: 1 }}>INFRASTRUCTURE</Typography>
+                    <Typography variant="h2" className="text-gradient">Ultra-Standard Backend.</Typography>
                   </Box>
-                </Stack>
-              ))}
-            </Stack>
+                  <Typography variant="body1" sx={{ opacity: 0.6 }}>
+                    Every Kylrix app is powered by our high-performance infrastructure layer. 
+                    From real-time synchronization with Appwrite to client-side encryption, 
+                    we leave no room for compromise.
+                  </Typography>
+                  
+                  <Stack spacing={3}>
+                    {[
+                      { icon: Fingerprint, title: 'Zero-Knowledge Privacy', desc: 'Your data is encrypted before it ever leaves your device.' },
+                      { icon: Layers, title: 'Modular Architecture', desc: 'Plug-and-play components across the entire ecosystem.' },
+                      { icon: Cpu, title: 'Edge Intelligence', desc: 'Local AI processing for lightning-fast responsiveness.' }
+                    ].map((f, i) => (
+                      <motion.div key={i} whileHover={{ x: 10 }}>
+                        <Stack direction="row" spacing={3}>
+                          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', color: '#00F5FF' }}>
+                            <f.icon size={24} />
+                          </Box>
+                          <Box>
+                            <Typography variant="h4" sx={{ fontSize: '1.2rem', mb: 0.5 }}>{f.title}</Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.5 }}>{f.desc}</Typography>
+                          </Box>
+                        </Stack>
+                      </motion.div>
+                    ))}
+                  </Stack>
+               </Stack>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+               <motion.div
+                 initial={{ rotateY: 20, rotateX: 10 }}
+                 whileInView={{ rotateY: 0, rotateX: 0 }}
+                 transition={{ duration: 1 }}
+               >
+                  <Paper className="glass-card" sx={{ p: 4, height: 500, display: 'flex', flexDirection: 'column', justifyContent: 'center', border: '1px solid rgba(0, 245, 255, 0.2)' }}>
+                     <Stack spacing={4}>
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                           <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FF5F56' }} />
+                           <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FFBD2E' }} />
+                           <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#27C93F' }} />
+                        </Box>
+                        <Box sx={{ p: 3, bgcolor: 'rgba(0,0,0,0.5)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.05)', fontFamily: 'var(--font-mono)' }}>
+                           <Typography variant="caption" sx={{ color: '#00F5FF', display: 'block', mb: 1 }}>// ecosystem.config.ts</Typography>
+                           <Typography variant="caption" sx={{ color: '#F2F2F2', display: 'block' }}>
+                             export const KYLRIX_STREAMS = &#123;<br />
+                             &nbsp;&nbsp;encryption: &quot;AES-256-GCM&quot;,<br />
+                             &nbsp;&nbsp;orchestration: &quot;KylrixFlow-v2&quot;,<br />
+                             &nbsp;&nbsp;auth: &quot;WebAuthn&quot;,<br />
+                             &nbsp;&nbsp;latency: &quot;&lt; 20ms&quot;<br />
+                             &#125;;
+                           </Typography>
+                        </Box>
+                        <Stack direction="row" spacing={2}>
+                           <Avatar sx={{ bgcolor: 'rgba(0,245,255,0.1)', border: '1px solid rgba(0,245,255,0.2)' }}>AI</Avatar>
+                           <Box sx={{ flex: 1, p: 2, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '0 16px 16px 16px' }}>
+                              <Typography variant="caption" sx={{ opacity: 0.6 }}>The architecture is optimized for real-time secure streams.</Typography>
+                           </Box>
+                        </Stack>
+                     </Stack>
+                  </Paper>
+               </motion.div>
+            </Grid>
           </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-             <motion.div style={{ y: y1 }}>
-                <Paper 
-                  sx={{ 
-                    p: 1, 
-                    borderRadius: 4, 
-                    overflow: 'hidden',
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%)',
-                    border: '1px solid rgba(255,255,255,0.1)'
-                  }}
-                >
-                  <Box 
-                    sx={{ 
-                      aspectRatio: '16/10', 
-                      background: '#000', 
-                      borderRadius: 3,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative'
-                    }}
-                  >
-                    <Typography 
-                      variant="h1" 
-                      sx={{ 
-                        fontSize: '8rem', 
-                        opacity: 0.05, 
-                        position: 'absolute',
-                        fontWeight: 900
-                      }}
-                    >
-                      K
-                    </Typography>
-                    <Stack spacing={2} sx={{ width: '80%', zIndex: 1 }}>
-                       <Box sx={{ height: 12, width: '60%', background: 'rgba(255,255,255,0.1)', borderRadius: 6 }} />
-                       <Box sx={{ height: 12, width: '40%', background: 'rgba(255,255,255,0.05)', borderRadius: 6 }} />
-                       <Box sx={{ height: 12, width: '90%', background: 'rgba(255,255,255,0.1)', borderRadius: 6 }} />
-                       <Box sx={{ height: 80, width: '100%', background: 'rgba(0, 245, 255, 0.1)', borderRadius: 3, mt: 4, border: '1px solid rgba(0, 245, 255, 0.2)' }} />
-                    </Stack>
-                  </Box>
-                </Paper>
-             </motion.div>
-          </Grid>
-        </Grid>
-      </Container>
+        </Container>
+      </Box>
 
       {/* Footer */}
-      <Box sx={{ py: 10, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <Container maxWidth="lg">
-           <Grid container spacing={8}>
-              <Grid size={{ xs: 12, md: 4 }}>
-                 <Typography variant="h4" sx={{ fontWeight: 900, mb: 2 }}>KYLRIX</Typography>
-                 <Typography variant="body2" sx={{ opacity: 0.5 }}>The future of AI-powered secure productivity. Built with precision for the modern web.</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 8 }}>
-                 <Grid container spacing={4}>
-                    {['Product', 'Resources', 'Legal', 'Social'].map((cat) => (
-                      <Grid size={{ xs: 6, sm: 3 }} key={cat}>
-                        <Typography variant="subtitle2" sx={{ mb: 2, color: '#fff' }}>{cat}</Typography>
-                        <Stack spacing={1}>
-                          <Typography variant="caption" sx={{ cursor: 'pointer', '&:hover': { color: '#00F5FF' } }}>Link One</Typography>
-                          <Typography variant="caption" sx={{ cursor: 'pointer', '&:hover': { color: '#00F5FF' } }}>Link Two</Typography>
-                          <Typography variant="caption" sx={{ cursor: 'pointer', '&:hover': { color: '#00F5FF' } }}>Link Three</Typography>
+      <Box sx={{ py: 15, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+         <Container maxWidth="lg">
+            <Stack spacing={8}>
+               <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={4}>
+                  <Box sx={{ maxWidth: 300 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 900, mb: 3 }}>KYLRIX</Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.4 }}>The future of AI-powered secure productivity. Engineered for precision.</Typography>
+                  </Box>
+                  <Grid container spacing={8}>
+                    {['Product', 'Company', 'Social'].map(cat => (
+                      <Grid size={{ xs: 6, sm: 4 }} key={cat}>
+                        <Typography variant="subtitle2" sx={{ mb: 3, color: '#fff' }}>{cat}</Typography>
+                        <Stack spacing={1.5}>
+                          {['Feature One', 'Feature Two', 'Feature Three'].map(link => (
+                            <Typography key={link} variant="caption" sx={{ opacity: 0.5, '&:hover': { color: '#00F5FF', opacity: 1 }, cursor: 'pointer' }}>{link}</Typography>
+                          ))}
                         </Stack>
                       </Grid>
                     ))}
-                 </Grid>
-              </Grid>
-           </Grid>
-           <Typography variant="caption" sx={{ display: 'block', mt: 10, opacity: 0.3, textAlign: 'center' }}>
-             © 2026 Kylrix Ecosystem. All rights reserved.
-           </Typography>
-        </Container>
+                  </Grid>
+               </Stack>
+               <Typography variant="caption" sx={{ opacity: 0.2, textAlign: 'center' }}>© 2026 Kylrix Organization. All rights reserved.</Typography>
+            </Stack>
+         </Container>
       </Box>
     </Box>
   );
