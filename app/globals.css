@@ -31,6 +31,7 @@ a {
 }
 
 /* Smooth gradients for background depth */
+/* The Kylrix Creamy Atmospheric Suite */
 .bg-mesh {
   position: fixed;
   top: 0;
@@ -39,9 +40,64 @@ a {
   height: 100%;
   z-index: -1;
   background: 
-    radial-gradient(circle at 0% 0%, rgba(0, 245, 255, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 100% 100%, rgba(0, 245, 255, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 1) 0%, rgba(5, 5, 5, 1) 100%);
+    radial-gradient(circle at 20% 20%, rgba(0, 245, 255, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, #050505 0%, #000000 100%);
+}
+
+/* Premium Grain Overlay */
+.bg-mesh::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.03;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Ffilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Light Leak Animations */
+@keyframes leak {
+  0%, 100% { opacity: 0.3; transform: translate(0, 0) scale(1); }
+  50% { opacity: 0.6; transform: translate(10%, -10%) scale(1.1); }
+}
+
+.light-leak {
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, rgba(0, 245, 255, 0.1) 0%, transparent 70%);
+  filter: blur(100px);
+  pointer-events: none;
+  z-index: -1;
+  animation: leak 15s ease-in-out infinite;
+}
+
+/* Ultra-smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+.glass-card {
+  background: rgba(10, 10, 10, 0.4) !important;
+  backdrop-filter: blur(30px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8) !important;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #FFFFFF 0%, #A1A1AA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.accent-gradient {
+  background: linear-gradient(90deg, #00F5FF 0%, #A855F7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 @keyframes float {
