@@ -7,7 +7,7 @@ import {
   Typography, 
   Button, 
   Stack, 
-  Grid2 as Grid, 
+  Grid, 
   Paper,
   alpha,
   useTheme,
