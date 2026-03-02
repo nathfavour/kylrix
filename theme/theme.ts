@@ -6,64 +6,65 @@ const getDesignTokens = (): ThemeOptions => ({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#00F5FF', // Electric Teal
+      main: '#F2F2F2', // Titanium
       contrastText: '#000000',
     },
     secondary: {
-      main: '#F2F2F2', // Titanium
+      main: '#A1A1AA', // Zinc/Steel
     },
     background: {
-      default: '#000000', // The Void
-      paper: '#0A0A0A',   // The Surface
+      default: '#000000', // Deep Black
+      paper: '#0A0A0A',   // Surface
     },
     text: {
       primary: '#F2F2F2',   // Titanium
-      secondary: '#A1A1AA', // Gunmetal
-      disabled: '#404040',  // Carbon
+      secondary: '#A1A1AA', // Zinc
+      disabled: '#404040',
     },
-    divider: 'rgba(255, 255, 255, 0.08)', // Subtle Border
+    divider: 'rgba(255, 255, 255, 0.05)',
   },
   typography: {
     fontFamily: 'var(--font-satoshi), "Satoshi", sans-serif',
     h1: {
       fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
-      fontSize: '4.5rem',
-      fontWeight: 900,
-      letterSpacing: '-0.05em',
-      lineHeight: 1.1,
+      fontSize: '5rem',
+      fontWeight: 700,
+      letterSpacing: '-0.04em',
+      lineHeight: 1.05,
       color: '#F2F2F2',
     },
     h2: {
       fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
-      fontSize: '3.5rem',
-      fontWeight: 900,
-      letterSpacing: '-0.04em',
-      lineHeight: 1.2,
+      fontSize: '3.75rem',
+      fontWeight: 700,
+      letterSpacing: '-0.03em',
+      lineHeight: 1.1,
     },
     h3: {
       fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
       fontSize: '2.5rem',
-      fontWeight: 900,
-      letterSpacing: '-0.03em',
+      fontWeight: 600,
+      letterSpacing: '-0.02em',
     },
     h4: {
       fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
-      fontSize: '1.75rem',
-      fontWeight: 800,
+      fontSize: '1.5rem',
+      fontWeight: 600,
+      letterSpacing: '-0.01em',
     },
     subtitle1: {
       fontSize: '1.25rem',
-      fontWeight: 500,
-      letterSpacing: '-0.01em',
-      lineHeight: 1.5,
+      fontWeight: 400,
+      lineHeight: 1.6,
       color: '#A1A1AA',
     },
     subtitle2: {
-      fontSize: '0.875rem',
+      fontSize: '0.75rem',
       fontWeight: 700,
       textTransform: 'uppercase',
-      letterSpacing: '0.1em',
-      color: '#00F5FF',
+      letterSpacing: '0.2em',
+      color: '#F2F2F2',
+      opacity: 0.6,
     },
     body1: {
       fontSize: '1.125rem',
@@ -116,34 +117,30 @@ const getDesignTokens = (): ThemeOptions => ({
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: '14px',
-          padding: '12px 28px',
-          fontSize: '1rem',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          borderRadius: '12px',
+          padding: '12px 32px',
+          fontSize: '0.9rem',
+          transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
           textTransform: 'none',
           '&:hover': {
-            transform: 'translateY(-2px)',
-          },
-          '&:active': {
-            transform: 'scale(0.98)',
+            transform: 'translateY(-1px)',
           },
         },
         containedPrimary: {
-          backgroundColor: '#00F5FF',
+          backgroundColor: '#F2F2F2',
           color: '#000000',
-          boxShadow: '0 0 0 rgba(0, 245, 255, 0)',
+          boxShadow: 'none',
           '&:hover': {
-            backgroundColor: '#00E5EE',
-            boxShadow: '0 0 30px rgba(0, 245, 255, 0.4)',
+            backgroundColor: '#FFFFFF',
+            boxShadow: '0 0 40px rgba(255, 255, 255, 0.1)',
           },
         },
         outlined: {
-          borderColor: 'rgba(255, 255, 255, 0.1)',
+          borderColor: 'rgba(255, 255, 255, 0.15)',
           color: '#F2F2F2',
-          backdropFilter: 'blur(10px)',
           '&:hover': {
             backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            borderColor: 'rgba(255, 255, 255, 0.3)',
+            borderColor: 'rgba(255, 255, 255, 0.4)',
           },
         },
       },
@@ -151,11 +148,11 @@ const getDesignTokens = (): ThemeOptions => ({
     MuiPaper: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(10, 10, 10, 0.7)',
-          backdropFilter: 'blur(30px) saturate(180%)',
+          backgroundColor: 'rgba(12, 12, 12, 0.6)',
+          backdropFilter: 'blur(40px) saturate(120%)',
           backgroundImage: 'none',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
-          borderRadius: 24,
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: 20,
         },
       },
     },
