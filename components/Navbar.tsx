@@ -20,6 +20,8 @@ import {
 import NextLink from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import Logo from './Logo';
+
 export const Navbar = () => {
   const pathname = usePathname();
 
@@ -53,47 +55,16 @@ export const Navbar = () => {
           }}
         >
           {/* Brand Logo & Name */}
-          <Box 
-            component={NextLink} 
-            href="/" 
+          <Logo 
+            size={36} 
             sx={{ 
-              textDecoration: 'none', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 2,
-              mr: 4
-            }}
-          >
-            <Box
-              sx={{ 
-                width: 36, 
-                height: 36, 
-                bgcolor: '#00F5FF', 
-                borderRadius: '10px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                color: '#000',
-                fontWeight: 900,
-                fontSize: '1.4rem',
-                boxShadow: '0 0 20px rgba(0, 245, 255, 0.3)'
-              }}
-            >
-              K
-            </Box>
-            <Typography 
-              variant="h5" 
-              sx={{ 
-                fontWeight: 900, 
-                letterSpacing: '-0.04em', 
-                color: '#fff',
-                fontSize: { xs: '1.25rem', md: '1.5rem' },
-                textTransform: 'uppercase'
-              }}
-            >
-              KYLRIX
-            </Typography>
-          </Box>
+              textDecoration: 'none',
+              mr: 4,
+              '&:hover': { opacity: 0.8 }
+            }} 
+            component={NextLink}
+            href="/"
+          />
           
           {/* Desktop Navigation */}
           <Stack 
