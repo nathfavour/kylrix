@@ -44,7 +44,6 @@ const ProductCard = ({ app }: any) => {
         sx={{ 
           textDecoration: 'none',
           color: 'inherit',
-          display: 'block',
           p: { xs: 4, md: 6 }, 
           height: '100%',
           display: 'flex', 

@@ -425,7 +425,7 @@ export const Navbar = () => {
                           primary={subItem.label} 
                           primaryTypographyProps={{ fontWeight: 700, fontSize: '0.9rem', color: 'white' }}
                           secondary={subItem.desc}
-                          secondaryTypographyProps={{ fontSize: '0.7rem', opacity: 0.5, color: 'white' }}
+                          secondaryTypographyProps={{ fontSize: '0.7rem', color: 'white', sx: { opacity: 0.5 } }}
                         />
                       </ListItemButton>
                     ))}
