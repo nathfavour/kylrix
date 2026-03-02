@@ -6,11 +6,11 @@ const getDesignTokens = (): ThemeOptions => ({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#F2F2F2', // Titanium
+      main: '#00F5FF', // Brand Electric Teal
       contrastText: '#000000',
     },
     secondary: {
-      main: '#A1A1AA', // Zinc/Steel
+      main: '#F2F2F2', // Titanium
     },
     background: {
       default: '#000000', // Deep Black
@@ -21,95 +21,80 @@ const getDesignTokens = (): ThemeOptions => ({
       secondary: '#A1A1AA', // Zinc
       disabled: '#404040',
     },
-    divider: 'rgba(255, 255, 255, 0.05)',
+    divider: 'rgba(255, 255, 255, 0.08)',
   },
   typography: {
     fontFamily: 'var(--font-satoshi), "Satoshi", sans-serif',
     h1: {
       fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
-      fontSize: '5rem',
-      fontWeight: 700,
-      letterSpacing: '-0.04em',
+      fontSize: 'clamp(3rem, 10vw, 5.5rem)',
+      fontWeight: 900,
+      letterSpacing: '-0.05em',
       lineHeight: 1.05,
       color: '#F2F2F2',
     },
     h2: {
       fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
-      fontSize: '3.75rem',
-      fontWeight: 700,
-      letterSpacing: '-0.03em',
+      fontSize: 'clamp(2.5rem, 8vw, 4rem)',
+      fontWeight: 900,
+      letterSpacing: '-0.04em',
       lineHeight: 1.1,
     },
     h3: {
       fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
-      fontSize: '2.5rem',
-      fontWeight: 600,
-      letterSpacing: '-0.02em',
+      fontSize: 'clamp(2rem, 6vw, 2.5rem)',
+      fontWeight: 800,
+      letterSpacing: '-0.03em',
+      lineHeight: 1.2,
     },
     h4: {
       fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
-      fontSize: '1.5rem',
-      fontWeight: 600,
-      letterSpacing: '-0.01em',
+      fontSize: '1.75rem',
+      fontWeight: 800,
+      letterSpacing: '-0.02em',
     },
     subtitle1: {
       fontSize: '1.25rem',
-      fontWeight: 400,
+      fontWeight: 500,
       lineHeight: 1.6,
       color: '#A1A1AA',
     },
     subtitle2: {
-      fontSize: '0.75rem',
+      fontSize: '0.875rem',
       fontWeight: 700,
       textTransform: 'uppercase',
       letterSpacing: '0.2em',
-      color: '#F2F2F2',
-      opacity: 0.6,
+      color: '#00F5FF',
     },
     body1: {
       fontSize: '1.125rem',
       fontWeight: 400,
-      lineHeight: 1.6,
+      lineHeight: 1.7,
     },
     body2: {
       fontSize: '1rem',
       fontWeight: 400,
       color: '#A1A1AA',
+      lineHeight: 1.6,
     },
     button: {
       fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
       textTransform: 'none',
       fontWeight: 700,
-      letterSpacing: '0.02em',
-    },
+    }
   },
   shape: {
-    borderRadius: 20,
+    borderRadius: 16,
   },
-  shadows: Array(25).fill('none') as any,
   components: {
-    MuiCssBaseline: {
+    MuiContainer: {
       styleOverrides: {
-        body: {
-          backgroundColor: '#000000',
-          color: '#F2F2F2',
-          fontFamily: 'var(--font-satoshi), "Satoshi", sans-serif',
-          scrollbarColor: '#222222 transparent',
-          overflowX: 'hidden',
-          '&::-webkit-scrollbar, & *::-webkit-scrollbar': {
-            width: 8,
-            height: 8,
-          },
-          '&::-webkit-scrollbar-track, & *::-webkit-scrollbar-track': {
-            backgroundColor: 'transparent',
-          },
-          '&::-webkit-scrollbar-thumb, & *::-webkit-scrollbar-thumb': {
-            borderRadius: 12,
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            border: '2px solid #000000',
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            },
+        root: {
+          paddingLeft: '24px',
+          paddingRight: '24px',
+          '@media (min-width: 900px)': {
+            paddingLeft: '64px',
+            paddingRight: '64px',
           },
         },
       },
@@ -118,29 +103,27 @@ const getDesignTokens = (): ThemeOptions => ({
       styleOverrides: {
         root: {
           borderRadius: '12px',
-          padding: '12px 32px',
-          fontSize: '0.9rem',
-          transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-          textTransform: 'none',
+          padding: '12px 28px',
+          fontSize: '1rem',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            transform: 'translateY(-1px)',
+            transform: 'translateY(-2px)',
           },
         },
         containedPrimary: {
-          backgroundColor: '#F2F2F2',
+          backgroundColor: '#00F5FF',
           color: '#000000',
-          boxShadow: 'none',
           '&:hover': {
-            backgroundColor: '#FFFFFF',
-            boxShadow: '0 0 40px rgba(255, 255, 255, 0.1)',
+            backgroundColor: '#00E5EE',
+            boxShadow: '0 0 30px rgba(0, 245, 255, 0.4)',
           },
         },
         outlined: {
-          borderColor: 'rgba(255, 255, 255, 0.15)',
+          borderColor: 'rgba(255, 255, 255, 0.1)',
           color: '#F2F2F2',
           '&:hover': {
             backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            borderColor: 'rgba(255, 255, 255, 0.4)',
+            borderColor: 'rgba(255, 255, 255, 0.3)',
           },
         },
       },
@@ -148,11 +131,26 @@ const getDesignTokens = (): ThemeOptions => ({
     MuiPaper: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(12, 12, 12, 0.6)',
-          backdropFilter: 'blur(40px) saturate(120%)',
+          backgroundColor: 'rgba(10, 10, 10, 0.8)',
+          backdropFilter: 'blur(30px) saturate(180%)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: 24,
           backgroundImage: 'none',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: 20,
+        },
+      },
+    },
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          backgroundColor: '#000000',
+          color: '#F2F2F2',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: '#222',
+            borderRadius: '10px',
+          },
         },
       },
     },

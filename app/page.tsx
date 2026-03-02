@@ -9,13 +9,13 @@ import {
   Stack, 
   Grid, 
   alpha,
-  IconButton
+  Divider,
+  AppBar,
+  Toolbar
 } from '@mui/material';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { 
   ShieldCheck, 
-  Zap, 
-  Cpu, 
   ChevronRight, 
   ArrowRight,
   LayoutDashboard,
@@ -23,29 +23,33 @@ import {
   Lock,
   StickyNote,
   Terminal,
-  Activity,
   Layers,
-  Fingerprint
+  Fingerprint,
+  Cpu
 } from 'lucide-react';
 import Link from 'next/link';
 
 const Navbar = () => {
   return (
-    <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, borderBottom: '1px solid rgba(255,255,255,0.05)', bgcolor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(20px)' }}>
-      <Container maxWidth="lg">
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ height: 80 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: '-0.02em' }}>KYLRIX</Typography>
+    <AppBar position="fixed" sx={{ bgcolor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(30px)', boxShadow: 'none', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+      <Container maxWidth="xl">
+        <Toolbar disableGutters sx={{ height: { xs: 80, md: 100 }, justifyContent: 'space-between' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: '-0.05em', color: '#fff' }}>KYLRIX</Typography>
+          </Link>
           
-          <Stack direction="row" spacing={4} sx={{ display: { xs: 'none', md: 'flex' } }}>
+          <Stack direction="row" spacing={6} sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
             {['Products', 'Developers', 'Docs', 'Downloads'].map((item) => (
               <Link key={item} href={`/${item.toLowerCase()}`}>
                 <Typography 
                   variant="body2" 
                   sx={{ 
-                    fontWeight: 500, 
-                    opacity: 0.6,
-                    '&:hover': { opacity: 1 },
-                    transition: 'opacity 0.2s'
+                    fontWeight: 700, 
+                    opacity: 0.5,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    transition: 'all 0.3s',
+                    '&:hover': { opacity: 1, color: '#00F5FF' }
                   }}
                 >
                   {item}
@@ -54,53 +58,55 @@ const Navbar = () => {
             ))}
           </Stack>
 
-          <Button variant="outlined" size="small" sx={{ borderRadius: 8 }}>Launch Console</Button>
-        </Stack>
+          <Stack direction="row" spacing={2}>
+            <Button variant="contained" color="primary" sx={{ borderRadius: 100, px: 4 }}>
+              Launch Console
+            </Button>
+          </Stack>
+        </Toolbar>
       </Container>
-    </Box>
+    </AppBar>
   );
 };
 
-const ProductCard = ({ app }: any) => {
-  return (
-    <motion.div
-      whileHover={{ y: -8 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+const ProductCard = ({ app }: any) => (
+  <motion.div whileHover={{ y: -12 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
+    <Box 
+      sx={{ 
+        p: { xs: 5, md: 6 }, 
+        height: '100%',
+        display: 'flex', 
+        flexDirection: 'column',
+        gap: 4,
+        background: 'rgba(10, 10, 10, 0.8)',
+        backdropFilter: 'blur(30px) saturate(180%)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 8,
+        transition: 'all 0.4s',
+        '&:hover': { borderColor: 'rgba(0, 245, 255, 0.3)', background: 'rgba(15, 15, 15, 0.9)' }
+      }}
     >
-      <Box 
-        className="glass-card"
-        sx={{ 
-          p: 4, 
-          height: '100%',
-          display: 'flex', 
-          flexDirection: 'column',
-          gap: 3,
-          transition: 'border-color 0.3s',
-          '&:hover': { borderColor: 'rgba(255,255,255,0.2) !important' }
-        }}
-      >
-        <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <app.icon size={24} strokeWidth={1.5} />
-        </Box>
-        
-        <Box>
-          <Typography variant="h4" sx={{ mb: 1.5 }}>{app.name}</Typography>
-          <Typography variant="body2" sx={{ lineHeight: 1.6, opacity: 0.5 }}>{app.desc}</Typography>
-        </Box>
-
-        <Box sx={{ mt: 'auto', pt: 2 }}>
-           <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 1, opacity: 0.4, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-             Explore <ChevronRight size={14} />
-           </Typography>
-        </Box>
+      <Box sx={{ width: 64, height: 64, borderRadius: 3, bgcolor: 'rgba(0, 245, 255, 0.05)', border: '1px solid rgba(0, 245, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#00F5FF' }}>
+        <app.icon size={32} strokeWidth={1.5} />
       </Box>
-    </motion.div>
-  );
-};
+      
+      <Box>
+        <Typography variant="h3" sx={{ mb: 2 }}>{app.name}</Typography>
+        <Typography variant="body1" sx={{ opacity: 0.5, lineHeight: 1.8 }}>{app.desc}</Typography>
+      </Box>
+
+      <Box sx={{ mt: 'auto', pt: 4 }}>
+         <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#00F5FF', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+           Explore {app.name} <ChevronRight size={14} />
+         </Typography>
+      </Box>
+    </Box>
+  </motion.div>
+);
 
 export default function LandingPage() {
   const { scrollYProgress } = useScroll();
-  const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+  const opacity = useTransform(scrollYProgress, [0, 0.1], [1, 0]);
 
   const apps = [
     { name: 'Flow', icon: LayoutDashboard, desc: 'Advanced AI orchestration for high-fidelity task management and event-driven workflows.' },
@@ -112,59 +118,58 @@ export default function LandingPage() {
   ];
 
   return (
-    <Box component="main">
+    <Box component="main" sx={{ pt: 12 }}>
       <Navbar />
-      <div className="light-leak" style={{ top: '10%', left: '-10%' }} />
-      <div className="light-leak" style={{ bottom: '10%', right: '-10%', animationDelay: '-5s' }} />
-
+      <div className="bg-mesh" />
+      
       {/* Hero Section */}
-      <Container maxWidth="lg">
+      <Container maxWidth="xl">
         <motion.div style={{ opacity }}>
-          <Stack spacing={4} alignItems="center" textAlign="center" sx={{ pt: 30, pb: 20 }}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            >
+          <Stack spacing={8} alignItems="center" textAlign="center" sx={{ pt: { xs: 15, md: 25 }, pb: { xs: 15, md: 30 } }}>
+            <Box>
               <Typography 
                 variant="subtitle2" 
                 sx={{ 
-                  mb: 4,
-                  opacity: 0.5,
-                  letterSpacing: '0.3em'
+                  mb: 6,
+                  color: '#00F5FF',
+                  letterSpacing: '0.4em',
+                  fontWeight: 900,
+                  textTransform: 'uppercase'
                 }}
               >
-                EST. 2026 — KYLRIX ORGANIZATION
+                The Future of Secure Productivity
               </Typography>
-            </motion.div>
-            
-            <Typography variant="h1" className="text-gradient">
-              The Architecture <br />
-              of Intelligence.
-            </Typography>
-            
-            <Typography variant="subtitle1" sx={{ maxWidth: 650, mb: 4 }}>
-              A premium ecosystem of secure, AI-driven applications engineered 
-              for precision, privacy, and absolute performance.
-            </Typography>
+              <Typography variant="h1" sx={{ mb: 6, fontWeight: 900 }}>
+                The Architecture <br /> 
+                of <Box component="span" sx={{ color: '#00F5FF' }}>Intelligence.</Box>
+              </Typography>
+              <Typography variant="subtitle1" sx={{ maxWidth: 850, mx: 'auto', opacity: 0.6, fontSize: '1.4rem' }}>
+                A premium ecosystem of secure, AI-driven applications engineered 
+                for absolute performance, privacy, and precision.
+              </Typography>
+            </Box>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ pt: 4 }}>
-              <Button size="large" variant="contained">Get Started</Button>
-              <Button size="large" variant="outlined">Documentation</Button>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={4}>
+              <Button size="large" variant="contained" color="primary" sx={{ px: 6, py: 2.5, fontSize: '1.1rem' }}>
+                Get Started Free
+              </Button>
+              <Button size="large" variant="outlined" sx={{ px: 6, py: 2.5, fontSize: '1.1rem' }}>
+                System Documentation
+              </Button>
             </Stack>
           </Stack>
         </motion.div>
       </Container>
 
-      {/* Product Grid */}
-      <Box sx={{ py: 20, borderTop: '1px solid rgba(255,255,255,0.05)', bgcolor: 'rgba(255,255,255,0.01)' }}>
-        <Container maxWidth="lg">
-          <Stack spacing={2} mb={10} textAlign="left">
-            <Typography variant="subtitle2">The Ecosystem</Typography>
-            <Typography variant="h2" sx={{ maxWidth: 800 }}>Precision-engineered software for the modern era.</Typography>
+      {/* Flagships Grid */}
+      <Box sx={{ py: { xs: 20, md: 30 }, borderTop: '1px solid rgba(255,255,255,0.05)', bgcolor: 'rgba(255,255,255,0.01)' }}>
+        <Container maxWidth="xl">
+          <Stack spacing={4} mb={15} textAlign="center">
+            <Typography variant="subtitle2" sx={{ color: '#00F5FF' }}>THE ECOSYSTEM</Typography>
+            <Typography variant="h2">Engineered without compromise.</Typography>
           </Stack>
 
-          <Grid container spacing={3}>
+          <Grid container spacing={4}>
             {apps.map((app) => (
               <Grid size={{ xs: 12, md: 4 }} key={app.name}>
                 <ProductCard app={app} />
@@ -174,33 +179,33 @@ export default function LandingPage() {
         </Container>
       </Box>
 
-      {/* Deep Tech / Infrastructure */}
-      <Box sx={{ py: 20 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={10} alignItems="center">
+      {/* Infrastructure Section */}
+      <Box sx={{ py: { xs: 20, md: 30 } }}>
+        <Container maxWidth="xl">
+          <Grid container spacing={15} alignItems="center">
             <Grid size={{ xs: 12, md: 6 }}>
-              <Stack spacing={4}>
+              <Stack spacing={10}>
                 <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 2 }}>Core Infrastructure</Typography>
-                  <Typography variant="h2" sx={{ mb: 3 }}>Secure by Design.</Typography>
-                  <Typography variant="body1" sx={{ opacity: 0.5, maxWidth: 500 }}>
-                    Our foundation is built on absolute privacy. Every byte is encrypted, every interaction is verified, and no data ever leaves your control without your explicit consent.
+                  <Typography variant="subtitle2" sx={{ mb: 4, color: '#00F5FF' }}>CORE INFRASTRUCTURE</Typography>
+                  <Typography variant="h2" sx={{ mb: 4 }}>Private. Local. <br />Professional.</Typography>
+                  <Typography variant="body1" sx={{ opacity: 0.5, maxWidth: 600, fontSize: '1.25rem' }}>
+                    Every Kylrix app is powered by a high-performance infrastructure layer built for zero-knowledge privacy and lightning-fast edge execution.
                   </Typography>
                 </Box>
                 
-                <Stack spacing={4}>
+                <Stack spacing={8}>
                   {[
-                    { icon: Fingerprint, title: 'Zero-Knowledge Privacy', desc: 'End-to-end encryption ensures your data remains yours alone.' },
-                    { icon: Layers, title: 'Modular Systems', desc: 'A deeply integrated suite that works together seamlessly.' },
-                    { icon: Cpu, title: 'Edge Performance', desc: 'Optimized for local processing to minimize latency.' }
+                    { icon: Fingerprint, title: 'Zero-Knowledge Privacy', desc: 'Your data is encrypted locally before it ever touches the network.' },
+                    { icon: Layers, title: 'Modular Systems', desc: 'Plug-and-play components that scale with your digital workflow.' },
+                    { icon: Cpu, title: 'Edge Intelligence', desc: 'Optimized local AI processing for minimum latency and maximum security.' }
                   ].map((f, i) => (
-                    <Stack key={i} direction="row" spacing={3}>
-                      <Box sx={{ color: 'primary.main', pt: 0.5 }}>
-                        <f.icon size={20} strokeWidth={1.5} />
+                    <Stack key={i} direction="row" spacing={5}>
+                      <Box sx={{ color: '#00F5FF', pt: 1 }}>
+                        <f.icon size={36} strokeWidth={1.5} />
                       </Box>
                       <Box>
-                        <Typography variant="h4" sx={{ mb: 1, fontSize: '1.2rem' }}>{f.title}</Typography>
-                        <Typography variant="body2" sx={{ opacity: 0.4 }}>{f.desc}</Typography>
+                        <Typography variant="h3" sx={{ mb: 2, fontSize: '2rem' }}>{f.title}</Typography>
+                        <Typography variant="body1" sx={{ opacity: 0.4 }}>{f.desc}</Typography>
                       </Box>
                     </Stack>
                   ))}
@@ -210,30 +215,34 @@ export default function LandingPage() {
             
             <Grid size={{ xs: 12, md: 6 }}>
               <Box 
-                className="glass-card" 
                 sx={{ 
-                  p: 6, 
-                  aspectRatio: '1/1', 
+                  p: { xs: 6, md: 10 }, 
+                  minHeight: 650, 
                   display: 'flex', 
                   flexDirection: 'column', 
                   justifyContent: 'center',
+                  bgcolor: 'rgba(5,5,5,0.6)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 12,
                   position: 'relative',
                   overflow: 'hidden'
                 }}
               >
-                <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, bgcolor: 'rgba(255,255,255,0.1)' }} />
-                <Stack spacing={4}>
-                  <Terminal size={48} strokeWidth={1} sx={{ opacity: 0.2 }} />
-                  <Typography variant="h3" sx={{ fontWeight: 400, fontFamily: 'var(--font-mono)', fontSize: '1.5rem', opacity: 0.8 }}>
-                    $ kylrix auth --secure<br />
-                    <Box component="span" sx={{ opacity: 0.4 }}>
+                <Stack spacing={8}>
+                  <Terminal size={80} strokeWidth={0.5} sx={{ opacity: 0.1, color: '#00F5FF' }} />
+                  <Typography variant="h2" sx={{ fontFamily: 'var(--font-mono)', fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 400, opacity: 0.9 }}>
+                    <Box component="span" sx={{ color: '#00F5FF' }}>$</Box> kylrix auth <br />
+                    <Box component="span" sx={{ opacity: 0.3 }}>
                       &gt; Initializing handshake...<br />
-                      &gt; P2P tunnel established.<br />
-                      &gt; Ready for secure orchestration.
+                      &gt; Secure Tunnel Established.<br />
+                      &gt; P2P Sync Active.
                     </Box>
                   </Typography>
+                  <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
                   <Link href="/developers">
-                    <Button variant="outlined" endIcon={<ArrowRight size={16} />}>Developer Console</Button>
+                    <Button size="large" variant="outlined" endIcon={<ArrowRight size={24} />} sx={{ px: 5, py: 2 }}>
+                      Developer Console
+                    </Button>
                   </Link>
                 </Stack>
               </Box>
@@ -243,31 +252,48 @@ export default function LandingPage() {
       </Box>
 
       {/* Footer */}
-      <Box sx={{ py: 10, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <Container maxWidth="lg">
-          <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={4}>
-            <Box>
-              <Typography variant="h4" sx={{ mb: 2 }}>KYLRIX</Typography>
-              <Typography variant="body2" sx={{ opacity: 0.4 }}>The future of AI-powered secure productivity.</Typography>
-            </Box>
-            
-            <Stack direction="row" spacing={8}>
-              <Stack spacing={2}>
-                <Typography variant="caption" sx={{ fontWeight: 700, opacity: 0.3, textTransform: 'uppercase' }}>Resources</Typography>
-                <Link href="/docs"><Typography variant="body2" sx={{ opacity: 0.5 }}>Documentation</Typography></Link>
-                <Link href="/developers"><Typography variant="body2" sx={{ opacity: 0.5 }}>Developers</Typography></Link>
-                <Link href="/downloads"><Typography variant="body2" sx={{ opacity: 0.5 }}>Downloads</Typography></Link>
-              </Stack>
-              <Stack spacing={2}>
-                <Typography variant="caption" sx={{ fontWeight: 700, opacity: 0.3, textTransform: 'uppercase' }}>Legal</Typography>
-                <Link href="/terms"><Typography variant="body2" sx={{ opacity: 0.5 }}>Terms</Typography></Link>
-                <Link href="/privacy"><Typography variant="body2" sx={{ opacity: 0.5 }}>Privacy</Typography></Link>
-              </Stack>
+      <Box sx={{ py: 15, borderTop: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(5,5,5,0.8)' }}>
+        <Container maxWidth="xl">
+          <Grid container spacing={10}>
+            <Grid size={{ xs: 12, md: 5 }}>
+              <Typography variant="h4" sx={{ mb: 4, fontWeight: 900 }}>KYLRIX</Typography>
+              <Typography variant="body1" sx={{ opacity: 0.4, maxWidth: 400 }}>
+                The future of AI-powered secure productivity. Precision engineered for the modern era of privacy and intelligence.
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 12, md: 7 }}>
+              <Grid container spacing={10} justifyContent="flex-end">
+                {[
+                  { title: 'Resources', links: ['Documentation', 'Developers', 'Downloads', 'Status'] },
+                  { title: 'Ecosystem', links: ['Vault', 'Flow', 'Connect', 'Note'] },
+                  { title: 'Company', links: ['About', 'Privacy', 'Terms', 'Contact'] }
+                ].map((col) => (
+                  <Grid size={{ xs: 6, sm: 4 }} key={col.title}>
+                    <Typography variant="subtitle2" sx={{ mb: 5, color: '#fff', opacity: 0.3, letterSpacing: '0.2em' }}>{col.title}</Typography>
+                    <Stack spacing={2.5}>
+                      {col.links.map(link => (
+                        <Link key={link} href={`/${link.toLowerCase()}`}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, opacity: 0.5, '&:hover': { opacity: 1, color: '#00F5FF' } }}>{link}</Typography>
+                        </Link>
+                      ))}
+                    </Stack>
+                  </Grid>
+                ))}
+              </Grid>
+            </Grid>
+          </Grid>
+          <Box sx={{ mt: 15, pt: 10, borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="caption" sx={{ opacity: 0.2 }}>
+              © 2026 Kylrix Organization. Built with absolute precision.
+            </Typography>
+            <Stack direction="row" spacing={4}>
+              {['Twitter', 'GitHub', 'Discord'].map(social => (
+                <Typography key={social} variant="caption" sx={{ opacity: 0.2, '&:hover': { opacity: 1, color: '#00F5FF' }, cursor: 'pointer' }}>
+                  {social}
+                </Typography>
+              ))}
             </Stack>
-          </Stack>
-          <Typography variant="caption" sx={{ mt: 10, display: 'block', opacity: 0.2 }}>
-            © 2026 Kylrix Organization. Built with precision.
-          </Typography>
+          </Box>
         </Container>
       </Box>
     </Box>
