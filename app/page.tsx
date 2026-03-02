@@ -23,87 +23,102 @@ import {
   Terminal,
   Layers,
   Fingerprint,
-  Cpu
+  Cpu,
+  Zap,
+  FileText,
+  Shield,
+  Waypoints
 } from 'lucide-react';
 import NextLink from 'next/link';
 import Navbar from '@/components/Navbar';
+import { ECOSYSTEM_APPS, getEcosystemUrl } from '@/lib/ecosystem';
 
-const ProductCard = ({ app }: any) => (
-  <motion.div whileHover={{ y: -12 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
-    <Box 
-      sx={{ 
-        p: { xs: 4, md: 6 }, 
-        height: '100%',
-        display: 'flex', 
-        flexDirection: 'column',
-        gap: 4,
-        background: 'rgba(10, 10, 10, 0.8)',
-        backdropFilter: 'blur(30px) saturate(180%)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 8,
-        transition: 'all 0.4s',
-        '&:hover': { 
-          borderColor: 'rgba(0, 245, 255, 0.4)', 
-          background: 'rgba(15, 15, 15, 0.95)',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
-        }
-      }}
-    >
+const ProductCard = ({ app }: any) => {
+  const renderIcon = (iconName: string, color: string) => {
+    const icons: Record<string, any> = {
+      'file-text': FileText,
+      'shield': Shield,
+      'zap': Zap,
+      'waypoints': Waypoints,
+      'fingerprint': Fingerprint,
+    };
+    const IconComp = icons[iconName] || Zap;
+    return <IconComp size={32} strokeWidth={1.5} color={color} />;
+  };
+
+  return (
+    <motion.div whileHover={{ y: -12 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
       <Box 
+        component="a"
+        href={getEcosystemUrl(app.subdomain)}
         sx={{ 
-          width: 64, 
-          height: 64, 
-          borderRadius: 3, 
-          bgcolor: 'rgba(0, 245, 255, 0.05)', 
-          border: '1px solid rgba(0, 245, 255, 0.1)', 
+          textDecoration: 'none',
+          color: 'inherit',
+          display: 'block',
+          p: { xs: 4, md: 6 }, 
+          height: '100%',
           display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          color: '#00F5FF' 
+          flexDirection: 'column',
+          gap: 4,
+          background: 'rgba(10, 10, 10, 0.8)',
+          backdropFilter: 'blur(30px) saturate(180%)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 8,
+          transition: 'all 0.4s',
+          '&:hover': { 
+            borderColor: alpha(app.color, 0.4), 
+            background: 'rgba(15, 15, 15, 0.95)',
+            boxShadow: `0 20px 40px ${alpha(app.color, 0.1)}`
+          }
         }}
       >
-        <app.icon size={32} strokeWidth={1.5} />
-      </Box>
-      
-      <Box>
-        <Typography variant="h3" sx={{ mb: 2, fontWeight: 900 }}>{app.name}</Typography>
-        <Typography variant="body1" sx={{ opacity: 0.5, lineHeight: 1.8 }}>{app.desc}</Typography>
-      </Box>
+        <Box 
+          sx={{ 
+            width: 64, 
+            height: 64, 
+            borderRadius: 3, 
+            bgcolor: alpha(app.color, 0.05), 
+            border: `1px solid ${alpha(app.color, 0.1)}`, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            color: app.color 
+          }}
+        >
+          {renderIcon(app.icon, app.color)}
+        </Box>
+        
+        <Box>
+          <Typography variant="h3" sx={{ mb: 2, fontWeight: 900 }}>{app.label}</Typography>
+          <Typography variant="body1" sx={{ opacity: 0.5, lineHeight: 1.8 }}>{app.description}</Typography>
+        </Box>
 
-      <Box sx={{ mt: 'auto', pt: 4 }}>
-         <Typography 
-           variant="caption" 
-           sx={{ 
-             display: 'flex', 
-             alignItems: 'center', 
-             gap: 1, 
-             color: '#00F5FF', 
-             fontWeight: 900, 
-             textTransform: 'uppercase', 
-             letterSpacing: '0.2em' 
-           }}
-         >
-           Initialize {app.name} <ChevronRight size={14} />
-         </Typography>
+        <Box sx={{ mt: 'auto', pt: 4 }}>
+           <Typography 
+             variant="caption" 
+             sx={{ 
+               display: 'flex', 
+               alignItems: 'center', 
+               gap: 1, 
+               color: app.color, 
+               fontWeight: 900, 
+               textTransform: 'uppercase', 
+               letterSpacing: '0.2em' 
+             }}
+           >
+             Initialize {app.label} <ChevronRight size={14} />
+           </Typography>
+        </Box>
       </Box>
-    </Box>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 import Logo from '@/components/Logo';
 
 export default function LandingPage() {
   const { scrollYProgress } = useScroll();
   const opacity = useTransform(scrollYProgress, [0, 0.1], [1, 0]);
-
-  const apps = [
-    { name: 'Flow', icon: LayoutDashboard, desc: 'Advanced AI orchestration for high-fidelity task management and event-driven workflows.' },
-    { name: 'Vault', icon: Lock, desc: 'Zero-knowledge security for your most sensitive assets, credentials, and cryptographic keys.' },
-    { name: 'Connect', icon: MessageSquare, desc: 'Encrypted peer-to-peer communication layer with integrated AI assistance.' },
-    { name: 'CLI', icon: Terminal, desc: 'A powerful, native terminal client for developers to interface with the Kylrix ecosystem.' },
-    { name: 'Note', icon: StickyNote, desc: 'Privacy-first intelligent note-taking and knowledge synthesis powered by local AI.' },
-    { name: 'Accounts', icon: ShieldCheck, desc: 'Unified identity management using WebAuthn for passwordless, secure authentication.' },
-  ];
 
   return (
     <Box component="main" sx={{ pt: 12 }}>
@@ -168,6 +183,7 @@ export default function LandingPage() {
                 size="large" 
                 variant="contained" 
                 color="primary" 
+                onClick={() => window.location.href = getEcosystemUrl('accounts') + '/login'}
                 sx={{ px: 6, py: 2.5, fontSize: '1.1rem', borderRadius: 2 }}
               >
                 Get Started
@@ -175,6 +191,8 @@ export default function LandingPage() {
               <Button 
                 size="large" 
                 variant="outlined" 
+                component={NextLink}
+                href="/docs"
                 sx={{ px: 6, py: 2.5, fontSize: '1.1rem', borderRadius: 2 }}
               >
                 Documentation
@@ -193,8 +211,8 @@ export default function LandingPage() {
           </Stack>
 
           <Grid container spacing={4}>
-            {apps.map((app) => (
-              <Grid size={{ xs: 12, md: 4 }} key={app.name}>
+            {ECOSYSTEM_APPS.filter(app => app.type === 'app').map((app) => (
+              <Grid size={{ xs: 12, md: 4 }} key={app.id}>
                 <ProductCard app={app} />
               </Grid>
             ))}
@@ -218,12 +236,12 @@ export default function LandingPage() {
                 
                 <Stack spacing={6}>
                   {[
-                    { icon: Fingerprint, title: 'Zero-Knowledge', desc: 'Local encryption ensures only you have access to your data.' },
-                    { icon: Layers, title: 'Modular Systems', desc: 'Built for developers to extend and integrate seamlessly.' },
-                    { icon: Cpu, title: 'Edge Intelligence', desc: 'Real-time local AI processing for maximum performance.' }
+                    { icon: Fingerprint, title: 'Zero-Knowledge', desc: 'Local encryption ensures only you have access to your data.', color: '#ef4444' },
+                    { icon: Layers, title: 'Modular Systems', desc: 'Built for developers to extend and integrate seamlessly.', color: '#00F5FF' },
+                    { icon: Cpu, title: 'Edge Intelligence', desc: 'Real-time local AI processing for maximum performance.', color: '#10b981' }
                   ].map((f, i) => (
                     <Stack key={i} direction="row" spacing={4}>
-                      <Box sx={{ color: '#00F5FF', pt: 1 }}>
+                      <Box sx={{ color: f.color, pt: 1 }}>
                         <f.icon size={32} strokeWidth={1.5} />
                       </Box>
                       <Box>
