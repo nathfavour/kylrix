@@ -9,7 +9,9 @@ import {
   Stack, 
   Grid, 
   alpha,
-  Divider
+  Divider,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { 
@@ -34,18 +36,6 @@ import Navbar from '@/components/Navbar';
 import { ECOSYSTEM_APPS, getEcosystemUrl } from '@/lib/ecosystem';
 
 const ProductCard = ({ app }: any) => {
-  const renderIcon = (iconName: string, color: string) => {
-    const icons: Record<string, any> = {
-      'file-text': FileText,
-      'shield': Shield,
-      'zap': Zap,
-      'waypoints': Waypoints,
-      'fingerprint': Fingerprint,
-    };
-    const IconComp = icons[iconName] || Zap;
-    return <IconComp size={32} strokeWidth={1.5} color={color} />;
-  };
-
   return (
     <motion.div whileHover={{ y: -12 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
       <Box 
@@ -74,18 +64,21 @@ const ProductCard = ({ app }: any) => {
       >
         <Box 
           sx={{ 
-            width: 64, 
-            height: 64, 
+            width: 80, 
+            height: 80, 
             borderRadius: 3, 
             bgcolor: alpha(app.color, 0.05), 
             border: `1px solid ${alpha(app.color, 0.1)}`, 
             display: 'flex', 
             alignItems: 'center', 
-            justifyContent: 'center', 
-            color: app.color 
+            justifyContent: 'center'
           }}
         >
-          {renderIcon(app.icon, app.color)}
+          {['note', 'vault', 'flow', 'connect', 'root'].includes(app.id) ? (
+            <Logo app={app.id as KylrixApp} size={48} variant="icon" />
+          ) : (
+            <Image src={app.logo} alt={app.label} width={48} height={48} />
+          )}
         </Box>
         
         <Box>
@@ -114,11 +107,36 @@ const ProductCard = ({ app }: any) => {
   );
 };
 
-import Logo from '@/components/Logo';
+import Logo, { KylrixApp } from '@/components/Logo';
+import Image from 'next/image';
 
 export default function LandingPage() {
   const { scrollYProgress } = useScroll();
   const opacity = useTransform(scrollYProgress, [0, 0.1], [1, 0]);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const handleGetStarted = () => {
+    const accountsUrl = getEcosystemUrl('accounts');
+    const authUrl = `${accountsUrl}/login`;
+    const sourceUrl = window.location.origin;
+    const targetUrl = `${authUrl}?source=${encodeURIComponent(sourceUrl)}`;
+
+    if (isMobile) {
+      window.location.href = targetUrl;
+    } else {
+      const width = 560;
+      const height = 750;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      
+      window.open(
+        targetUrl,
+        'KylrixAccounts',
+        `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
+      );
+    }
+  };
 
   return (
     <Box component="main" sx={{ pt: 12 }}>
@@ -183,11 +201,7 @@ export default function LandingPage() {
                 size="large" 
                 variant="contained" 
                 color="primary" 
-                onClick={() => {
-                  const accountsUrl = getEcosystemUrl('accounts');
-                  const sourceUrl = window.location.origin;
-                  window.location.href = `${accountsUrl}/?source=${encodeURIComponent(sourceUrl)}`;
-                }}
+                onClick={handleGetStarted}
                 sx={{ px: 6, py: 2.5, fontSize: '1.1rem', borderRadius: 2 }}
               >
                 Get Started
