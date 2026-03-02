@@ -17,7 +17,7 @@ export const ECOSYSTEM_APPS: EcosystemApp[] = [
   { id: 'vault', label: 'Vault', subdomain: 'vault', type: 'app', icon: 'shield', color: '#8b5cf6', description: 'Secure vault and identity vault.' },
   { id: 'flow', label: 'Flow', subdomain: 'flow', type: 'app', icon: 'zap', color: '#10b981', description: 'Intelligent task orchestration.' },
   { id: 'connect', label: 'Connect', subdomain: 'connect', type: 'app', icon: 'waypoints', color: '#ec4899', description: 'Secure bridge for communication.' },
-  { id: 'id', label: 'Identity', subdomain: 'accounts', type: 'accounts', icon: 'fingerprint', color: '#ef4444', description: 'Sovereign identity management.' },
+  { id: 'id', label: 'Accounts', subdomain: 'id', type: 'accounts', icon: 'fingerprint', color: '#ef4444', description: 'Sovereign identity management.' },
 ];
 
 export function getEcosystemUrl(subdomain: string) {
@@ -35,6 +35,7 @@ export function getEcosystemUrl(subdomain: string) {
 
   if (isLocalhost) {
     const ports: Record<string, number> = {
+      id: 3000,
       accounts: 3000,
       note: 3001,
       vault: 3002,
