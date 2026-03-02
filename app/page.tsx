@@ -184,9 +184,9 @@ export default function LandingPage() {
                 variant="contained" 
                 color="primary" 
                 onClick={() => {
-                  const idUrl = getEcosystemUrl('id');
+                  const accountsUrl = getEcosystemUrl('accounts');
                   const sourceUrl = window.location.origin;
-                  window.location.href = `${idUrl}/?source=${encodeURIComponent(sourceUrl)}`;
+                  window.location.href = `${accountsUrl}/?source=${encodeURIComponent(sourceUrl)}`;
                 }}
                 sx={{ px: 6, py: 2.5, fontSize: '1.1rem', borderRadius: 2 }}
               >

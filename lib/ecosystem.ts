@@ -17,7 +17,7 @@ export const ECOSYSTEM_APPS: EcosystemApp[] = [
   { id: 'vault', label: 'Vault', subdomain: 'vault', type: 'app', icon: 'shield', color: '#8b5cf6', description: 'Secure vault and identity vault.' },
   { id: 'flow', label: 'Flow', subdomain: 'flow', type: 'app', icon: 'zap', color: '#10b981', description: 'Intelligent task orchestration.' },
   { id: 'connect', label: 'Connect', subdomain: 'connect', type: 'app', icon: 'waypoints', color: '#ec4899', description: 'Secure bridge for communication.' },
-  { id: 'id', label: 'Accounts', subdomain: 'id', type: 'accounts', icon: 'fingerprint', color: '#ef4444', description: 'Sovereign identity management.' },
+  { id: 'id', label: 'Accounts', subdomain: 'accounts', type: 'accounts', icon: 'fingerprint', color: '#ef4444', description: 'Sovereign identity management.' },
 ];
 
 export function getEcosystemUrl(subdomain: string) {
@@ -30,24 +30,20 @@ export function getEcosystemUrl(subdomain: string) {
   }
 
   const hostname = window.location.hostname;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('192.168.') || hostname.includes('10.');
   const isKylrixDomain = hostname.endsWith('kylrix.space');
 
   if (isLocalhost) {
     const ports: Record<string, number> = {
-      id: 3000,
       accounts: 3000,
       note: 3001,
       vault: 3002,
       flow: 3003,
       connect: 3004
     };
-    const subdomainToAppId: Record<string, string> = {
-      app: 'note',
-      id: 'accounts',
-      keep: 'vault'
-    };
-    const appId = subdomainToAppId[subdomain] || subdomain;
+    
+    // Map 'id' to 'accounts' for port lookup
+    const appId = subdomain === 'id' ? 'accounts' : subdomain;
     return `http://localhost:${ports[appId] || 3000}`;
   }
 
@@ -55,5 +51,6 @@ export function getEcosystemUrl(subdomain: string) {
     return `https://${subdomain}.kylrix.space`;
   }
 
+  // Fallback for production
   return `https://${subdomain}.kylrix.space`;
 }

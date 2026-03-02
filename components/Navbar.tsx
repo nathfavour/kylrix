@@ -58,10 +58,10 @@ export const Navbar = () => {
   const isActive = (href: string) => pathname === href;
 
   const handleLaunchClick = () => {
-    // Redirect to accounts (id subdomain) with source param
-    const idUrl = getEcosystemUrl('id');
+    // Redirect to accounts (accounts subdomain) with source param
+    const accountsUrl = getEcosystemUrl('accounts');
     const sourceUrl = window.location.origin + pathname;
-    window.location.href = `${idUrl}/?source=${encodeURIComponent(sourceUrl)}`;
+    window.location.href = `${accountsUrl}/?source=${encodeURIComponent(sourceUrl)}`;
   };
 
   const navItems = [
