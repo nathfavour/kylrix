@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Box, 
   Container, 
@@ -11,28 +11,99 @@ import {
   Toolbar, 
   Link as MuiLink,
   IconButton,
-  alpha
+  alpha,
+  Menu,
+  MenuItem,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Divider,
+  Avatar,
+  Tooltip,
+  ListItemIcon
 } from '@mui/material';
 import { 
   Github,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  X,
+  ChevronDown,
+  LayoutGrid,
+  Zap,
+  Shield,
+  FileText,
+  Waypoints,
+  Settings,
+  LogOut,
+  ExternalLink
 } from 'lucide-react';
 import NextLink from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import Logo from './Logo';
+import EcosystemPortal from './EcosystemPortal';
+import { ECOSYSTEM_APPS, getEcosystemUrl } from '@/lib/ecosystem';
 
 export const Navbar = () => {
   const pathname = usePathname();
+  const [isEcosystemPortalOpen, setIsEcosystemPortalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Dropdown states
+  const [anchorElProducts, setAnchorElProducts] = useState<null | HTMLElement>(null);
+  const [anchorElDevelopers, setAnchorElDevelopers] = useState<null | HTMLElement>(null);
+  const [anchorElDocs, setAnchorElDocs] = useState<null | HTMLElement>(null);
+
+  const isActive = (href: string) => pathname === href;
+
+  const handleLaunchClick = () => {
+    // Redirect to accounts login
+    window.location.href = getEcosystemUrl('accounts') + '/login';
+  };
 
   const navItems = [
-    { label: 'Products', href: '/products' },
-    { label: 'Developers', href: '/developers' },
+    { 
+      label: 'Products', 
+      type: 'dropdown',
+      anchorEl: anchorElProducts,
+      setAnchorEl: setAnchorElProducts,
+      items: ECOSYSTEM_APPS.filter(app => app.type === 'app').map(app => ({
+        label: app.label,
+        desc: app.description,
+        icon: app.icon,
+        color: app.color,
+        href: getEcosystemUrl(app.subdomain)
+      }))
+    },
+    { 
+      label: 'Developers', 
+      type: 'dropdown',
+      anchorEl: anchorElDevelopers,
+      setAnchorEl: setAnchorElDevelopers,
+      items: [
+        { label: 'Documentation', href: '/docs', icon: 'file-text' },
+        { label: 'API Reference', href: '/docs/api', icon: 'zap' },
+        { label: 'SDKs & Tools', href: '/downloads', icon: 'settings' },
+        { label: 'GitHub', href: 'https://github.com/kylrix', icon: 'github', external: true },
+      ]
+    },
     { label: 'Docs', href: '/docs' },
     { label: 'Downloads', href: '/downloads' }
   ];
 
-  const isActive = (href: string) => pathname === href;
+  const renderIcon = (iconName: string, color?: string) => {
+    const icons: Record<string, any> = {
+      'file-text': FileText,
+      'shield': Shield,
+      'zap': Zap,
+      'waypoints': Waypoints,
+      'settings': Settings,
+      'github': Github,
+    };
+    const IconComp = icons[iconName] || Zap;
+    return <IconComp size={18} strokeWidth={1.5} color={color || 'currentColor'} />;
+  };
 
   return (
     <AppBar 
@@ -82,57 +153,167 @@ export const Navbar = () => {
           >
             {navItems.map((item) => (
               <Box key={item.label}>
-                <MuiLink
-                  component={NextLink}
-                  href={item.href}
-                  underline="none"
-                  sx={{ 
-                    px: 3,
-                    py: 1,
-                    borderRadius: '100px',
-                    fontWeight: 700, 
-                    fontSize: '0.8rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    color: isActive(item.href) ? '#00F5FF' : '#fff',
-                    opacity: isActive(item.href) ? 1 : 0.5,
-                    bgcolor: isActive(item.href) ? 'rgba(0, 245, 255, 0.05)' : 'transparent',
-                    '&:hover': { 
-                      opacity: 1, 
-                      color: '#00F5FF',
-                      bgcolor: 'rgba(255, 255, 255, 0.05)'
-                    }
-                  }}
-                >
-                  {item.label}
-                </MuiLink>
+                {item.type === 'dropdown' ? (
+                  <Button
+                    onClick={(e) => item.setAnchorEl(e.currentTarget)}
+                    endIcon={<ChevronDown size={14} style={{ 
+                      transform: Boolean(item.anchorEl) ? 'rotate(180deg)' : 'none',
+                      transition: 'transform 0.2s'
+                    }} />}
+                    sx={{ 
+                      px: 3,
+                      py: 1,
+                      borderRadius: '100px',
+                      fontWeight: 700, 
+                      fontSize: '0.8rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                      color: Boolean(item.anchorEl) ? '#00F5FF' : '#fff',
+                      opacity: Boolean(item.anchorEl) ? 1 : 0.5,
+                      '&:hover': { 
+                        opacity: 1, 
+                        color: '#00F5FF',
+                        bgcolor: 'rgba(255, 255, 255, 0.05)'
+                      }
+                    }}
+                  >
+                    {item.label}
+                  </Button>
+                ) : (
+                  <MuiLink
+                    component={NextLink}
+                    href={item.href || '#'}
+                    underline="none"
+                    sx={{ 
+                      px: 3,
+                      py: 1,
+                      display: 'inline-block',
+                      borderRadius: '100px',
+                      fontWeight: 700, 
+                      fontSize: '0.8rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      color: isActive(item.href || '') ? '#00F5FF' : '#fff',
+                      opacity: isActive(item.href || '') ? 1 : 0.5,
+                      bgcolor: isActive(item.href || '') ? 'rgba(0, 245, 255, 0.05)' : 'transparent',
+                      '&:hover': { 
+                        opacity: 1, 
+                        color: '#00F5FF',
+                        bgcolor: 'rgba(255, 255, 255, 0.05)'
+                      }
+                    }}
+                  >
+                    {item.label}
+                  </MuiLink>
+                )}
+
+                {item.type === 'dropdown' && (
+                  <Menu
+                    anchorEl={item.anchorEl}
+                    open={Boolean(item.anchorEl)}
+                    onClose={() => item.setAnchorEl(null)}
+                    elevation={0}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+                    PaperProps={{
+                      sx: {
+                        mt: 2,
+                        width: 280,
+                        bgcolor: 'rgba(10, 10, 10, 0.95)',
+                        backdropFilter: 'blur(20px) saturate(180%)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '24px',
+                        backgroundImage: 'none',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+                        p: 1
+                      }
+                    }}
+                  >
+                    {item.items?.map((subItem: any) => (
+                      <MenuItem 
+                        key={subItem.label}
+                        onClick={() => {
+                          if (subItem.href.startsWith('http')) {
+                            window.location.href = subItem.href;
+                          } else {
+                            // Use next/link navigation for internal links if needed, 
+                            // but here we can just use window.location for simplicity in a landing page
+                            window.location.href = subItem.href;
+                          }
+                          item.setAnchorEl(null);
+                        }}
+                        sx={{ 
+                          borderRadius: '16px',
+                          py: 1.5,
+                          gap: 2,
+                          '&:hover': { 
+                            bgcolor: 'rgba(255, 255, 255, 0.05)',
+                            '& .subitem-icon': { transform: 'scale(1.1)' }
+                          }
+                        }}
+                      >
+                        <Box 
+                          className="subitem-icon"
+                          sx={{ 
+                            width: 36, 
+                            height: 36, 
+                            borderRadius: '10px', 
+                            bgcolor: subItem.color ? alpha(subItem.color, 0.1) : 'rgba(255,255,255,0.05)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'transform 0.2s',
+                            color: subItem.color || '#fff'
+                          }}
+                        >
+                          {renderIcon(subItem.icon, subItem.color)}
+                        </Box>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 800, color: 'white' }}>{subItem.label}</Typography>
+                          {subItem.desc && (
+                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.4)', display: 'block' }}>
+                              {subItem.desc}
+                            </Typography>
+                          )}
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Menu>
+                )}
               </Box>
             ))}
           </Stack>
 
           {/* Right Actions */}
           <Stack direction="row" spacing={2} alignItems="center">
-            <IconButton 
-              component="a" 
-              href="https://github.com/kylrix" 
-              target="_blank"
-              sx={{ 
-                color: 'rgba(255, 255, 255, 0.6)',
-                transition: 'all 0.3s',
-                '&:hover': { 
-                  color: '#fff',
-                  bgcolor: 'rgba(255, 255, 255, 0.05)'
-                },
-                display: { xs: 'none', sm: 'flex' }
-              }}
-            >
-              <Github size={20} />
-            </IconButton>
-            
+            <Tooltip title="Ecosystem Portal">
+              <IconButton 
+                onClick={() => setIsEcosystemPortalOpen(true)}
+                sx={{ 
+                  color: '#00F5FF',
+                  bgcolor: 'rgba(0, 245, 255, 0.05)',
+                  border: '1px solid rgba(0, 245, 255, 0.1)',
+                  borderRadius: '12px',
+                  width: 42,
+                  height: 42,
+                  transition: 'all 0.3s',
+                  '&:hover': { 
+                    bgcolor: 'rgba(0, 245, 255, 0.1)', 
+                    boxShadow: '0 0 15px rgba(0, 245, 255, 0.2)',
+                    borderColor: '#00F5FF'
+                  },
+                  display: { xs: 'none', sm: 'flex' }
+                }}
+              >
+                <LayoutGrid size={20} strokeWidth={1.5} />
+              </IconButton>
+            </Tooltip>
+
             <Button 
               variant="contained" 
               color="primary" 
+              onClick={handleLaunchClick}
               sx={{ 
                 borderRadius: '12px', 
                 px: { xs: 2, md: 4 },
@@ -150,9 +331,12 @@ export const Navbar = () => {
             </Button>
 
             <IconButton 
+              onClick={() => setMobileMenuOpen(true)}
               sx={{ 
                 display: { xs: 'flex', md: 'none' },
-                color: 'white'
+                color: 'white',
+                bgcolor: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '12px'
               }}
             >
               <MenuIcon />
@@ -160,6 +344,139 @@ export const Navbar = () => {
           </Stack>
         </Toolbar>
       </Container>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        anchor="right"
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        PaperProps={{
+          sx: {
+            width: '100%',
+            maxWidth: 320,
+            bgcolor: 'rgba(5, 5, 5, 0.98)',
+            backdropFilter: 'blur(20px)',
+            borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
+            backgroundImage: 'none'
+          }
+        }}
+      >
+        <Box sx={{ p: 3 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+            <Logo size={32} />
+            <IconButton onClick={() => setMobileMenuOpen(false)} sx={{ color: 'white' }}>
+              <X size={24} />
+            </IconButton>
+          </Stack>
+
+          <List sx={{ gap: 1, display: 'flex', flexDirection: 'column' }}>
+            {navItems.map((item) => (
+              <Box key={item.label}>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    px: 2, 
+                    mb: 1, 
+                    display: 'block', 
+                    fontWeight: 900, 
+                    color: 'rgba(255, 255, 255, 0.3)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.2em'
+                  }}
+                >
+                  {item.label}
+                </Typography>
+                
+                {item.type === 'dropdown' ? (
+                  <Stack spacing={0.5} sx={{ mb: 3 }}>
+                    {item.items?.map((subItem: any) => (
+                      <ListItemButton 
+                        key={subItem.label}
+                        onClick={() => {
+                          window.location.href = subItem.href;
+                          setMobileMenuOpen(false);
+                        }}
+                        sx={{ 
+                          borderRadius: '12px',
+                          py: 1.5,
+                          gap: 2,
+                          bgcolor: 'rgba(255, 255, 255, 0.02)'
+                        }}
+                      >
+                        <Box sx={{ color: subItem.color || '#00F5FF' }}>
+                          {renderIcon(subItem.icon)}
+                        </Box>
+                        <ListItemText 
+                          primary={subItem.label} 
+                          primaryTypographyProps={{ fontWeight: 700, fontSize: '0.9rem' }}
+                          secondary={subItem.desc}
+                          secondaryTypographyProps={{ fontSize: '0.7rem', opacity: 0.5 }}
+                        />
+                      </ListItemButton>
+                    ))}
+                  </Stack>
+                ) : (
+                  <ListItemButton 
+                    onClick={() => {
+                      window.location.href = item.href || '#';
+                      setMobileMenuOpen(false);
+                    }}
+                    sx={{ 
+                      borderRadius: '12px',
+                      mb: 3,
+                      bgcolor: isActive(item.href || '') ? 'rgba(0, 245, 255, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+                      border: isActive(item.href || '') ? '1px solid rgba(0, 245, 255, 0.2)' : '1px solid transparent'
+                    }}
+                  >
+                    <ListItemText 
+                      primary={item.label} 
+                      primaryTypographyProps={{ 
+                        fontWeight: 700, 
+                        color: isActive(item.href || '') ? '#00F5FF' : 'white' 
+                      }} 
+                    />
+                    <ExternalLink size={14} style={{ opacity: 0.3 }} />
+                  </ListItemButton>
+                )}
+              </Box>
+            ))}
+          </List>
+
+          <Divider sx={{ my: 4, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+          
+          <Button 
+            fullWidth 
+            variant="contained" 
+            size="large"
+            onClick={handleLaunchClick}
+            sx={{ 
+              py: 2, 
+              borderRadius: '16px',
+              fontWeight: 900,
+              boxShadow: '0 8px 24px rgba(0, 245, 255, 0.2)'
+            }}
+          >
+            Launch Ecosystem
+          </Button>
+          
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 3 }}>
+            <IconButton sx={{ color: 'rgba(255, 255, 255, 0.4)' }} component="a" href="https://github.com/kylrix">
+              <Github size={24} />
+            </IconButton>
+            <IconButton sx={{ color: 'rgba(255, 255, 255, 0.4)' }} onClick={() => {
+              setIsEcosystemPortalOpen(true);
+              setMobileMenuOpen(false);
+            }}>
+              <LayoutGrid size={24} />
+            </IconButton>
+          </Stack>
+        </Box>
+      </Drawer>
+
+      <EcosystemPortal 
+        open={isEcosystemPortalOpen} 
+        onClose={() => setIsEcosystemPortalOpen(false)} 
+      />
     </AppBar>
   );
 };
