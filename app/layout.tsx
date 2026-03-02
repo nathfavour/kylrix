@@ -24,6 +24,10 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     site: "@kylrix",
+  },
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   }
 };
 
