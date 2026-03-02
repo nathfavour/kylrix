@@ -90,6 +90,8 @@ const ProductCard = ({ app }: any) => (
   </motion.div>
 );
 
+import Logo from '@/components/Logo';
+
 export default function LandingPage() {
   const { scrollYProgress } = useScroll();
   const opacity = useTransform(scrollYProgress, [0, 0.1], [1, 0]);
@@ -281,7 +283,7 @@ export default function LandingPage() {
         <Container maxWidth="xl">
           <Grid container spacing={8}>
             <Grid size={{ xs: 12, md: 5 }}>
-              <Typography variant="h4" sx={{ mb: 4, fontWeight: 900 }}>KYLRIX</Typography>
+              <Logo size={40} sx={{ mb: 4 }} />
               <Typography variant="body1" sx={{ opacity: 0.4, maxWidth: 400 }}>
                 High-fidelity secure productivity applications. Built for the future of digital sovereignty.
               </Typography>
