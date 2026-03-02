@@ -24,9 +24,9 @@ const getDesignTokens = (): ThemeOptions => ({
     divider: 'rgba(255, 255, 255, 0.08)',
   },
   typography: {
-    fontFamily: 'var(--font-satoshi), "Satoshi", sans-serif',
+    fontFamily: '"Satoshi Variable", "Satoshi", sans-serif',
     h1: {
-      fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
+      fontFamily: '"Clash Display Variable", "Clash Display", sans-serif',
       fontSize: 'clamp(3rem, 10vw, 5.5rem)',
       fontWeight: 900,
       letterSpacing: '-0.05em',
@@ -34,21 +34,21 @@ const getDesignTokens = (): ThemeOptions => ({
       color: '#F2F2F2',
     },
     h2: {
-      fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
+      fontFamily: '"Clash Display Variable", "Clash Display", sans-serif',
       fontSize: 'clamp(2.5rem, 8vw, 4rem)',
       fontWeight: 900,
       letterSpacing: '-0.04em',
       lineHeight: 1.1,
     },
     h3: {
-      fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
+      fontFamily: '"Clash Display Variable", "Clash Display", sans-serif',
       fontSize: 'clamp(2rem, 6vw, 2.5rem)',
       fontWeight: 800,
       letterSpacing: '-0.03em',
       lineHeight: 1.2,
     },
     h4: {
-      fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
+      fontFamily: '"Clash Display Variable", "Clash Display", sans-serif',
       fontSize: '1.75rem',
       fontWeight: 800,
       letterSpacing: '-0.02em',
@@ -63,7 +63,7 @@ const getDesignTokens = (): ThemeOptions => ({
       fontSize: '0.875rem',
       fontWeight: 700,
       textTransform: 'uppercase',
-      letterSpacing: '0.2em',
+      letterSpacing: '0.4em', // Enhanced for premium look
       color: '#00F5FF',
     },
     body1: {
@@ -78,9 +78,10 @@ const getDesignTokens = (): ThemeOptions => ({
       lineHeight: 1.6,
     },
     button: {
-      fontFamily: 'var(--font-clash), "Clash Display", sans-serif',
+      fontFamily: '"Clash Display Variable", "Clash Display", sans-serif',
       textTransform: 'none',
       fontWeight: 700,
+      letterSpacing: '0.05em',
     }
   },
   shape: {
