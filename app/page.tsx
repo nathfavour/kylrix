@@ -183,7 +183,11 @@ export default function LandingPage() {
                 size="large" 
                 variant="contained" 
                 color="primary" 
-                onClick={() => window.location.href = getEcosystemUrl('accounts') + '/login'}
+                onClick={() => {
+                  const accountsUrl = getEcosystemUrl('accounts');
+                  const sourceUrl = window.location.origin;
+                  window.location.href = `${accountsUrl}/?source=${encodeURIComponent(sourceUrl)}`;
+                }}
                 sx={{ px: 6, py: 2.5, fontSize: '1.1rem', borderRadius: 2 }}
               >
                 Get Started
