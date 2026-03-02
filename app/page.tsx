@@ -161,11 +161,8 @@ export default function LandingPage() {
                 variant="subtitle2" 
                 sx={{ 
                   mb: 4,
-                  color: '#00F5FF',
-                  letterSpacing: '0.4em',
                   fontWeight: 900,
-                  textTransform: 'uppercase',
-                  fontSize: { xs: '0.7rem', md: '0.875rem' }
+                  fontSize: { xs: '0.75rem', md: '0.875rem' }
                 }}
               >
                 Architecture of Digital Intelligence
