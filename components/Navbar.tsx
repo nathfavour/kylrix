@@ -58,8 +58,7 @@ export const Navbar = () => {
   const isActive = (href: string) => pathname === href;
 
   const handleLaunchClick = () => {
-    const accountsUrl = getEcosystemUrl('accounts');
-    const authUrl = `${accountsUrl}/login`;
+    const authUrl = `https://accounts.kylrix.space/login`;
     const sourceUrl = window.location.origin + pathname;
     const targetUrl = `${authUrl}?source=${encodeURIComponent(sourceUrl)}`;
 
