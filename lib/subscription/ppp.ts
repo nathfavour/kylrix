@@ -84,11 +84,20 @@ export const calculateSubscriptionPrice = (
 ): number => {
   const region = PPP_DATA[countryCode] || PPP_DATA.DEFAULT;
   const baseProPrice = GLOBAL_SUBSCRIPTION_CONFIG.base_pro_price;
-  const pppAdjustedPro = baseProPrice * region.multiplier;
+  
+  // All tiers are derived from PPP-adjusted Pro price in USD
+  const pppAdjustedProUsd = baseProPrice * region.multiplier;
+  
   const tierMultiplier = tier === 'PRO' ? 1.0 : 
                         tier === 'ULTRA' ? GLOBAL_SUBSCRIPTION_CONFIG.tier_multipliers.ultra : 
                         GLOBAL_SUBSCRIPTION_CONFIG.tier_multipliers.enterprise;
-  const paymentMultiplier = method === 'CARD' ? GLOBAL_SUBSCRIPTION_CONFIG.card_surcharge_multiplier : 1.0;
-  const finalPrice = (pppAdjustedPro * tierMultiplier) * paymentMultiplier;
+
+  const paymentMultiplier = method === 'CARD' 
+    ? GLOBAL_SUBSCRIPTION_CONFIG.card_surcharge_multiplier 
+    : 1.0;
+
+  // Final Price in USD: (PPP_Adjusted_Pro_USD * Tier_Multiplier) * Card_Surcharge
+  const finalPrice = (pppAdjustedProUsd * tierMultiplier) * paymentMultiplier;
+  
   return Math.round(finalPrice * 100) / 100;
 };
