@@ -6,6 +6,13 @@
 export type SubscriptionTier = 'PRO' | 'ULTRA' | 'ENTERPRISE';
 export type PaymentMethod = 'CRYPTO' | 'CARD';
 
+export interface RegionConfig {
+  multiplier: number;
+  currency: string;
+  symbol: string;
+  name: string;
+}
+
 export const GLOBAL_SUBSCRIPTION_CONFIG = {
   tier_multipliers: {
     pro: 1.0,        // Base reference
@@ -16,13 +23,6 @@ export const GLOBAL_SUBSCRIPTION_CONFIG = {
   card_surcharge_multiplier: 1.25, // 25% overhead for legacy banking
   default_multiplier: 1.0
 };
-
-export interface RegionConfig {
-  multiplier: number;
-  currency: string;
-  symbol: string;
-  name?: string;
-}
 
 export const PPP_DATA: Record<string, RegionConfig> = {
   // NORTH AMERICA
@@ -77,9 +77,6 @@ export const PPP_DATA: Record<string, RegionConfig> = {
   "DEFAULT": { multiplier: 1.0, currency: "USD", symbol: "$", name: "Global" }
 };
 
-/**
- * Pricing Engine Logic
- */
 export const calculateSubscriptionPrice = (
   tier: SubscriptionTier,
   countryCode: string,
@@ -87,20 +84,11 @@ export const calculateSubscriptionPrice = (
 ): number => {
   const region = PPP_DATA[countryCode] || PPP_DATA.DEFAULT;
   const baseProPrice = GLOBAL_SUBSCRIPTION_CONFIG.base_pro_price;
-  
-  // Logic: All tiers are derived from PPP-adjusted Pro price
   const pppAdjustedPro = baseProPrice * region.multiplier;
-  
   const tierMultiplier = tier === 'PRO' ? 1.0 : 
                         tier === 'ULTRA' ? GLOBAL_SUBSCRIPTION_CONFIG.tier_multipliers.ultra : 
                         GLOBAL_SUBSCRIPTION_CONFIG.tier_multipliers.enterprise;
-
-  const paymentMultiplier = method === 'CARD' 
-    ? GLOBAL_SUBSCRIPTION_CONFIG.card_surcharge_multiplier 
-    : 1.0;
-
-  // Final Formula: (PPP_Adjusted_Pro * Tier_Multiplier) * Card_Surcharge
+  const paymentMultiplier = method === 'CARD' ? GLOBAL_SUBSCRIPTION_CONFIG.card_surcharge_multiplier : 1.0;
   const finalPrice = (pppAdjustedPro * tierMultiplier) * paymentMultiplier;
-  
   return Math.round(finalPrice * 100) / 100;
 };
