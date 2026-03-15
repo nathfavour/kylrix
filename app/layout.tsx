@@ -4,6 +4,7 @@ import "./globals.css";
 import ThemeRegistry from "@/theme/ThemeProvider";
 import { AuthProvider } from "@/context/auth/AuthContext";
 import { DocsProvider } from "@/context/DocsContext";
+import { SubscriptionProvider } from "@/context/subscription/SubscriptionContext";
 
 const mono = JetBrains_Mono({
   subsets: ["latin"],
@@ -57,8 +58,10 @@ export default function RootLayout({
         <ThemeRegistry>
           <AuthProvider>
             <DocsProvider>
-              <div className="bg-mesh" />
-              {children}
+              <SubscriptionProvider>
+                <div className="bg-mesh" />
+                {children}
+              </SubscriptionProvider>
             </DocsProvider>
           </AuthProvider>
         </ThemeRegistry>
