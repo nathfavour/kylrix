@@ -11,7 +11,9 @@ import {
   alpha,
   Divider,
   Paper,
+  Tooltip,
 } from '@mui/material';
+import { Info } from 'lucide-react';
 import NextLink from 'next/link';
 import Navbar from '@/components/Navbar';
 import Logo from '@/components/Logo';
@@ -22,7 +24,7 @@ import { SubscriptionTier } from '@/lib/subscription/ppp';
 
 export default function PricingPage() {
   const { user, isAuthenticated, openIDMWindow } = useAuth();
-  const { prices, detectedRegion, paymentMethod, setPaymentMethod } = useSubscription();
+  const { prices, detectedRegion, paymentMethod, setPaymentMethod, exchangeRates } = useSubscription();
 
   const handleSelectTier = (tier: SubscriptionTier) => {
     if (!isAuthenticated) {
@@ -164,10 +166,40 @@ export default function PricingPage() {
                 <Typography variant="body2" sx={{ opacity: 0.5, mb: 4, fontFamily: 'Satoshi' }}>{tier.description}</Typography>
                 
                 <Box sx={{ mb: { xs: 4, md: 5 } }}>
-                  <Typography component="span" sx={{ fontSize: { xs: '2.5rem', md: '3.5rem' }, fontWeight: 900, fontFamily: 'JetBrains Mono' }}>
-                    {detectedRegion.symbol}{prices[tier.id]?.toFixed(2)}
-                  </Typography>
-                  <Typography component="span" sx={{ opacity: 0.4, ml: 1, fontSize: { xs: '1rem', md: '1.1rem' }, fontFamily: 'Satoshi' }}>/mo</Typography>
+                  {detectedRegion.countryCode !== 'US' && exchangeRates[detectedRegion.currency] && (
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1, opacity: 0.5 }}>
+                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, fontFamily: 'JetBrains Mono' }}>
+                        ≈ {detectedRegion.symbol}{(prices[tier.id] * exchangeRates[detectedRegion.currency]).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Typography>
+                      <Tooltip title={`Estimated conversion from USD to ${detectedRegion.currency} based on current market rates. Actual crypto charges are pinned to USD.`}>
+                        <Info size={12} cursor="help" />
+                      </Tooltip>
+                    </Stack>
+                  )}
+                  <Stack direction="row" alignItems="baseline" sx={{ flexWrap: 'wrap' }}>
+                    <Typography 
+                      component="span" 
+                      sx={{ 
+                        fontSize: { xs: '2.2rem', sm: '2.5rem', md: '3.5rem' }, 
+                        fontWeight: 900, 
+                        fontFamily: 'JetBrains Mono',
+                        lineHeight: 1
+                      }}
+                    >
+                      ${prices[tier.id]?.toFixed(2)}
+                    </Typography>
+                    <Typography 
+                      component="span" 
+                      sx={{ 
+                        opacity: 0.4, 
+                        ml: 1, 
+                        fontSize: { xs: '0.85rem', md: '1.1rem' }, 
+                        fontFamily: 'Satoshi' 
+                      }}
+                    >
+                      /mo
+                    </Typography>
+                  </Stack>
                 </Box>
 
                 <Stack spacing={2.5} sx={{ mb: { xs: 6, md: 8 }, flexGrow: 1 }}>
