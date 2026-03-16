@@ -40,7 +40,8 @@ import {
   Settings,
   ExternalLink,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  Download
 } from 'lucide-react';
 import NextLink from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -108,13 +109,22 @@ export const Navbar = () => {
       type: 'dropdown',
       anchorEl: anchorElProducts,
       setAnchorEl: setAnchorElProducts,
-      items: ECOSYSTEM_APPS.filter(app => app.type === 'app').map(app => ({
-        label: app.label,
-        desc: app.description,
-        icon: app.icon,
-        color: app.color,
-        href: getEcosystemUrl(app.subdomain)
-      }))
+      items: [
+        ...ECOSYSTEM_APPS.filter(app => app.type === 'app').map(app => ({
+          label: app.label,
+          desc: app.description,
+          icon: app.icon,
+          color: app.color,
+          href: getEcosystemUrl(app.subdomain)
+        })),
+        {
+          label: 'Downloads',
+          desc: 'Get Kylrix for Desktop and Mobile',
+          icon: 'download',
+          color: '#10B981',
+          href: '/downloads'
+        }
+      ]
     },
     { 
       label: 'Developers', 
@@ -128,7 +138,6 @@ export const Navbar = () => {
         { label: 'GitHub', href: 'https://github.com/kylrix', icon: 'github', external: true },
       ]
     },
-    { label: 'Downloads', href: '/downloads' },
     { label: 'Pricing', href: '/pricing' }
   ];
 
@@ -140,6 +149,7 @@ export const Navbar = () => {
       'waypoints': Waypoints,
       'settings': Settings,
       'github': Github,
+      'download': Download,
     };
     const IconComp = icons[iconName] || Zap;
     return <IconComp size={18} strokeWidth={1.5} color={color || 'currentColor'} />;
