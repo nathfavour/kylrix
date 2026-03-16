@@ -43,6 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try {
           dbUser = await getUser(currentUser.$id);
         } catch (e) {
+          console.log('User not found in database, creating...', e);
           const autoUsername = getEffectiveUsername(currentUser);
           dbUser = await createUser({
             id: currentUser.$id,
@@ -64,11 +65,61 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  const attemptSilentAuth = useCallback(async (): Promise<void> => {
+    if (typeof window === 'undefined') return;
+
+    const authBaseUrl = 'https://accounts.kylrix.space';
+
+    return new Promise<void>((resolve) => {
+      const iframe = document.createElement('iframe');
+      iframe.src = `${authBaseUrl}/silent-check`;
+      iframe.style.display = 'none';
+
+      const timeout = setTimeout(() => {
+        cleanup();
+        resolve();
+      }, 5000);
+
+      const handleIframeMessage = (event: MessageEvent) => {
+        if (event.origin !== authBaseUrl) return;
+
+        if (event.data?.type === 'idm:auth-status' && event.data.status === 'authenticated') {
+          console.log('Silent auth discovered session in kylrix landing');
+          refreshUser();
+          cleanup();
+          resolve();
+        } else if (event.data?.type === 'idm:auth-status') {
+          cleanup();
+          resolve();
+        }
+      };
+
+      const cleanup = () => {
+        clearTimeout(timeout);
+        window.removeEventListener('message', handleIframeMessage);
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      };
+
+      window.addEventListener('message', handleIframeMessage);
+      document.body.appendChild(iframe);
+    });
+  }, [refreshUser]);
+
   useEffect(() => {
     if (initAuthStarted.current) return;
     initAuthStarted.current = true;
-    refreshUser();
-  }, [refreshUser]);
+    
+    const init = async () => {
+      await refreshUser();
+      // If no user found via direct session check, try silent iframe discovery
+      if (!user) {
+        await attemptSilentAuth();
+      }
+    };
+    init();
+  }, [refreshUser, attemptSilentAuth, user]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
