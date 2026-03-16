@@ -128,7 +128,6 @@ export const Navbar = () => {
         { label: 'GitHub', href: 'https://github.com/kylrix', icon: 'github', external: true },
       ]
     },
-    { label: 'Docs', href: '/docs' },
     { label: 'Downloads', href: '/downloads' },
     { label: 'Pricing', href: '/pricing' }
   ];
@@ -323,6 +322,7 @@ export const Navbar = () => {
             </Stack>
 
             <Stack direction="row" spacing={1} alignItems="center">
+              {/* Theme Switcher - Hidden for now
               <Tooltip title={`Switch to ${mode === 'dark' ? 'light' : 'dark'} mode`}>
                 <IconButton 
                   onClick={toggleColorMode}
@@ -340,6 +340,7 @@ export const Navbar = () => {
                   {mode === 'dark' ? <Sun size={20} strokeWidth={1.5} /> : <Moon size={20} strokeWidth={1.5} />}
                 </IconButton>
               </Tooltip>
+              */}
 
               <Tooltip title="Ecosystem Portal">
                 <IconButton 
@@ -366,33 +367,35 @@ export const Navbar = () => {
 
               {isAuthenticated ? (
                 <>
-                  <IconButton 
-                    onClick={(e) => setAnchorElAccount(e.currentTarget)}
-                    sx={{ 
-                      p: 0.5,
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '14px',
-                      bgcolor: 'rgba(255, 255, 255, 0.03)',
-                      '&:hover': { borderColor: 'rgba(99, 102, 241, 0.3)', bgcolor: 'rgba(255, 255, 255, 0.05)' },
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <Avatar 
-                      src={profileUrl || undefined}
+                  <Tooltip title="Account Identity">
+                    <IconButton 
+                      onClick={(e) => setAnchorElAccount(e.currentTarget)}
                       sx={{ 
-                        width: 34, 
-                        height: 34, 
-                        bgcolor: '#050505',
-                        fontSize: '0.875rem',
-                        fontWeight: 800,
-                        color: '#6366F1',
-                        borderRadius: '10px',
-                        fontFamily: 'JetBrains Mono'
+                        p: 0.5,
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '14px',
+                        bgcolor: 'rgba(255, 255, 255, 0.03)',
+                        '&:hover': { borderColor: 'rgba(99, 102, 241, 0.3)', bgcolor: 'rgba(255, 255, 255, 0.05)' },
+                        transition: 'all 0.2s'
                       }}
                     >
-                      {user?.name ? user.name[0].toUpperCase() : 'U'}
-                    </Avatar>
-                  </IconButton>
+                      <Avatar 
+                        src={profileUrl || undefined}
+                        sx={{ 
+                          width: 34, 
+                          height: 34, 
+                          bgcolor: '#050505',
+                          fontSize: '0.875rem',
+                          fontWeight: 800,
+                          color: '#6366F1',
+                          borderRadius: '10px',
+                          fontFamily: 'JetBrains Mono'
+                        }}
+                      >
+                        {user?.name ? user.name[0].toUpperCase() : 'U'}
+                      </Avatar>
+                    </IconButton>
+                  </Tooltip>
 
                   <Menu
                     anchorEl={anchorElAccount}
