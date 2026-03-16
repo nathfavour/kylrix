@@ -80,64 +80,6 @@ export default function PricingPage() {
           <Typography variant="body1" sx={{ opacity: 0.6, fontSize: { xs: '0.9rem', md: '1.1rem' }, px: 2, fontFamily: 'Satoshi' }}>
             Regional adjustments for {detectedRegion.name} ({detectedRegion.countryCode})
           </Typography>
-          
-          {/* Payment Method Toggle */}
-          <Stack 
-            direction={{ xs: 'column', sm: 'row' }} 
-            justifyContent="center" 
-            spacing={2} 
-            sx={{ 
-              mt: 6, 
-              px: 2,
-              p: 1,
-              bgcolor: 'rgba(255, 255, 255, 0.03)',
-              borderRadius: '20px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-              width: 'fit-content',
-              mx: 'auto'
-            }}
-          >
-            <Button 
-              onClick={() => setPaymentMethod('CRYPTO')}
-              sx={{
-                width: { xs: '100%', sm: 'auto' },
-                px: 4,
-                py: 1.5,
-                borderRadius: '14px',
-                bgcolor: paymentMethod === 'CRYPTO' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                color: paymentMethod === 'CRYPTO' ? 'white' : 'rgba(255, 255, 255, 0.4)',
-                fontWeight: 700,
-                fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                textTransform: 'none',
-                fontFamily: 'Satoshi',
-                '&:hover': {
-                    bgcolor: paymentMethod === 'CRYPTO' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.05)',
-                }
-              }}
-            >
-              Crypto (Fair Price)
-            </Button>
-            <Button 
-              onClick={() => setPaymentMethod('CARD')}
-              sx={{
-                width: { xs: '100%', sm: 'auto' },
-                px: 4,
-                py: 1.5,
-                borderRadius: '14px',
-                bgcolor: paymentMethod === 'CARD' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                color: paymentMethod === 'CARD' ? 'white' : 'rgba(255, 255, 255, 0.4)',
-                fontWeight: 700,
-                fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                textTransform: 'none',
-                fontFamily: 'Satoshi',
-                '&:hover': {
-                    bgcolor: paymentMethod === 'CARD' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.05)',
-                }
-              }}
-            >
-              Legacy Card (+25%)
-            </Button>
-          </Stack>
         </header>
 
         <Grid container spacing={4} sx={{ mb: { xs: 6, md: 10 } }}>
