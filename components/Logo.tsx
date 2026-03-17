@@ -40,8 +40,8 @@ const Logo: React.FC<LogoProps> = ({
   const current = appColors[app] || appColors.root;
 
   // The Identity Split:
-  // Left Hemisphere = Ecosystem Indigo (#6366F1) or White (for Root)
-  // Right Hemisphere = Application Specific Color
+  // Left Hemisphere = Application Specific Color
+  // Right Hemisphere = Ecosystem Indigo (#6366F1)
   const leftColor = app === 'root' ? (isDarkMode ? "#FFFFFF" : "#000000") : current.secondary;
   const rightColor = current.primary;
   
