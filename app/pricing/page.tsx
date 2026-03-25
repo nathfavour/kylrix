@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { Info } from 'lucide-react';
 import NextLink from 'next/link';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Logo from '@/components/Logo';
 import { useAuth } from '@/context/auth/AuthContext';
@@ -25,16 +26,36 @@ import { SubscriptionTier } from '@/lib/subscription/ppp';
 export default function PricingPage() {
   const { user, isAuthenticated, openIDMWindow } = useAuth();
   const { prices, detectedRegion, paymentMethod, setPaymentMethod, exchangeRates } = useSubscription();
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
+  const [waitingForAuth, setWaitingForAuth] = React.useState(false);
+  const router = useRouter();
+
+  const getCheckoutUrl = React.useCallback((tier: SubscriptionTier) => {
+    return `${getEcosystemUrl('accounts')}/subscription/pro/checkout?source=${encodeURIComponent(window.location.href)}`;
+  }, []);
 
   const handleSelectTier = (tier: SubscriptionTier) => {
+    const checkoutUrl = getCheckoutUrl(tier);
+    
     if (!isAuthenticated) {
-      openIDMWindow();
+      setWaitingForAuth(true);
+      openIDMWindow(checkoutUrl);
       return;
     }
-    // Redirect to checkout in the accounts ecosystem
-    const checkoutUrl = `${getEcosystemUrl('accounts')}/subscription/pro/checkout?source=${encodeURIComponent(window.location.href)}`;
+    
+    setIsRedirecting(true);
     window.location.assign(checkoutUrl);
   };
+
+  // Automatically redirect if we become authenticated while on this page
+  // and we were waiting for it.
+  React.useEffect(() => {
+    if (isAuthenticated && waitingForAuth && !isRedirecting) {
+      const checkoutUrl = getCheckoutUrl('PRO');
+      setIsRedirecting(true);
+      window.location.assign(checkoutUrl);
+    }
+  }, [isAuthenticated, waitingForAuth, isRedirecting, getCheckoutUrl]);
 
   const tiers: { id: SubscriptionTier; name: string; description: string; features: string[] }[] = [
     { 
