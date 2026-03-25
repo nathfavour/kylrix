@@ -13,7 +13,8 @@ import {
   Slider,
   Tooltip,
 } from '@mui/material';
-import { Info, Sparkles, Globe, ShieldCheck } from 'lucide-react';
+import { Info, Sparkles, Globe, ShieldCheck, ArrowRight } from 'lucide-react';
+
 import Navbar from '@/components/Navbar';
 import Logo from '@/components/Logo';
 import { useAuth } from '@/context/auth/AuthContext';
@@ -179,29 +180,48 @@ export default function PricingPage() {
           </Grid>
         </Paper>
 
-        <Box sx={{ mt: 4, textAlign: 'center' }}>
+        <Box sx={{ mt: 6, textAlign: 'center' }}>
           <Paper
             elevation={0}
             sx={{
               display: 'inline-flex',
+              flexDirection: { xs: 'column', sm: 'row' },
               alignItems: 'center',
-              gap: 2,
-              px: 3,
-              py: 2,
-              borderRadius: '24px',
+              gap: { xs: 1, sm: 3 },
+              px: { xs: 3, sm: 4 },
+              py: 2.5,
+              borderRadius: '30px',
               background: 'rgba(255, 255, 255, 0.02)',
               border: '1px solid rgba(255, 255, 255, 0.05)',
             }}
           >
-            <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, fontFamily: 'Satoshi', color: 'rgba(255, 255, 255, 0.4)' }}>
-              Looking for the basic experience?
-            </Typography>
-            <Box sx={{ width: 1, height: 16, bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
-            <Typography sx={{ fontSize: '0.9rem', fontWeight: 900, fontFamily: 'Clash Display', color: 'white' }}>
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, fontFamily: 'Satoshi', opacity: 0.4 }}>
               Kylrix Free is free forever. No pressure.
             </Typography>
+            
+            <Box sx={{ display: { xs: 'none', sm: 'block' }, width: '1px', height: '24px', bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+            
+            <Button
+              href="/"
+              endIcon={<ArrowRight size={18} />}
+              sx={{
+                textTransform: 'none',
+                color: 'white',
+                fontWeight: 900,
+                fontFamily: 'Clash Display',
+                fontSize: '1rem',
+                '&:hover': {
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                  transform: 'translateX(4px)'
+                },
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Continue Free
+            </Button>
           </Paper>
         </Box>
+
       </Container>
     </Box>
   );
