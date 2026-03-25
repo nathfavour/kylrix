@@ -20,7 +20,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   logout: () => Promise<void>;
   refreshUser: (retryCount?: number) => Promise<User | null>;
-  openIDMWindow: () => void;
+  openIDMWindow: (target?: string) => void;
   idmWindowOpen: boolean;
 }
 
@@ -36,10 +36,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const router = useRouter();
   const pathname = usePathname();
 
+  const refreshUser = useCallback(async (retryCount = 0): Promise<User | null> => {
+    try {
+      console.log(`[Auth] Checking session in kylrix (attempt ${retryCount + 1})...`);
+      const session = await account.get();
+      
+      console.log('[Auth] Active session detected:', session.$id);
+      
+      // Clear auth=success from URL
+      if (typeof window !== 'undefined' && window.location.search.includes('auth=success')) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('auth');
+        window.history.replaceState({}, '', url.toString());
+      }
+      
+      setUser(session as any);
+      setIsLoading(false);
+      return session as any;
+    } catch (error: unknown) {
+      const hasAuthSignal = typeof window !== 'undefined' && window.location.search.includes('auth=success');
+      
+      if (hasAuthSignal && retryCount < 3) {
+        console.log(`[Auth] Auth signal detected but session not found. Retrying... (${retryCount + 1})`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return refreshUser(retryCount + 1);
+      }
+
+      const err = error as any;
+      const isNetworkError = !err.response && (err.message?.includes('Network Error') || err.message?.includes('Failed to fetch'));
+      if (!isNetworkError) {
+        setUser(null);
+      }
+      
+      setIsLoading(false);
+      return null;
+    }
+  }, []);
+
   const attemptSilentAuth = useCallback(async (): Promise<void> => {
     if (typeof window === 'undefined') return;
 
-    const authBaseUrl = 'https://accounts.kylrix.space';
+    const authBaseUrl = getEcosystemUrl('accounts');
     console.log('[Auth] Attempting silent auth via:', authBaseUrl);
 
     return new Promise<void>((resolve) => {
@@ -79,44 +116,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       window.addEventListener('message', handleIframeMessage);
       document.body.appendChild(iframe);
     });
-  }, []);
-
-  const refreshUser = useCallback(async (retryCount = 0): Promise<User | null> => {
-    try {
-      console.log(`[Auth] Checking session in kylrix (attempt ${retryCount + 1})...`);
-      const session = await account.get();
-      
-      console.log('[Auth] Active session detected:', session.$id);
-      
-      // Clear auth=success from URL
-      if (typeof window !== 'undefined' && window.location.search.includes('auth=success')) {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('auth');
-        window.history.replaceState({}, '', url.toString());
-      }
-      
-      setUser(session as any);
-      setIsLoading(false);
-      return session as any;
-    } catch (error: unknown) {
-      const hasAuthSignal = typeof window !== 'undefined' && window.location.search.includes('auth=success');
-      
-      if (hasAuthSignal && retryCount < 3) {
-        console.log(`[Auth] Auth signal detected but session not found. Retrying... (${retryCount + 1})`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return refreshUser(retryCount + 1);
-      }
-
-      const err = error as any;
-      const isNetworkError = !err.response && (err.message?.includes('Network Error') || err.message?.includes('Failed to fetch'));
-      if (!isNetworkError) {
-        setUser(null);
-      }
-      
-      setIsLoading(false);
-      return null;
-    }
-  }, []);
+  }, [refreshUser]);
 
   useEffect(() => {
     if (initAuthStarted.current) return;
@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      const authBaseUrl = 'https://accounts.kylrix.space';
+      const authBaseUrl = getEcosystemUrl('accounts');
       if (event.origin !== authBaseUrl) return;
       if (event.data?.type !== 'idm:auth-success') return;
 
@@ -152,13 +152,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => window.removeEventListener('message', handleMessage);
   }, [refreshUser]);
 
-  const openIDMWindow = useCallback(() => {
+  const openIDMWindow = useCallback((target?: string) => {
     if (typeof window === 'undefined' || isAuthenticating) return;
 
     setIsAuthenticating(true);
-    const authBaseUrl = 'https://accounts.kylrix.space';
+    const authBaseUrl = getEcosystemUrl('accounts');
     const authUrl = `${authBaseUrl}/login`;
-    const sourceUrl = window.location.origin + pathname;
+    const sourceUrl = target || (window.location.origin + pathname);
     const targetUrl = `${authUrl}?source=${encodeURIComponent(sourceUrl)}`;
 
     const width = 560;
@@ -182,6 +182,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     idmWindowRef.current = windowRef;
     setIDMWindowOpen(true);
   }, [isAuthenticating, pathname]);
+
 
   const logout = useCallback(async () => {
     try {
