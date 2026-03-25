@@ -178,6 +178,30 @@ export default function PricingPage() {
             </Grid>
           </Grid>
         </Paper>
+
+        <Box sx={{ mt: 4, textAlign: 'center' }}>
+          <Paper
+            elevation={0}
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 2,
+              px: 3,
+              py: 2,
+              borderRadius: '24px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+            }}
+          >
+            <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, fontFamily: 'Satoshi', color: 'rgba(255, 255, 255, 0.4)' }}>
+              Looking for the basic experience?
+            </Typography>
+            <Box sx={{ width: 1, height: 16, bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+            <Typography sx={{ fontSize: '0.9rem', fontWeight: 900, fontFamily: 'Clash Display', color: 'white' }}>
+              Kylrix Free is free forever. No pressure.
+            </Typography>
+          </Paper>
+        </Box>
       </Container>
     </Box>
   );
