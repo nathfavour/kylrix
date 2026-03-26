@@ -27,10 +27,12 @@ import {
 } from '@mui/icons-material';
 import { getGlobalProfile, getProfilePicturePreview } from '@/lib/appwrite';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
+import { useDataNexus } from '@/context/DataNexusContext';
 
 export default function UserProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const { fetchOptimized } = useDataNexus();
   const username = params.username as string;
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,11 @@ export default function UserProfilePage() {
       if (!username) return;
       setLoading(true);
       try {
-        const data = await getGlobalProfile(username);
+        // Use DataNexus to deduplicate and cache global profile lookups
+        const data = await fetchOptimized(`global_profile_${username}`, async () => {
+          return await getGlobalProfile(username);
+        }, 1000 * 60 * 15); // 15 minutes TTL for public profiles
+
         setProfile(data);
         if (data) {
           const avatar = data.avatar;
@@ -61,7 +67,7 @@ export default function UserProfilePage() {
       }
     }
     fetchProfile();
-  }, [username]);
+  }, [username, fetchOptimized]);
 
   if (loading) {
     return (
