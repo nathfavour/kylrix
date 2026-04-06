@@ -81,20 +81,54 @@ export default function DesignStudio({ slug = DESIGN_DEFAULT_SLUG }: DesignStudi
     }
 
     try {
+      // Ensure all fonts are loaded before exporting to prevent fallback fonts in output
+      if (typeof document !== 'undefined' && 'fonts' in document) {
+        await (document as any).fonts.ready;
+      }
+
       const fileBase = `kylrix-${flyer.slug}`;
+      const exportOptions = {
+        cacheBust: true,
+        backgroundColor: '#242220', // Updated to much less deep brand brown
+        pixelRatio: 2,
+        skipFonts: false,
+        // Letting html-to-image automatically find fonts now that crossOrigin is fixed
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+          width: '864px',
+          height: '1080px',
+        },
+      };
+
+      console.log('[DesignStudio] Starting high-fidelity export...');
+
       const dataUrl =
         format === 'svg'
-          ? await toSvg(node, { cacheBust: true, backgroundColor: '#0A0908' })
-          : await toPng(node, {
-              cacheBust: true,
-              pixelRatio: 2,
-              backgroundColor: '#0A0908',
-            });
+          ? await toSvg(node, exportOptions)
+          : await toPng(node, exportOptions);
+
+      if (!dataUrl || dataUrl === 'data:,') {
+        throw new Error('Generated image is empty');
+      }
 
       downloadDataUrl(dataUrl, `${fileBase}.${format}`);
-    } catch (error) {
-      console.error('[DesignStudio] Export failed', error);
-      window.alert('Export failed');
+    } catch (error: any) {
+      // Better error logging for empty-looking objects
+      const errorMessage = error?.message || error?.name || 'Unknown Error';
+      const errorStack = error?.stack || 'No stack trace';
+      
+      console.error('[DesignStudio] Export failed:', {
+        message: errorMessage,
+        stack: errorStack,
+        original: error,
+      });
+
+      if (errorMessage.includes('cssRules') || errorMessage.includes('SecurityError')) {
+        window.alert('Export blocked by browser security. Try disabling extensions or using a different browser.');
+      } else {
+        window.alert(`Export failed: ${errorMessage}`);
+      }
     }
   };
 
@@ -167,26 +201,6 @@ export default function DesignStudio({ slug = DESIGN_DEFAULT_SLUG }: DesignStudi
             flexDirection: 'column',
           }}
         >
-          <Box
-            sx={{
-              width: '100%',
-              maxWidth: 1320,
-              mx: 'auto',
-              flexShrink: 0,
-              mb: 3,
-              display: 'flex',
-              justifyContent: 'space-between',
-              color: 'rgba(255,255,255,0.52)',
-            }}
-          >
-            <Typography variant="caption" sx={{ letterSpacing: '0.2em' }}>
-              /designs/{flyer.slug}
-            </Typography>
-            <Typography variant="caption" sx={{ letterSpacing: '0.2em' }}>
-              {flyer.description}
-            </Typography>
-          </Box>
-
           <Box
             sx={{
               flexGrow: 1,
