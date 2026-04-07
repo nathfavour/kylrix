@@ -1,24 +1,48 @@
 'use client';
 
 import React, { forwardRef } from 'react';
-import { Box, Typography, alpha } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import Logo from '@/components/Logo';
 import type { DesignFlyerProps } from '../types';
 
 interface FlyerShellProps extends DesignFlyerProps {
   accent: string;
   title: React.ReactNode;
-  subtitle: string;
+  subtitle?: React.ReactNode;
   eyebrow: string;
   backgroundA: string;
   backgroundB: string;
   children: React.ReactNode;
+  variant?: 'standard' | 'raw';
 }
 
 const FlyerShell = forwardRef<HTMLDivElement, FlyerShellProps>(function FlyerShell(
-  { accent, title, eyebrow, className, children },
+  { accent, title, subtitle, variant = 'standard', className, children },
   ref
 ) {
+  if (variant === 'raw') {
+    return (
+      <Box
+        ref={ref}
+        className={className}
+        sx={{
+          position: 'relative',
+          width: '100%',
+          aspectRatio: '4 / 5',
+          minHeight: { xs: 900, lg: 1080 },
+          borderRadius: 0,
+          overflow: 'hidden',
+          isolation: 'isolate',
+          background: '#0A0908', // Raw Matte Black
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {children}
+      </Box>
+    );
+  }
+
   return (
     <Box
       ref={ref}
@@ -31,8 +55,12 @@ const FlyerShell = forwardRef<HTMLDivElement, FlyerShellProps>(function FlyerShe
         borderRadius: 6,
         overflow: 'hidden',
         isolation: 'isolate',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        background: 'linear-gradient(145deg, #2D2B29 0%, #242220 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        background: `
+          radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15) 0%, transparent 40%),
+          radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.1) 0%, transparent 40%),
+          linear-gradient(145deg, #2D2B29 0%, #242220 100%)
+        `,
         boxShadow: '0 40px 120px rgba(0,0,0,0.6)',
       }}
     >
@@ -59,73 +87,72 @@ const FlyerShell = forwardRef<HTMLDivElement, FlyerShellProps>(function FlyerShe
           alignItems: 'center',
           textAlign: 'center',
           p: { xs: 4, md: 14 },
-          pt: { xs: 8, md: 18 }, // Elite Tier top breathing room
+          pt: { xs: 12, md: 20 },
           pb: { xs: 10, md: 14 },
         }}
       >
-        {/* Balanced Top Hierarchy */}
+        {/* Main Hero Headline Section */}
         <Box sx={{ mb: 8 }}>
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              px: 3,
-              py: 1.2,
-              borderRadius: 99,
-              bgcolor: alpha(accent, 0.1),
-              color: accent,
-              border: `1px solid ${alpha(accent, 0.2)}`,
-              fontWeight: 900,
-              letterSpacing: '0.45em',
-              textTransform: 'uppercase',
-              fontFamily: 'var(--font-mono)',
-              mb: 6, // Refined hierarchy gap
-            }}
-          >
-            {eyebrow}
-          </Typography>
           <Typography
             variant="h1"
             sx={{
               fontWeight: 900,
               lineHeight: 0.82,
               letterSpacing: '-0.06em',
-              fontSize: { xs: '3.5rem', md: '7.5rem' },
+              fontSize: { xs: '4rem', md: '8.5rem' },
               color: 'white',
             }}
           >
             {title}
           </Typography>
+          {subtitle && (
+            <Typography
+              variant="h5"
+              sx={{
+                mt: 3,
+                fontWeight: 500,
+                letterSpacing: '0.02em',
+                color: 'rgba(255,255,255,0.7)',
+                maxWidth: 600,
+                mx: 'auto'
+              }}
+            >
+              {subtitle}
+            </Typography>
+          )}
         </Box>
 
         <Box sx={{ position: 'relative', flexGrow: 1, width: '100%', mb: 4 }}>
           {children}
         </Box>
 
-        {/* Cohesive Elevated Footer */}
+        {/* Balanced Split Footer - High Visibility White */}
         <Box 
           sx={{ 
             display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            gap: 3.5,
-            pt: 8,
-            borderTop: '1px solid rgba(255,255,255,0.035)',
-            width: '85%',
+            flexDirection: 'row', 
+            alignItems: 'flex-end', 
+            justifyContent: 'space-between',
+            pt: 6,
+            borderTop: '1px solid rgba(255,255,255,0.12)',
+            width: '94%',
           }}
         >
-          <Logo app="root" variant="icon" size={64} />
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <Logo app="root" variant="icon" size={56} />
+          </Box>
+
           <Typography
-            variant="caption"
             sx={{
               fontFamily: 'var(--font-mono)',
+              fontSize: 14,
               fontWeight: 800,
-              letterSpacing: '0.6em',
-              color: 'rgba(255,255,255,0.5)',
+              letterSpacing: '0.4em',
+              color: 'white',
+              mb: 0.5,
             }}
           >
-            KYLRIX.SPACE
+            kylrix.space
           </Typography>
         </Box>
       </Box>

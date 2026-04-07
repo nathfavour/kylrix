@@ -2,6 +2,7 @@
 
 import { forwardRef } from 'react';
 import { Box, Typography, alpha } from '@mui/material';
+import Logo from '@/components/Logo';
 import FlyerShell from './FlyerShell';
 import type { DesignFlyerProps } from '../types';
 
@@ -10,70 +11,166 @@ const HappyEasterFlyer = forwardRef<HTMLDivElement, DesignFlyerProps>(function H
     <FlyerShell
       ref={ref}
       {...props}
+      variant="raw"
       accent="#6366F1"
-      backgroundA="#161412"
-      backgroundB="#2D2B29"
-      eyebrow="HAPPY EASTER"
-      title="He Is Risen"
+      backgroundA="#0A0908"
+      backgroundB="#0A0908"
+      eyebrow=""
+      title=""
       subtitle=""
     >
-      <Box sx={{ position: 'absolute', inset: 0, borderRadius: 5, overflow: 'hidden' }}>
-        {/* Dynamic Backlighting - Grounding the scene in light */}
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            background: `
-              radial-gradient(circle at 50% 60%, rgba(99, 102, 241, 0.25) 0%, transparent 70%),
-              radial-gradient(circle at 50% 50%, rgba(253, 230, 138, 0.15) 0%, transparent 50%),
-              linear-gradient(to top, #242220 0%, #2D2B29 40%, #1E1B4B 100%)
-            `,
-          }}
-        />
+      {/* 1. Macro Stone Texture Field (Full Coverage) */}
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: 'url(/designs/stone-tomb.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'grayscale(1) brightness(0.4) contrast(1.2)',
+          zIndex: 1,
+        }}
+      />
 
-        {/* The Resurrection Scene (Crosses + Defined Tomb) */}
+      {/* 2. Diagonal Composition: Text High-Left */}
+      <Box
+        sx={{
+          position: 'absolute',
+          left: '8%',
+          top: '12%',
+          zIndex: 10,
+          maxWidth: '70%',
+        }}
+      >
+        <Typography
+          sx={{
+            fontFamily: 'serif', // Distressed Serif feel
+            fontSize: { xs: '5rem', md: '10rem' },
+            fontWeight: 900,
+            lineHeight: 0.85,
+            color: 'white',
+            letterSpacing: '-0.04em',
+            textShadow: `
+              0 0 20px rgba(99, 102, 241, 0.4),
+              2px 2px 0px rgba(0,0,0,0.8)
+            `,
+            filter: 'contrast(1.5) brightness(1.2)',
+            mixBlendMode: 'difference',
+          }}
+        >
+          HE IS
+          <br />
+          RISEN
+        </Typography>
+      </Box>
+
+      {/* 3. The Prismatic Ascension Burst (Bottom-Right) */}
+      <Box
+        sx={{
+          position: 'absolute',
+          right: '-10%',
+          bottom: '-15%',
+          width: '100%',
+          height: '100%',
+          zIndex: 5,
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'flex-end',
+        }}
+      >
+        {/* The Geometric Prism Burst */}
         <Box
           component="img"
-          src="/designs/resurrection-scene.svg"
+          src="/designs/ascension-prism.svg"
           sx={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 2,
-            filter: 'drop-shadow(0 0 30px rgba(99, 102, 241, 0.3))',
-          }}
-        />
-        
-        {/* Grounding Atmospheric Overlay & Mist */}
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            background: `
-              linear-gradient(to top, rgba(36, 34, 32, 1) 0%, rgba(36, 34, 32, 0.4) 30%, rgba(36, 34, 32, 0) 60%),
-              radial-gradient(circle at 50% 100%, ${alpha('#6366F1', 0.08)} 0%, transparent 60%)
-            `,
-            zIndex: 3,
-          }}
-        />
-        
-        {/* Subtle Ground Mist for Footer Transition */}
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: '35%',
-            background: 'linear-gradient(to top, rgba(22, 20, 18, 0.85) 0%, transparent 100%)',
-            filter: 'blur(50px)',
-            opacity: 0.7,
-            zIndex: 4,
+            width: '120%',
+            height: '120%',
+            objectFit: 'contain',
+            filter: 'drop-shadow(0 0 60px rgba(168, 85, 247, 0.4))',
+            transform: 'rotate(-15deg)',
           }}
         />
       </Box>
+
+      {/* 4. Etched Sub-Text (Subtle & Challenging) */}
+      <Box
+        sx={{
+          position: 'absolute',
+          left: '10%',
+          bottom: '22%',
+          zIndex: 6,
+          opacity: 0.5,
+        }}
+      >
+        <Typography
+          sx={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 14,
+            fontWeight: 900,
+            letterSpacing: '0.5em',
+            color: 'white',
+            textShadow: '1px 1px 2px rgba(0,0,0,0.9)',
+          }}
+        >
+          RESURRECT YOUR PRODUCTIVITY
+        </Typography>
+      </Box>
+
+      {/* 5. Architectural Branding (Bottom Base) */}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: '5%',
+          left: '8%',
+          right: '8%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          zIndex: 10,
+        }}
+      >
+        <Box sx={{ opacity: 0.6, filter: 'drop-shadow(0 0 10px rgba(99, 102, 241, 0.3))' }}>
+          <Logo app="root" variant="icon" size={48} />
+        </Box>
+        
+        <Typography
+          sx={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 14,
+            fontWeight: 800,
+            letterSpacing: '0.6em',
+            color: 'white', // High visibility white
+          }}
+        >
+          kylrix.space
+        </Typography>
+      </Box>
+
+      {/* 6. Dynamic Light Bleed & Overlays */}
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          background: `
+            radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.15) 0%, transparent 60%),
+            linear-gradient(45deg, rgba(0,0,0,0.8) 0%, transparent 100%)
+          `,
+          zIndex: 4,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Premium Film Grain Overlay */}
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.04,
+          pointerEvents: 'none',
+          zIndex: 20,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+        }}
+      />
     </FlyerShell>
   );
 });

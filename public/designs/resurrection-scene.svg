@@ -48,7 +48,7 @@
     </g>
   </g>
 
-  <!-- Clear Empty Tomb (No more smudge) -->
+  <!-- Clear Empty Tomb -->
   <g transform="translate(140, 820)">
     <path d="M0 160C0 70 60 0 140 0C220 0 280 70 280 160V260H0V160Z" fill="#0C0A09"/>
     <path d="M25 160C25 90 75 40 140 40C205 40 255 90 255 160V260H25V160Z" fill="url(#tombGlowElite)"/>
