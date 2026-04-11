@@ -4,8 +4,8 @@ import NextLink from 'next/link';
 import DocsShell from '@/components/docs/DocsShell';
 import { DocsCard, DocsLandingAction, getDocsArticleBySlug } from '@/components/docs/catalog';
 
-export default function DocsArticlePage({ slug }: { slug: string[] }) {
-  const normalizedSlug = slug.join('/');
+export default function DocsArticlePage({ slug }: { slug?: string[] }) {
+  const normalizedSlug = slug?.join('/') || '';
   const article = getDocsArticleBySlug(normalizedSlug);
 
   return (
