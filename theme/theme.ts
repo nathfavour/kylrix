@@ -2,6 +2,9 @@
 
 import { createTheme, ThemeOptions, alpha, PaletteMode } from '@mui/material/styles';
 
+const SURFACE_BACKGROUND = '#000000';
+const SURFACE = '#161514';
+
 const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
   palette: {
     mode,
@@ -14,8 +17,8 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
         main: '#F2F2F2', // Titanium
       },
       background: {
-        default: '#000000', // Deep Black
-        paper: '#0A0A0A',   // Surface
+        default: SURFACE_BACKGROUND,
+        paper: SURFACE,
       },
       text: {
         primary: '#F2F2F2',   // Titanium
@@ -152,8 +155,7 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
     MuiPaper: {
       styleOverrides: {
         root: {
-          backgroundColor: mode === 'dark' ? 'rgba(10, 10, 10, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(30px) saturate(180%)',
+          backgroundColor: mode === 'dark' ? SURFACE : 'rgba(255, 255, 255, 0.8)',
           border: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)',
           borderRadius: 24,
           backgroundImage: 'none',
@@ -163,7 +165,7 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => ({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: mode === 'dark' ? '#000000' : '#FDFCFB',
+          backgroundColor: mode === 'dark' ? SURFACE_BACKGROUND : '#FDFCFB',
           color: mode === 'dark' ? '#F2F2F2' : '#09090B',
           '&::-webkit-scrollbar': {
             width: '8px',
