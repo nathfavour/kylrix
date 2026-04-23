@@ -14,13 +14,13 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kylrix — The Future of AI-Powered Productivity",
-  description: "A secure, premium, AI-driven suite for creators, developers, and teams. Built for high-fidelity orchestration, secure communication, and zero-knowledge intelligence.",
-  keywords: ["kylrix", "ai productivity", "secure suite", "productivity applications", "next-gen tools"],
+  title: "Kylrix — Premium reactive ecosystem",
+  description: "Kylrix is a premium, app-native ecosystem for secure notes, workflows, vaults, and communication under one shared session.",
+  keywords: ["kylrix", "reactive ecosystem", "secure productivity", "notes", "workflows", "vault", "messaging"],
   authors: [{ name: "Kylrix Team" }],
   openGraph: {
-    title: "Kylrix — The Future of AI-Powered Productivity",
-    description: "Experience the premium AI-driven ecosystem.",
+    title: "Kylrix — Premium reactive ecosystem",
+    description: "One login. Four surfaces. One system.",
     type: "website",
     url: "https://kylrix.space",
     siteName: "Kylrix",
