@@ -30,25 +30,20 @@ const Logo: React.FC<LogoProps> = ({
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
 
-  // App Specific Colors (Muted V3 Palette)
-  const appColors: Record<KylrixApp, { primary: string; secondary: string; label: string }> = {
-    root: { primary: "#6366F1", secondary: "#6366F1", label: "KYLRIX" },
-    vault: { primary: "#6366F1", secondary: "#10B981", label: "VAULT" }, // Left: Indigo, Right: Emerald
-    flow: { primary: "#6366F1", secondary: "#A855F7", label: "FLOW" },   // Left: Indigo, Right: Amethyst
-    note: { primary: "#6366F1", secondary: "#EC4899", label: "NOTE" },   // Left: Indigo, Right: Pink
-    connect: { primary: "#6366F1", secondary: "#F59E0B", label: "CONNECT" } // Left: Indigo, Right: Amber
+  const appColors: Record<KylrixApp, { accent: string; label: string }> = {
+    root: { accent: "#6366F1", label: "KYLRIX" },
+    vault: { accent: "#10B981", label: "VAULT" },
+    flow: { accent: "#A855F7", label: "FLOW" },
+    note: { accent: "#EC4899", label: "NOTE" },
+    connect: { accent: "#F59E0B", label: "CONNECT" }
   };
 
   const current = appColors[app] || appColors.root;
 
-  // The Identity Split:
-  // Left Hemisphere = Application Specific Color
-  // Right Hemisphere = Ecosystem Indigo (#6366F1)
-  const leftColor = app === 'root' ? (isDarkMode ? "#FFFFFF" : "#000000") : current.secondary;
-  const rightColor = current.primary;
+  const leftColor = app === 'root' ? (isDarkMode ? '#FFFFFF' : '#000000') : '#6366F1';
+  const rightColor = current.accent;
   
-  // Center cutout color (punches through to background)
-  const cutoutColor = isDarkMode ? "#0A0908" : "#FFFFFF";
+  const cutoutColor = isDarkMode ? '#000000' : '#FFFFFF';
 
   // Malleability Framework: Define shapes for the center cutout
   const renderCutout = () => {
@@ -101,6 +96,7 @@ const Logo: React.FC<LogoProps> = ({
       height={size}
       animate={animate ? { rotate: 360 } : {}}
       transition={animate ? { repeat: Infinity, duration: 8, ease: "linear" } : {}}
+      aria-hidden="true"
       style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}
     >
       {/* Left Hemisphere */}
@@ -127,7 +123,7 @@ const Logo: React.FC<LogoProps> = ({
         display: 'inline-flex',
         alignItems: 'center',
         gap: '12px',
-        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'transform 0.2s ease-out, opacity 0.2s ease-out',
         textDecoration: 'none',
         ...sx
       }} 
