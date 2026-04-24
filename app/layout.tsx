@@ -14,13 +14,13 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kylrix — The Future of AI-Powered Productivity",
-  description: "A secure, premium, AI-driven suite for creators, developers, and teams. Built for high-fidelity orchestration, secure communication, and zero-knowledge intelligence.",
-  keywords: ["kylrix", "ai productivity", "secure suite", "productivity applications", "next-gen tools"],
+  title: "Kylrix — The Sovereign Work OS",
+  description: "Kylrix is the sovereign, end-to-end encrypted work OS for notes, vaults, tasks, and private communication.",
+  keywords: ["kylrix", "sovereign work os", "e2ee", "notes", "vault", "tasks", "communication"],
   authors: [{ name: "Kylrix Team" }],
   openGraph: {
-    title: "Kylrix — The Future of AI-Powered Productivity",
-    description: "Experience the premium AI-driven ecosystem.",
+    title: "Kylrix — The Sovereign Work OS",
+    description: "One login. Four surfaces. One sovereign system.",
     type: "website",
     url: "https://kylrix.space",
     siteName: "Kylrix",
@@ -62,7 +62,6 @@ export default function RootLayout({
             <AuthProvider>
               <DocsProvider>
                 <SubscriptionProvider>
-                  <div className="bg-mesh" />
                   {children}
                 </SubscriptionProvider>
               </DocsProvider>
