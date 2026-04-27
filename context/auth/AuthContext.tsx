@@ -2,14 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { getCurrentUser, getCurrentUserSnapshot, getUser, createUser, updateUser, account, invalidateCurrentUserCache } from '@/lib/appwrite';
-import { getEffectiveUsername } from '@/lib/utils';
+import { getCurrentUser, account, getKylrixPulse, setKylrixPulse, clearKylrixPulse, globalSessionPromise } from '@/lib/appwrite';
 import { getEcosystemUrl } from '@/lib/ecosystem';
 
 interface User {
   $id: string;
   email: string | null;
   name: string | null;
+  isPulse?: boolean;
   [key: string]: any;
 }
 
@@ -19,7 +19,7 @@ interface AuthContextType {
   isAuthenticating: boolean;
   isAuthenticated: boolean;
   logout: () => Promise<void>;
-  refreshUser: (retryCount?: number) => Promise<User | null>;
+  refreshUser: () => Promise<User | null>;
   openIDMWindow: (target?: string) => void;
   idmWindowOpen: boolean;
 }
@@ -27,9 +27,16 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const initialUser = getCurrentUserSnapshot();
-  const [user, setUser] = useState<User | null>(initialUser);
-  const [isLoading, setIsLoading] = useState(!initialUser);
+  // 1. Instant Synchronous Load from Pulse Cache (Bridge or Local)
+  const [user, setUser] = useState<User | null>(() => {
+    const pulse = getKylrixPulse();
+    if (pulse) {
+        return { $id: pulse.$id, name: pulse.name, isPulse: true, email: null, profilePicId: pulse.profilePicId };
+    }
+    return null;
+  });
+  
+  const [isLoading, setIsLoading] = useState(!getKylrixPulse());
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [idmWindowOpen, setIDMWindowOpen] = useState(false);
   const idmWindowRef = useRef<Window | null>(null);
@@ -37,104 +44,53 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const router = useRouter();
   const pathname = usePathname();
 
-  const refreshUser = useCallback(async (retryCount = 0, forceRefresh = false): Promise<User | null> => {
+  // 2. Background Revalidation (Mandatory account.get)
+  const refreshUser = useCallback(async (): Promise<User | null> => {
     try {
-      console.log(`[Auth] Checking session in kylrix (attempt ${retryCount + 1})...`);
-      if (forceRefresh) {
-        invalidateCurrentUserCache(null);
-      }
-      const session = await getCurrentUser();
-      
-      console.log('[Auth] Active session detected:', session.$id);
-      
-      // Clear auth=success from URL
-      if (typeof window !== 'undefined' && window.location.search.includes('auth=success')) {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('auth');
-        window.history.replaceState({}, '', url.toString());
-      }
-      
-      setUser(session as any);
-      setIsLoading(false);
-      return session as any;
-    } catch (error: unknown) {
-      const hasAuthSignal = typeof window !== 'undefined' && window.location.search.includes('auth=success');
-      
-      if (hasAuthSignal && retryCount < 3) {
-        console.log(`[Auth] Auth signal detected but session not found. Retrying... (${retryCount + 1})`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return refreshUser(retryCount + 1, true);
-      }
-
-      const err = error as any;
-      const isNetworkError = !err.response && (err.message?.includes('Network Error') || err.message?.includes('Failed to fetch'));
-      if (!isNetworkError) {
+      // Use the pre-started global promise for maximum speed
+      const session = await globalSessionPromise;
+      if (session) {
+        setUser(session as any);
+        setKylrixPulse(session);
+        
+        if (typeof window !== 'undefined' && window.location.search.includes('auth=success')) {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('auth');
+          window.history.replaceState({}, '', url.toString());
+        }
+      } else {
         setUser(null);
+        clearKylrixPulse();
       }
-      
-      setIsLoading(false);
+      return session as any;
+    } catch (error) {
+      setUser(null);
+      clearKylrixPulse();
       return null;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
-
-  const attemptSilentAuth = useCallback(async (): Promise<void> => {
-    if (typeof window === 'undefined') return;
-
-    const authBaseUrl = getEcosystemUrl('accounts');
-    console.log('[Auth] Attempting silent auth via:', authBaseUrl);
-
-    return new Promise<void>((resolve) => {
-      const iframe = document.createElement('iframe');
-      iframe.src = `${authBaseUrl}/silent-check`;
-      iframe.style.display = 'none';
-
-      const timeout = setTimeout(() => {
-        console.log('[Auth] Silent auth timeout');
-        cleanup();
-        resolve();
-      }, 5000);
-
-      const handleIframeMessage = (event: MessageEvent) => {
-        if (event.origin !== authBaseUrl) return;
-
-        if (event.data?.type === 'idm:auth-status' && event.data.status === 'authenticated') {
-          console.log('[Auth] Silent auth discovered session, refreshing...');
-          refreshUser(0, true);
-          cleanup();
-          resolve();
-        } else if (event.data?.type === 'idm:auth-status') {
-          console.log('[Auth] Silent auth status:', event.data.status);
-          cleanup();
-          resolve();
-        }
-      };
-
-      const cleanup = () => {
-        clearTimeout(timeout);
-        window.removeEventListener('message', handleIframeMessage);
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      };
-
-      window.addEventListener('message', handleIframeMessage);
-      document.body.appendChild(iframe);
-    });
-  }, [refreshUser]);
 
   useEffect(() => {
     if (initAuthStarted.current) return;
     initAuthStarted.current = true;
-    
-    const init = async () => {
-      const currentUser = await refreshUser(0, true);
-      // If no user found via direct session check, try silent iframe discovery
-      if (!currentUser) {
-        await attemptSilentAuth();
-      }
+    refreshUser();
+  }, [refreshUser]);
+
+  // Handle cross-tab or bridge discovery
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkPulse = () => {
+        const pulse = getKylrixPulse();
+        if (pulse && !user) {
+            setUser({ $id: pulse.$id, name: pulse.name, isPulse: true, email: null, profilePicId: pulse.profilePicId });
+            setIsLoading(false);
+        }
     };
-    init();
-  }, [refreshUser, attemptSilentAuth]);
+    window.addEventListener('focus', checkPulse);
+    return () => window.removeEventListener('focus', checkPulse);
+  }, [user]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -142,8 +98,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (event.origin !== authBaseUrl) return;
       if (event.data?.type !== 'idm:auth-success') return;
 
-      console.log('[Auth] Received auth success via postMessage');
-      refreshUser(0, true);
+      refreshUser();
       setIDMWindowOpen(false);
       setIsAuthenticating(false);
       if (idmWindowRef.current && !idmWindowRef.current.closed) {
@@ -165,20 +120,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const sourceUrl = target || (window.location.origin + pathname);
     const targetUrl = `${authUrl}?source=${encodeURIComponent(sourceUrl)}`;
 
-    const width = 560;
-    const height = 750;
+    const width = 560, height = 750;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
     
-    console.log('[Auth] Opening IDM window:', targetUrl);
-    const windowRef = window.open(
-      targetUrl,
-      'KylrixAccounts',
-      `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
-    );
+    const windowRef = window.open(targetUrl, 'KylrixAccounts', `width=${width},height=${height},left=${left},top=${top}`);
 
     if (!windowRef) {
-      console.log('[Auth] Popup blocked, redirecting...');
       window.location.assign(targetUrl);
       return;
     }
@@ -191,11 +139,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = useCallback(async () => {
     try {
       await account.deleteSession('current');
-      invalidateCurrentUserCache();
+    } finally {
       setUser(null);
-    } catch (error) {
-      console.error('Logout failed:', error);
-      setUser(null);
+      clearKylrixPulse();
+      setIDMWindowOpen(false);
     }
   }, []);
 

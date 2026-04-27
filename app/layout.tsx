@@ -13,50 +13,37 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "Kylrix — The Sovereign Work OS",
-  description: "Kylrix is the sovereign, end-to-end encrypted work OS for notes, vaults, tasks, and private communication.",
-  keywords: ["kylrix", "sovereign work os", "e2ee", "notes", "vault", "tasks", "communication"],
-  authors: [{ name: "Kylrix Team" }],
-  openGraph: {
-    title: "Kylrix — The Sovereign Work OS",
-    description: "One login. Four surfaces. One sovereign system.",
-    type: "website",
-    url: "https://kylrix.space",
-    siteName: "Kylrix",
-  },
-  twitter: {
-    card: "summary_large_image",
-    site: "@kylrix",
-  },
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
-  }
-};
-
-export const viewport: Viewport = {
-  themeColor: '#000000',
-  width: 'device-width',
-  initialScale: 1,
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={mono.variable}>
       <head>
-        {/* THE KYLRIX SIGNATURE TRIO: Satoshi (Body) & Clash Display (Headings) via Fontshare */}
+        <link rel="preconnect" href="https://api.kylrix.space" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://api.kylrix.space" />
+
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            try {
+              var match = document.cookie.match(new RegExp('(^| )kylrix_pulse_v2=([^;]+)'));
+              if (match) {
+                var d = JSON.parse(decodeURIComponent(match[2]));
+                d.avatarBase64 = localStorage.getItem('kylrix_avatar_pulse_v2_' + d.$id);
+                window.__KYLRIX_PULSE__ = d;
+                document.documentElement.setAttribute('data-kylrix-pulse', 'true');
+                var s = document.createElement('style');
+                s.innerHTML = '[data-kylrix-pulse="true"] #navbar-connect-btn { display: none !important; }';
+                document.head.appendChild(s);
+              }
+            } catch(e) {}
+          })();
+        `}} />
+        
         <link 
           href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&f[]=satoshi@300,400,500,700,900&display=swap" 
           rel="stylesheet" 
           crossOrigin="anonymous"
         />
       </head>
-      <body>
+      <body className={mono.className}>
         <ThemeRegistry>
           <DataNexusProvider>
             <AuthProvider>
