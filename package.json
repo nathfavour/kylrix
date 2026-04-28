@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "next dev -H localhost",
+    "dev": "next dev -H localhost -p 3005",
     "build": "next build",
     "start": "next start",
     "lint": "eslint ."
