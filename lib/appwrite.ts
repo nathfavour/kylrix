@@ -14,6 +14,10 @@ export const storage = new Storage(client);
 export const realtime = new Realtime(client);
 export const tablesDB = new TablesDB(client);
 
+export async function getProfilePicturePreview(fileId: string, width: number = 64, height: number = 64) {
+    return storage.getFilePreview(APPWRITE_CONFIG.BUCKETS.PROFILE_PICTURES, fileId, width, height);
+}
+
 export { client, ID, Query };
 
 // --- UNIFIED DOMAIN PULSE (CROSS-SUBDOMAIN INSTANT IDENTITY) ---
