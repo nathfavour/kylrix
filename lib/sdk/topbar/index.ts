@@ -37,6 +37,21 @@ export interface TopbarNotification {
   defaultExpanded?: boolean;
 }
 
+export interface ConnectTopbarIdentity {
+  displayName: string;
+  username?: string | null;
+  profilePicId?: string | null;
+  profilePreviewUrl?: string | null;
+  walletConnected?: boolean;
+}
+
+export interface ConnectTopbarSurface extends TopbarSurface {
+  identity: ConnectTopbarIdentity;
+  searchPlaceholder: string;
+  walletLabel: string;
+  showConnectCta: boolean;
+}
+
 export function createTopbarAction(action: Omit<TopbarAction, 'accent'> & { app?: KylrixApp; accent?: string }): TopbarAction {
   const accent = action.accent || getAppTone(action.app || 'root').secondary;
   return {
@@ -49,6 +64,28 @@ export function createTopbarSurface(params: Omit<TopbarSurface, 'layout'>): Topb
   return {
     ...params,
     layout: TOPBAR_LAYOUT,
+  };
+}
+
+export function createConnectTopbarSurface(params: {
+  routeLabel?: string;
+  snippets?: TopbarSnippet[];
+  identity: ConnectTopbarIdentity;
+  searchPlaceholder?: string;
+  walletLabel?: string;
+  showConnectCta?: boolean;
+}): ConnectTopbarSurface {
+  return {
+    routeLabel: params.routeLabel || 'Connect',
+    currentApp: 'connect',
+    snippets: params.snippets || [],
+    quickActions: [],
+    searchTargets: [],
+    layout: TOPBAR_LAYOUT,
+    identity: params.identity,
+    searchPlaceholder: params.searchPlaceholder || 'Search notes, goals, moments, calls, people, apps',
+    walletLabel: params.walletLabel || 'Wallet',
+    showConnectCta: params.showConnectCta ?? !params.identity.walletConnected,
   };
 }
 
