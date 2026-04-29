@@ -8,12 +8,13 @@ import {
   Button,
   Chip,
   Container,
+  IconButton,
   Paper,
   Stack,
-  TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
-import { Copy, ExternalLink } from 'lucide-react';
+import { ChevronDown, Copy, ExternalLink, Search, Wallet } from 'lucide-react';
 
 import Navbar from '@/components/Navbar';
 import Logo from '@/components/Logo';
@@ -21,7 +22,7 @@ import SdkShell from '@/components/sdk/SdkShell';
 import { SDK_SECTIONS, getSdkSection } from '@/components/sdk/catalog';
 import { KYLRIX_APP_TONES, KYLRIX_COLORS, TOPBAR_LAYOUT, getAppTone } from '@/lib/sdk/design';
 import { createFabModel } from '@/lib/sdk/fab';
-import { createTopbarAction, createTopbarSurface } from '@/lib/sdk/topbar';
+import { createConnectTopbarSurface } from '@/lib/sdk/topbar';
 import { createProfilePreviewManager } from '@/lib/sdk/appwrite';
 import { TABLE_DB } from '@/lib/sdk/ecosystem';
 import { createMessageEnvelope } from '@/lib/sdk/messaging';
@@ -59,22 +60,15 @@ function SnippetBlock({ snippet }: { snippet: string }) {
 function LiveTopbar() {
   const surface = useMemo(
     () =>
-      createTopbarSurface({
-        routeLabel: 'SDK topbar',
-        currentApp: 'note',
-        snippets: [],
-        quickActions: [
-          createTopbarAction({
-            id: 'compose',
-            kind: 'action',
-            title: 'Compose',
-            description: 'Open the note composer',
-            terms: ['compose', 'note'],
-            app: 'note',
-            onSelect: () => null,
-          }),
-        ],
-        searchTargets: [],
+      createConnectTopbarSurface({
+        routeLabel: 'Connect',
+        identity: {
+          displayName: 'Kylrix User',
+          username: 'kylrix',
+          profilePicId: null,
+          profilePreviewUrl: null,
+          walletConnected: true,
+        },
       }),
     [],
   );
@@ -82,51 +76,130 @@ function LiveTopbar() {
   return (
     <Paper
       sx={{
-        p: 1.25,
-        borderRadius: 999,
-        bgcolor: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: 'none',
-        minHeight: TOPBAR_LAYOUT.height,
+        p: 0,
+        borderRadius: '0 0 28px 28px',
+        bgcolor: '#161412',
+        border: '1px solid rgba(255,255,255,0.05)',
+        borderTop: 'none',
+        boxShadow: '0 16px 42px rgba(0,0,0,0.42)',
+        overflow: 'hidden',
       }}
     >
-      <Stack direction="row" alignItems="center" spacing={1.25} sx={{ minWidth: 0 }}>
-        <Box sx={{ flex: '0 0 auto' }}>
-          <Logo app="note" size={34} variant="icon" />
-        </Box>
-
-        <TextField
-          fullWidth
-          placeholder="Search SDK items"
-          size="small"
-          variant="outlined"
+      <Box sx={{ maxWidth: 1440, mx: 'auto', px: { xs: 2, md: 4 } }}>
+        <Box
           sx={{
-            minWidth: 0,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 999,
-              bgcolor: 'rgba(255,255,255,0.03)',
-              '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' },
-            },
+            minHeight: TOPBAR_LAYOUT.height,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: { xs: 1.25, md: 2 },
           }}
-        />
-
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ flex: '0 0 auto' }}>
-          <Button
-            variant="text"
+        >
+          <Box
+            component="button"
             sx={{
-              minWidth: 0,
-              px: 1.2,
-              py: 0.85,
-              borderRadius: 999,
-              color: getAppTone('note').secondary,
-              bgcolor: alpha(getAppTone('note').secondary, 0.08),
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              p: 0,
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              flexShrink: 0,
+              position: 'relative',
             }}
           >
-            {surface.quickActions[0].title}
-          </Button>
-          <Avatar sx={{ width: 36, height: 36, bgcolor: getAppTone('note').secondary, color: '#fff', fontWeight: 900 }}>N</Avatar>
-        </Stack>
-      </Stack>
+            <Logo app="connect" size={32} />
+            <IconButton
+              size="small"
+              sx={{
+                position: 'absolute',
+                right: -6,
+                bottom: -6,
+                width: 18,
+                height: 18,
+                bgcolor: '#0A0908',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.55)',
+                '&:hover': { bgcolor: '#161412', color: 'white' },
+              }}
+            >
+              <ChevronDown size={11} />
+            </IconButton>
+          </Box>
+
+          <Box
+            component="button"
+            sx={{
+              width: { xs: 44, md: 114 },
+              minWidth: { xs: 44, md: 114 },
+              maxWidth: { xs: 44, md: 114 },
+              height: 44,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              px: 1,
+              py: 0,
+              minHeight: 44,
+              border: '1px solid rgba(255,255,255,0.08)',
+              bgcolor: '#000000',
+              color: 'white',
+              borderRadius: { xs: '999px', md: '24px' },
+              boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 0 0 6px rgba(245, 158, 11, 0.02), 0 0 26px rgba(0, 0, 0, 0.55)',
+              cursor: 'pointer',
+              transition: 'transform 150ms ease-out, box-shadow 150ms ease-out, border-radius 150ms ease-out, width 150ms ease-out, min-width 150ms ease-out, max-width 150ms ease-out, background-color 150ms ease-out',
+              '&:hover': { transform: 'translateY(-1px)' },
+              '&:active': { transform: 'scale(0.98)' },
+            }}
+          >
+            <Search size={16} strokeWidth={2.25} style={{ flexShrink: 0, opacity: 0.84 }} />
+          </Box>
+
+          <Stack direction="row" alignItems="center" spacing={1.25} sx={{ flexShrink: 0 }}>
+            <Tooltip title={surface.walletLabel}>
+              <IconButton
+                sx={{
+                  color: '#F59E0B',
+                  bgcolor: alpha('#F59E0B', 0.03),
+                  border: '1px solid',
+                  borderColor: alpha('#F59E0B', 0.1),
+                  borderRadius: '12px',
+                  width: 42,
+                  height: 42,
+                  '&:hover': { bgcolor: alpha('#F59E0B', 0.08) },
+                }}
+              >
+                <Wallet size={18} strokeWidth={1.5} />
+              </IconButton>
+            </Tooltip>
+
+            <Box
+              component="button"
+              sx={{
+                p: 0,
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                '&:hover': { transform: 'scale(1.05)' },
+                transition: 'transform 0.2s',
+              }}
+            >
+              <Avatar
+                sx={{
+                  width: 38,
+                  height: 38,
+                  bgcolor: surface.identity.walletConnected ? getAppTone('connect').secondary : '#6366F1',
+                  color: '#fff',
+                  fontWeight: 900,
+                  borderRadius: '12px',
+                }}
+              >
+                {surface.identity.displayName.slice(0, 1).toUpperCase()}
+              </Avatar>
+            </Box>
+          </Stack>
+        </Box>
+      </Box>
     </Paper>
   );
 }

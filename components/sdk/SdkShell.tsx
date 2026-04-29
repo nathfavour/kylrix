@@ -33,25 +33,25 @@ function SectionButton({
       sx={{
         flex: compact ? '0 0 auto' : '0 0 100%',
         width: compact ? 'auto' : '100%',
-        borderRadius: compact ? 999 : 4,
+        borderRadius: compact ? 0 : 4,
         textAlign: 'left',
       }}
     >
       <Stack
         alignItems="center"
         justifyContent="center"
-        spacing={0.7}
+        spacing={0.35}
         sx={{
-          minWidth: compact ? 72 : '100%',
-          px: compact ? 1.5 : 1.5,
+          minWidth: compact ? 86 : '100%',
+          px: compact ? 1 : 1.5,
           py: compact ? 1.1 : 1.3,
-          borderRadius: compact ? 999 : 4,
-          bgcolor: active ? alpha(section.accent, 0.12) : 'rgba(255,255,255,0.02)',
+          borderRadius: compact ? 0 : 4,
+          bgcolor: 'transparent',
           border: '1px solid',
-          borderColor: active ? alpha(section.accent, 0.24) : 'rgba(255,255,255,0.06)',
+          borderColor: compact ? 'transparent' : active ? alpha(section.accent, 0.24) : 'rgba(255,255,255,0.06)',
           transition: 'all 160ms ease',
           '&:hover': {
-            bgcolor: alpha(section.accent, 0.08),
+            bgcolor: compact ? 'rgba(255,255,255,0.03)' : alpha(section.accent, 0.08),
           },
         }}
       >
@@ -62,13 +62,13 @@ function SectionButton({
             width: 28,
             height: 28,
             borderRadius: 999,
-            color: active ? section.accent : 'rgba(255,255,255,0.82)',
+            color: active ? section.accent : 'rgba(255,255,255,0.7)',
           }}
         >
           <Icon size={18} />
         </Box>
         <Box sx={{ minWidth: 0, textAlign: 'center' }}>
-          <Typography variant="caption" sx={{ color: '#fff', fontWeight: 800, letterSpacing: '0.08em', lineHeight: 1 }}>
+          <Typography variant="caption" sx={{ color: active ? '#fff' : 'rgba(255,255,255,0.72)', fontWeight: 800, letterSpacing: '0.08em', lineHeight: 1 }}>
             {section.title}
           </Typography>
           {!compact ? (
@@ -158,10 +158,10 @@ export default function SdkShell({ sections, activeSection, onSelectSection, chi
             <Box
               sx={{
                 display: 'flex',
-                gap: 1,
+                  gap: 0.5,
                 overflowX: 'auto',
-                px: 1,
-                py: 1.1,
+                  px: 0.75,
+                  py: 0.65,
                 '&::-webkit-scrollbar': { height: 6 },
                 '&::-webkit-scrollbar-thumb': { background: 'rgba(255,255,255,0.14)', borderRadius: 999 },
               }}
