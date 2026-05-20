@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { account, AppwriteService } from '@/lib/appwrite';
+import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/lib/theme-context';
 import {
   Box,
@@ -59,6 +60,7 @@ const TIMEZONES = [
 
 export default function PreferencesManager({ onSave }: PreferencesManagerProps) {
   const { setTheme } = useTheme();
+  const { user: authUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allPrefs, setAllPrefs] = useState<Record<string, any>>({});
@@ -114,8 +116,9 @@ export default function PreferencesManager({ onSave }: PreferencesManagerProps) 
 
       // Sync to global directory if discoverability changed
       if (key === 'publicProfile' || key === 'language') {
-        const user = await account.get();
-        await AppwriteService.syncGlobalProfile(user, updatedAllPrefs);
+        if (authUser) {
+          await AppwriteService.syncGlobalProfile(authUser, updatedAllPrefs);
+        }
       }
 
       onSave?.();

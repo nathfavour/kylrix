@@ -12,6 +12,7 @@ import { BackgroundTaskProvider } from '@/context/BackgroundTaskContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { SourceProvider } from '@/lib/source-context';
 import { PotatoProvider } from '@/components/providers/PotatoProvider';
+import { ProfileProvider } from '@/components/providers/ProfileProvider';
 import { SidebarProvider } from '@/components/ui/SidebarContext';
 import { DynamicSidebarProvider } from '@/components/ui/DynamicSidebar';
 import { DrawerStateProvider } from '@/components/ui/DrawerStateContext';
@@ -43,6 +44,7 @@ export function ClientProviders({ children }: { children: ReactNode }) {
         <DocsProvider>
           <SubscriptionProvider>
             <NotesProvider>
+              <ProfileProvider>
               <TaskProvider>
                 <BackgroundTaskProvider>
                   <NotificationProvider>
@@ -89,6 +91,7 @@ export function ClientProviders({ children }: { children: ReactNode }) {
                   </NotificationProvider>
                 </BackgroundTaskProvider>
               </TaskProvider>
+              </ProfileProvider>
             </NotesProvider>
           </SubscriptionProvider>
         </DocsProvider>

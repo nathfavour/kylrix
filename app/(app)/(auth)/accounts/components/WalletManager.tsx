@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { account, functions } from '@/lib/appwrite';
+import { useAuth } from '@/lib/auth';
 import {
   Box,
   Button,
@@ -36,6 +37,7 @@ export default function WalletManager({
   onWalletConnected,
   onWalletDisconnected,
 }: WalletManagerProps) {
+  const { user: authUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -114,12 +116,9 @@ export default function WalletManager({
     setDisconnectConfirm(false);
 
     try {
-      // Get current user
-      const user = await account.get();
-
-      // Remove wallet from prefs
+      // Remove wallet from prefs — reuse pre-loaded auth user
       await account.updatePrefs({
-        ...user.prefs,
+        ...(authUser?.prefs || {}),
         walletEth: undefined,
       });
 

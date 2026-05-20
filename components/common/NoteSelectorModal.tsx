@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     Box,
     Typography,
@@ -19,8 +19,7 @@ import {
     Description as NoteIcon,
     Close as CloseIcon,
 } from '@mui/icons-material';
-import { AppwriteService } from '@/lib/appwrite';
-import { useAuth } from '@/hooks/useAuth';
+import { useNotes } from '@/context/NotesContext';
 
 interface NoteSelectorModalProps {
     isOpen: boolean;
@@ -29,27 +28,8 @@ interface NoteSelectorModalProps {
 }
 
 export function NoteSelectorModal({ isOpen, onClose, onSelect }: NoteSelectorModalProps) {
-    const { user } = useAuth();
-    const [notes, setNotes] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { notes, isLoading: loading } = useNotes();
     const [search, setSearch] = useState('');
-
-    useEffect(() => {
-        if (isOpen && user) {
-            const fetchNotes = async () => {
-                setLoading(true);
-                try {
-                    const res = await AppwriteService.listFlowNotes(user.$id);
-                    setNotes(res.documents);
-                } catch (err: unknown) {
-                    console.error('Failed to fetch notes:', err);
-                } finally {
-                    setLoading(false);
-                }
-            };
-            fetchNotes();
-        }
-    }, [isOpen, user]);
 
     const filtered = notes.filter(n =>
         (n.title || '').toLowerCase().includes(search.toLowerCase())

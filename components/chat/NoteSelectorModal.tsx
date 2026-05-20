@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     List,
     ListItemButton,
@@ -18,8 +18,7 @@ import {
 import NoteIcon from '@mui/icons-material/DescriptionOutlined';
 import SearchIcon from '@mui/icons-material/SearchOutlined';
 import CloseIcon from '@mui/icons-material/Close';
-import { EcosystemService } from '@/lib/services/ecosystem';
-import { useAuth } from '@/lib/auth';
+import { useNotes } from '@/context/NotesContext';
 
 interface NoteSelectorModalProps {
     open: boolean;
@@ -28,29 +27,8 @@ interface NoteSelectorModalProps {
 }
 
 export const NoteSelectorModal = ({ open, onClose, onSelect }: NoteSelectorModalProps) => {
-    const { user } = useAuth();
-    const [notes, setNotes] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { notes, isLoading: loading } = useNotes();
     const [searchTerm, setSearchTerm] = useState('');
-
-    const loadNotes = React.useCallback(async () => {
-        if (!user) return;
-        setLoading(true);
-        try {
-            const res = await EcosystemService.listNotes(user.$id);
-            setNotes(res.rows);
-        } catch (error: unknown) {
-            console.error('Failed to load notes:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, [user]);
-
-    useEffect(() => {
-        if (open && user) {
-            loadNotes();
-        }
-    }, [open, user, loadNotes]);
 
     const handleSelect = (note: any) => {
         onSelect(note);

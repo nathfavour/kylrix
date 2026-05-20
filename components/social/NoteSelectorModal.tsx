@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { 
     Drawer, 
     Button, 
@@ -26,8 +26,7 @@ import {
     FileCheck,
     AlertCircle
 } from 'lucide-react';
-import { EcosystemService } from '@/lib/services/ecosystem';
-import { useAuth } from '@/lib/auth';
+import { useNotes } from '@/context/NotesContext';
 
 interface NoteSelectorModalProps {
     open: boolean;
@@ -38,31 +37,14 @@ interface NoteSelectorModalProps {
 export const NoteSelectorModal = ({ open, onClose, onSelect }: NoteSelectorModalProps) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const { user } = useAuth();
-    const [notes, setNotes] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
+    const { notes: allNotes, isLoading: loading } = useNotes();
     const [searchQuery, setSearchQuery] = useState('');
 
-    const loadNotes = useCallback(async () => {
-        if (!user?.$id) return;
-        setLoading(true);
-        try {
-            const response = await EcosystemService.listNotes(user.$id);
-            // Smart filter: only public notes
-            const publicNotes = response.rows.filter((n: any) => n.isPublic === true);
-            setNotes(publicNotes);
-        } catch (error: unknown) {
-            console.error('Failed to load notes:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, [user?.$id]);
-
-    useEffect(() => {
-        if (open && user) {
-            loadNotes();
-        }
-    }, [open, user, loadNotes]);
+    // Reuse globally-loaded notes, filtering for public ones — zero extra DB reads
+    const notes = React.useMemo(
+        () => allNotes.filter((n: any) => n.isPublic === true),
+        [allNotes]
+    );
 
     const filteredNotes = notes.filter(note => 
         note.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||

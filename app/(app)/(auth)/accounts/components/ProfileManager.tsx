@@ -22,6 +22,8 @@ import {
   PhotoCamera as PhotoCameraIcon
 } from '@mui/icons-material';
 import { IdentityAvatar, IdentityName, computeIdentityFlags } from './IdentityBadge';
+import { useAuth } from '@/lib/auth';
+import { useProfile } from '@/components/providers/ProfileProvider';
 
 const storage = new Storage(client);
 const AVATAR_BUCKET_ID = 'profile_pictures';
@@ -32,6 +34,8 @@ interface ProfileManagerProps {
 
 export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps) {
   const dynamicColors = useColors();
+  const { user: authUser } = useAuth();
+  const { profile: globalProfile, isLoading: profileLoading } = useProfile();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,25 +48,31 @@ export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps)
   const [isRemovingPic, setIsRemovingPic] = useState(false);
   const [profileRecord, setProfileRecord] = useState<any>(null);
 
+  // Hydrate from global auth + profile context instead of account.get()
   useEffect(() => {
-    loadUser();
-  }, []);
+    if (!authUser) return;
+    setUser(authUser);
+    setName(authUser.name || '');
+    setUsername(authUser.prefs?.username || '');
 
-  useEffect(() => {
-    let mounted = true;
-    const loadProfileRecord = async () => {
-      if (!user?.$id) return;
+    const picId = authUser.prefs?.profilePicId;
+    if (picId) {
       try {
-        const status = await AppwriteService.getGlobalProfileStatus(user.$id);
-        if (!mounted) return;
-        setProfileRecord(status?.profile || null);
-      } catch (_err) {
-        // keep local render working if profile lookup fails
+        const url = storage.getFilePreview(AVATAR_BUCKET_ID, picId, 320, 320);
+        setProfilePicUrl(url.toString());
+      } catch (_e: unknown) {
+        console.warn('Failed to load avatar preview');
       }
-    };
-    loadProfileRecord();
-    return () => { mounted = false; };
-  }, [user?.$id]);
+    }
+    setLoading(false);
+  }, [authUser]);
+
+  // Use globally-loaded profile record instead of a separate getGlobalProfileStatus call
+  useEffect(() => {
+    if (globalProfile) {
+      setProfileRecord(globalProfile);
+    }
+  }, [globalProfile]);
 
   const identitySignals = computeIdentityFlags({
     createdAt: user?.$createdAt || user?.createdAt || null,
@@ -74,30 +84,6 @@ export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps)
     publicKey: profileRecord?.publicKey || null,
     emailVerified: Boolean(user?.emailVerification),
   });
-
-  const loadUser = async () => {
-    try {
-      setLoading(true);
-      const userData = await account.get();
-      setUser(userData);
-      setName(userData.name || '');
-      setUsername(userData.prefs?.username || '');
-      
-      const picId = userData.prefs?.profilePicId;
-      if (picId) {
-        try {
-          const url = storage.getFilePreview(AVATAR_BUCKET_ID, picId, 320, 320);
-          setProfilePicUrl(url.toString());
-        } catch (_e: unknown) {
-          console.warn('Failed to load avatar preview');
-        }
-      }
-    } catch (err: unknown) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
