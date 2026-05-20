@@ -525,11 +525,81 @@ export function NoteDetailSidebar({
   }, [liveNote.attachments]);
 
   return (
-    <Box sx={{ p: { xs: 2, md: 2.5 }, display: 'flex', flexDirection: 'column', gap: 4, height: '100%', overflowY: 'auto', bgcolor: '#0A0908' }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
-        <IconButton onClick={onBack || closeSidebar} sx={{ color: theme.palette.text.secondary }}><BackIcon /></IconButton>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+    <Box className="note-detail-sidebar-root" sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#0A0908', overflow: 'hidden' }}>
+      {/* Header (Dual-Row Layout - Fixed at top) */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: { xs: 2, md: 2.5 }, pb: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+        {/* Row 1: Title & Close Button */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
+            {onBack ? (
+              <IconButton onClick={onBack} sx={{ color: theme.palette.text.secondary, flexShrink: 0 }}>
+                <BackIcon />
+              </IconButton>
+            ) : (
+              <IconButton onClick={closeSidebar} sx={{ color: theme.palette.text.secondary, flexShrink: 0, display: { xs: 'inline-flex', sm: 'none' } }}>
+                <BackIcon />
+              </IconButton>
+            )}
+            {isEditingTitle ? (
+              <TextField 
+                fullWidth 
+                variant="standard" 
+                value={title} 
+                onChange={(e) => setTitle(e.target.value)} 
+                onBlur={() => setIsEditingTitle(false)} 
+                autoFocus 
+                InputProps={{ 
+                  disableUnderline: true, 
+                  sx: { 
+                    fontSize: '1.25rem', 
+                    fontWeight: 900, 
+                    color: 'white', 
+                    fontFamily: '"Space Grotesk", sans-serif',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em' 
+                  } 
+                }} 
+              />
+            ) : (
+              <Typography 
+                variant="h6" 
+                onClick={activateTitleEditing} 
+                noWrap
+                sx={{ 
+                  cursor: isEncryptedNote && !vaultUnlocked ? 'pointer' : 'text', 
+                  fontWeight: 900, 
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  color: '#6366F1',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  fontSize: '1.1rem',
+                  flex: 1
+                }}
+              >
+                {displayTitle}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Close button for desktop DynamicSidebar (only shown if not in onBack mode) */}
+          {!onBack && (
+            <Tooltip title="Close">
+              <IconButton
+                onClick={closeSidebar}
+                sx={{
+                  color: theme.palette.text.secondary,
+                  display: { xs: 'none', sm: 'inline-flex' },
+                  '&:hover': { color: 'white', bgcolor: alpha(theme.palette.text.primary, 0.08) }
+                }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+
+        {/* Row 2: Action Toolbar (Centralized) */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }}>
           <Tooltip title={isPublic ? 'Make Private' : 'Make Public'}>
             <IconButton
               onClick={handleTogglePublic}
@@ -542,8 +612,19 @@ export function NoteDetailSidebar({
               {isPublic ? <PublicIcon fontSize="small" /> : <LockIcon fontSize="small" />}
             </IconButton>
           </Tooltip>
-          <Tooltip title="Action hub"><IconButton onClick={() => setShowActionHub(true)} sx={{ color: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.08) }}><ActionIcon fontSize="small" /></IconButton></Tooltip>
-          <Tooltip title="Start huddle"><IconButton onClick={handleStartNoteHuddle} sx={{ color: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.08) }}><VideoCallIcon fontSize="small" /></IconButton></Tooltip>
+          
+          <Tooltip title="Action hub">
+            <IconButton onClick={() => setShowActionHub(true)} sx={{ color: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
+              <ActionIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Start huddle">
+            <IconButton onClick={handleStartNoteHuddle} sx={{ color: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
+              <VideoCallIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
           {showExpandButton && isPublic && (
             <Tooltip title="Copy share link">
               <span>
@@ -556,23 +637,33 @@ export function NoteDetailSidebar({
               </span>
             </Tooltip>
           )}
-          <Tooltip title={isPinned(liveNote.$id) ? 'Unpin' : 'Pin'}><IconButton onClick={handlePinToggle} sx={{ color: isPinned(liveNote.$id) ? theme.palette.primary.main : theme.palette.text.secondary }}><PinIcon fontSize="small" /></IconButton></Tooltip>
-          {isT4EncryptedPublicNote && <Tooltip title="Rotate link"><IconButton onClick={rotateNoteLink} sx={{ color: theme.palette.text.secondary }}><RefreshIcon fontSize="small" /></IconButton></Tooltip>}
-          {showHeaderDeleteButton && <Tooltip title="Delete"><IconButton onClick={() => setShowDeleteConfirm(true)} sx={{ color: theme.palette.text.secondary, '&:hover': { color: theme.palette.error.main, bgcolor: alpha(theme.palette.error.main, 0.1) } }}><TrashIcon fontSize="small" /></IconButton></Tooltip>}
+
+          <Tooltip title={isPinned(liveNote.$id) ? 'Unpin' : 'Pin'}>
+            <IconButton onClick={handlePinToggle} sx={{ color: isPinned(liveNote.$id) ? theme.palette.primary.main : theme.palette.text.secondary }}>
+              <PinIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
+          {isT4EncryptedPublicNote && (
+            <Tooltip title="Rotate link">
+              <IconButton onClick={rotateNoteLink} sx={{ color: theme.palette.text.secondary }}>
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {showHeaderDeleteButton && (
+            <Tooltip title="Delete">
+              <IconButton onClick={() => setShowDeleteConfirm(true)} sx={{ color: theme.palette.text.secondary, '&:hover': { color: theme.palette.error.main, bgcolor: alpha(theme.palette.error.main, 0.1) } }}>
+                <TrashIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
       </Box>
 
-      {/* Title Card */}
-      <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#161412', border: '1px solid #1C1A18', boxShadow: '0 12px 32px rgba(0,0,0,0.4)', transition: 'all 0.3s ease', '&:focus-within': { borderColor: theme.palette.secondary.main, transform: 'translateY(-2px)' } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 1 }}>
-          <Typography variant="caption" sx={{ color: theme.palette.secondary.main, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Title</Typography>
-        </Box>
-        {isEditingTitle ? (
-          <TextField fullWidth variant="standard" value={title} onChange={(e) => setTitle(e.target.value)} onBlur={() => setIsEditingTitle(false)} autoFocus InputProps={{ disableUnderline: true, sx: { fontSize: '1.4rem', fontWeight: 900, color: 'white', fontFamily: 'var(--font-clash)' } }} />
-        ) : (
-          <Typography variant="h5" onClick={activateTitleEditing} sx={{ cursor: isEncryptedNote && !vaultUnlocked ? 'pointer' : 'text', fontWeight: 900, fontFamily: 'var(--font-clash)' }}>{displayTitle}</Typography>
-        )}
-      </Box>
+      {/* Scrollable Content Area */}
+      <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 2.5 }, pt: 3, display: 'flex', flexDirection: 'column', gap: 4 }}>
 
       {/* Content Card */}
       <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#161412', border: '1px solid #1C1A18', minHeight: { xs: 340, md: 460 }, height: { xs: 'clamp(340px, 46vh, 460px)', md: 'clamp(460px, 58vh, 760px)' }, boxShadow: '0 12px 32px rgba(0,0,0,0.4)', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', overflow: 'hidden', '&:focus-within': { borderColor: theme.palette.primary.main, transform: 'translateY(-2px)' } }}>
@@ -688,6 +779,7 @@ export function NoteDetailSidebar({
         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Created {formatNoteCreatedDate(liveNote)}</Typography>
         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Updated {formatNoteUpdatedDate(liveNote)}</Typography>
       </Box>
+    </Box>
 
       {/* Action Hub Drawer */}
       <Drawer anchor="top" open={showActionHub} onClose={() => setShowActionHub(false)} PaperProps={{ sx: { borderBottomLeftRadius: '32px', borderBottomRightRadius: '32px', bgcolor: '#161412', border: '1px solid #1C1A18', backgroundImage: 'none', p: 3.5 } }}>

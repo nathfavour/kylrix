@@ -113,7 +113,8 @@ export function TopBarSearch() {
           onUpdate={handleNoteUpdated}
           onDelete={handleNoteDeleted}
         />,
-        note.$id || null
+        note.$id || null,
+        { hideHeader: true }
       );
       setIsOpen(false);
       clearSearch();

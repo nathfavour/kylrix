@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, Typography, Box, IconButton, Chip, alpha } from '@mui/material';
 import { useContextMenu } from './ContextMenuContext';
-import { useDynamicSidebar } from './DynamicSidebar';
+import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { NoteDetailSidebar } from './NoteDetailSidebar';
 import { useNotes } from '@/context/NotesContext';
 import type { Notes } from '@/types/appwrite';
@@ -264,7 +264,8 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
         onUpdate={onUpdate || (() => {})}
         onDelete={onDelete || (() => {})}
       />,
-      note.$id || null
+      note.$id || null,
+      { hideHeader: true }
     );
   };
 

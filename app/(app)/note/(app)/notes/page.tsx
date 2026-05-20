@@ -210,7 +210,8 @@ function NotesContent() {
           onUpdate={handleNoteUpdated}
           onDelete={handleNoteDeleted}
         />,
-        targetNote.$id || null
+        targetNote.$id || null,
+        { hideHeader: true }
       );
     }
   }, [activeContentKey, allNotes, isDynamicSidebarOpen, openSidebar, handleNoteUpdated, handleNoteDeleted]);
@@ -238,7 +239,8 @@ function NotesContent() {
         onUpdate={handleNoteUpdated}
         onDelete={handleNoteDeleted}
       />,
-      targetNote.$id || null
+      targetNote.$id || null,
+      { hideHeader: true }
     );
 
     cleanParams();

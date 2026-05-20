@@ -264,7 +264,8 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
         onUpdate={onUpdate || (() => {})}
         onDelete={onDelete || (() => {})}
       />,
-      note.$id || null
+      note.$id || null,
+      { hideHeader: true }
     );
   };
 

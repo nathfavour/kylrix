@@ -16,7 +16,7 @@ import { useProUpgrade } from '@/context/ProUpgradeContext';
 import { useTask } from '@/context/TaskContext';
 import { useLayout } from '@/context/LayoutContext';
 import { useOverlay } from '@/components/ui/OverlayContext';
-import { useDynamicSidebar } from '@/components/ui/DynamicSidebarContext';
+import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { useWalletOverlay } from '@/context/WalletOverlayContext';
 import { useSidebar as useSidebarContext } from '@/components/ui/SidebarContext';
 import { useAgenticDrawer } from '@/context/AgenticDrawerContext';

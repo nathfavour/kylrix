@@ -11,11 +11,16 @@ import React, {
   useEffect
 } from 'react';
 
+export interface DynamicSidebarOptions {
+  hideHeader?: boolean;
+}
+
 export interface DynamicSidebarContextType {
   isOpen: boolean;
   content: ReactNode | null;
   activeContentKey: string | null;
-  openSidebar: (content: ReactNode, key?: string | null) => void;
+  options: DynamicSidebarOptions | null;
+  openSidebar: (content: ReactNode, key?: string | null, options?: DynamicSidebarOptions | null) => void;
   closeSidebar: () => void;
 }
 
@@ -28,6 +33,7 @@ export function DynamicSidebarProvider({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem('kylrixnote_dynamic_sidebar_key');
   });
+  const [options, setOptions] = useState<DynamicSidebarOptions | null>(null);
 
   // Use refs to keep callbacks stable and prevent massive list re-renders
   const stateRef = useRef({ isOpen, activeContentKey });
@@ -37,13 +43,14 @@ export function DynamicSidebarProvider({ children }: { children: ReactNode }) {
   }, [isOpen, activeContentKey]);
 
   const openSidebar = useCallback(
-    (newContent: ReactNode, key: string | null = null) => {
+    (newContent: ReactNode, key: string | null = null, newOptions: DynamicSidebarOptions | null = null) => {
       const state = stateRef.current;
       if (state.isOpen && key && state.activeContentKey === key) {
         return;
       }
       setContent(newContent);
       setActiveContentKey(key);
+      setOptions(newOptions);
       setIsOpen(true);
       if (key) {
         localStorage.setItem('kylrixnote_dynamic_sidebar_key', key);
@@ -55,6 +62,7 @@ export function DynamicSidebarProvider({ children }: { children: ReactNode }) {
   const closeSidebar = useCallback(() => {
     setIsOpen(false);
     setActiveContentKey(null);
+    setOptions(null);
     localStorage.removeItem('kylrixnote_dynamic_sidebar_key');
     // Delay clearing content for exit animation
     setTimeout(() => {
@@ -63,8 +71,8 @@ export function DynamicSidebarProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const providerValue = useMemo(
-    () => ({ isOpen, content, activeContentKey, openSidebar, closeSidebar }),
-    [isOpen, content, activeContentKey, openSidebar, closeSidebar]
+    () => ({ isOpen, content, activeContentKey, options, openSidebar, closeSidebar }),
+    [isOpen, content, activeContentKey, options, openSidebar, closeSidebar]
   );
 
   return (
