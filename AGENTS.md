@@ -7,6 +7,11 @@
 - **Prefer Internal Methods**: Use existing in-process functions, Server Actions, and SDK helpers instead of exposing new API surfaces.
 - **Data Consolidation**: When returning shaped payloads to hydrate multiple UI widgets, use Server Actions or consolidated internal service methods.
 
+### 🛑 MANDATORY SOURCE CONTROL RESTRICTIONS
+- **NO GIT COMMITS**: DO NOT run `git commit`, `git add`, `git stage`, `git push`, or `git merge`. You are strictly forbidden from altering the repository index or history.
+- **ZERO STAGING**: Never stage changes. All modifications must remain in the working directory only.
+- **Sovereign Source Control**: The user manages source control through a separate, external agentic workflow. Any attempt by an in-repo agent to commit code is a violation of system integrity.
+
 ### ⚡ Development Standards
 - **Canonical App**: Only implement against **`kylrix/`**. Legacy trees at repo root are for reference only.
 - **No Tailwind**: Use Material UI (MUI) and Vanilla CSS.
