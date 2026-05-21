@@ -55,6 +55,7 @@ export function PublicCall({ id }: { id: string }) {
     const [timeToStart, setTimeToStart] = useState<string>('');
     const [showPreCheck, setShowPreCheck] = useState(false);
     const [mediaSettings, setMediaSettings] = useState({ video: true, audio: true, companion: false });
+    const isAudioOnly = linkData?.type === 'audio';
     const [isCompanionDetected, setIsCompanionDetected] = useState(false);
     const [callMode, setCallMode] = useState<'link' | 'conversation' | null>(null);
     const [autoStartAfterPreCheck, setAutoStartAfterPreCheck] = useState(false);
@@ -325,6 +326,7 @@ export function PublicCall({ id }: { id: string }) {
                         onJoin={onPreCheckJoin} 
                         userProfile={localUser} 
                         isCompanionDetected={isCompanionDetected}
+                        defaultVideoEnabled={!isAudioOnly}
                     />
                 </Box>
             );

@@ -97,6 +97,7 @@ export const CallInterface = ({
     const [isVideoOff, setIsVideoOff] = useState(!initialMediaSettings.video || initialMediaSettings.companion);
     const [isCompanion, _setIsCompanion] = useState(initialMediaSettings.companion);
     const [targetId, setTargetId] = useState<string | undefined>(initialTargetId);
+    const [forceP2p, setForceP2p] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(initialPresentation !== 'dock');
     const [timeRemaining, setTimeRemaining] = useState<string>('');
     const [copied, setCopied] = useState(false);
@@ -428,7 +429,7 @@ export const CallInterface = ({
         if (!user || !targetId) return;
         setStatus('Reconnecting...');
         hasInitiatedCall.current = true;
-        await rtcManager.current?.createOffer(user.$id, targetId);
+        await rtcManager.current?.createOffer(user.$id, targetId, { forceP2p });
     };
 
     const broadcastMessage = async (content: string, attachment?: any) => {
@@ -497,7 +498,7 @@ export const CallInterface = ({
                 if (other) {
                     setTargetId(other);
                     if (isCaller) {
-                        rtcManager.current?.createOffer(user.$id, other);
+                        rtcManager.current?.createOffer(user.$id, other, { forceP2p });
                     }
                 }
             } catch (_e) {
@@ -512,6 +513,31 @@ export const CallInterface = ({
             return () => clearTimeout(timer);
         }
     }, [conversationId, targetId, user, isCaller]);
+
+    // Determine WebRTC mode: P2P for small groups/DMs, SFU for large groups (>4)
+    useEffect(() => {
+        if (!user) return;
+        const resolveMode = async () => {
+            try {
+                if (conversationId) {
+                    const conv = await ChatService.getConversationById(conversationId, user.$id);
+                    const memberCount = conv?.participantCount || conv?.participants?.length || 0;
+                    setForceP2p(memberCount <= 4);
+                } else if (callCode) {
+                    const link = await CallService.getCallLink(callCode);
+                    if (link?.metadata) {
+                        const meta = JSON.parse(link.metadata);
+                        const pCount = Array.isArray(meta.participantIds) ? meta.participantIds.length : 0;
+                        setForceP2p(meta.scope !== 'group' || pCount <= 4);
+                    }
+                }
+            } catch (_e) {
+                // Default to P2P on error
+                setForceP2p(true);
+            }
+        };
+        resolveMode();
+    }, [user, conversationId, callCode]);
 
     useEffect(() => {
         if (!user) return;
@@ -553,7 +579,7 @@ export const CallInterface = ({
             
             if ((isCaller || autoInitiate) && targetId && !hasInitiatedCall.current) {
                 hasInitiatedCall.current = true;
-                rtcManager.current?.createOffer(user.$id, targetId);
+                rtcManager.current?.createOffer(user.$id, targetId, { forceP2p });
             } else if ((isCaller || autoInitiate) && !targetId) {
                 setStatus('Waiting for participants...');
             }
@@ -582,7 +608,7 @@ export const CallInterface = ({
                             if (!hasInitiatedCall.current) {
                                 hasInitiatedCall.current = true;
                                 setTimeout(() => {
-                                    rtcManager.current?.createOffer(user.$id, signal.sender);
+                                    rtcManager.current?.createOffer(user.$id, signal.sender, { forceP2p });
                                 }, 500);
                             }
                         } else if (signal.type === 'join_request') {

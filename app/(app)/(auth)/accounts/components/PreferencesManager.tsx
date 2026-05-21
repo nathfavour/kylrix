@@ -15,7 +15,10 @@ import {
   CircularProgress,
   Stack,
   Divider,
+  Button,
 } from '@mui/material';
+import { checkTelegramConnection } from '@/lib/actions/telegram';
+import { TelegramDrawer } from './TelegramDrawer';
 
 interface PrefsData {
   language?: string;
@@ -75,8 +78,26 @@ export default function PreferencesManager({ onSave }: PreferencesManagerProps) 
     publicProfile: true,
   });
 
+  const [tgUsername, setTgUsername] = useState<string | null>(null);
+  const [tgLoading, setTgLoading] = useState(false);
+  const [tgDrawerOpen, setTgDrawerOpen] = useState(false);
+
+  const loadTelegramStatus = async () => {
+    try {
+      const res = await checkTelegramConnection();
+      if (res.success && res.isVerified) {
+        setTgUsername(res.tgUsername || 'Connected');
+      } else {
+        setTgUsername(null);
+      }
+    } catch (err) {
+      console.error('Failed to load telegram status:', err);
+    }
+  };
+
   useEffect(() => {
     loadPreferences();
+    loadTelegramStatus();
   }, []);
 
   const loadPreferences = async () => {
@@ -374,6 +395,90 @@ export default function PreferencesManager({ onSave }: PreferencesManagerProps) 
                 }}
               />
             </Box>
+
+            {/* Telegram Notifications */}
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                p: 3,
+                backgroundColor: '#161514',
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                transition: 'all 0.2s ease-out',
+                '&:hover': {
+                  backgroundColor: '#1F1D1B',
+                }
+              }}
+            >
+              <Box>
+                <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'white' }}>
+                  Telegram Notifications
+                </Typography>
+                <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', mt: 0.5 }}>
+                  {tgUsername 
+                    ? `Linked as @${tgUsername}. Ready to receive secure notifications.` 
+                    : 'Receive instant notifications for calls, chats, and active reminders.'}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {tgLoading ? (
+                  <CircularProgress size={20} sx={{ color: 'rgba(255, 255, 255, 0.4)' }} />
+                ) : tgUsername ? (
+                  <Button
+                    variant="text"
+                    onClick={async () => {
+                      if (!authUser?.$id) return;
+                      try {
+                        setTgLoading(true);
+                        const { databases, APPWRITE_CONFIG } = await import('@/lib/appwrite');
+                        await databases.deleteDocument(
+                          APPWRITE_CONFIG.DATABASES.CONNECT,
+                          APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
+                          authUser.$id
+                        );
+                        setTgUsername(null);
+                      } catch (err: any) {
+                        console.error('Failed to disconnect telegram:', err);
+                        setError(err?.message || 'Failed to disconnect Telegram.');
+                      } finally {
+                        setTgLoading(false);
+                      }
+                    }}
+                    sx={{
+                      color: '#EF4444',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      '&:hover': {
+                        bgcolor: 'rgba(239, 68, 68, 0.08)',
+                      }
+                    }}
+                  >
+                    Disconnect
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    onClick={() => setTgDrawerOpen(true)}
+                    sx={{
+                      bgcolor: '#6366F1',
+                      color: 'white',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      borderRadius: '6px',
+                      '&:hover': {
+                        bgcolor: '#4F46E5',
+                      }
+                    }}
+                  >
+                    Connect
+                  </Button>
+                )}
+              </Box>
+            </Box>
           </Stack>
         </Box>
 
@@ -457,6 +562,16 @@ export default function PreferencesManager({ onSave }: PreferencesManagerProps) 
           </Stack>
         </Box>
       </Stack>
+      {tgDrawerOpen && (
+        <TelegramDrawer
+          open={tgDrawerOpen}
+          onClose={() => setTgDrawerOpen(false)}
+          onSuccess={(username) => {
+            setTgUsername(username);
+            loadTelegramStatus();
+          }}
+        />
+      )}
     </Box>
   );
 }

@@ -102,6 +102,18 @@ export enum UnorganicEmailsStatus {
     FAILED = "failed"
 }
 
+export enum ProjectsVisibility {
+    PRIVATE = "private",
+    SHARED = "shared",
+    PUBLIC = "public"
+}
+
+export enum ProjectsStatus {
+    ACTIVE = "active",
+    PAUSED = "paused",
+    ARCHIVED = "archived"
+}
+
 export enum FormsStatus {
     DRAFT = "draft",
     PUBLISHED = "published",
@@ -547,6 +559,129 @@ export type UnorganicEmails = Models.Row & {
     metadata: string | null;
 }
 
+export type KylrixTokenLedger = Models.Row & {
+    rowType: string;
+    txId: string;
+    idempotencyKey: string;
+    eventType: string | null;
+    userId: string | null;
+    counterpartyUserId: string | null;
+    amountMicro: string | null;
+    deltaMicro: string | null;
+    balanceAfterMicro: string | null;
+    status: string;
+    sourceType: string | null;
+    sourceId: string | null;
+    metadata: string | null;
+    createdAt: string;
+    genesisAt: string | null;
+    contractVersion: string | null;
+    maxSupplyMicro: string | null;
+    totalMintedMicro: string | null;
+    totalBurnedMicro: string | null;
+    circulatingMicro: string | null;
+    rootBalanceMicro: string | null;
+    riskLevel: string | null;
+    lastActivityAt: string | null;
+    lastSpikeAt: string | null;
+    updatedAt: string | null;
+}
+
+export type EngagementViews = Models.Row & {
+    rowType: string;
+    eventId: string;
+    idempotencyKey: string;
+    appId: string;
+    contentType: string;
+    contentId: string;
+    ownerUserId: string | null;
+    viewerKind: string;
+    viewerUserId: string | null;
+    viewerTokenHash: string | null;
+    fingerprintHash: string | null;
+    ipHash: string | null;
+    uaHash: string | null;
+    conversationId: string | null;
+    messageId: string | null;
+    receiptType: string | null;
+    isCounted: boolean;
+    bucketDay: string;
+    bucketMonth: string;
+    occurredAt: string;
+    metadata: string | null;
+}
+
+export type EngagementViewRollups = Models.Row & {
+    rowType: string;
+    rollupKey: string;
+    metricType: string;
+    appId: string;
+    scopeType: string;
+    scopeId: string;
+    contentType: string | null;
+    contentId: string | null;
+    ownerUserId: string | null;
+    bucketDay: string;
+    bucketMonth: string;
+    uniqueViewCount: number;
+    totalViewCount: number;
+    receiptCount: number;
+    weightedScore: number;
+    trustScore: number;
+    lastEventAt: string | null;
+    updatedAt: string;
+    metadata: string | null;
+}
+
+export type KylrixSignals = Models.Row & {
+    userId: string;
+    dailyMintedMicro: string | null;
+    lastMintAt: string | null;
+    thermalScore: number | null;
+    riskLevel: string;
+    updatedAt: string;
+}
+
+export type AccountLedger = Models.Row & {
+    userId: string;
+    attentionBalance: number | null;
+    successTaxRate: number | null;
+    reputationScore: number | null;
+    lastPeakVelocity: number | null;
+    thermalCacheScore: number | null;
+    thermalCacheAt: number | null;
+    updatedAt: string | null;
+}
+
+export type SystemPulse = Models.Row & {
+    metricKey: string;
+    metricValue: number;
+    sampleCount: number;
+    updatedAt: number;
+}
+
+export type Projects = Models.Row & {
+    title: string;
+    summary: string | null;
+    ownerId: string;
+    visibility: ProjectsVisibility;
+    status: ProjectsStatus;
+    metadata: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+}
+
+export type ProjectObjects = Models.Row & {
+    projectId: string;
+    entityKind: string;
+    entityId: string;
+    role: string | null;
+    position: number;
+    metadata: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+}
+
 export type FocusSessions = Models.Row & {
     userId: string;
     taskId: string | null;
@@ -628,103 +763,9 @@ export type Agents = Models.Row & {
     status: string;
 }
 
-export type KylrixTokenLedger = Models.Row & {
-    rowType: string;
-    txId: string;
-    idempotencyKey: string;
-    eventType: string | null;
-    userId: string | null;
-    counterpartyUserId: string | null;
-    amountMicro: string | null;
-    deltaMicro: string | null;
-    balanceAfterMicro: string | null;
-    status: string;
-    sourceType: string | null;
-    sourceId: string | null;
-    metadata: string | null;
-    createdAt: string;
-    genesisAt: string | null;
-    contractVersion: string | null;
-    maxSupplyMicro: string | null;
-    totalMintedMicro: string | null;
-    totalBurnedMicro: string | null;
-    circulatingMicro: string | null;
-    rootBalanceMicro: string | null;
-    riskLevel: string | null;
-    lastActivityAt: string | null;
-    lastSpikeAt: string | null;
-    updatedAt: string | null;
-}
-
-export type KylrixSignals = Models.Row & {
-    userId: string;
-    dailyMintedMicro: string | null;
-    lastMintAt: string | null;
-    thermalScore: number | null;
-    riskLevel: string;
-    updatedAt: string;
-}
-
-export type AccountLedger = Models.Row & {
-    userId: string;
-    attentionBalance: number | null;
-    successTaxRate: number | null;
-    reputationScore: number | null;
-    lastPeakVelocity: number | null;
-    thermalCacheScore: number | null;
-    thermalCacheAt: number | null;
-    updatedAt: string | null;
-}
-
-export type SystemPulse = Models.Row & {
-    metricKey: string;
-    metricValue: number;
-    sampleCount: number;
-    updatedAt: number;
-}
-
-export type EngagementViews = Models.Row & {
-    rowType: string;
-    eventId: string;
-    idempotencyKey: string;
-    appId: string;
-    contentType: string;
-    contentId: string;
-    ownerUserId: string | null;
-    viewerKind: string;
-    viewerUserId: string | null;
-    viewerTokenHash: string | null;
-    fingerprintHash: string | null;
-    ipHash: string | null;
-    uaHash: string | null;
-    conversationId: string | null;
-    messageId: string | null;
-    receiptType: string | null;
-    isCounted: boolean;
-    bucketDay: string;
-    bucketMonth: string;
-    occurredAt: string;
-    metadata: string | null;
-}
-
-export type EngagementViewRollups = Models.Row & {
-    rowType: string;
-    rollupKey: string;
-    metricType: string;
-    appId: string;
-    scopeType: string;
-    scopeId: string;
-    contentType: string | null;
-    contentId: string | null;
-    ownerUserId: string | null;
-    bucketDay: string;
-    bucketMonth: string;
-    uniqueViewCount: number;
-    totalViewCount: number;
-    receiptCount: number;
-    weightedScore: number;
-    trustScore: number;
-    lastEventAt: string | null;
-    updatedAt: string;
-    metadata: string | null;
+export type TelegramConnections = Models.Row & {
+    pair_code: string | null;
+    tg_chat_id: string | null;
+    tg_username: string | null;
+    is_verified: boolean;
 }

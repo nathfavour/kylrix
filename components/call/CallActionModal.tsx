@@ -49,6 +49,7 @@ import { useRouter } from 'next/navigation';
 import { ChatService } from '@/lib/services/chat';
 import { useAuth } from '@/lib/auth';
 import { CallService } from '@/lib/services/call';
+import { createChatCallAction } from '@/lib/actions/call';
 import { UsersService } from '@/lib/services/users';
 import toast from 'react-hot-toast';
 import { 
@@ -246,19 +247,15 @@ export const CallActionModal = ({
                         (id): id is string => typeof id === 'string' && id.trim().length > 0
                     );
 
-                _link = await CallService.createScopedCallLink({
-                    userId: user.$id,
-                    type: 'video',
+                const serverResult = await createChatCallAction({
+                    conversationId: launchContext.conversationId,
+                    participantIds: participants,
+                    type: 'audio',
                     title: instantTitle || launchContext.title || conversation?.name || undefined,
                     durationMinutes: duration,
                     scope: conversation?.type === 'group' ? 'group' : 'direct',
-                    sourceApp: 'connect',
-                    conversationId: launchContext.conversationId,
-                    participantIds: participants,
-                    isPrivate: true,
-                    allowGuests,
-                    approveParticipants,
                 });
+                _link = { $id: serverResult.$id };
             } else if (launchContext?.noteId) {
                 const participants: string[] = Array.from(new Set(launchContext.participantIds || [user.$id]));
                 _link = await CallService.createScopedCallLink({

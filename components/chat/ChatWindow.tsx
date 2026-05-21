@@ -1783,14 +1783,9 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
                     </Box>
                     <Stack direction="row" spacing={0.5}>
                         {!isSelf && (
-                            <>
-                                <IconButton onClick={() => handleCall('audio')} sx={{ color: 'text.secondary' }}>
-                                    <Phone size={20} strokeWidth={1.5} />
-                                </IconButton>
-                                <IconButton onClick={() => handleCall('video')} sx={{ color: 'text.secondary' }}>
-                                    <Video size={20} strokeWidth={1.5} />
-                                </IconButton>
-                            </>
+                            <IconButton onClick={() => handleCall('audio')} sx={{ color: 'text.secondary' }}>
+                                <Phone size={20} strokeWidth={1.5} />
+                            </IconButton>
                         )}
                         <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ color: 'text.secondary' }}>
                             <MoreVertical size={20} strokeWidth={1.5} />

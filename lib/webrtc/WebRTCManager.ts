@@ -229,7 +229,24 @@ export class WebRTCManager {
     }
   }
 
-  public async createOffer(senderId: string, targetId: string) {
+  public async createOffer(senderId: string, targetId: string, options?: { forceP2p?: boolean }) {
+    if (options?.forceP2p) {
+      // Skip Cloudflare SFU entirely — pure P2P path
+      this.createPeerConnection(senderId, targetId, false);
+      if (!this.peerConnection) return;
+
+      const offer = await this.peerConnection.createOffer();
+      await this.peerConnection.setLocalDescription(offer);
+
+      this.events.onSignal({
+        type: 'offer',
+        sdp: offer.sdp,
+        target: targetId,
+        sender: senderId
+      });
+      return;
+    }
+
     try {
       const { sessionId } = await this.fetchCloudflareSession();
       this.createPeerConnection(senderId, targetId, true);
@@ -293,7 +310,7 @@ export class WebRTCManager {
 
   public async handleSignal(signal: SignalData & { cloudflareSessionId?: string, cloudflareTracks?: any[], ts?: number }) {
     if (!this.peerConnection && signal.type === 'offer') {
-      this.createPeerConnection(signal.target, signal.sender, false);
+      this.createPeerConnection(signal.target, signal.sender, Boolean(signal.cloudflareSessionId));
     }
 
     if (!this.peerConnection) return;

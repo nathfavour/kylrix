@@ -39,10 +39,11 @@ interface PreCallCheckProps {
     onJoin: (settings: { video: boolean, audio: boolean, companion: boolean }) => void;
     userProfile: any;
     isCompanionDetected?: boolean;
+    defaultVideoEnabled?: boolean;
 }
 
-export function PreCallCheck({ onJoin, userProfile, isCompanionDetected = false }: PreCallCheckProps) {
-    const [videoEnabled, setVideoEnabled] = useState(true);
+export function PreCallCheck({ onJoin, userProfile, isCompanionDetected = false, defaultVideoEnabled = true }: PreCallCheckProps) {
+    const [videoEnabled, setVideoEnabled] = useState(defaultVideoEnabled);
     const [audioEnabled, setAudioEnabled] = useState(true);
     const [companionMode, setCompanionMode] = useState(isCompanionDetected);
     const [permissions, setPermissions] = useState<{ video: boolean, audio: boolean }>({ video: false, audio: false });
