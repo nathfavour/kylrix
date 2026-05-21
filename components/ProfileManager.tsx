@@ -219,12 +219,12 @@ export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps)
       // 1. Handle Profile Picture Upload
       if (profilePic) {
         try {
-          // Compress the selected image on the client
-          const compressed = await compressImage(profilePic, 512, 512, 0.7);
-          // Strict check: must be < 1MB
-          if (compressed.size > 1024 * 1024) {
+          // Strict check on the raw selected file size first: must be <= 1MB
+          if (profilePic.size > 1024 * 1024) {
             throw new Error('Maximum file size of 1MB exceeded.');
           }
+          // Compress the selected image on the client before saving to storage
+          const compressed = await compressImage(profilePic, 512, 512, 0.7);
           const uploadedFile = await storage.createFile(AVATAR_BUCKET_ID, ID.unique(), compressed);
           const oldId = currentPrefs.profilePicId;
           
