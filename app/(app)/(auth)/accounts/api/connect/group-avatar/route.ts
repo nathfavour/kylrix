@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Query } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { getCorsHeaders, verifyUser } from '@/lib/api/permission-updater';
 
@@ -28,7 +28,7 @@ function isInviteEnabled(conversation: any) {
   return true;
 }
 
-async function isConversationMember(databases: ReturnType<typeof createAdminClient>['databases'], conversation: any, userId: string) {
+async function isConversationMember(databases: ReturnType<typeof createSystemClient>['databases'], conversation: any, userId: string) {
   if (!userId) return false;
   if (Array.isArray(conversation?.participants) && uniqueIds(conversation.participants).includes(userId)) {
     return true;
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'conversationId is required' }, { status: 400, headers: corsHeaders });
     }
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const conversation = await databases.getDocument(CHAT_DB_ID, CONVERSATIONS_TABLE_ID, conversationId).catch(() => null);
     if (!conversation) {
       return NextResponse.json({ error: 'Group not found' }, { status: 404, headers: corsHeaders });

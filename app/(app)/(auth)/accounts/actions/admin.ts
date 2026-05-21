@@ -21,7 +21,7 @@ export async function getAdminStatsAction() {
   const req = await getRequestLike();
   const user = await verifyUser(req);
   requireAdmin(user);
-  return getAdminStats();
+  return getAdminStats(user?.email);
 }
 
 export async function getAdminUsersAction(params: {
@@ -33,5 +33,5 @@ export async function getAdminUsersAction(params: {
   const req = await getRequestLike();
   const user = await verifyUser(req);
   requireAdmin(user);
-  return listAdminUsers(params);
+  return listAdminUsers(params, user?.email);
 }

@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { validatePublicNoteAccess } from '@/lib/appwrite';
 import { createRateLimiter } from '@/lib/rate-limit-middleware';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { deleteCallIfExpired } from '@/lib/services/internal/calls';
 
 const rateLimiter = createRateLimiter({
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ note
     const huddleCallId = extractHuddleCallId(note as any);
     if (huddleCallId) {
       try {
-        const { databases } = createAdminClient();
+        const { databases } = createSystemClient();
         await deleteCallIfExpired(databases as any, huddleCallId);
       } catch (cleanupError) {
         console.warn('[Shared Note] stale call cleanup skipped:', cleanupError);

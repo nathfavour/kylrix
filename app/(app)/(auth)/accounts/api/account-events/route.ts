@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Permission, Query, Role } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { getCorsHeaders, verifyUser } from '@/lib/api/permission-updater';
 
@@ -95,7 +95,7 @@ function parseReportReason(body: any, rawMetadata: any) {
   return reason || null;
 }
 
-async function getProfileByUserId(databases: ReturnType<typeof createAdminClient>['databases'], userId: string) {
+async function getProfileByUserId(databases: ReturnType<typeof createSystemClient>['databases'], userId: string) {
   const result = await databases.listDocuments(CHAT_DB_ID, PROFILES_TABLE_ID, [
     Query.equal('userId', userId),
     Query.limit(2),
@@ -126,7 +126,7 @@ function buildDefaultStatus(type: AccountEventType) {
 }
 
 async function syncProfileForEvent(
-  databases: ReturnType<typeof createAdminClient>['databases'],
+  databases: ReturnType<typeof createSystemClient>['databases'],
   type: AccountEventType,
   targetUserId: string,
   body: any,
@@ -184,7 +184,7 @@ async function syncProfileForEvent(
 }
 
 async function createEventRows(
-  databases: ReturnType<typeof createAdminClient>['databases'],
+  databases: ReturnType<typeof createSystemClient>['databases'],
   actorId: string,
   type: AccountEventType,
   targetUserIds: string[],
@@ -377,7 +377,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'userId is required for reports' }, { status: 400, headers: corsHeaders });
     }
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const targetUserIds = SELF_SYNC_TYPES.has(type)
       ? normalizeUserIds(body, user.$id)
       : normalizeUserIds(body, '');
@@ -420,7 +420,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'eventId is required' }, { status: 400, headers: corsHeaders });
     }
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const patch: Record<string, unknown> = {};
 
     if (body.status !== undefined) patch.status = String(body.status).trim().toLowerCase();

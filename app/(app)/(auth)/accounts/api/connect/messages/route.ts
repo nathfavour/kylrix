@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ID, Permission, Role } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { getCorsHeaders, verifyUser } from '@/lib/api/permission-updater';
 
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: corsHeaders });
     }
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const conversation = await databases.getDocument(
       APPWRITE_CONFIG.DATABASES.CHAT,
       APPWRITE_CONFIG.TABLES.CHAT.CONVERSATIONS,

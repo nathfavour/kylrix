@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { createHmac, randomBytes } from 'node:crypto';
 import { ID, Permission, Query, Role, Databases } from 'node-appwrite';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
-import { createAdminClient, createAdminTablesDB } from '@/lib/appwrite-admin';
+import { createSystemClient, createSystemTablesDB } from '@/lib/appwrite-admin';
 import { createServerClient } from '@/lib/appwrite-server-only';
 import { InternalKylrixTokenService } from '@/lib/services/internal/kylrix-token';
 import { trackEngagementView, type TrackEngagementInput } from '@/lib/services/internal/engagement-views';
@@ -109,7 +109,7 @@ export async function mintNoteShareMomentSecure(input: { momentId: string }) {
 
   const chatDb = APPWRITE_CONFIG.DATABASES.CHAT;
   const momentsTable = APPWRITE_CONFIG.TABLES.CHAT.MOMENTS;
-  const tables = createAdminTablesDB();
+  const tables = createSystemTablesDB();
   let moment: Record<string, unknown>;
   try {
     moment = (await tables.getRow(chatDb, momentsTable, momentId)) as Record<string, unknown>;
@@ -125,7 +125,7 @@ export async function mintNoteShareMomentSecure(input: { momentId: string }) {
 
   let note: Record<string, unknown>;
   try {
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     note = (await databases.getDocument(
       APPWRITE_CONFIG.DATABASES.NOTE,
       APPWRITE_CONFIG.TABLES.NOTE.NOTES,
@@ -193,7 +193,7 @@ export async function sharePublicNoteAsMomentSecure(input: { noteId: string; tex
   const text = String(input?.text || '').trim();
   if (!noteId) throw new Error('noteId is required');
 
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const note = await databases.getDocument(
     APPWRITE_CONFIG.DATABASES.NOTE,
     APPWRITE_CONFIG.TABLES.NOTE.NOTES,
@@ -208,7 +208,7 @@ export async function sharePublicNoteAsMomentSecure(input: { noteId: string; tex
   const now = new Date().toISOString();
   const chatDb = APPWRITE_CONFIG.DATABASES.CHAT;
   const momentsTable = APPWRITE_CONFIG.TABLES.CHAT.MOMENTS;
-  const tables = createAdminTablesDB();
+  const tables = createSystemTablesDB();
   const perms = [
     `read("user:${actor.$id}")`,
     `update("user:${actor.$id}")`,
@@ -394,7 +394,7 @@ export async function cleanupStaleCallsSecure(input?: { userId?: string; callId?
   const callId = String(input?.callId || '').trim() || null;
   const cleanupAll = Boolean(input?.cleanupAll);
 
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const DB_ID = APPWRITE_CONFIG.DATABASES.CHAT;
   const LINKS_TABLE = APPWRITE_CONFIG.TABLES.CHAT.CALL_LINKS;
 
@@ -441,7 +441,7 @@ export async function getQuickProfileSecure(userId: string, jwt?: string) {
   const targetUserId = String(userId || '').trim();
   if (!targetUserId) throw new Error('userId is required');
 
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const getProfile = async () => {
     try {
       const byUserId = await databases.listDocuments(
@@ -530,7 +530,7 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
       throw new Error('Unauthorized');
   }
 
-  const { client, users } = createAdminClient();
+  const { client, users } = createSystemClient();
   const appwritePerm = input.permission === 'admin' ? 'admin' : input.permission === 'editor' ? 'write' : 'read';
 
   const dbId = input.resourceType === 'note' ? APPWRITE_CONFIG.DATABASES.NOTE : APPWRITE_CONFIG.DATABASES.FLOW;
@@ -642,7 +642,7 @@ export async function getResourceCollaboratorsSecure(input: {
     const dbId = input.resourceType === 'note' ? APPWRITE_CONFIG.DATABASES.NOTE : APPWRITE_CONFIG.DATABASES.FLOW;
     const tableId = input.resourceType === 'note' ? APPWRITE_CONFIG.TABLES.NOTE.NOTES : APPWRITE_CONFIG.TABLES.FLOW.TASKS;
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const doc = await databases.getDocument(dbId, tableId, input.resourceId);
     
     // 1. Extract IDs and Levels from real permissions

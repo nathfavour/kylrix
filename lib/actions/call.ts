@@ -1,7 +1,7 @@
 'use server';
 
 import { ID, Permission, Role } from 'node-appwrite';
-import { createAdminTablesDB } from '@/lib/appwrite-admin';
+import { createSystemTablesDB } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { createCallMetadata } from '@/lib/sdk/calls/index';
 import { createServerClient } from '@/lib/appwrite-server-only';
@@ -51,16 +51,16 @@ export async function createChatCallAction(input: {
     title: input.title,
   });
 
-  // Build strict per-participant permissions using Admin SDK
+  // Build strict per-participant permissions using System Client
   const permissions = [
     Permission.update(Role.user(userId)),
     Permission.delete(Role.user(userId)),
     ...uniqueParticipants.map((pId) => Permission.read(Role.user(pId))),
   ];
 
-  const adminTables = createAdminTablesDB();
+  const systemTables = createSystemTablesDB();
 
-  const result = await adminTables.createRow({
+  const result = await systemTables.createRow({
     databaseId: DB_ID,
     tableId: LINKS_TABLE,
     rowId: ID.unique(),

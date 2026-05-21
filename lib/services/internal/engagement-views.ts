@@ -1,6 +1,6 @@
 import { ID, Query } from 'node-appwrite';
 import { createHash } from 'node:crypto';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 
 const DB_ID = APPWRITE_CONFIG.DATABASES.CHAT;
@@ -39,7 +39,7 @@ const normalizeDay = (iso: string) => iso.slice(0, 10);
 const normalizeMonth = (iso: string) => iso.slice(0, 7);
 
 async function findEventByIdempotency(idempotencyKey: string) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const result = await databases.listDocuments(DB_ID, VIEWS_TABLE, [
     Query.equal('idempotencyKey', idempotencyKey),
     Query.limit(1),
@@ -63,7 +63,7 @@ async function upsertRollup(input: {
   incrementReceipts: number;
   trustDelta: number;
 }) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const currentTs = nowIso();
   const createPayload = {
     rowType: 'rollup',
@@ -146,7 +146,7 @@ export async function trackEngagementView(input: TrackEngagementInput) {
     return { accepted: true, deduped: true, event: existing };
   }
 
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const eventId = createHash('sha256').update(idempotencyKey).digest('hex');
   const fingerprintHash = safe(input.fingerprint) ? hashWithSalt(safe(input.fingerprint)) : null;
   const ipHash = safe(input.ip) ? hashWithSalt(safe(input.ip)) : null;

@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 
 /**
@@ -8,7 +8,7 @@ import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
  */
 export async function dispatchTelegramNotification(targetUserId: string, message: string) {
   try {
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
 
     // 1. Blind Lookup matching Target_UserID
     let doc = null;

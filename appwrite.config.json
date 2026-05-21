@@ -64,10 +64,7 @@
     "tables": [
         {
             "$id": "67ff05f3002502ef239e",
-            "$permissions": [
-                "create(\"users\")",
-                "create(\"any\")"
-            ],
+            "$permissions": [],
             "databaseId": "67ff05a9000296822396",
             "name": "notes",
             "enabled": true,
@@ -269,9 +266,7 @@
         },
         {
             "$id": "67ff06280034908cf08a",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "67ff05a9000296822396",
             "name": "tags",
             "enabled": true,
@@ -376,9 +371,7 @@
         },
         {
             "$id": "comments",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "67ff05a9000296822396",
             "name": "Comments",
             "enabled": true,
@@ -458,9 +451,7 @@
         },
         {
             "$id": "extensions",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "67ff05a9000296822396",
             "name": "Extensions",
             "enabled": true,
@@ -546,9 +537,7 @@
         },
         {
             "$id": "reactions",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "67ff05a9000296822396",
             "name": "Reactions",
             "enabled": true,
@@ -637,9 +626,7 @@
         },
         {
             "$id": "collaborators",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "67ff05a9000296822396",
             "name": "Collaborators",
             "enabled": true,
@@ -732,9 +719,7 @@
         },
         {
             "$id": "activityLog",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "67ff05a9000296822396",
             "name": "ActivityLog",
             "enabled": true,
@@ -825,9 +810,7 @@
         },
         {
             "$id": "settings",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "67ff05a9000296822396",
             "name": "Settings",
             "enabled": true,
@@ -893,9 +876,7 @@
         },
         {
             "$id": "walletMap",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "67ff05a9000296822396",
             "name": "walletMap",
             "enabled": true,
@@ -944,9 +925,7 @@
         },
         {
             "$id": "note_tags",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "67ff05a9000296822396",
             "name": "note_tags",
             "enabled": true,
@@ -1048,9 +1027,7 @@
         },
         {
             "$id": "note_revisions",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "67ff05a9000296822396",
             "name": "note_revisions",
             "enabled": true,
@@ -1289,9 +1266,7 @@
         },
         {
             "$id": "securityLogs",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "passwordManagerDb",
             "name": "Security Logs",
             "enabled": true,
@@ -1441,9 +1416,7 @@
         },
         {
             "$id": "credentials",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "passwordManagerDb",
             "name": "Credentials",
             "enabled": true,
@@ -1766,9 +1739,7 @@
         },
         {
             "$id": "identities",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "passwordManagerDb",
             "name": "Identities",
             "enabled": true,
@@ -1956,9 +1927,7 @@
         },
         {
             "$id": "user",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "passwordManagerDb",
             "name": "user",
             "enabled": true,
@@ -2077,9 +2046,7 @@
         },
         {
             "$id": "folders",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "passwordManagerDb",
             "name": "Folders",
             "enabled": true,
@@ -2214,9 +2181,7 @@
         },
         {
             "$id": "totpSecrets",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "passwordManagerDb",
             "name": "TOTP Secrets",
             "enabled": true,
@@ -2431,9 +2396,7 @@
         },
         {
             "$id": "keychain",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "passwordManagerDb",
             "name": "Keychain",
             "enabled": true,
@@ -2531,9 +2494,7 @@
         },
         {
             "$id": "key_mapping",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "passwordManagerDb",
             "name": "key_mapping",
             "enabled": true,
@@ -2629,9 +2590,7 @@
         },
         {
             "$id": "wallets",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "passwordManagerDb",
             "name": "wallets",
             "enabled": true,
@@ -2726,10 +2685,7 @@
         {
             "$id": "messages",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "databaseId": "chat",
             "name": "Messages",
@@ -2878,10 +2834,7 @@
         {
             "$id": "conversations",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "databaseId": "chat",
             "name": "Conversations",
@@ -3199,10 +3152,7 @@
         {
             "$id": "contacts",
             "$permissions": [
-                "create(\"users\")",
                 "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")",
                 "read(\"any\")"
             ],
             "databaseId": "chat",
@@ -3342,10 +3292,7 @@
         {
             "$id": "follows",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"any\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"any\")"
             ],
             "databaseId": "chat",
             "name": "Follows",
@@ -3462,9 +3409,7 @@
         {
             "$id": "app_activity",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")"
+                "read(\"users\")"
             ],
             "databaseId": "chat",
             "name": "AppActivity",
@@ -3540,10 +3485,7 @@
         {
             "$id": "interactions",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"any\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"any\")"
             ],
             "databaseId": "chat",
             "name": "Interactions",
@@ -3618,10 +3560,7 @@
         {
             "$id": "moments",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"any\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"any\")"
             ],
             "databaseId": "chat",
             "name": "Moments",
@@ -3784,10 +3723,7 @@
         {
             "$id": "calls",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"any\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"any\")"
             ],
             "databaseId": "chat",
             "name": "Calls",
@@ -3928,9 +3864,7 @@
         },
         {
             "$id": "epochs",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "chat",
             "name": "epochs",
             "enabled": true,
@@ -3993,9 +3927,7 @@
         },
         {
             "$id": "conversationMembers",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "chat",
             "name": "Conversation Members",
             "enabled": true,
@@ -4060,11 +3992,7 @@
         },
         {
             "$id": "profiles",
-            "$permissions": [
-                "create(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "chat",
             "name": "profiles",
             "enabled": true,
@@ -4201,9 +4129,7 @@
         },
         {
             "$id": "messageReactions",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "chat",
             "name": "Message Reactions",
             "enabled": true,
@@ -4296,9 +4222,7 @@
         },
         {
             "$id": "joinRequests",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "chat",
             "name": "Join Requests",
             "enabled": true,
@@ -4418,9 +4342,7 @@
         },
         {
             "$id": "unorganic_emails",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "chat",
             "name": "Unorganic Emails",
             "enabled": true,
@@ -4640,9 +4562,7 @@
         },
         {
             "$id": "kylrix_token_ledger",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "chat",
             "name": "kylrix_token_ledger",
             "enabled": true,
@@ -4961,9 +4881,7 @@
         },
         {
             "$id": "engagement_views",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "chat",
             "name": "engagement_views",
             "enabled": true,
@@ -5258,9 +5176,7 @@
         },
         {
             "$id": "engagement_view_rollups",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "chat",
             "name": "engagement_view_rollups",
             "enabled": true,
@@ -5509,9 +5425,7 @@
         {
             "$id": "kylrix_signals",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")"
+                "read(\"users\")"
             ],
             "databaseId": "chat",
             "name": "kylrix_signals",
@@ -5610,9 +5524,7 @@
         {
             "$id": "account_ledger",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")"
+                "read(\"users\")"
             ],
             "databaseId": "chat",
             "name": "account_ledger",
@@ -5801,9 +5713,7 @@
         },
         {
             "$id": "projects",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "chat",
             "name": "projects",
             "enabled": true,
@@ -5930,9 +5840,7 @@
         },
         {
             "$id": "project_objects",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "chat",
             "name": "project_objects",
             "enabled": true,
@@ -6055,9 +5963,7 @@
         },
         {
             "$id": "focusSessions",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "whisperrflow",
             "name": "focusSessions",
             "enabled": true,
@@ -6120,9 +6026,7 @@
         },
         {
             "$id": "eventGuests",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "whisperrflow",
             "name": "eventGuests",
             "enabled": true,
@@ -6192,9 +6096,7 @@
         },
         {
             "$id": "events",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "whisperrflow",
             "name": "events",
             "enabled": true,
@@ -6343,9 +6245,7 @@
         },
         {
             "$id": "calendars",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "whisperrflow",
             "name": "calendars",
             "enabled": true,
@@ -6402,9 +6302,7 @@
         },
         {
             "$id": "tasks",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "whisperrflow",
             "name": "tasks",
             "enabled": true,
@@ -6534,9 +6432,7 @@
         },
         {
             "$id": "forms",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "whisperrflow",
             "name": "forms",
             "enabled": true,
@@ -6631,7 +6527,6 @@
         {
             "$id": "formSubmissions",
             "$permissions": [
-                "create(\"any\")",
                 "read(\"users\")"
             ],
             "databaseId": "whisperrflow",
@@ -6732,9 +6627,7 @@
         },
         {
             "$id": "agents",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "databaseId": "whisperrflow",
             "name": "agents",
             "enabled": true,
@@ -6814,8 +6707,7 @@
         {
             "$id": "telegram_connections",
             "$permissions": [
-                "read(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "databaseId": "chat",
             "name": "Telegram Connections",
@@ -6863,10 +6755,7 @@
         {
             "$id": "profile_pictures",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": true,
             "name": "profile_pictures",
@@ -6886,10 +6775,7 @@
         {
             "$id": "notes_attachments",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": true,
             "name": "notes_attachments",
@@ -6903,10 +6789,7 @@
         {
             "$id": "blog_media",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": true,
             "name": "blog_media",
@@ -6929,10 +6812,7 @@
         {
             "$id": "extension_assets",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": true,
             "name": "extension_assets",
@@ -6954,10 +6834,7 @@
         {
             "$id": "backups",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": true,
             "name": "backups",
@@ -6976,10 +6853,7 @@
         {
             "$id": "temp_uploads",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": true,
             "name": "temp_uploads",
@@ -7002,10 +6876,7 @@
         {
             "$id": "covers",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": false,
             "name": "Cover Images",
@@ -7019,10 +6890,7 @@
         {
             "$id": "messages",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": false,
             "name": "Message Attachments",
@@ -7036,10 +6904,7 @@
         {
             "$id": "stories",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": false,
             "name": "Story Media",
@@ -7053,10 +6918,7 @@
         {
             "$id": "posts",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": false,
             "name": "Post Media",
@@ -7070,10 +6932,7 @@
         {
             "$id": "nfts",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": false,
             "name": "NFT Images",
@@ -7087,10 +6946,7 @@
         {
             "$id": "stickers",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": false,
             "name": "Sticker Images",
@@ -7104,10 +6960,7 @@
         {
             "$id": "filters",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": false,
             "name": "AR Filter Data",
@@ -7121,10 +6974,7 @@
         {
             "$id": "gifs",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": false,
             "name": "GIF Files",
@@ -7138,10 +6988,7 @@
         {
             "$id": "voice",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": false,
             "name": "Voice Messages",
@@ -7155,10 +7002,7 @@
         {
             "$id": "video",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": false,
             "name": "Video Files",
@@ -7172,10 +7016,7 @@
         {
             "$id": "documents",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": false,
             "name": "Documents",
@@ -7189,10 +7030,7 @@
         {
             "$id": "userAvatars",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": true,
             "name": "User Avatars",
@@ -7211,9 +7049,7 @@
         },
         {
             "$id": "encryptedDataBackups",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "fileSecurity": true,
             "name": "Encrypted Data Backups",
             "enabled": true,
@@ -7229,9 +7065,7 @@
         },
         {
             "$id": "secureDocuments",
-            "$permissions": [
-                "create(\"users\")"
-            ],
+            "$permissions": [],
             "fileSecurity": true,
             "name": "Secure Documents",
             "enabled": true,
@@ -7250,10 +7084,7 @@
         {
             "$id": "task_attachments",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": true,
             "name": "task_attachments",
@@ -7267,10 +7098,7 @@
         {
             "$id": "event_covers",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"any\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"any\")"
             ],
             "fileSecurity": false,
             "name": "event_covers",
@@ -7289,10 +7117,7 @@
         {
             "$id": "group_avatars",
             "$permissions": [
-                "create(\"users\")",
-                "read(\"users\")",
-                "update(\"users\")",
-                "delete(\"users\")"
+                "read(\"users\")"
             ],
             "fileSecurity": true,
             "name": "group_avatars",
@@ -7312,7 +7137,6 @@
         {
             "$id": "kylrix_send",
             "$permissions": [
-                "create(\"any\")",
                 "read(\"any\")"
             ],
             "fileSecurity": true,

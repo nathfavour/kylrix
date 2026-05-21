@@ -1,6 +1,6 @@
 import { ID, Permission, Query, Role } from 'node-appwrite';
 import { createHash } from 'node:crypto';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { mutateStorageFilePermissions } from '@/lib/api/permission-updater';
 import { dispatchEmail } from '@/lib/services/internal/emailDispatch';
@@ -47,11 +47,11 @@ function buildRequestPermissions(requesterId: string, managers: string[]) {
   ];
 }
 
-async function getConversation(databases: ReturnType<typeof createAdminClient>['databases'], conversationId: string) {
+async function getConversation(databases: ReturnType<typeof createSystemClient>['databases'], conversationId: string) {
   return databases.getDocument(CHAT_DB_ID, CONVERSATIONS_TABLE_ID, conversationId);
 }
 
-async function getJoinRequest(databases: ReturnType<typeof createAdminClient>['databases'], resourceType: string, resourceId: string, requesterId: string) {
+async function getJoinRequest(databases: ReturnType<typeof createSystemClient>['databases'], resourceType: string, resourceId: string, requesterId: string) {
   const existing = await databases.listDocuments(CHAT_DB_ID, JOIN_REQUESTS_TABLE_ID, [
     Query.equal('resourceType', resourceType),
     Query.equal('resourceId', resourceId),
@@ -61,7 +61,7 @@ async function getJoinRequest(databases: ReturnType<typeof createAdminClient>['d
   return existing.documents[0] || null;
 }
 
-async function isConversationMember(databases: ReturnType<typeof createAdminClient>['databases'], conversation: any, userId: string) {
+async function isConversationMember(databases: ReturnType<typeof createSystemClient>['databases'], conversation: any, userId: string) {
   if (!userId) return false;
   if (Array.isArray(conversation?.participants) && uniqueIds(conversation.participants).includes(userId)) return true;
   const memberRows = await databases.listDocuments(CHAT_DB_ID, CONVERSATION_MEMBERS_TABLE_ID, [
@@ -73,7 +73,7 @@ async function isConversationMember(databases: ReturnType<typeof createAdminClie
 }
 
 export async function loadJoinRequestPreview(input: { resourceType: string; resourceId: string; requesterId?: string }) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const resourceType = normalizeResourceType(input.resourceType);
   const resourceId = normalizeText(input.resourceId);
   const requesterId = normalizeText(input.requesterId);
@@ -85,7 +85,7 @@ export async function loadJoinRequestPreview(input: { resourceType: string; reso
 }
 
 export async function createJoinRequest(input: { userId: string; resourceType: string; resourceId: string }) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const resourceType = normalizeResourceType(input.resourceType);
   const resourceId = normalizeText(input.resourceId);
   const conversation = await getConversation(databases, resourceId);
@@ -113,7 +113,7 @@ export async function resolveJoinRequest(input: {
   requesterId: string;
   action: 'accept' | 'reject';
 }) {
-  const { databases, storage } = createAdminClient();
+  const { databases, storage } = createSystemClient();
   const resourceType = normalizeResourceType(input.resourceType);
   const conversation = await getConversation(databases, input.resourceId);
   const managers = getManagers(conversation);
@@ -176,7 +176,7 @@ export async function resolveJoinRequest(input: {
 }
 
 export async function cancelJoinRequest(input: { userId: string; resourceType: string; resourceId: string }) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const resourceType = normalizeResourceType(input.resourceType);
   const request = await getJoinRequest(databases, resourceType, input.resourceId, input.userId);
   if (!request) throw new Error('Join request not found');

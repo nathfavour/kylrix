@@ -1,5 +1,5 @@
 import { ID, Permission, Query, Role } from 'node-appwrite';
-import { createAdminClient, createAdminTablesDB } from '@/lib/appwrite-admin';
+import { createSystemClient, createSystemTablesDB } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG, KYLRIX_AUTH_URI } from '@/lib/appwrite/config';
 import { dispatchEmail } from '@/lib/services/internal/emailDispatch';
 import {
@@ -16,7 +16,7 @@ const STATE_ROW_ID = 'state';
 const contract = createKylrixTokenContract();
 
 /** TablesDB ledger access — KYLRIX_TOKEN_LEDGER is Tables-only; Documents API reads/writes the wrong projection. */
-const ledgerTables = () => createAdminTablesDB();
+const ledgerTables = () => createSystemTablesDB();
 
 interface TokenStateRow {
   $id: string;
@@ -216,7 +216,7 @@ async function getUserThermalScore(userId: string): Promise<number> {
 
 async function getTotalUserCount() {
 // ... existing getTotalUserCount code ...
-  const { users } = createAdminClient();
+  const { users } = createSystemClient();
   try {
     const response = await users.list([Query.limit(1)]);
     return Math.max(1, Number(response.total || 1));
@@ -305,7 +305,7 @@ async function notifyTokenTransferReceived(input: {
   sourceId: string;
   idempotencyKey: string;
 }) {
-  const { users } = createAdminClient();
+  const { users } = createSystemClient();
   const sender = await users.get(input.fromUserId).catch(() => null);
   const senderName = String(sender?.name || sender?.email || 'Someone').trim() || 'Someone';
 

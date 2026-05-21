@@ -11,7 +11,7 @@ import {
   resolveNextEpochNumber,
   upsertLockboxRows,
 } from '@/lib/api/permission-updater';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { createServerClient } from '@/lib/appwrite-server-only';
 import { ID, Permission, Role } from 'node-appwrite';
 
@@ -66,7 +66,7 @@ function getParticipantIds(body: any) {
 
 export async function applyPermissionMutation(actorId: string, body: any) {
   const action = getAction(body);
-  const { databases, storage } = createAdminClient();
+  const { databases, storage } = createSystemClient();
   const targetUserIds = normalizeTargetUserIds(body?.targetUserIds || body?.recipientUserIds || body?.targetUserId);
   const keyMappings = getResourceKeyMappings(body);
 
@@ -143,7 +143,7 @@ export async function applyPermissionMutation(actorId: string, body: any) {
 }
 
 export async function revokePermissionMutation(actorId: string, body: any, queryTargetUserId?: string | null) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const targetUserIds = normalizeTargetUserIds(body?.targetUserIds || body?.recipientUserIds || body?.targetUserId || queryTargetUserId);
 
   if (body?.databaseId && body?.tableId && body?.rowId) {

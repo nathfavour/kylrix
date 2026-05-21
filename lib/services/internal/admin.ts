@@ -1,15 +1,33 @@
 import { Query } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createAdminClient, isEmailInAdminList } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 
+/**
+ * Sync admin gate for administrative console/dashboard operations.
+ * Mathematically validates the presence of master server key AND caller's email in ADMINS.
+ */
 export function requireAdmin(user: any) {
+  // 1. Mathematically guarantee server environment has the master API key
+  const apiKey = process.env.APPWRITE_API;
+  if (!apiKey) {
+    throw new Error('Forbidden: missing master environment API key');
+  }
+
+  // 2. Validate email against ADMINS list
+  const email = String(user?.email || '').trim().toLowerCase();
+  if (!email || !isEmailInAdminList(email)) {
+    throw new Error('Forbidden: admin privileges required');
+  }
+
+  // 3. Keep standard checking on user labels as safety fallback
   if (!user || !Array.isArray(user.labels) || !user.labels.includes('admin')) {
     throw new Error('Forbidden: admin privileges required');
   }
 }
 
-export async function getAdminStats() {
-  const { users, databases } = createAdminClient();
+export async function getAdminStats(actorEmail?: string) {
+  // Pass the securely verified email into the gated Admin Client
+  const { users, databases } = createAdminClient(actorEmail);
   const userList = await users.list([Query.limit(10), Query.orderDesc('$createdAt')]);
   const totalUsers = userList.total;
   const recentUsers = userList.users.map((u) => ({
@@ -49,17 +67,22 @@ export async function getAdminStats() {
   };
 }
 
-export async function listAdminUsers(params: {
-  search?: string;
-  verifiedOnly?: boolean;
-  limit?: number;
-  cursorAfter?: string | null;
-}) {
+export async function listAdminUsers(
+  params: {
+    search?: string;
+    verifiedOnly?: boolean;
+    limit?: number;
+    cursorAfter?: string | null;
+  },
+  actorEmail?: string
+) {
   const search = (params.search || '').trim().toLowerCase();
   const verifiedOnly = Boolean(params.verifiedOnly);
   const limit = Math.min(Math.max(Number(params.limit || 100), 1), 100);
   const cursorAfter = params.cursorAfter?.trim() || null;
-  const { users } = createAdminClient();
+  
+  // Pass the securely verified email into the gated Admin Client
+  const { users } = createAdminClient(actorEmail);
 
   const queries = [Query.limit(limit), Query.orderDesc('$createdAt'), ...(cursorAfter ? [Query.cursorAfter(cursorAfter)] : [])];
   const response = await users.list(queries);

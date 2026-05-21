@@ -1,6 +1,6 @@
 import type { Databases } from 'node-appwrite';
 import { Query } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { deleteCallIfExpired } from '@/lib/services/internal/calls';
 
@@ -22,7 +22,7 @@ export async function reconcileStaleLiveCallPresenceForUser(
   targetUserId: string,
   databases?: Databases,
 ): Promise<{ changed: boolean; reason?: string }> {
-  const db = databases ?? createAdminClient().databases;
+  const db = databases ?? createSystemClient().databases;
   const trimmed = String(targetUserId || '').trim();
   if (!trimmed) return { changed: false, reason: 'no_user' };
 
@@ -89,7 +89,7 @@ export async function sweepStaleLiveCallPresenceBatch(limit = 100): Promise<{
   scanned: number;
   cleared: number;
 }> {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const rows = await databases.listDocuments(CHAT_DB, APP_ACTIVITY, [
     Query.equal('status', 'busy'),
     Query.orderDesc('$updatedAt'),

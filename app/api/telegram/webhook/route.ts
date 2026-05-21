@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 
 // Helper to send messages back to the user on Telegram
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     const userId = match[1];
     const pairCode = match[2];
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
 
     // 1. Retrieve the connection document
     let doc = null;

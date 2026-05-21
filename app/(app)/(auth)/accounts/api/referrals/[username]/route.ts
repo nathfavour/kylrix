@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Query } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { getCorsHeaders } from '@/lib/api/permission-updater';
 
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ username:
       return NextResponse.json({ error: 'Invalid username' }, { status: 400, headers: corsHeaders });
     }
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const result = await databases.listDocuments(CHAT_DB_ID, PROFILES_TABLE_ID, [
       Query.equal('username', username),
       Query.limit(1),

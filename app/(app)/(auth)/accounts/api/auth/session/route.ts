@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { normalizeMfaFactors, sessionNeedsTotpMfa } from '@/lib/mfa-session';
 import { Account, Client } from 'node-appwrite';
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { users } = createAdminClient();
+    const { users } = createSystemClient();
     const sessionToken = await users.createToken(user.$id);
 
     return NextResponse.json({

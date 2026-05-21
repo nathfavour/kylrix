@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { Permission, Role } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 
 const CHAT_DB_ID = APPWRITE_CONFIG.DATABASES.CHAT;
@@ -39,7 +39,7 @@ function isDuplicateDocumentError(e: unknown): boolean {
 }
 
 export async function registerBlockBeePendingCheckout(meta: Omit<BlockBeePendingCheckoutMeta, 'createdAt'>) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const docId = blockBeePendingCheckoutDocId(meta.paymentId);
   const payload: BlockBeePendingCheckoutMeta = {
     ...meta,
@@ -71,7 +71,7 @@ export async function registerBlockBeePendingCheckout(meta: Omit<BlockBeePending
 }
 
 export async function getBlockBeePendingCheckout(paymentId: string) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const docId = blockBeePendingCheckoutDocId(paymentId);
   try {
     const doc = await databases.getDocument(CHAT_DB_ID, EVENTS_TABLE_ID, docId);
@@ -87,7 +87,7 @@ export async function getBlockBeePendingCheckout(paymentId: string) {
 }
 
 export async function markBlockBeePendingCheckoutConsumed(paymentId: string) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const docId = blockBeePendingCheckoutDocId(paymentId);
   try {
     const doc = await databases.getDocument(CHAT_DB_ID, EVENTS_TABLE_ID, docId);
@@ -106,7 +106,7 @@ export async function markBlockBeePendingCheckoutConsumed(paymentId: string) {
 
 /** Acquire exclusive processing lock for this payment_id IPN (503 → BlockBee retries). */
 export async function acquireBlockBeeIpnLock(paymentId: string, payerUserId: string): Promise<'owner' | 'skip' | 'retry'> {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const receiptId = blockBeeIpnReceiptDocId(paymentId);
   try {
     await databases.createDocument(CHAT_DB_ID, EVENTS_TABLE_ID, receiptId, {
@@ -135,7 +135,7 @@ export async function acquireBlockBeeIpnLock(paymentId: string, payerUserId: str
 }
 
 export async function releaseBlockBeeIpnLock(paymentId: string) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const receiptId = blockBeeIpnReceiptDocId(paymentId);
   try {
     await databases.deleteDocument(CHAT_DB_ID, EVENTS_TABLE_ID, receiptId);
@@ -145,7 +145,7 @@ export async function releaseBlockBeeIpnLock(paymentId: string) {
 }
 
 export async function completeBlockBeeIpnLock(paymentId: string, payerUserId: string, snapshot: Record<string, unknown>) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const receiptId = blockBeeIpnReceiptDocId(paymentId);
   await databases.updateDocument(CHAT_DB_ID, EVENTS_TABLE_ID, receiptId, {
     userId: payerUserId,

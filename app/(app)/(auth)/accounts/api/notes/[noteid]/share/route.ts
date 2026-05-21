@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import {
   getCorsHeaders,
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ not
     }
 
     const body = await req.json();
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const result = await mutateRowPermissions(databases, user.$id, {
       databaseId: body?.databaseId || APPWRITE_CONFIG.DATABASES.NOTE,
       tableId: body?.tableId || APPWRITE_CONFIG.TABLES.NOTE.NOTES,
@@ -69,7 +69,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ n
     }
 
     const body = await req.json().catch(() => ({}));
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const result = await mutateRowPermissions(databases, user.$id, {
       databaseId: body?.databaseId || APPWRITE_CONFIG.DATABASES.NOTE,
       tableId: body?.tableId || APPWRITE_CONFIG.TABLES.NOTE.NOTES,

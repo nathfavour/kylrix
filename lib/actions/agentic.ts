@@ -3,7 +3,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ID, Query } from 'node-appwrite';
 
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
+import { createServerClient } from '@/lib/appwrite-server-only';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 
 type AgentStatus = 'idle' | 'working';
@@ -46,7 +47,7 @@ async function requireUser() {
 }
 
 async function getOwnedAgentOrThrow(agentId: string, ownerId: string) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const agent = (await databases.getDocument(
     APPWRITE_CONFIG.DATABASES.FLOW,
     APPWRITE_CONFIG.TABLES.FLOW.AGENTS,
@@ -59,7 +60,7 @@ async function getOwnedAgentOrThrow(agentId: string, ownerId: string) {
 
 export async function listMyAgents(): Promise<AgentRecord[]> {
   const user = await requireUser();
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const res = await databases.listDocuments(
     APPWRITE_CONFIG.DATABASES.FLOW,
     APPWRITE_CONFIG.TABLES.FLOW.AGENTS,
@@ -75,7 +76,7 @@ export async function createMyAgent(input: {
 }) {
   const user = await requireUser();
   const framework = input.framework === 'openclaw' || input.framework === 'hermes' ? input.framework : 'kylrix';
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   await databases.createDocument(
     APPWRITE_CONFIG.DATABASES.FLOW,
     APPWRITE_CONFIG.TABLES.FLOW.AGENTS,
@@ -97,7 +98,7 @@ export async function createMyAgent(input: {
 export async function setMyAgentStatus(agentId: string, status: AgentStatus) {
   const user = await requireUser();
   await getOwnedAgentOrThrow(agentId, user.$id);
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   await databases.updateDocument(
     APPWRITE_CONFIG.DATABASES.FLOW,
     APPWRITE_CONFIG.TABLES.FLOW.AGENTS,
@@ -110,7 +111,7 @@ export async function runMyAgent(agentId: string): Promise<{ summary: string }> 
   const user = await requireUser();
   const agent = await getOwnedAgentOrThrow(agentId, user.$id);
   const config = parseAgentConfig(agent.config);
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
 
   await databases.updateDocument(
     APPWRITE_CONFIG.DATABASES.FLOW,

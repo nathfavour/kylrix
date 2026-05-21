@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ID, Permission, Query, Role } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { getCorsHeaders, verifyUser } from '@/lib/api/permission-updater';
 
@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
     }
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const profile = await getProfileByUserId(databases, user.$id);
     const referralEvent = await getReferralEvent(databases, user.$id);
     const referrerProfile = referralEvent?.actorId ? await getProfileByUserId(databases, referralEvent.actorId).catch(() => null) : null;
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
     const referrerUsername = normalizeUsername(body?.referrerUsername || body?.username || body?.ref);
     const referrerUserId = typeof body?.referrerUserId === 'string' ? body.referrerUserId.trim() : null;
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const existingReferral = await getReferralEvent(databases, user.$id);
     if (existingReferral) {
       const referrerProfile = existingReferral.actorId ? await getProfileByUserId(databases, existingReferral.actorId).catch(() => null) : null;

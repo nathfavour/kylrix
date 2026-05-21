@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { getCorsHeaders, normalizeTargetUserIds, upsertLockboxRows, verifyUser } from '@/lib/api/permission-updater';
 import { applyPermissionMutation, revokePermissionMutation } from '@/lib/services/internal/permissions';
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
         wrappedKey,
         metadata: body?.metadata || null,
       }));
-      const { databases } = createAdminClient();
+      const { databases } = createSystemClient();
       const rows = await upsertLockboxRows(databases, user.$id, keyMappings);
       return NextResponse.json({ success: true, action, rows }, { headers: corsHeaders });
     }

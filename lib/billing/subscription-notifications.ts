@@ -1,5 +1,5 @@
 import { ID } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { renderEmailTemplate } from '@/lib/email-renderer';
 import { KYLRIX_AUTH_URI } from '@/lib/appwrite/config';
 
@@ -35,7 +35,7 @@ async function sendTemplatedEmail(
   templateId: 'subscription-update' | 'gift-coupon',
   vars: Record<string, string>,
 ) {
-  const { users, messaging } = createAdminClient();
+  const { users, messaging } = createSystemClient();
   const recipient = await users.get(userId);
   if (!recipient?.email) {
     throw new Error(`No email address found for user ${userId}`);

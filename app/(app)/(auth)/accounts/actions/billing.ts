@@ -6,7 +6,7 @@ import { StripeProvider } from '@/lib/billing/providers/stripe-provider';
 import { CryptoPaymentProvider } from '@/lib/billing/providers/crypto-provider';
 import { PaymentMethod } from '@/lib/billing/types';
 import { registerBlockBeePendingCheckout } from '@/lib/services/internal/blockbee-pending-checkout';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { calculateSubscriptionPrice } from '@/lib/subscription/ppp';
 import { notifySubscriptionActivated } from '@/lib/billing/subscription-notifications';
@@ -39,7 +39,7 @@ const parsePositiveInteger = (value: unknown, fallback = 1) => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
 
-async function calculateStackedPeriod(databases: ReturnType<typeof createAdminClient>['databases'], userId: string, planId: string, months: number) {
+async function calculateStackedPeriod(databases: ReturnType<typeof createSystemClient>['databases'], userId: string, planId: string, months: number) {
   const now = new Date();
   let currentPeriodStart = now;
   try {
@@ -96,7 +96,7 @@ export async function createBillingCheckoutSessionAction(input: {
   let couponRow: any = null;
 
   if (couponId) {
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     couponRow = await databases.getDocument(CHAT_DB_ID, ACCOUNT_EVENTS_TABLE_ID, String(couponId).trim()).catch(() => null);
     if (!couponRow || String(couponRow.type || '').toLowerCase() !== 'coupon') throw new Error('Coupon not found');
     const metadata = parseMetadata(couponRow.metadata);
@@ -115,7 +115,7 @@ export async function createBillingCheckoutSessionAction(input: {
     adjustedAmountUsd = Math.max(0, baseAmount * (1 - couponDiscountPercent / 100));
 
     if (adjustedAmountUsd <= 0.00001) {
-      const { databases, users } = createAdminClient();
+      const { databases, users } = createSystemClient();
       const currentPeriodStart = new Date();
       const currentPeriodEnd = new Date(currentPeriodStart.getTime() + (normalizedMonths >= 12
         ? (normalizedMonths === 12 ? 365 : 30 * normalizedMonths) * 24 * 60 * 60 * 1000
@@ -219,7 +219,7 @@ export async function claimCouponAction(couponIdInput?: string, jwtInput?: strin
   const user = await getAuthenticatedUserForBillingAction({ jwt: jwtInput });
   if (!user) throw new Error('Authentication required');
 
-  const { databases, users } = createAdminClient();
+  const { databases, users } = createSystemClient();
   const couponId = typeof couponIdInput === 'string' ? couponIdInput.trim() : '';
   let coupon: any = null;
   if (couponId) {
@@ -389,7 +389,7 @@ export async function hydrateSessionAction(jwt?: string | null) {
     };
   }
 
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const userId = user.$id;
 
   try {

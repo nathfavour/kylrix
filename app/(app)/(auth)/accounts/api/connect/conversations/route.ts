@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client, ID, Permission, Role, Account } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 
 export async function OPTIONS(req: NextRequest) {
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: You must be a participant' }, { status: 403, headers: corsHeaders });
     }
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const DB_ID = APPWRITE_CONFIG.DATABASES.CHAT;
     const CONV_TABLE = APPWRITE_CONFIG.TABLES.CHAT.CONVERSATIONS;
 

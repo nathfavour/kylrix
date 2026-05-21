@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { verifyCreatorDeletionProof } from '@/lib/ephemeral/ephemeral-proof';
 
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'noteId and deletionSecret are required' }, { status: 400 });
     }
 
-    const { databases, storage } = createAdminClient();
+    const { databases, storage } = createSystemClient();
     const dbId = APPWRITE_CONFIG.DATABASES.NOTE;
     const collectionId = APPWRITE_CONFIG.TABLES.NOTE.NOTES;
 

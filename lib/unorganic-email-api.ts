@@ -1,7 +1,7 @@
 import { Query as TablesQuery, TablesDB } from 'appwrite';
 import { createHash } from 'node:crypto';
 import { ID, Query, type Users, Client as NodeAppwriteClient } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG, KYLRIX_AUTH_URI } from '@/lib/appwrite/config';
 
 export type UnorganicEmailSource = 'flow' | 'connect' | 'note' | 'vault' | 'accounts';
@@ -97,7 +97,7 @@ const PRIORITY_RANK: Record<PriorityLabel, number> = {
   critical: 4,
 };
 
-function createAdminTablesClient() {
+function createSystemTablesClient() {
   const apiKey = process.env.APPWRITE_API;
   if (!apiKey) {
     console.error('[Unorganic Email API] APPWRITE_API environment variable is missing.');
@@ -535,8 +535,8 @@ export async function dispatchUnorganicEmails(input: UnorganicEmailDispatchInput
   const eventType = normalizeEventType(input.eventType);
   const sourceApp = normalizeSourceApp(input.sourceApp);
   const verificationMode = input.verificationMode === 'error' ? 'error' : 'silent';
-  const { users, messaging } = createAdminClient();
-  const tablesDB = createAdminTablesClient();
+  const { users, messaging } = createSystemClient();
+  const tablesDB = createSystemTablesClient();
   const recipientTargets = normalizeRecipients(input.recipientIds, input.recipientEmails);
 
   if (recipientTargets.length === 0) {

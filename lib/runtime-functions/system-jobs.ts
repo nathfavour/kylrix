@@ -1,5 +1,5 @@
 import { Query } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { sweepStaleLiveCallPresenceBatch } from '@/lib/services/internal/live-call-presence-reconcile';
 
@@ -15,7 +15,7 @@ export function isSystemRuntimeJobId(job: string): job is SystemRuntimeJobId {
 }
 
 async function cleanupExpiredPublicGhostNotes(payload?: { batchSize?: number }) {
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const NOTE_DB = APPWRITE_CONFIG.DATABASES.NOTE;
   const NOTES_TABLE = APPWRITE_CONFIG.TABLES.NOTE.NOTES;
   const cap = Math.min(Math.max(Number(payload?.batchSize) || 120, 1), 500);

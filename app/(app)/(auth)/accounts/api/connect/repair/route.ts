@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Query } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { getCorsHeaders, verifyUser } from '@/lib/api/permission-updater';
 
@@ -29,7 +29,7 @@ function serializeMetadata(value: Record<string, unknown>) {
   return JSON.stringify(value);
 }
 
-async function fetchProfile(databases: ReturnType<typeof createAdminClient>["databases"], userId: string) {
+async function fetchProfile(databases: ReturnType<typeof createSystemClient>["databases"], userId: string) {
   const result = await databases.listDocuments(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.PROFILES, [
     Query.equal("userId", userId),
     Query.limit(2),
@@ -38,7 +38,7 @@ async function fetchProfile(databases: ReturnType<typeof createAdminClient>["dat
   return result.documents[0] || null;
 }
 
-async function fetchIdentityRows(databases: ReturnType<typeof createAdminClient>["databases"], userId: string) {
+async function fetchIdentityRows(databases: ReturnType<typeof createSystemClient>["databases"], userId: string) {
   const result = await databases.listDocuments(
     APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER,
     APPWRITE_CONFIG.TABLES.PASSWORD_MANAGER.IDENTITIES,
@@ -52,7 +52,7 @@ async function fetchIdentityRows(databases: ReturnType<typeof createAdminClient>
   return result.documents;
 }
 
-async function fetchConversation(databases: ReturnType<typeof createAdminClient>["databases"], conversationId: string) {
+async function fetchConversation(databases: ReturnType<typeof createSystemClient>["databases"], conversationId: string) {
   return await databases.getDocument(
     APPWRITE_CONFIG.DATABASES.CHAT,
     APPWRITE_CONFIG.TABLES.CHAT.CONVERSATIONS,
@@ -60,7 +60,7 @@ async function fetchConversation(databases: ReturnType<typeof createAdminClient>
   );
 }
 
-async function fetchKeyMappings(databases: ReturnType<typeof createAdminClient>["databases"], userId: string) {
+async function fetchKeyMappings(databases: ReturnType<typeof createSystemClient>["databases"], userId: string) {
   const result = await databases.listDocuments(
     APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER,
     APPWRITE_CONFIG.TABLES.PASSWORD_MANAGER.KEY_MAPPING,
@@ -73,7 +73,7 @@ async function fetchKeyMappings(databases: ReturnType<typeof createAdminClient>[
   return result.documents;
 }
 
-async function fetchEpochIds(databases: ReturnType<typeof createAdminClient>["databases"], conversationId: string) {
+async function fetchEpochIds(databases: ReturnType<typeof createSystemClient>["databases"], conversationId: string) {
   const result = await databases.listDocuments(
     APPWRITE_CONFIG.DATABASES.CHAT,
     APPWRITE_CONFIG.TABLES.CHAT.EPOCHS,
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
     }
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const report: Record<string, unknown> = {
       userId: targetUserId,
       conversationId: conversationId || null,

@@ -1,6 +1,6 @@
 'use server';
 
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { createServerClient } from '@/lib/appwrite-server-only';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { Permission, Role } from 'node-appwrite';
@@ -21,8 +21,8 @@ export async function initializeTelegramConnection() {
     // Generate secure 6-digit pairing code
     const pairCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Create the admin client to write with specific row permissions
-    const { databases } = createAdminClient();
+    // Create the system client to write with specific row permissions
+    const { databases } = createSystemClient();
 
     // Check if the record already exists
     let existingDoc = null;
@@ -94,7 +94,7 @@ export async function checkTelegramConnection() {
     }
     const userId = actor.$id;
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     try {
       const doc = await databases.getDocument(
         APPWRITE_CONFIG.DATABASES.CONNECT,

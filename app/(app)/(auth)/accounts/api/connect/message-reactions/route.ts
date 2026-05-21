@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Permission, Query, Role } from 'node-appwrite';
 import { createHash } from 'node:crypto';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { getCorsHeaders, verifyUser } from '@/lib/api/permission-updater';
 
@@ -41,7 +41,7 @@ function normalizeParticipantIds(row: any): string[] {
     : [];
 }
 
-async function resolveConversationParticipants(databases: ReturnType<typeof createAdminClient>['databases'], conversation: any): Promise<string[]> {
+async function resolveConversationParticipants(databases: ReturnType<typeof createSystemClient>['databases'], conversation: any): Promise<string[]> {
   const directParticipants = normalizeParticipantIds(conversation);
   if (directParticipants.length > 0) return directParticipants;
 
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'emoji is required' }, { status: 400, headers: corsHeaders });
     }
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const conversation = await databases.getDocument(CHAT_DB_ID, CONVERSATIONS_TABLE_ID, conversationId);
     const message = await databases.getDocument(CHAT_DB_ID, MESSAGES_TABLE_ID, messageId);
 
@@ -205,7 +205,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'conversationId, messageId, and emoji are required' }, { status: 400, headers: corsHeaders });
     }
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const existing = await databases.listDocuments(CHAT_DB_ID, MESSAGE_REACTIONS_TABLE_ID, [
       Query.equal('userId', user.$id),
       Query.equal('messageId', messageId),

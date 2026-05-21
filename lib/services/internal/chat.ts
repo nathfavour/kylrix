@@ -1,6 +1,6 @@
 import { createServerClient } from '@/lib/appwrite-server-only';
 import { ID, Permission, Role, Query, TablesDB } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { createHash } from 'node:crypto';
 
@@ -174,7 +174,7 @@ export async function createMessageInternal(payload: {
   if (!user) throw new Error('Unauthorized');
   if (user.$id !== payload.senderId) throw new Error('Forbidden');
 
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const conversation = await databases.getDocument(
     CHAT_DB_ID,
     CONVERSATIONS_TABLE_ID,
@@ -220,7 +220,7 @@ export async function clearConversationFootprintInternal(payload: {
 
   if (!user) throw new Error('Unauthorized');
 
-  const { databases, storage } = createAdminClient();
+  const { databases, storage } = createSystemClient();
   const conversation = await databases.getDocument(CHAT_DB_ID, CONVERSATIONS_TABLE_ID, payload.conversationId);
   const participantIds = await resolveConversationParticipants(databases, conversation);
 
@@ -273,7 +273,7 @@ export async function deleteConversationFullyInternal(payload: {
 
   if (!user) throw new Error('Unauthorized');
 
-  const { databases, storage } = createAdminClient();
+  const { databases, storage } = createSystemClient();
   const conversation = await databases.getDocument(CHAT_DB_ID, CONVERSATIONS_TABLE_ID, payload.conversationId);
   const participantIds = await resolveConversationParticipants(databases, conversation);
 
@@ -339,7 +339,7 @@ export async function nuclearWipeConversationInternal(payload: {
 
   if (!user) throw new Error('Unauthorized');
 
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const conversation = await databases.getDocument(CHAT_DB_ID, CONVERSATIONS_TABLE_ID, payload.conversationId);
   const participantIds = await resolveConversationParticipants(databases, conversation);
 
@@ -366,7 +366,7 @@ export async function toggleReactionInternal(payload: {
 
   if (!user) throw new Error('Unauthorized');
 
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const conversation = await databases.getDocument(CHAT_DB_ID, CONVERSATIONS_TABLE_ID, payload.conversationId);
   const participantIds = await resolveConversationParticipants(databases, conversation);
 
@@ -442,7 +442,7 @@ export async function repairConversationInternal(payload: {
     throw new Error('Forbidden');
   }
 
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const report: any = {
     userId: targetUserId,
     conversationId: payload.conversationId || null,
@@ -615,7 +615,7 @@ export async function joinRequestInternal(payload: {
   const { account } = await createServerClient(payload.jwt);
   const user = await account.get().catch(() => null);
 
-  const { databases } = createAdminClient();
+  const { databases } = createSystemClient();
   const JOIN_REQUESTS_TABLE_ID = APPWRITE_CONFIG.TABLES.CHAT.JOIN_REQUESTS;
 
   if (payload.method === 'GET') {

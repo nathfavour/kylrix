@@ -9,6 +9,7 @@ import {
   repairConversationInternal,
   joinRequestInternal
 } from '@/lib/services/internal/chat';
+import { createServerClient } from '@/lib/appwrite-server-only';
 
 export async function createMessageAction(payload: {
   conversationId: string;
@@ -19,7 +20,21 @@ export async function createMessageAction(payload: {
   replyTo?: string;
   jwt?: string;
 }) {
-  return await createMessageInternal(payload);
+  // Retrieve the authenticated actor securely on the server
+  const { account } = await createServerClient(payload.jwt);
+  const actor = await account.get();
+  
+  if (!actor?.$id) {
+    throw new Error('Unauthorized');
+  }
+
+  // Force senderId to match the authenticated actor's ID to prevent any spoofing
+  const securedPayload = {
+    ...payload,
+    senderId: actor.$id,
+  };
+
+  return await createMessageInternal(securedPayload);
 }
 
 export async function toggleReactionAction(payload: {
@@ -37,7 +52,23 @@ export async function repairConversationAction(payload: {
   conversationId?: string;
   jwt?: string;
 }) {
-  return await repairConversationInternal(payload);
+  // Retrieve actor to ensure they can only repair their own profiles unless they are admin
+  const { account } = await createServerClient(payload.jwt);
+  const actor = await account.get();
+  
+  if (!actor?.$id) {
+    throw new Error('Unauthorized');
+  }
+
+  const isAdmin = Array.isArray(actor.labels) && actor.labels.includes('admin');
+  const targetUserId = payload.userId && isAdmin ? payload.userId : actor.$id;
+
+  const securedPayload = {
+    ...payload,
+    userId: targetUserId,
+  };
+
+  return await repairConversationInternal(securedPayload);
 }
 
 export async function clearConversationFootprintAction(payload: {
@@ -69,5 +100,19 @@ export async function joinRequestAction(payload: {
   action?: 'accept' | 'reject',
   jwt?: string;
 }) {
-  return await joinRequestInternal(payload);
+  // Retrieve the authenticated actor securely on the server
+  const { account } = await createServerClient(payload.jwt);
+  const actor = await account.get().catch(() => null);
+
+  const securedPayload = { ...payload };
+
+  if (payload.method === 'POST') {
+    if (!actor?.$id) {
+      throw new Error('Unauthorized');
+    }
+    // Force the requesterId to match the authenticated actor's ID
+    securedPayload.requesterId = actor.$id;
+  }
+
+  return await joinRequestInternal(securedPayload);
 }

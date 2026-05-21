@@ -1,5 +1,5 @@
 import { Query } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { pickLatestSubscription, type SubscriptionRow } from '@/lib/billing/subscription-helpers';
 import { normalizeBillingPrefsTier, type BillingUiTier } from '@/lib/subscription/tier-resolution';
@@ -26,7 +26,7 @@ export async function getVerifiedProEntitlementForUser(userId: string): Promise<
   source: SubscriptionEntitlementSource;
   uiTier: BillingUiTier;
 }> {
-  const { databases, users } = createAdminClient();
+  const { databases, users } = createSystemClient();
   const now = new Date();
 
   try {

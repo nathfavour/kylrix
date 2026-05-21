@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ID, Permission, Query, Role } from 'node-appwrite';
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { getCorsHeaders, verifyUser } from '@/lib/api/permission-updater';
 
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 
     const url = new URL(req.url);
     const statusFilter = url.searchParams.get('status');
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const queries = [
       Query.equal('type', 'report'),
       Query.or([
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Self reports are not allowed' }, { status: 400, headers: corsHeaders });
     }
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const created: any[] = [];
 
     for (const targetUserId of targetUserIds) {

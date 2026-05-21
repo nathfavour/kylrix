@@ -1,4 +1,4 @@
-import { createAdminClient } from '../appwrite-admin';
+import { createSystemClient } from '../appwrite-admin';
 import { ID, Query, Permission, Role } from 'node-appwrite';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { notifySubscriptionActivated } from './subscription-notifications';
@@ -22,7 +22,7 @@ export class SubscriptionService {
     months: number,
     ratio = 1,
   ) {
-    const { databases, users } = createAdminClient();
+    const { databases, users } = createSystemClient();
 
     const { currentPeriodStart, currentPeriodEnd } = await calculateStackedSubscriptionCredit(
       databases,
@@ -104,7 +104,7 @@ export class SubscriptionService {
       console.warn('[SubscriptionService] Failed to send manual activation email:', error);
     });
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     try {
       await databases.createDocument(NOTE_DB_ID, ACTIVITY_LOG_COLLECTION_ID, ID.unique(), {
         userId: actorUserId,
@@ -151,7 +151,7 @@ export class SubscriptionService {
       });
     }
 
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     try {
       await databases.createDocument(NOTE_DB_ID, ACTIVITY_LOG_COLLECTION_ID, ID.unique(), {
         userId: actorUserId,

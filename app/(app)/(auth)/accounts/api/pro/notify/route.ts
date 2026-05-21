@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/appwrite-admin';
+import { createSystemClient } from '@/lib/appwrite-admin';
 import { ID, Query, Permission, Role } from 'node-appwrite';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { calculateSubscriptionPrice } from '@/lib/subscription/ppp';
@@ -37,7 +37,7 @@ function parseMetadata(value: unknown): Record<string, any> {
 }
 
 async function createGiftCouponRow(params: {
-  databases: ReturnType<typeof createAdminClient>['databases'];
+  databases: ReturnType<typeof createSystemClient>['databases'];
   payerUserId: string;
   payerName: string;
   recipientUserId: string;
@@ -189,7 +189,7 @@ export async function POST(req: Request) {
 
   let expectedPrice = calculateSubscriptionPrice(meta.planId, meta.countryCode, 'CRYPTO', meta.months);
   if (meta.couponId) {
-    const { databases } = createAdminClient();
+    const { databases } = createSystemClient();
     const coupon = await databases.getDocument(CHAT_DATABASE_ID, ACCOUNT_EVENTS_TABLE_ID, meta.couponId).catch(() => null);
     if (!coupon || String(coupon.type || '').toLowerCase() !== 'coupon') {
       console.warn('[BlockBee IPN] Pending checkout referenced invalid coupon');
@@ -219,7 +219,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { databases, users } = createAdminClient();
+    const { databases, users } = createSystemClient();
 
     const { currentPeriodStart, currentPeriodEnd, creditMs } = await calculateStackedSubscriptionCredit(
       databases,
