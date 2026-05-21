@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MasterpassState, unwrapMasterKey, wrapMasterKey } from './masterpass';
+import { MasterpassState, unwrapMasterKey, wrapMasterKey, deriveMasterpassKey, encryptMasterpassPayload, decryptMasterpassPayload } from './masterpass';
 
 const createStorage = () => {
   const store = new Map<string, string>();
@@ -56,5 +56,21 @@ describe('masterpass helpers', () => {
     const recoveredRaw = new Uint8Array(await crypto.subtle.exportKey('raw', unwrapped));
 
     expect(recoveredRaw).toEqual(originalRaw);
+  });
+
+  it('derives key, encrypts and decrypts masterpass payloads', async () => {
+    const password = 'my-secret-vault-password';
+    const salt = 'random-salt-string';
+    const payload = 'secret data payload to store';
+
+    const derivedKey = await deriveMasterpassKey(password, salt);
+    expect(derivedKey).toBeDefined();
+
+    const encrypted = await encryptMasterpassPayload(payload, password, salt);
+    expect(encrypted.cipher).toBeDefined();
+    expect(encrypted.iv).toBeDefined();
+
+    const decrypted = await decryptMasterpassPayload(encrypted.cipher, encrypted.iv, password, salt);
+    expect(decrypted).toBe(payload);
   });
 });

@@ -33,7 +33,7 @@ describe('wallet service helpers', () => {
       { chain: 'eth', address: 'eth-address' },
     ]);
 
-    expect(payload).toBe('{"eth":"eth-address","sol":"sol-address"}');
+    expect(payload).toBe('{"sol":"sol-address","eth":"eth-address"}');
   });
 
   it('rejects wallet actions while locked', () => {
@@ -42,6 +42,6 @@ describe('wallet service helpers', () => {
 
   it('exposes the supported wallet chains', () => {
     expect(service.supportedChains).toContain('sol');
-    expect(service.defaultChains).toEqual(['eth', 'usdc', 'sol', 'btc']);
+    expect(service.defaultChains).toEqual(['sol', 'eth', 'usdc', 'btc']);
   });
 });

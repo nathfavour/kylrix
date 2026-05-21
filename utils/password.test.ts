@@ -59,18 +59,21 @@ describe("generateRandomPassword", () => {
   it("should have a uniform distribution of characters", () => {
     const charset = "ab";
     const passwordLength = 128;
-    const password = generateRandomPassword(passwordLength, { charset });
+    const iterations = 100;
+    const counts: { [key: string]: number } = { a: 0, b: 0 };
 
-    const counts: { [key: string]: number } = {};
-    for (const char of password) {
-      counts[char] = (counts[char] || 0) + 1;
+    for (let i = 0; i < iterations; i++) {
+      const password = generateRandomPassword(passwordLength, { charset });
+      for (const char of password) {
+        counts[char] = (counts[char] || 0) + 1;
+      }
     }
 
-    const expectedCount = passwordLength / charset.length;
-    const tolerance = expectedCount * 0.2; // 20% tolerance
+    const totalLength = passwordLength * iterations;
+    const expectedCount = totalLength / charset.length;
+    const tolerance = expectedCount * 0.1; // 10% tolerance (640 characters)
 
     for (const char of charset) {
-      expect(counts[char]).toBeCloseTo(expectedCount, -1);
       expect(Math.abs(counts[char] - expectedCount)).toBeLessThan(tolerance);
     }
   });
