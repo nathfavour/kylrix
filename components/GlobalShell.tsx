@@ -121,10 +121,10 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
         </Box>
       </Box>
 
-      {isAppRoute && !isSharedPage && !isVaultResetRoute && !isLandingPage && !isProjectsPage && (
+      {isAppRoute && !isSharedPage && !isVaultResetRoute && !isLandingPage && (
         <UnifiedBottomBar />
       )}
-      {isAppRoute && !isSharedPage && !isVaultResetRoute && !isLandingPage && !isProjectsPage && !isConnectPage && (
+      {isAppRoute && !isSharedPage && !isVaultResetRoute && !isLandingPage && !isConnectPage && (
         <Box sx={{ display: 'none' }} />
       )}
       <UniversalFAB />
@@ -132,7 +132,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
 
       {/* --- LAYER 2: OVERLAYS (Strict Unmounting) --- */}
       {isOverlayOpen && <Overlay />}
-      {unifiedDrawerActive !== 'navbar' && !isProjectsPage && <UnifiedBottomDrawer />}
+      {unifiedDrawerActive !== 'navbar' && <UnifiedBottomDrawer />}
       {showProUpgrade && <ProUpgradeDrawer />}
       {taskDialogOpen && <TaskDialog />}
       {isDynamicSidebarOpen && <DynamicSidebar />}
