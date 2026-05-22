@@ -6,19 +6,13 @@ import {
   Typography, 
   Stack, 
   Button, 
-  TextField, 
   Grid, 
   CircularProgress, 
   Container,
   Card,
   CardContent,
   Chip,
-  alpha,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Tooltip
+  alpha
 } from '@mui/material';
 import { 
   Add as AddIcon, 
@@ -28,12 +22,11 @@ import {
   AccessTime as AccessTimeIcon
 } from '@mui/icons-material';
 import { Tags } from '@/types/appwrite';
-import { listTags, createTag, updateTag, deleteTag } from '@/lib/appwrite';
+import { listTags, deleteTag } from '@/lib/appwrite';
 import { updateNote } from '@/lib/actions/client-ops';
 import { useAuth } from '@/context/auth/AuthContext';
 import { formatDateWithFallback } from '@/lib/date-utils';
 import { TagNotesListSidebar } from '@/components/ui/TagNotesListSidebar';
-import { ID } from 'appwrite';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 
 export default function TagsPage() {
@@ -93,10 +86,6 @@ export default function TagsPage() {
     } catch (err: any) {
        setError(err instanceof Error ? err.message : 'Failed to delete tag');
     }
-  };
-
-  const resetForm = () => {
-    setError(null);
   };
 
   if (!isAuthenticated) {
@@ -191,7 +180,7 @@ export default function TagsPage() {
 
           <Grid size={{ xs: 12, lg: 6 }} sx={{ height: '100vh', overflow: 'hidden' }}>
             <TagNotesListSidebar
-              tag={selectedTag}
+              tag={selectedTag!}
               onBack={() => setSelectedTag(null)}
               onNoteUpdate={async (updatedNote) => {
                 try {
@@ -431,4 +420,3 @@ export default function TagsPage() {
     </Box>
   );
 }
-
