@@ -42,7 +42,6 @@ export const APPWRITE_CONFIG = {
             SETTINGS: 'settings',
             SUBSCRIPTIONS: 'subscriptions',
             NOTE_TAGS: 'note_tags',
-            NOTE_REVISIONS: 'note_revisions',
             BLOGPOSTS: '67ff065a003e2bb950f7',
             WALLET_MAP: 'walletMap'
         },
