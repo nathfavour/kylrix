@@ -1033,8 +1033,10 @@ export async function verifyResourcePermissionSecure(params: {
 
   if (action === 'read') {
     const isPublic = doc.isPublic === true || String(doc.isPublic) === 'true' ||
-                     meta.isPublic === true || String(meta.isPublic) === 'true' ||
-                     meta.publicity === true || String(meta.publicity) === 'true';
+                     (collectionId !== APPWRITE_CONFIG.TABLES.NOTE.NOTES && (
+                       meta.isPublic === true || String(meta.isPublic) === 'true' ||
+                       meta.publicity === true || String(meta.publicity) === 'true'
+                     ));
     if (isPublic) {
       return true;
     }
@@ -2540,7 +2542,7 @@ export async function createGhostNoteForCallSecure(callId: string, title?: strin
   return JSON.parse(JSON.stringify(result));
 }
 
-export function getIsSpecializedTable(tableId: string): boolean {
+export async function getIsSpecializedTable(tableId: string): Promise<boolean> {
   return (
     tableId === APPWRITE_CONFIG.TABLES.FLOW.GUESTS || 
     tableId === 'Collaborators' || 

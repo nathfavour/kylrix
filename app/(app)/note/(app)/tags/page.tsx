@@ -34,39 +34,16 @@ import { useAuth } from '@/context/auth/AuthContext';
 import { formatDateWithFallback } from '@/lib/date-utils';
 import { TagNotesListSidebar } from '@/components/ui/TagNotesListSidebar';
 import { ID } from 'appwrite';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 
 export default function TagsPage() {
   const { user, isAuthenticated, openIDMWindow } = useAuth();
+  const { open } = useUnifiedDrawer();
   const hasFetched = useRef(false);
   const [tags, setTags] = useState<Tags[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [editingTag, setEditingTag] = useState<Tags | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedTag, setSelectedTag] = useState<Tags | null>(null);
-
-  // Form state
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    color: '#6366F1', // Default to accent color
-  });
-
-  const predefinedColors = [
-    '#6366F1', // Electric Teal
-    '#A855F7', // Purple
-    '#EC4899', // Pink
-    '#3B82F6', // Blue
-    '#10B981', // Emerald
-    '#F59E0B', // Amber
-    '#EF4444', // Red
-    '#6366F1', // Indigo
-    '#8B5CF6', // Violet
-    '#F43F5E', // Rose
-    '#06B6D4', // Cyan
-    '#84CC16', // Lime
-  ];
 
   const fetchTags = useCallback(async () => {
     if (!user) {
@@ -97,56 +74,12 @@ export default function TagsPage() {
     }
   }, [isAuthenticated, user, fetchTags, openIDMWindow]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsCreating(true);
-
-    if (!user) {
-      setError('User not authenticated');
-      setIsCreating(false);
-      return;
-    }
-
-    try {
-      if (editingTag) {
-        await updateTag(editingTag.$id, {
-          name: formData.name,
-          description: formData.description,
-          color: formData.color,
-        });
-      } else {
-        await createTag({
-          id: ID.unique(),
-          userId: user.$id,
-          name: formData.name,
-          description: formData.description,
-          color: formData.color,
-          notes: [],
-          usageCount: 0,
-          createdAt: new Date().toISOString(),
-        });
-      }
-      
-      setFormData({ name: '', description: '', color: '#6366F1' });
-      setShowCreateForm(false);
-      setEditingTag(null);
-      await fetchTags();
-    } catch (err: any) {
-       setError((err as Error)?.message || 'Failed to save tag');
-    } finally {
-      setIsCreating(false);
-    }
+  const handleEdit = (tag: Tags) => {
+    open('new-tag', { tag, onSuccess: fetchTags });
   };
 
-  const handleEdit = (tag: Tags) => {
-    setEditingTag(tag);
-    setFormData({
-      name: tag.name || '',
-      description: tag.description || '',
-      color: tag.color || '#6366F1',
-    });
-    setShowCreateForm(true);
+  const handleCreateNew = () => {
+    open('new-tag', { onSuccess: fetchTags });
   };
 
   const handleDelete = async (tag: Tags) => {
@@ -210,7 +143,7 @@ export default function TagsPage() {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => setShowCreateForm(true)}
+                onClick={handleCreateNew}
                 sx={{
                   bgcolor: '#6366F1',
                   color: 'black',
@@ -319,7 +252,7 @@ export default function TagsPage() {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setShowCreateForm(true)}
+            onClick={handleCreateNew}
             sx={{
               bgcolor: '#6366F1',
               color: 'black',
@@ -360,7 +293,7 @@ export default function TagsPage() {
             <Typography sx={{ color: 'rgba(255, 255, 255, 0.4)', mb: 4, fontFamily: 'var(--font-satoshi)', fontWeight: 500 }}>Create your first tag to start organizing your notes</Typography>
             <Button
               variant="contained"
-              onClick={() => setShowCreateForm(true)}
+              onClick={handleCreateNew}
               sx={{
                 bgcolor: '#6366F1',
                 color: 'black',

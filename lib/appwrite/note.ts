@@ -3158,16 +3158,16 @@ export async function toggleNoteVisibility(noteId: string): Promise<(Notes & { d
       try { return JSON.parse(note.metadata || '{}'); } catch { return {}; }
     })();
 
-    meta.isPublic = newIsPublic;
+    // Wipe off metadata dirt for public access, leaving metadata only for collaborators
+    const cleanMeta: Record<string, any> = {};
+    if (meta.collaborators) {
+      cleanMeta.collaborators = meta.collaborators;
+    }
 
     if (newIsPublic) {
         // Disable encrypting public note process!
         // We do NOT encrypt the note. We keep title and content in plaintext.
-        delete meta.isEncrypted;
-        delete meta.encryptionVersion;
-        delete meta.encryptedTitle;
-        
-        updatePayload.metadata = JSON.stringify(meta);
+        updatePayload.metadata = JSON.stringify(cleanMeta);
         if (note.title) updatePayload.title = note.title;
         if (note.content) updatePayload.content = note.content;
     } else {
@@ -3188,12 +3188,7 @@ export async function toggleNoteVisibility(noteId: string): Promise<(Notes & { d
           }
         }
 
-        meta.isPublic = false;
-        delete meta.isEncrypted;
-        delete meta.encryptionVersion;
-        delete meta.encryptedTitle;
-
-        updatePayload.metadata = JSON.stringify(meta);
+        updatePayload.metadata = JSON.stringify(cleanMeta);
     }
 
     const permissions = [
@@ -3318,10 +3313,43 @@ export async function getCurrentPublicNoteDecryptionKey(noteId: string): Promise
 
 export async function validatePublicNoteAccess(noteId: string): Promise<Notes | null> {
   try {
-    // We use getNote which uses the global guest-capable database client
-    const note = await getNote(noteId);
+    if (typeof window === 'undefined') {
+      const { createSystemClient } = await import('@/lib/appwrite-admin');
+      const { databases } = createSystemClient();
+      
+      const doc = await databases.getDocument(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_TABLE_ID_NOTES,
+        noteId
+      ) as any;
+      
+      // Safety check: isPublic MUST be true
+      if (doc && doc.isPublic === true) {
+        hydrateVirtualAttributes(doc);
+        try {
+          const noteTagsCollection = APPWRITE_CONFIG.TABLES.NOTE.NOTE_TAGS || 'note_tags';
+          const pivot = await databases.listDocuments(
+            APPWRITE_DATABASE_ID,
+            noteTagsCollection,
+            [Query.equal('noteId', noteId), Query.limit(200)] as any
+          );
+          if (pivot.documents.length) {
+            const tags = Array.from(new Set(pivot.documents.map((p: any) => p.tag).filter(Boolean)));
+            doc.tags = tags;
+          }
+        } catch (_e) {
+          // Non-fatal
+        }
+        if (!doc.attachments || !Array.isArray(doc.attachments)) {
+          doc.attachments = [];
+        }
+        return doc as Notes;
+      }
+      return null;
+    }
     
-    // Safety check: isPublic MUST be true
+    // Fallback/Legacy client-side logic
+    const note = await getNote(noteId);
     if (!isNotePublic(note)) return null;
     return note;
   } catch (err: any) {
