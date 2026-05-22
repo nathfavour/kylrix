@@ -16,6 +16,10 @@ export const FormsService = {
      * Create a new form definition
      */
     async createForm(userId: string, data: Omit<Forms, '$id' | '$createdAt' | '$updatedAt' | '$permissions' | '$databaseId' | '$collectionId' | 'userId' | '$sequence' | '$tableId'>) {
+        if (typeof window !== 'undefined') {
+            const { createForm } = await import('@/lib/actions/client-ops');
+            return await createForm(data);
+        }
         const { createFormSecure } = await import('@/lib/actions/secure-ops');
         return await createFormSecure(data);
     },
@@ -74,6 +78,10 @@ export const FormsService = {
      * Update a form definition with strict permission synchronization
      */
     async updateForm(formId: string, data: Partial<Forms>) {
+        if (typeof window !== 'undefined') {
+            const { updateForm } = await import('@/lib/actions/client-ops');
+            return await updateForm(formId, data);
+        }
         const { updateFormSecure } = await import('@/lib/actions/secure-ops');
         return await updateFormSecure(formId, data);
     },
@@ -334,6 +342,10 @@ export const FormsService = {
      * Delete a form
      */
     async deleteForm(formId: string) {
+        if (typeof window !== 'undefined') {
+            const { deleteForm } = await import('@/lib/actions/client-ops');
+            return await deleteForm(formId);
+        }
         const { deleteFormSecure } = await import('@/lib/actions/secure-ops');
         return await deleteFormSecure(formId);
     },
@@ -342,6 +354,10 @@ export const FormsService = {
      * Add a collaborator to a form
      */
     async addCollaborator(formId: string, userId: string, role: string = 'viewer') {
+        if (typeof window !== 'undefined') {
+            const { addFormCollaborator } = await import('@/lib/actions/client-ops');
+            return await addFormCollaborator(formId, userId, role);
+        }
         const { addFormCollaboratorSecure } = await import('@/lib/actions/secure-ops');
         return await addFormCollaboratorSecure(formId, userId, role);
     },
@@ -350,6 +366,10 @@ export const FormsService = {
      * Remove a collaborator from a form
      */
     async removeCollaborator(formId: string, userId: string) {
+        if (typeof window !== 'undefined') {
+            const { removeFormCollaborator } = await import('@/lib/actions/client-ops');
+            return await removeFormCollaborator(formId, userId);
+        }
         const { removeFormCollaboratorSecure } = await import('@/lib/actions/secure-ops');
         return await removeFormCollaboratorSecure(formId, userId);
     },

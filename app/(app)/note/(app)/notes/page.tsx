@@ -2,7 +2,7 @@
 
 import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { Box, Typography, Stack, IconButton, Alert } from '@mui/material';
-import { deleteNoteSecure as deleteNote } from '@/lib/actions/secure-ops';
+import { deleteNote } from '@/lib/actions/client-ops';
 import { useNotes } from '@/context/NotesContext';
 
 import { useOverlay } from '@/components/ui/OverlayContext';

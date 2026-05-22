@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon, DragHandle as DragHandleIcon, Check as CheckIcon } from '@mui/icons-material';
 import type { Notes } from '@/types/appwrite';
-import { updateNote } from '@/lib/appwrite';
+import { updateNote } from '@/lib/actions/client-ops';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 
 interface PaywallDrawerProps {

@@ -29,7 +29,7 @@ import { buildAutoTitleFromContent } from '@/constants/noteTitle';
 import { useOverlay } from '@/components/ui/OverlayContext';
 import { useToast } from '@/components/ui/Toast';
 import { getNote, getNotePublicState, toggleNoteVisibility } from '@/lib/appwrite';
-import { createNoteSecure as createNote, updateNoteSecure as updateNote } from '@/lib/actions/secure-ops';
+import { createNote, updateNote } from '@/lib/actions/client-ops';
 import type { Notes } from '@/types/appwrite';
 import DoodleCanvas from '@/components/DoodleCanvas';
 import { useNotes } from '@/context/NotesContext';

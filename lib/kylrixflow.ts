@@ -326,23 +326,43 @@ export const taskCollaborators = {
 export const events = {
     list: (queries?: string[]) => listRows<Event>(TABLES.EVENTS, queries),
     create: async (data: TableCreateData<Event>, _permissions?: string[]) => {
+        if (typeof window !== 'undefined') {
+            const { createEvent } = await import('@/lib/actions/client-ops');
+            return await createEvent(data);
+        }
         const { createEventSecure } = await import('@/lib/actions/secure-ops');
         return await createEventSecure(data);
     },
     get: (id: string) => getRow<Event>(TABLES.EVENTS, id),
     update: async (id: string, data: TableUpdateData<Event>) => {
+        if (typeof window !== 'undefined') {
+            const { updateEvent } = await import('@/lib/actions/client-ops');
+            return await updateEvent(id, data);
+        }
         const { updateEventSecure } = await import('@/lib/actions/secure-ops');
         return await updateEventSecure(id, data);
     },
     delete: async (id: string) => {
+        if (typeof window !== 'undefined') {
+            const { deleteEvent } = await import('@/lib/actions/client-ops');
+            return await deleteEvent(id);
+        }
         const { deleteEventSecure } = await import('@/lib/actions/secure-ops');
         return await deleteEventSecure(id);
     },
     addManager: async (eventId: string, userId: string, role: string = 'viewer') => {
+        if (typeof window !== 'undefined') {
+            const { addEventManager } = await import('@/lib/actions/client-ops');
+            return await addEventManager(eventId, userId, role);
+        }
         const { addEventManagerSecure } = await import('@/lib/actions/secure-ops');
         return await addEventManagerSecure(eventId, userId, role);
     },
     removeManager: async (eventId: string, userId: string) => {
+        if (typeof window !== 'undefined') {
+            const { removeEventManager } = await import('@/lib/actions/client-ops');
+            return await removeEventManager(eventId, userId);
+        }
         const { removeEventManagerSecure } = await import('@/lib/actions/secure-ops');
         return await removeEventManagerSecure(eventId, userId);
     }

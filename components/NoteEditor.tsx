@@ -20,7 +20,7 @@ import AttachmentsManager from '@/components/AttachmentsManager';
 import NoteContent from '@/components/NoteContent';
 import { formatFileSize } from '@/lib/utils';
 import { getNote, getNotePublicState, toggleNoteVisibility } from '@/lib/appwrite';
-import { createNoteSecure as createNote, updateNoteSecure as updateNote } from '@/lib/actions/secure-ops';
+import { createNote, updateNote } from '@/lib/actions/client-ops';
 import { useDataNexus } from '@/context/DataNexusContext';
 import { useSudo } from '@/context/SudoContext';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';

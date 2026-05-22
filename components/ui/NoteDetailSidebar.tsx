@@ -60,7 +60,6 @@ import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { formatNoteCreatedDate, formatNoteUpdatedDate } from '@/lib/date-utils';
 import { getTablesDbRowCached } from '@/lib/ecosystem/tablesdb-row-cache';
 import { 
-  updateNote, 
   listFlowTasks, 
   listFlowEvents, 
   listKeepCredentials, 
@@ -75,6 +74,7 @@ import {
   decryptPublicEncryptedNote, 
   createTaskFromNote 
 } from '@/lib/appwrite';
+import { updateNote } from '@/lib/actions/client-ops';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { formatFileSize } from '@/lib/utils';
 import { useCallLauncher } from '@/context/CallLauncherContext';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { updateNote } from '@/lib/appwrite';
+import { updateNote } from '@/lib/actions/client-ops';
 import type { Notes } from '@/types/appwrite';
 
 interface AutosaveOptions {

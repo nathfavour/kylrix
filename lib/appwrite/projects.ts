@@ -31,6 +31,10 @@ export const ProjectsService = {
   },
 
   async createProject(data: Partial<Projects>) {
+    if (typeof window !== 'undefined') {
+      const { createProject } = await import('@/lib/actions/client-ops');
+      return await createProject(data);
+    }
     const { createProjectSecure } = await import('@/lib/actions/secure-ops');
     return await createProjectSecure(data);
   },
@@ -47,21 +51,37 @@ export const ProjectsService = {
   },
 
   async addCollaborator(projectId: string, userId: string, role: string = 'member') {
+    if (typeof window !== 'undefined') {
+      const { addProjectCollaborator } = await import('@/lib/actions/client-ops');
+      return await addProjectCollaborator(projectId, userId, role);
+    }
     const { addProjectCollaboratorSecure } = await import('@/lib/actions/secure-ops');
     return await addProjectCollaboratorSecure(projectId, userId, role);
   },
 
   async removeCollaborator(projectId: string, userId: string) {
+    if (typeof window !== 'undefined') {
+      const { removeProjectCollaborator } = await import('@/lib/actions/client-ops');
+      return await removeProjectCollaborator(projectId, userId);
+    }
     const { removeProjectCollaboratorSecure } = await import('@/lib/actions/secure-ops');
     return await removeProjectCollaboratorSecure(projectId, userId);
   },
 
   async updateProject(projectId: string, data: Partial<Projects>, permissions?: string[]) {
+    if (typeof window !== 'undefined') {
+      const { updateProject } = await import('@/lib/actions/client-ops');
+      return await updateProject(projectId, data, permissions);
+    }
     const { updateProjectSecure } = await import('@/lib/actions/secure-ops');
     return await updateProjectSecure(projectId, data, permissions);
   },
 
   async deleteProject(projectId: string) {
+    if (typeof window !== 'undefined') {
+      const { deleteProject } = await import('@/lib/actions/client-ops');
+      return await deleteProject(projectId);
+    }
     const { deleteProjectSecure } = await import('@/lib/actions/secure-ops');
     return await deleteProjectSecure(projectId);
   },
@@ -75,36 +95,20 @@ export const ProjectsService = {
   },
 
   async addObjectToProject(projectId: string, entityKind: string, entityId: string, role?: string, metadata?: any) {
-    const user = await getCurrentUser();
-    if (!user) throw new Error('Not authenticated');
-
-    const now = new Date().toISOString();
-    return databases.createDocument<any>(
-      DATABASE_ID,
-      PROJECT_OBJECTS_COLLECTION_ID,
-      ID.unique(),
-      {
-        projectId,
-        entityKind,
-        entityId,
-        role: role || 'member',
-        metadata: metadata ? JSON.stringify(metadata) : null,
-        createdAt: now,
-        updatedAt: now,
-      },
-      [
-        Permission.read(Role.user(user.$id)),
-        Permission.update(Role.user(user.$id)),
-        Permission.delete(Role.user(user.$id)),
-      ]
-    );
+    if (typeof window !== 'undefined') {
+      const { addObjectToProject } = await import('@/lib/actions/client-ops');
+      return await addObjectToProject(projectId, entityKind, entityId, role, metadata);
+    }
+    const { addObjectToProjectSecure } = await import('@/lib/actions/secure-ops');
+    return await addObjectToProjectSecure(projectId, entityKind, entityId, role, metadata);
   },
 
   async removeObjectFromProject(objectId: string) {
-    return databases.deleteDocument(
-      DATABASE_ID,
-      PROJECT_OBJECTS_COLLECTION_ID,
-      objectId
-    );
+    if (typeof window !== 'undefined') {
+      const { removeObjectFromProject } = await import('@/lib/actions/client-ops');
+      return await removeObjectFromProject(objectId);
+    }
+    const { removeObjectFromProjectSecure } = await import('@/lib/actions/secure-ops');
+    return await removeObjectFromProjectSecure(objectId);
   }
 };

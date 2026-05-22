@@ -7,7 +7,7 @@ import { useNotes } from '@/context/NotesContext';
 import { useSearch } from '@/hooks/useSearch';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { NoteDetailSidebar } from '@/components/ui/NoteDetailSidebar';
-import { deleteNote } from '@/lib/appwrite';
+import { deleteNote } from '@/lib/actions/client-ops';
 import { Button } from '@/components/ui/Button';
 import { sidebarIgnoreProps } from '@/constants/sidebar';
 

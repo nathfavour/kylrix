@@ -1,5 +1,4 @@
 import { account } from '@/lib/appwrite/client';
-import { runTokenOperationSecure } from '@/lib/actions/secure-ops';
 import type { KylrixActivityType } from './contract';
 
 export type KylrixTokenAction =
@@ -170,6 +169,11 @@ export function createKylrixTokenOperationsClient(options: KylrixTokenClientOpti
     void endpoint;
     void baseHeaders;
     const { jwt } = await account.createJWT().catch(() => ({ jwt: null }));
+    if (typeof window !== 'undefined') {
+      const { runTokenOperation } = await import('@/lib/actions/client-ops');
+      return (await runTokenOperation({ ...request, jwt })) as T;
+    }
+    const { runTokenOperationSecure } = await import('@/lib/actions/secure-ops');
     return (await runTokenOperationSecure({ ...request, jwt })) as T;
   };
 

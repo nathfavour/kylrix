@@ -605,16 +605,21 @@ const noteCreationService = createNoteCreationService({
 export { createNoteCreationService, cleanDocumentData, filterNoteData, getNotePermissions };
 export default AppwriteService;
 
-export async function createNote(data: Partial<Notes>) {
+export async function createNote(data: Partial<Notes>, jwt?: string) {
   if (typeof window !== 'undefined') {
-    const { createNoteSecure } = await import('@/lib/actions/secure-ops');
-    return createNoteSecure(data);
+    const { createNote } = await import('@/lib/actions/client-ops');
+    return createNote(data);
   }
-  return noteCreationService.createNote(data as any);
+  const { createNoteSecure } = await import('@/lib/actions/secure-ops');
+  return createNoteSecure(data, jwt);
 }
 
 
 export async function createMomentFromNote(note: Pick<Notes, '$id'>) {
+  if (typeof window !== 'undefined') {
+    const { sharePublicNoteAsMoment } = await import('@/lib/actions/client-ops');
+    return sharePublicNoteAsMoment(note.$id);
+  }
   const { sharePublicNoteAsMomentSecure } = await import('@/lib/actions/secure-ops');
   return sharePublicNoteAsMomentSecure({ noteId: note.$id });
 }
@@ -643,14 +648,20 @@ export async function getNote(noteId: string): Promise<Notes> {
   return cloneNoteForCacheReturn(doc);
 }
 
-export async function updateNote(noteId: string, data: Partial<Notes>) {
+export async function updateNote(noteId: string, data: Partial<Notes>, jwt?: string) {
   if (typeof window !== 'undefined') {
-    const { updateNoteSecure } = await import('@/lib/actions/secure-ops');
-    const result = await updateNoteSecure(noteId, data);
+    invalidateNoteRowClientCache(noteId);
+    const { updateNote } = await import('@/lib/actions/client-ops');
+    const result = await updateNote(noteId, data);
     invalidateNoteRowClientCache(noteId);
     return result as Notes;
   }
+  const { updateNoteSecure } = await import('@/lib/actions/secure-ops');
+  const result = await updateNoteSecure(noteId, data, jwt);
+  return result as Notes;
+}
 
+export async function updateNoteIsomorphicLegacy(noteId: string, data: Partial<Notes>, jwt?: string) {
   const cleanData = cleanDocumentData(data);
   const updatedAt = new Date().toISOString();
   const updatedData = filterNoteData({ ...cleanData, updatedAt: updatedAt });
@@ -797,13 +808,20 @@ export async function updateNote(noteId: string, data: Partial<Notes>) {
   return doc as Notes;
 }
 
-export async function deleteNote(noteId: string) {
+export async function deleteNote(noteId: string, jwt?: string) {
   if (typeof window !== 'undefined') {
-    const { deleteNoteSecure } = await import('@/lib/actions/secure-ops');
-    const result = await deleteNoteSecure(noteId);
+    invalidateNoteRowClientCache(noteId);
+    const { deleteNote } = await import('@/lib/actions/client-ops');
+    const result = await deleteNote(noteId);
     invalidateNoteRowClientCache(noteId);
     return result;
   }
+  const { deleteNoteSecure } = await import('@/lib/actions/secure-ops');
+  const result = await deleteNoteSecure(noteId, jwt);
+  return result;
+}
+
+export async function deleteNoteIsomorphicLegacy(noteId: string, jwt?: string) {
   try {
     // Remove reactions directly attached to the note
     await deleteReactionsForTarget(TargetType.NOTE, noteId);

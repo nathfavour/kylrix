@@ -126,7 +126,7 @@ export class EcosystemSecurity {
 
   // --- Robust Base64 (Handling URL-safe and Binary safely) ---
 
-  private decodeBase64(base64: string): Uint8Array {
+  public decodeBase64(base64: string): Uint8Array {
     try {
         const normalized = base64.replace(/-/g, '+').replace(/_/g, '/');
         const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');

@@ -57,7 +57,7 @@ import {
     Switch 
 } from '@mui/material';
 import type { CallLaunchContext } from '@/context/CallLauncherContext';
-import { updateNote } from '@/lib/appwrite/note';
+import { updateNote } from '@/lib/actions/client-ops';
 import { tasks as taskApi } from '@/lib/kylrixflow';
 import { ActivityService } from '@/lib/services/activity';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';

@@ -28,7 +28,8 @@ import {
   AccessTime as AccessTimeIcon
 } from '@mui/icons-material';
 import { Tags } from '@/types/appwrite';
-import { listTags, createTag, updateTag, deleteTag, updateNote } from '@/lib/appwrite';
+import { listTags, createTag, updateTag, deleteTag } from '@/lib/appwrite';
+import { updateNote } from '@/lib/actions/client-ops';
 import { useAuth } from '@/context/auth/AuthContext';
 import { formatDateWithFallback } from '@/lib/date-utils';
 import { TagNotesListSidebar } from '@/components/ui/TagNotesListSidebar';

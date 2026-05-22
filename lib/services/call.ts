@@ -318,8 +318,14 @@ export const CallService = {
             const call = await this.getCallLink(callId);
             if (!call) throw new Error('Call not found');
 
-            const { updateCallMetadataSecureAction } = await import('@/lib/actions/secure-ops');
-            const result = await updateCallMetadataSecureAction(callId, extraMetadata);
+            let result: any;
+            if (typeof window !== 'undefined') {
+                const { updateCallMetadata } = await import('@/lib/actions/client-ops');
+                result = await updateCallMetadata(callId, extraMetadata);
+            } else {
+                const { updateCallMetadataSecureAction } = await import('@/lib/actions/secure-ops');
+                result = await updateCallMetadataSecureAction(callId, extraMetadata);
+            }
 
             activeCallsCache.invalidate();
             return result;
@@ -331,8 +337,13 @@ export const CallService = {
 
     async deleteCall(callId: string) {
         try {
-            const { endCallSecureAction } = await import('@/lib/actions/secure-ops');
-            await endCallSecureAction(callId);
+            if (typeof window !== 'undefined') {
+                const { endCall } = await import('@/lib/actions/client-ops');
+                await endCall(callId);
+            } else {
+                const { endCallSecureAction } = await import('@/lib/actions/secure-ops');
+                await endCallSecureAction(callId);
+            }
             historyCache.invalidate();
             activeCallsCache.invalidate();
         } catch (_e) {
@@ -341,8 +352,14 @@ export const CallService = {
     },
 
     async addCohost(callId: string, cohostId: string, allowEndCall: boolean = false) {
-        const { addCallCohostSecureAction } = await import('@/lib/actions/secure-ops');
-        const result = await addCallCohostSecureAction(callId, cohostId, allowEndCall);
+        let result: any;
+        if (typeof window !== 'undefined') {
+            const { addCallCohost } = await import('@/lib/actions/client-ops');
+            result = await addCallCohost(callId, cohostId, allowEndCall);
+        } else {
+            const { addCallCohostSecureAction } = await import('@/lib/actions/secure-ops');
+            result = await addCallCohostSecureAction(callId, cohostId, allowEndCall);
+        }
         activeCallsCache.invalidate();
         return result;
     }

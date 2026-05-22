@@ -125,8 +125,8 @@ export async function mintNoteShareMomentSecure(input: { momentId: string }) {
 
   let note: Record<string, unknown>;
   try {
-    const { databases } = createSystemClient();
-    note = (await databases.getDocument(
+    const tables = createSystemTablesDB();
+    note = (await tables.getRow(
       APPWRITE_CONFIG.DATABASES.NOTE,
       APPWRITE_CONFIG.TABLES.NOTE.NOTES,
       noteId,
@@ -185,16 +185,16 @@ export async function mintDailyLoginSecure(input: { userId: string; dateKey: str
   }
 }
 
-export async function sharePublicNoteAsMomentSecure(input: { noteId: string; text?: string }) {
-  const actor = await getActor();
+export async function sharePublicNoteAsMomentSecure(input: { noteId: string; text?: string; jwt?: string }) {
+  const actor = await getActor(input.jwt);
   if (!actor) throw new Error('Unauthorized');
 
   const noteId = String(input?.noteId || '').trim();
   const text = String(input?.text || '').trim();
   if (!noteId) throw new Error('noteId is required');
 
-  const { databases } = createSystemClient();
-  const note = await databases.getDocument(
+  const tables = createSystemTablesDB();
+  const note = await tables.getRow(
     APPWRITE_CONFIG.DATABASES.NOTE,
     APPWRITE_CONFIG.TABLES.NOTE.NOTES,
     noteId,
@@ -394,45 +394,45 @@ export async function cleanupStaleCallsSecure(input?: { userId?: string; callId?
   const callId = String(input?.callId || '').trim() || null;
   const cleanupAll = Boolean(input?.cleanupAll);
 
-  const { databases } = createSystemClient();
+  const tables = createSystemTablesDB();
   const DB_ID = APPWRITE_CONFIG.DATABASES.CHAT;
   const LINKS_TABLE = APPWRITE_CONFIG.TABLES.CHAT.CALL_LINKS;
 
   if (cleanupAll && admin) {
-    const rows = await databases.listDocuments(DB_ID, LINKS_TABLE, [
+    const rows = await tables.listRows(DB_ID, LINKS_TABLE, [
       Query.lessThan('expiresAt', new Date().toISOString()),
       Query.limit(500),
     ]);
-    for (const row of rows.documents) {
-      await databases.deleteDocument(DB_ID, LINKS_TABLE, row.$id);
+    for (const row of rows.rows) {
+      await tables.deleteRow(DB_ID, LINKS_TABLE, row.$id);
     }
-    return { deleted: rows.documents.length, callIds: rows.documents.map((row) => row.$id) };
+    return { deleted: rows.rows.length, callIds: rows.rows.map((row) => row.$id) };
   }
 
   if (targetUserId !== requester.$id && !admin && !callId) throw new Error('Forbidden');
 
   if (callId) {
-    const call = await databases.getDocument(DB_ID, LINKS_TABLE, callId);
+    const call = await tables.getRow(DB_ID, LINKS_TABLE, callId);
     if (String((call as any)?.userId || '') !== (admin ? (targetUserId || requester.$id) : requester.$id)) {
       throw new Error('Forbidden');
     }
-    const result = await deleteCallIfExpired(databases as any, callId);
+    const result = await deleteCallIfExpired(tables as any, callId);
     const presenceUser = targetUserId || requester.$id;
     await reconcileStaleLiveCallPresenceForUser(presenceUser).catch(() => undefined);
     return result.deleted ? { deleted: 1, callIds: [callId] } : { deleted: 0, callIds: [] as string[] };
   }
 
-  const expiredRows = await databases.listDocuments(DB_ID, LINKS_TABLE, [
+  const expiredRows = await tables.listRows(DB_ID, LINKS_TABLE, [
     Query.equal('userId', targetUserId || requester.$id),
     Query.lessThan('expiresAt', new Date().toISOString()),
     Query.limit(200),
   ]);
-  for (const row of expiredRows.documents) {
-    await databases.deleteDocument(DB_ID, LINKS_TABLE, row.$id);
+  for (const row of expiredRows.rows) {
+    await tables.deleteRow(DB_ID, LINKS_TABLE, row.$id);
   }
   const presenceUser = targetUserId || requester.$id;
   await reconcileStaleLiveCallPresenceForUser(presenceUser).catch(() => undefined);
-  return { deleted: expiredRows.documents.length, callIds: expiredRows.documents.map((row) => row.$id) };
+  return { deleted: expiredRows.rows.length, callIds: expiredRows.rows.map((row) => row.$id) };
 }
 
 export async function getQuickProfileSecure(userId: string, jwt?: string) {
@@ -441,18 +441,18 @@ export async function getQuickProfileSecure(userId: string, jwt?: string) {
   const targetUserId = String(userId || '').trim();
   if (!targetUserId) throw new Error('userId is required');
 
-  const { databases } = createSystemClient();
+  const tables = createSystemTablesDB();
   const getProfile = async () => {
     try {
-      const byUserId = await databases.listDocuments(
+      const byUserId = await tables.listRows(
         APPWRITE_CONFIG.DATABASES.CHAT,
         APPWRITE_CONFIG.TABLES.CHAT.PROFILES,
         [Query.equal('userId', targetUserId), Query.limit(1)],
       );
-      if (byUserId.documents[0]) return byUserId.documents[0];
+      if (byUserId.rows[0]) return byUserId.rows[0];
     } catch {}
     try {
-      return await databases.getDocument(
+      return await tables.getRow(
         APPWRITE_CONFIG.DATABASES.CHAT,
         APPWRITE_CONFIG.TABLES.CHAT.PROFILES,
         targetUserId,
@@ -464,7 +464,7 @@ export async function getQuickProfileSecure(userId: string, jwt?: string) {
 
   const getWallets = async () => {
     const ownerId = `user:${targetUserId}`;
-    const rows = await databases.listDocuments(
+    const rows = await tables.listRows(
       APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER,
       APPWRITE_CONFIG.TABLES.PASSWORD_MANAGER.WALLETS,
       [
@@ -475,7 +475,7 @@ export async function getQuickProfileSecure(userId: string, jwt?: string) {
       ],
     );
     const dedupedByChain = new Map<string, any>();
-    for (const row of rows.documents) {
+    for (const row of rows.rows) {
       const chain = String((row as any).chain || '').trim().toLowerCase();
       const address = String((row as any).address || '').trim();
       if (!chain || !address) continue;
@@ -548,8 +548,8 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
 
   // 2. Set the virtual permission level in metadata.collaborators
   if (input.resourceType === 'note') {
-    const { databases } = createSystemClient();
-    const noteDoc = await databases.getDocument(dbId, tableId, input.resourceId);
+    const tables = createSystemTablesDB();
+    const noteDoc = await tables.getRow(dbId, tableId, input.resourceId);
     let meta: any = {};
     try {
       meta = JSON.parse(noteDoc.metadata || '{}');
@@ -558,7 +558,7 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
       meta.collaborators = {};
     }
     meta.collaborators[input.targetUserId] = input.permission; // 'viewer' | 'editor' | 'admin'
-    await databases.updateDocument(dbId, tableId, input.resourceId, {
+    await tables.updateRow(dbId, tableId, input.resourceId, {
       metadata: JSON.stringify(meta)
     });
   }
@@ -622,15 +622,15 @@ export async function revokePermissionSecure(input: {
 
     // 2. Remove virtual permission from metadata
     if (input.resourceType === 'note') {
-        const { databases } = createSystemClient();
-        const noteDoc = await databases.getDocument(dbId, tableId, input.resourceId);
+        const tables = createSystemTablesDB();
+        const noteDoc = await tables.getRow(dbId, tableId, input.resourceId);
         let meta: any = {};
         try {
             meta = JSON.parse(noteDoc.metadata || '{}');
         } catch {}
         if (meta.collaborators) {
             delete meta.collaborators[input.targetUserId];
-            await databases.updateDocument(dbId, tableId, input.resourceId, {
+            await tables.updateRow(dbId, tableId, input.resourceId, {
                 metadata: JSON.stringify(meta)
             });
         }
@@ -674,8 +674,8 @@ export async function getResourceCollaboratorsSecure(input: {
     const dbId = input.resourceType === 'note' ? APPWRITE_CONFIG.DATABASES.NOTE : APPWRITE_CONFIG.DATABASES.FLOW;
     const tableId = input.resourceType === 'note' ? APPWRITE_CONFIG.TABLES.NOTE.NOTES : APPWRITE_CONFIG.TABLES.FLOW.TASKS;
 
-    const { databases } = createSystemClient();
-    const doc = await databases.getDocument(dbId, tableId, input.resourceId);
+    const tables = createSystemTablesDB();
+    const doc = await tables.getRow(dbId, tableId, input.resourceId);
     
     let filteredCollabs: Array<{ userId: string, level: string }> = [];
     
@@ -721,12 +721,29 @@ export async function getResourceCollaboratorsSecure(input: {
     return { collaborators: collaborators.filter(Boolean) };
 }
 
-export async function createNoteSecure(data: any) {
-  const actor = await getActor();
+export async function createNoteSecure(data: any, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
 
+  // Mathematically tie the create operation to the current user
+  if (!data) {
+    data = {};
+  }
+  data.userId = actor.$id;
+
+  const isCreateAllowed = await verifyResourcePermissionSecure({
+    actorId: actor.$id,
+    action: 'create',
+    ownerFields: ['userId'],
+    data,
+  });
+  if (!isCreateAllowed) {
+    throw new Error('Forbidden: Create operation must be mathematically tied to the current user');
+  }
+
+  const tables = createSystemTablesDB();
   const { databases } = createSystemClient();
   const APPWRITE_DATABASE_ID = APPWRITE_CONFIG.DATABASES.NOTE;
   const APPWRITE_TABLE_ID_NOTES = APPWRITE_CONFIG.TABLES.NOTE.NOTES;
@@ -748,12 +765,12 @@ export async function createNoteSecure(data: any) {
 
       const existingTagDocs: Record<string, any> = {};
       try {
-        const existingTagsRes = await databases.listDocuments(
+        const existingTagsRes = await tables.listRows(
           APPWRITE_DATABASE_ID,
           tagsCollection,
           [Query.equal('userId', userId), Query.equal('nameLower', unique.map((tag: any) => tag.toLowerCase())), Query.limit(unique.length)] as any
         );
-        for (const td of existingTagsRes.documents as any[]) {
+        for (const td of existingTagsRes.rows as any[]) {
           if (td.nameLower) existingTagDocs[td.nameLower] = td;
         }
       } catch (tagListErr) {
@@ -764,7 +781,7 @@ export async function createNoteSecure(data: any) {
         const key = tagName.toLowerCase();
         if (!existingTagDocs[key]) {
           try {
-            const created = await databases.createDocument(
+            const created = await tables.createRow(
               APPWRITE_DATABASE_ID,
               tagsCollection,
               ID.unique(),
@@ -773,23 +790,23 @@ export async function createNoteSecure(data: any) {
             existingTagDocs[key] = created;
           } catch (createTagErr: any) {
             try {
-              const retry = await databases.listDocuments(
+              const retry = await tables.listRows(
                 APPWRITE_DATABASE_ID,
                 tagsCollection,
                 [Query.equal('userId', userId), Query.equal('nameLower', key), Query.limit(1)] as any
               );
-              if (retry.documents.length) existingTagDocs[key] = retry.documents[0];
+              if (retry.rows.length) existingTagDocs[key] = retry.rows[0];
             } catch {}
           }
         }
       }
 
-      const existingPivot = await databases.listDocuments(
+      const existingPivot = await tables.listRows(
         APPWRITE_DATABASE_ID,
         noteTagsCollection,
         [Query.equal('noteId', noteId), Query.limit(500)] as any
       );
-      const existingPairs = new Set(existingPivot.documents.map((p: any) => `${p.tagId || ''}::${p.tag || ''}`));
+      const existingPairs = new Set(existingPivot.rows.map((p: any) => `${p.tagId || ''}::${p.tag || ''}`));
       for (const tagName of unique) {
         const key = tagName.toLowerCase();
         const tagDoc = existingTagDocs[key];
@@ -798,21 +815,21 @@ export async function createNoteSecure(data: any) {
         const pairKey = `${tagId}::${tagName}`;
         
         try {
-          const res = await databases.listDocuments(
+          const res = await tables.listRows(
             APPWRITE_DATABASE_ID,
             tagsCollection,
             [Query.equal('userId', userId), Query.equal('name', tagName), Query.limit(1)] as any
           );
-          if (res.documents.length) {
-            const tDoc: any = res.documents[0];
+          if (res.rows.length) {
+            const tDoc: any = res.rows[0];
             const current = typeof tDoc.usageCount === 'number' && !isNaN(tDoc.usageCount) ? tDoc.usageCount : 0;
-            await databases.updateDocument(APPWRITE_DATABASE_ID, tagsCollection, tDoc.$id, { usageCount: current + 1 });
+            await tables.updateRow(APPWRITE_DATABASE_ID, tagsCollection, tDoc.$id, { usageCount: current + 1 });
           }
         } catch {}
 
         if (existingPairs.has(pairKey)) continue;
         try {
-          await databases.createDocument(
+          await tables.createRow(
             APPWRITE_DATABASE_ID,
             noteTagsCollection,
             ID.unique(),
@@ -832,19 +849,19 @@ export async function createNoteSecure(data: any) {
     tableId: APPWRITE_TABLE_ID_NOTES,
     getCurrentUser: async () => ({ $id: actor.$id }),
     createRow: async (databaseId, tableId, data, rowId, permissions) => {
-      return databases.createDocument(databaseId, tableId, rowId || ID.unique(), data as any, permissions) as any;
+      return tables.createRow(databaseId, tableId, rowId || ID.unique(), data as any, permissions) as any;
     },
     getNote: async (noteId) => {
-      const doc = await databases.getDocument(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_NOTES, noteId) as any;
+      const doc = await tables.getRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_NOTES, noteId) as any;
       try {
         const noteTagsCollection = APPWRITE_CONFIG.TABLES.NOTE.NOTE_TAGS || 'note_tags';
-        const pivot = await databases.listDocuments(
+        const pivot = await tables.listRows(
           APPWRITE_DATABASE_ID,
           noteTagsCollection,
           [Query.equal('noteId', noteId), Query.limit(200)] as any
         );
-        if (pivot.documents.length) {
-          const tags = Array.from(new Set(pivot.documents.map((p: any) => p.tag).filter(Boolean)));
+        if (pivot.rows.length) {
+          const tags = Array.from(new Set(pivot.rows.map((p: any) => p.tag).filter(Boolean)));
           (doc as any).tags = tags;
         }
       } catch {}
@@ -863,43 +880,114 @@ export async function createNoteSecure(data: any) {
   return JSON.parse(JSON.stringify(note));
 }
 
-async function verifyNotePermission(noteId: string, actorId: string, minLevel: 'viewer' | 'editor' | 'admin') {
-  const { databases } = createSystemClient();
-  const note = await databases.getDocument(
-    APPWRITE_CONFIG.DATABASES.NOTE,
-    APPWRITE_CONFIG.TABLES.NOTE.NOTES,
-    noteId
-  );
+/**
+ * Generic Modular Permission Checker Engine
+ * Handles multiple systems for securely carrying out actions.
+ * Tightly coupled to:
+ * - Create: Tied mathematically to current user (ownerId === actorId)
+ * - Update: Current user or collaborator with 'editor'/'admin' level from metadata setting
+ * - Delete: Current user or collaborator with 'admin' level from metadata setting
+ * - Read (Publicity): Checks metadata fields if publicity is enabled (isPublic is true)
+ */
+export async function verifyResourcePermissionSecure(params: {
+  databaseId?: string;
+  collectionId?: string;
+  documentId?: string;
+  actorId: string;
+  action: 'create' | 'read' | 'update' | 'delete';
+  ownerFields?: string[];
+  metadataField?: string;
+  data?: any;
+}) {
+  const { databaseId, collectionId, documentId, actorId, action, ownerFields = ['userId', 'ownerId'], metadataField = 'metadata', data } = params;
   
-  const ownerId = String(note.userId || '').trim();
-  if (ownerId && ownerId === actorId) {
-    return true; // Owner has all permissions
+  let doc = data;
+  if (!doc && databaseId && collectionId && documentId) {
+    const tables = createSystemTablesDB();
+    doc = await tables.getRow(databaseId, collectionId, documentId);
   }
 
-  let metadata: any = {};
+  if (!doc) {
+    return false;
+  }
+  
+  let isOwner = false;
+  for (const field of ownerFields) {
+    const val = String(doc[field] || '').trim();
+    if (val && val === actorId) {
+      isOwner = true;
+      break;
+    }
+  }
+
+  if (isOwner) {
+    return true;
+  }
+
+  if (action === 'create') {
+    // For create operations, if the user is not the owner (isOwner is false), they cannot create it.
+    // This mathematically ties the create operation strictly to the current user.
+    return false;
+  }
+
+  let meta: any = {};
   try {
-    metadata = JSON.parse(note.metadata || '{}');
+    const rawMeta = doc[metadataField];
+    meta = typeof rawMeta === 'string' ? JSON.parse(rawMeta) : rawMeta || {};
   } catch {}
 
-  const collaborators = metadata.collaborators || {};
-  const userRole = collaborators[actorId]; // 'viewer' | 'editor' | 'admin'
+  const collaborators = meta.collaborators || {};
+  const userRole = collaborators[actorId];
 
-  if (!userRole) return false;
+  if (action === 'read') {
+    const isPublic = doc.isPublic === true || String(doc.isPublic) === 'true' ||
+                     meta.isPublic === true || String(meta.isPublic) === 'true' ||
+                     meta.publicity === true || String(meta.publicity) === 'true';
+    if (isPublic) {
+      return true;
+    }
+    if (userRole) {
+      return ['viewer', 'editor', 'admin'].includes(userRole);
+    }
+    return false;
+  }
 
-  if (minLevel === 'viewer') {
-    return ['viewer', 'editor', 'admin'].includes(userRole);
+  if (action === 'update') {
+    if (userRole) {
+      return ['editor', 'admin'].includes(userRole);
+    }
+    return false;
   }
-  if (minLevel === 'editor') {
-    return ['editor', 'admin'].includes(userRole);
+
+  if (action === 'delete') {
+    if (userRole) {
+      return userRole === 'admin';
+    }
+    return false;
   }
-  if (minLevel === 'admin') {
-    return userRole === 'admin';
-  }
+
   return false;
 }
 
-export async function updateNoteSecure(noteId: string, data: any) {
-  const actor = await getActor();
+async function verifyNotePermission(noteId: string, actorId: string, minLevel: 'viewer' | 'editor' | 'admin') {
+  const minToLevelMap: Record<'viewer' | 'editor' | 'admin', 'read' | 'update' | 'delete'> = {
+    viewer: 'read',
+    editor: 'update',
+    admin: 'delete',
+  };
+  return verifyResourcePermissionSecure({
+    databaseId: APPWRITE_CONFIG.DATABASES.NOTE,
+    collectionId: APPWRITE_CONFIG.TABLES.NOTE.NOTES,
+    documentId: noteId,
+    actorId,
+    action: minToLevelMap[minLevel],
+    ownerFields: ['userId'],
+    metadataField: 'metadata',
+  });
+}
+
+export async function updateNoteSecure(noteId: string, data: any, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -909,7 +997,7 @@ export async function updateNoteSecure(noteId: string, data: any) {
     throw new Error('Forbidden: Insufficient permissions to update this note');
   }
 
-  const { databases } = createSystemClient();
+  const tables = createSystemTablesDB();
   const APPWRITE_DATABASE_ID = APPWRITE_CONFIG.DATABASES.NOTE;
   const APPWRITE_TABLE_ID_NOTES = APPWRITE_CONFIG.TABLES.NOTE.NOTES;
   const APPWRITE_TABLE_ID_TAGS = APPWRITE_CONFIG.TABLES.NOTE.TAGS;
@@ -929,7 +1017,7 @@ export async function updateNoteSecure(noteId: string, data: any) {
     permissions = getNotePermissions(actor.$id, !!data.isPublic);
   }
 
-  const doc = await databases.updateDocument(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_NOTES, noteId, updatedData, permissions) as any;
+  const doc = await tables.updateRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_NOTES, noteId, updatedData, permissions) as any;
 
   try {
     if (Array.isArray((data as any).tags)) {
@@ -942,12 +1030,12 @@ export async function updateNoteSecure(noteId: string, data: any) {
       const tagDocs: Record<string, any> = {};
       if (normalizedIncoming.length) {
         try {
-          const existingTagsRes = await databases.listDocuments(
+          const existingTagsRes = await tables.listRows(
             APPWRITE_DATABASE_ID,
             tagsCollection,
             [Query.equal('userId', actor.$id), Query.equal('nameLower', normalizedIncoming.map(t => t.toLowerCase())), Query.limit(normalizedIncoming.length)] as any
           );
-          for (const td of existingTagsRes.documents as any[]) {
+          for (const td of existingTagsRes.rows as any[]) {
             if (td.nameLower) tagDocs[td.nameLower] = td;
           }
         } catch (preErr) {
@@ -957,7 +1045,7 @@ export async function updateNoteSecure(noteId: string, data: any) {
           const key = tagName.toLowerCase();
           if (!tagDocs[key]) {
             try {
-              const created = await databases.createDocument(
+              const created = await tables.createRow(
                 APPWRITE_DATABASE_ID,
                 tagsCollection,
                 ID.unique(),
@@ -966,37 +1054,37 @@ export async function updateNoteSecure(noteId: string, data: any) {
               tagDocs[key] = created;
             } catch (createErr) {
               try {
-                const retry = await databases.listDocuments(
+                const retry = await tables.listRows(
                   APPWRITE_DATABASE_ID,
                   tagsCollection,
                   [Query.equal('userId', actor.$id), Query.equal('nameLower', key), Query.limit(1)] as any
                 );
-                if (retry.documents.length) tagDocs[key] = retry.documents[0];
+                if (retry.rows.length) tagDocs[key] = retry.rows[0];
               } catch {}
             }
           }
         }
       }
 
-      const existingPivot = await databases.listDocuments(
+      const existingPivot = await tables.listRows(
         APPWRITE_DATABASE_ID,
         noteTagsCollection,
         [Query.equal('noteId', noteId), Query.limit(500)] as any
       );
       const existingByTag: Record<string, any> = {};
       const existingPairs = new Set<string>();
-      for (const p of existingPivot.documents as any[]) {
+      for (const p of existingPivot.rows as any[]) {
         if (p.tag) existingByTag[p.tag] = p;
         if (p.tagId && p.tag) existingPairs.add(`${p.tagId}::${p.tag}`);
       }
 
-      for (const p of existingPivot.documents as any[]) {
+      for (const p of existingPivot.rows as any[]) {
         if (!p.tagId && p.tag) {
           const key = p.tag.toLowerCase();
           const tagDoc = tagDocs[key];
           if (tagDoc) {
             try {
-              await databases.updateDocument(
+              await tables.updateRow(
                 APPWRITE_DATABASE_ID,
                 noteTagsCollection,
                 p.$id,
@@ -1019,20 +1107,20 @@ export async function updateNoteSecure(noteId: string, data: any) {
         if (existingPairs.has(pairKey)) continue;
 
         try {
-          const res = await databases.listDocuments(
+          const res = await tables.listRows(
             APPWRITE_DATABASE_ID,
             APPWRITE_TABLE_ID_TAGS,
             [Query.equal('userId', actor.$id), Query.equal('name', tagName), Query.limit(1)] as any
           );
-          if (res.documents.length) {
-            const tDoc: any = res.documents[0];
+          if (res.rows.length) {
+            const tDoc: any = res.rows[0];
             const current = typeof tDoc.usageCount === 'number' && !isNaN(tDoc.usageCount) ? tDoc.usageCount : 0;
-            await databases.updateDocument(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tDoc.$id, { usageCount: current + 1 });
+            await tables.updateRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tDoc.$id, { usageCount: current + 1 });
           }
         } catch {}
 
         try {
-          await databases.createDocument(
+          await tables.createRow(
             APPWRITE_DATABASE_ID,
             noteTagsCollection,
             ID.unique(),
@@ -1047,20 +1135,20 @@ export async function updateNoteSecure(noteId: string, data: any) {
       for (const [tagName, pivotDoc] of Object.entries(existingByTag)) {
         if (!incomingSet.has(tagName)) {
           try {
-            const res = await databases.listDocuments(
+            const res = await tables.listRows(
               APPWRITE_DATABASE_ID,
               APPWRITE_TABLE_ID_TAGS,
               [Query.equal('userId', actor.$id), Query.equal('name', tagName), Query.limit(1)] as any
             );
-            if (res.documents.length) {
-              const tDoc: any = res.documents[0];
+            if (res.rows.length) {
+              const tDoc: any = res.rows[0];
               const current = typeof tDoc.usageCount === 'number' && !isNaN(tDoc.usageCount) ? tDoc.usageCount : 0;
-              await databases.updateDocument(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tDoc.$id, { usageCount: Math.max(0, current - 1) });
+              await tables.updateRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tDoc.$id, { usageCount: Math.max(0, current - 1) });
             }
           } catch {}
 
           try {
-            await databases.deleteDocument(
+            await tables.deleteRow(
               APPWRITE_DATABASE_ID,
               noteTagsCollection,
               (pivotDoc as any).$id
@@ -1078,8 +1166,8 @@ export async function updateNoteSecure(noteId: string, data: any) {
   return JSON.parse(JSON.stringify(doc));
 }
 
-export async function deleteNoteSecure(noteId: string) {
-  const actor = await getActor();
+export async function deleteNoteSecure(noteId: string, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1089,27 +1177,27 @@ export async function deleteNoteSecure(noteId: string) {
     throw new Error('Forbidden: Insufficient permissions to delete this note');
   }
 
-  const { databases } = createSystemClient();
+  const tables = createSystemTablesDB();
   const APPWRITE_DATABASE_ID = APPWRITE_CONFIG.DATABASES.NOTE;
   const APPWRITE_TABLE_ID_NOTES = APPWRITE_CONFIG.TABLES.NOTE.NOTES;
   const APPWRITE_TABLE_ID_COMMENTS = APPWRITE_CONFIG.TABLES.NOTE.COMMENTS;
 
   try {
     try {
-      const reactionsRes = await databases.listDocuments(
+      const reactionsRes = await tables.listRows(
         APPWRITE_DATABASE_ID,
         APPWRITE_CONFIG.TABLES.NOTE.REACTIONS,
         [Query.equal('targetId', noteId), Query.limit(1000)] as any
       );
       await Promise.all(
-        reactionsRes.documents.map((r: any) =>
-          databases.deleteDocument(APPWRITE_DATABASE_ID, APPWRITE_CONFIG.TABLES.NOTE.REACTIONS, r.$id)
+        reactionsRes.rows.map((r: any) =>
+          tables.deleteRow(APPWRITE_DATABASE_ID, APPWRITE_CONFIG.TABLES.NOTE.REACTIONS, r.$id)
         )
       );
     } catch {}
 
     try {
-      const mappingsRes = await databases.listDocuments(
+      const mappingsRes = await tables.listRows(
         APPWRITE_CONFIG.DATABASES.VAULT,
         'key_mapping',
         [
@@ -1119,43 +1207,43 @@ export async function deleteNoteSecure(noteId: string) {
         ] as any
       );
       await Promise.all(
-        (mappingsRes.documents as any[]).map((mapping) =>
-          databases.deleteDocument(APPWRITE_CONFIG.DATABASES.VAULT, 'key_mapping', mapping.$id)
+        (mappingsRes.rows as any[]).map((mapping) =>
+          tables.deleteRow(APPWRITE_CONFIG.DATABASES.VAULT, 'key_mapping', mapping.$id)
         )
       );
     } catch (err) {
       console.error('deleteNoteSecure key_mapping cleanup failed:', err);
     }
 
-    const commentsRes = await databases.listDocuments(
+    const commentsRes = await tables.listRows(
       APPWRITE_DATABASE_ID,
       APPWRITE_TABLE_ID_COMMENTS,
       [Query.equal('noteId', noteId), Query.limit(1000)] as any
     );
-    const commentIds = (commentsRes.documents as any[]).map((c) => c.$id).filter(Boolean);
+    const commentIds = (commentsRes.rows as any[]).map((c) => c.$id).filter(Boolean);
     if (commentIds.length) {
       try {
-        const reactionsRes = await databases.listDocuments(
+        const reactionsRes = await tables.listRows(
           APPWRITE_DATABASE_ID,
           APPWRITE_CONFIG.TABLES.NOTE.REACTIONS,
           [Query.equal('targetType', 'comment'), Query.equal('targetId', commentIds), Query.limit(1000)] as any
         );
         await Promise.all(
-          reactionsRes.documents.map((r: any) =>
-            databases.deleteDocument(APPWRITE_DATABASE_ID, APPWRITE_CONFIG.TABLES.NOTE.REACTIONS, r.$id)
+          reactionsRes.rows.map((r: any) =>
+            tables.deleteRow(APPWRITE_DATABASE_ID, APPWRITE_CONFIG.TABLES.NOTE.REACTIONS, r.$id)
           )
         );
       } catch {}
 
       await Promise.all(
-        commentIds.map((id) => databases.deleteDocument(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_COMMENTS, id))
+        commentIds.map((id) => tables.deleteRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_COMMENTS, id))
       );
     }
   } catch (err: any) {
     console.error('deleteNoteSecure cascade cleanup failed:', err);
   }
 
-  const result = await databases.deleteDocument(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_NOTES, noteId);
+  const result = await tables.deleteRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_NOTES, noteId);
   return JSON.parse(JSON.stringify(result));
 }
 
@@ -1164,44 +1252,42 @@ export async function deleteNoteSecure(noteId: string) {
 // ==========================================
 
 async function verifyProjectPermission(projectId: string, actorId: string, minLevel: 'viewer' | 'editor' | 'admin') {
-  const { databases } = createSystemClient();
-  const project = await databases.getDocument(
-    APPWRITE_CONFIG.DATABASES.CHAT,
-    'projects',
-    projectId
-  );
-  
-  const ownerId = String(project.ownerId || project.userId || '').trim();
-  if (ownerId && ownerId === actorId) {
-    return true; // Owner has full permissions
-  }
-
-  let metadata: any = {};
-  try {
-    metadata = JSON.parse(project.metadata || '{}');
-  } catch {}
-
-  const collaborators = metadata.collaborators || {};
-  const userRole = collaborators[actorId]; // 'viewer' | 'editor' | 'admin'
-
-  if (!userRole) return false;
-
-  if (minLevel === 'viewer') {
-    return ['viewer', 'editor', 'admin'].includes(userRole);
-  }
-  if (minLevel === 'editor') {
-    return ['editor', 'admin'].includes(userRole);
-  }
-  if (minLevel === 'admin') {
-    return userRole === 'admin';
-  }
-  return false;
+  const minToLevelMap: Record<'viewer' | 'editor' | 'admin', 'read' | 'update' | 'delete'> = {
+    viewer: 'read',
+    editor: 'update',
+    admin: 'delete',
+  };
+  return verifyResourcePermissionSecure({
+    databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
+    collectionId: 'projects',
+    documentId: projectId,
+    actorId,
+    action: minToLevelMap[minLevel],
+    ownerFields: ['ownerId', 'userId'],
+    metadataField: 'metadata',
+  });
 }
 
-export async function createProjectSecure(data: any) {
-  const actor = await getActor();
+export async function createProjectSecure(data: any, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
+  }
+
+  // Mathematically tie the create operation to the current user
+  if (!data) {
+    data = {};
+  }
+  data.ownerId = actor.$id;
+
+  const isCreateAllowed = await verifyResourcePermissionSecure({
+    actorId: actor.$id,
+    action: 'create',
+    ownerFields: ['ownerId'],
+    data,
+  });
+  if (!isCreateAllowed) {
+    throw new Error('Forbidden: Create operation must be mathematically tied to the current user');
   }
 
   const { databases } = createSystemClient();
@@ -1228,8 +1314,8 @@ export async function createProjectSecure(data: any) {
   return JSON.parse(JSON.stringify(project));
 }
 
-export async function updateProjectSecure(projectId: string, data: any, permissions?: string[]) {
-  const actor = await getActor();
+export async function updateProjectSecure(projectId: string, data: any, permissions?: string[], jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1256,8 +1342,8 @@ export async function updateProjectSecure(projectId: string, data: any, permissi
   return JSON.parse(JSON.stringify(project));
 }
 
-export async function deleteProjectSecure(projectId: string) {
-  const actor = await getActor();
+export async function deleteProjectSecure(projectId: string, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1294,8 +1380,8 @@ export async function deleteProjectSecure(projectId: string) {
   return JSON.parse(JSON.stringify(result));
 }
 
-export async function addProjectCollaboratorSecure(projectId: string, targetUserId: string, permissionLevel: string = 'viewer') {
-  const actor = await getActor();
+export async function addProjectCollaboratorSecure(projectId: string, targetUserId: string, permissionLevel: string = 'viewer', jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1389,8 +1475,8 @@ export async function addProjectCollaboratorSecure(projectId: string, targetUser
   return JSON.parse(JSON.stringify(objLink));
 }
 
-export async function removeProjectCollaboratorSecure(projectId: string, targetUserId: string) {
-  const actor = await getActor();
+export async function removeProjectCollaboratorSecure(projectId: string, targetUserId: string, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1457,49 +1543,124 @@ export async function removeProjectCollaboratorSecure(projectId: string, targetU
   return { success: true };
 }
 
+export async function addObjectToProjectSecure(
+  projectId: string,
+  entityKind: string,
+  entityId: string,
+  role?: string,
+  metadata?: any,
+  jwt?: string
+) {
+  const actor = await getActor(jwt);
+  if (!actor || !actor.$id) {
+    throw new Error('Unauthorized: Session expired or invalid');
+  }
+
+  const isAllowed = await verifyProjectPermission(projectId, actor.$id, 'editor');
+  if (!isAllowed) {
+    throw new Error('Forbidden: Insufficient permissions to manage objects in this project');
+  }
+
+  const { databases } = createSystemClient();
+  const now = new Date().toISOString();
+
+  const permissions = [
+    Permission.read(Role.user(actor.$id)),
+    Permission.update(Role.user(actor.$id)),
+    Permission.delete(Role.user(actor.$id)),
+  ];
+
+  const obj = await databases.createDocument(
+    APPWRITE_CONFIG.DATABASES.CHAT,
+    'project_objects',
+    ID.unique(),
+    {
+      projectId,
+      entityKind,
+      entityId,
+      role: role || 'member',
+      metadata: metadata ? (typeof metadata === 'string' ? metadata : JSON.stringify(metadata)) : null,
+      createdAt: now,
+      updatedAt: now,
+    },
+    permissions
+  );
+
+  return JSON.parse(JSON.stringify(obj));
+}
+
+export async function removeObjectFromProjectSecure(objectId: string, jwt?: string) {
+  const actor = await getActor(jwt);
+  if (!actor || !actor.$id) {
+    throw new Error('Unauthorized: Session expired or invalid');
+  }
+
+  const { databases } = createSystemClient();
+
+  const obj = await databases.getDocument(
+    APPWRITE_CONFIG.DATABASES.CHAT,
+    'project_objects',
+    objectId
+  );
+
+  const projectId = obj.projectId;
+  const isOwner = obj.$permissions?.some((p: string) => p.includes(`delete("user:${actor.$id}")`));
+  const isProjectAdmin = await verifyProjectPermission(projectId, actor.$id, 'admin').catch(() => false);
+
+  if (!isOwner && !isProjectAdmin) {
+    throw new Error('Forbidden: Insufficient permissions to remove this object from the project');
+  }
+
+  const result = await databases.deleteDocument(
+    APPWRITE_CONFIG.DATABASES.CHAT,
+    'project_objects',
+    objectId
+  );
+
+  return JSON.parse(JSON.stringify(result));
+}
+
 // ==========================================
 // FORM COLLABORATION & CRUD SECURE ACTIONS
 // ==========================================
 
 async function verifyFormPermission(formId: string, actorId: string, minLevel: 'viewer' | 'editor' | 'admin') {
-  const { databases } = createSystemClient();
-  const form = await databases.getDocument(
-    APPWRITE_CONFIG.DATABASES.FLOW,
-    APPWRITE_CONFIG.TABLES.FLOW.FORMS,
-    formId
-  );
-  
-  const ownerId = String(form.userId || '').trim();
-  if (ownerId && ownerId === actorId) {
-    return true; // Owner has all permissions
-  }
-
-  let settings: any = {};
-  try {
-    settings = JSON.parse(form.settings || '{}');
-  } catch {}
-
-  const collaborators = settings.collaborators || {};
-  const userRole = collaborators[actorId]; // 'viewer' | 'editor' | 'admin'
-
-  if (!userRole) return false;
-
-  if (minLevel === 'viewer') {
-    return ['viewer', 'editor', 'admin'].includes(userRole);
-  }
-  if (minLevel === 'editor') {
-    return ['editor', 'admin'].includes(userRole);
-  }
-  if (minLevel === 'admin') {
-    return userRole === 'admin';
-  }
-  return false;
+  const minToLevelMap: Record<'viewer' | 'editor' | 'admin', 'read' | 'update' | 'delete'> = {
+    viewer: 'read',
+    editor: 'update',
+    admin: 'delete',
+  };
+  return verifyResourcePermissionSecure({
+    databaseId: APPWRITE_CONFIG.DATABASES.FLOW,
+    collectionId: APPWRITE_CONFIG.TABLES.FLOW.FORMS,
+    documentId: formId,
+    actorId,
+    action: minToLevelMap[minLevel],
+    ownerFields: ['userId'],
+    metadataField: 'settings',
+  });
 }
 
-export async function createFormSecure(data: any) {
-  const actor = await getActor();
+export async function createFormSecure(data: any, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
+  }
+
+  // Mathematically tie the create operation to the current user
+  if (!data) {
+    data = {};
+  }
+  data.userId = actor.$id;
+
+  const isCreateAllowed = await verifyResourcePermissionSecure({
+    actorId: actor.$id,
+    action: 'create',
+    ownerFields: ['userId'],
+    data,
+  });
+  if (!isCreateAllowed) {
+    throw new Error('Forbidden: Create operation must be mathematically tied to the current user');
   }
 
   const { databases } = createSystemClient();
@@ -1525,8 +1686,8 @@ export async function createFormSecure(data: any) {
   return JSON.parse(JSON.stringify(form));
 }
 
-export async function updateFormSecure(formId: string, data: any) {
-  const actor = await getActor();
+export async function updateFormSecure(formId: string, data: any, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1579,8 +1740,8 @@ export async function updateFormSecure(formId: string, data: any) {
   return JSON.parse(JSON.stringify(updatedForm));
 }
 
-export async function deleteFormSecure(formId: string) {
-  const actor = await getActor();
+export async function deleteFormSecure(formId: string, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1600,8 +1761,8 @@ export async function deleteFormSecure(formId: string) {
   return JSON.parse(JSON.stringify(result));
 }
 
-export async function addFormCollaboratorSecure(formId: string, targetUserId: string, permissionLevel: string = 'viewer') {
-  const actor = await getActor();
+export async function addFormCollaboratorSecure(formId: string, targetUserId: string, permissionLevel: string = 'viewer', jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1644,8 +1805,8 @@ export async function addFormCollaboratorSecure(formId: string, targetUserId: st
   return JSON.parse(JSON.stringify(updatedForm));
 }
 
-export async function removeFormCollaboratorSecure(formId: string, targetUserId: string) {
-  const actor = await getActor();
+export async function removeFormCollaboratorSecure(formId: string, targetUserId: string, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1737,10 +1898,26 @@ async function verifyEventPermission(eventId: string, actorId: string, minLevel:
   return false;
 }
 
-export async function createEventSecure(data: any) {
-  const actor = await getActor();
+export async function createEventSecure(data: any, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
+  }
+
+  // Mathematically tie the create operation to the current user
+  if (!data) {
+    data = {};
+  }
+  data.userId = actor.$id;
+
+  const isCreateAllowed = await verifyResourcePermissionSecure({
+    actorId: actor.$id,
+    action: 'create',
+    ownerFields: ['userId'],
+    data,
+  });
+  if (!isCreateAllowed) {
+    throw new Error('Forbidden: Create operation must be mathematically tied to the current user');
   }
 
   const { databases } = createSystemClient();
@@ -1764,8 +1941,8 @@ export async function createEventSecure(data: any) {
   return JSON.parse(JSON.stringify(event));
 }
 
-export async function updateEventSecure(eventId: string, data: any) {
-  const actor = await getActor();
+export async function updateEventSecure(eventId: string, data: any, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1817,8 +1994,8 @@ export async function updateEventSecure(eventId: string, data: any) {
   return JSON.parse(JSON.stringify(updatedEvent));
 }
 
-export async function deleteEventSecure(eventId: string) {
-  const actor = await getActor();
+export async function deleteEventSecure(eventId: string, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1855,8 +2032,8 @@ export async function deleteEventSecure(eventId: string) {
   return JSON.parse(JSON.stringify(result));
 }
 
-export async function addEventManagerSecure(eventId: string, targetUserId: string, permissionLevel: string = 'viewer') {
-  const actor = await getActor();
+export async function addEventManagerSecure(eventId: string, targetUserId: string, permissionLevel: string = 'viewer', jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1927,8 +2104,8 @@ export async function addEventManagerSecure(eventId: string, targetUserId: strin
   return JSON.parse(JSON.stringify(guestDoc));
 }
 
-export async function removeEventManagerSecure(eventId: string, targetUserId: string) {
-  const actor = await getActor();
+export async function removeEventManagerSecure(eventId: string, targetUserId: string, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -1990,8 +2167,8 @@ export async function removeEventManagerSecure(eventId: string, targetUserId: st
 // CALLS & HUDDLES COHOST SECURE ACTIONS
 // ==========================================
 
-export async function addCallCohostSecureAction(callId: string, cohostId: string, allowEndCall: boolean = false) {
-  const actor = await getActor();
+export async function addCallCohostSecureAction(callId: string, cohostId: string, allowEndCall: boolean = false, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -2041,8 +2218,8 @@ export async function addCallCohostSecureAction(callId: string, cohostId: string
   return JSON.parse(JSON.stringify(updatedCall));
 }
 
-export async function endCallSecureAction(callId: string) {
-  const actor = await getActor();
+export async function endCallSecureAction(callId: string, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
@@ -2082,8 +2259,8 @@ export async function endCallSecureAction(callId: string) {
   return JSON.parse(JSON.stringify(result));
 }
 
-export async function updateCallMetadataSecureAction(callId: string, extraMetadata: any) {
-  const actor = await getActor();
+export async function updateCallMetadataSecureAction(callId: string, extraMetadata: any, jwt?: string) {
+  const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
     throw new Error('Unauthorized: Session expired or invalid');
   }

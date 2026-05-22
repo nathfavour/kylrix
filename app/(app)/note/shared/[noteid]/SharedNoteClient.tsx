@@ -26,9 +26,9 @@ import {
   realtime,
   APPWRITE_DATABASE_ID,
   APPWRITE_TABLE_ID_NOTES,
-  isNoteEditableByAnyone
+  isNoteEditableByAnyone,
+  createNote
 } from '@/lib/appwrite';
-import { createNoteSecure as createNote } from '@/lib/actions/secure-ops';
 import { useToast } from '@/components/ui/Toast';
 import {
   Box,

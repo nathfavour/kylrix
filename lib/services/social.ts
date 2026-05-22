@@ -671,18 +671,33 @@ export const SocialService = {
                     // T3-3 (part of): Comment add mint
                     if (type === 'reply') {
                         try {
-                            const { runTokenOperationSecure } = await import('@/lib/actions/secure-ops');
-                            await runTokenOperationSecure({
-                                action: 'mint_activity',
-                                userId: creatorId,
-                                idempotencyKey: `mint:comment_add:${moment.$id}`,
-                                activityType: 'comment_add',
-                                uniqueActors: 1,
-                                trustScore: 70,
-                                sourceType: 'comment_add',
-                                sourceId: moment.$id,
-                                metadata: { sourceId },
-                            });
+                            if (typeof window !== 'undefined') {
+                                const { runTokenOperation } = await import('@/lib/actions/client-ops');
+                                await runTokenOperation({
+                                    action: 'mint_activity',
+                                    userId: creatorId,
+                                    idempotencyKey: `mint:comment_add:${moment.$id}`,
+                                    activityType: 'comment_add',
+                                    uniqueActors: 1,
+                                    trustScore: 70,
+                                    sourceType: 'comment_add',
+                                    sourceId: moment.$id,
+                                    metadata: { sourceId },
+                                });
+                            } else {
+                                const { runTokenOperationSecure } = await import('@/lib/actions/secure-ops');
+                                await runTokenOperationSecure({
+                                    action: 'mint_activity',
+                                    userId: creatorId,
+                                    idempotencyKey: `mint:comment_add:${moment.$id}`,
+                                    activityType: 'comment_add',
+                                    uniqueActors: 1,
+                                    trustScore: 70,
+                                    sourceType: 'comment_add',
+                                    sourceId: moment.$id,
+                                    metadata: { sourceId },
+                                });
+                            }
                         } catch (err) {
                             console.warn('[SocialService] Failed to trigger comment_add mint:', err);
                         }

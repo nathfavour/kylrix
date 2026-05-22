@@ -30,7 +30,7 @@ import { ShareNoteDrawer } from '../overlays/ShareNoteDrawer';
 import { DeleteNoteDrawer } from '../overlays/DeleteNoteDrawer';
 
 import { toggleNoteVisibility, rotatePublicNoteLink, createTaskFromNote, getShareableUrl, getCurrentPublicNoteShareUrl, getNotePublicState } from '@/lib/appwrite';
-import { createNoteSecure as createNote, updateNoteSecure as updateNote } from '@/lib/actions/secure-ops';
+import { createNote, updateNote } from '@/lib/actions/client-ops';
 import { useToast } from './Toast';
 import { useSudo } from '@/context/SudoContext';
 import { useProUpgrade } from '@/context/ProUpgradeContext';
