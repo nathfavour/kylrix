@@ -325,7 +325,7 @@ export function NewTagDrawer() {
             </Typography>
             <Grid container spacing={1.5} sx={{ mb: 1 }}>
               {predefinedColors.map((color) => (
-                <Grid item key={color}>
+                <Grid size="auto" key={color}>
                   <Tooltip title={color} arrow>
                     <Box
                       onClick={() => setFormData({ ...formData, color })}
