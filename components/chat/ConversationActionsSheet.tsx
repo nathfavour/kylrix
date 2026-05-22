@@ -185,7 +185,7 @@ export default function ConversationActionsSheet({
   const groupAvatarSrc = currentConversation?.avatarUrl || undefined;
   const inviteLink = useMemo(() => {
     if (!currentConversation?.$id || typeof window === 'undefined') return '';
-    return `${window.location.origin}/hangouts/invite/${currentConversation.$id}`;
+    return `${window.location.origin}/connect/hangouts/invite/${currentConversation.$id}`;
   }, [currentConversation?.$id]);
   const isDetailsDirty = useMemo(() => {
     const currentName = String(currentConversation?.name || '').trim();

@@ -49,7 +49,7 @@ export default function HangoutInvitePage() {
 
   const inviteUrl = useMemo(() => {
     if (!conversationId || typeof window === 'undefined') return '';
-    return `${window.location.origin}/hangouts/invite/${conversationId}`;
+    return `${window.location.origin}/connect/hangouts/invite/${conversationId}`;
   }, [conversationId]);
 
   useEffect(() => {
