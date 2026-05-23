@@ -2228,29 +2228,48 @@ export async function addAttachmentToNote(noteId: string, file: File, userId?: s
   const existingMetas = normalizeNoteAttachmentsField(note);
   await enforceAttachmentPlanLimit(user.$id, existingMetas.length);
 
-  // Enforce per-file size limit via plan policy
+  // 1. Client-side Framework Gating & Compression
+  const { validateFileUploadLimit, compressImageToWebP, getFileTypeCategory } = await import('@/lib/storage/framework');
+  
+  // Strict size limit check BEFORE compression
   try {
-    await enforceAttachmentPlanLimit(user.$id, existingMetas.length, file.size);
+    validateFileUploadLimit(file, 'notes_attachments');
+  } catch (gateErr) {
+    throw gateErr;
+  }
+
+  let activeFile = file;
+  if (getFileTypeCategory(file.type, file.name) === 'image') {
+    try {
+      activeFile = await compressImageToWebP(file);
+    } catch (compressErr) {
+      console.warn('[attachments] Client-side image compression failed, falling back to original:', compressErr);
+    }
+  }
+
+  // Enforce per-file size limit via plan policy on the active file
+  try {
+    await enforceAttachmentPlanLimit(user.$id, existingMetas.length, activeFile.size);
   } catch (e: any) {
     if (e?.code === 'ATTACHMENT_SIZE_LIMIT') throw e;
   }
 
-  // MIME validation + filename sanitization
+  // MIME validation + filename sanitization on active file
   try {
-    validateAttachmentMime((file as any).type);
+    validateAttachmentMime((activeFile as any).type);
   } catch (mimeErr: any) {
     throw mimeErr; // bubble with code UNSUPPORTED_MIME_TYPE
   }
-  const sanitizedName = sanitizeAttachmentFilename((file as any).name || 'attachment');
+  const sanitizedName = sanitizeAttachmentFilename((activeFile as any).name || 'attachment');
 
   // Upload file
   let uploaded: any;
   try {
-    uploaded = await uploadNoteAttachment(file, user.$id);
+    uploaded = await uploadNoteAttachment(activeFile, user.$id);
   } catch (uploadErr: any) {
     console.error('[attachments] uploadNoteAttachment failed', {
       noteId,
-      fileName: (file as any)?.name,
+      fileName: (activeFile as any)?.name,
       message: uploadErr?.message,
       code: uploadErr?.code
     });
@@ -2261,8 +2280,8 @@ export async function addAttachmentToNote(noteId: string, file: File, userId?: s
   const meta: EmbeddedAttachmentMeta = {
     id: uploaded.$id || uploaded.id,
     name: sanitizedName || uploaded.name || 'attachment',
-    size: uploaded.sizeOriginal || (file as any).size || 0,
-    mime: uploaded.mimeType || (file as any).type || null,
+    size: uploaded.sizeOriginal || (activeFile as any).size || 0,
+    mime: uploaded.mimeType || (activeFile as any).type || null,
     createdAt: new Date().toISOString(),
   };
 

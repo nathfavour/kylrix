@@ -20,12 +20,25 @@ export async function secureUploadFile(formData: FormData, jwt?: string) {
   const file = formData.get('file') as File;
   const bucketId = formData.get('bucketId') as string;
   const fileId = (formData.get('fileId') as string) || ID.unique();
-
   if (!file || !bucketId) {
     throw new Error('Bad Request: Missing file or bucketId');
   }
 
-  // 1. Enforce Pro subscription for restricted buckets
+  // 1. Enforce strict server-side bucket size limits and 10MB upward guideline ceiling
+  const SERVER_BUCKET_LIMITS: Record<string, number> = {
+    profile_pictures: 1 * 1024 * 1024,   // 1 MB
+    messages: 1 * 1024 * 1024,           // 1 MB
+    notes_attachments: 5 * 1024 * 1024,   // 5 MB
+    default: 10 * 1024 * 1024,           // 10 MB Guideline ceiling
+  };
+
+  const currentLimit = SERVER_BUCKET_LIMITS[bucketId] || SERVER_BUCKET_LIMITS.default;
+  if (file.size > currentLimit) {
+    const limitMb = currentLimit / (1024 * 1024);
+    throw new Error(`Forbidden: File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds the maximum allowed threshold of ${limitMb}MB for this bucket.`);
+  }
+
+  // 2. Enforce Pro subscription for restricted buckets
   const allowedFreeBuckets = [
     APPWRITE_CONFIG.BUCKETS.PROFILE_PICTURES,
     // Using string literal 'voice' as it's defined in lib/services/storage.ts
