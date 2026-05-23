@@ -34,13 +34,13 @@ tableIdMap["67ff05a9000296822396"]["tags"] = "67ff06280034908cf08a";
 tableIdMap["67ff05a9000296822396"]["Comments"] = "comments";
 tableIdMap["67ff05a9000296822396"]["Extensions"] = "extensions";
 tableIdMap["67ff05a9000296822396"]["Reactions"] = "reactions";
-tableIdMap["67ff05a9000296822396"]["Collaborators"] = "collaborators";
 tableIdMap["67ff05a9000296822396"]["ActivityLog"] = "activityLog";
 tableIdMap["67ff05a9000296822396"]["Settings"] = "settings";
 tableIdMap["67ff05a9000296822396"]["walletMap"] = "walletMap";
 tableIdMap["67ff05a9000296822396"]["note_tags"] = "note_tags";
-tableIdMap["67ff05a9000296822396"]["note_revisions"] = "note_revisions";
 tableIdMap["67ff05a9000296822396"]["subscriptions"] = "subscriptions";
+tableIdMap["67ff05a9000296822396"]["billing_transactions"] = "billing_transactions";
+tableIdMap["67ff05a9000296822396"]["billing_webhook_logs"] = "billing_webhook_logs";
 tableIdMap["passwordManagerDb"] = Object.create(null);
 tableIdMap["passwordManagerDb"]["Security Logs"] = "securityLogs";
 tableIdMap["passwordManagerDb"]["Credentials"] = "credentials";
@@ -69,7 +69,6 @@ tableIdMap["chat"]["Unorganic Emails"] = "unorganic_emails";
 tableIdMap["chat"]["kylrix_token_ledger"] = "kylrix_token_ledger";
 tableIdMap["chat"]["engagement_views"] = "engagement_views";
 tableIdMap["chat"]["engagement_view_rollups"] = "engagement_view_rollups";
-tableIdMap["chat"]["kylrix_signals"] = "kylrix_signals";
 tableIdMap["chat"]["account_ledger"] = "account_ledger";
 tableIdMap["chat"]["system_pulse"] = "system_pulse";
 tableIdMap["chat"]["projects"] = "projects";
@@ -84,6 +83,8 @@ tableIdMap["whisperrflow"]["tasks"] = "tasks";
 tableIdMap["whisperrflow"]["forms"] = "forms";
 tableIdMap["whisperrflow"]["formSubmissions"] = "formSubmissions";
 tableIdMap["whisperrflow"]["agents"] = "agents";
+tableIdMap["whisperrflow"]["Collaborators"] = "Collaborators";
+tableIdMap["whisperrflow"]["user_keys"] = "user_keys";
 
 const tablesWithRelationships = new Set<string>();
 
@@ -101,7 +102,9 @@ const permissionBuilder: PermissionBuilder = {
   read: (role) => Permission.read(role),
   write: (role) => Permission.write(role),
   create: (role) => Permission.create(role),
-  update: (role) => delete: (role) => };
+  update: (role) => Permission.update(role),
+  delete: (role) => Permission.delete(role),
+};
 
 const resolvePermissions = (callback?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]): string[] | undefined =>
   callback?.(permissionBuilder, roleBuilder);
