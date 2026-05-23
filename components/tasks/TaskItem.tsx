@@ -85,7 +85,15 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
 
   const handleDelete = () => {
     handleMenuClose();
-    deleteTask(task.id);
+    openUnified('delete-confirm', {
+      title: `Delete goal: "${task.title}"?`,
+      description: 'This will permanently remove this goal and all its subtasks, comments, and history from your domain.',
+      resourceName: 'this goal',
+      confirmLabel: 'Delete Goal',
+      onConfirm: async () => {
+        await deleteTask(task.id);
+      }
+    });
   };
 
   const handleArchive = () => {
