@@ -292,24 +292,14 @@ export const UsersService = {
 
     async searchUsers(query: string, options?: { requirePublicKey?: boolean }) {
         try {
-            const { Query } = await import("appwrite");
-            const queries = [
-                Query.or([
-                    Query.startsWith('username', query.toLowerCase()),
-                    Query.startsWith('displayName', query)]),
-                Query.limit(20)
-            ];
+            const { searchGlobalUsersSecure } = await import('@/lib/actions/secure-ops');
+            const results = await searchGlobalUsersSecure(query);
             
             if (options?.requirePublicKey) {
-                queries.push(Query.notEqual('publicKey', ''));
+                return results.filter((u: any) => u.publicKey && u.publicKey.length > 0);
             }
             
-            const res = await (tablesDB as any).listRows({
-                databaseId: DATABASE_ID,
-                tableId: TABLE_ID,
-                queries
-            });
-            return res.rows || [];
+            return results;
         } catch (error) {
             console.warn('[UsersService] Search failed:', error);
             return [];
@@ -318,16 +308,8 @@ export const UsersService = {
 
     async getProfile(username: string) {
         try {
-            const { Query } = await import("appwrite");
-            const res = await (tablesDB as any).listRows({
-                databaseId: DATABASE_ID,
-                tableId: TABLE_ID,
-                queries: [
-                    Query.equal('username', username.toLowerCase()),
-                    Query.limit(1)
-                ]
-            });
-            return res.rows?.[0] || null;
+            const { getProfileByUsernameSecure } = await import('@/lib/actions/secure-ops');
+            return await getProfileByUsernameSecure(username);
         } catch (error) {
             console.warn('[UsersService] Get profile by username failed:', error);
             return null;

@@ -122,10 +122,10 @@ export default function GlobalSearch() {
       const { searchGlobalUsersSecure } = await import('@/lib/actions/secure-ops');
       const globalUsers = await searchGlobalUsersSecure(term);
       const peopleResults = globalUsers.map((u: any) => ({
-        id: u.username || u.userId || u.id,
+        id: u.username || u.$id,
         type: 'user' as const,
-        title: u.title,
-        excerpt: u.subtitle,
+        title: u.displayName || u.username,
+        excerpt: `@${u.username}`,
         avatar: u.avatar,
         publicKey: u.publicKey
       }));

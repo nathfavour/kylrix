@@ -106,6 +106,14 @@ function parseTablesDBDeleteArgs(args: any[]) {
     return { databaseId, tableId, rowId };
 }
 
+function parseTablesDBListArgs(args: any[]) {
+    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && 'databaseId' in args[0]) {
+        return args[0];
+    }
+    const [databaseId, tableId, queries] = args;
+    return { databaseId, tableId, queries };
+}
+
 export const tablesDB = new Proxy(originalTablesDB, {
     get(target: any, prop: string | symbol, receiver: any) {
         if (prop === 'createRow') {
@@ -115,37 +123,36 @@ export const tablesDB = new Proxy(originalTablesDB, {
                 if (rowId) {
                     payload.$id = rowId;
                 }
-                if (typeof window !== 'undefined') {
-                    const { createRow } = await import('@/lib/actions/client-ops');
-                    return await createRow(databaseId, tableId, payload, permissions);
-                } else {
-                    const { createRowSecure } = await import('@/lib/actions/secure-ops');
-                    return await createRowSecure(databaseId, tableId, payload, permissions);
-                }
+                const { createRowSecure } = await import('@/lib/actions/secure-ops');
+                return await createRowSecure(databaseId, tableId, payload, permissions);
             };
         }
         if (prop === 'updateRow') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, rowId, data, permissions } = parseTablesDBArgs(args);
-                if (typeof window !== 'undefined') {
-                    const { updateRow } = await import('@/lib/actions/client-ops');
-                    return await updateRow(databaseId, tableId, rowId, data, permissions);
-                } else {
-                    const { updateRowSecure } = await import('@/lib/actions/secure-ops');
-                    return await updateRowSecure(databaseId, tableId, rowId, data, permissions);
-                }
+                const { updateRowSecure } = await import('@/lib/actions/secure-ops');
+                return await updateRowSecure(databaseId, tableId, rowId, data, permissions);
             };
         }
         if (prop === 'deleteRow') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, rowId } = parseTablesDBDeleteArgs(args);
-                if (typeof window !== 'undefined') {
-                    const { deleteRow } = await import('@/lib/actions/client-ops');
-                    return await deleteRow(databaseId, tableId, rowId);
-                } else {
-                    const { deleteRowSecure } = await import('@/lib/actions/secure-ops');
-                    return await deleteRowSecure(databaseId, tableId, rowId);
-                }
+                const { deleteRowSecure } = await import('@/lib/actions/secure-ops');
+                return await deleteRowSecure(databaseId, tableId, rowId);
+            };
+        }
+        if (prop === 'listRows') {
+            return async (...args: any[]) => {
+                const { databaseId, tableId, queries } = parseTablesDBListArgs(args);
+                const { listRowsSecure } = await import('@/lib/actions/secure-ops');
+                return await listRowsSecure(databaseId, tableId, queries);
+            };
+        }
+        if (prop === 'getRow') {
+            return async (...args: any[]) => {
+                const { databaseId, tableId, rowId } = parseTablesDBDeleteArgs(args);
+                const { getRowSecure } = await import('@/lib/actions/secure-ops');
+                return await getRowSecure(databaseId, tableId, rowId);
             };
         }
         const val = Reflect.get(target, prop, receiver);

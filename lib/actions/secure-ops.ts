@@ -3101,21 +3101,11 @@ export async function searchGlobalUsersSecure(query: string, limit = 10) {
           Query.startsWith('username', cleaned.toLowerCase()),
           Query.startsWith('displayName', cleaned)
         ]),
-        Query.limit(limit),
-        Query.select(['$id', 'userId', 'username', 'displayName', 'bio', 'avatar', 'walletAddress', 'publicKey'])
+        Query.limit(limit)
       ] as any,
     });
 
-    return JSON.parse(JSON.stringify(res.rows.map(doc => ({
-      id: doc.username || doc.userId || doc.$id, // Use username as ID for cleaner routing
-      type: 'user' as const,
-      title: doc.displayName || doc.username,
-      subtitle: `@${doc.username}`,
-      avatar: doc.avatar,
-      username: doc.username,
-      userId: doc.userId || doc.$id,
-      publicKey: doc.publicKey || null,
-    }))));
+    return JSON.parse(JSON.stringify(res.rows));
   } catch (error: any) {
     console.warn('[searchGlobalUsersSecure] Search failed:', error?.message);
     return [];
@@ -3140,23 +3130,40 @@ export async function getProfileByUsernameSecure(username: string) {
       ] as any,
     });
 
-    const doc = res.rows[0];
-    if (!doc) return null;
-
-    return JSON.parse(JSON.stringify({
-      $id: doc.$id,
-      userId: doc.userId || doc.$id,
-      username: doc.username,
-      displayName: doc.displayName,
-      bio: doc.bio,
-      avatar: doc.avatar,
-      publicKey: doc.publicKey,
-      tier: doc.tier,
-      updatedAt: doc.updatedAt || doc.$updatedAt,
-    }));
+    return JSON.parse(JSON.stringify(res.rows[0] || null));
   } catch (error: any) {
     console.warn('[getProfileByUsernameSecure] Failed:', error?.message);
     return null;
+  }
+}
+
+export async function listRowsSecure(databaseId: string, tableId: string, queries: string[] = []) {
+  const tables = createSystemTablesDB();
+  try {
+    const res = await tables.listRows({
+      databaseId,
+      tableId,
+      queries: queries as any,
+    });
+    return JSON.parse(JSON.stringify(res));
+  } catch (error: any) {
+    console.error('[listRowsSecure] Failed:', error?.message);
+    throw error;
+  }
+}
+
+export async function getRowSecure(databaseId: string, tableId: string, rowId: string) {
+  const tables = createSystemTablesDB();
+  try {
+    const res = await tables.getRow({
+      databaseId,
+      tableId,
+      rowId,
+    });
+    return JSON.parse(JSON.stringify(res));
+  } catch (error: any) {
+    console.error('[getRowSecure] Failed:', error?.message);
+    throw error;
   }
 }
 

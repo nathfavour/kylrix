@@ -50,11 +50,13 @@ export default function EditUsernameModal({
     setError(null);
 
     try {
+      const actor = await account.get();
+      const userId = actor.$id;
+
       // 1. Update the account name
       await account.updateName(newName.trim());
       
       // 2. Update the username and last_username_edit timestamp in prefs
-      // This allows all apps in the ecosystem to resolve the username instantly via account.get()
       const currentPrefs = await account.getPrefs();
       await account.updatePrefs({
         ...currentPrefs,
@@ -62,9 +64,17 @@ export default function EditUsernameModal({
         last_username_edit: new Date().toISOString(),
       });
 
+      // 3. Update the profile row directly in the database
+      const { UsersService } = await import('@/lib/services/users');
+      await UsersService.updateProfile(userId, {
+        username: newName.trim().toLowerCase(),
+        displayName: newName.trim(),
+      });
+
+      // 4. Record the event for audit/notifications
       await AppwriteService.recordProfileEvent({
         type: 'username_change',
-        userId: (await account.get()).$id,
+        userId: userId,
         newUsername: newName.trim().toLowerCase(),
         profilePatch: {
           username: newName.trim().toLowerCase(),
