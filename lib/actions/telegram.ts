@@ -9,7 +9,7 @@ import { Permission, Role } from 'node-appwrite';
  * Stage 1: Initial Connect
  * Generates a pairing code, creates a transient connection row, and returns the deep link.
  */
-export async function initializeTelegramConnection(jwt?: string) {
+export async function initializeTelegramConnection(jwt?: string, forceRegenerate = false) {
   try {
     const { account } = await createServerClient(jwt);
     const actor = await account.get();
@@ -36,9 +36,26 @@ export async function initializeTelegramConnection(jwt?: string) {
       // Document doesn't exist, which is fine
     }
 
+    if (!forceRegenerate && existingDoc && !existingDoc.is_verified && existingDoc.pair_code) {
+      const updatedAtTime = new Date(existingDoc.$updatedAt).getTime();
+      const nowTime = Date.now();
+      const threeMinutesInMs = 3 * 60 * 1000;
+      if (nowTime - updatedAtTime < threeMinutesInMs) {
+        const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'KylrixBot';
+        const deepLink = `https://t.me/${botUsername}?start=${userId}_${existingDoc.pair_code}`;
+        return {
+          success: true,
+          pairCode: existingDoc.pair_code,
+          deepLink,
+          createdAt: existingDoc.$updatedAt,
+        };
+      }
+    }
+
+    let updatedDoc;
     if (existingDoc) {
       // Overwrite/update if it exists, resetting pairing state
-      await databases.updateDocument(
+      updatedDoc = await databases.updateDocument(
         APPWRITE_CONFIG.DATABASES.CONNECT,
         APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
         userId,
@@ -52,7 +69,7 @@ export async function initializeTelegramConnection(jwt?: string) {
     } else {
       // Create a new document with the document ID explicitly set to the user ID.
       // Set access control permissions: only read and delete for the resource owner.
-      await databases.createDocument(
+      updatedDoc = await databases.createDocument(
         APPWRITE_CONFIG.DATABASES.CONNECT,
         APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
         userId,
@@ -72,6 +89,7 @@ export async function initializeTelegramConnection(jwt?: string) {
       success: true,
       pairCode,
       deepLink,
+      createdAt: updatedDoc.$updatedAt || updatedDoc.$createdAt || new Date().toISOString(),
     };
   } catch (error: any) {
     console.error('[telegram] Failed to initialize connection:', error);

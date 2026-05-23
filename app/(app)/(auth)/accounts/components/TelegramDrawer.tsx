@@ -31,11 +31,15 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
   const [verifiedUsername, setVerifiedUsername] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
+  // Live timer states
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<string>('03:00');
+
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const jwtRef = useRef<string | null>(null);
 
-  const getOrUpdateJWT = async () => {
+  const getOrUpdateJWT = React.useCallback(async () => {
     if (jwtRef.current) return jwtRef.current;
     try {
       const { account } = await import('@/lib/appwrite/client');
@@ -46,16 +50,16 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
       console.error('Failed to create JWT:', err);
       return undefined;
     }
-  };
+  }, []);
 
-  const stopPolling = () => {
+  const stopPolling = React.useCallback(() => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
-  };
+  }, []);
 
-  const startPolling = () => {
+  const startPolling = React.useCallback(() => {
     stopPolling();
     pollingRef.current = setInterval(async () => {
       const jwt = await getOrUpdateJWT();
@@ -70,21 +74,24 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
         }, 2000);
       }
     }, 3000);
-  };
+  }, [getOrUpdateJWT, stopPolling, onSuccess, onClose]);
 
-  const handleInitialize = async () => {
+  const handleInitialize = React.useCallback(async (force = false) => {
     setLoading(true);
     setError(null);
     setPairCode(null);
     setDeepLink(null);
     setVerifiedUsername(null);
+    setCreatedAt(null);
+    setTimeLeft('03:00');
 
     try {
       const jwt = await getOrUpdateJWT();
-      const res = await initializeTelegramConnection(jwt);
+      const res = await initializeTelegramConnection(jwt, force);
       if (res.success && res.pairCode && res.deepLink) {
         setPairCode(res.pairCode);
         setDeepLink(res.deepLink);
+        setCreatedAt(res.createdAt || new Date().toISOString());
         startPolling();
       } else {
         setError(res.error || 'Failed to start verification.');
@@ -94,7 +101,37 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
     } finally {
       setLoading(false);
     }
-  };
+  }, [getOrUpdateJWT, startPolling]);
+
+  // Live Expiration Timer Countdown
+  useEffect(() => {
+    if (!createdAt || !pairCode || verifiedUsername) {
+      setTimeLeft('03:00');
+      return;
+    }
+
+    const updateTimer = () => {
+      const createdTime = new Date(createdAt).getTime();
+      const now = Date.now();
+      const threeMinutesInMs = 3 * 60 * 1000;
+      const totalTimeLeft = Math.max(0, threeMinutesInMs - (now - createdTime));
+      
+      if (totalTimeLeft <= 0) {
+        clearInterval(timer);
+        setTimeLeft('Expired');
+        handleInitialize(true);
+      } else {
+        const minutes = Math.floor(totalTimeLeft / 1000 / 60);
+        const seconds = Math.floor((totalTimeLeft / 1000) % 60);
+        setTimeLeft(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+      }
+    };
+
+    updateTimer(); // Initial call
+    const timer = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(timer);
+  }, [createdAt, pairCode, verifiedUsername, handleInitialize]);
 
   // Initialize pairing code on mount
   useEffect(() => {
@@ -104,7 +141,7 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
     return () => {
       stopPolling();
     };
-  }, [open]);
+  }, [open, handleInitialize, stopPolling]);
 
   const handleManualCheck = async () => {
     setIsVerifying(true);
@@ -290,9 +327,23 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
                     <Typography sx={{ fontFamily: 'monospace', fontSize: '1.5rem', fontWeight: 700, letterSpacing: '0.15em', color: '#6366F1', pl: 1 }}>
                       {pairCode}
                     </Typography>
-                    <IconButton onClick={handleCopyCode} sx={{ color: 'rgba(255, 255, 255, 0.5)', '&:hover': { color: 'white' } }}>
-                      {copied ? <Typography sx={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 600 }}>Copied</Typography> : <Copy size={16} />}
-                    </IconButton>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                      <Typography sx={{ 
+                          fontSize: '0.8rem', 
+                          fontWeight: 700, 
+                          color: timeLeft === 'Expired' ? '#EF4444' : (timeLeft.startsWith('00:') ? '#F59E0B' : '#10B981'),
+                          bgcolor: 'rgba(255, 255, 255, 0.02)',
+                          px: 1.25,
+                          py: 0.5,
+                          borderRadius: '6px',
+                          border: '1px solid rgba(255,255,255,0.04)'
+                      }}>
+                        {timeLeft}
+                      </Typography>
+                      <IconButton onClick={handleCopyCode} sx={{ color: 'rgba(255, 255, 255, 0.5)', '&:hover': { color: 'white' } }}>
+                        {copied ? <Typography sx={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 600 }}>Copied</Typography> : <Copy size={16} />}
+                      </IconButton>
+                    </Stack>
                   </Box>
                 </Box>
 
@@ -326,7 +377,7 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
                     <Button
                       fullWidth
                       variant="text"
-                      onClick={handleInitialize}
+                      onClick={() => handleInitialize(true)}
                       sx={{
                         color: 'rgba(255,255,255,0.5)',
                         textTransform: 'none',
