@@ -2876,6 +2876,14 @@ export async function createRowSecure(
           throw new Error('Forbidden: Cannot follow user as someone else');
         }
         data.followerId = actor.$id;
+        
+        // Grant read permission to both follower and following
+        if (!permissions) {
+            permissions = [
+                Permission.read(Role.user(data.followerId)),
+                Permission.read(Role.user(data.followingId))
+            ];
+        }
       } else if (tableId === 'activityLog') {
         if (!actor && !isAnonymousFormSubmission) {
           throw new Error('Unauthorized: Notification logging requires an active session');
@@ -3080,6 +3088,12 @@ export async function deleteRowSecure(
   } catch (err: any) {
     console.error('deleteRowSecure cascade cleanup failed:', err);
   }
+
+  const result = await tables.deleteRow({
+    databaseId,
+    tableId,
+    rowId,
+  });
 
   return JSON.parse(JSON.stringify(result));
 }

@@ -42,6 +42,9 @@ import { ActorsListDrawer } from '../social/ActorsListDrawer';
 import type { Actor } from '../social/ActorsListDrawer';
 import { useTokenOps } from '@/context/TokenOpsContext';
 import { useWalletOverlay } from '@/context/WalletOverlayContext';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+import { ecosystemSecurity } from '@/lib/ecosystem/security';
+import { toast } from 'react-hot-toast';
 
 type TabKey = 'moments' | 'replies' | 'pulses';
 
@@ -709,19 +712,25 @@ export function ProfileRedesign({ username }: ProfileProps) {
   const handleRetry = () => setRefreshNonce((value) => value + 1);
 
   const handleFollow = async () => {
-    if (!currentUser || !profile || !targetUserId) return;
+    if (!currentUser || !profile) return;
+    // Use target user's actual userId for follow logic
+    const actualTargetId = profile.userId || profile.$id;
+    if (!actualTargetId) return;
+
     setFollowLoading(true);
     try {
       if (isFollowing) {
-        await SocialService.unfollowUser(currentUser.$id, targetUserId);
+        await SocialService.unfollowUser(currentUser.$id, actualTargetId);
         setIsFollowing(false);
+        toast.success(`Unfollowed @${profile.username}`);
       } else {
-        await SocialService.followUser(currentUser.$id, targetUserId);
+        await SocialService.followUser(currentUser.$id, actualTargetId);
         setIsFollowing(true);
+        toast.success(`Following @${profile.username}`);
       }
 
       try {
-        const newStats = await SocialService.getFollowStats(targetUserId);
+        const newStats = await SocialService.getFollowStats(actualTargetId);
         setStats({
           followers: newStats.followers,
           following: newStats.following,
@@ -729,8 +738,9 @@ export function ProfileRedesign({ username }: ProfileProps) {
       } catch (statsErr) {
         console.warn('Failed to refresh follow stats', statsErr);
       }
-    } catch (followErr) {
+    } catch (followErr: any) {
       console.error('Follow operation failed:', followErr);
+      toast.error(followErr?.message || 'Follow action failed');
     } finally {
       setFollowLoading(false);
     }
@@ -780,8 +790,27 @@ export function ProfileRedesign({ username }: ProfileProps) {
     });
   };
 
+  const { open: openDrawer } = useUnifiedDrawer();
+
   const handleMessage = () => {
-    if (!targetUserId) return;
+    if (!targetUserId || !profile) return;
+    
+    // 1. Check if target user has a public key
+    if (!profile.publicKey) {
+        toast.error(`${profile.displayName || profile.username} hasn't set up secure chatting yet.`);
+        return;
+    }
+
+    // 2. Check if current user is fully set up
+    const securityStatus = ecosystemSecurity.status;
+    // We check prefs for username as it's the fastest local signal
+    const hasUsername = !!(currentUser?.prefs?.username);
+    
+    if (!securityStatus.hasMasterpass || !securityStatus.hasIdentity || !hasUsername) {
+        openDrawer('secure-chat-setup');
+        return;
+    }
+
     router.push(`/connect/chats?userId=${targetUserId}`);
   };
 

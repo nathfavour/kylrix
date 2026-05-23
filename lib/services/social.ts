@@ -769,10 +769,11 @@ export const SocialService = {
     },
 
     async followUser(followerId: string, followingId: string) {
-        // Prevent duplicate follow rows: check if a follow already exists using robust check
         try {
             const followerIds = await this._resolveUserIds(followerId);
             const followingIds = await this._resolveUserIds(followingId);
+            const actualFollowerId = followerIds[0];
+            const actualFollowingId = followingIds[0];
 
             const existing = await tablesDB.listRows(DB_ID, FOLLOWS_TABLE, [
                 Query.equal('followerId', followerIds),
@@ -781,13 +782,12 @@ export const SocialService = {
             ]);
 
             if (existing.total > 0) {
-                // Already following
                 return existing.rows[0];
             }
 
             return await tablesDB.createRow(DB_ID, FOLLOWS_TABLE, ID.unique(), {
-                followerId, // Store using the passed IDs, but we checked all variants for existence
-                followingId,
+                followerId: actualFollowerId,
+                followingId: actualFollowingId,
                 status: 'accepted',
                 createdAt: new Date().toISOString()
             });
@@ -809,7 +809,6 @@ export const SocialService = {
             ]);
 
             if (existing.total > 0) {
-                // Remove all matching follow relationships to avoid stale duplicates
                 for (const row of existing.rows) {
                     try { await tablesDB.deleteRow(DB_ID, FOLLOWS_TABLE, row.$id); } catch (_e) {}
                 }
