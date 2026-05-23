@@ -5,6 +5,8 @@ import { AnalysisMode } from '@/lib/ai/types';
 import { PrivacyFilter } from '@/lib/ai/sanitizer';
 import { generateAIContent } from '@/lib/actions/ai';
 import dynamic from 'next/dynamic';
+import { useAuth } from '@/lib/auth';
+import { BYOKManager } from '@/lib/ai/byok';
 
 const AIModal = dynamic(() => import("@/components/ai/AIModal").then(mod => mod.AIModal), {
   ssr: false
@@ -35,6 +37,7 @@ export function useAI() {
 }
 
 export function AIProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [createModalHandler, setCreateModalHandler] = useState<((prefill?: { name?: string; url?: string; username?: string }) => void) | null>(null);
@@ -55,9 +58,17 @@ export function AIProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const sanitizedPayload = PrivacyFilter.sanitize(mode, rawData);
+      
+      let byokKey: string | undefined = undefined;
+      if (user?.$id && BYOKManager.isUnlocked()) {
+        const key = await BYOKManager.retrieveKey(user.$id, 'gemini');
+        if (key) byokKey = key;
+      }
+
       const response = await generateAIContent({
         mode,
         data: sanitizedPayload,
+        byokKey,
       });
 
       if (!response.success) {
@@ -75,14 +86,21 @@ export function AIProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user?.$id]);
 
   const askAI = useCallback(async (prompt: string) => {
     setIsLoading(true);
     try {
+      let byokKey: string | undefined = undefined;
+      if (user?.$id && BYOKManager.isUnlocked()) {
+        const key = await BYOKManager.retrieveKey(user.$id, 'gemini');
+        if (key) byokKey = key;
+      }
+
       const response = await generateAIContent({
         mode: 'GENERAL_QUERY',
         prompt,
+        byokKey,
       });
 
       if (!response.success) {
@@ -96,14 +114,21 @@ export function AIProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user?.$id]);
 
   const sendCommand = useCallback(async (prompt: string) => {
     setIsLoading(true);
     try {
+      let byokKey: string | undefined = undefined;
+      if (user?.$id && BYOKManager.isUnlocked()) {
+        const key = await BYOKManager.retrieveKey(user.$id, 'gemini');
+        if (key) byokKey = key;
+      }
+
       const response = await generateAIContent({
         mode: 'COMMAND_INTENT',
         prompt,
+        byokKey,
       });
 
       if (!response.success) throw new Error(response.error);
@@ -119,7 +144,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
     } finally {
         setIsLoading(false);
     }
-  }, []);
+  }, [user?.$id]);
 
   const openAIModal = useCallback(() => setIsAIModalOpen(true), []);
   const closeAIModal = useCallback(() => setIsAIModalOpen(false), []);

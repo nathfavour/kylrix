@@ -3,17 +3,16 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AIRequestPayload, AIResponse } from "@/lib/ai/types";
 
-// Initialize Gemini
-// Note: GOOGLE_API_KEY must be set in environment variables
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
 const MODEL_NAME = process.env.GEMINI_MODEL_NAME || "gemini-2.0-flash";
 
 export async function generateAIContent(payload: AIRequestPayload): Promise<AIResponse> {
-  if (!process.env.GOOGLE_API_KEY) {
-    return { success: false, error: "AI Service not configured (Missing API Key)" };
+  const activeKey = payload.byokKey || process.env.GOOGLE_API_KEY;
+  if (!activeKey) {
+    return { success: false, error: "AI Service not configured. Please supply your own private API Key in Settings." };
   }
 
   try {
+    const genAI = new GoogleGenerativeAI(activeKey);
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     let prompt = "";
 

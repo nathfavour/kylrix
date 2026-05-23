@@ -9,6 +9,7 @@ export interface AIRequestPayload {
   mode: AnalysisMode;
   data?: unknown; // Sanitized data
   prompt?: string; // Optional custom prompt
+  byokKey?: string; // Optional user decrypted API key
 }
 
 export interface AIResponse {
