@@ -138,12 +138,12 @@ export default function TaskDialog() {
             maxWidth: '100%',
             height: isMobile ? '92dvh' : '100%',
             maxHeight: '100dvh',
-            borderTopLeftRadius: isMobile ? 4 : 0,
-            borderTopRightRadius: isMobile ? 4 : 0,
+            borderTopLeftRadius: isMobile ? '26px' : 0,
+            borderTopRightRadius: isMobile ? '26px' : 0,
             backgroundImage: 'none',
-            backgroundColor: '#050505',
-            borderLeft: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
-            boxShadow: '0 24px 48px rgba(0, 0, 0, 0.8)',
+            backgroundColor: '#161412',
+            borderLeft: isMobile ? 'none' : '1px solid #1C1A18',
+            boxShadow: '0 24px 48px rgba(0, 0, 0, 0.9)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
@@ -158,19 +158,19 @@ export default function TaskDialog() {
             px: 3,
             pt: 3,
             pb: 2,
-            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+            borderBottom: '1px solid #1C1A18',
             flexShrink: 0,
           }}
         >
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em', color: '#F2F2F2' }}>
-                NEW TASK
+            <Typography variant="h6" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 800, letterSpacing: '-0.02em', color: '#F5F2ED' }}>
+                NEW GOAL
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: '0.05em' }}>
+            <Typography variant="caption" sx={{ fontFamily: 'var(--font-satoshi)', color: '#9B9691', fontWeight: 600, letterSpacing: '0.05em' }}>
                 INITIALIZE EXECUTION TRACK
             </Typography>
           </Box>
-          <IconButton onClick={handleClose} size="small" sx={{ color: 'text.disabled', '&:hover': { color: '#F2F2F2' } }}>
+          <IconButton onClick={handleClose} size="small" sx={{ color: '#9B9691', '&:hover': { color: '#F5F2ED' } }}>
             <CloseIcon sx={{ fontSize: 20 }} />
           </IconButton>
         </Box>
@@ -193,10 +193,11 @@ export default function TaskDialog() {
               InputProps={{
                 disableUnderline: true,
                 sx: { 
+                    fontFamily: 'var(--font-satoshi)',
                     fontSize: '1.5rem', 
                     fontWeight: 700,
                     letterSpacing: '-0.02em',
-                    color: '#F2F2F2',
+                    color: '#F5F2ED',
                     padding: 0,
                     '&::placeholder': {
                         opacity: 0.3,
@@ -205,7 +206,7 @@ export default function TaskDialog() {
               }}
             />
 
-            <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.05)' }} />
+            <Divider sx={{ borderColor: '#1C1A18' }} />
 
             {/* Description */}
             <TextField
@@ -219,46 +220,47 @@ export default function TaskDialog() {
               InputProps={{
                 disableUnderline: true,
                 sx: { 
+                    fontFamily: 'var(--font-satoshi)',
                     fontSize: '0.95rem',
-                    color: 'text.secondary',
+                    color: '#9B9691',
                     lineHeight: 1.6,
                 },
               }}
             />
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, p: 2, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, p: 2.5, borderRadius: '24px', bgcolor: '#1C1A18', border: '1px solid #2C2A28' }}>
                 {/* Project & Priority Row */}
                 <Box sx={{ display: 'flex', gap: 2 }}>
                 {/* Project */}
-                <FormControl variant="filled" fullWidth size="small">
-                    <InputLabel sx={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>PROJECT</InputLabel>
+                <FormControl variant="filled" fullWidth size="small" sx={{ bgcolor: '#161412', borderRadius: '12px', border: '1px solid #2C2A28', '& .MuiFilledInput-root': { bgcolor: 'transparent', '&:hover': { bgcolor: 'transparent' }, '&.Mui-focused': { bgcolor: 'transparent' } } }}>
+                    <InputLabel sx={{ fontFamily: 'var(--font-clash)', fontSize: '0.75rem', fontWeight: 800, color: '#9B9691', letterSpacing: '0.05em' }}>PROJECT</InputLabel>
                     <Select
-                    value={projectId}
-                    onChange={(e) => setProjectId(e.target.value)}
-                    disableUnderline
-                    sx={{ borderRadius: 2, bgcolor: 'transparent' }}
-                    renderValue={(selected) => {
-                        const project = projects.find(p => p.id === selected);
-                        return (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: project?.color }} />
-                                <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>{project?.name}</Typography>
-                            </Box>
-                        );
-                    }}
+                      value={projectId}
+                      onChange={(e) => setProjectId(e.target.value)}
+                      disableUnderline
+                      sx={{ borderRadius: '12px', bgcolor: 'transparent', color: '#F5F2ED', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}
+                      renderValue={(selected) => {
+                          const project = projects.find(p => p.id === selected);
+                          return (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: project?.color }} />
+                                  <Typography sx={{ fontFamily: 'var(--font-satoshi)', fontSize: '0.9rem', fontWeight: 600, color: '#F5F2ED' }}>{project?.name}</Typography>
+                              </Box>
+                          );
+                      }}
                     >
                     {projects.map((project) => (
-                        <MenuItem key={project.id} value={project.id} sx={{ py: 1.5 }}>
+                        <MenuItem key={project.id} value={project.id} sx={{ py: 1.5, fontFamily: 'var(--font-satoshi)', color: '#F5F2ED' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                             <Box
-                            sx={{
-                                width: 10,
-                                height: 10,
-                                borderRadius: '50%',
-                                backgroundColor: project.color,
-                            }}
+                              sx={{
+                                  width: 10,
+                                  height: 10,
+                                  borderRadius: '50%',
+                                  backgroundColor: project.color,
+                              }}
                             />
-                            <Typography sx={{ fontWeight: 500 }}>{project.name}</Typography>
+                            <Typography sx={{ fontWeight: 500, fontFamily: 'var(--font-satoshi)' }}>{project.name}</Typography>
                         </Box>
                         </MenuItem>
                     ))}
@@ -266,25 +268,25 @@ export default function TaskDialog() {
                 </FormControl>
 
                 {/* Priority */}
-                <FormControl variant="filled" fullWidth size="small">
-                    <InputLabel sx={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>PRIORITY</InputLabel>
+                <FormControl variant="filled" fullWidth size="small" sx={{ bgcolor: '#161412', borderRadius: '12px', border: '1px solid #2C2A28', '& .MuiFilledInput-root': { bgcolor: 'transparent', '&:hover': { bgcolor: 'transparent' }, '&.Mui-focused': { bgcolor: 'transparent' } } }}>
+                    <InputLabel sx={{ fontFamily: 'var(--font-clash)', fontSize: '0.75rem', fontWeight: 800, color: '#9B9691', letterSpacing: '0.05em' }}>PRIORITY</InputLabel>
                     <Select
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value as Priority)}
-                    disableUnderline
-                    sx={{ borderRadius: 2, bgcolor: 'transparent' }}
-                    renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <FlagIcon sx={{ fontSize: 16, color: priorityOptions.find(p => p.value === selected)?.color }} />
-                            <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>{priorityOptions.find(p => p.value === selected)?.label.toUpperCase()}</Typography>
-                        </Box>
-                    )}
+                      value={priority}
+                      onChange={(e) => setPriority(e.target.value as Priority)}
+                      disableUnderline
+                      sx={{ borderRadius: '12px', bgcolor: 'transparent', color: '#F5F2ED', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}
+                      renderValue={(selected) => (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <FlagIcon sx={{ fontSize: 16, color: priorityOptions.find(p => p.value === selected)?.color }} />
+                              <Typography sx={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', fontWeight: 700, color: priorityOptions.find(p => p.value === selected)?.color }}>{priorityOptions.find(p => p.value === selected)?.label.toUpperCase()}</Typography>
+                          </Box>
+                      )}
                     >
                     {priorityOptions.map((option) => (
-                        <MenuItem key={option.value} value={option.value} sx={{ py: 1.5 }}>
+                        <MenuItem key={option.value} value={option.value} sx={{ py: 1.5, fontFamily: 'var(--font-satoshi)', color: '#F5F2ED' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                             <FlagIcon sx={{ fontSize: 18, color: option.color }} />
-                            <Typography sx={{ fontWeight: 500 }}>{option.label}</Typography>
+                            <Typography sx={{ fontWeight: 500, fontFamily: 'var(--font-satoshi)' }}>{option.label}</Typography>
                         </Box>
                         </MenuItem>
                     ))}
@@ -304,23 +306,30 @@ export default function TaskDialog() {
                         fullWidth: true,
                         variant: 'filled',
                         size: 'small',
-                        InputProps: { disableUnderline: true, sx: { borderRadius: 2 } },
-                        InputLabelProps: { sx: { fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' } }
+                        InputProps: { disableUnderline: true },
+                        sx: {
+                          bgcolor: '#161412',
+                          borderRadius: '12px',
+                          border: '1px solid #2C2A28',
+                          '& .MuiFilledInput-root': { bgcolor: 'transparent', '&:hover': { bgcolor: 'transparent' }, '&.Mui-focused': { bgcolor: 'transparent' } },
+                          '& .MuiInputLabel-root': { fontFamily: 'var(--font-clash)', fontSize: '0.75rem', fontWeight: 800, color: '#9B9691', letterSpacing: '0.05em' },
+                          '& .MuiInputBase-input': { fontFamily: 'var(--font-satoshi)', fontWeight: 600, color: '#F5F2ED' }
+                        }
                     },
                     }}
                 />
 
                 {/* Status */}
-                <FormControl variant="filled" fullWidth size="small">
-                    <InputLabel sx={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>STATUS</InputLabel>
+                <FormControl variant="filled" fullWidth size="small" sx={{ bgcolor: '#161412', borderRadius: '12px', border: '1px solid #2C2A28', '& .MuiFilledInput-root': { bgcolor: 'transparent', '&:hover': { bgcolor: 'transparent' }, '&.Mui-focused': { bgcolor: 'transparent' } } }}>
+                    <InputLabel sx={{ fontFamily: 'var(--font-clash)', fontSize: '0.75rem', fontWeight: 800, color: '#9B9691', letterSpacing: '0.05em' }}>STATUS</InputLabel>
                     <Select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                    disableUnderline
-                    sx={{ borderRadius: 2, bgcolor: 'transparent' }}
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value as TaskStatus)}
+                      disableUnderline
+                      sx={{ borderRadius: '12px', bgcolor: 'transparent', color: '#F5F2ED', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}
                     >
                     {statusOptions.map((option) => (
-                        <MenuItem key={option.value} value={option.value} sx={{ py: 1.5 }}>
+                        <MenuItem key={option.value} value={option.value} sx={{ py: 1.5, fontFamily: 'var(--font-satoshi)', color: '#F5F2ED' }}>
                             {option.label}
                         </MenuItem>
                     ))}
@@ -342,8 +351,8 @@ export default function TaskDialog() {
                   label="TAGS"
                   variant="standard"
                   placeholder="Categorize task..."
-                  InputLabelProps={{ sx: { fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' } }}
-                  InputProps={{ ...params.InputProps, disableUnderline: true }}
+                  InputLabelProps={{ sx: { fontFamily: 'var(--font-clash)', fontSize: '0.75rem', fontWeight: 800, color: '#9B9691', letterSpacing: '0.05em' } }}
+                  InputProps={{ ...params.InputProps, disableUnderline: true, sx: { fontFamily: 'var(--font-satoshi)', color: '#F5F2ED' } }}
                 />
               )}
               renderTags={(value, getTagProps) =>
@@ -354,12 +363,13 @@ export default function TaskDialog() {
                     label={option.name.toUpperCase()}
                     size="small"
                     sx={{
-                      backgroundColor: alpha(option.color, 0.1),
+                      backgroundColor: '#1C1A18',
                       color: option.color,
                       fontWeight: 800,
                       fontSize: '0.65rem',
-                      borderRadius: 1,
-                      border: `1px solid ${alpha(option.color, 0.2)}`,
+                      fontFamily: 'var(--font-mono)',
+                      borderRadius: '6px',
+                      border: `1px solid ${option.color}`,
                     }}
                   />
                 ))
@@ -369,15 +379,15 @@ export default function TaskDialog() {
                   component="li"
                   {...props}
                   key={option.id}
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1.5 }}
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1.5, fontFamily: 'var(--font-satoshi)', color: '#F5F2ED' }}
                 >
                   <Box sx={{ width: 4, height: 16, borderRadius: 1, bgcolor: option.color }} />
-                  <Typography sx={{ fontWeight: 500 }}>{option.name}</Typography>
+                  <Typography sx={{ fontWeight: 500, fontFamily: 'var(--font-satoshi)' }}>{option.name}</Typography>
                 </Box>
               )}
             />
 
-            <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.05)' }} />
+            <Divider sx={{ borderColor: '#1C1A18' }} />
 
             {/* Assignees */}
             <UserSearch
@@ -390,18 +400,20 @@ export default function TaskDialog() {
           </Box>
         </Box>
 
-        <Box sx={{ px: 3, py: 3, gap: 1, display: 'flex', borderTop: '1px solid rgba(255, 255, 255, 0.05)', flexShrink: 0 }}>
+        <Box sx={{ px: 3, py: 3, gap: 2, display: 'flex', borderTop: '1px solid #1C1A18', flexShrink: 0 }}>
           <Button 
             onClick={handleClose} 
             sx={{ 
-                color: 'text.secondary',
+                color: '#9B9691',
+                fontFamily: 'var(--font-satoshi)',
                 fontWeight: 700,
                 letterSpacing: '0.05em',
                 fontSize: '0.75rem',
-                '&:hover': { color: '#F2F2F2' }
+                textTransform: 'none',
+                '&:hover': { color: '#F5F2ED' }
             }}
           >
-            CANCEL REQUEST
+            Cancel
           </Button>
           <Button
             onClick={handleSubmit}
@@ -410,22 +422,25 @@ export default function TaskDialog() {
             sx={{
                 px: 3,
                 py: 1.2,
-                borderRadius: 2,
-                fontWeight: 800,
-                letterSpacing: '0.05em',
+                borderRadius: '12px',
+                fontFamily: 'var(--font-satoshi)',
+                fontWeight: 700,
                 fontSize: '0.75rem',
-                bgcolor: '#6366F1',
-                color: '#000',
+                textTransform: 'none',
+                bgcolor: '#10B981',
+                color: '#0A0908',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
                 '&:hover': {
-                    bgcolor: '#00D1D9',
+                    bgcolor: '#0D9488',
                 },
                 '&.Mui-disabled': {
-                    bgcolor: 'rgba(255, 255, 255, 0.05)',
-                    color: 'rgba(255, 255, 255, 0.1)',
+                    bgcolor: '#1C1A18',
+                    color: '#34322F',
+                    boxShadow: 'none'
                 }
             }}
           >
-            CREATE TASK
+            Create Goal
           </Button>
         </Box>
       </Drawer>

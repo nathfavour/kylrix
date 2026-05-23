@@ -146,7 +146,7 @@ export default function TaskList() {
   };
 
   return (
-    <Box sx={{ animation: 'fadeIn 0.4s ease-out', minHeight: '100vh', bgcolor: '#000000', p: { xs: 2, md: 4 }, pointerEvents: 'auto' }}>
+    <Box sx={{ animation: 'fadeIn 0.4s ease-out', minHeight: '100vh', bgcolor: '#0A0908', p: { xs: 2, md: 4 }, pointerEvents: 'auto' }}>
       {/* Header */}
       <Box
         sx={{
@@ -159,12 +159,12 @@ export default function TaskList() {
         }}
       >
         <Box>
-          <Typography variant={isMobile ? "h4" : "h3"} sx={{ mb: 1, letterSpacing: '-0.03em', fontWeight: 800 }}>
+          <Typography variant={isMobile ? "h4" : "h3"} sx={{ mb: 1, fontFamily: 'var(--font-clash)', fontWeight: 800, letterSpacing: '-0.02em', color: '#F5F2ED' }}>
             {getViewTitle()}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10B981', boxShadow: '0 0 8px #10B981' }} />
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            <Typography variant="caption" sx={{ fontFamily: 'var(--font-satoshi)', color: '#9B9691', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                 {tasks.length} {tasks.length === 1 ? 'Goal' : 'Goals'}
             </Typography>
           </Box>
@@ -183,10 +183,10 @@ export default function TaskList() {
           <Box 
             sx={{ 
                 display: 'flex', 
-                bgcolor: '#161514', 
+                bgcolor: '#161412', 
                 p: 0.5, 
-                borderRadius: 2,
-                border: '1px solid rgba(255, 255, 255, 0.05)'
+                borderRadius: '12px',
+                border: '1px solid #1C1A18'
             }}
           >
             {[
@@ -199,11 +199,11 @@ export default function TaskList() {
                     size="small"
                     onClick={() => setViewMode(mode.id as ViewMode)}
                     sx={{
-                        borderRadius: 1.5,
+                        borderRadius: '8px',
                         px: isMobile ? 1 : 1.5,
-                        color: viewMode === mode.id ? '#10B981' : 'text.disabled',
-                        bgcolor: viewMode === mode.id ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
-                        '&:hover': { bgcolor: '#1F1D1B' }
+                        color: viewMode === mode.id ? '#10B981' : '#9B9691',
+                        bgcolor: viewMode === mode.id ? '#1C1A18' : 'transparent',
+                        '&:hover': { bgcolor: '#1C1A18' }
                     }}
                 >
                     <mode.icon sx={{ fontSize: isMobile ? 18 : 20 }} />
@@ -211,7 +211,7 @@ export default function TaskList() {
             ))}
           </Box>
 
-          {!isMobile && <Divider orientation="vertical" flexItem sx={{ mx: 1, opacity: 0.1 }} />}
+          {!isMobile && <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: '#1C1A18' }} />}
 
           {/* Sort & Filter Group */}
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -220,9 +220,20 @@ export default function TaskList() {
                 variant="outlined"
                 onClick={handleSortClick}
                 sx={{ 
-                  borderRadius: 2,
+                  borderRadius: '12px',
                   minWidth: isMobile ? 'auto' : 80,
-                  px: isMobile ? 1.5 : 2
+                  px: isMobile ? 1.5 : 2,
+                  py: 0.75,
+                  bgcolor: '#161412',
+                  border: '1px solid #1C1A18',
+                  color: '#F5F2ED',
+                  fontFamily: 'var(--font-satoshi)',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  '&:hover': {
+                    bgcolor: '#1C1A18',
+                    borderColor: '#34322F'
+                  }
                 }}
             >
                 {isMobile ? <SortIcon fontSize="small" /> : 'Sort'}
@@ -233,14 +244,25 @@ export default function TaskList() {
                 variant="outlined"
                 onClick={handleFilterClick}
                 sx={{ 
-                  borderRadius: 2,
+                  borderRadius: '12px',
                   minWidth: isMobile ? 'auto' : 80,
-                  px: isMobile ? 1.5 : 2
+                  px: isMobile ? 1.5 : 2,
+                  py: 0.75,
+                  bgcolor: '#161412',
+                  border: '1px solid #1C1A18',
+                  color: '#F5F2ED',
+                  fontFamily: 'var(--font-satoshi)',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  '&:hover': {
+                    bgcolor: '#1C1A18',
+                    borderColor: '#34322F'
+                  }
                 }}
             >
                 {isMobile ? <FilterIcon fontSize="small" /> : 'Filter'}
                 {(filter.status?.length || filter.labels?.length) && (
-                <Box sx={{ ml: 1, width: 16, height: 16, borderRadius: '50%', bgcolor: '#10B981', color: '#000', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>
+                <Box sx={{ ml: 1, width: 18, height: 18, borderRadius: '50%', bgcolor: '#10B981', color: '#0A0908', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
                     {(filter.status?.length || 0) + (filter.labels?.length || 0)}
                 </Box>
                 )}
@@ -251,13 +273,22 @@ export default function TaskList() {
           {!isMobile && (
             <Button
               variant="contained"
-              color="primary"
               startIcon={<AddIcon />}
               onClick={() => setTaskDialogOpen(true)}
               sx={{ 
-                  borderRadius: 2,
+                  borderRadius: '12px',
                   px: 3,
-                  boxShadow: '0 8px 20px rgba(16, 185, 129, 0.2)'
+                  py: 1,
+                  bgcolor: '#10B981',
+                  color: '#0A0908',
+                  fontFamily: 'var(--font-satoshi)',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                  '&:hover': {
+                    bgcolor: '#0D9488',
+                    boxShadow: '0 6px 16px rgba(16, 185, 129, 0.3)'
+                  }
               }}
             >
               New Task
@@ -271,16 +302,39 @@ export default function TaskList() {
         anchorEl={sortAnchorEl}
         open={Boolean(sortAnchorEl)}
         onClose={handleSortClose}
-        PaperProps={{ sx: { minWidth: 200, mt: 1 } }}
+        PaperProps={{
+          sx: {
+            minWidth: 200,
+            mt: 1,
+            bgcolor: '#161412',
+            border: '1px solid #1C1A18',
+            borderRadius: '16px',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6)',
+            backgroundImage: 'none',
+            p: 1
+          }
+        }}
       >
         {sortOptions.map((option) => (
           <MenuItem
             key={option.field}
             onClick={() => handleSortChange(option.field)}
             selected={sort.field === option.field}
-            sx={{ gap: 2 }}
+            sx={{
+              borderRadius: '8px',
+              gap: 2,
+              fontFamily: 'var(--font-satoshi)',
+              color: '#F5F2ED',
+              mb: 0.5,
+              '&:hover': { bgcolor: '#1C1A18' },
+              '&.Mui-selected': {
+                bgcolor: '#1C1A18',
+                color: '#10B981',
+                '&:hover': { bgcolor: '#1C1A18' }
+              }
+            }}
           >
-            <ListItemText primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }}>{option.label}</ListItemText>
+            <ListItemText primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600, fontFamily: 'var(--font-satoshi)' }}>{option.label}</ListItemText>
             {sort.field === option.field && (
                 sort.direction === 'asc' ? <AscIcon sx={{ fontSize: 16 }} /> : <DescIcon sx={{ fontSize: 16 }} />
             )}
@@ -293,43 +347,74 @@ export default function TaskList() {
         anchorEl={filterAnchorEl}
         open={Boolean(filterAnchorEl)}
         onClose={handleFilterClose}
-        PaperProps={{ sx: { minWidth: 240, mt: 1, p: 1.5 } }}
+        PaperProps={{
+          sx: {
+            minWidth: 240,
+            mt: 1,
+            p: 1.5,
+            bgcolor: '#161412',
+            border: '1px solid #1C1A18',
+            borderRadius: '16px',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6)',
+            backgroundImage: 'none'
+          }
+        }}
       >
-        <Typography variant="subtitle2" sx={{ px: 1, mb: 2, scale: '0.8', originX: 0 }}>
+        <Typography variant="subtitle2" sx={{ px: 1, mb: 1.5, fontFamily: 'var(--font-clash)', fontWeight: 800, fontSize: '0.75rem', color: '#9B9691', letterSpacing: '0.05em' }}>
           STATUS FILTERS
         </Typography>
         {statusFilters.map((item) => (
           <MenuItem
             key={item.status}
             onClick={() => handleStatusFilterToggle(item.status)}
-            sx={{ borderRadius: 1.5, mb: 0.5 }}
+            sx={{
+              borderRadius: '8px',
+              mb: 0.5,
+              fontFamily: 'var(--font-satoshi)',
+              color: '#F5F2ED',
+              '&:hover': { bgcolor: '#1C1A18' },
+              '&.Mui-selected': {
+                bgcolor: '#1C1A18',
+                '&:hover': { bgcolor: '#1C1A18' }
+              }
+            }}
           >
             <ListItemIcon sx={{ minWidth: 32 }}>
               <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: item.color }} />
             </ListItemIcon>
-            <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>{item.label}</ListItemText>
+            <ListItemText primaryTypographyProps={{ fontSize: '0.875rem', fontFamily: 'var(--font-satoshi)' }}>{item.label}</ListItemText>
             {filter.status?.includes(item.status) && (
               <CheckIcon sx={{ fontSize: 18, color: '#10B981' }} />
             )}
           </MenuItem>
         ))}
-        <Divider sx={{ my: 1.5, opacity: 0.05 }} />
+        <Divider sx={{ my: 1.5, borderColor: '#1C1A18' }} />
         <MenuItem
           onClick={() => setFilter({ ...filter, showCompleted: !filter.showCompleted })}
-          sx={{ borderRadius: 1.5 }}
+          sx={{
+            borderRadius: '8px',
+            fontFamily: 'var(--font-satoshi)',
+            color: '#F5F2ED',
+            '&:hover': { bgcolor: '#1C1A18' }
+          }}
         >
-          <ListItemText primaryTypographyProps={{ fontSize: '0.85rem' }}>Include Completed</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem', fontFamily: 'var(--font-satoshi)' }}>Include Completed</ListItemText>
           {filter.showCompleted && <CheckIcon sx={{ fontSize: 18, color: '#10B981' }} />}
         </MenuItem>
-        <Divider sx={{ my: 1.5, opacity: 0.05 }} />
+        <Divider sx={{ my: 1.5, borderColor: '#1C1A18' }} />
         <MenuItem
           onClick={() => {
             setFilter({ showCompleted: true, showArchived: false });
             handleFilterClose();
           }}
-          sx={{ borderRadius: 1.5, color: 'text.secondary' }}
+          sx={{
+            borderRadius: '8px',
+            color: '#EF4444',
+            fontFamily: 'var(--font-satoshi)',
+            '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.05)' }
+          }}
         >
-          <ListItemText primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }}>Reset to Defaults</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 700, fontFamily: 'var(--font-satoshi)' }}>Reset to Defaults</ListItemText>
         </MenuItem>
       </Menu>
 
@@ -343,21 +428,34 @@ export default function TaskList() {
               sx={{
                 textAlign: 'center',
                 py: 12,
-                color: 'text.secondary',
+                color: '#9B9691',
               }}
             >
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 800 }}>
-                Clean Slate
+              <Typography variant="h5" gutterBottom sx={{ fontFamily: 'var(--font-clash)', fontWeight: 800, letterSpacing: '-0.02em', color: '#F5F2ED', mb: 1 }}>
+                A Clear Void
               </Typography>
-              <Typography variant="body2" sx={{ mb: 4, opacity: 0.6 }}>
+              <Typography variant="body2" sx={{ mb: 4, fontFamily: 'var(--font-satoshi)', color: '#9B9691' }}>
                 {filter.search
-                  ? 'No action items matching your search.'
-                  : 'You have no goals in this view yet.'}
+                  ? 'No action items match your parameters.'
+                  : 'Establish order. Bring structure to your goals.'}
               </Typography>
               <Button
                 variant="outlined"
                 startIcon={<AddIcon />}
                 onClick={() => setTaskDialogOpen(true)}
+                sx={{
+                  borderRadius: '12px',
+                  border: '1px solid #1C1A18',
+                  color: '#F5F2ED',
+                  fontFamily: 'var(--font-satoshi)',
+                  fontWeight: 700,
+                  px: 3,
+                  textTransform: 'none',
+                  '&:hover': {
+                    bgcolor: '#161412',
+                    borderColor: '#34322F'
+                  }
+                }}
               >
                 Add Your First Goal
               </Button>
@@ -382,11 +480,12 @@ export default function TaskList() {
             <Box
               key={status}
               sx={{
-                backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                borderRadius: 3,
-                p: 2,
-                minHeight: 400,
-                border: '1px solid rgba(255, 255, 255, 0.04)'
+                backgroundColor: '#161412',
+                borderRadius: '24px',
+                p: 2.5,
+                minHeight: 450,
+                border: '1px solid #1C1A18',
+                boxShadow: '0 4px 4px -4px rgba(0,0,0,0.9)'
               }}
             >
               <Box
@@ -409,11 +508,11 @@ export default function TaskList() {
                       boxShadow: `0 0 8px ${statusFilters.find((s) => s.status === status)?.color}`
                     }}
                   />
-                  <Typography variant="subtitle2" sx={{ color: '#F2F2F2' }}>
+                  <Typography variant="subtitle2" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 800, color: '#F5F2ED', fontSize: '0.9rem' }}>
                     {statusFilters.find((s) => s.status === status)?.label}
                   </Typography>
                 </Box>
-                <IconButton size="small" onClick={() => setTaskDialogOpen(true)} sx={{ color: 'text.disabled' }}>
+                <IconButton size="small" onClick={() => setTaskDialogOpen(true)} sx={{ color: '#9B9691', '&:hover': { color: '#F5F2ED' } }}>
                   <AddIcon sx={{ fontSize: 18 }} />
                 </IconButton>
               </Box>
@@ -433,19 +532,19 @@ export default function TaskList() {
           sx={{
             textAlign: 'center',
             py: 12,
-            color: 'text.secondary',
-            backgroundColor: 'rgba(255, 255, 255, 0.02)',
-            borderRadius: 4,
-            border: '1px dashed rgba(255, 255, 255, 0.1)'
+            color: '#9B9691',
+            backgroundColor: '#161412',
+            borderRadius: '24px',
+            border: '1px dashed #1C1A18'
           }}
         >
-          <Box sx={{ mb: 3, opacity: 0.2 }}>
-            <CalendarIcon sx={{ fontSize: 80 }} />
+          <Box sx={{ mb: 3, opacity: 0.3 }}>
+            <CalendarIcon sx={{ fontSize: 80, color: '#10B981' }} />
           </Box>
-          <Typography variant="h5" gutterBottom sx={{ fontWeight: 800, color: '#F2F2F2' }}>
+          <Typography variant="h5" gutterBottom sx={{ fontFamily: 'var(--font-clash)', fontWeight: 800, color: '#F5F2ED', letterSpacing: '-0.02em' }}>
             Time Dimension
           </Typography>
-          <Typography variant="body2" sx={{ maxWidth: 400, mx: 'auto', opacity: 0.6 }}>
+          <Typography variant="body2" sx={{ maxWidth: 400, mx: 'auto', color: '#9B9691', fontFamily: 'var(--font-satoshi)' }}>
             The visual calendar interface is currently being optimized for the Kylrix ecosystem. 
           </Typography>
         </Box>
