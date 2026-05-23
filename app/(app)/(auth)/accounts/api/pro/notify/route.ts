@@ -85,6 +85,70 @@ async function createGiftCouponRow(params: {
   );
 }
 
+async function recordCompletedTransactionLedger(params: {
+  databases: ReturnType<typeof createSystemClient>['databases'];
+  paymentId: string;
+  userId: string;
+  planId: string;
+  months: number;
+  amountUsd: number;
+  couponId?: string | null;
+  metadata?: Record<string, any>;
+}) {
+  const { databases, paymentId, userId, planId, months, amountUsd, couponId, metadata } = params;
+  try {
+    let existingTx = null;
+    try {
+      existingTx = await databases.getDocument(DATABASE_ID, 'billing_transactions', paymentId);
+    } catch {
+      // Ignore not found
+    }
+
+    const txPayload = {
+      paymentId,
+      userId,
+      plan: planId,
+      months,
+      amountCents: Math.round(amountUsd * 100),
+      amountUsd: `$${amountUsd.toFixed(2)}`,
+      status: 'completed',
+      provider: 'blockbee',
+      couponId: couponId || null,
+      metadata: JSON.stringify({
+        completedAt: new Date().toISOString(),
+        ...(metadata || {}),
+      }),
+      createdAt: existingTx ? undefined : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (existingTx) {
+      await databases.updateDocument(
+        DATABASE_ID,
+        'billing_transactions',
+        existingTx.$id,
+        {
+          status: 'completed',
+          amountCents: txPayload.amountCents,
+          amountUsd: txPayload.amountUsd,
+          metadata: txPayload.metadata,
+          updatedAt: txPayload.updatedAt,
+        }
+      );
+    } else {
+      await databases.createDocument(
+        DATABASE_ID,
+        'billing_transactions',
+        paymentId,
+        txPayload,
+        [Permission.read(Role.user(userId))]
+      );
+    }
+  } catch (err) {
+    console.error('[BlockBee IPN] Failed to log billing_transactions ledger entry:', err);
+  }
+}
+
 function parseWebhookParams(rawBody: string, reqUrl: URL): URLSearchParams {
   const trimmed = rawBody.trim();
   let bodyParams: URLSearchParams;
@@ -125,10 +189,12 @@ function parsePaidUsd(params: URLSearchParams): number {
 function paymentLooksComplete(params: URLSearchParams): boolean {
   const isPaid = params.get('is_paid');
   const status = String(params.get('status') || '').toLowerCase();
-  const paidOk = isPaid === '1';
+  const confirmed = params.get('confirmed');
+  
+  const paidOk = isPaid === '1' || confirmed === '1' || status === 'done';
   const checkoutDone = status === 'done';
   const legacyNumeric = status === '1' || status === '2';
-  return paidOk && (checkoutDone || legacyNumeric);
+  return paidOk && (checkoutDone || legacyNumeric || confirmed === '1');
 }
 
 /**
@@ -268,6 +334,20 @@ export async function POST(req: Request) {
         console.warn('[BlockBee IPN] Gift email send deferred:', error);
       });
 
+      await recordCompletedTransactionLedger({
+        databases,
+        paymentId,
+        userId: meta.payerUserId,
+        planId: meta.planId,
+        months: meta.months,
+        amountUsd: valuePaidUsd,
+        couponId: meta.couponId,
+        metadata: {
+          giftRecipientId: meta.giftRecipientId,
+          giftCouponId: giftCoupon.$id,
+        },
+      });
+
       await completeBlockBeeIpnLock(paymentId, meta.payerUserId, {
         kind: 'gift_coupon',
         couponId: giftCoupon.$id,
@@ -348,6 +428,19 @@ export async function POST(req: Request) {
       bodyCopy: `Your ${meta.months}-month access is live across Kylrix.`,
     }).catch((error) => {
       console.warn('[BlockBee IPN] Subscription email send deferred:', error);
+    });
+
+    await recordCompletedTransactionLedger({
+      databases,
+      paymentId,
+      userId: meta.payerUserId,
+      planId: meta.planId,
+      months: meta.months,
+      amountUsd: valuePaidUsd,
+      couponId: meta.couponId,
+      metadata: {
+        subscriptionId: subscription.$id,
+      },
     });
 
     await completeBlockBeeIpnLock(paymentId, meta.payerUserId, {

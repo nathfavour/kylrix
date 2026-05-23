@@ -160,7 +160,7 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
 
         const channel = `databases.${APPWRITE_CONFIG.DATABASES.CONNECT}.collections.${APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS}.documents.${userId}`;
         
-        unsubscribeFn = realtime.subscribe(channel, (response: any) => {
+        const sub = await realtime.subscribe(channel, (response: any) => {
           const payload = response.payload;
           if (payload && payload.is_verified) {
             stopPolling();
@@ -172,6 +172,14 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
             }, 2000);
           }
         });
+
+        unsubscribeFn = () => {
+          if (typeof sub === 'function') {
+            (sub as any)();
+          } else if (sub && typeof (sub as any).unsubscribe === 'function') {
+            (sub as any).unsubscribe();
+          }
+        };
       } catch (err) {
         console.error('Failed to subscribe to realtime connection status:', err);
       }

@@ -3,7 +3,7 @@
 import { createSystemClient } from '@/lib/appwrite-admin';
 import { createServerClient } from '@/lib/appwrite-server-only';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
-import { Permission, Role } from 'node-appwrite';
+import { Permission, Role, Query } from 'node-appwrite';
 
 /**
  * Stage 1: Initial Connect
@@ -43,6 +43,13 @@ export async function initializeTelegramConnection(jwt?: string, forceRegenerate
       if (nowTime - updatedAtTime < threeMinutesInMs) {
         const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'KylrixBot';
         const deepLink = `https://t.me/${botUsername}?start=${userId}_${existingDoc.pair_code}`;
+        
+        if (process.env.TELEGRAM_BOT_API) {
+          syncServerTelegramListener().catch(err =>
+            console.error('[telegram-bot] Failed to sync listener:', err)
+          );
+        }
+
         return {
           success: true,
           pairCode: existingDoc.pair_code,
@@ -86,6 +93,12 @@ export async function initializeTelegramConnection(jwt?: string, forceRegenerate
     const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'KylrixBot';
     const deepLink = `https://t.me/${botUsername}?start=${userId}_${pairCode}`;
 
+    if (process.env.TELEGRAM_BOT_API) {
+      syncServerTelegramListener().catch(err =>
+        console.error('[telegram-bot] Failed to sync listener:', err)
+      );
+    }
+
     return {
       success: true,
       pairCode,
@@ -113,6 +126,13 @@ export async function checkTelegramConnection(jwt?: string) {
     const userId = actor.$id;
 
     const { databases } = createSystemClient();
+
+    if (process.env.TELEGRAM_BOT_API) {
+      syncServerTelegramListener().catch(err =>
+        console.error('[telegram-bot] Failed to sync listener:', err)
+      );
+    }
+
     try {
       const doc = await databases.getDocument(
         APPWRITE_CONFIG.DATABASES.CONNECT,
@@ -136,4 +156,181 @@ export async function checkTelegramConnection(jwt?: string) {
     console.error('[telegram] Failed to check connection:', error);
     return { success: false, error: error?.message || 'Failed to check connection' };
   }
+}
+
+/**
+ * ----------------------------------------------------------------------------
+ * BACKGROUND DAEMON POLLER FOR TELEGRAM BOT CONNECTIONS
+ * ----------------------------------------------------------------------------
+ */
+let isBotPollerRunning = false;
+let lastTelegramUpdateOffset = 0;
+let pollerTimeout: NodeJS.Timeout | null = null;
+
+export async function syncServerTelegramListener() {
+  const botToken = process.env.TELEGRAM_BOT_API;
+  if (!botToken) {
+    return;
+  }
+
+  if (isBotPollerRunning) {
+    return;
+  }
+
+  const { databases } = createSystemClient();
+
+  // Check if there are any active pending (unverified) connections
+  try {
+    const listRes = await databases.listDocuments(
+      APPWRITE_CONFIG.DATABASES.CONNECT,
+      APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
+      [Query.equal('is_verified', false)]
+    );
+
+    const pendingDocs = listRes.documents.filter(doc => {
+      const createdTime = new Date(doc.$updatedAt || doc.$createdAt).getTime();
+      const threeMinutesInMs = 3 * 60 * 1000;
+      return Date.now() - createdTime < threeMinutesInMs;
+    });
+
+    if (pendingDocs.length === 0) {
+      if (pollerTimeout) {
+        clearTimeout(pollerTimeout);
+        pollerTimeout = null;
+      }
+      isBotPollerRunning = false;
+      return;
+    }
+
+    // Spin up!
+    isBotPollerRunning = true;
+    console.log(`[telegram-bot] Spinning up listener daemon for ${pendingDocs.length} pending connection(s)...`);
+
+    // Initialize offset to only get future updates, preventing replay attacks
+    try {
+      const initRes = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?limit=1&offset=-1`);
+      if (initRes.ok) {
+        const initData = await initRes.json();
+        if (initData.ok && initData.result.length > 0) {
+          lastTelegramUpdateOffset = initData.result[0].update_id + 1;
+        }
+      }
+    } catch (err) {
+      console.error('[telegram-bot] Failed to initialize update offset:', err);
+    }
+
+    // Start loop
+    runPollerLoop(botToken);
+
+  } catch (err) {
+    console.error('[telegram-bot] Failed in syncServerTelegramListener:', err);
+    isBotPollerRunning = false;
+  }
+}
+
+function runPollerLoop(botToken: string) {
+  if (pollerTimeout) {
+    clearTimeout(pollerTimeout);
+  }
+
+  pollerTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch(
+        `https://api.telegram.org/bot${botToken}/getUpdates?offset=${lastTelegramUpdateOffset}&timeout=5`
+      );
+
+      if (!res.ok) {
+        runPollerLoop(botToken);
+        return;
+      }
+
+      const data = await res.json();
+      if (data.ok && data.result.length > 0) {
+        const { databases } = createSystemClient();
+
+        for (const update of data.result) {
+          lastTelegramUpdateOffset = Math.max(lastTelegramUpdateOffset, update.update_id + 1);
+
+          const message = update.message;
+          if (!message || !message.text) continue;
+
+          const text = message.text.trim();
+          if (text.startsWith('/start ')) {
+            const param = text.slice(7).trim(); // "userId_pairCode"
+            const parts = param.split('_');
+            if (parts.length === 2) {
+              const [userId, pairCode] = parts;
+
+              try {
+                const doc = await databases.getDocument(
+                  APPWRITE_CONFIG.DATABASES.CONNECT,
+                  APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
+                  userId
+                );
+
+                if (doc && !doc.is_verified && doc.pair_code === pairCode) {
+                  const createdTime = new Date(doc.$updatedAt || doc.$createdAt).getTime();
+                  const threeMinutesInMs = 3 * 60 * 1000;
+
+                  if (Date.now() - createdTime < threeMinutesInMs) {
+                    const tgUsername = message.from.username || message.from.first_name || 'User';
+                    const chatId = String(message.chat.id);
+
+                    await databases.updateDocument(
+                      APPWRITE_CONFIG.DATABASES.CONNECT,
+                      APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
+                      userId,
+                      {
+                        is_verified: true,
+                        tg_username: tgUsername,
+                        tg_chat_id: chatId,
+                      }
+                    );
+
+                    console.log(`[telegram-bot] Successfully verified Telegram connection for user ${userId} as @${tgUsername}`);
+
+                    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        chat_id: message.chat.id,
+                        text: `🎉 Success! Your Telegram account has been paired with Kylrix as @${tgUsername}. Ephemeral secure notifications will be delivered here instantly!`,
+                      }),
+                    });
+                  }
+                }
+              } catch (docErr) {
+                // Ignore document retrieval errors
+              }
+            }
+          }
+        }
+      }
+
+      const databasesInstance = createSystemClient().databases;
+      const listRes = await databasesInstance.listDocuments(
+        APPWRITE_CONFIG.DATABASES.CONNECT,
+        APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
+        [Query.equal('is_verified', false)]
+      );
+
+      const pendingDocs = listRes.documents.filter(doc => {
+        const createdTime = new Date(doc.$updatedAt || doc.$createdAt).getTime();
+        const threeMinutesInMs = 3 * 60 * 1000;
+        return Date.now() - createdTime < threeMinutesInMs;
+      });
+
+      if (pendingDocs.length === 0) {
+        console.log('[telegram-bot] Zero active pending connections left. Winding down listener daemon.');
+        isBotPollerRunning = false;
+        pollerTimeout = null;
+      } else {
+        runPollerLoop(botToken);
+      }
+
+    } catch (err) {
+      console.error('[telegram-bot] Error in poller loop:', err);
+      runPollerLoop(botToken);
+    }
+  }, 2000);
 }

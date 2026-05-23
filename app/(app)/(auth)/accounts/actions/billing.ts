@@ -161,6 +161,31 @@ export async function createBillingCheckoutSessionAction(input: {
         bodyCopy: 'Your coupon fully covered the subscription and access is now live.',
       }).catch(() => {});
 
+      await databases.createDocument(
+        NOTE_DB_ID,
+        'billing_transactions',
+        ID.unique(),
+        {
+          paymentId: `coupon_${couponRow.$id}_${user.$id}_${Date.now()}`,
+          userId: user.$id,
+          plan: String(planId),
+          months: normalizedMonths,
+          amountCents: 0,
+          amountUsd: '$0.00',
+          status: 'completed',
+          provider: 'manual',
+          couponId: couponRow.$id,
+          metadata: JSON.stringify({
+            couponCode: couponRow.$id,
+            completedAt: new Date().toISOString(),
+            subscriptionId: subscription.$id,
+          }),
+        },
+        [Permission.read(Role.user(user.$id))]
+      ).catch((err) => {
+        console.error('[Billing] Failed to log completed coupon transaction ledger entry:', err);
+      });
+
       return {
         id: subscription.$id,
         url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://accounts.kylrix.com'}/accounts/pro/success?success=true`,
@@ -184,6 +209,41 @@ export async function createBillingCheckoutSessionAction(input: {
       baseUrl: baseUrl || null,
     },
   );
+
+  if (session?.id) {
+    const expectedAmountUsd =
+      typeof adjustedAmountUsd === 'number' && Number.isFinite(adjustedAmountUsd)
+        ? adjustedAmountUsd
+        : calculateSubscriptionPrice(String(planId), String(countryCode || 'US'), method as PaymentMethod, normalizedMonths);
+
+    const { databases } = createSystemClient();
+    await databases.createDocument(
+      NOTE_DB_ID,
+      'billing_transactions',
+      ID.unique(),
+      {
+        paymentId: session.id,
+        userId: user.$id,
+        plan: planId,
+        months: normalizedMonths,
+        amountCents: Math.round(expectedAmountUsd * 100),
+        amountUsd: `$${expectedAmountUsd.toFixed(2)}`,
+        status: 'pending',
+        provider: String(method).toLowerCase() === 'stripe' ? 'stripe' : 'blockbee',
+        couponId: couponRow?.$id || null,
+        metadata: JSON.stringify({
+          giftRecipientId: giftRecipientId || null,
+          giftRecipientName: giftRecipientName || null,
+          giftMessage: giftMessage || null,
+          countryCode: countryCode || 'US',
+          createdAt: new Date().toISOString(),
+        }),
+      },
+      [Permission.read(Role.user(user.$id))]
+    ).catch((err) => {
+      console.error('[Billing] Failed to create pending billing_transaction record:', err);
+    });
+  }
 
   if (
     String(method).toUpperCase() === PaymentMethod.CRYPTO &&
@@ -318,6 +378,31 @@ export async function claimCouponAction(couponIdInput?: string, jwtInput?: strin
     const prefs = (await users.getPrefs(user.$id)) as Record<string, unknown>;
     await users.updatePrefs(user.$id, applyProSubscriptionWindowToPrefs(prefs, currentPeriodEnd.toISOString()));
   } catch {}
+
+  await databases.createDocument(
+    NOTE_DB_ID,
+    'billing_transactions',
+    ID.unique(),
+    {
+      paymentId: `coupon_claim_${coupon.$id}_${user.$id}_${Date.now()}`,
+      userId: user.$id,
+      plan: planId,
+      months,
+      amountCents: 0,
+      amountUsd: '$0.00',
+      status: 'completed',
+      provider: 'manual',
+      couponId: coupon.$id,
+      metadata: JSON.stringify({
+        couponCode: coupon.$id,
+        completedAt: new Date().toISOString(),
+        subscriptionId: subscription.$id,
+      }),
+    },
+    [Permission.read(Role.user(user.$id))]
+  ).catch((err) => {
+    console.error('[Billing] Failed to log completed coupon claim transaction:', err);
+  });
 
   try {
     const profileResult = await databases.listDocuments(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.PROFILES, [
