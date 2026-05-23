@@ -149,6 +149,38 @@ async function recordCompletedTransactionLedger(params: {
   }
 }
 
+async function logBillingWebhookCall(params: {
+  paymentId?: string | null;
+  provider: 'blockbee' | 'stripe';
+  payload: string;
+  headers?: Record<string, string>;
+  status: 'success' | 'signature_failed' | 'failed';
+  errorMessage?: string | null;
+  metadata?: Record<string, any>;
+}) {
+  try {
+    const { databases } = createSystemClient();
+    await databases.createDocument(
+      DATABASE_ID,
+      'billing_webhook_logs',
+      ID.unique(),
+      {
+        paymentId: params.paymentId || null,
+        provider: params.provider,
+        payload: params.payload.slice(0, 65530),
+        headers: params.headers ? JSON.stringify(params.headers).slice(0, 4990) : null,
+        status: params.status,
+        errorMessage: params.errorMessage || null,
+        metadata: params.metadata ? JSON.stringify(params.metadata).slice(0, 4990) : null,
+        createdAt: new Date().toISOString(),
+      },
+      []
+    );
+  } catch (err) {
+    console.error('[Billing Logs] Failed to create billing_webhook_logs document:', err);
+  }
+}
+
 function parseWebhookParams(rawBody: string, reqUrl: URL): URLSearchParams {
   const trimmed = rawBody.trim();
   let bodyParams: URLSearchParams;
@@ -214,6 +246,13 @@ export async function POST(req: Request) {
   if (shouldVerifyBlockBeeWebhookSignature()) {
     if (!verifyBlockBeeWebhookPostSignature(rawBody, sig)) {
       console.error('[BlockBee IPN] Signature verification failed');
+      await logBillingWebhookCall({
+        provider: 'blockbee',
+        payload: rawBody,
+        headers: { signature: sig || '' },
+        status: 'signature_failed',
+        errorMessage: 'Signature verification failed',
+      });
       return new Response('Unauthorized', { status: 401 });
     }
   } else {
@@ -353,6 +392,19 @@ export async function POST(req: Request) {
         couponId: giftCoupon.$id,
       });
       await markBlockBeePendingCheckoutConsumed(paymentId);
+
+      await logBillingWebhookCall({
+        paymentId,
+        provider: 'blockbee',
+        payload: rawBody,
+        headers: { signature: sig || '' },
+        status: 'success',
+        metadata: {
+          giftRecipientId: meta.giftRecipientId,
+          giftCouponId: giftCoupon.$id,
+        },
+      });
+
       return new Response('*ok*', { status: 200 });
     }
 
@@ -450,9 +502,29 @@ export async function POST(req: Request) {
     });
     await markBlockBeePendingCheckoutConsumed(paymentId);
 
+    await logBillingWebhookCall({
+      paymentId,
+      provider: 'blockbee',
+      payload: rawBody,
+      headers: { signature: sig || '' },
+      status: 'success',
+      metadata: {
+        userId: meta.payerUserId,
+        planId: meta.planId,
+      },
+    });
+
     return new Response('*ok*', { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[BlockBee IPN] Error processing:', error);
+    await logBillingWebhookCall({
+      paymentId: paymentId || null,
+      provider: 'blockbee',
+      payload: rawBody,
+      headers: { signature: sig || '' },
+      status: 'failed',
+      errorMessage: error?.message || String(error),
+    });
     await releaseBlockBeeIpnLock(paymentId);
     return new Response('Error', { status: 500 });
   }

@@ -214,7 +214,7 @@ export async function createBillingCheckoutSessionAction(input: {
     const expectedAmountUsd =
       typeof adjustedAmountUsd === 'number' && Number.isFinite(adjustedAmountUsd)
         ? adjustedAmountUsd
-        : calculateSubscriptionPrice(String(planId), String(countryCode || 'US'), method as PaymentMethod, normalizedMonths);
+        : calculateSubscriptionPrice(String(planId), String(countryCode || 'US'), method as any, normalizedMonths);
 
     const { databases } = createSystemClient();
     await databases.createDocument(
