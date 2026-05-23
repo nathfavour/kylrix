@@ -47,6 +47,7 @@ export async function initializeTelegramConnection(jwt?: string, forceRegenerate
           success: true,
           pairCode: existingDoc.pair_code,
           deepLink,
+          userId,
           createdAt: existingDoc.$updatedAt,
         };
       }
@@ -89,6 +90,7 @@ export async function initializeTelegramConnection(jwt?: string, forceRegenerate
       success: true,
       pairCode,
       deepLink,
+      userId,
       createdAt: updatedDoc.$updatedAt || updatedDoc.$createdAt || new Date().toISOString(),
     };
   } catch (error: any) {

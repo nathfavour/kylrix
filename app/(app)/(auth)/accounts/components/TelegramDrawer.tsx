@@ -22,6 +22,15 @@ interface TelegramDrawerProps {
   onSuccess: (tgUsername: string) => void;
 }
 
+interface CachedConnection {
+  pairCode: string;
+  deepLink: string;
+  createdAt: string;
+  userId: string;
+}
+
+let connectionCache: CachedConnection | null = null;
+
 export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps) {
   const [loading, setLoading] = useState(false);
   const [pairCode, setPairCode] = useState<string | null>(null);
@@ -30,6 +39,7 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
   const [error, setError] = useState<string | null>(null);
   const [verifiedUsername, setVerifiedUsername] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Live timer states
   const [createdAt, setCreatedAt] = useState<string | null>(null);
@@ -61,6 +71,7 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
 
   const startPolling = React.useCallback(() => {
     stopPolling();
+    // Low-frequency polling fallback (every 10 seconds) to protect database load
     pollingRef.current = setInterval(async () => {
       const jwt = await getOrUpdateJWT();
       const res = await checkTelegramConnection(jwt);
@@ -73,7 +84,7 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
           onClose();
         }, 2000);
       }
-    }, 3000);
+    }, 10000);
   }, [getOrUpdateJWT, stopPolling, onSuccess, onClose]);
 
   const handleInitialize = React.useCallback(async (force = false) => {
@@ -83,15 +94,45 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
     setDeepLink(null);
     setVerifiedUsername(null);
     setCreatedAt(null);
+    setUserId(null);
     setTimeLeft('03:00');
+
+    // Check client-side session-cache first if not forced
+    if (!force && connectionCache) {
+      const createdTime = new Date(connectionCache.createdAt).getTime();
+      const now = Date.now();
+      const threeMinutesInMs = 3 * 60 * 1000;
+      if (now - createdTime < threeMinutesInMs) {
+        setPairCode(connectionCache.pairCode);
+        setDeepLink(connectionCache.deepLink);
+        setCreatedAt(connectionCache.createdAt);
+        setUserId(connectionCache.userId);
+        setLoading(false);
+        startPolling();
+        return;
+      } else {
+        connectionCache = null;
+      }
+    }
 
     try {
       const jwt = await getOrUpdateJWT();
       const res = await initializeTelegramConnection(jwt, force);
-      if (res.success && res.pairCode && res.deepLink) {
+      if (res.success && res.pairCode && res.deepLink && res.userId) {
         setPairCode(res.pairCode);
         setDeepLink(res.deepLink);
-        setCreatedAt(res.createdAt || new Date().toISOString());
+        const codeCreatedAt = res.createdAt || new Date().toISOString();
+        setCreatedAt(codeCreatedAt);
+        setUserId(res.userId);
+
+        // Cache pairing info locally on client
+        connectionCache = {
+          pairCode: res.pairCode,
+          deepLink: res.deepLink,
+          createdAt: codeCreatedAt,
+          userId: res.userId,
+        };
+
         startPolling();
       } else {
         setError(res.error || 'Failed to start verification.');
@@ -102,6 +143,49 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
       setLoading(false);
     }
   }, [getOrUpdateJWT, startPolling]);
+
+  // Real-time Event Subscription (Zero-Database-Read Verification)
+  useEffect(() => {
+    if (!open || !pairCode || verifiedUsername || !userId) return;
+
+    let isSubscribed = true;
+    let unsubscribeFn: (() => void) | null = null;
+
+    const setupRealtime = async () => {
+      try {
+        const { realtime } = await import('@/lib/appwrite/client');
+        const { APPWRITE_CONFIG } = await import('@/lib/appwrite/config');
+        
+        if (!isSubscribed) return;
+
+        const channel = `databases.${APPWRITE_CONFIG.DATABASES.CONNECT}.collections.${APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS}.documents.${userId}`;
+        
+        unsubscribeFn = realtime.subscribe(channel, (response: any) => {
+          const payload = response.payload;
+          if (payload && payload.is_verified) {
+            stopPolling();
+            setVerifiedUsername(payload.tg_username || 'User');
+            setIsVerifying(false);
+            setTimeout(() => {
+              onSuccess(payload.tg_username || 'User');
+              onClose();
+            }, 2000);
+          }
+        });
+      } catch (err) {
+        console.error('Failed to subscribe to realtime connection status:', err);
+      }
+    };
+
+    setupRealtime();
+
+    return () => {
+      isSubscribed = false;
+      if (unsubscribeFn) {
+        unsubscribeFn();
+      }
+    };
+  }, [open, pairCode, verifiedUsername, userId, stopPolling, onSuccess, onClose]);
 
   // Live Expiration Timer Countdown
   useEffect(() => {
