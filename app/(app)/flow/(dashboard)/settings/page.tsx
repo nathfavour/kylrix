@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
     Box, 
     Typography, 
@@ -43,26 +43,9 @@ export default function SettingsPage() {
     // Passkey state
     const [passkeySetupOpen, setPasskeySetupOpen] = useState(false);
     const [passkeyEntries, setPasskeyEntries] = useState<any[]>([]);
-    const [ setLoadingPasskeys] = useState(true);
+    const [loadingPasskeys, setLoadingPasskeys] = useState(true);
 
-    useEffect(() => {
-        setIsPinSet(ecosystemSecurity.isPinSet());
-
-        const unsubscribe = ecosystemSecurity.onStatusChange((unlocked) => {
-            setIsUnlocked(unlocked.isUnlocked);
-        });
-
-        getCurrentUser().then(u => {
-            setUser(u);
-            if (u?.$id) {
-                loadPasskeys(u.$id);
-            }
-        });
-
-        return () => unsubscribe();
-    }, []);
-
-    const loadPasskeys = async (userId: string) => {
+    const loadPasskeys = useCallback(async (userId: string) => {
         try {
             const entries = await AppwriteService.listKeychainEntries(userId);
             const pkEntries = entries.filter((e: any) => e.type === 'passkey').map((e: any) => ({
@@ -76,7 +59,24 @@ export default function SettingsPage() {
         } finally {
             setLoadingPasskeys(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        setIsPinSet(ecosystemSecurity.isPinSet());
+        
+        const unsubscribe = ecosystemSecurity.onStatusChange((unlocked) => {
+            setIsUnlocked(unlocked.isUnlocked);
+        });
+
+        getCurrentUser().then(u => {
+            setUser(u);
+            if (u?.$id) {
+                loadPasskeys(u.$id);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [loadPasskeys]);
 
     const handleRemovePasskey = async (id: string) => {
         if (!window.confirm("Are you sure you want to remove this passkey? This cannot be undone.")) return;
@@ -212,7 +212,11 @@ export default function SettingsPage() {
                                 </Box>
 
                                 <List sx={{ bgcolor: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', p: 0, overflow: 'hidden' }}>
-                                    {passkeyEntries.length === 0 ? (
+                                    {loadingPasskeys ? (
+                                        <Box sx={{ p: 4, textAlign: 'center' }}>
+                                            <CircularProgress size={24} sx={{ color: '#00F0FF' }} />
+                                        </Box>
+                                    ) : passkeyEntries.length === 0 ? (
                                         <Box sx={{ p: 2, textAlign: 'center', opacity: 0.5 }}>
                                             <Typography variant="body2">No passkeys registered.</Typography>
                                         </Box>
@@ -335,8 +339,6 @@ export default function SettingsPage() {
 
                 {/* Discoverability Section */}
                 <DiscoverabilitySettings />
-
-                {/* Workflow Section ... unchanged */}
             </Stack>
 
             <PasskeySetup 

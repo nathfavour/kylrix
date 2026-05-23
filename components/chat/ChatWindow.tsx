@@ -572,7 +572,7 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
         } catch (error: unknown) {
             console.error('Failed to load conversation:', error);
         }
-    }, [conversationId, user]);
+    }, [conversationId, user, startTransition]);
 
     const loadReactions = React.useCallback(async () => {
         try {
@@ -593,7 +593,7 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
         } catch (error: unknown) {
             console.error('Failed to load reactions:', error);
         }
-    }, [conversationId]);
+    }, [conversationId, startTransition]);
 
     const loadMessages = React.useCallback(async () => {
         setLoading(true);
@@ -630,7 +630,7 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
         } finally {
             setLoading(false);
         }
-    }, [conversationId, loadReactions, user]);
+    }, [conversationId, loadReactions, user, startTransition]);
 
     const openReactionPopover = React.useCallback((event: React.MouseEvent<HTMLElement>, messageId: string) => {
         setReactionPopoverAnchorEl(event.currentTarget);
@@ -741,7 +741,7 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
         return () => {
             cancelled = true;
         };
-    }, [messageSenderIds, senderProfiles]);
+    }, [messageSenderIds, senderProfiles, startTransition]);
 
     useEffect(() => {
         if (!messageSenderIds.length) return () => {};
@@ -764,7 +764,7 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
         });
 
         return unsubscribe;
-    }, [messageSenderIds]);
+    }, [messageSenderIds, startTransition]);
 
     useEffect(() => {
         if (conversation?.type !== 'group' || !Array.isArray(conversation?.participants)) return;
@@ -832,7 +832,7 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
         return () => {
             cancelled = true;
         };
-        }, [conversation?.participants, conversation?.type, senderProfiles, user?.$id]);
+        }, [conversation?.participants, conversation?.type, senderProfiles, user?.$id, startTransition]);
 
     useEffect(() => {
         if (!conversationId || !user?.$id) return;
@@ -902,7 +902,7 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
             if (typeof unsub === 'function') unsub();
             else if (unsub?.unsubscribe) unsub.unsubscribe();
         };
-    }, [conversationId, user, user?.$id, loadConversation, loadMessages]);
+    }, [conversationId, user, user?.$id, loadConversation, loadMessages, startTransition]);
 
     useEffect(() => {
         return () => {
@@ -969,7 +969,7 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
             if (typeof unsub === 'function') unsub();
             else if (unsub?.unsubscribe) unsub.unsubscribe();
         };
-    }, [conversationId, user?.$id]);
+    }, [conversationId, user?.$id, startTransition]);
 
     const [clearOptionsOpen, setClearOptionsOpen] = useState(false);
 

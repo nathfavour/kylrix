@@ -187,7 +187,7 @@ export const ChatList = ({ externalQuery = '' }: { externalQuery?: string }) => 
                 return next;
             });
         });
-    }, []);
+    }, [startTransition]);
 
     const handleConversationDeleted = useCallback((conversationId: string) => {
         ChatService.clearConversationPreviewCache(conversationId);
@@ -206,7 +206,7 @@ export const ChatList = ({ externalQuery = '' }: { externalQuery?: string }) => 
             setActivePreviewConversationId((current) => current === conversationId ? null : current);
             setSelectedConversation((current: any) => current?.$id === conversationId ? null : current);
         });
-    }, []);
+    }, [startTransition]);
 
     const loadConversations = React.useCallback(async () => {
         const existingRun = loadConversationsInflightRef.current;
@@ -439,7 +439,7 @@ export const ChatList = ({ externalQuery = '' }: { externalQuery?: string }) => 
                 loadConversationsInflightRef.current = null;
             }
         }
-    }, [user]);
+    }, [user, startTransition]);
 
     useEffect(() => {
         const unsubscribe = ecosystemSecurity.onStatusChange((status) => {
@@ -455,7 +455,7 @@ export const ChatList = ({ externalQuery = '' }: { externalQuery?: string }) => 
         });
 
         return unsubscribe;
-    }, [isUnlocked, loadConversations]);
+    }, [isUnlocked, loadConversations, startTransition]);
 
     useEffect(() => {
         if (!user) return;
@@ -580,7 +580,7 @@ export const ChatList = ({ externalQuery = '' }: { externalQuery?: string }) => 
             if (typeof subscription === 'function') subscription();
             else if (subscription?.unsubscribe) subscription.unsubscribe();
         };
-    }, [user, loadConversations, formatPreviewFromMessage]);
+    }, [user, loadConversations, formatPreviewFromMessage, startTransition]);
 
     if (loading) return (
         <Box sx={{ p: 2 }}>

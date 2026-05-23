@@ -292,7 +292,7 @@ export const CallInterface = ({
                 resolveUserName(p.userId);
             }
         });
-    }, [participantIds, resolveUserName]);
+    }, [participantIds, resolveUserName, participants, userNames]);
 
     // Lazy load/spin Ghost Note
     useEffect(() => {
@@ -512,7 +512,7 @@ export const CallInterface = ({
             }, 0);
             return () => clearTimeout(timer);
         }
-    }, [conversationId, targetId, user, isCaller]);
+    }, [conversationId, targetId, user, isCaller, forceP2p]);
 
     // Determine WebRTC mode: P2P for small groups/DMs, SFU for large groups (>4)
     useEffect(() => {
@@ -648,7 +648,7 @@ export const CallInterface = ({
                 micAudioContextRef.current = null;
             }
         };
-    }, [user, isCaller, autoInitiate, callCode, conversationId, initialMediaSettings.audio, initialMediaSettings.video, isCompanion, targetId]);
+    }, [user, isCaller, autoInitiate, callCode, conversationId, initialMediaSettings.audio, initialMediaSettings.video, isCompanion, targetId, forceP2p, endCall]);
 
     useEffect(() => {
         const stream = localVideoRef.current?.srcObject as MediaStream | null;
