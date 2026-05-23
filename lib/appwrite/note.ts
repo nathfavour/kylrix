@@ -2096,8 +2096,28 @@ export async function uploadNoteAttachment(file: File, userId?: string) {
     console.error('[attachments] uploadNoteAttachment:config_error');
     throw err;
   }
+
+  // Framework Gating and Compression integration
+  const { validateFileUploadLimit, compressImageToWebP, getFileTypeCategory } = await import('@/lib/storage/framework');
+  
+  // 1. Strict size limit check BEFORE compression
   try {
-    const res: any = await uploadFile(bucketId, file, userId);
+    validateFileUploadLimit(file, 'notes_attachments');
+  } catch (gateErr) {
+    throw gateErr;
+  }
+
+  let activeFile = file;
+  if (getFileTypeCategory(file.type, file.name) === 'image') {
+    try {
+      activeFile = await compressImageToWebP(file);
+    } catch (compressErr) {
+      console.warn('[attachments] Client-side image compression failed, falling back to original:', compressErr);
+    }
+  }
+
+  try {
+    const res: any = await uploadFile(bucketId, activeFile, userId);
     return res;
   } catch (e: any) {
     console.error('[attachments] uploadNoteAttachment:error', { bucketId, error: e?.message || String(e) });

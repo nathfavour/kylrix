@@ -6973,20 +6973,6 @@
             "antivirus": true
         },
         {
-            "$id": "covers",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": false,
-            "name": "Cover Images",
-            "enabled": true,
-            "maximumFileSize": 20000000,
-            "allowedFileExtensions": [],
-            "compression": "gzip",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
             "$id": "messages",
             "$permissions": [
                 "read(\"users\")"
