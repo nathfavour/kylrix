@@ -1,0 +1,250 @@
+import { ID, Query } from 'node-appwrite';
+import { createSystemTablesDB } from '@/lib/appwrite-admin';
+import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
+
+// 1. Core Future-Proof Niches
+export type TelemetryNiche = 
+  | 'workspace'      // Notes, Sheets, Document management
+  | 'productivity'   // Tasks, Goals, Calendars, Events
+  | 'connect'        // Chats, Calls, Huddles, Social Moments
+  | 'security'       // Vault, Credentials, Keychains, Passkeys
+  | 'intelligence'   // Smart Assistants, AI Model Routing
+  | 'billing'        // Subscriptions, Tokens, Ledgers
+  | 'system';        // Settings, Devices, Authentication
+
+export type ThreadStatus = 'running' | 'completed' | 'failed';
+export type NotificationType = 'direct' | 'suggested';
+
+const DATABASE_ID = 'whisperrflow';
+const TABLES = {
+  THREADS: 'action_threads',
+  ACTIVITY: 'app_activity_logs',
+  TELEMETRY: 'anonymized_telemetry',
+  NOTIFICATIONS: 'notifications'
+};
+
+/**
+ * Robust Telemetry, Threading, and Notification Orchestrator.
+ * Powered by high-efficiency Server-SDK actions.
+ */
+export const TelemetryService = {
+  /**
+   * Initialize a new action thread to track multi-step nested workflows.
+   */
+  async startThread(params: {
+    niche: TelemetryNiche;
+    app: string;
+    parentThreadId?: string | null;
+  }): Promise<string> {
+    try {
+      const tables = createSystemTablesDB();
+      const threadId = ID.unique();
+
+      await tables.createRow({
+        databaseId: DATABASE_ID,
+        tableId: TABLES.THREADS,
+        rowId: threadId,
+        data: {
+          threadId,
+          parentThreadId: params.parentThreadId || null,
+          niche: params.niche,
+          app: params.app,
+          status: 'running' as ThreadStatus
+        }
+      });
+
+      return threadId;
+    } catch (err) {
+      console.error('[TelemetryService] Failed to start thread:', err);
+      throw err;
+    }
+  },
+
+  /**
+   * Set thread status to completed.
+   */
+  async completeThread(threadId: string): Promise<void> {
+    try {
+      const tables = createSystemTablesDB();
+      const res = await tables.listRows({
+        databaseId: DATABASE_ID,
+        tableId: TABLES.THREADS,
+        queries: [Query.equal('threadId', threadId), Query.limit(1)]
+      });
+
+      const row = res.rows[0];
+      if (row) {
+        await tables.updateRow({
+          databaseId: DATABASE_ID,
+          tableId: TABLES.THREADS,
+          rowId: row.$id,
+          data: { status: 'completed' as ThreadStatus }
+        });
+      }
+    } catch (err) {
+      console.error('[TelemetryService] Failed to complete thread:', err);
+    }
+  },
+
+  /**
+   * Set thread status to failed.
+   */
+  async failThread(threadId: string): Promise<void> {
+    try {
+      const tables = createSystemTablesDB();
+      const res = await tables.listRows({
+        databaseId: DATABASE_ID,
+        tableId: TABLES.THREADS,
+        queries: [Query.equal('threadId', threadId), Query.limit(1)]
+      });
+
+      const row = res.rows[0];
+      if (row) {
+        await tables.updateRow({
+          databaseId: DATABASE_ID,
+          tableId: TABLES.THREADS,
+          rowId: row.$id,
+          data: { status: 'failed' as ThreadStatus }
+        });
+      }
+    } catch (err) {
+      console.error('[TelemetryService] Failed to fail thread:', err);
+    }
+  },
+
+  /**
+   * Record an identified, user-specific activity log.
+   */
+  async recordActivity(params: {
+    userId: string;
+    niche: TelemetryNiche;
+    app: string;
+    action: string;
+    threadId?: string | null;
+    metadata?: Record<string, any> | null;
+  }): Promise<void> {
+    try {
+      const tables = createSystemTablesDB();
+
+      await tables.createRow({
+        databaseId: DATABASE_ID,
+        tableId: TABLES.ACTIVITY,
+        rowId: ID.unique(),
+        data: {
+          userId: params.userId,
+          niche: params.niche,
+          app: params.app,
+          action: params.action,
+          threadId: params.threadId || null,
+          metadata: params.metadata ? JSON.stringify(params.metadata) : null
+        }
+      });
+    } catch (err) {
+      console.error('[TelemetryService] Failed to record activity log:', err);
+    }
+  },
+
+  /**
+   * Record an anonymized behavioral telemetry log.
+   */
+  async recordTelemetry(params: {
+    niche: TelemetryNiche;
+    app: string;
+    action: string;
+    intent?: string | null;
+    threadId?: string | null;
+    metadata?: Record<string, any> | null;
+  }): Promise<void> {
+    try {
+      const tables = createSystemTablesDB();
+
+      await tables.createRow({
+        databaseId: DATABASE_ID,
+        tableId: TABLES.TELEMETRY,
+        rowId: ID.unique(),
+        data: {
+          niche: params.niche,
+          app: params.app,
+          action: params.action,
+          intent: params.intent || null,
+          threadId: params.threadId || null,
+          metadata: params.metadata ? JSON.stringify(params.metadata) : null
+        }
+      });
+    } catch (err) {
+      console.error('[TelemetryService] Failed to record anonymized telemetry:', err);
+    }
+  },
+
+  /**
+   * Create a new multi-recipient live notification pointer.
+   */
+  async sendNotification(params: {
+    originatorId: string;
+    targets: string[];
+    targetPointer?: Record<string, any> | null;
+    type?: NotificationType;
+    metadata?: Record<string, any> | null;
+  }): Promise<void> {
+    try {
+      const tables = createSystemTablesDB();
+      const type = params.type || 'direct';
+
+      await tables.createRow({
+        databaseId: DATABASE_ID,
+        tableId: TABLES.NOTIFICATIONS,
+        rowId: ID.unique(),
+        data: {
+          originatorId: params.originatorId,
+          targets: params.targets,
+          targetPointer: params.targetPointer ? JSON.stringify(params.targetPointer) : null,
+          type,
+          metadata: params.metadata ? JSON.stringify(params.metadata) : null
+        }
+      });
+    } catch (err) {
+      console.error('[TelemetryService] Failed to send notification:', err);
+    }
+  },
+
+  /**
+   * Safely process a notification view/dismissal action.
+   * If the user is the sole target, the notification is physically deleted.
+   * If part of a multi-user group, the user's ID is removed from the targets array.
+   */
+  async readNotification(notificationId: string, userId: string): Promise<void> {
+    try {
+      const tables = createSystemTablesDB();
+      const row = await tables.getRow<any>({
+        databaseId: DATABASE_ID,
+        tableId: TABLES.NOTIFICATIONS,
+        rowId: notificationId
+      });
+
+      if (!row || !Array.isArray(row.targets)) return;
+
+      const remainingTargets = row.targets.filter((id: string) => id !== userId);
+
+      if (remainingTargets.length === 0) {
+        // Sole target read -> physically delete row
+        await tables.deleteRow({
+          databaseId: DATABASE_ID,
+          tableId: TABLES.NOTIFICATIONS,
+          rowId: notificationId
+        });
+      } else {
+        // Multi-recipient -> remove current user from targets list
+        await tables.updateRow({
+          databaseId: DATABASE_ID,
+          tableId: TABLES.NOTIFICATIONS,
+          rowId: notificationId,
+          data: {
+            targets: remainingTargets
+          }
+        });
+      }
+    } catch (err) {
+      console.error('[TelemetryService] Failed to read/dismiss notification:', err);
+    }
+  }
+};
