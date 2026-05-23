@@ -335,4 +335,45 @@ export class AppwriteService {
       return await createSendGhostObjectSecure(data);
     }
   }
+
+  /**
+   * Resiliently logs profile events (such as name or username updates)
+   * into the activity logging tables.
+   */
+  static async recordProfileEvent(data: {
+    type: string;
+    userId: string;
+    newUsername?: string;
+    profilePatch?: any;
+    metadata?: any;
+  }): Promise<void> {
+    try {
+      console.log('[AppwriteService.recordProfileEvent] Event details:', data);
+      
+      // Safe write to the central activity logs collection
+      if (databases && APPWRITE_CONFIG.TABLES.NOTE.ACTIVITY_LOG) {
+        await databases.createDocument(
+          APPWRITE_CONFIG.DATABASES.NOTE,
+          APPWRITE_CONFIG.TABLES.NOTE.ACTIVITY_LOG,
+          ID.unique(),
+          {
+            userId: data.userId,
+            action: data.type === 'username_change' ? 'username_change' : 'profile_update',
+            targetType: 'profile',
+            targetId: data.userId,
+            timestamp: new Date().toISOString(),
+            details: JSON.stringify({
+              patch: data.profilePatch,
+              metadata: data.metadata,
+              newUsername: data.newUsername
+            }).slice(0, 990),
+          }
+        ).catch((dbErr) => {
+          console.warn('[recordProfileEvent] Gracefully skipped database logging:', dbErr?.message || dbErr);
+        });
+      }
+    } catch (e: any) {
+      console.warn('[recordProfileEvent] Resilient failure fallback:', e?.message || e);
+    }
+  }
 }

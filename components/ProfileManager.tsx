@@ -22,6 +22,7 @@ import {
   PhotoCamera as PhotoCameraIcon
 } from '@mui/icons-material';
 import { IdentityAvatar, IdentityName, computeIdentityFlags } from './IdentityBadge';
+import { secureUploadFile } from '@/lib/actions/client-ops';
 
 const storage = new Storage(client);
 const AVATAR_BUCKET_ID = 'profile_pictures';
@@ -29,10 +30,8 @@ const AVATAR_BUCKET_ID = 'profile_pictures';
 const compressImage = (file: File, maxWidth = 512, maxHeight = 512, quality = 0.7): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.readAsDataURL(file);
     reader.onload = (event) => {
       const img = new Image();
-      img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let width = img.width;
@@ -76,8 +75,10 @@ const compressImage = (file: File, maxWidth = 512, maxHeight = 512, quality = 0.
         );
       };
       img.onerror = () => reject(new Error('Failed to load image for compression'));
+      img.src = event.target?.result as string;
     };
     reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.readAsDataURL(file);
   });
 };
 
@@ -154,7 +155,7 @@ export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps)
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (!file.type.startsWith('image/')) {
@@ -166,8 +167,15 @@ export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps)
         return;
       }
       setError(null);
-      setProfilePic(file);
-      setProfilePicUrl(URL.createObjectURL(file));
+      try {
+        const compressed = await compressImage(file, 512, 512, 0.7);
+        setProfilePic(compressed);
+        setProfilePicUrl(URL.createObjectURL(compressed));
+      } catch (err: any) {
+        console.warn('Instant compression failed, using original:', err);
+        setProfilePic(file);
+        setProfilePicUrl(URL.createObjectURL(file));
+      }
     }
   };
 
@@ -223,10 +231,8 @@ export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps)
           if (profilePic.size > 1024 * 1024) {
             throw new Error('Maximum file size of 1MB exceeded.');
           }
-          // Compress the selected image on the client before saving to storage
-          const compressed = await compressImage(profilePic, 512, 512, 0.7);
           const formData = new FormData();
-          formData.append('file', compressed);
+          formData.append('file', profilePic);
           formData.append('bucketId', AVATAR_BUCKET_ID);
           const uploadedFile = await secureUploadFile(formData);
           const oldId = currentPrefs.profilePicId;

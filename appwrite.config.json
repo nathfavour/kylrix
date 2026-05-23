@@ -17,6 +17,11 @@
             "graphql": true,
             "messaging": true
         },
+        "protocols": {
+            "rest": true,
+            "graphql": true,
+            "websocket": true
+        },
         "auth": {
             "methods": {
                 "jwt": true,
@@ -6886,29 +6891,6 @@
             "antivirus": true
         },
         {
-            "$id": "blog_media",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": true,
-            "name": "blog_media",
-            "enabled": true,
-            "maximumFileSize": 52428800,
-            "allowedFileExtensions": [
-                "png",
-                "jpg",
-                "jpeg",
-                "webp",
-                "gif",
-                "mp4",
-                "webm",
-                "svg"
-            ],
-            "compression": "none",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
             "$id": "extension_assets",
             "$permissions": [
                 "read(\"users\")"
@@ -6931,48 +6913,6 @@
             "antivirus": true
         },
         {
-            "$id": "backups",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": true,
-            "name": "backups",
-            "enabled": true,
-            "maximumFileSize": 524288000,
-            "allowedFileExtensions": [
-                "json",
-                "gz",
-                "tar",
-                "zip"
-            ],
-            "compression": "none",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
-            "$id": "temp_uploads",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": true,
-            "name": "temp_uploads",
-            "enabled": true,
-            "maximumFileSize": 20971520,
-            "allowedFileExtensions": [
-                "png",
-                "jpg",
-                "jpeg",
-                "webp",
-                "gif",
-                "pdf",
-                "txt",
-                "md"
-            ],
-            "compression": "none",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
             "$id": "messages",
             "$permissions": [
                 "read(\"users\")"
@@ -6981,90 +6921,6 @@
             "name": "Message Attachments",
             "enabled": true,
             "maximumFileSize": 100000000,
-            "allowedFileExtensions": [],
-            "compression": "gzip",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
-            "$id": "stories",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": false,
-            "name": "Story Media",
-            "enabled": true,
-            "maximumFileSize": 50000000,
-            "allowedFileExtensions": [],
-            "compression": "gzip",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
-            "$id": "posts",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": false,
-            "name": "Post Media",
-            "enabled": true,
-            "maximumFileSize": 100000000,
-            "allowedFileExtensions": [],
-            "compression": "gzip",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
-            "$id": "nfts",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": false,
-            "name": "NFT Images",
-            "enabled": true,
-            "maximumFileSize": 50000000,
-            "allowedFileExtensions": [],
-            "compression": "gzip",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
-            "$id": "stickers",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": false,
-            "name": "Sticker Images",
-            "enabled": true,
-            "maximumFileSize": 5000000,
-            "allowedFileExtensions": [],
-            "compression": "gzip",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
-            "$id": "filters",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": false,
-            "name": "AR Filter Data",
-            "enabled": true,
-            "maximumFileSize": 20000000,
-            "allowedFileExtensions": [],
-            "compression": "gzip",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
-            "$id": "gifs",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": false,
-            "name": "GIF Files",
-            "enabled": true,
-            "maximumFileSize": 10000000,
             "allowedFileExtensions": [],
             "compression": "gzip",
             "encryption": true,
@@ -7080,88 +6936,6 @@
             "enabled": true,
             "maximumFileSize": 50000000,
             "allowedFileExtensions": [],
-            "compression": "gzip",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
-            "$id": "video",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": false,
-            "name": "Video Files",
-            "enabled": true,
-            "maximumFileSize": 500000000,
-            "allowedFileExtensions": [],
-            "compression": "gzip",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
-            "$id": "documents",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": false,
-            "name": "Documents",
-            "enabled": true,
-            "maximumFileSize": 100000000,
-            "allowedFileExtensions": [],
-            "compression": "gzip",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
-            "$id": "userAvatars",
-            "$permissions": [
-                "read(\"users\")"
-            ],
-            "fileSecurity": true,
-            "name": "User Avatars",
-            "enabled": true,
-            "maximumFileSize": 2000000,
-            "allowedFileExtensions": [
-                "jpg",
-                "jpeg",
-                "png",
-                "webp",
-                "avif"
-            ],
-            "compression": "gzip",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
-            "$id": "encryptedDataBackups",
-            "$permissions": [],
-            "fileSecurity": true,
-            "name": "Encrypted Data Backups",
-            "enabled": true,
-            "maximumFileSize": 100000000,
-            "allowedFileExtensions": [
-                "backup",
-                "enc",
-                "json"
-            ],
-            "compression": "gzip",
-            "encryption": true,
-            "antivirus": true
-        },
-        {
-            "$id": "secureDocuments",
-            "$permissions": [],
-            "fileSecurity": true,
-            "name": "Secure Documents",
-            "enabled": true,
-            "maximumFileSize": 50000000,
-            "allowedFileExtensions": [
-                "pdf",
-                "doc",
-                "docx",
-                "txt",
-                "md"
-            ],
             "compression": "gzip",
             "encryption": true,
             "antivirus": true
