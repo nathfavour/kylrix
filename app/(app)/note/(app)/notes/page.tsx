@@ -33,6 +33,7 @@ import { NoteDetailSidebar } from '@/components/ui/NoteDetailSidebar';
 import { sidebarIgnoreProps } from '@/constants/sidebar';
 
 import { NotesErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { PinnedNotesSidebar } from '@/components/ui/PinnedNotesSidebar';
 
 export default function NotesPage() {
   const { 
@@ -667,36 +668,54 @@ export default function NotesPage() {
                   border: '1px solid rgba(255, 255, 255, 0.05)' 
                 }}
               >
-                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3, px: 1 }}>
-                  <Box 
-                    sx={{ 
-                      p: 1, 
-                      bgcolor: 'rgba(236, 72, 153, 0.05)', 
-                      borderRadius: '10px', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      border: '1px solid rgba(236, 72, 153, 0.1)'
-                    }}
-                  >
-                    <PinIcon sx={{ fontSize: 16, color: 'secondary.main', transform: 'rotate(45deg)' }} />
-                  </Box>
-                  <Typography 
-                    variant="h6" 
-                    sx={{ 
-                      fontWeight: 800, 
-                      fontFamily: 'var(--font-clash-display)', 
-                      textTransform: 'uppercase', 
-                      letterSpacing: '0.15em', 
-                      fontSize: '0.75rem', 
-                      color: 'secondary.main',
-                    }}
-                  >
-                    Pinned Notes
-                  </Typography>
+                <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between" sx={{ mb: 3, px: 1 }}>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Box 
+                      sx={{ 
+                        p: 1, 
+                        bgcolor: 'rgba(236, 72, 153, 0.05)', 
+                        borderRadius: '10px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        border: '1px solid rgba(236, 72, 153, 0.1)'
+                      }}
+                    >
+                      <PinIcon sx={{ fontSize: 16, color: 'secondary.main', transform: 'rotate(45deg)' }} />
+                    </Box>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        fontWeight: 800, 
+                        fontFamily: 'var(--font-clash-display)', 
+                        textTransform: 'uppercase', 
+                        letterSpacing: '0.15em', 
+                        fontSize: '0.75rem', 
+                        color: 'secondary.main',
+                      }}
+                    >
+                      Pinned Notes
+                    </Typography>
+                  </Stack>
+
+                  {pinnedNotes.length > 3 && (
+                    <Button 
+                      size="small" 
+                      onClick={() => openSidebar(<PinnedNotesSidebar />, 'pinned-notes')}
+                      sx={{ 
+                        color: 'secondary.main', 
+                        fontWeight: 800, 
+                        textTransform: 'none',
+                        fontSize: '0.75rem',
+                        '&:hover': { bgcolor: 'rgba(236, 72, 153, 0.05)' }
+                      }}
+                    >
+                      See More ({pinnedNotes.length - 3})
+                    </Button>
+                  )}
                 </Stack>
                 <Box sx={gridSx}>
-                  {pinnedNotes.map((note) => (
+                  {pinnedNotes.slice(0, 3).map((note) => (
                     <NoteCard
                       key={note.$id}
                       note={note}

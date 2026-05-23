@@ -469,14 +469,7 @@ export async function pinNote(noteId: string): Promise<string[]> {
   
   if (currentPins.includes(noteId)) return currentPins;
 
-  // Plan-based limits (expiresAt-aware prefs)
-  const limit = hasPaidKylrixPlan(user) ? 10 : 3;
-
-  if (currentPins.length >= limit) {
-    throw new Error(`Pin limit reached (${limit} notes). Upgrade for more pins.`);
-  }
-
-  const newPins = [noteId, ...currentPins].slice(0, 10); // Hard cap 10
+  const newPins = [noteId, ...currentPins].slice(0, 100); // Increased limit to 100
   await account.updatePrefs({ ...user.prefs, pinnedNoteIds: newPins });
   return newPins;
 }

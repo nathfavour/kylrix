@@ -74,13 +74,10 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const sweepInFlightRef = useRef(false);
   const notesInitialInvalidateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  // Plan-based pinning limits for UI
+  // All pinned notes are now free. No plan-based limits.
   const effectivePinnedIds = useMemo(() => {
-    if (!user) return [];
-    const premium = hasPaidKylrixPlan(user);
-    const limit = premium ? 10 : 3;
-    return pinnedIds.slice(0, limit);
-  }, [pinnedIds, user]);
+    return pinnedIds;
+  }, [pinnedIds]);
 
   // Ensure pinned notes are present in the 'notes' array (smart hydration)
   useEffect(() => {
