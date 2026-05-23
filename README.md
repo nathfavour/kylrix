@@ -133,4 +133,10 @@ Open your browser to **`http://localhost:3005`**. For a deeper guide on contribu
 
 ---
 
-**Build freely. Coordinate flawlessly. Work while you sleep.** 🌙
+## 📥 Downloads
+
+The full suite is available at **[www.kylrix.space](https://www.kylrix.space)**.
+
+Currently, 99% of our development effort is focused on the web platform. For native builds (Android, iOS, macOS, and Linux), users must build from source. You can access the source code and build instructions at the [kylrix/kylrix-app](https://github.com/Kylrix/kylrix-app) repository.
+
+---
