@@ -297,111 +297,6 @@
             ]
         },
         {
-            "$id": "67ff06280034908cf08a",
-            "$permissions": [],
-            "databaseId": "67ff05a9000296822396",
-            "name": "tags",
-            "enabled": true,
-            "rowSecurity": true,
-            "columns": [
-                {
-                    "key": "id",
-                    "type": "string",
-                    "required": false,
-                    "array": false,
-                    "size": 256,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "name",
-                    "type": "string",
-                    "required": false,
-                    "array": false,
-                    "size": 256,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "notes",
-                    "type": "string",
-                    "required": false,
-                    "array": true,
-                    "size": 256,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "createdAt",
-                    "type": "datetime",
-                    "required": false,
-                    "array": false,
-                    "default": null,
-                    "format": ""
-                },
-                {
-                    "key": "color",
-                    "type": "string",
-                    "required": false,
-                    "array": false,
-                    "size": 32,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "description",
-                    "type": "string",
-                    "required": false,
-                    "array": false,
-                    "size": 256,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "usageCount",
-                    "type": "integer",
-                    "required": false,
-                    "array": false,
-                    "default": null,
-                    "min": -9223372036854775808,
-                    "max": 9223372036854775807
-                },
-                {
-                    "key": "userId",
-                    "type": "string",
-                    "required": false,
-                    "array": false,
-                    "size": 200,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "nameLower",
-                    "type": "string",
-                    "required": false,
-                    "array": false,
-                    "size": 256,
-                    "default": null,
-                    "encrypt": false
-                }
-            ],
-            "indexes": [
-                {
-                    "key": "idx_tags_user_namelower",
-                    "type": "unique",
-                    "status": "available",
-                    "columns": [
-                        "userId",
-                        "nameLower"
-                    ],
-                    "orders": [
-                        "ASC",
-                        "ASC"
-                    ]
-                }
-            ]
-        },
-        {
             "$id": "comments",
             "$permissions": [],
             "databaseId": "67ff05a9000296822396",
@@ -452,6 +347,20 @@
                     "size": 256,
                     "default": null,
                     "encrypt": false
+                },
+                {
+                    "key": "isPublic",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "isGuest",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
                 }
             ],
             "indexes": [
@@ -473,6 +382,32 @@
                     "columns": [
                         "noteId",
                         "createdAt"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_comments_public",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isPublic"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_comments_guest",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isGuest"
                     ],
                     "orders": [
                         "ASC",
@@ -563,9 +498,39 @@
                     "required": false,
                     "array": false,
                     "default": null
+                },
+                {
+                    "key": "isGuest",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
                 }
             ],
-            "indexes": []
+            "indexes": [
+                {
+                    "key": "idx_extensions_public",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "isPublic"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_extensions_guest",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "isGuest"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                }
+            ]
         },
         {
             "$id": "reactions",
@@ -621,6 +586,20 @@
                     "size": 64,
                     "default": null,
                     "encrypt": false
+                },
+                {
+                    "key": "isPublic",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "isGuest",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
                 }
             ],
             "indexes": [
@@ -650,6 +629,32 @@
                     "orders": [
                         "ASC",
                         "ASC",
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_reactions_public",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isPublic"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_reactions_guest",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isGuest"
+                    ],
+                    "orders": [
                         "ASC",
                         "ASC"
                     ]
@@ -857,108 +862,6 @@
                         "walletAddressLower"
                     ],
                     "orders": [
-                        "ASC"
-                    ]
-                }
-            ]
-        },
-        {
-            "$id": "note_tags",
-            "$permissions": [],
-            "databaseId": "67ff05a9000296822396",
-            "name": "note_tags",
-            "enabled": true,
-            "rowSecurity": true,
-            "columns": [
-                {
-                    "key": "noteId",
-                    "type": "string",
-                    "required": true,
-                    "array": false,
-                    "size": 256,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "tagId",
-                    "type": "string",
-                    "required": true,
-                    "array": false,
-                    "size": 256,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "userId",
-                    "type": "string",
-                    "required": true,
-                    "array": false,
-                    "size": 256,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "createdAt",
-                    "type": "datetime",
-                    "required": false,
-                    "array": false,
-                    "default": null,
-                    "format": ""
-                },
-                {
-                    "key": "tag",
-                    "type": "string",
-                    "required": false,
-                    "array": false,
-                    "size": 256,
-                    "default": null,
-                    "encrypt": false
-                }
-            ],
-            "indexes": [
-                {
-                    "key": "idx_note_tags_note",
-                    "type": "key",
-                    "status": "available",
-                    "columns": [
-                        "noteId"
-                    ],
-                    "orders": [
-                        "ASC"
-                    ]
-                },
-                {
-                    "key": "idx_note_tags_tag",
-                    "type": "key",
-                    "status": "available",
-                    "columns": [
-                        "tagId"
-                    ],
-                    "orders": [
-                        "ASC"
-                    ]
-                },
-                {
-                    "key": "idx_note_tags_user",
-                    "type": "key",
-                    "status": "available",
-                    "columns": [
-                        "userId"
-                    ],
-                    "orders": [
-                        "ASC"
-                    ]
-                },
-                {
-                    "key": "idx_note_tags_note_tag",
-                    "type": "unique",
-                    "status": "available",
-                    "columns": [
-                        "noteId",
-                        "tagId"
-                    ],
-                    "orders": [
-                        "ASC",
                         "ASC"
                     ]
                 }
@@ -1348,6 +1251,196 @@
                         "status"
                     ],
                     "orders": [
+                        "ASC"
+                    ]
+                }
+            ]
+        },
+        {
+            "$id": "67ff06280034908cf08a",
+            "$permissions": [],
+            "databaseId": "67ff05a9000296822396",
+            "name": "tags",
+            "enabled": true,
+            "rowSecurity": true,
+            "columns": [
+                {
+                    "key": "name",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "nameLower",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "metadata",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 65535,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "isPublic",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "isGuest",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "usageCount",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": 0,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "idx_tags_user_name",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "nameLower"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                }
+            ]
+        },
+        {
+            "$id": "resource_tags",
+            "$permissions": [],
+            "databaseId": "67ff05a9000296822396",
+            "name": "resource_tags",
+            "enabled": true,
+            "rowSecurity": true,
+            "columns": [
+                {
+                    "key": "tagId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "tag",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "resourceId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "resourceType",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "metadata",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 65535,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "isPublic",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "isGuest",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "idx_resource_tags_lookup",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "resourceId",
+                        "resourceType"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_resource_tags_relation",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "tagId",
+                        "resourceType"
+                    ],
+                    "orders": [
+                        "ASC",
                         "ASC"
                     ]
                 }
@@ -1744,6 +1837,27 @@
                     "size": 5000,
                     "default": null,
                     "encrypt": true
+                },
+                {
+                    "key": "isPublic",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "isGuest",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "isShared",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
                 }
             ],
             "indexes": [
@@ -1831,6 +1945,45 @@
                     ],
                     "orders": [
                         null
+                    ]
+                },
+                {
+                    "key": "idx_credentials_public",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isPublic"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_credentials_guest",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isGuest"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_credentials_shared",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isShared"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
                     ]
                 }
             ]
@@ -2429,6 +2582,27 @@
                     "size": 255,
                     "default": null,
                     "encrypt": false
+                },
+                {
+                    "key": "isPublic",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "isGuest",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "isShared",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
                 }
             ],
             "indexes": [
@@ -2488,6 +2662,45 @@
                     ],
                     "orders": [
                         null
+                    ]
+                },
+                {
+                    "key": "idx_totp_public",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isPublic"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_totp_guest",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isGuest"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_totp_shared",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isShared"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
                     ]
                 }
             ]
