@@ -3,11 +3,16 @@ import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { sweepStaleLiveCallPresenceBatch } from '@/lib/services/internal/live-call-presence-reconcile';
 
-export type SystemRuntimeJobId = 'cleanup_expired_public_ghost_notes' | 'sweep_stale_live_call_presence';
+export type SystemRuntimeJobId = 
+  | 'cleanup_expired_public_ghost_notes' 
+  | 'sweep_stale_live_call_presence'
+  | 'sweep_stale_action_threads';
 
 const SYSTEM_JOB_IDS = new Set<SystemRuntimeJobId>([
   'cleanup_expired_public_ghost_notes',
-  'sweep_stale_live_call_presence']);
+  'sweep_stale_live_call_presence',
+  'sweep_stale_action_threads'
+]);
 
 export function isSystemRuntimeJobId(job: string): job is SystemRuntimeJobId {
   return SYSTEM_JOB_IDS.has(job as SystemRuntimeJobId);
@@ -52,6 +57,42 @@ async function cleanupExpiredPublicGhostNotes(payload?: { batchSize?: number }) 
   return { scanned: res.documents.length, deleted };
 }
 
+async function sweepStaleActionThreads(payload?: { batchSize?: number }) {
+  const { databases } = createSystemClient();
+  const DATABASE_ID = 'whisperrflow';
+  const THREADS_TABLE = 'action_threads';
+  const cap = Math.min(Math.max(Number(payload?.batchSize) || 100, 1), 500);
+
+  // Calculate 2 hours ago in ISO format
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+
+  try {
+    const res = await databases.listDocuments(DATABASE_ID, THREADS_TABLE, [
+      Query.equal('status', 'running'),
+      Query.lessThan('$updatedAt', twoHoursAgo),
+      Query.limit(cap)
+    ]);
+
+    let updated = 0;
+    for (const doc of res.documents) {
+      try {
+        await databases.updateDocument(DATABASE_ID, THREADS_TABLE, doc.$id, {
+          status: 'failed'
+        });
+        updated += 1;
+      } catch (err) {
+        console.error(`[sweepStaleActionThreads] Failed to update thread ${doc.$id}:`, err);
+        continue;
+      }
+    }
+
+    return { scanned: res.documents.length, updated };
+  } catch (err) {
+    console.error('[sweepStaleActionThreads] Failed to list or update stale threads:', err);
+    throw err;
+  }
+}
+
 export async function executeSystemRuntimeJob(
   job: SystemRuntimeJobId,
   payload?: { batchSize?: number; sweepLimit?: number },
@@ -61,6 +102,8 @@ export async function executeSystemRuntimeJob(
       return cleanupExpiredPublicGhostNotes({ batchSize: payload?.batchSize });
     case 'sweep_stale_live_call_presence':
       return sweepStaleLiveCallPresenceBatch(payload?.sweepLimit ?? payload?.batchSize ?? 160);
+    case 'sweep_stale_action_threads':
+      return sweepStaleActionThreads({ batchSize: payload?.batchSize });
     default:
       throw new Error('Unsupported system job');
   }
