@@ -101,18 +101,27 @@ export function NewProjectDrawer() {
       setSummary(template?.summary || '');
       setVisibility('private');
       setIsExpanded(false);
-      setSelectedResourceId('');
+
+      const preSelectedId = drawerData?.selectedResourceId || drawerData?.formId || '';
+      setSelectedResourceId(preSelectedId);
       
       // Determine if we need a picker step
       const needsPicker = ['form-to-project', 'idea-to-execution', 'service-desk', 'wiki-knowledge-hub', 'event-command-center', 'product-roadmap'].includes(template?.id);
-      if (needsPicker) {
+      if (needsPicker && !preSelectedId) {
           setStep(1);
           fetchResources();
       } else {
           setStep(2);
+          if (preSelectedId) {
+              if (drawerData?.formTitle) {
+                  setTitle(drawerData.formTitle);
+                  setSummary(drawerData.formDescription || '');
+              }
+              fetchResources();
+          }
       }
     }
-  }, [isOpen, template, fetchResources]);
+  }, [isOpen, template, fetchResources, drawerData]);
 
   const handleResourceSelect = (id: string) => {
     setSelectedResourceId(id);

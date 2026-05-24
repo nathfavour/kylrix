@@ -48,6 +48,7 @@ import { useRouter } from 'next/navigation';
 import { useDataNexus } from '@/context/DataNexusContext';
 
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+import { FolderKanban } from 'lucide-react';
 
 export default function FormsDashboard() {
     const { user } = useAuth();
@@ -309,16 +310,62 @@ export default function FormsDashboard() {
                                                                     <Chip label="UNSYNCED DRAFT" size="small" sx={{ fontSize: '10px', fontWeight: 900, bgcolor: alpha('#FFB020', 0.1), color: '#FFB020', border: '1px solid rgba(255, 176, 32, 0.2)' }} />
                                                                 )}
                                                             </Stack>
-                                                            <IconButton 
-                                                                size="small" 
-                                                                sx={{ opacity: 0.4 }}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleMenuOpen(e, form);
-                                                                }}
-                                                            >
-                                                                <MoreIcon />
-                                                            </IconButton>
+                                                            <Stack direction="row" spacing={0.5} alignItems="center">
+                                                                <Tooltip title="Activate Form-to-Project Workflow">
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        sx={{
+                                                                            color: '#6366F1',
+                                                                            opacity: 0.75,
+                                                                            '&:hover': { opacity: 1, bgcolor: 'rgba(99,102,241,0.08)' }
+                                                                        }}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            openDrawer('new-project', {
+                                                                                template: {
+                                                                                    id: 'form-to-project',
+                                                                                    title: 'Analyze Responses', 
+                                                                                    summary: 'Convert intake forms into context and auto-spin execution tasks.',
+                                                                                    color: '#6366F1'
+                                                                                },
+                                                                                formId: form.$id,
+                                                                                selectedResourceId: form.$id,
+                                                                                formTitle: form.title,
+                                                                                formDescription: form.description || ''
+                                                                            });
+                                                                        }}
+                                                                    >
+                                                                        <Box sx={{ position: 'relative', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                            <FolderKanban size={16} strokeWidth={2.5} style={{ color: '#6366F1' }} />
+                                                                            <Box sx={{
+                                                                                position: 'absolute',
+                                                                                bottom: -2,
+                                                                                right: -2,
+                                                                                bgcolor: '#000',
+                                                                                borderRadius: '4px',
+                                                                                p: '1px',
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center',
+                                                                                border: '1px solid rgba(255,255,255,0.15)',
+                                                                                lineHeight: 0
+                                                                            }}>
+                                                                                <FormIcon sx={{ fontSize: 9, color: '#10B981' }} />
+                                                                            </Box>
+                                                                        </Box>
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                                <IconButton 
+                                                                    size="small" 
+                                                                    sx={{ opacity: 0.4 }}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleMenuOpen(e, form);
+                                                                    }}
+                                                                >
+                                                                    <MoreIcon />
+                                                                </IconButton>
+                                                            </Stack>
                                                         </Box>
                                                         <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: '#F2F2F2' }}>{form.title}</Typography>
                                                         <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4, minHeight: '3em', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
