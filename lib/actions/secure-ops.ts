@@ -3166,6 +3166,21 @@ export async function listRowsSecure(databaseId: string, tableId: string, querie
   }
 }
 
+export async function getRowSecure(databaseId: string, tableId: string, rowId: string) {
+  const tables = createSystemTablesDB();
+  try {
+    const res = await tables.getRow({
+      databaseId,
+      tableId,
+      rowId,
+    });
+    return JSON.parse(JSON.stringify(res));
+  } catch (error: any) {
+    console.error('[getRowSecure] Failed:', error?.message);
+    throw error;
+  }
+}
+
 export async function getFilePreviewSecure(bucketId: string, fileId: string, width = 100, height = 100) {
   const { storage } = createSystemClient();
   try {
