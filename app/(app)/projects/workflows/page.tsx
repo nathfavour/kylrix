@@ -29,8 +29,11 @@ import {
   listWorkflowsAction, 
   deleteWorkflowAction 
 } from '@/lib/actions/workflows';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 
 export default function WorkflowsPage() {
+  const router = useRouter();
   const { 
     isRecording, 
     startRecording, 
