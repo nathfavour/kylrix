@@ -11,6 +11,10 @@ import {
     InputAdornment,
     useTheme,
     useMediaQuery,
+    FormControlLabel,
+    Switch,
+    Divider,
+    Stack
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -33,6 +37,10 @@ export const EditProfileModal = ({ open, onClose, profile, onUpdate }: EditProfi
     const [username, setUsername] = useState(profile?.username || '');
     const [bio, setBio] = useState(profile?.bio || '');
     const [displayName, setDisplayName] = useState(profile?.displayName || '');
+    const [isPublic, setIsPublic] = useState<boolean>(profile?.isPublic ?? true);
+    const [isGuest, setIsGuest] = useState<boolean>(profile?.isGuest ?? true);
+    const [isAvatar, setIsAvatar] = useState<boolean>(profile?.isAvatar ?? true);
+    const [isContact, setIsContact] = useState<boolean>(profile?.isContact ?? true);
     const [isChecking, setIsChecking] = useState(false);
     const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(false);
@@ -43,6 +51,10 @@ export const EditProfileModal = ({ open, onClose, profile, onUpdate }: EditProfi
             setUsername(profile.username || '');
             setBio(profile.bio || '');
             setDisplayName(profile.displayName || '');
+            setIsPublic(profile.isPublic ?? true);
+            setIsGuest(profile.isGuest ?? true);
+            setIsAvatar(profile.isAvatar ?? true);
+            setIsContact(profile.isContact ?? true);
         }
     }, [profile, open]);
 
@@ -99,7 +111,11 @@ export const EditProfileModal = ({ open, onClose, profile, onUpdate }: EditProfi
                 username,
                 bio,
                 displayName,
-                publicKey
+                publicKey,
+                isPublic,
+                isGuest,
+                isAvatar,
+                isContact
             });
 
             // Update global account name and username preference for ecosystem coherence
@@ -182,6 +198,51 @@ export const EditProfileModal = ({ open, onClose, profile, onUpdate }: EditProfi
                         onChange={(e) => setBio(e.target.value)}
                         placeholder="Tell the world about yourself..."
                     />
+
+                    <Divider sx={{ my: 1, opacity: 0.1 }} />
+
+                    <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary' }}>
+                        Privacy & Visibility
+                    </Typography>
+                    
+                    <Stack spacing={1}>
+                        <FormControlLabel
+                            control={<Switch size="small" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />}
+                            label={
+                                <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 700 }}>Public Profile</Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>Allow anyone to find your profile</Typography>
+                                </Box>
+                            }
+                        />
+                        <FormControlLabel
+                            control={<Switch size="small" checked={isGuest} onChange={(e) => setIsGuest(e.target.checked)} disabled={!isPublic} />}
+                            label={
+                                <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 700 }}>Guest Visibility</Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>Allow non-logged in users to see your profile</Typography>
+                                </Box>
+                            }
+                        />
+                        <FormControlLabel
+                            control={<Switch size="small" checked={isAvatar} onChange={(e) => setIsAvatar(e.target.checked)} />}
+                            label={
+                                <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 700 }}>Show Avatar</Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>Make your profile picture visible to others</Typography>
+                                </Box>
+                            }
+                        />
+                        <FormControlLabel
+                            control={<Switch size="small" checked={isContact} onChange={(e) => setIsContact(e.target.checked)} />}
+                            label={
+                                <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 700 }}>Allow Contact</Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>Allow others to send you direct messages</Typography>
+                                </Box>
+                            }
+                        />
+                    </Stack>
                 </Box>
                 {error && (
                     <Typography color="error" variant="body2" sx={{ mt: 2 }}>

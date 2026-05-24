@@ -201,6 +201,10 @@ export const UsersService = {
                     displayName: data.displayName || profile.displayName,
                     bio: data.bio ?? profile.bio,
                     publicKey: data.publicKey ?? profile.publicKey,
+                    isPublic: data.isPublic ?? profile.isPublic,
+                    isGuest: data.isGuest ?? profile.isGuest,
+                    isAvatar: data.isAvatar ?? profile.isAvatar,
+                    isContact: data.isContact ?? profile.isContact,
                 },
                 metadata: {
                     source: 'vault.users-service.updateProfile',
