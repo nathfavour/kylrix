@@ -187,18 +187,8 @@ export type Notes = Models.Row & {
     metadata: string | null;
     attachments: string | null;
     format: string | null;
-}
-
-export type Tags = Models.Row & {
-    id: string | null;
-    name: string | null;
-    notes: string[] | null;
-    createdAt: string | null;
-    color: string | null;
-    description: string | null;
-    usageCount: number | null;
-    userId: string | null;
-    nameLower: string | null;
+    isGhost: boolean;
+    isThread: boolean;
 }
 
 export type Comments = Models.Row & {
@@ -207,6 +197,8 @@ export type Comments = Models.Row & {
     content: string;
     createdAt: string;
     parentCommentId: string | null;
+    isPublic: boolean | null;
+    isGuest: boolean | null;
 }
 
 export type Extensions = Models.Row & {
@@ -219,6 +211,7 @@ export type Extensions = Models.Row & {
     createdAt: string | null;
     updatedAt: string | null;
     isPublic: boolean | null;
+    isGuest: boolean | null;
 }
 
 export type Reactions = Models.Row & {
@@ -227,6 +220,8 @@ export type Reactions = Models.Row & {
     createdAt: string;
     targetId: string;
     userId: string;
+    isPublic: boolean | null;
+    isGuest: boolean | null;
 }
 
 export type ActivityLog = Models.Row & {
@@ -244,20 +239,6 @@ export type Settings = Models.Row & {
     createdAt: string | null;
     updatedAt: string | null;
     mode: string | null;
-}
-
-export type WalletMap = Models.Row & {
-    walletAddressLower: string;
-    userId: string;
-    updatedAt: string | null;
-}
-
-export type NoteTags = Models.Row & {
-    noteId: string;
-    tagId: string;
-    userId: string;
-    createdAt: string | null;
-    tag: string | null;
 }
 
 export type Subscriptions = Models.Row & {
@@ -295,6 +276,27 @@ export type BillingWebhookLogs = Models.Row & {
     errorMessage: string | null;
     metadata: string | null;
     createdAt: string | null;
+}
+
+export type Tags = Models.Row & {
+    name: string;
+    nameLower: string;
+    userId: string | null;
+    metadata: string | null;
+    isPublic: boolean;
+    isGuest: boolean;
+    usageCount: number;
+}
+
+export type ResourceTags = Models.Row & {
+    tagId: string;
+    tag: string;
+    resourceId: string;
+    resourceType: string;
+    userId: string | null;
+    metadata: string | null;
+    isPublic: boolean;
+    isGuest: boolean;
 }
 
 export type SecurityLogs = Models.Row & {
@@ -337,6 +339,9 @@ export type Credentials = Models.Row & {
     username: string | null;
     sharedFrom: string | null;
     attachments: string | null;
+    isPublic: boolean | null;
+    isGuest: boolean | null;
+    isShared: boolean | null;
 }
 
 export type Identities = Models.Row & {
@@ -383,6 +388,9 @@ export type Folders = Models.Row & {
     deletedAt: string | null;
     createdAt: string | null;
     updatedAt: string | null;
+    isPublic: boolean | null;
+    isGuest: boolean | null;
+    isShared: boolean | null;
 }
 
 export type TotpSecrets = Models.Row & {
@@ -403,6 +411,9 @@ export type TotpSecrets = Models.Row & {
     createdAt: string | null;
     updatedAt: string | null;
     sharedFrom: string | null;
+    isPublic: boolean | null;
+    isGuest: boolean | null;
+    isShared: boolean | null;
 }
 
 export type Keychain = Models.Row & {
@@ -423,6 +434,9 @@ export type KeyMapping = Models.Row & {
     grantee: string;
     wrappedKey: string;
     metadata: string | null;
+    isPublic: boolean | null;
+    isGuest: boolean | null;
+    isShared: boolean | null;
 }
 
 export type Wallets = Models.Row & {

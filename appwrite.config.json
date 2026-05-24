@@ -819,55 +819,6 @@
             ]
         },
         {
-            "$id": "walletMap",
-            "$permissions": [],
-            "databaseId": "67ff05a9000296822396",
-            "name": "walletMap",
-            "enabled": true,
-            "rowSecurity": true,
-            "columns": [
-                {
-                    "key": "walletAddressLower",
-                    "type": "string",
-                    "required": true,
-                    "array": false,
-                    "size": 66,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "userId",
-                    "type": "string",
-                    "required": true,
-                    "array": false,
-                    "size": 256,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "updatedAt",
-                    "type": "datetime",
-                    "required": false,
-                    "array": false,
-                    "default": null,
-                    "format": ""
-                }
-            ],
-            "indexes": [
-                {
-                    "key": "unique_walletAddressLower",
-                    "type": "key",
-                    "status": "available",
-                    "columns": [
-                        "walletAddressLower"
-                    ],
-                    "orders": [
-                        "ASC"
-                    ]
-                }
-            ]
-        },
-        {
             "$id": "subscriptions",
             "$permissions": [],
             "databaseId": "67ff05a9000296822396",
@@ -2387,6 +2338,27 @@
                     "array": false,
                     "default": null,
                     "format": ""
+                },
+                {
+                    "key": "isPublic",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "isGuest",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "isShared",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
                 }
             ],
             "indexes": [
@@ -2425,6 +2397,45 @@
                         "sortOrder"
                     ],
                     "orders": [
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_folders_public",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isPublic"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_folders_guest",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isGuest"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_folders_shared",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isShared"
+                    ],
+                    "orders": [
+                        "ASC",
                         "ASC"
                     ]
                 }
@@ -2855,6 +2866,27 @@
                     "size": 5000,
                     "default": null,
                     "encrypt": false
+                },
+                {
+                    "key": "isPublic",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "isGuest",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "isShared",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
                 }
             ],
             "indexes": [
@@ -2893,6 +2925,45 @@
                     ],
                     "orders": [
                         "ASC",
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_km_public",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "grantee",
+                        "isPublic"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_km_guest",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "grantee",
+                        "isGuest"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_km_shared",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "grantee",
+                        "isShared"
+                    ],
+                    "orders": [
                         "ASC",
                         "ASC"
                     ]

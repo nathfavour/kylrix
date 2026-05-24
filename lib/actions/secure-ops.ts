@@ -2796,6 +2796,8 @@ export async function createGhostNoteSecure(data: {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       metadata,
+      isGhost: true,
+      isThread: false,
     },
     permissions: [`read("any")`],
   });
@@ -2838,6 +2840,8 @@ export async function createSendGhostObjectSecure(data: {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       metadata,
+      isGhost: true,
+      isThread: false,
     },
     permissions: [`read("any")`],
   });
@@ -2869,6 +2873,8 @@ export async function createGhostNoteForCallSecure(callId: string, title?: strin
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       metadata,
+      isGhost: true,
+      isThread: true,
     },
     permissions: [`read("any")`],
   });
@@ -3433,6 +3439,8 @@ export async function createGhostNoteForProjectSecure(projectId: string, title?:
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       metadata,
+      isGhost: true,
+      isThread: true,
     },
     permissions: [`read("any")`],
   });
@@ -3694,6 +3702,8 @@ export async function createGhostNoteForResourceSecure(
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       metadata,
+      isGhost: true,
+      isThread: true,
     },
     permissions: [`read("any")`],
   });
