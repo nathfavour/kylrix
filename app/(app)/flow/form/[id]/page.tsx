@@ -58,8 +58,8 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
 
                 const isOwner = user?.$id === data.userId;
 
-                if (!isOwner && data.status !== 'published') {
-                    setError('This form is not currently accepting submissions.');
+                if (!isOwner && data.status !== 'published' && data.isPublic !== true) {
+                    setError('This form is private and not currently accepting public submissions.');
                     return;
                 }
 

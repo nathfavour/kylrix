@@ -964,7 +964,7 @@ export function ProfileRedesign({ username }: ProfileProps) {
               <Stack spacing={2.25} alignItems={{ xs: 'center', lg: 'flex-start' }}>
                 <Box sx={{ position: 'relative' }}>
                   <IdentityAvatar
-                    fileId={profile?.avatar}
+                    fileId={profile?.isAvatar !== false ? profile?.avatar : null}
                     alt={getIdentityLabel(profile)}
                     fallback={getIdentityLabel(profile).slice(0, 1).toUpperCase()}
                     verified={identityFlags.verified}
@@ -1092,24 +1092,26 @@ export function ProfileRedesign({ username }: ProfileProps) {
                       >
                         {followLoading ? 'Updating...' : isFollowing ? 'Following' : 'Follow'}
                       </Button>
-                      <Button
-                        variant="outlined"
-                        startIcon={<Send size={16} />}
-                        onClick={handleMessage}
-                        disabled={!currentUser}
-                        sx={{
-                          borderColor: 'rgba(255,255,255,0.12)',
-                          color: 'rgba(255,255,255,0.84)',
-                          fontWeight: 800,
-                          borderRadius: 3,
-                          px: 2.25,
-                          py: 1,
-                          minHeight: 44,
-                          textTransform: 'none',
-                        }}
-                      >
-                        Message
-                      </Button>
+                      {(profile?.isContact !== false || isOwnProfile) && (
+                        <Button
+                          variant="outlined"
+                          startIcon={<Send size={16} />}
+                          onClick={handleMessage}
+                          disabled={!currentUser}
+                          sx={{
+                            borderColor: 'rgba(255,255,255,0.12)',
+                            color: 'rgba(255,255,255,0.84)',
+                            fontWeight: 800,
+                            borderRadius: 3,
+                            px: 2.25,
+                            py: 1,
+                            minHeight: 44,
+                            textTransform: 'none',
+                          }}
+                        >
+                          Message
+                        </Button>
+                      )}
                       <Button
                         variant="outlined"
                         onClick={handleTip}

@@ -28,24 +28,32 @@ export const FormsService = {
      * Get a form by ID (Public Access Support)
      */
     async getForm(formId: string) {
-        // We use listRows with a query instead of getRow to bypass strict ownership 
-        // if the form is published and the user is anonymous.
-        // Also ensure we target the correct table ID from config
-        const res = await tablesDB.listRows<Forms>({
-            databaseId: DATABASE_ID,
-            tableId: FORMS_TABLE,
-            queries: [
-                Query.equal('$id', formId),
-                Query.limit(1),
-                Query.select(['$id', 'userId', 'status', 'settings', 'title', 'description', 'schema', 'isPublic', 'isGuest', '$createdAt'])
-            ]
-        });
+        try {
+            const res = await (tablesDB as any).listRows({
+                databaseId: DATABASE_ID,
+                tableId: FORMS_TABLE,
+                queries: [
+                    Query.equal('$id', formId),
+                    Query.limit(1),
+                    Query.select(['$id', 'userId', 'status', 'settings', 'title', 'description', 'schema', 'isPublic', 'isGuest', '$createdAt'])
+                ]
+            });
 
-        if (res.total === 0) {
-            throw new Error(`Form [${formId}] not found or inaccessible in ${FORMS_TABLE}.`);
+            if (res.total > 0) return res.rows[0];
+        } catch (_e) {
+            console.warn('[FormsService] Client-side getForm failed, trying secure fallback...');
         }
 
-        return res.rows[0];
+        // Secure Fallback: use server-side action which has its own permission engine
+        const { getRowSecure } = await import('@/lib/actions/secure-ops');
+        try {
+            const doc = await getRowSecure(DATABASE_ID, FORMS_TABLE, formId);
+            if (doc) return doc;
+        } catch (secureErr) {
+            console.error('[FormsService] Secure getForm fallback failed:', secureErr);
+        }
+
+        throw new Error(`Form [${formId}] not found or inaccessible.`);
     },
 
     /**

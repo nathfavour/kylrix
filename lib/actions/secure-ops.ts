@@ -1022,27 +1022,15 @@ export async function verifyResourcePermissionSecure(params: {
     return false;
   }
 
-  // 1. Hierarchical Check of Umbrella Visibility Flags (Continuous Access Control)
-  // Umbrella flags strictly only grant 'read' access.
-  const isGuest = doc.isGuest === true || String(doc.isGuest) === 'true';
-  let isPublic = doc.isPublic === true || String(doc.isPublic) === 'true';
+  // 1. Native Visibility Flags (isPublic, isGuest)
+  // These grant universal read-only access based on the new native columns.
+  const isGuest = doc.isGuest === true;
+  const isPublic = doc.isPublic === true;
 
-  if (!isPublic) {
-    try {
-      const rawMeta = doc[metadataField];
-      const m = typeof rawMeta === 'string' ? JSON.parse(rawMeta) : rawMeta || {};
-      if (m.isPublic === true || String(m.isPublic) === 'true' || m.publicity === true || String(m.publicity) === 'true') {
-        isPublic = true;
-      }
-    } catch {}
-  }
-
-  let linkedToProjectGuest = false;
-  let linkedToProjectPublic = false;
-  let linkedToProjectGeneral = false;
-  let memberOfLinkedProject = false;
-
-  if (documentId) {
+  // 2. Project-Level Inheritance (isGeneral)
+  // If a resource is linked to a project with isGeneral = true, all project members inherit read access.
+  let isInheritedGeneralRead = false;
+  if (action === 'read' && documentId) {
     try {
       const tables = createSystemTablesDB();
       const objLinks = await tables.listRows({
@@ -1052,66 +1040,47 @@ export async function verifyResourcePermissionSecure(params: {
       });
       
       for (const link of objLinks.rows) {
-        if (link.isGuest === true || String(link.isGuest) === 'true') {
-          linkedToProjectGuest = true;
-        }
-        if (link.isPublic === true || String(link.isPublic) === 'true') {
-          linkedToProjectPublic = true;
-        }
-        
-        // isGeneral defaults to true if not explicitly set to false
-        if (link.isGeneral !== false && String(link.isGeneral) !== 'false') {
-          linkedToProjectGeneral = true;
-          
-          if (actorId) {
-            // Fetch parent project to verify ownership/collaboration
-            const project = await tables.getRow({
-              databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
-              tableId: 'projects',
-              rowId: link.projectId
-            }).catch(() => null);
-            
-            if (project) {
-              if (project.ownerId === actorId) {
-                memberOfLinkedProject = true;
-              } else {
-                const projectCollabs = await tables.listRows({
-                  databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
-                  tableId: 'project_objects',
-                  queries: [
+        if (link.isGeneral === true) {
+          const project = await getRowCached({
+            databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
+            tableId: 'projects',
+            rowId: link.projectId
+          });
+
+          if (project) {
+            if (project.ownerId === actorId) {
+                isInheritedGeneralRead = true;
+                break;
+            }
+            // Check if current user is an explicit collaborator in that project
+            const projectCollabs = await tables.listRows({
+                databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
+                tableId: 'project_objects',
+                queries: [
                     Query.equal('projectId', link.projectId),
                     Query.equal('entityKind', 'collaborator'),
                     Query.equal('entityId', actorId)
-                  ] as any
-                }).catch(() => ({ rows: [] }));
-                
-                if (projectCollabs.rows.length > 0) {
-                  memberOfLinkedProject = true;
-                }
-              }
+                ] as any
+            }).catch(() => ({ rows: [] }));
+            
+            if (projectCollabs.rows.length > 0) {
+                isInheritedGeneralRead = true;
+                break;
             }
           }
         }
       }
     } catch (err) {
-      console.error('[verifyResourcePermissionSecure] Project objects check failed:', err);
+      console.error('[verifyResourcePermissionSecure] Inheritance check failed:', err);
     }
   }
 
-  // Precedence Logic: isGuest -> isPublic -> isGeneral -> Collaborators lookup
   if (action === 'read') {
-    if (isGuest || linkedToProjectGuest) {
-      return true;
-    }
-    if (isPublic || linkedToProjectPublic) {
-      return true;
-    }
-    if (linkedToProjectGeneral && memberOfLinkedProject) {
-      return true;
-    }
+    if (isPublic || isInheritedGeneralRead) return true;
+    if (isGuest && !actorId) return true; 
   }
 
-  // 2. Discrete Access Control: Collaborators table / legacy metadata.collaborators
+  // 3. Discrete Access Control: Collaborators table / legacy metadata.collaborators
   let matchedCollabRole: 'viewer' | 'editor' | 'admin' | null = null;
 
   if (actorId && documentId) {

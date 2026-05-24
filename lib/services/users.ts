@@ -92,14 +92,12 @@ async function processProfileBatch() {
     if (ids.length === 0) return;
 
     try {
+        const { listRowsSecure } = await import('@/lib/actions/secure-ops');
         const { Query } = await import('appwrite');
-        const res = await (tablesDB as any).listRows({
-            databaseId: DATABASE_ID,
-            tableId: TABLE_ID,
-            queries: [
-                Query.equal('userId', ids),
-                Query.limit(ids.length)],
-        });
+        const res = await listRowsSecure(DATABASE_ID, TABLE_ID, [
+            Query.equal('userId', ids),
+            Query.limit(ids.length)
+        ]);
 
         const found = new Map<string, any>();
         res.rows.forEach((row: any) => {
