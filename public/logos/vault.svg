@@ -1,0 +1,8 @@
+<svg viewBox="0 0 100 100" width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left Hemisphere (Vault Emerald) -->
+  <polygon points="50,10 15,30 15,70 50,90" fill="#10B981" />
+  <!-- Right Hemisphere (Ecosystem Indigo) -->
+  <polygon points="50,10 85,30 85,70 50,90" fill="#6366F1" />
+  <!-- Center Cutout (Slanted Square) -->
+  <rect x="38" y="38" width="24" height="24" fill="#0A0908" transform="rotate(45 50 50)" />
+</svg>
