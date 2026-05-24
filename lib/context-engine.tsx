@@ -2,7 +2,12 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import { WorkflowStep, WorkflowChain } from './workflow-engine';
+import { 
+  WorkflowStep, 
+  WorkflowChain, 
+  getStepImportance, 
+  getNegationActionId 
+} from './workflow-engine';
 
 export type TelemetryNiche = 
   | 'workspace'      // Notes, Sheets, Document management
@@ -54,6 +59,7 @@ interface LocalContextType {
   startRecording: () => void;
   stopRecording: (name: string, description: string, niche: TelemetryNiche) => WorkflowChain | null;
   clearSavedWorkflows: () => void;
+  updateWorkflow: (workflowId: string, updated: WorkflowChain) => void;
 }
 
 const LocalContext = createContext<LocalContextType | undefined>(undefined);
@@ -231,9 +237,14 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
 
       // Record step if in workflow recording mode
       if (isRecordingRef.current) {
+        const importance = getStepImportance(actionId);
+        const negationActionId = getNegationActionId(actionId);
         const newStep: WorkflowStep = {
           actionId,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          importance,
+          negationActionId,
+          isDynamic: false
         };
         setCurrentWorkflow(prev => [...prev, newStep]);
       }
@@ -268,7 +279,7 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
     });
   }, [pathname, bufferEvent]);
 
-  // Load and save workflow chains
+  // Load saved workflows
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -302,6 +313,8 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
       description,
       niche,
       steps: currentWorkflow,
+      isPublic: false,
+      isAnonymized: false,
       createdAt: new Date().toISOString()
     };
 
@@ -316,6 +329,16 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
     console.log('[LocalContextEngine] Saved Workflow:', newWorkflow);
     return newWorkflow;
   }, [currentWorkflow]);
+
+  const updateWorkflow = useCallback((workflowId: string, updated: WorkflowChain) => {
+    setSavedWorkflows(prev => {
+      const next = { ...prev, [workflowId]: updated };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('kylrix_saved_workflows', JSON.stringify(next));
+      }
+      return next;
+    });
+  }, []);
 
   const clearSavedWorkflows = useCallback(() => {
     setSavedWorkflows({});
@@ -364,7 +387,8 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
         savedWorkflows,
         startRecording,
         stopRecording,
-        clearSavedWorkflows
+        clearSavedWorkflows,
+        updateWorkflow
       }}
     >
       {children}
