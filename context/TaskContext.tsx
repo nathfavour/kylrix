@@ -62,6 +62,7 @@ const mapAppwriteTaskToTask = (doc: AppwriteTask): Task => {
     updatedAt: new Date(doc.$updatedAt),
     position: 0,
     isArchived: false,
+    isPinned: (doc as any).isPinned === true || String((doc as any).isPinned) === 'true',
   };
 };
 

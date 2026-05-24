@@ -90,6 +90,7 @@ export interface Task {
   updatedAt: Date;
   position: number; // for ordering
   isArchived: boolean;
+  isPinned: boolean;
   // Ecosystem integration fields
   linkedNotes?: string[]; // Kylrix Note integration
   linkedEvents?: string[]; // KylrixEvents integration
@@ -118,6 +119,7 @@ export interface Project {
   memberIds: string[];
   isArchived: boolean;
   isFavorite: boolean;
+  isPinned: boolean;
   defaultView: ViewMode;
   createdAt: Date;
   updatedAt: Date;
@@ -337,6 +339,7 @@ export interface Event {
   coverImage?: string | null;
   attendees: string[]; // User IDs
   isPublic: boolean;
+  isPinned: boolean;
   creatorId: string;
   createdAt: Date;
   updatedAt: Date;
