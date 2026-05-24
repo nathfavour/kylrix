@@ -21,6 +21,7 @@ export default function UniversalFAB() {
   const { config } = useFAB();
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(false);
+  const { isRecording, startRecording, stopRecording, currentWorkflow } = useLocalContext();
 
   // Landing page has different positioning
   const isLandingPage = pathname === '/';
@@ -39,8 +40,6 @@ export default function UniversalFAB() {
   const mainIcon = config.mainIcon;
   const mainColor = config.mainColor || '#6366F1';
   const onMainClick = config.onMainClick;
-
-  const { isRecording, startRecording, stopRecording, currentWorkflow } = useLocalContext();
 
   const workflowAction = isRecording ? {
     id: 'workflow_stop',

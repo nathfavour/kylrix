@@ -269,7 +269,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [fetchProjects]);
 
   const handleDeleteProject = async (project: Projects) => {
     open('delete-confirm', {

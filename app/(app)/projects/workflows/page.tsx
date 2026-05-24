@@ -213,7 +213,7 @@ export default function WorkflowsPage() {
             No workflows recorded yet
           </Typography>
           <Typography variant="body2" sx={{ color: '#8C8A84', mb: 3, maxWidth: 400, mx: 'auto' }}>
-            Click "Record New Flow" above or open the bottom SpeedDial FAB menu to record a chain of actions.
+            Click &quot;Record New Flow&quot; above or open the bottom SpeedDial FAB menu to record a chain of actions.
           </Typography>
           <Button
             variant="contained"

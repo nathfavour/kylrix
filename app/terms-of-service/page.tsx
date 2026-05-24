@@ -151,7 +151,7 @@ export default function TermsOfServicePage() {
                   Warranty Disclaimer & Liability Limit
                 </Typography>
                 <Typography sx={{ mt: 1, color: 'rgba(255,255,255,0.5)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-                  Our hosted services and open-source applications are provided entirely "AS IS" and "AS AVAILABLE", without warranties or conditions of any kind. Under no circumstances shall our creators or maintainers be liable for any data loss, service interruption, or workspace inconsistencies resulting from system use, database sync, or workflow failures.
+                  Our hosted services and open-source applications are provided entirely &quot;AS IS&quot; and &quot;AS AVAILABLE&quot;, without warranties or conditions of any kind. Under no circumstances shall our creators or maintainers be liable for any data loss, service interruption, or workspace inconsistencies resulting from system use, database sync, or workflow failures.
                 </Typography>
               </Box>
             </Stack>

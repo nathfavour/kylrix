@@ -9,6 +9,8 @@ import OAuthButtons from '@/components/OAuthButtons';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import toast from 'react-hot-toast';
 
+import Link from 'next/link';
+
 const DRAWER_SX = {
   borderTopLeftRadius: '24px',
   borderTopRightRadius: '24px',
@@ -368,21 +370,21 @@ export function LoginDrawer() {
 
         <Typography sx={{ color: '#9B9691', fontSize: '0.75rem', textAlign: 'center', mt: 4, fontWeight: 500 }}>
           By continuing, you agree to our{' '}
-          <a
+          <Link
             href="/terms-of-service"
             onClick={handleClose}
             style={{ color: '#FFFFFF', textDecoration: 'underline', cursor: 'pointer' }}
           >
             Terms of Service
-          </a>{' '}
+          </Link>{' '}
           and{' '}
-          <a
+          <Link
             href="/privacy-policy"
             onClick={handleClose}
             style={{ color: '#FFFFFF', textDecoration: 'underline', cursor: 'pointer' }}
           >
             Privacy Policy
-          </a>.
+          </Link>.
         </Typography>
       </Box>
     </Drawer>

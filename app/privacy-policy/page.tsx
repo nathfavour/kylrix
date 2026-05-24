@@ -102,7 +102,7 @@ export default function PrivacyPolicyPage() {
                   Anonymized Diagnostics & Stability Metrics
                 </Typography>
                 <Typography sx={{ mt: 1, color: 'rgba(255,255,255,0.5)', fontSize: '0.95rem', lineHeight: 1.6, mb: 2 }}>
-                  We collect completely anonymized performance signals to detect software bug crashes and analyze workspace user flows. This data is strictly functional, stripped of identifying details, and processed solely to diagnose issues, improve the suite's performance, and fix software errors.
+                  We collect completely anonymized performance signals to detect software bug crashes and analyze workspace user flows. This data is strictly functional, stripped of identifying details, and processed solely to diagnose issues, improve the suite&apos;s performance, and fix software errors.
                 </Typography>
                 
                 <Box sx={{ bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '16px', p: 2.5 }}>
