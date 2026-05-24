@@ -203,7 +203,7 @@ export default function WorkflowsPage() {
             onClick={startRecording}
             sx={{ bgcolor: '#272624', border: '1px solid #363532', color: 'white', fontWeight: 800, borderRadius: '10px' }}
           >
-            Start telemetries tracking
+            Record Action Chain
           </Button>
         </Paper>
       ) : (

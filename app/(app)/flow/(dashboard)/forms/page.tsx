@@ -129,7 +129,7 @@ export default function FormsDashboard() {
     const handleDelete = async (form: Forms) => {
         openDrawer('delete-confirm', {
             title: `Purge "${form.title}"?`,
-            description: 'This will permanently erase all metadata, configurations, and associated telemetry for this form.',
+            description: 'This will permanently erase all metadata, configurations, and associated responses for this form.',
             resourceName: 'this form',
             confirmLabel: 'Confirm Purge',
             onConfirm: async () => {

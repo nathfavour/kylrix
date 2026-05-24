@@ -79,7 +79,7 @@ export default function PrivacyPolicyPage() {
             </Stack>
           </Paper>
 
-          {/* Card 2: Anonymized Telemetry */}
+          {/* Card 2: Anonymized Stability Metrics */}
           <Paper
             elevation={0}
             sx={{
@@ -99,27 +99,27 @@ export default function PrivacyPolicyPage() {
               </Box>
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 900, color: '#fff', fontSize: '1.25rem', letterSpacing: '-0.02em' }}>
-                  Anonymized Performance Telemetry
+                  Anonymized Diagnostics & Stability Metrics
                 </Typography>
                 <Typography sx={{ mt: 1, color: 'rgba(255,255,255,0.5)', fontSize: '0.95rem', lineHeight: 1.6, mb: 2 }}>
-                  We collect completely anonymized telemetry to detect software bug crashes and analyze workspace user flows. This data is strictly functional, stripped of identifying details, and processed solely to diagnose issues, improve the suite's performance, and fix software errors.
+                  We collect completely anonymized performance signals to detect software bug crashes and analyze workspace user flows. This data is strictly functional, stripped of identifying details, and processed solely to diagnose issues, improve the suite's performance, and fix software errors.
                 </Typography>
                 
                 <Box sx={{ bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '16px', p: 2.5 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#fff', mb: 1 }}>
-                    Understanding Your Telemetry Controls:
+                    Understanding Your Performance Controls:
                   </Typography>
                   <Stack spacing={2} sx={{ mt: 1 }}>
                     <Stack direction="row" spacing={1.5}>
                       <Eye size={18} style={{ color: '#10B981', flexShrink: 0, marginTop: 2 }} />
                       <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', lineHeight: 1.5 }}>
-                        <strong>Context Engine Controls:</strong> You can toggle or turn off your workspace context recording at any time in Settings. However, because automated action sequences rely heavily on contextual telemetry, disabling this option will remove the ability to record, play back, or share Smart Action Workflows.
+                        <strong>Context Engine Controls:</strong> You can toggle or turn off your workspace context recording at any time in Settings. However, because automated action sequences rely heavily on contextual tracing, disabling this option will remove the ability to record, play back, or share Smart Action Workflows.
                       </Typography>
                     </Stack>
                     <Stack direction="row" spacing={1.5}>
                       <EyeOff size={18} style={{ color: '#F59E0B', flexShrink: 0, marginTop: 2 }} />
                       <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', lineHeight: 1.5 }}>
-                        <strong>System Analytics:</strong> Core performance metrics and crash signals cannot be disabled on our hosted environment. If you want absolute, complete telemetry exclusion, you are encouraged to leverage the open-source codebase to self-host your own completely isolated instance.
+                        <strong>System Analytics:</strong> Core performance metrics and crash signals cannot be disabled on our hosted environment. If you want absolute, complete stability signal exclusion, you are encouraged to leverage the open-source codebase to self-host your own completely isolated instance.
                       </Typography>
                     </Stack>
                   </Stack>
@@ -173,7 +173,7 @@ export default function PrivacyPolicyPage() {
               Hosted Environment Mandate
             </Typography>
             <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.875rem', maxWidth: 540, mx: 'auto', lineHeight: 1.5 }}>
-              By choosing to use our premium hosted cloud platform, you consent to our secure, completely anonymized system telemetry. If your workflow requires zero telemetry transmitting outside your network, our self-hosted build is the ideal path for you.
+              By choosing to use our premium hosted cloud platform, you consent to our secure, completely anonymized system stability and diagnostic metrics. If your workflow requires zero metrics transmitting outside your network, our self-hosted build is the ideal path for you.
             </Typography>
           </Paper>
         </Stack>
