@@ -878,7 +878,7 @@ export async function createNoteSecure(data: any, jwt?: string) {
       const existingPivot = await tables.listRows({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: noteTagsCollection,
-      queries: [Query.equal('noteId', noteId), Query.limit(500)] as any,
+      queries: [Query.equal('resourceId', noteId), Query.equal('resourceType', 'note'), Query.limit(500)] as any,
     });
       const existingPairs = new Set(existingPivot.rows.map((p: any) => `${p.tagId || ''}::${p.tag || ''}`));
       for (const tagName of unique) {
@@ -912,7 +912,7 @@ export async function createNoteSecure(data: any, jwt?: string) {
       databaseId: APPWRITE_DATABASE_ID,
       tableId: noteTagsCollection,
       rowId: ID.unique(),
-      data: { noteId, tagId, tag: tagName, userId, createdAt: now },
+      data: { resourceId: noteId, resourceType: 'note', tagId, tag: tagName, userId, createdAt: now },
     });
         } catch (e: any) {
           console.error('note_tags create failed on server', e?.message || e);
@@ -947,7 +947,7 @@ export async function createNoteSecure(data: any, jwt?: string) {
         const pivot = await tables.listRows({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: noteTagsCollection,
-      queries: [Query.equal('noteId', noteId), Query.limit(200)] as any,
+      queries: [Query.equal('resourceId', noteId), Query.equal('resourceType', 'note'), Query.limit(200)] as any,
     });
         if (pivot.rows.length) {
           const tags = Array.from(new Set(pivot.rows.map((p: any) => p.tag).filter(Boolean)));
@@ -1284,33 +1284,13 @@ export async function updateNoteSecure(noteId: string, data: any, jwt?: string) 
       const existingPivot = await tables.listRows({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: noteTagsCollection,
-      queries: [Query.equal('noteId', noteId), Query.limit(500)] as any,
+      queries: [Query.equal('resourceId', noteId), Query.equal('resourceType', 'note'), Query.limit(500)] as any,
     });
       const existingByTag: Record<string, any> = {};
       const existingPairs = new Set<string>();
       for (const p of existingPivot.rows as any[]) {
         if (p.tag) existingByTag[p.tag] = p;
         if (p.tagId && p.tag) existingPairs.add(`${p.tagId}::${p.tag}`);
-      }
-
-      for (const p of existingPivot.rows as any[]) {
-        if (!p.tagId && p.tag) {
-          const key = p.tag.toLowerCase();
-          const tagDoc = tagDocs[key];
-          if (tagDoc) {
-            try {
-              await tables.updateRow({
-      databaseId: APPWRITE_DATABASE_ID,
-      tableId: noteTagsCollection,
-      rowId: p.$id,
-      data: { tagId: tagDoc.$id || tagDoc.id },
-    });
-              existingPairs.add(`${tagDoc.$id || tagDoc.id}::${p.tag}`);
-            } catch (patchErr) {
-              console.error('legacy pivot patch failed in updateNoteSecure', patchErr);
-            }
-          }
-        }
       }
 
       for (const tagName of normalizedIncoming) {
@@ -1344,7 +1324,7 @@ export async function updateNoteSecure(noteId: string, data: any, jwt?: string) 
       databaseId: APPWRITE_DATABASE_ID,
       tableId: noteTagsCollection,
       rowId: ID.unique(),
-      data: { noteId, tagId, tag: tagName, userId: actor.$id, createdAt: updatedAt },
+      data: { resourceId: noteId, resourceType: 'note', tagId, tag: tagName, userId: actor.$id, createdAt: updatedAt },
     });
           existingPairs.add(pairKey);
         } catch (ie) {

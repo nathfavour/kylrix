@@ -186,7 +186,7 @@ async function loadNoteRowFromOrigin(noteId: string): Promise<Notes> {
     const pivot = await databases.listDocuments(
       APPWRITE_DATABASE_ID,
       noteTagsCollection,
-      [Query.equal('noteId', noteId), Query.limit(200)] as any
+      [Query.equal('resourceId', noteId), Query.equal('resourceType', 'note'), Query.limit(200)] as any
     );
     if (pivot.documents.length) {
       const tags = Array.from(new Set(pivot.documents.map((p: any) => p.tag).filter(Boolean)));
@@ -576,7 +576,7 @@ async function syncTagsForCreatedNote(noteId: string, rawTags: string[], userId:
     const existingPivot = await databases.listDocuments(
       APPWRITE_DATABASE_ID,
       noteTagsCollection,
-      [Query.equal('noteId', noteId), Query.limit(500)] as any
+      [Query.equal('resourceId', noteId), Query.equal('resourceType', 'note'), Query.limit(500)] as any
     );
     const existingPairs = new Set(existingPivot.documents.map((p: any) => `${p.tagId || ''}::${p.tag || ''}`));
     for (const tagName of unique) {
@@ -592,7 +592,7 @@ async function syncTagsForCreatedNote(noteId: string, rawTags: string[], userId:
           APPWRITE_DATABASE_ID,
           noteTagsCollection,
           ID.unique(),
-          { noteId, tagId, tag: tagName, userId, createdAt: now }
+          { resourceId: noteId, resourceType: 'note', tagId, tag: tagName, userId, createdAt: now }
         );
       } catch (e: any) {
         console.error('note_tags create failed', e?.message || e);
@@ -748,34 +748,13 @@ export async function updateNoteIsomorphicLegacy(noteId: string, data: Partial<N
       const existingPivot = await databases.listDocuments(
         APPWRITE_DATABASE_ID,
         noteTagsCollection,
-        [Query.equal('noteId', noteId), Query.limit(500)] as any
+        [Query.equal('resourceId', noteId), Query.equal('resourceType', 'note'), Query.limit(500)] as any
       );
       const existingByTag: Record<string, any> = {};
       const existingPairs = new Set<string>();
       for (const p of existingPivot.documents as any[]) {
         if (p.tag) existingByTag[p.tag] = p;
         if (p.tagId && p.tag) existingPairs.add(`${p.tagId}::${p.tag}`);
-      }
-
-      // Patch legacy rows lacking tagId if possible
-      for (const p of existingPivot.documents as any[]) {
-        if (!p.tagId && p.tag) {
-          const key = p.tag.toLowerCase();
-          const tagDoc = tagDocs[key];
-          if (tagDoc) {
-            try {
-              await databases.updateDocument(
-                APPWRITE_DATABASE_ID,
-                noteTagsCollection,
-                p.$id,
-                { tagId: tagDoc.$id || tagDoc.id }
-              );
-              existingPairs.add(`${tagDoc.$id || tagDoc.id}::${p.tag}`);
-            } catch (patchErr) {
-              console.error('legacy pivot patch failed', patchErr);
-            }
-          }
-        }
       }
 
       // Add missing pivots
@@ -793,7 +772,7 @@ export async function updateNoteIsomorphicLegacy(noteId: string, data: Partial<N
             APPWRITE_DATABASE_ID,
             noteTagsCollection,
             ID.unique(),
-            { noteId, tagId, tag: tagName, userId: currentUser?.$id || null, createdAt: updatedAt }
+            { resourceId: noteId, resourceType: 'note', tagId, tag: tagName, userId: currentUser?.$id || null, createdAt: updatedAt }
           );
           existingPairs.add(pairKey);
         } catch (ie) {
@@ -921,13 +900,13 @@ export async function listNotes(queries: any[] = [], limit: number = 100, option
         const pivotRes = await databases.listDocuments(
           APPWRITE_DATABASE_ID,
           noteTagsCollection,
-          [Query.equal('noteId', noteIds), Query.limit(Math.min(1000, noteIds.length * 10))] as any
+          [Query.equal('resourceId', noteIds), Query.equal('resourceType', 'note'), Query.limit(Math.min(1000, noteIds.length * 10))] as any
         );
         const tagMap: Record<string, Set<string>> = {};
         for (const p of pivotRes.documents as any[]) {
-          if (!p.noteId || !p.tag) continue;
-            if (!tagMap[p.noteId]) tagMap[p.noteId] = new Set();
-          tagMap[p.noteId].add(p.tag);
+          if (!p.resourceId || !p.tag) continue;
+            if (!tagMap[p.resourceId]) tagMap[p.resourceId] = new Set();
+          tagMap[p.resourceId].add(p.tag);
         }
         for (const n of notes as any[]) {
           const id = n.$id || n.id;
@@ -1727,10 +1706,10 @@ export async function getNotesByTag(tagId: string): Promise<Notes[]> {
     const pivotRes = await databases.listDocuments(
       APPWRITE_DATABASE_ID,
       noteTagsCollection,
-      [Query.equal('tagId', tagId), Query.limit(1000)] as any
+      [Query.equal('tagId', tagId), Query.equal('resourceType', 'note'), Query.limit(1000)] as any
     );
 
-    const noteIds = pivotRes.documents.map((p: any) => p.noteId).filter(Boolean);
+    const noteIds = pivotRes.documents.map((p: any) => p.resourceId).filter(Boolean);
     if (!noteIds.length) {
       return [];
     }
@@ -2778,13 +2757,13 @@ export async function listNotesPaginated(options: ListNotesPaginatedOptions = {}
         const pivotRes = await databases.listDocuments(
           APPWRITE_DATABASE_ID,
           noteTagsCollection,
-          [Query.equal('noteId', noteIds), Query.limit(Math.min(1000, noteIds.length * 10))] as any
+          [Query.equal('resourceId', noteIds), Query.equal('resourceType', 'note'), Query.limit(Math.min(1000, noteIds.length * 10))] as any
         );
         const tagMap: Record<string, Set<string>> = {};
         for (const p of pivotRes.documents as any[]) {
-          if (!p.noteId || !p.tag) continue;
-          if (!tagMap[p.noteId]) tagMap[p.noteId] = new Set();
-          tagMap[p.noteId].add(p.tag);
+          if (!p.resourceId || !p.tag) continue;
+          if (!tagMap[p.resourceId]) tagMap[p.resourceId] = new Set();
+          tagMap[p.resourceId].add(p.tag);
         }
         for (const n of notes as any[]) {
           const id = n.$id || n.id;
@@ -3427,7 +3406,7 @@ export async function validatePublicNoteAccess(noteId: string): Promise<Notes | 
           const pivot = await databases.listDocuments(
             APPWRITE_DATABASE_ID,
             noteTagsCollection,
-            [Query.equal('noteId', noteId), Query.limit(200)] as any
+            [Query.equal('resourceId', noteId), Query.equal('resourceType', 'note'), Query.limit(200)] as any
           );
           if (pivot.documents.length) {
             const tags = Array.from(new Set(pivot.documents.map((p: any) => p.tag).filter(Boolean)));

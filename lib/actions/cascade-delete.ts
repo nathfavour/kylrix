@@ -159,7 +159,7 @@ export async function executeCascadeDeleteSecure(
       const pivotsRes = await tables.listRows({
         databaseId,
         tableId: NOTE_TAGS_TABLE,
-        queries: [Query.equal('noteId', rowId), Query.limit(1000)] as any,
+        queries: [Query.equal('resourceId', rowId), Query.equal('resourceType', 'note'), Query.limit(1000)] as any,
       });
 
       for (const pivot of pivotsRes.rows as any[]) {
