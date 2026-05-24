@@ -1,22 +1,22 @@
 ---
 name: kylrix-ghost-threads
-description: Guidelines and lifecycle rules for using Ghost Notes as a high-efficiency comment and chat thread channel across Kylrix resources (calls, tasks, tags, projects, events) without database bloat.
+description: Guidelines and lifecycle rules for using Ghost Notes as a high-efficiency comment and chat thread channel across Kylrix resources (calls, tasks, tags, projects, events, forms) without database bloat.
 ---
 
 # Kylrix Ghost Note Thread System
 
-This skill documents the pattern of leveraging the existing Note Comment system to power real-time, persistent thread chats and comments on other resources (like Calls, Tasks, Tag earmarks, and Projects) without introducing new database schemas or modifying `appwrite.config.json`.
+This guide documents the pattern of leveraging the existing Note Comment system to power real-time, persistent thread chats and comments on other resources (like Projects, Goals/Tasks, Forms, and Events) without introducing new database schemas or bloating the database.
 
 ---
 
-## 1. Metadata Schema
+## 1. Core Metadata Schema
 
-Every Ghost Note created as a thread anchor must have the following metadata payload:
+Every Ghost Note created as a thread anchor must have the following metadata payload stringified in its `metadata` column:
 
 ```json
 {
   "isGhost": true,
-  "linkedResourceType": "huddle" | "task" | "project" | "tag" | "event",
+  "linkedResourceType": "huddle" | "task" | "project" | "tag" | "event" | "form",
   "linkedResourceId": "parent-object-id",
   "linkedResourceName": "Quick Sync / Tag Earmark",
   "expiresAt": "2026-05-28T16:00:00.000Z",
@@ -33,38 +33,74 @@ Every Ghost Note created as a thread anchor must have the following metadata pay
 
 ---
 
-## 2. Interoperability & Storage
+## 2. Appwrite Schema Enhancements
 
-1.  **Comments as Messages**: Instead of creating a `chat_messages` table, every message in a huddle call chat or task comment is stored as a standard document in the `comments` table linked to the Ghost Note ID via `noteId`.
-2.  **Reactions**: Reactions are mapped to comment IDs using `targetType: "comment"`, offering rich, instant emojis for free.
-3.  **Automatic Expiration**: Any ghost note (and its child comments/reactions) whose `expiresAt` is in the past is purged by the existing 7-day sweep, preventing zombie resource buildup and lowering read costs.
+To prevent heavy database sweeps and in-memory JSON parsing overhead, the `notes` table has been upgraded with the following columns and indexes:
+
+### New Columns (Optional Booleans):
+1. **`isGhost`** (Boolean, default: `false`): Explicit flag indicating an ephemeral document.
+2. **`isThread`** (Boolean, default: `false`): Explicit flag indicating the note anchors a resource discussion thread.
+
+### Database Index:
+*   **Index Key**: `idx_notes_ghost_thread`
+*   **Index Type**: `Key` (non-unique index)
+*   **Attributes**: `isGhost` (ASC), `isThread` (ASC)
+
+This indexing strategy allows the system-level cleanup sweeps to surgically select and delete expired ghost notes (`isGhost === true && isThread === false`) in a single query on-disk without downloading or parsing the metadata of persistent threads.
 
 ---
 
-## 3. Route Interception & Redirection
+## 3. Generic Resource Huddles (Task/Form/Event)
 
-When a user visits the shared route `/note/shared/[noteId]`:
-1.  Parse the note's metadata.
-2.  If `linkedResourceType` and `linkedResourceId` are present:
-    -   Intercept the view.
-    -   Verify if the viewer has access to the parent resource.
-    -   If yes, smartly switch context or redirect (e.g., redirect from the note view to `/connect/call/[linkedResourceId]` or `/tasks/[linkedResourceId]`).
+To maximize performance and simplicity, **resource-linked huddles** utilize the parent resource ID directly as the note document ID (`rowId = resourceId`):
+
+1.  **Direct Note Matching**: Checking if a huddle is initialized is done by fetching the note document directly by its ID (`getNote(resourceId)`). If it exists, the huddle is initialized.
+2.  **Access Inheritance**: Setting `isPublic = true` and read permissions to `read("any")` on the huddle note document ensures that all comments inherit read permissions. 
+    -   *Guests & Attendees* can instantly load and view the comment thread in real-time.
+    -   *Posting comments* (`createComment`) requires standard authentication to prevent spam.
+3.  **Comments as Messages**: Real-time comments are saved with `noteId = resourceId` (e.g. `taskId`), utilizing the existing Appwrite real-time collection subscription layer.
 
 ---
 
 ## 4. "Story" Promotion (Morphing)
 
 To save a temporary chat/thread from expiring in 7 days, users can convert it into a permanent **"Story"**:
-1.  Set `isGhost` to `false` and `isStory` to `true` (or metadata `isStory: true`).
-2.  Set the note's `userId` to the current user's authenticated ID.
-3.  Optionally use an AI workflow to summarize the comment history into a beautiful title and abstract.
-4.  Filter Stories out of the primary Notes list so they do not clutter daily notes, but keep them searchable under a dedicated filter or within their parent objects.
+
+1.  **Chronological outline compilation**: Fetch all active comments under `noteId = resourceId` and format them into a beautiful, chronological markdown outline document.
+2.  **Provision permanent Note**: Create a new Note document with a unique ID (`rowId = ID.unique()`) owned by the actor (`userId = actor.$id`) with `isStory: true` and `isGhost: false`, completely removing the `expiresAt` parameter.
+3.  **Huddle Reset**: Delete all comments under `noteId = resourceId` and delete the original ghost note (with `id = resourceId`), cleanly resetting the discussion space so a fresh thread can be started.
 
 ---
 
-## 5. UI & Safety Guidelines
+## 5. Backwards-Compatible Legacy Fallback
+
+During the migration period, some older ghost notes may lack the first-class `isGhost` or `isThread` attributes. The UI and sweep jobs must employ the following fallback logic:
+
+```typescript
+// Safe classification helper
+const isGhostNote = (note: any) => {
+  // 1. Direct Column Check
+  if (note.isGhost !== undefined) {
+    return !!note.isGhost;
+  }
+  // 2. Legacy Metadata Fallback
+  if (note.metadata) {
+    try {
+      const parsed = JSON.parse(note.metadata);
+      return !!parsed.isGhost;
+    } catch {}
+  }
+  // 3. Userless Fallback
+  return !note.userId;
+};
+```
+
+This legacy parsing layer must be maintained until all legacy documents have naturally expired (within 7 days of deployment), after which the metadata and userless fallbacks can be safely removed to achieve pure, high-performance boolean sweeps.
+
+---
+
+## 6. UI & Safety Guidelines
 
 -   **Public Disclosure**: Clearly inform users that thread comments are **Public by Design** to anyone with resource access.
--   **Alternative Option**: Provide a clear choice to spin up a **"Hangout"** instead—a secure, private, encrypted group chat based on public keys for authenticated project/call members.
 -   **Global Unmount**: Ensure thread sidebars and overlay drawers use conditional rendering (`{isThreadOpen && <ThreadPanel />}`) to avoid interaction traps.
--   **Layman-First Copy**: Avoid technical jargon. Use simple phrases like `"Private Chat Group"` for Hangouts and `"Public Thread (auto-cleans in 7 days)"` for ghost threads.
+-   **Layman-First Copy**: Avoid technical jargon. Use simple phrases like `"Public Thread (auto-cleans in 7 days)"` for ghost threads, and `"Public Event Huddle"` for events.
