@@ -42,7 +42,10 @@ import {
   promoteGhostThreadToStorySecure,
   createEncryptedGroupForProjectSecure,
   createGhostNoteForResourceSecure,
-  promoteGhostResourceThreadToStorySecure
+  promoteGhostResourceThreadToStorySecure,
+  tagResourceSecure,
+  untagResourceSecure,
+  getResourceTagsSecure
 } from './secure-ops';
 
 // Helper to fetch JWT securely from client-side SDK
@@ -273,6 +276,34 @@ export async function createGhostNoteForResource(
 export async function promoteGhostResourceThreadToStory(resourceId: string, resourceType: string) {
   const jwt = await getJwt();
   return promoteGhostResourceThreadToStorySecure(resourceId, resourceType, jwt);
+}
+
+export async function tagResource(
+  resourceId: string,
+  resourceType: string,
+  tagName: string,
+  isPublic = false,
+  isGuest = false
+) {
+  const jwt = await getJwt();
+  return tagResourceSecure(resourceId, resourceType, tagName, isPublic, isGuest, jwt);
+}
+
+export async function untagResource(
+  resourceId: string,
+  resourceType: string,
+  tagName: string
+) {
+  const jwt = await getJwt();
+  return untagResourceSecure(resourceId, resourceType, tagName, jwt);
+}
+
+export async function getResourceTags(
+  resourceId: string,
+  resourceType: string
+) {
+  const jwt = await getJwt();
+  return getResourceTagsSecure(resourceId, resourceType, jwt);
 }
 
 

@@ -3811,5 +3811,226 @@ export async function promoteGhostResourceThreadToStorySecure(
   return JSON.parse(JSON.stringify(storyNote));
 }
 
+export async function tagResourceSecure(
+  resourceId: string,
+  resourceType: string,
+  tagName: string,
+  isPublic = false,
+  isGuest = false,
+  jwt?: string
+) {
+  const actor = await getActor(jwt);
+  if (!actor || !actor.$id) {
+    throw new Error('Unauthorized');
+  }
+
+  const tables = createSystemTablesDB();
+  const APPWRITE_DATABASE_ID = APPWRITE_CONFIG.DATABASES.NOTE;
+  const tagsCollection = APPWRITE_CONFIG.TABLES.NOTE.TAGS;
+  const pivotCollection = APPWRITE_CONFIG.TABLES.NOTE.NOTE_TAGS || 'resource_tags';
+
+  const key = tagName.trim();
+  const nameLower = key.toLowerCase();
+  if (!key) throw new Error('Tag name cannot be empty');
+
+  // 1. Preload or create tag document
+  let tagDoc: any = null;
+  try {
+    const existingTags = await tables.listRows({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: tagsCollection,
+      queries: [
+        Query.equal('userId', actor.$id),
+        Query.equal('nameLower', nameLower),
+        Query.limit(1)
+      ] as any
+    });
+    if (existingTags.rows.length) {
+      tagDoc = existingTags.rows[0];
+    }
+  } catch {}
+
+  if (!tagDoc) {
+    try {
+      tagDoc = await tables.createRow({
+        databaseId: APPWRITE_DATABASE_ID,
+        tableId: tagsCollection,
+        rowId: ID.unique(),
+        data: {
+          name: key,
+          nameLower,
+          userId: actor.$id,
+          isPublic,
+          isGuest,
+          usageCount: 0,
+          metadata: JSON.stringify({ version: 'v2' })
+        }
+      });
+    } catch {
+      // Race condition lookup
+      const retry = await tables.listRows({
+        databaseId: APPWRITE_DATABASE_ID,
+        tableId: tagsCollection,
+        queries: [
+          Query.equal('userId', actor.$id),
+          Query.equal('nameLower', nameLower),
+          Query.limit(1)
+        ] as any
+      });
+      if (retry.rows.length) tagDoc = retry.rows[0];
+    }
+  }
+
+  if (!tagDoc) throw new Error('Failed to resolve or create tag');
+
+  // 2. Check if polymorphic pivot already exists
+  const tagId = tagDoc.$id || tagDoc.id;
+  const existingPivot = await tables.listRows({
+    databaseId: APPWRITE_DATABASE_ID,
+    tableId: pivotCollection,
+    queries: [
+      Query.equal('resourceId', resourceId),
+      Query.equal('resourceType', resourceType),
+      Query.equal('tagId', tagId),
+      Query.limit(1)
+    ] as any
+  });
+
+  if (existingPivot.rows.length) {
+    return JSON.parse(JSON.stringify(existingPivot.rows[0]));
+  }
+
+  // 3. Create polymorphic pivot record
+  const result = await tables.createRow({
+    databaseId: APPWRITE_DATABASE_ID,
+    tableId: pivotCollection,
+    rowId: ID.unique(),
+    data: {
+      tagId,
+      tag: key,
+      resourceId,
+      resourceType,
+      userId: actor.$id,
+      isPublic,
+      isGuest,
+      metadata: JSON.stringify({ version: 'v2' })
+    }
+  });
+
+  // 4. Increment tag usageCount
+  try {
+    const current = typeof tagDoc.usageCount === 'number' ? tagDoc.usageCount : 0;
+    await tables.updateRow({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: tagsCollection,
+      rowId: tagId,
+      data: { usageCount: current + 1 }
+    });
+  } catch {}
+
+  return JSON.parse(JSON.stringify(result));
+}
+
+export async function untagResourceSecure(
+  resourceId: string,
+  resourceType: string,
+  tagName: string,
+  jwt?: string
+) {
+  const actor = await getActor(jwt);
+  if (!actor || !actor.$id) {
+    throw new Error('Unauthorized');
+  }
+
+  const tables = createSystemTablesDB();
+  const APPWRITE_DATABASE_ID = APPWRITE_CONFIG.DATABASES.NOTE;
+  const tagsCollection = APPWRITE_CONFIG.TABLES.NOTE.TAGS;
+  const pivotCollection = APPWRITE_CONFIG.TABLES.NOTE.NOTE_TAGS || 'resource_tags';
+
+  const nameLower = tagName.trim().toLowerCase();
+  if (!nameLower) throw new Error('Tag name cannot be empty');
+
+  // 1. Lookup tagDoc
+  const existingTags = await tables.listRows({
+    databaseId: APPWRITE_DATABASE_ID,
+    tableId: tagsCollection,
+    queries: [
+      Query.equal('userId', actor.$id),
+      Query.equal('nameLower', nameLower),
+      Query.limit(1)
+    ] as any
+  });
+  if (!existingTags.rows.length) return { success: true };
+
+  const tagDoc = existingTags.rows[0];
+  const tagId = tagDoc.$id || tagDoc.id;
+
+  // 2. Find polymorphic pivot records
+  const existingPivot = await tables.listRows({
+    databaseId: APPWRITE_DATABASE_ID,
+    tableId: pivotCollection,
+    queries: [
+      Query.equal('resourceId', resourceId),
+      Query.equal('resourceType', resourceType),
+      Query.equal('tagId', tagId),
+      Query.limit(100)
+    ] as any
+  });
+
+  if (!existingPivot.rows.length) return { success: true };
+
+  // 3. Delete pivot records
+  for (const pivot of existingPivot.rows as any[]) {
+    try {
+      await tables.deleteRow({
+        databaseId: APPWRITE_DATABASE_ID,
+        tableId: pivotCollection,
+        rowId: pivot.$id
+      });
+    } catch {}
+  }
+
+  // 4. Decrement tag usageCount
+  try {
+    const current = typeof tagDoc.usageCount === 'number' ? tagDoc.usageCount : 0;
+    await tables.updateRow({
+      databaseId: APPWRITE_DATABASE_ID,
+      tableId: tagsCollection,
+      rowId: tagId,
+      data: { usageCount: Math.max(0, current - existingPivot.rows.length) }
+    });
+  } catch {}
+
+  return { success: true };
+}
+
+export async function getResourceTagsSecure(
+  resourceId: string,
+  resourceType: string,
+  jwt?: string
+) {
+  const actor = await getActor(jwt);
+  if (!actor || !actor.$id) {
+    throw new Error('Unauthorized');
+  }
+
+  const tables = createSystemTablesDB();
+  const APPWRITE_DATABASE_ID = APPWRITE_CONFIG.DATABASES.NOTE;
+  const pivotCollection = APPWRITE_CONFIG.TABLES.NOTE.NOTE_TAGS || 'resource_tags';
+
+  const pivotRes = await tables.listRows({
+    databaseId: APPWRITE_DATABASE_ID,
+    tableId: pivotCollection,
+    queries: [
+      Query.equal('resourceId', resourceId),
+      Query.equal('resourceType', resourceType),
+      Query.limit(100)
+    ] as any
+  });
+
+  return JSON.parse(JSON.stringify(pivotRes.rows));
+}
+
+
 
 
