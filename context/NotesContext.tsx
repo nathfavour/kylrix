@@ -79,6 +79,25 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     return pinnedIds;
   }, [pinnedIds]);
 
+  // Primary: fetch from database using native column
+  const fetchPinnedIds = useCallback(async () => {
+    if (!user?.$id) return [];
+    try {
+        const res = await listNotesPaginated({
+            limit: 100,
+            queries: [
+                Query.equal('userId', user.$id),
+                Query.equal('isPinned', true),
+                Query.select(['$id'])
+            ]
+        });
+        return res.documents.map(d => d.$id);
+    } catch (e) {
+        console.warn('[NotesContext] Native pinned fetch failed, falling back to prefs:', e);
+        return getPinnedNoteIds();
+    }
+  }, [user?.$id]);
+
   // Ensure pinned notes are present in the 'notes' array (smart hydration)
   useEffect(() => {
     if (!isAuthenticated || !user?.$id || !effectivePinnedIds.length) return;
@@ -195,7 +214,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     try {
       // Fetch pinned IDs with optimization
       if (reset && PINNED_CACHE_KEY) {
-        const pIds = await fetchOptimized(PINNED_CACHE_KEY, getPinnedNoteIds);
+        const pIds = await fetchOptimized(PINNED_CACHE_KEY, fetchPinnedIds);
         setPinnedIds(pIds || []);
       }
 

@@ -2113,6 +2113,25 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
                                                     transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                                                 }}
                                             >
+                                                {msg.isPinned && (
+                                                    <Box sx={{ 
+                                                        position: 'absolute', 
+                                                        top: -8, 
+                                                        right: isOutgoing ? 'auto' : -8, 
+                                                        left: isOutgoing ? -8 : 'auto', 
+                                                        bgcolor: '#161412', 
+                                                        borderRadius: '50%', 
+                                                        p: 0.5, 
+                                                        border: '1px solid #F59E0B', 
+                                                        boxShadow: '0 0 10px rgba(245, 158, 11, 0.3)', 
+                                                        zIndex: 10,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}>
+                                                        <Pin size={10} fill="#F59E0B" color="#F59E0B" style={{ transform: 'rotate(45deg)' }} />
+                                                    </Box>
+                                                )}
                                                 {msg.replyTo && (
                                                     <Box
                                                         onClick={() => {
@@ -2421,7 +2440,11 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
                 <MenuItem onClick={() => handleCopy(messageAnchorEl!.msg.content as string)} sx={{ gap: 1.5, py: 1, fontSize: '0.85rem', fontWeight: 600 }}>
                     <Copy size={16} /> Copy Text
                 </MenuItem>
+                <MenuItem onClick={handleTogglePinMessage} sx={{ gap: 1.5, py: 1, fontSize: '0.85rem', fontWeight: 600 }}>
+                    <Pin size={16} color={messageAnchorEl?.msg.isPinned ? '#F59E0B' : 'white'} /> {messageAnchorEl?.msg.isPinned ? 'Unpin message' : 'Pin message'}
+                </MenuItem>
                 <Box sx={{ px: 1, py: 0.75, opacity: 0.6 }}>
+
                     <Typography variant="caption" sx={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>
                         React
                     </Typography>
