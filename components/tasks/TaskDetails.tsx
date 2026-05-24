@@ -803,7 +803,17 @@ export default function TaskDetails({ taskId }: TaskDetailsProps) {
                   <IconButton
                     edge="end"
                     size="small"
-                    onClick={() => deleteSubtask(task.id, subtask.id)}
+                    onClick={() => {
+                        openUnified('delete-confirm', {
+                            title: `Delete sub-task?`,
+                            description: `"${subtask.title}"`,
+                            resourceName: 'this sub-task',
+                            confirmLabel: 'Delete Sub-task',
+                            onConfirm: async () => {
+                                await deleteSubtask(task.id, subtask.id);
+                            }
+                        });
+                    }}
                     sx={{ opacity: 0.2, '&:hover': { opacity: 1, color: 'error.main' } }}
                   >
                     <DeleteIcon sx={{ fontSize: 16 }} />

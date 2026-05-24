@@ -76,16 +76,20 @@ export default function TagsPage() {
   };
 
   const handleDelete = async (tag: Tags) => {
-    if (!confirm(`Are you sure you want to delete the tag "${tag.name}"?`)) {
-      return;
-    }
-
-    try {
-      await deleteTag(tag.$id);
-      await fetchTags();
-    } catch (err: any) {
-       setError(err instanceof Error ? err.message : 'Failed to delete tag');
-    }
+    open('delete-confirm', {
+        title: `Delete tag "${tag.name}"?`,
+        description: 'This will remove the tag from all associated notes. The notes themselves will not be deleted.',
+        resourceName: 'this tag',
+        confirmLabel: 'Delete Tag',
+        onConfirm: async () => {
+            try {
+                await deleteTag(tag.$id);
+                await fetchTags();
+            } catch (err: any) {
+                setError(err instanceof Error ? err.message : 'Failed to delete tag');
+            }
+        }
+    });
   };
 
   if (!isAuthenticated) {

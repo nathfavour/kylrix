@@ -144,25 +144,32 @@ export function AssignGoalDrawer({ isOpen, onClose, taskId, taskTitle }: {
 
   const handleRevokeAssignee = async () => {
       if (!editingAssignee || !user?.$id) return;
-      if (!window.confirm(`Are you sure you want to remove ${editingAssignee.displayName || editingAssignee.username}?`)) return;
       
-      setLoading(true);
-      try {
-          const { jwt } = await account.createJWT();
-          await revokePermissionSecure({
-              resourceId: taskId,
-              resourceType: 'task',
-              targetUserId: editingAssignee.userId,
-              jwt: jwt
-          });
-          toast.success('Assignee removed');
-          fetchExistingAssignees();
-          setEditingAssignee(null);
-      } catch (err: any) {
-          toast.error(err.message || 'Failed to remove assignee');
-      } finally {
-          setLoading(false);
-      }
+      openUnified('delete-confirm', {
+          title: `Remove Assignee?`,
+          description: `Are you sure you want to remove ${editingAssignee.displayName || editingAssignee.username} from this goal? they will lose all access to task details.`,
+          resourceName: 'this access',
+          confirmLabel: 'Remove Assignee',
+          onConfirm: async () => {
+              setLoading(true);
+              try {
+                  const { jwt } = await account.createJWT();
+                  await revokePermissionSecure({
+                      resourceId: taskId,
+                      resourceType: 'task',
+                      targetUserId: editingAssignee.userId,
+                      jwt: jwt
+                  });
+                  toast.success('Assignee removed');
+                  fetchExistingAssignees();
+                  setEditingAssignee(null);
+              } catch (err: any) {
+                  toast.error(err.message || 'Failed to remove assignee');
+              } finally {
+                  setLoading(false);
+              }
+          }
+      });
   };
 
   const renderContent = () => {

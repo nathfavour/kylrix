@@ -78,15 +78,22 @@ export default function SettingsPage() {
         return () => unsubscribe();
     }, [loadPasskeys]);
 
-    const handleRemovePasskey = async (id: string) => {
-        if (!window.confirm("Are you sure you want to remove this passkey? This cannot be undone.")) return;
-        try {
-            await AppwriteService.deleteKeychainEntry(id);
-            toast.success("Passkey removed");
-            if (user?.$id) loadPasskeys(user.$id);
-        } catch (_e) {
-            toast.error("Failed to remove passkey");
-        }
+    const handleRemovePasskey = async (pk: any) => {
+        openUnified('delete-confirm', {
+            title: `Remove Passkey?`,
+            description: `You are about to remove the passkey "${pk.params?.name || 'Unnamed Passkey'}". You will no longer be able to use this biometric key to unlock your ecosystem vault.`,
+            resourceName: 'this passkey',
+            confirmLabel: 'Remove Passkey',
+            onConfirm: async () => {
+                try {
+                    await AppwriteService.deleteKeychainEntry(pk.$id);
+                    toast.success("Passkey removed");
+                    if (user?.$id) loadPasskeys(user.$id);
+                } catch (_e) {
+                    toast.error("Failed to remove passkey");
+                }
+            }
+        });
     };
 
     const handleSetPin = async (e: React.FormEvent) => {
@@ -225,7 +232,7 @@ export default function SettingsPage() {
                                             <React.Fragment key={pk.$id}>
                                                 <ListItem 
                                                     secondaryAction={
-                                                        <IconButton edge="end" color="error" onClick={() => handleRemovePasskey(pk.$id)}>
+                                                        <IconButton edge="end" color="error" onClick={() => handleRemovePasskey(pk)}>
                                                             <DeleteIcon sx={{ fontSize: 20 }} />
                                                         </IconButton>
                                                     }

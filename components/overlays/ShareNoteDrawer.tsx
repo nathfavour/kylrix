@@ -144,25 +144,32 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle }: {
 
   const handleRevokeCollaborator = async () => {
       if (!editingCollaborator || !user?.$id) return;
-      if (!window.confirm(`Are you sure you want to remove ${editingCollaborator.displayName || editingCollaborator.username}?`)) return;
       
-      setLoading(true);
-      try {
-          const { jwt } = await account.createJWT();
-          await revokePermissionSecure({
-              resourceId: noteId,
-              resourceType: 'note',
-              targetUserId: editingCollaborator.userId,
-              jwt: jwt
-          });
-          toast.success('Collaborator removed');
-          fetchExistingCollaborators();
-          setEditingCollaborator(null);
-      } catch (err: any) {
-          toast.error(err.message || 'Failed to remove collaborator');
-      } finally {
-          setLoading(false);
-      }
+      openUnified('delete-confirm', {
+          title: `Remove Collaborator?`,
+          description: `Are you sure you want to remove ${editingCollaborator.displayName || editingCollaborator.username} from this note? they will lose all access to content and history.`,
+          resourceName: 'this access',
+          confirmLabel: 'Remove Collaborator',
+          onConfirm: async () => {
+              setLoading(true);
+              try {
+                  const { jwt } = await account.createJWT();
+                  await revokePermissionSecure({
+                      resourceId: noteId,
+                      resourceType: 'note',
+                      targetUserId: editingCollaborator.userId,
+                      jwt: jwt
+                  });
+                  toast.success('Collaborator removed');
+                  fetchExistingCollaborators();
+                  setEditingCollaborator(null);
+              } catch (err: any) {
+                  toast.error(err.message || 'Failed to remove collaborator');
+              } finally {
+                  setLoading(false);
+              }
+          }
+      });
   };
 
   const renderContent = () => {

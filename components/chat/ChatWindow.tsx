@@ -71,7 +71,9 @@ import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import SudoModal from '../overlays/SudoModal';
 import { usePresence } from '../providers/PresenceProvider';
 import type { AttachmentMetadata } from '@/types/p2p';
-import toast from 'react-hot-toast';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+import { toast } from 'react-hot-toast';
+
 import { fetchProfilePreview } from '@/lib/profile-preview';
 import { getCachedIdentityById, seedIdentityCache, subscribeIdentityCache } from '@/lib/identity-cache';
 import { buildSafetyWarning, getVerificationState } from '@/lib/verification';
@@ -973,6 +975,8 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
 
     const [clearOptionsOpen, setClearOptionsOpen] = useState(false);
 
+    const { open: openUnified } = useUnifiedDrawer();
+
     const handleClearChat = async (mode: 'me' | 'everyone' | 'nuclear') => {
         if (!conversationId) return;
         const currentUserId = user?.$id;
@@ -980,36 +984,51 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
         setClearOptionsOpen(false);
         setAnchorEl(null);
 
-        const confirmed = window.confirm(
-            mode === 'me' 
-                ? "Are you sure you want to clear this chat for yourself?" 
-                : mode === 'everyone'
-                    ? "This will remove your messages and reactions for everyone. This cannot be undone. Continue?"
-                    : "NUCLEAR OPTION: This will delete the entire direct chat, including members, keys, and the conversation itself. Continue?"
-        );
-        if (!confirmed) return;
-
-        setLoading(true);
-        try {
-            if (mode === 'me') {
-                await ChatService.clearChatForMe(conversationId, currentUserId);
-                toast.success("Chat cleared for you");
-            } else if (mode === 'everyone') {
-                const res = await ChatService.wipeMyFootprint(conversationId, currentUserId);
-                toast.success(`Removed ${res.count} messages and ${res.reactionsDeleted || 0} reactions for everyone`);
-            } else if (mode === 'nuclear') {
-                await ChatService.nuclearWipe(conversationId);
-                toast.success("Conversation fully purged");
-                router.push('/connect/chats');
-                return;
+        const confirmData = {
+            me: {
+                title: 'Clear chat for yourself?',
+                description: 'This will remove the chat history from your local view only. The other participant will still see the messages.',
+                confirmLabel: 'Clear for Me'
+            },
+            everyone: {
+                title: 'Clear chat for everyone?',
+                description: 'This will remove your messages and reactions for everyone in this chat. This action is permanent.',
+                confirmLabel: 'Wipe Footprint'
+            },
+            nuclear: {
+                title: 'NUCLEAR WIPE: Purge Chat?',
+                description: 'CRITICAL: This will delete the entire direct chat, including members, keys, and the conversation itself for BOTH parties. All context will be lost.',
+                confirmLabel: 'Nuclear Purge'
             }
-            await loadMessages();
-        } catch (error) {
-            console.error('Clear chat failed:', error);
-            toast.error("Failed to clear chat");
-        } finally {
-            setLoading(false);
-        }
+        }[mode];
+
+        openUnified('delete-confirm', {
+            ...confirmData,
+            resourceName: 'this conversation',
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    if (mode === 'me') {
+                        await ChatService.clearChatForMe(conversationId, currentUserId);
+                        toast.success("Chat cleared for you");
+                    } else if (mode === 'everyone') {
+                        const res = await ChatService.wipeMyFootprint(conversationId, currentUserId);
+                        toast.success(`Removed ${res.count} messages and ${res.reactionsDeleted || 0} reactions for everyone`);
+                    } else if (mode === 'nuclear') {
+                        await ChatService.nuclearWipe(conversationId);
+                        toast.success("Conversation fully purged");
+                        router.push('/connect/chats');
+                        return;
+                    }
+                    await loadMessages();
+                } catch (error) {
+                    console.error('Clear chat failed:', error);
+                    toast.error("Failed to clear chat");
+                } finally {
+                    setLoading(false);
+                }
+            }
+        });
     };
 
     const handleExport = async () => {

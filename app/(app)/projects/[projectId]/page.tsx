@@ -151,17 +151,31 @@ export default function ProjectDetailPage() {
       const obj = projectObjects.find(o => o.entityId === entityId);
       if (!obj) return;
 
-      try {
-          await ProjectsService.removeObjectFromProject(obj.$id);
-          showSuccess('Item unlinked');
-          setProjectObjects(prev => prev.filter(o => o.$id !== obj.$id));
-          setNotes(prev => prev.filter(n => n.$id !== entityId));
-          setTasks(prev => prev.filter(t => t.$id !== entityId));
-          setCredentials(prev => prev.filter(c => c.$id !== entityId));
-          setCollaborators(prev => prev.filter(u => u.$id !== entityId));
-      } catch (err: any) {
-          showError('Failed to unlink item', err.message);
-      }
+      const entityName = notes.find(n => n.$id === entityId)?.title || 
+                         tasks.find(t => t.$id === entityId)?.title || 
+                         credentials.find(c => c.$id === entityId)?.name || 
+                         collaborators.find(u => u.$id === entityId)?.name || 
+                         'this object';
+
+      openUnified('delete-confirm', {
+          title: `Unlink "${entityName}"?`,
+          description: `This will remove the connection between this ${obj.entityKind} and the current project. The original resource will not be deleted.`,
+          resourceName: 'this connection',
+          confirmLabel: 'Unlink from Project',
+          onConfirm: async () => {
+              try {
+                  await ProjectsService.removeObjectFromProject(obj.$id);
+                  showSuccess('Item unlinked');
+                  setProjectObjects(prev => prev.filter(o => o.$id !== obj.$id));
+                  setNotes(prev => prev.filter(n => n.$id !== entityId));
+                  setTasks(prev => prev.filter(t => t.$id !== entityId));
+                  setCredentials(prev => prev.filter(c => c.$id !== entityId));
+                  setCollaborators(prev => prev.filter(u => u.$id !== entityId));
+              } catch (err: any) {
+                  showError('Failed to unlink item', err.message);
+              }
+          }
+      });
   };
 
   const handleAddCollaborator = () => {
