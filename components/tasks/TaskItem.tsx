@@ -22,6 +22,7 @@ import {
   Archive as ArchiveIcon,
   ContentCopy as CopyIcon,
   VideoCall as VideoCallIcon,
+  PushPin as PinIcon,
 } from '@mui/icons-material';
 import { useMediaQuery, useTheme } from '@mui/material';
 import { format, isToday, isTomorrow, isPast, isThisWeek } from 'date-fns';
@@ -99,6 +100,11 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
   const handleArchive = () => {
     handleMenuClose();
     updateTask(task.id, { isArchived: true });
+  };
+
+  const handleTogglePin = async () => {
+    handleMenuClose();
+    await togglePinTask(task.id);
   };
 
   const handleStartTaskHuddle = () => {
@@ -205,7 +211,7 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
                 {/* Title */}
-                <Typography
+                <Typography 
                     variant="body1"
                     sx={{
                         fontFamily: 'var(--font-satoshi)',
@@ -217,11 +223,14 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
                     }}
                 >
+                    {task.isPinned && <PinIcon sx={{ fontSize: 14, color: '#F59E0B', transform: 'rotate(45deg)' }} />}
                     {task.title}
                 </Typography>
-
                 <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
                     {/* Indicators */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 1 : 1.5, mr: 1 }}>
@@ -418,6 +427,10 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
         <MenuItem onClick={handleArchive}>
           <ListItemIcon><ArchiveIcon sx={{ fontSize: 16, color: '#A1A1AA' }} /></ListItemIcon>
           <ListItemText primary="Archive" primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500 }} />
+        </MenuItem>
+        <MenuItem onClick={handleTogglePin}>
+          <ListItemIcon><PinIcon sx={{ fontSize: 16, color: task.isPinned ? '#F59E0B' : '#A1A1AA' }} /></ListItemIcon>
+          <ListItemText primary={task.isPinned ? "Unpin Goal" : "Pin Goal"} primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500 }} />
         </MenuItem>
         <MenuItem onClick={handleAssignGoal}>
           <ListItemIcon><AssignIcon size={16} color="#A1A1AA" /></ListItemIcon>

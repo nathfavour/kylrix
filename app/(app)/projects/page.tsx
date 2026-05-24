@@ -288,6 +288,26 @@ export default function ProjectsPage() {
     });
   };
 
+  const handleTogglePin = async (projectId: string) => {
+    try {
+        const project = projects.find(p => p.$id === projectId);
+        const newPinned = !(project as any).isPinned;
+        await ProjectsService.updateProject(projectId, { isPinned: newPinned } as any);
+        setProjects(prev => prev.map(p => p.$id === projectId ? { ...p, isPinned: newPinned } : p));
+        showSuccess(newPinned ? "Pinned to top" : "Unpinned");
+    } catch (err: any) {
+        showError('Action failed', err.message);
+    }
+  };
+
+  const sortedProjects = useMemo(() => {
+    return [...projects].sort((a: any, b: any) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return new Date(b.$updatedAt || b.updatedAt).getTime() - new Date(a.$updatedAt || a.updatedAt).getTime();
+    });
+  }, [projects]);
+
   const handleProjectClick = (projectId: string) => {
     router.push(`/projects/${projectId}`);
   };
@@ -458,18 +478,20 @@ export default function ProjectsPage() {
             <Button variant="outlined" onClick={() => openCreateDrawer()} sx={{ borderRadius: '12px', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', px: 4, fontWeight: 800 }}>Start Fresh Project</Button>
           </Paper>
         ) : (
-          <Grid container spacing={2.5}>
-            {projects.map(project => (
-              <Grid item xs={12} sm={6} lg={4} key={project.$id}>
-                <ProjectCard 
-                  project={project} 
-                  onClick={handleProjectClick}
-                  onDelete={() => handleDeleteProject(project)}
-                />
-              </Grid>
-            ))}
-          </Grid>
+            <Grid container spacing={2.5}>
+                {sortedProjects.map(project => (
+                    <Grid item xs={12} sm={6} lg={4} key={project.$id}>
+                        <ProjectCard 
+                            project={project} 
+                            onClick={handleProjectClick}
+                            onDelete={() => handleDeleteProject(project)}
+                            onTogglePin={handleTogglePin}
+                        />
+                    </Grid>
+                ))}
+            </Grid>
         )}
+
       </Grid>
     </Grid>
   );

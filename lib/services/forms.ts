@@ -85,6 +85,12 @@ export const FormsService = {
     /**
      * Update a form definition with strict permission synchronization
      */
+    async togglePin(formId: string) {
+        const form = await this.getForm(formId);
+        const newPinned = !form.isPinned;
+        return await this.updateForm(formId, { isPinned: newPinned } as any);
+    },
+
     async updateForm(formId: string, data: Partial<Forms>) {
         if (typeof window !== 'undefined') {
             const { updateForm } = await import('@/lib/actions/client-ops');

@@ -7,6 +7,7 @@ import { useAppwriteVault } from '@/context/appwrite-context';
 import {
   deleteCredential,
   listAllCredentials,
+  toggleCredentialPin,
 } from '@/lib/appwrite';
 import toast from 'react-hot-toast';
 import CredentialItem from '@/components/app/dashboard/CredentialItem';
@@ -162,6 +163,24 @@ function DashboardPageContent() {
     }
   };
 
+  const handleTogglePin = async (id: string) => {
+    try {
+      const newPinned = await toggleCredentialPin(id);
+      setAllCredentials(prev => prev.map(c => c.$id === id ? { ...c, isPinned: newPinned } : c));
+      toast.success(newPinned ? "Pinned to top" : "Unpinned");
+    } catch (error: unknown) {
+      toast.error("Failed to toggle pin");
+    }
+  };
+
+  const sortedCredentials = useMemo(() => {
+    return [...allCredentials].sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime();
+    });
+  }, [allCredentials]);
+
   const refreshCredentials = () => {
     if (!user?.$id) return;
     loadAllCredentials();
@@ -237,13 +256,14 @@ function DashboardPageContent() {
                 </Typography>
               </Paper>
             ) : (
-              allCredentials.map((cred: Credentials) => (
+              sortedCredentials.map((cred: Credentials) => (
                 <CredentialItem
                   key={cred.$id}
                   credential={cred}
                   onCopy={handleCopy}
                   onEdit={() => handleEdit(cred)}
                   onDelete={() => openDeleteModal(cred)}
+                  onTogglePin={() => handleTogglePin(cred.$id)}
                   onClick={() => {
                     setSelectedCredential(cred);
                     setShowDetail(true);

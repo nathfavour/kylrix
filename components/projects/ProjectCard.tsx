@@ -20,6 +20,7 @@ import {
   Globe,
   Users,
   LayoutGrid,
+  Pin,
 } from 'lucide-react';
 import { Projects } from '@/types/appwrite';
 
@@ -27,9 +28,10 @@ interface ProjectCardProps {
   project: Projects;
   onClick: (projectId: string) => void;
   onDelete: (projectId: string) => void;
+  onTogglePin?: (projectId: string) => void;
 }
 
-export default function ProjectCard({ project, onClick, onDelete }: ProjectCardProps) {
+export default function ProjectCard({ project, onClick, onDelete, onTogglePin }: ProjectCardProps) {
   const theme = useTheme();
 
   const getVisibilityIcon = () => {
@@ -103,8 +105,9 @@ export default function ProjectCard({ project, onClick, onDelete }: ProjectCardP
               <LayoutGrid size={22} strokeWidth={1.5} />
             </Box>
             <Box sx={{ minWidth: 0 }}>
-              <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '1.15rem', fontFamily: 'var(--font-clash)', noWrap: true }}>
-                {project.title}
+              <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '1.15rem', fontFamily: 'var(--font-clash)', noWrap: true, display: 'flex', alignItems: 'center', gap: 1 }}>
+                {(project as any).isPinned && <Pin size={14} fill="#F59E0B" color="#F59E0B" style={{ transform: 'rotate(45deg)', flexShrink: 0 }} />}
+                <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.title}</Box>
               </Typography>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ color: 'rgba(255,255,255,0.3)' }}>
                 {getVisibilityIcon()}
@@ -114,18 +117,28 @@ export default function ProjectCard({ project, onClick, onDelete }: ProjectCardP
               </Stack>
             </Box>
           </Stack>
-          <IconButton 
-            size="small" 
-            onClick={(e) => { e.stopPropagation(); onDelete(project.$id); }}
-            sx={{ 
-                color: 'rgba(255,255,255,0.2)', 
-                '&:hover': { color: '#FF453A', bgcolor: alpha('#FF453A', 0.05) },
-                mt: -0.5,
-                mr: -0.5
-            }}
-          >
-            <Trash2 size={18} />
-          </IconButton>
+          <Stack direction="row" spacing={0.5} sx={{ mt: -0.5, mr: -0.5 }}>
+            <IconButton 
+                size="small" 
+                onClick={(e) => { e.stopPropagation(); onTogglePin?.(project.$id); }}
+                sx={{ 
+                    color: (project as any).isPinned ? '#F59E0B' : 'rgba(255,255,255,0.2)', 
+                    '&:hover': { color: '#F59E0B', bgcolor: alpha('#F59E0B', 0.05) },
+                }}
+            >
+                <Pin size={18} fill={(project as any).isPinned ? '#F59E0B' : 'none'} />
+            </IconButton>
+            <IconButton 
+                size="small" 
+                onClick={(e) => { e.stopPropagation(); onDelete(project.$id); }}
+                sx={{ 
+                    color: 'rgba(255,255,255,0.2)', 
+                    '&:hover': { color: '#FF453A', bgcolor: alpha('#FF453A', 0.05) },
+                }}
+            >
+                <Trash2 size={18} />
+            </IconButton>
+          </Stack>
         </Box>
 
         <Typography 

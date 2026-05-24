@@ -35,7 +35,8 @@ import {
     MoreVert as MoreIcon,
     AutoAwesome as TemplateIcon,
     History as HistoryIcon,
-    Settings as SettingsIcon
+    Settings as SettingsIcon,
+    PushPin as PinIcon
 } from '@mui/icons-material';
 import { FormsService } from '@/lib/services/forms';
 import { DraftsService, FormDraft } from '@/lib/services/drafts';
@@ -84,10 +85,14 @@ export default function FormsDashboard() {
                 FormsService.listUserForms(user.$id)
             ); 
             
-            // Deduplicate by ID to prevent blinking
-            const uniqueForms = response.rows.filter((form, index, self) =>
-                index === self.findIndex((f) => f.$id === form.$id)
-            );
+            // Deduplicate by ID and sort by pinned status
+            const uniqueForms = response.rows
+                .filter((form, index, self) => index === self.findIndex((f) => f.$id === form.$id))
+                .sort((a: any, b: any) => {
+                    if (a.isPinned && !b.isPinned) return -1;
+                    if (!a.isPinned && b.isPinned) return 1;
+                    return new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime();
+                });
             
             setForms(uniqueForms);
 
@@ -172,6 +177,16 @@ export default function FormsDashboard() {
         setSelectedForm(form);
         setSelectedDraft(null);
         setSettingsOpen(true);
+    };
+
+    const handleTogglePin = async (form: Forms) => {
+        try {
+            await FormsService.togglePin(form.$id);
+            fetchForms(false);
+            toast.success(form.isPinned ? "Unpinned" : "Pinned to top");
+        } catch (err) {
+            toast.error("Failed to toggle pin");
+        }
     };
 
     useEffect(() => {
@@ -524,6 +539,9 @@ export default function FormsDashboard() {
                 </MuiMenuItem>
                 <MuiMenuItem onClick={() => handleOpenSettings(menuAnchor!.form)}>
                     <SettingsIcon fontSize="small" /> Settings
+                </MuiMenuItem>
+                <MuiMenuItem onClick={() => { handleMenuClose(); handleTogglePin(menuAnchor!.form); }}>
+                    <PinIcon fontSize="small" sx={{ color: menuAnchor?.form.isPinned ? '#F59E0B' : 'inherit' }} /> {menuAnchor?.form.isPinned ? 'Unpin' : 'Pin'} Form
                 </MuiMenuItem>
                 <Divider sx={{ opacity: 0.05, my: 0.5 }} />
                 <MuiMenuItem onClick={() => { handleMenuClose(); handleDelete(menuAnchor!.form); }} sx={{ color: '#D14343 !important' }}>

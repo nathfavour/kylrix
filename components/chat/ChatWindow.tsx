@@ -64,6 +64,7 @@ import {
     AtSign,
     Coins,
     Zap,
+    Pin,
 } from 'lucide-react';
 import { NoteSelectorModal } from './NoteSelectorModal';
 import { SecretSelectorModal } from './SecretSelectorModal';

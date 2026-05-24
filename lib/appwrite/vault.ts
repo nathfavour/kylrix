@@ -1507,6 +1507,32 @@ export class VaultService {
     } as any);
   }
 
+  static async toggleCredentialPin(id: string): Promise<boolean> {
+    const existing = await this.getCredential(id);
+    const newPinned = !existing.isPinned;
+    await appwriteDatabases.updateDocument(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_COLLECTION_CREDENTIALS_ID,
+        id,
+        { isPinned: newPinned }
+    );
+    this.clearCredentialCache(existing.userId);
+    return newPinned;
+  }
+
+  static async toggleTOTPPin(id: string): Promise<boolean> {
+    const existing = await this.getTOTPSecret(id);
+    const newPinned = !existing.isPinned;
+    await appwriteDatabases.updateDocument(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_COLLECTION_TOTP_SECRETS_ID,
+        id,
+        { isPinned: newPinned }
+    );
+    this.clearTOTPCache(existing.userId);
+    return newPinned;
+  }
+
   // --- Sanitization Helpers ---
   private static sanitizeCredentialData(data: Partial<Credentials>): Partial<Credentials> {
     const sanitized = { ...data };
@@ -2775,5 +2801,13 @@ export async function listCredentialAttachments(credentialId: string): Promise<E
   const credential = await VaultService.getCredential(credentialId);
   if (!credential) return [];
   return normalizeCredentialAttachmentsField(credential);
+}
+
+export async function toggleCredentialPin(id: string) {
+    return await VaultService.toggleCredentialPin(id);
+}
+
+export async function toggleTOTPPin(id: string) {
+    return await VaultService.toggleTOTPPin(id);
 }
 

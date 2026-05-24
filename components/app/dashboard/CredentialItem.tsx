@@ -20,6 +20,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import PersonIcon from '@mui/icons-material/Person';
 import LockIcon from '@mui/icons-material/Lock';
+import PinIcon from '@mui/icons-material/PushPin';
 import type { Credentials } from '@/lib/appwrite/types';
 import { Shield, ExternalLink } from 'lucide-react';
 
@@ -30,6 +31,7 @@ export default function CredentialItem({
   onEdit,
   onDelete,
   onClick,
+  onTogglePin,
 }: {
   credential: Credentials;
   onCopy: (value: string) => void;
@@ -37,6 +39,7 @@ export default function CredentialItem({
   onEdit: () => void;
   onDelete: () => void;
   onClick?: () => void;
+  onTogglePin?: () => void;
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -115,7 +118,8 @@ export default function CredentialItem({
 
       {/* Info */}
       <Box sx={{ ml: 3, flexGrow: 1, minWidth: 0 }}>
-        <Typography variant="subtitle1" noWrap sx={{ fontWeight: 900, color: '#fff', lineHeight: 1.2, fontFamily: 'var(--font-clash)', fontSize: '1.05rem' }}>
+        <Typography variant="subtitle1" noWrap sx={{ fontWeight: 900, color: '#fff', lineHeight: 1.2, fontFamily: 'var(--font-clash)', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 1 }}>
+          {credential.isPinned && <PinIcon sx={{ fontSize: 14, color: '#F59E0B', transform: 'rotate(45deg)' }} />}
           {credential.name}
         </Typography>
         <Typography variant="body2" noWrap sx={{ color: '#9B9691', mt: 0.5, fontWeight: 500, fontFamily: 'var(--font-satoshi)' }}>
@@ -218,6 +222,10 @@ export default function CredentialItem({
         <MenuItem onClick={() => { onEdit(); setAnchorEl(null); }} sx={{ py: 1.5, px: 2.5 }}>
           <ListItemIcon><EditIcon sx={{ fontSize: 18 }} /></ListItemIcon>
           <ListItemText primary="Edit Record" primaryTypographyProps={{ fontWeight: 800, fontSize: '0.85rem' }} />
+        </MenuItem>
+        <MenuItem onClick={() => { onTogglePin?.(); setAnchorEl(null); }} sx={{ py: 1.5, px: 2.5 }}>
+          <ListItemIcon><PinIcon sx={{ fontSize: 18, color: credential.isPinned ? '#F59E0B' : 'inherit' }} /></ListItemIcon>
+          <ListItemText primary={credential.isPinned ? "Unpin Secret" : "Pin Secret"} primaryTypographyProps={{ fontWeight: 800, fontSize: '0.85rem' }} />
         </MenuItem>
         <MenuItem onClick={() => { onDelete(); setAnchorEl(null); }} sx={{ py: 1.5, px: 2.5, color: '#FF453A' }}>
           <ListItemIcon><DeleteIcon sx={{ fontSize: 18, color: '#FF453A' }} /></ListItemIcon>

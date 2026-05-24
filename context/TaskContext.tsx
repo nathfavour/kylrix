@@ -164,6 +164,7 @@ const mapAppwriteCalendarToProject = (doc: AppwriteCalendar): Project => ({
   memberIds: [],
   isArchived: false,
   isFavorite: doc.isDefault,
+  isPinned: (doc as any).isPinned === true || String((doc as any).isPinned) === 'true',
   defaultView: 'list',
   createdAt: new Date(doc.$createdAt),
   updatedAt: new Date(doc.$updatedAt),
@@ -257,7 +258,9 @@ type TaskAction =
   | { type: 'DELETE_SUBTASK'; payload: { taskId: string; subtaskId: string } }
   | { type: 'TOGGLE_SUBTASK'; payload: { taskId: string; subtaskId: string } }
   | { type: 'ADD_COMMENT'; payload: { taskId: string; comment: Comment } }
-  | { type: 'REORDER_TASKS'; payload: { taskIds: string[]; projectId?: string } };
+  | { type: 'REORDER_TASKS'; payload: { taskIds: string[]; projectId?: string } }
+  | { type: 'TOGGLE_PIN_TASK'; payload: string }
+  | { type: 'TOGGLE_PIN_PROJECT'; payload: string };
 
 // Reducer
 function taskReducer(state: TaskState, action: TaskAction): TaskState {
@@ -489,6 +492,7 @@ interface TaskContextType extends TaskState {
   deleteTask: (id: string) => void;
   completeTask: (id: string) => void;
   selectTask: (id: string | null) => void;
+  togglePinTask: (id: string) => Promise<void>;
   // Subtask actions
   addSubtask: (taskId: string, title: string) => void;
   updateSubtask: (taskId: string, subtaskId: string, updates: Partial<Subtask>) => void;
@@ -505,6 +509,7 @@ interface TaskContextType extends TaskState {
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
   selectProject: (id: string | null) => void;
+  togglePinProject: (id: string) => Promise<void>;
   // Label actions
   addLabel: (label: Omit<Label, 'id'>) => void;
   updateLabel: (id: string, updates: Partial<Label>) => void;
@@ -804,6 +809,34 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       // Revert?
     }
   }, [state.tasks, state.userId, invalidateTasksNexus]);
+
+  const togglePinTask = useCallback(async (id: string) => {
+    const task = state.tasks.find(t => t.id === id);
+    if (!task) return;
+    const newPinned = !task.isPinned;
+    dispatch({ type: 'TOGGLE_PIN_TASK', payload: id });
+    try {
+        await taskApi.update(id, { isPinned: newPinned } as any);
+        invalidateTasksNexus(state.userId || 'guest');
+    } catch (err) {
+        console.error('Failed to toggle task pin', err);
+        dispatch({ type: 'TOGGLE_PIN_TASK', payload: id });
+    }
+  }, [state.tasks, state.userId, invalidateTasksNexus]);
+
+  const togglePinProject = useCallback(async (id: string) => {
+    const project = state.projects.find(p => p.id === id);
+    if (!project) return;
+    const newPinned = !project.isPinned;
+    dispatch({ type: 'TOGGLE_PIN_PROJECT', payload: id });
+    try {
+        await calendarApi.update(id, { isPinned: newPinned } as any);
+        invalidateTasksNexus(state.userId || 'guest');
+    } catch (err) {
+        console.error('Failed to toggle project pin', err);
+        dispatch({ type: 'TOGGLE_PIN_PROJECT', payload: id });
+    }
+  }, [state.projects, state.userId, invalidateTasksNexus]);
 
   const deleteTask = useCallback(async (id: string) => {
     try {
@@ -1205,6 +1238,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     deleteTask,
     completeTask,
     selectTask,
+    togglePinTask,
     addSubtask,
     updateSubtask,
     deleteSubtask,
@@ -1218,6 +1252,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     updateProject,
     deleteProject,
     selectProject,
+    togglePinProject,
     addLabel,
     updateLabel,
     deleteLabel,
@@ -1240,6 +1275,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     deleteTask,
     completeTask,
     selectTask,
+    togglePinTask,
     addSubtask,
     updateSubtask,
     deleteSubtask,
@@ -1253,6 +1289,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     updateProject,
     deleteProject,
     selectProject,
+    togglePinProject,
     addLabel,
     updateLabel,
     deleteLabel,
