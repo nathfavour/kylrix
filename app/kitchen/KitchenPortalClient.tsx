@@ -29,104 +29,108 @@ function FileNode({ node, depth }: FileNodeProps) {
     setIsOpen(!isOpen);
   };
 
-  return (
-    <Box sx={{ ml: depth > 0 ? 3 : 0 }}>
-      {/* Node Row */}
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1.5, 
-          py: 1.5, 
-          px: 2,
-          borderRadius: '12px',
-          bgcolor: '#131110',
-          border: '1px solid #23211F',
-          boxShadow: '2px 2px 0px #000000',
-          mb: 1.5,
-          cursor: 'default',
-          transition: 'all 0.2s ease',
-          '&:hover': {
-            borderColor: '#6366F1',
-            transform: 'translateX(2px)'
-          }
-        }}
-      >
-        {/* Toggle Arrow */}
-        {hasChildren ? (
-          <IconButton 
-            size="small" 
-            onClick={toggleOpen}
-            sx={{ 
-              color: 'rgba(255,255,255,0.4)', 
-              p: 0.25,
-              '&:hover': { color: '#FFFFFF', bgcolor: 'rgba(255,255,255,0.05)' }
-            }}
-          >
-            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </IconButton>
-        ) : (
-          <Box sx={{ width: 22 }} />
-        )}
-
-        {/* Node Icon */}
-        <Box sx={{ color: hasChildren ? '#EC4899' : '#6366F1', display: 'flex', alignItems: 'center' }}>
-          {hasChildren ? <Folder size={18} strokeWidth={2} /> : <FileCode size={18} strokeWidth={2} />}
-        </Box>
-
-        {/* Node Name */}
-        <Typography 
+  const renderRowContent = () => (
+    <Box 
+      sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 1.5, 
+        py: 1.5, 
+        px: 2,
+        borderRadius: '12px',
+        bgcolor: '#131110',
+        border: '1px solid #23211F',
+        boxShadow: '2px 2px 0px #000000',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          borderColor: '#6366F1',
+          transform: 'translateX(2px)'
+        }
+      }}
+    >
+      {/* Toggle Arrow */}
+      {hasChildren ? (
+        <IconButton 
+          size="small" 
+          onClick={toggleOpen}
           sx={{ 
-            fontFamily: 'var(--font-space-grotesk)', 
-            fontWeight: 700, 
-            fontSize: '1rem',
-            color: '#FFFFFF',
-            flexGrow: 1
+            color: 'rgba(255,255,255,0.4)', 
+            p: 0.25,
+            mr: 0.5,
+            '&:hover': { color: '#FFFFFF', bgcolor: 'rgba(255,255,255,0.08)' }
           }}
         >
-          {node.name}
-        </Typography>
+          {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </IconButton>
+      ) : (
+        <Box sx={{ width: 22 }} />
+      )}
 
-        {/* Navigate Button */}
-        {node.hasPage && (
-          <Link href={node.route} passHref>
-            <Box
-              component="span"
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.75,
-                px: 2,
-                py: 0.5,
-                borderRadius: '8px',
-                bgcolor: '#0B0A09',
-                border: '1px solid #23211F',
-                color: '#6366F1',
-                fontSize: '0.8rem',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                textDecoration: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: '#6366F1',
-                  color: '#FFFFFF',
-                  borderColor: '#000000',
-                  transform: 'translate(-1px, -1px)',
-                  boxShadow: '2px 2px 0px #000000'
-                },
-                '&:active': {
-                  transform: 'translate(1px, 1px)',
-                  boxShadow: '0px 0px 0px #000000'
-                }
-              }}
-            >
-              Launch <ArrowUpRight size={14} />
-            </Box>
-          </Link>
-        )}
+      {/* Node Icon */}
+      <Box sx={{ color: hasChildren ? '#EC4899' : '#6366F1', display: 'flex', alignItems: 'center' }}>
+        {hasChildren ? <Folder size={18} strokeWidth={2} /> : <FileCode size={18} strokeWidth={2} />}
       </Box>
+
+      {/* Node Name */}
+      <Typography 
+        sx={{ 
+          fontFamily: 'var(--font-space-grotesk)', 
+          fontWeight: 700, 
+          fontSize: '1rem',
+          color: '#FFFFFF',
+          flexGrow: 1
+        }}
+      >
+        {node.name}
+      </Typography>
+
+      {/* Navigate Button */}
+      {node.hasPage && (
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.75,
+            px: 2,
+            py: 0.5,
+            borderRadius: '8px',
+            bgcolor: '#0B0A09',
+            border: '1px solid #23211F',
+            color: '#6366F1',
+            fontSize: '0.8rem',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            transition: 'all 0.15s ease',
+            '&:hover': {
+              bgcolor: '#6366F1',
+              color: '#FFFFFF',
+              borderColor: '#000000',
+              transform: 'translate(-1px, -1px)',
+              boxShadow: '2px 2px 0px #000000'
+            }
+          }}
+        >
+          Launch <ArrowUpRight size={14} />
+        </Box>
+      )}
+    </Box>
+  );
+
+  return (
+    <Box sx={{ ml: depth > 0 ? 3 : 0, mb: 1.5 }}>
+      {node.hasPage ? (
+        <Link href={node.route} passHref legacyBehavior>
+          <Box component="a" sx={{ display: 'block', textDecoration: 'none' }}>
+            {renderRowContent()}
+          </Box>
+        </Link>
+      ) : (
+        <Box onClick={toggleOpen} sx={{ display: 'block' }}>
+          {renderRowContent()}
+        </Box>
+      )}
 
       {/* Children Nodes (Collapsible) */}
       <AnimatePresence initial={false}>
