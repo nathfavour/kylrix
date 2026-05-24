@@ -161,6 +161,9 @@ export async function generateAIContent(payload: AIRequestPayload): Promise<AIRe
       const recentAppsStr = Array.isArray(lc.recentApps) ? lc.recentApps.join(', ') : 'none';
       const flowTransitionsStr = Array.isArray(lc.flowTransitions) ? lc.flowTransitions.join(' -> ') : 'none';
       const lastSearchStr = lc.lastSearchQuery ? `"${lc.lastSearchQuery}"` : 'none';
+      const workflowTraceStr = Array.isArray(lc.activeWorkflowSteps) && lc.activeWorkflowSteps.length > 0
+        ? lc.activeWorkflowSteps.join('\n  -> ')
+        : 'none';
 
       finalPrompt = `${prompt}
 
@@ -170,7 +173,10 @@ The following anonymized offline environment state has been compiled from the us
 - Recent App Switches: ${recentAppsStr}
 - Session Trajectory: ${flowTransitionsStr}
 - Last Search Attempt: ${lastSearchStr}
-Please utilize this contextual memory to optimize your recommendations and references if relevant, maintaining the layman-friendly, secure posture of the workspace.`;
+- Recorded Workflow Chain: 
+  -> ${workflowTraceStr}
+
+Please utilize this contextual memory to optimize your recommendations if relevant. If a recorded workflow chain is active, interpret the sequence of user action IDs to construct dynamic shortcut suggestions, automated procedures, or guidance tutorials to reproduce these exact steps in Kylrix while maintaining the layman-friendly posture.`;
     }
 
     const result = await model.generateContent(finalPrompt);

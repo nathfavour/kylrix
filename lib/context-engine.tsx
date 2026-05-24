@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { WorkflowStep, WorkflowChain } from './workflow-engine';
 
 export type TelemetryNiche = 
   | 'workspace'      // Notes, Sheets, Document management
@@ -36,6 +37,7 @@ export interface CompiledLocalContext {
   lastSearchQuery?: string;
   flowTransitions: string[];
   timestamp: string;
+  activeWorkflowSteps?: string[];
 }
 
 interface LocalContextType {
@@ -44,6 +46,14 @@ interface LocalContextType {
   bufferEvent: (event: Omit<LocalEvent, 'timestamp'>) => void;
   dismissSuggestion: (id: string) => void;
   compileContextForAI: () => CompiledLocalContext;
+  
+  // Workflow Recording Engine
+  isRecording: boolean;
+  currentWorkflow: WorkflowStep[];
+  savedWorkflows: Record<string, WorkflowChain>;
+  startRecording: () => void;
+  stopRecording: (name: string, description: string, niche: TelemetryNiche) => WorkflowChain | null;
+  clearSavedWorkflows: () => void;
 }
 
 const LocalContext = createContext<LocalContextType | undefined>(undefined);
@@ -55,6 +65,19 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
   const [suggestions, setSuggestions] = useState<EphemeralSuggestion[]>([]);
   const pathname = usePathname();
 
+  // Workflow Engine States
+  const [isRecording, setIsRecording] = useState(false);
+  const [currentWorkflow, setCurrentWorkflow] = useState<WorkflowStep[]>([]);
+  const [savedWorkflows, setSavedWorkflows] = useState<Record<string, WorkflowChain>>({});
+
+  // Use refs to avoid re-binding the global window listener on state changes
+  const isRecordingRef = useRef(isRecording);
+  const bufferEventRef = useRef<(event: Omit<LocalEvent, 'timestamp'>) => void>(() => {});
+
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
   const addSuggestion = useCallback((suggestion: Omit<EphemeralSuggestion, 'id' | 'timestamp'>) => {
     const id = Math.random().toString(36).substring(2, 9);
     const newSuggestion: EphemeralSuggestion = {
@@ -63,10 +86,9 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
       timestamp: new Date().toISOString()
     };
     
-    // Prevent duplicate suggestions with same title/description active at once
     setSuggestions(prev => {
       if (prev.some(s => s.title === suggestion.title)) return prev;
-      return [newSuggestion, ...prev].slice(0, 5); // Keep max 5 suggestions
+      return [newSuggestion, ...prev].slice(0, 5);
     });
 
     console.log('[LocalContextEngine] Generated Ephemeral Suggestion:', newSuggestion);
@@ -93,21 +115,18 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
     console.log('[LocalContextEngine] Buffered Event:', newEvent);
 
     // Heuristics Engine (Client-side execution to prevent server queries/bloat)
-    // Runs against the current updated event queue
     setTimeout(() => {
       setEvents(currentEvents => {
         const now = new Date().getTime();
 
         // Heuristic 1: Search Abandonment to Moments Transition
         if (newEvent.niche === 'connect' && (newEvent.app === 'connect' || newEvent.app === 'moments') && newEvent.action === 'page_view') {
-          // Look for search_focused/typing within last 20 seconds
           const recentSearch = currentEvents.find(e => 
             e.app === 'search' && 
             (e.action === 'search_focused' || e.action === 'search_typing') &&
             (now - new Date(e.timestamp).getTime() < 20000)
           );
 
-          // Ensure NO clicked result happened after that search focus
           const clickedResult = currentEvents.find(e => 
             e.app === 'search' && 
             e.action === 'search_clicked_result' &&
@@ -149,7 +168,6 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
 
         // Heuristic 3: Workspace and Productivity Synergy
         if (newEvent.niche === 'productivity' && newEvent.app === 'flow' && newEvent.action === 'page_view') {
-          // Look for active note views within last 15 seconds
           const recentNoteView = currentEvents.find(e => 
             e.niche === 'workspace' && 
             e.app === 'note' && 
@@ -174,11 +192,61 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
 
   }, [addSuggestion]);
 
+  // Keep bufferEvent Ref current
+  useEffect(() => {
+    bufferEventRef.current = bufferEvent;
+  }, [bufferEvent]);
+
+  // Global DOM click interceptor for zero-boilerplate action recording
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+
+      const actionEl = target.closest('[data-action-id]') as HTMLElement;
+      if (!actionEl) return;
+
+      const actionId = actionEl.getAttribute('data-action-id');
+      if (!actionId) return;
+
+      console.log('[LocalContextEngine] Intercepted Action:', actionId);
+
+      // Parse fields from niche.app.context.action.element
+      const parts = actionId.split('.');
+      const niche = (parts[0] || 'system') as TelemetryNiche;
+      const app = parts[1] || 'unknown';
+      const context = parts[2] || 'unknown';
+      const action = parts[3] || 'unknown';
+      const element = parts[4] || 'unknown';
+
+      // Automatically report action click to local event queue
+      bufferEventRef.current({
+        niche,
+        app,
+        action: `${context}_${action}_${element}`,
+        metadata: { actionId }
+      });
+
+      // Record step if in workflow recording mode
+      if (isRecordingRef.current) {
+        const newStep: WorkflowStep = {
+          actionId,
+          timestamp: new Date().toISOString()
+        };
+        setCurrentWorkflow(prev => [...prev, newStep]);
+      }
+    };
+
+    window.addEventListener('click', handleGlobalClick, true);
+    return () => window.removeEventListener('click', handleGlobalClick, true);
+  }, []);
+
   // Automatic pathname router tracker
   useEffect(() => {
     if (!pathname) return;
 
-    // Helper to map paths to niches and apps
     const getNicheAndApp = (path: string): { niche: TelemetryNiche; app: string } => {
       if (path.startsWith('/note')) return { niche: 'workspace', app: 'note' };
       if (path.startsWith('/vault')) return { niche: 'security', app: 'vault' };
@@ -200,16 +268,68 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
     });
   }, [pathname, bufferEvent]);
 
-  // Compile context bundle for smart assistant prompt context
+  // Load and save workflow chains
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('kylrix_saved_workflows');
+        if (stored) {
+          setSavedWorkflows(JSON.parse(stored));
+        }
+      } catch (err) {
+        console.error('Failed to load saved workflows:', err);
+      }
+    }
+  }, []);
+
+  const startRecording = useCallback(() => {
+    setIsRecording(true);
+    setCurrentWorkflow([]);
+    console.log('[LocalContextEngine] Started Workflow Recording...');
+  }, []);
+
+  const stopRecording = useCallback((name: string, description: string, niche: TelemetryNiche) => {
+    setIsRecording(false);
+    if (currentWorkflow.length === 0) {
+      console.log('[LocalContextEngine] Workflow Recording stopped: No steps recorded.');
+      return null;
+    }
+
+    const workflowId = Math.random().toString(36).substring(2, 9);
+    const newWorkflow: WorkflowChain = {
+      id: workflowId,
+      name,
+      description,
+      niche,
+      steps: currentWorkflow,
+      createdAt: new Date().toISOString()
+    };
+
+    setSavedWorkflows(prev => {
+      const updated = { ...prev, [workflowId]: newWorkflow };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('kylrix_saved_workflows', JSON.stringify(updated));
+      }
+      return updated;
+    });
+
+    console.log('[LocalContextEngine] Saved Workflow:', newWorkflow);
+    return newWorkflow;
+  }, [currentWorkflow]);
+
+  const clearSavedWorkflows = useCallback(() => {
+    setSavedWorkflows({});
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('kylrix_saved_workflows');
+    }
+  }, []);
+
   const compileContextForAI = useCallback((): CompiledLocalContext => {
     const activeNichesSet = new Set<TelemetryNiche>();
     const recentAppsSet = new Set<string>();
     const flowTransitions: string[] = [];
-
-    // Extract recent search query
     let lastSearchQuery: string | undefined;
     
-    // Scan events chronologically
     events.forEach(e => {
       activeNichesSet.add(e.niche);
       recentAppsSet.add(e.app);
@@ -225,10 +345,11 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
       activeNiches: Array.from(activeNichesSet),
       recentApps: Array.from(recentAppsSet),
       lastSearchQuery,
-      flowTransitions: flowTransitions.slice(-5), // Keep last 5 path transitions
-      timestamp: new Date().toISOString()
+      flowTransitions: flowTransitions.slice(-5),
+      timestamp: new Date().toISOString(),
+      activeWorkflowSteps: currentWorkflow.map(step => step.actionId)
     };
-  }, [events]);
+  }, [events, currentWorkflow]);
 
   return (
     <LocalContext.Provider
@@ -237,7 +358,13 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
         suggestions,
         bufferEvent,
         dismissSuggestion,
-        compileContextForAI
+        compileContextForAI,
+        isRecording,
+        currentWorkflow,
+        savedWorkflows,
+        startRecording,
+        stopRecording,
+        clearSavedWorkflows
       }}
     >
       {children}

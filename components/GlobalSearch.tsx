@@ -191,6 +191,9 @@ export default function GlobalSearch() {
           });
         }}
         slotProps={{
+          htmlInput: {
+            'data-action-id': 'workspace.search.input.focus.search_field'
+          },
           input: {
             startAdornment: (
               <InputAdornment position="start">
@@ -269,6 +272,7 @@ export default function GlobalSearch() {
                     <ListItem
                       key={result.id}
                       onClick={() => handleResultClick(result)}
+                      data-action-id={`workspace.search.results.click.${result.type}_row`}
                       sx={{
                         py: 1.5,
                         px: 2,
