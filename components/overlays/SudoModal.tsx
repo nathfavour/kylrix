@@ -73,6 +73,7 @@ export default function SudoModal({
     const [mode, setMode] = useState<"passkey" | "password" | "initialize" | null>(null);
     const [isDetecting, setIsDetecting] = useState(true);
     const [showPasskeyIncentive, setShowPasskeyIncentive] = useState(false);
+    const passkeyTriggeredRef = useRef(false);
     const appTone = getAppTone(app);
     const accentColor = appTone.secondary;
     const isKylrixDomain =
@@ -182,7 +183,14 @@ export default function SudoModal({
     }, [isOpen, user?.$id, intent, handleRedirectToVaultSetup, isKylrixDomain, router]);
 
     useEffect(() => {
-        if (isOpen && mode === "passkey" && hasPasskey && !passkeyLoading) {
+        if (!isOpen) {
+            passkeyTriggeredRef.current = false;
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen && mode === "passkey" && hasPasskey && !passkeyLoading && !passkeyTriggeredRef.current) {
+            passkeyTriggeredRef.current = true;
             handlePasskeyVerify();
         }
     }, [isOpen, mode, hasPasskey, handlePasskeyVerify, passkeyLoading]);

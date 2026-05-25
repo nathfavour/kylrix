@@ -173,6 +173,11 @@ function DashboardPageContent() {
     }
   };
 
+  const handleMasterPassSuccess = useCallback(() => {
+    setShowMasterPassDrawer(false);
+    void hydrateVaultData();
+  }, [hydrateVaultData]);
+
   const sortedCredentials = useMemo(() => {
     return [...allCredentials].sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
@@ -345,10 +350,7 @@ function DashboardPageContent() {
         <SudoModal
           isOpen={showMasterPassDrawer}
           app="vault"
-          onSuccess={() => {
-            setShowMasterPassDrawer(false);
-            void hydrateVaultData();
-          }}
+          onSuccess={handleMasterPassSuccess}
           onCancel={() => { }}
         />
       </Box>
