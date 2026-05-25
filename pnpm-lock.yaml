@@ -125,6 +125,9 @@ importers:
       fuse.js:
         specifier: ^7.1.0
         version: 7.3.0
+      hash-wasm:
+        specifier: ^4.12.0
+        version: 4.12.0
       html-to-image:
         specifier: ^1.11.13
         version: 1.11.13
@@ -3768,6 +3771,9 @@ packages:
   hash-base@3.1.2:
     resolution: {integrity: sha512-Bb33KbowVTIj5s7Ked1OsqHUeCpz//tPwR+E2zJgJKo9Z5XolZ9b6bdUgjmYlwnWhoOQKoTd1TYToZGn5mAYOg==}
     engines: {node: '>= 0.8'}
+
+  hash-wasm@4.12.0:
+    resolution: {integrity: sha512-+/2B2rYLb48I/evdOIhP+K/DD2ca2fgBjp6O+GBEnCDk2e4rpeXIK8GvIyRPjTezgmWn9gmKwkQjjx6BtqDHVQ==}
 
   hasown@2.0.2:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
@@ -10611,6 +10617,8 @@ snapshots:
       readable-stream: 2.3.8
       safe-buffer: 5.2.1
       to-buffer: 1.2.2
+
+  hash-wasm@4.12.0: {}
 
   hasown@2.0.2:
     dependencies:
