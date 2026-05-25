@@ -1554,8 +1554,14 @@ export async function deleteActivityLog(activityLogId: string) {
 
 export async function listActivityLogs() {
   const user = await getCurrentUser();
-  if (!user || !user.$id) throw new Error("User not authenticated");
-  return databases.listRows(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_ACTIVITYLOG, [Query.equal('userId', user.$id)]);
+  if (!user || !user.$id) {
+    return { total: 0, rows: [], documents: [] };
+  }
+  const res = await databases.listRows(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_ACTIVITYLOG, [Query.equal('userId', user.$id)]);
+  return {
+      ...res,
+      documents: res.rows // Ensure legacy alias is present
+  };
 }
 
 // --- SETTINGS CRUD ---
@@ -2823,10 +2829,12 @@ export async function listNotesPaginated(options: ListNotesPaginatedOptions = {}
 
   return {
     rows: filteredNotes,
+    documents: filteredNotes, // Legacy alias
     total: typeof res.total === 'number' ? res.total : filteredNotes.length,
     nextCursor,
     hasMore,
   };
+
 }
 
 // --- PERMISSIONS HELPERS ---
