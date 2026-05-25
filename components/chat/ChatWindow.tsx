@@ -2085,8 +2085,12 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
                                                     sx={{
                                                         fontSize: '0.72rem',
                                                         fontWeight: 800,
-                                                        color: 'rgba(255,255,255,0.72)',
+                                                        color: '#9B9691', // Muted Gray metadata
                                                         pl: 0.5,
+                                                        mb: 0.25,
+                                                        fontFamily: 'var(--font-mono)',
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.05em'
                                                     }}
                                                 >
                                                     {senderName}
@@ -2100,17 +2104,21 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
                                                     width: 'fit-content',
                                                     maxWidth: '100%',
                                                     alignSelf: isOutgoing ? 'flex-end' : 'flex-start',
-                                                    borderRadius: isOutgoing ? '24px 24px 4px 24px' : '24px 24px 24px 4px',
-                                                    bgcolor: '#161412',
+                                                    borderRadius: isOutgoing ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
+                                                    bgcolor: isOutgoing ? '#1C1A18' : '#161412', // Lifted vs Base
                                                     backgroundImage: 'none',
-                                                    border: '1px solid #1C1A18',
-                                                    color: '#fff',
-                                                    boxShadow: isOutgoing
-                                                        ? `0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px ${alpha('#252321', 0.9)}, 0 0 0 1px rgba(99, 102, 241, 0.2)`
-                                                        : `0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px ${alpha('#252321', 0.9)}, 0 0 0 1px rgba(245, 158, 11, 0.2)`,
+                                                    border: '1px solid #23211F',
+                                                    borderRight: isOutgoing ? '3px solid #6366F1' : '1px solid #23211F',
+                                                    borderLeft: !isOutgoing ? '3px solid #34322F' : '1px solid #23211F',
+                                                    color: isOutgoing ? '#FFFFFF' : '#F5F2ED',
+                                                    boxShadow: '0 4px 12px -4px rgba(0,0,0,0.8)',
                                                     position: 'relative',
                                                     zIndex: 2,
                                                     transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                                                    '&:hover': {
+                                                        transform: 'translateY(-1px)',
+                                                        boxShadow: '0 6px 16px -4px rgba(0,0,0,0.9)',
+                                                    }
                                                 }}
                                             >
                                                 {msg.isPinned && (
