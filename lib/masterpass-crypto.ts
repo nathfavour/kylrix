@@ -1,7 +1,6 @@
 import { logDebug, logError } from '@/lib/logger';
 import { markSudoActive, resetSudo } from '@/lib/sudo-mode';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
-import { argon2id } from 'hash-wasm';
 
 // Enhanced crypto configuration for maximum security with optimal performance
 export class MasterPassCrypto {
@@ -41,6 +40,7 @@ export class MasterPassCrypto {
     password: string,
     salt: Uint8Array,
   ): Promise<CryptoKey> {
+    const { argon2id } = await import('hash-wasm');
     const hash = await argon2id({
       password,
       salt,

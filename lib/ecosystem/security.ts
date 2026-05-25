@@ -8,7 +8,6 @@ import { MeshProtocol } from './mesh';
 import { tablesDB } from '@/lib/appwrite/client';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { Query, ID } from 'appwrite';
-import { argon2id } from 'hash-wasm';
 
 const PW_DB = APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER;
 
@@ -168,6 +167,7 @@ export class EcosystemSecurity {
     password: string,
     salt: Uint8Array,
   ): Promise<CryptoKey> {
+    const { argon2id } = await import('hash-wasm');
     const hash = await argon2id({
       password,
       salt,
