@@ -26,12 +26,24 @@ function hashJoinRequestId(resourceType: string, resourceId: string, requesterId
 function getConversationInviteEnabled(conversation: any) {
   const inviteToken = normalizeText(conversation?.inviteLink);
   if (!inviteToken) return false;
+  
   const expiryRaw = conversation?.inviteLinkExpiry;
   if (expiryRaw) {
     const expiry = new Date(expiryRaw).getTime();
-    if (Number.isFinite(expiry) && expiry < Date.now()) return false;
+    if (Number.isFinite(expiry) && expiry < Date.now()) {
+        console.warn('[getConversationInviteEnabled] Invite link expired for:', conversation.$id);
+        return false;
+    }
   }
-  return inviteToken === conversation?.$id || inviteToken === conversation?.id;
+
+  const conversationId = conversation?.$id || conversation?.id;
+  const isMatch = inviteToken === conversationId;
+  
+  if (!isMatch) {
+    console.warn('[getConversationInviteEnabled] Token mismatch. Token:', inviteToken, 'Expected:', conversationId);
+  }
+
+  return isMatch;
 }
 
 function getManagers(conversation: any) {

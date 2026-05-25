@@ -30,7 +30,7 @@ function parseDatabasesDeleteArgs(args: any[]) {
     return { databaseId, collectionId, documentId };
 }
 
-export const databases = new Proxy(originalDatabases, {
+const databasesProxy = new Proxy(originalDatabases, {
     get(target: any, prop: string | symbol, receiver: any) {
         if (prop === 'createDocument') {
             return async (...args: any[]) => {
@@ -39,71 +39,53 @@ export const databases = new Proxy(originalDatabases, {
                 if (documentId) {
                     payload.$id = documentId;
                 }
-                if (typeof window !== 'undefined') {
-                    const { createRowSecure } = await import('@/lib/actions/secure-ops');
-                    return await createRowSecure(databaseId, collectionId, payload, permissions);
-                } else {
-                    return await originalDatabases.createDocument(databaseId, collectionId, documentId, data, permissions);
-                }
+                const { createRowSecure } = await import('@/lib/actions/secure-ops');
+                return await createRowSecure(databaseId, collectionId, payload, permissions);
             };
         }
         if (prop === 'updateDocument') {
             return async (...args: any[]) => {
                 const { databaseId, collectionId, documentId, data, permissions } = parseDatabasesArgs(args);
-                if (typeof window !== 'undefined') {
-                    const { updateRowSecure } = await import('@/lib/actions/secure-ops');
-                    return await updateRowSecure(databaseId, collectionId, documentId, data, permissions);
-                } else {
-                    return await originalDatabases.updateDocument(databaseId, collectionId, documentId, data, permissions);
-                }
+                const { updateRowSecure } = await import('@/lib/actions/secure-ops');
+                return await updateRowSecure(databaseId, collectionId, documentId, data, permissions);
             };
         }
         if (prop === 'listDocuments') {
             return async (...args: any[]) => {
                 const { databaseId, collectionId, queries } = parseTablesDBListArgs(args);
-                if (typeof window !== 'undefined') {
-                    try {
-                        return await originalDatabases.listDocuments(databaseId, collectionId, queries);
-                    } catch (e: any) {
-                        const { listRowsSecure } = await import('@/lib/actions/secure-ops');
-                        const res = await listRowsSecure(databaseId, collectionId, queries);
-                        return { total: res.total, documents: res.rows };
-                    }
-                } else {
+                try {
                     return await originalDatabases.listDocuments(databaseId, collectionId, queries);
+                } catch (e: any) {
+                    const { listRowsSecure } = await import('@/lib/actions/secure-ops');
+                    const res = await listRowsSecure(databaseId, collectionId, queries);
+                    return { total: res.total, documents: res.rows };
                 }
             };
         }
         if (prop === 'getDocument') {
             return async (...args: any[]) => {
                 const { databaseId, collectionId, documentId } = parseDatabasesDeleteArgs(args);
-                if (typeof window !== 'undefined') {
-                    try {
-                        return await originalDatabases.getDocument(databaseId, collectionId, documentId);
-                    } catch (e: any) {
-                        const { getRowSecure } = await import('@/lib/actions/secure-ops');
-                        return await getRowSecure(databaseId, collectionId, documentId);
-                    }
-                } else {
+                try {
                     return await originalDatabases.getDocument(databaseId, collectionId, documentId);
+                } catch (e: any) {
+                    const { getRowSecure } = await import('@/lib/actions/secure-ops');
+                    return await getRowSecure(databaseId, collectionId, documentId);
                 }
             };
         }
         if (prop === 'deleteDocument') {
             return async (...args: any[]) => {
                 const { databaseId, collectionId, documentId } = parseDatabasesDeleteArgs(args);
-                if (typeof window !== 'undefined') {
-                    const { deleteRowSecure } = await import('@/lib/actions/secure-ops');
-                    return await deleteRowSecure(databaseId, collectionId, documentId);
-                } else {
-                    return await originalDatabases.deleteDocument(databaseId, collectionId, documentId);
-                }
+                const { deleteRowSecure } = await import('@/lib/actions/secure-ops');
+                return await deleteRowSecure(databaseId, collectionId, documentId);
             };
         }
         const val = Reflect.get(target, prop, receiver);
         return typeof val === 'function' ? val.bind(target) : val;
     }
-}) as unknown as Databases;
+});
+
+export const databases = typeof window !== 'undefined' ? (databasesProxy as unknown as Databases) : originalDatabases;
 
 export const storage = new Storage(client);
 export const avatars = new Avatars(client);
@@ -117,50 +99,7 @@ export const appwriteAccount = account;
 export const appwriteDatabases = databases; // Standard Databases API
 const originalTablesDB = new TablesDB(client);
 
-// Helper parsers for tablesDB parameters (supporting both positional and object signatures)
-function parseTablesDBArgs(args: any[]) {
-    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && ('databaseId' in args[0])) {
-        const obj = args[0];
-        return {
-            databaseId: obj.databaseId,
-            tableId: obj.tableId || obj.collectionId,
-            rowId: obj.rowId || obj.documentId,
-            data: obj.data,
-            permissions: obj.permissions
-        };
-    }
-    const [databaseId, tableId, rowId, data, permissions] = args;
-    return { databaseId, tableId, rowId, data, permissions };
-}
-
-function parseTablesDBDeleteArgs(args: any[]) {
-    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && ('databaseId' in args[0])) {
-        const obj = args[0];
-        return {
-            databaseId: obj.databaseId,
-            tableId: obj.tableId || obj.collectionId,
-            rowId: obj.rowId || obj.documentId
-        };
-    }
-    const [databaseId, tableId, rowId] = args;
-    return { databaseId, tableId, rowId };
-}
-
-function parseTablesDBListArgs(args: any[]) {
-    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && ('databaseId' in args[0])) {
-        const obj = args[0];
-        return {
-            databaseId: obj.databaseId,
-            tableId: obj.tableId || obj.collectionId,
-            collectionId: obj.collectionId || obj.tableId,
-            queries: obj.queries
-        };
-    }
-    const [databaseId, tableId, queries] = args;
-    return { databaseId, tableId, collectionId: tableId, queries };
-}
-
-export const tablesDB = new Proxy(originalTablesDB, {
+const tablesDBProxy = new Proxy(originalTablesDB, {
     get(target: any, prop: string | symbol, receiver: any) {
         if (prop === 'createRow') {
             return async (...args: any[]) => {
@@ -169,70 +108,52 @@ export const tablesDB = new Proxy(originalTablesDB, {
                 if (rowId) {
                     payload.$id = rowId;
                 }
-                if (typeof window !== 'undefined') {
-                    const { createRowSecure } = await import('@/lib/actions/secure-ops');
-                    return await createRowSecure(databaseId, tableId, payload, permissions);
-                } else {
-                    return await originalTablesDB.createRow(databaseId, tableId, payload, permissions);
-                }
+                const { createRowSecure } = await import('@/lib/actions/secure-ops');
+                return await createRowSecure(databaseId, tableId, payload, permissions);
             };
         }
         if (prop === 'updateRow') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, rowId, data, permissions } = parseTablesDBArgs(args);
-                if (typeof window !== 'undefined') {
-                    const { updateRowSecure } = await import('@/lib/actions/secure-ops');
-                    return await updateRowSecure(databaseId, tableId, rowId, data, permissions);
-                } else {
-                    return await originalTablesDB.updateRow(databaseId, tableId, rowId, data, permissions);
-                }
+                const { updateRowSecure } = await import('@/lib/actions/secure-ops');
+                return await updateRowSecure(databaseId, tableId, rowId, data, permissions);
             };
         }
         if (prop === 'listRows') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, queries } = parseTablesDBListArgs(args);
-                if (typeof window !== 'undefined') {
-                    try {
-                        return await originalTablesDB.listRows(databaseId, tableId, queries);
-                    } catch (e: any) {
-                        const { listRowsSecure } = await import('@/lib/actions/secure-ops');
-                        return await listRowsSecure(databaseId, tableId, queries);
-                    }
-                } else {
+                try {
                     return await originalTablesDB.listRows(databaseId, tableId, queries);
+                } catch (e: any) {
+                    const { listRowsSecure } = await import('@/lib/actions/secure-ops');
+                    return await listRowsSecure(databaseId, tableId, queries);
                 }
             };
         }
         if (prop === 'getRow') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, rowId } = parseTablesDBDeleteArgs(args);
-                if (typeof window !== 'undefined') {
-                    try {
-                        return await originalTablesDB.getRow(databaseId, tableId, rowId);
-                    } catch (e: any) {
-                        const { getRowSecure } = await import('@/lib/actions/secure-ops');
-                        return await getRowSecure(databaseId, tableId, rowId);
-                    }
-                } else {
+                try {
                     return await originalTablesDB.getRow(databaseId, tableId, rowId);
+                } catch (e: any) {
+                    const { getRowSecure } = await import('@/lib/actions/secure-ops');
+                    return await getRowSecure(databaseId, tableId, rowId);
                 }
             };
         }
         if (prop === 'deleteRow') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, rowId } = parseTablesDBDeleteArgs(args);
-                if (typeof window !== 'undefined') {
-                    const { deleteRowSecure } = await import('@/lib/actions/secure-ops');
-                    return await deleteRowSecure(databaseId, tableId, rowId);
-                } else {
-                    return await originalTablesDB.deleteRow(databaseId, tableId, rowId);
-                }
+                const { deleteRowSecure } = await import('@/lib/actions/secure-ops');
+                return await deleteRowSecure(databaseId, tableId, rowId);
             };
         }
         const val = Reflect.get(target, prop, receiver);
         return typeof val === 'function' ? val.bind(target) : val;
     }
-}) as unknown as TablesDB;
+});
+
+export const tablesDB = typeof window !== 'undefined' ? (tablesDBProxy as unknown as TablesDB) : originalTablesDB;
 export const appwriteStorage = storage;
 export const appwriteAvatars = avatars;
 export const appwriteClient = client;

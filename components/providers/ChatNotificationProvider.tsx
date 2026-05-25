@@ -169,6 +169,8 @@ export function ChatNotificationProvider({ children }: { children: ReactNode }) 
         console.log('[ChatNotification] Performing one-time proactive scan...');
         try {
             const res = await ChatService.getConversations(user.$id);
+            if (!res || !res.rows) return;
+
             const unread = new Set<string>();
             
             res.rows.forEach((conv: any) => {
@@ -184,7 +186,7 @@ export function ChatNotificationProvider({ children }: { children: ReactNode }) 
             // Mark scan as done in session storage to prevent re-scans on navigation
             sessionStorage.setItem(`chat_scan_${user.$id}`, 'true');
         } catch (err) {
-            console.error('[ChatNotification] Proactive scan failed:', err);
+            console.warn('[ChatNotification] Proactive scan failed (expected if logged out or guest):', err);
         }
     }, [user, scanComplete]);
 
