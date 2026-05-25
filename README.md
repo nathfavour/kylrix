@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/logo.svg" width="120" alt="Kylrix Logo">
+</p>
+
 # 🏴 Kylrix Ecosystem
 
 > **The Sovereign Agentic Operating System.** One platform. Zero friction. A deeply interconnected, zero-knowledge workspace where people create, agents execute, and workflows flow without boundaries.
