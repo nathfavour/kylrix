@@ -229,12 +229,14 @@ export class MasterPassCrypto {
         return false; // No keychain entry found
       }
 
+      const isArgon = !!keychainEntry.isArgon;
+
       // Derive AuthKey using the stored salt
       const salt = new Uint8Array(
         atob(keychainEntry.salt).split("").map(c => c.charCodeAt(0))
       );
 
-      const authKey = await this.deriveKey(password, salt);
+      const authKey = await this.deriveKey(password, salt, isArgon);
 
       // Unwrap the MEK
       const wrappedKeyBytes = new Uint8Array(
@@ -261,11 +263,13 @@ export class MasterPassCrypto {
           ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
         );
 
-        // ⭐ NEW: Piggyback session if PIN is configured
-        if (ecosystemSecurity.isPinSet()) {
-          // We can't automatically piggyback without the PIN value.
-          // The UI will handle prompting for PIN if needed or we can 
-          // do it during the password unlock flow in the UI components.
+        // --- SEAMLESS MIGRATION: PBKDF2 -> Argon2id ---
+        if (!isArgon) {
+            logDebug("[Migration] Legacy PBKDF2 detected. Upgrading to Argon2id on-the-fly...");
+            // Non-blocking upgrade to keep login fast
+            this.createKeychainEntry(this.masterKey, password, userId, true).catch(err => {
+                logError("[Migration] Failed to upgrade keychain to Argon2id", err);
+            });
         }
 
         return true;
@@ -280,13 +284,13 @@ export class MasterPassCrypto {
   }
 
   // Create a new keychain entry (wraps the MEK with the password)
-  private async createKeychainEntry(mek: CryptoKey, password: string, userId: string): Promise<void> {
+  private async createKeychainEntry(mek: CryptoKey, password: string, userId: string, useArgon = true): Promise<void> {
     try {
       const { AppwriteService } = await import("./appwrite");
 
       // Generate new random salt for the AuthKey
       const salt = crypto.getRandomValues(new Uint8Array(MasterPassCrypto.SALT_SIZE));
-      const authKey = await this.deriveKey(password, salt);
+      const authKey = await this.deriveKey(password, salt, useArgon);
 
       // Export MEK to raw bytes
       const mekBytes = await crypto.subtle.exportKey("raw", mek);
@@ -321,7 +325,13 @@ export class MasterPassCrypto {
         credentialId: null,
         wrappedKey: wrappedKeyBase64,
         salt: saltBase64,
-        params: JSON.stringify({
+        isArgon: useArgon,
+        params: JSON.stringify(useArgon ? {
+          memory: MasterPassCrypto.ARGON2_MEMORY,
+          iterations: MasterPassCrypto.ARGON2_ITERATIONS,
+          parallelism: MasterPassCrypto.ARGON2_PARALLELISM,
+          algo: "Argon2id"
+        } : {
           iterations: MasterPassCrypto.PBKDF2_ITERATIONS,
           algo: "SHA-256"
         }),

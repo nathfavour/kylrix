@@ -8,6 +8,7 @@ import { MeshProtocol } from './mesh';
 import { tablesDB } from '@/lib/appwrite/client';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { Query, ID } from 'appwrite';
+import { argon2id } from 'hash-wasm';
 
 const PW_DB = APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER;
 
@@ -34,6 +35,11 @@ export class EcosystemSecurity {
   private static readonly SALT_SIZE = 32;
   private static readonly IV_SIZE = 16;
   private static readonly KEY_SIZE = 256;
+
+  // Argon2id Parameters
+  private static readonly ARGON2_MEMORY = 65536; // 64 MB
+  private static readonly ARGON2_ITERATIONS = 3;
+  private static readonly ARGON2_PARALLELISM = 4;
 
   // PIN specific constants
   private static readonly PIN_ITERATIONS = 100000;
@@ -154,9 +160,35 @@ export class EcosystemSecurity {
   }
 
   /**
-   * Derive key from password
+   * Derive key from master password using Argon2id (Primary)
    */
-  private async deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+  private async deriveKeyWithArgon2id(
+    password: string,
+    salt: Uint8Array,
+  ): Promise<CryptoKey> {
+    const hash = await argon2id({
+      password,
+      salt,
+      parallelism: EcosystemSecurity.ARGON2_PARALLELISM,
+      iterations: EcosystemSecurity.ARGON2_ITERATIONS,
+      memorySize: EcosystemSecurity.ARGON2_MEMORY,
+      hashLength: 32, // 256 bits
+      outputType: 'binary',
+    });
+
+    return crypto.subtle.importKey(
+      "raw",
+      hash,
+      { name: "AES-GCM", length: EcosystemSecurity.KEY_SIZE },
+      true,
+      ["encrypt", "decrypt", "wrapKey", "unwrapKey"],
+    );
+  }
+
+  /**
+   * Derive key from password using PBKDF2 (Legacy)
+   */
+  private async deriveKeyPBKDF2(password: string, salt: Uint8Array): Promise<CryptoKey> {
     const encoder = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
       "raw",
@@ -178,6 +210,13 @@ export class EcosystemSecurity {
       true,
       ["encrypt", "decrypt", "wrapKey", "unwrapKey"],
     );
+  }
+
+  private async deriveKey(password: string, salt: Uint8Array, useArgon = true): Promise<CryptoKey> {
+    if (useArgon) {
+        return this.deriveKeyWithArgon2id(password, salt);
+    }
+    return this.deriveKeyPBKDF2(password, salt);
   }
 
   // Import a raw key and set it as the master key
@@ -275,7 +314,8 @@ export class EcosystemSecurity {
         atob(keyChainEntry.salt).split("").map(c => c.charCodeAt(0))
       );
 
-      const authKey = await this.deriveKey(password, salt);
+      const isArgon = !!keyChainEntry.isArgon;
+      const authKey = await this.deriveKey(password, salt, isArgon);
       const wrappedKeyBytes = new Uint8Array(
         atob(keyChainEntry.wrappedKey).split("").map(c => c.charCodeAt(0))
       );
