@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useCallback, useState, useRef } from 'react';
 import { useAuth } from '@/lib/auth';
 import { PresenceService, UserPresenceState, PresencePayload } from '@/lib/services/presence';
-import { ecosystemSecurity } from '@/lib/ecosystem/security';
 
 interface PresenceContextType {
     globalPresence: Record<string, PresencePayload>;

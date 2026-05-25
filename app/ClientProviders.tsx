@@ -35,6 +35,7 @@ import { WalletOverlayProvider } from '@/context/WalletOverlayContext';
 import { TokenOpsProvider } from '@/context/TokenOpsContext';
 
 const ClientToaster = dynamic(() => import('@/components/ClientToaster'), { ssr: false });
+const PresenceProvider = dynamic(() => import('@/components/providers/PresenceProvider').then(m => m.PresenceProvider), { ssr: false });
 
 export function ClientProviders({ children }: { children: ReactNode }) {
   return (
@@ -70,7 +71,9 @@ export function ClientProviders({ children }: { children: ReactNode }) {
                                                     <WalletOverlayProvider>
                                                       <ChatNotificationProvider>
                                                         <CallLauncherProvider>
-                                                          {children}
+                                                          <PresenceProvider>
+                                                            {children}
+                                                          </PresenceProvider>
                                                         </CallLauncherProvider>
                                                       </ChatNotificationProvider>
                                                     </WalletOverlayProvider>
