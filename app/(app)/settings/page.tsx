@@ -131,7 +131,9 @@ export default function SettingsPage() {
         if (!user?.$id) return;
         try {
             setTgLoading(true);
-            const res = await checkTelegramConnection();
+            const { account } = await import('@/lib/appwrite');
+            const { jwt } = await account.createJWT();
+            const res = await checkTelegramConnection(jwt);
             if (res.success && res.isVerified) {
                 setTgUsername(res.tgUsername || 'Connected');
             } else {

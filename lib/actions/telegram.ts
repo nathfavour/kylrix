@@ -11,8 +11,8 @@ import { Permission, Role, Query } from 'node-appwrite';
  */
 export async function initializeTelegramConnection(jwt?: string, forceRegenerate = false) {
   try {
-    const { account } = await createServerClient(jwt);
-    const actor = await account.get();
+    const { getActor } = await import('./secure-ops');
+    const actor = await getActor(jwt);
     if (!actor?.$id) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -34,6 +34,16 @@ export async function initializeTelegramConnection(jwt?: string, forceRegenerate
       );
     } catch (e) {
       // Document doesn't exist, which is fine
+    }
+
+    // If already verified and not forcing a reset, return early with current status
+    if (!forceRegenerate && existingDoc?.is_verified) {
+        return {
+            success: true,
+            isVerified: true,
+            tgUsername: existingDoc.tg_username || 'User',
+            userId,
+        };
     }
 
     if (!forceRegenerate && existingDoc && !existingDoc.is_verified && existingDoc.pair_code) {
@@ -118,8 +128,8 @@ export async function initializeTelegramConnection(jwt?: string, forceRegenerate
  */
 export async function checkTelegramConnection(jwt?: string) {
   try {
-    const { account } = await createServerClient(jwt);
-    const actor = await account.get();
+    const { getActor } = await import('./secure-ops');
+    const actor = await getActor(jwt);
     if (!actor?.$id) {
       return { success: false, error: 'Unauthorized' };
     }

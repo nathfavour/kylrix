@@ -118,6 +118,12 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
     try {
       const jwt = await getOrUpdateJWT();
       const res = await initializeTelegramConnection(jwt, force);
+      if (res.success && (res as any).isVerified) {
+          setVerifiedUsername((res as any).tgUsername || 'User');
+          setLoading(false);
+          return;
+      }
+      
       if (res.success && res.pairCode && res.deepLink && res.userId) {
         setPairCode(res.pairCode);
         setDeepLink(res.deepLink);
