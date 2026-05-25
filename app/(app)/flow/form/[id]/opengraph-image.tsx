@@ -87,13 +87,33 @@ export default async function Image({
         >
           <div
             style={{
-              width: "18px",
-              height: "18px",
-              borderRadius: "999px",
-              background: "#6366F1",
-              boxShadow: "0 0 24px rgba(99, 102, 241, 0.45)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "48px",
+              height: "48px",
+              position: "relative",
             }}
-          />
+          >
+            <svg width="48" height="48" viewBox="0 0 100 100" fill="none">
+              <line x1="15" y1="30" x2="50" y2="10" stroke="#EC4899" strokeWidth="6" strokeLinecap="round" />
+              <line x1="50" y1="10" x2="85" y2="30" stroke="#10B981" strokeWidth="6" strokeLinecap="round" />
+              <line x1="85" y1="30" x2="85" y2="70" stroke="#EC4899" strokeWidth="6" strokeLinecap="round" />
+              <line x1="85" y1="70" x2="50" y2="90" stroke="#A855F7" strokeWidth="6" strokeLinecap="round" />
+              <line x1="50" y1="90" x2="15" y2="70" stroke="#EC4899" strokeWidth="6" strokeLinecap="round" />
+              <line x1="15" y1="70" x2="15" y2="30" stroke="#F59E0B" strokeWidth="6" strokeLinecap="round" />
+              <line x1="50" y1="50" x2="15" y2="30" stroke="#A855F7" strokeWidth="6" strokeLinecap="round" />
+              <line x1="50" y1="50" x2="85" y2="30" stroke="#F59E0B" strokeWidth="6" strokeLinecap="round" />
+              <line x1="50" y1="50" x2="50" y2="90" stroke="#10B981" strokeWidth="6" strokeLinecap="round" />
+              <circle cx="50" cy="10" r="5" fill="#6366F1" />
+              <circle cx="15" cy="30" r="5" fill="#6366F1" />
+              <circle cx="85" cy="30" r="5" fill="#6366F1" />
+              <circle cx="15" cy="70" r="5" fill="#6366F1" />
+              <circle cx="50" cy="90" r="5" fill="#6366F1" />
+              <circle cx="85" cy="70" r="5" fill="#6366F1" />
+              <circle cx="50" cy="50" r="7" fill="#6366F1" />
+            </svg>
+          </div>
           <div
             style={{
               fontSize: "26px",

@@ -4,11 +4,11 @@ export const metadata: Metadata = {
   title: "WhisperNote",
   description: "A modern note-taking app",
   icons: {
-    icon: '/logo/kylrixnote.png',
+    icon: '/logo_generic.png',
   },
   viewport: {
     width: 'device-width',
     initialScale: 1,
   },
-  themeColor: '#3B82F6',
+  themeColor: '#6366F1',
 };

@@ -78,6 +78,24 @@ function fallbackOg() {
                     fontFamily: 'ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
                 }}
             >
+                <svg width="80" height="80" viewBox="0 0 100 100" fill="none" style={{ marginBottom: 24 }}>
+                    <line x1="15" y1="30" x2="50" y2="10" stroke="#EC4899" strokeWidth="6" strokeLinecap="round" />
+                    <line x1="50" y1="10" x2="85" y2="30" stroke="#10B981" strokeWidth="6" strokeLinecap="round" />
+                    <line x1="85" y1="30" x2="85" y2="70" stroke="#EC4899" strokeWidth="6" strokeLinecap="round" />
+                    <line x1="85" y1="70" x2="50" y2="90" stroke="#A855F7" strokeWidth="6" strokeLinecap="round" />
+                    <line x1="50" y1="90" x2="15" y2="70" stroke="#EC4899" strokeWidth="6" strokeLinecap="round" />
+                    <line x1="15" y1="70" x2="15" y2="30" stroke="#F59E0B" strokeWidth="6" strokeLinecap="round" />
+                    <line x1="50" y1="50" x2="15" y2="30" stroke="#A855F7" strokeWidth="6" strokeLinecap="round" />
+                    <line x1="50" y1="50" x2="85" y2="30" stroke="#F59E0B" strokeWidth="6" strokeLinecap="round" />
+                    <line x1="50" y1="50" x2="50" y2="90" stroke="#10B981" strokeWidth="6" strokeLinecap="round" />
+                    <circle cx="50" cy="10" r="5" fill="#6366F1" />
+                    <circle cx="15" cy="30" r="5" fill="#6366F1" />
+                    <circle cx="85" cy="30" r="5" fill="#6366F1" />
+                    <circle cx="15" cy="70" r="5" fill="#6366F1" />
+                    <circle cx="50" cy="90" r="5" fill="#6366F1" />
+                    <circle cx="85" cy="70" r="5" fill="#6366F1" />
+                    <circle cx="50" cy="50" r="7" fill="#6366F1" />
+                </svg>
                 <div
                     style={{
                         fontSize: 48,
@@ -160,6 +178,24 @@ export async function createMomentOpenGraphImage(momentId: string) {
                             textTransform: 'uppercase',
                         }}
                     >
+                        <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
+                            <line x1="15" y1="30" x2="50" y2="10" stroke="#EC4899" strokeWidth="6" strokeLinecap="round" />
+                            <line x1="50" y1="10" x2="85" y2="30" stroke="#10B981" strokeWidth="6" strokeLinecap="round" />
+                            <line x1="85" y1="30" x2="85" y2="70" stroke="#EC4899" strokeWidth="6" strokeLinecap="round" />
+                            <line x1="85" y1="70" x2="50" y2="90" stroke="#A855F7" strokeWidth="6" strokeLinecap="round" />
+                            <line x1="50" y1="90" x2="15" y2="70" stroke="#EC4899" strokeWidth="6" strokeLinecap="round" />
+                            <line x1="15" y1="70" x2="15" y2="30" stroke="#F59E0B" strokeWidth="6" strokeLinecap="round" />
+                            <line x1="50" y1="50" x2="15" y2="30" stroke="#A855F7" strokeWidth="6" strokeLinecap="round" />
+                            <line x1="50" y1="50" x2="85" y2="30" stroke="#F59E0B" strokeWidth="6" strokeLinecap="round" />
+                            <line x1="50" y1="50" x2="50" y2="90" stroke="#10B981" strokeWidth="6" strokeLinecap="round" />
+                            <circle cx="50" cy="10" r="5" fill="#6366F1" />
+                            <circle cx="15" cy="30" r="5" fill="#6366F1" />
+                            <circle cx="85" cy="30" r="5" fill="#6366F1" />
+                            <circle cx="15" cy="70" r="5" fill="#6366F1" />
+                            <circle cx="50" cy="90" r="5" fill="#6366F1" />
+                            <circle cx="85" cy="70" r="5" fill="#6366F1" />
+                            <circle cx="50" cy="50" r="7" fill="#6366F1" />
+                        </svg>
                         Connect
                         <span style={{ opacity: 0.35 }}>·</span>
                         <span style={{ letterSpacing: '0.04em', textTransform: 'none', opacity: 0.7 }}>

@@ -14,6 +14,45 @@ const mono = JetBrains_Mono({
 
 import GlobalShell from '@/components/GlobalShell';
 
+export const metadata: Metadata = {
+  metadataBase: new URL('https://kylrix.space'),
+  title: {
+    default: 'Kylrix · The Sovereign Agentic OS',
+    template: '%s · Kylrix',
+  },
+  description: 'The deeply interconnected, zero-knowledge workspace where people create and agents execute.',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://kylrix.space',
+    siteName: 'Kylrix',
+    images: [
+      {
+        url: '/logo_social.png',
+        width: 1200,
+        height: 630,
+        alt: 'Kylrix Ecosystem',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Kylrix · The Sovereign Agentic OS',
+    description: 'The deeply interconnected, zero-knowledge workspace.',
+    images: ['/logo_social.png'],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#6366F1',
+  width: 'device-width',
+  initialScale: 1,
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={mono.variable}>
