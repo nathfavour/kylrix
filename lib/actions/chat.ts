@@ -24,8 +24,8 @@ export async function createMessageAction(payload: {
   jwt?: string;
 }) {
   // Retrieve the authenticated actor securely on the server
-  const { account } = await createServerClient(payload.jwt);
-  const actor = await account.get();
+  const { getActor } = await import('./secure-ops');
+  const actor = await getActor(payload.jwt);
   
   if (!actor?.$id) {
     throw new Error('Unauthorized');
@@ -170,8 +170,8 @@ export async function getConversationsAction(payload: {
   userId: string;
   jwt?: string;
 }) {
-  const { account } = await createServerClient(payload.jwt);
-  const actor = await account.get();
+  const { getActor } = await import('./secure-ops');
+  const actor = await getActor(payload.jwt);
   
   if (!actor?.$id || actor.$id !== payload.userId) {
     throw new Error('Unauthorized');
