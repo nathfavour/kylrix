@@ -91,27 +91,45 @@ const originalTablesDB = new TablesDB(client);
 
 // Helper parsers for tablesDB parameters (supporting both positional and object signatures)
 function parseTablesDBArgs(args: any[]) {
-    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && 'databaseId' in args[0]) {
-        return args[0];
+    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && ('databaseId' in args[0])) {
+        const obj = args[0];
+        return {
+            databaseId: obj.databaseId,
+            tableId: obj.tableId || obj.collectionId,
+            rowId: obj.rowId || obj.documentId,
+            data: obj.data,
+            permissions: obj.permissions
+        };
     }
     const [databaseId, tableId, rowId, data, permissions] = args;
     return { databaseId, tableId, rowId, data, permissions };
 }
 
 function parseTablesDBDeleteArgs(args: any[]) {
-    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && 'databaseId' in args[0]) {
-        return args[0];
+    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && ('databaseId' in args[0])) {
+        const obj = args[0];
+        return {
+            databaseId: obj.databaseId,
+            tableId: obj.tableId || obj.collectionId,
+            rowId: obj.rowId || obj.documentId
+        };
     }
     const [databaseId, tableId, rowId] = args;
     return { databaseId, tableId, rowId };
 }
 
 function parseTablesDBListArgs(args: any[]) {
-    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && 'databaseId' in args[0]) {
-        return args[0];
+    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && ('databaseId' in args[0])) {
+        const obj = args[0];
+        return {
+            databaseId: obj.databaseId,
+            tableId: obj.tableId || obj.collectionId,
+            collectionId: obj.collectionId || obj.tableId,
+            queries: obj.queries
+        };
     }
     const [databaseId, tableId, queries] = args;
-    return { databaseId, tableId, queries };
+    return { databaseId, tableId, collectionId: tableId, queries };
 }
 
 export const tablesDB = new Proxy(originalTablesDB, {
