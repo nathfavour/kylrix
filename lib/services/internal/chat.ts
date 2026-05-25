@@ -45,7 +45,7 @@ export async function resolveConversationParticipants(databases: any, conversati
 
   const memberRows = await databases.listRows(CHAT_DB_ID, CONVERSATION_MEMBERS_TABLE_ID, [
     Query.equal('conversationId', conversation.$id),
-    Query.limit(1000)]).catch(() => ({ documents: [] }));
+    Query.limit(1000)]).catch(() => ({ rows: [] }));
 
   return Array.from(new Set<string>(
     (memberRows.rows || [])
@@ -62,7 +62,7 @@ async function listAllDocuments(
   tableId: string,
   queries: any[] = [],
 ) {
-  const documents: any[] = [];
+  const rows: any[] = [];
   let offset = 0;
 
   while (true) {
@@ -72,12 +72,12 @@ async function listAllDocuments(
       Query.offset(offset)]);
 
     const page = response.rows || [];
-    documents.push(...page);
+    rows.push(...page);
     if (page.length < PAGE_SIZE) break;
     offset += page.length;
   }
 
-  return documents;
+  return rows;
 }
 
 async function deleteRowsInBatches(
@@ -106,7 +106,7 @@ function getMessageBucketId(messageType: string | null | undefined) {
     case 'video':
       return 'video';
     case 'file':
-      return 'documents';
+      return 'rows';
     default:
       return APPWRITE_CONFIG.BUCKETS.MESSAGES;
   }
@@ -523,7 +523,7 @@ export async function repairConversationInternal(payload: {
         Query.equal('resourceId', payload.conversationId),
         Query.limit(100)],
     );
-    const epochIds = epochRows.documents.map((row) => row.$id);
+    const epochIds = epochRows.rows.map((row) => row.$id);
 
     const mappings = await databases.listRows(
       APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER,
@@ -533,7 +533,7 @@ export async function repairConversationInternal(payload: {
         Query.limit(1000)],
     );
 
-    const relevantMappings = mappings.documents.filter((row: any) => {
+    const relevantMappings = mappings.rows.filter((row: any) => {
       if (row.resourceType === 'chat' && row.resourceId === payload.conversationId) return true;
       if (row.resourceType === 'epoch' && epochIds.includes(row.resourceId)) return true;
       return false;
@@ -645,8 +645,8 @@ export async function joinRequestInternal(payload: {
       const memberRows = await databases.listRows(CHAT_DB_ID, CONVERSATION_MEMBERS_TABLE_ID, [
         Query.equal('conversationId', payload.resourceId),
         Query.equal('userId', currentRequesterId),
-        Query.limit(1)]).catch(() => ({ documents: [] }));
-      alreadyJoined = memberRows.documents.length > 0;
+        Query.limit(1)]).catch(() => ({ rows: [] }));
+      alreadyJoined = memberRows.rows.length > 0;
     }
 
     let request = null;

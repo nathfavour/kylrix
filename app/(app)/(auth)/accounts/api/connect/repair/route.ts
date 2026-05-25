@@ -79,7 +79,7 @@ async function fetchEpochIds(databases: ReturnType<typeof createSystemClient>["d
       Query.limit(100)],
   );
 
-  return result.documents.map((row) => row.$id);
+  return result.rows.map((row) => row.$id);
 }
 
 export async function OPTIONS(req: NextRequest) {

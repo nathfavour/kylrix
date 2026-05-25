@@ -115,7 +115,7 @@ export const FormsService = {
             ]
         });
 
-        return res.documents.find(s => {
+        return res.rows.find(s => {
             try {
                 return JSON.parse(s.metadata || '{}').isDraft;
             } catch (_e) { return false; }
@@ -138,7 +138,7 @@ export const FormsService = {
             ]
         });
 
-        const existingDraft = res.documents.find(s => {
+        const existingDraft = res.rows.find(s => {
             try {
                 return JSON.parse(s.metadata || '{}').isDraft;
             } catch (_e) { return false; }
@@ -259,7 +259,7 @@ export const FormsService = {
                 ]
             });
 
-            const existingDraft = res.documents.find(s => {
+            const existingDraft = res.rows.find(s => {
                 try {
                     return JSON.parse(s.metadata || '{}').isDraft;
                 } catch (_e) { return false; }
@@ -396,7 +396,7 @@ export const FormsService = {
         });
 
         // Enrich with usernames from Chat database if submitterId exists
-        const submitterIds = Array.from(new Set(res.documents.map(r => r.submitterId).filter(Boolean))) as string[];
+        const submitterIds = Array.from(new Set(res.rows.map(r => r.submitterId).filter(Boolean))) as string[];
         
         if (submitterIds.length > 0) {
             try {
@@ -407,11 +407,11 @@ export const FormsService = {
                 });
                 
                 // Map of userId -> username
-                const userMap = new Map(userRes.documents.map((u: any) => [u.$id, u.username || u.displayName || u.$id]));
+                const userMap = new Map(userRes.rows.map((u: any) => [u.$id, u.username || u.displayName || u.$id]));
                 
                 return {
                     ...res,
-                    rows: res.documents.map(row => ({
+                    rows: res.rows.map(row => ({
                         ...row,
                         submitterName: row.submitterId ? (userMap.get(row.submitterId) || row.submitterId) : 'Anonymous'
                     }))
@@ -423,7 +423,7 @@ export const FormsService = {
 
         return {
             ...res,
-            rows: res.documents.map(row => ({
+            rows: res.rows.map(row => ({
                 ...row,
                 submitterName: row.submitterId ? row.submitterId : 'Anonymous'
             }))

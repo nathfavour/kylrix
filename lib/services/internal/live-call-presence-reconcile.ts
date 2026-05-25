@@ -109,5 +109,5 @@ export async function sweepStaleLiveCallPresenceBatch(limit = 100): Promise<{
     }
   }
 
-  return { scanned: rows.documents.length, cleared };
+  return { scanned: rows.rows.length, cleared };
 }

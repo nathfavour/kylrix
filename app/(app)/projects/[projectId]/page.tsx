@@ -724,7 +724,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
         const res = await listComments(chatNoteId);
         if (!active) return;
         const msgs = await Promise.all(
-          res.documents.map(async (doc: any) => {
+          res.rows.map(async (doc: any) => {
             let senderName = 'Collaborator';
             if (doc.userId === user?.$id) {
               senderName = user.name || 'You';

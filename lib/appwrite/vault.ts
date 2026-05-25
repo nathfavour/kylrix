@@ -1120,7 +1120,7 @@ export class VaultService {
     );
 
     const decryptedRows = await Promise.all(
-      response.documents.map(
+      response.rows.map(
         (doc: Models.Row) =>
           this.decryptRowFields(
             doc,
@@ -1155,7 +1155,7 @@ export class VaultService {
     );
 
     const decryptedRows = await Promise.all(
-      response.documents.map(
+      response.rows.map(
         (doc: Models.Row) =>
           this.decryptRowFields(
             doc,
@@ -1207,7 +1207,7 @@ export class VaultService {
         );
 
         const decryptedRows = await Promise.all(
-          response.documents.map(
+          response.rows.map(
             (doc: Models.Row) =>
               this.decryptRowFields(
                 doc,
@@ -1219,7 +1219,7 @@ export class VaultService {
         rows = rows.concat(decryptedRows);
         offset += limit;
       } while (
-        response.documents.length > 0 &&
+        response.rows.length > 0 &&
         rows.length < response.total
       );
 
@@ -1245,7 +1245,7 @@ export class VaultService {
         Query.limit(limit)],
     );
     return await Promise.all(
-      response.documents.map(
+      response.rows.map(
         (doc: Models.Row) =>
           this.decryptRowFields(
             doc,
@@ -1278,7 +1278,7 @@ export class VaultService {
         [Query.equal("userId", userId), ...queries],
       );
       const decryptedSecrets = await Promise.all(
-        response.documents.map(
+        response.rows.map(
           (doc: Models.Row) =>
             this.decryptRowFields(
               doc,
@@ -2267,14 +2267,14 @@ export async function resetMasterpassAndWipe(userId: string): Promise<void> {
           [...baseQueries, Query.limit(50)],
         );
 
-        if (response.documents.length === 0) {
+        if (response.rows.length === 0) {
           hasMore = false;
           break;
         }
 
         // Delete in parallel
         await Promise.all(
-          response.documents.map((doc) =>
+          response.rows.map((doc) =>
             appwriteDatabases
               .deleteRow(databaseId, tableId, doc.$id)
               .catch((e) => console.warn(`Failed to delete doc ${doc.$id} in ${tableId}`, e))
@@ -2282,7 +2282,7 @@ export async function resetMasterpassAndWipe(userId: string): Promise<void> {
         );
 
         // If we got fewer than limit, we're done
-        if (response.documents.length < 50) {
+        if (response.rows.length < 50) {
           hasMore = false;
         }
       }
@@ -2645,7 +2645,7 @@ export async function syncAndValidateMfaStatus(userId: string): Promise<{
         [Query.equal("userId", userId)],
       );
 
-      if (userDocResponse.documents.length > 0) {
+      if (userDocResponse.rows.length > 0) {
         const userDoc = userDocResponse.rows[0];
         databaseStatus = userDoc.twofa === true;
         userDocId = userDoc.$id;

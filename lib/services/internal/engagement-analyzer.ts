@@ -64,8 +64,8 @@ export class EngagementAnalyzer {
         );
 
         return {
-          globalAvgVelocity: docs.documents.find(d => d.metricKey === 'global_avg_velocity')?.metricValue || 2.5,
-          medianInteractionRatio: docs.documents.find(d => d.metricKey === 'median_interaction_ratio')?.metricValue || 0.4,
+          globalAvgVelocity: docs.rows.find(d => d.metricKey === 'global_avg_velocity')?.metricValue || 2.5,
+          medianInteractionRatio: docs.rows.find(d => d.metricKey === 'median_interaction_ratio')?.metricValue || 0.4,
         };
     } catch {
         return { globalAvgVelocity: 2.5, medianInteractionRatio: 0.4 };

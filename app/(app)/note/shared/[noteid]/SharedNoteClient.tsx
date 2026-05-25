@@ -418,7 +418,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
   useEffect(() => {
     if (!noteId) return;
 
-    const channel = `databases.${APPWRITE_DATABASE_ID}.collections.${APPWRITE_TABLE_ID_NOTES}.documents.${noteId}`;
+    const channel = `databases.${APPWRITE_DATABASE_ID}.collections.${...}.documents.${noteId}`;
 
     const sub = realtime.subscribe(channel, (response) => {
       const isUpdate = response.events.some(e => e.endsWith('.update'));
@@ -459,7 +459,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
       try {
         // Since metadata is encrypted, we fetch recent notes and check in memory
         const res = await listNotes([], 100);
-        const duplicated = res.documents.some(n => {
+        const duplicated = res.rows.some(n => {
           try {
           const meta = JSON.parse(n.metadata || '{}');
           return meta.originId === verifiedNote.$id;

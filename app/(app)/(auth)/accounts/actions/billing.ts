@@ -507,7 +507,7 @@ export async function hydrateSessionAction(jwt?: string | null) {
           amount: tokenBal.amount,
           symbol: tokenBal.symbol,
         },
-        wallets: walletsRes.documents.map((w) => ({
+        wallets: walletsRes.rows.map((w) => ({
           id: w.$id,
           chain: w.chain,
           address: w.address,

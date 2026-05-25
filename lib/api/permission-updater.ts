@@ -200,10 +200,10 @@ async function deleteKeyMappings(
   }
 
   const existing = await databases.listRows(PASSWORD_MANAGER_DB, KEY_MAPPING_TABLE, [...queries, Query.limit(1000)]);
-  if (existing.documents.length === 0) return [];
+  if (existing.rows.length === 0) return [];
 
   await Promise.all(
-    existing.documents.map((row) => databases.deleteRow(PASSWORD_MANAGER_DB, KEY_MAPPING_TABLE, row.$id)),
+    existing.rows.map((row) => databases.deleteRow(PASSWORD_MANAGER_DB, KEY_MAPPING_TABLE, row.$id)),
   );
 
   return existing.rows;

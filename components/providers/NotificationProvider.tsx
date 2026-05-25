@@ -129,7 +129,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user?.$id) return;
 
-    const channel = `databases.${APPWRITE_CONFIG.DATABASES.KYLRIXNOTE}.collections.${APPWRITE_CONFIG.TABLES.KYLRIXNOTE.ACTIVITY_LOG}.documents`;
+    const channel = `databases.${APPWRITE_CONFIG.DATABASES.KYLRIXNOTE}.collections.${...}.documents`;
     
     const unsub = realtime.subscribe(channel, (response) => {
       const payload = response.payload as ActivityLog;

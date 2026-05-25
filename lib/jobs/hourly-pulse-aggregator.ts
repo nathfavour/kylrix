@@ -8,8 +8,8 @@ export async function aggregateSystemPulse(): Promise<void> {
     [`greaterThan(createdAt, ${oneHourAgo})`]
   );
 
-  const velocities = engagements.documents.map(e => (e as any).velocity);
-  const ratios = engagements.documents.map(e => (e as any).likeCommentRatio);
+  const velocities = engagements.rows.map(e => (e as any).velocity);
+  const ratios = engagements.rows.map(e => (e as any).likeCommentRatio);
 
   const globalAvgVelocity = velocities.reduce((a, b) => a + b, 0) / Math.max(velocities.length, 1);
   const medianRatio = ratios.sort((a, b) => a - b)[Math.floor(ratios.length / 2)];

@@ -18,9 +18,9 @@ export async function POST(req: NextRequest) {
 
     const { databases, storage } = createSystemClient();
     const dbId = APPWRITE_CONFIG.DATABASES.NOTE;
-    const collectionId = APPWRITE_CONFIG.TABLES.NOTE.NOTES;
+    const tableId = APPWRITE_CONFIG.TABLES.NOTE.NOTES;
 
-    const doc = await databases.getDocument(dbId, collectionId, noteId).catch(() => null);
+    const doc = await databases.getDocument(dbId, tableId, noteId).catch(() => null);
     if (!doc) {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 });
     }
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       await storage.deleteFile(sendObj.bucketId, sendObj.fileId).catch(() => undefined);
     }
 
-    await databases.deleteDocument(dbId, collectionId, noteId);
+    await databases.deleteDocument(dbId, tableId, noteId);
     return NextResponse.json({ success: true });
   } catch (e: unknown) {
     console.error('[ephemeral-note/delete]', e);

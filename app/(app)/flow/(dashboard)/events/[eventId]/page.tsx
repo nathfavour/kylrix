@@ -151,7 +151,7 @@ export default function EventPage() {
         const res = await listComments(eventId);
         if (!active) return;
         const msgs = await Promise.all(
-          res.documents.map(async (doc: any) => {
+          res.rows.map(async (doc: any) => {
             let senderName = 'Attendee';
             if (user && doc.userId === user.$id) {
               senderName = user.name || 'You';

@@ -590,7 +590,7 @@ export const CallInterface = ({
         });
 
         const unsubscribe = client.subscribe(
-            `databases.${APPWRITE_CONFIG.DATABASES.CHAT}.collections.${APPWRITE_CONFIG.TABLES.CHAT.APP_ACTIVITY}.documents`,
+            `databases.${APPWRITE_CONFIG.DATABASES.CHAT}.collections.${...}.documents`,
             (response: any) => {
                 if (response.events.some((e: string) => e.includes('.update') || e.includes('.create'))) {
                     const activity = response.payload;

@@ -74,7 +74,7 @@ export default function OverviewPage() {
                 total?: number;
                 documents: Array<Record<string, unknown>>;
               }
-            ).total ?? totpResp.documents.length;
+            ).total ?? totpResp.rows.length;
         } catch {
         }
 

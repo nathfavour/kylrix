@@ -338,7 +338,7 @@ export class AppwriteService {
 
   /**
    * Resiliently logs profile events (such as name or username updates)
-   * into the activity logging collections.
+   * into the activity logging tables.
    */
   static async recordProfileEvent(data: {
     type: string;

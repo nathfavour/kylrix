@@ -10,7 +10,7 @@ export class FeedRanker {
     );
 
     const rankedMoments = await Promise.all(
-      moments.documents.map(async (m: any) => {
+      moments.rows.map(async (m: any) => {
         const engagement = {
           momentId: m.$id,
           likes: m.likeCount || 0,

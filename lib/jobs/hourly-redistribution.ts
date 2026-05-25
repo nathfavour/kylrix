@@ -11,7 +11,7 @@ export async function redistributeAttention(): Promise<void> {
     ]
   );
 
-  const unusedTokens = nerfedMoments.documents.length * 100;
+  const unusedTokens = nerfedMoments.rows.length * 100;
 
   const lowVelocityMoments = await databases.listRows(
     'chat',
@@ -23,7 +23,7 @@ export async function redistributeAttention(): Promise<void> {
   );
 
   for (const moment of lowVelocityMoments.rows) {
-    const boost = (unusedTokens / Math.max(lowVelocityMoments.documents.length, 1)) * 0.5;
+    const boost = (unusedTokens / Math.max(lowVelocityMoments.rows.length, 1)) * 0.5;
     await databases.updateRow(
         'chat',
         'moments',

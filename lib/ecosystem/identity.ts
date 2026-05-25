@@ -161,7 +161,7 @@ export async function searchGlobalUsers(query: string, limit = 10) {
                 CONNECT_COLLECTION_ID_USERS,
                 queries
             );
-            results = res.documents.map(doc => ({
+            results = res.rows.map(doc => ({
                 id: doc.$id,
                 type: 'user' as const,
                 title: doc.displayName || doc.username,
@@ -189,7 +189,7 @@ export async function searchGlobalUsers(query: string, limit = 10) {
                         Query.select(['$id', 'username', 'displayName', 'bio', 'avatar', 'walletAddress', 'publicKey'])
                     ]
                 );
-                results = res.documents.map(doc => ({
+                results = res.rows.map(doc => ({
                     id: doc.$id,
                     type: 'user' as const,
                     title: doc.displayName || doc.username,

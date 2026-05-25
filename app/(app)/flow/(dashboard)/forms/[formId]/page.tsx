@@ -103,7 +103,7 @@ export default function FormDetailsPage({ params }: { params: Promise<{ formId: 
                 const res = await listComments(resolvedParams.formId);
                 if (!active) return;
                 const msgs = await Promise.all(
-                    res.documents.map(async (doc: any) => {
+                    res.rows.map(async (doc: any) => {
                         let senderName = 'Collaborator';
                         if (user && doc.userId === user.$id) {
                             senderName = user.name || 'You';

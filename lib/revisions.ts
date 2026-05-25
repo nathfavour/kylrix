@@ -48,7 +48,7 @@ export async function pruneRevisions(
       ] as any
     );
 
-    if (allRevisions.documents.length <= limit) {
+    if (allRevisions.rows.length <= limit) {
       return; // No pruning needed
     }
 
@@ -217,7 +217,7 @@ export async function createRevision(
           Query.orderDesc('revision'),
           Query.limit(1)] as any
       );
-      if (existing.documents.length) {
+      if (existing.rows.length) {
         revisionNumber = (existing.rows[0] as any).revision + 1;
       }
     } catch {}

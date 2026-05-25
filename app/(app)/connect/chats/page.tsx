@@ -43,7 +43,7 @@ function ChatHandler() {
 
           const actualTargetUserId = targetProfile.userId || userId;
           const existing = await ChatService.getConversations(user.$id);
-          const found = existing.documents.find(
+          const found = existing.rows.find(
             (c: any) => c.type === 'direct' && c.participants.includes(actualTargetUserId)
           );
 

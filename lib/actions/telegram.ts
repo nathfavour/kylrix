@@ -197,7 +197,7 @@ export async function syncServerTelegramListener() {
       [Query.equal('is_verified', false)]
     );
 
-    const pendingDocs = listRes.documents.filter(doc => {
+    const pendingDocs = listRes.rows.filter(doc => {
       const createdTime = new Date(doc.$updatedAt || doc.$createdAt).getTime();
       const threeMinutesInMs = 3 * 60 * 1000;
       return Date.now() - createdTime < threeMinutesInMs;
@@ -324,7 +324,7 @@ function runPollerLoop(botToken: string) {
         [Query.equal('is_verified', false)]
       );
 
-      const pendingDocs = listRes.documents.filter(doc => {
+      const pendingDocs = listRes.rows.filter(doc => {
         const createdTime = new Date(doc.$updatedAt || doc.$createdAt).getTime();
         const threeMinutesInMs = 3 * 60 * 1000;
         return Date.now() - createdTime < threeMinutesInMs;

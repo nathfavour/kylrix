@@ -188,8 +188,8 @@ async function loadNoteRowFromOrigin(noteId: string): Promise<Notes> {
       noteTagsTable,
       [Query.equal('resourceId', noteId), Query.equal('resourceType', 'note'), Query.limit(200)] as any
     );
-    if (pivot.documents.length) {
-      const tags = Array.from(new Set(pivot.documents.map((p: any) => p.tag).filter(Boolean)));
+    if (pivot.rows.length) {
+      const tags = Array.from(new Set(pivot.rows.map((p: any) => p.tag).filter(Boolean)));
       (doc as any).tags = tags;
     }
   } catch (_e: any) {
@@ -443,7 +443,7 @@ export async function searchUsers(query: string, limit: number = 5) {
       queries
     );
 
-    return res.documents.map((doc: any) => ({
+    return res.rows.map((doc: any) => ({
       id: doc.id || doc.$id,
       name: doc.name,
       email: isEmail ? doc.email : undefined,
@@ -496,8 +496,8 @@ export async function getPinnedNoteIds(): Promise<string[]> {
                 Query.select(['$id'])
             ]
         );
-        if (res.documents.length > 0) {
-            return res.documents.map(d => d.$id);
+        if (res.rows.length > 0) {
+            return res.rows.map(d => d.$id);
         }
     } catch (dbErr) {
         console.warn('[getPinnedNoteIds] Native fetch failed, falling back to prefs:', dbErr);
@@ -598,7 +598,7 @@ async function syncTagsForCreatedNote(noteId: string, rawTags: string[], userId:
               tagsTable,
               [Query.equal('userId', userId), Query.equal('nameLower', key), Query.limit(1)] as any
             );
-            if (retry.documents.length) existingTagDocs[key] = retry.rows[0];
+            if (retry.rows.length) existingTagDocs[key] = retry.rows[0];
           } catch {}
         }
       }
@@ -609,7 +609,7 @@ async function syncTagsForCreatedNote(noteId: string, rawTags: string[], userId:
       noteTagsTable,
       [Query.equal('resourceId', noteId), Query.equal('resourceType', 'note'), Query.limit(500)] as any
     );
-    const existingPairs = new Set(existingPivot.documents.map((p: any) => `${p.tagId || ''}::${p.tag || ''}`));
+    const existingPairs = new Set(existingPivot.rows.map((p: any) => `${p.tagId || ''}::${p.tag || ''}`));
     for (const tagName of unique) {
       const key = tagName.toLowerCase();
       const tagDoc = existingTagDocs[key];
@@ -768,7 +768,7 @@ export async function updateNoteIsomorphicLegacy(noteId: string, data: Partial<N
                   tagsTable,
                   [Query.equal('userId', currentUser?.$id), Query.equal('nameLower', key), Query.limit(1)] as any
                 );
-                if (retry.documents.length) tagDocs[key] = retry.rows[0];
+                if (retry.rows.length) tagDocs[key] = retry.rows[0];
               } catch {}
             }
           }
@@ -1111,7 +1111,7 @@ async function adjustTagUsage(userId: string | null | undefined, tagName: string
       APPWRITE_TABLE_ID_TAGS,
       [Query.equal('userId', userId), Query.equal('name', tagName), Query.limit(1)] as any
     );
-    if (res.documents.length) {
+    if (res.rows.length) {
       const doc: any = res.rows[0];
       const current = typeof doc.usageCount === 'number' && !isNaN(doc.usageCount) ? doc.usageCount : 0;
       const next = current + delta;
@@ -1295,7 +1295,7 @@ export async function createReaction(data: Partial<Reactions>) {
             Query.limit(1)
           ] as any
         );
-        if (existing.documents.length) {
+        if (existing.rows.length) {
           // Idempotent return existing row
             return existing.rows[0] as any;
         }
@@ -1415,7 +1415,7 @@ export async function createCollaborator(data: Partial<Collaborators>) {
             Query.limit(1)
           ] as any
         );
-        if (existing.documents.length) {
+        if (existing.rows.length) {
           const existingCollaborator = existing.rows[0] as unknown as Collaborators;
           const existingPermission = existingCollaborator.permission as unknown as NoteCollaboratorPermission;
           if (existingPermission !== permission) {
@@ -1526,7 +1526,7 @@ export async function listCollaborators(noteId: string) {
       Query.equal('resourceType', 'note')
     ]
   );
-  res.rows = res.documents.map((doc: any) => ({
+  res.rows = res.rows.map((doc: any) => ({
     ...doc,
     noteId: doc.resourceId,
   }));
@@ -1746,7 +1746,7 @@ export async function getNotesByTag(tagId: string): Promise<Notes[]> {
       [Query.equal('tagId', tagId), Query.equal('resourceType', 'note'), Query.limit(1000)] as any
     );
 
-    const noteIds = pivotRes.documents.map((p: any) => p.resourceId).filter(Boolean);
+    const noteIds = pivotRes.rows.map((p: any) => p.resourceId).filter(Boolean);
     if (!noteIds.length) {
       return [];
     }
@@ -1771,7 +1771,7 @@ export async function getNotesByTag(tagId: string): Promise<Notes[]> {
           [Query.equal('noteId', notes.map((n: any) => n.$id || (n as any).id).filter(Boolean)), Query.limit(Math.min(1000, notes.length * 10))] as any
         );
         const tagsByNoteId: { [noteId: string]: Set<string> } = {};
-        pivotResForHydration.documents.forEach((p: any) => {
+        pivotResForHydration.rows.forEach((p: any) => {
           const noteId = p.noteId;
           if (noteId) {
             if (!tagsByNoteId[noteId]) {
@@ -1838,7 +1838,7 @@ export async function shareNoteWithUser(noteId: string, email: string, permissio
       [Query.equal('email', email)]
     );
 
-    if (usersList.documents.length === 0) {
+    if (usersList.rows.length === 0) {
       throw new Error(`No user found with email: ${email}`);
     }
 
@@ -2357,7 +2357,7 @@ export async function listNoteAttachments(noteId: string, currentUserId?: string
               Query.equal('userId', currentUserId)
             ] as any
           );
-          const isCollab = Array.isArray(collabRes?.rows) && collabRes.documents.length > 0;
+          const isCollab = Array.isArray(collabRes?.rows) && collabRes.rows.length > 0;
           if (!isCollab) return [];
         } catch {
           return [];
@@ -2597,7 +2597,7 @@ export async function backfillNoteTagPivots(userId?: string) {
         }
       }
     }
-    return { attempted: pivotsRes.documents.length, patched };
+    return { attempted: pivotsRes.rows.length, patched };
   } catch (e: any) {
     console.error('backfillNoteTagPivots failed', e);
     return { attempted: 0, patched: 0, error: String(e) };
@@ -2650,7 +2650,7 @@ export async function reconcileTagUsage(userId?: string) {
         }
       }
     }
-    return { tags: tagDocs.length, pivots: pivotsRes.documents.length, updated };
+    return { tags: tagDocs.length, pivots: pivotsRes.rows.length, updated };
   } catch (e: any) {
     console.error('reconcileTagUsage failed', e);
     return { tags: 0, pivots: 0, updated: 0, error: String(e) };
@@ -3447,8 +3447,8 @@ export async function validatePublicNoteAccess(noteId: string): Promise<Notes | 
             noteTagsTable,
             [Query.equal('resourceId', noteId), Query.equal('resourceType', 'note'), Query.limit(200)] as any
           );
-          if (pivot.documents.length) {
-            const tags = Array.from(new Set(pivot.documents.map((p: any) => p.tag).filter(Boolean)));
+          if (pivot.rows.length) {
+            const tags = Array.from(new Set(pivot.rows.map((p: any) => p.tag).filter(Boolean)));
             doc.tags = tags;
           }
         } catch (_e) {

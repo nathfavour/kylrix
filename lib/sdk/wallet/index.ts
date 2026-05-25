@@ -302,7 +302,7 @@ export function createWalletService(deps: WalletServiceDeps) {
       }
     }
 
-    const existingAddresses = new Set(existing.documents.map((row: any) => row.walletAddressLower));
+    const existingAddresses = new Set(existing.rows.map((row: any) => row.walletAddressLower));
 
     for (const walletAddressLower of publicAddresses) {
       if (existingAddresses.has(walletAddressLower)) continue;
@@ -352,7 +352,7 @@ export function createWalletService(deps: WalletServiceDeps) {
         Query.equal('ownerId', ownerIdForUser(userId)),
         Query.limit(100)]);
 
-      return response.documents.map(toWalletSummary);
+      return response.rows.map(toWalletSummary);
     },
 
     async createBurnerWallet(userId: string): Promise<WalletSummary[]> {
@@ -444,7 +444,7 @@ export function createWalletService(deps: WalletServiceDeps) {
         Query.equal('type', 'main'),
         Query.limit(1)]);
 
-      if (response.documents.length === 0) {
+      if (response.rows.length === 0) {
         throw new Error('No wallets found');
       }
 

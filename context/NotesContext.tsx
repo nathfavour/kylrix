@@ -91,7 +91,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
                 Query.select(['$id'])
             ]
         });
-        return res.documents.map(d => d.$id);
+        return res.rows.map(d => d.$id);
     } catch (e) {
         console.warn('[NotesContext] Native pinned fetch failed, falling back to prefs:', e);
         return getPinnedNoteIds();
@@ -393,7 +393,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     if (!isAuthenticated || !user?.$id) return;
 
     // Listen to the entire collection to catch all relevant changes
-    const channel = `databases.${APPWRITE_DATABASE_ID}.collections.${APPWRITE_TABLE_ID_NOTES}.documents`;
+    const channel = `databases.${APPWRITE_DATABASE_ID}.collections.${...}.documents`;
     
     const sub = realtime.subscribe(channel, (response) => {
       const payload = normalizeVisibility(response.payload as Notes);

@@ -54,7 +54,7 @@ async function cleanupExpiredPublicGhostNotes(payload?: { batchSize?: number }) 
     }
   }
 
-  return { scanned: res.documents.length, deleted };
+  return { scanned: res.rows.length, deleted };
 }
 
 async function sweepStaleActionThreads(payload?: { batchSize?: number }) {
@@ -86,7 +86,7 @@ async function sweepStaleActionThreads(payload?: { batchSize?: number }) {
       }
     }
 
-    return { scanned: res.documents.length, updated };
+    return { scanned: res.rows.length, updated };
   } catch (err) {
     console.error('[sweepStaleActionThreads] Failed to list or update stale threads:', err);
     throw err;

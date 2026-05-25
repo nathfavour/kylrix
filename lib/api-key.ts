@@ -26,7 +26,7 @@ export async function validateApiKey(key: string | null | undefined): Promise<AP
     );
 
     // Fallback: legacy lookup by raw key field if no hash match
-    if (!res.documents.length) {
+    if (!res.rows.length) {
       res = await databases.listRows(
         APPWRITE_DATABASE_ID,
         APPWRITE_TABLE_ID_APIKEYS,
@@ -34,7 +34,7 @@ export async function validateApiKey(key: string | null | undefined): Promise<AP
       );
     }
 
-    if (!res.documents.length) {
+    if (!res.rows.length) {
       return { valid: false, reason: 'NOT_FOUND' };
     }
 

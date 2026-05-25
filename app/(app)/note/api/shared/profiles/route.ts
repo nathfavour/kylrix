@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     // Filter sensitive fields if any (though Appwrite permissions should handle this, 
     // we want to be explicit about what we expose in a public-ish endpoint)
-    const publicProfiles = res.documents.map(doc => ({
+    const publicProfiles = res.rows.map(doc => ({
       $id: doc.$id,
       name: doc.displayName || doc.username,
       displayName: doc.displayName || null,

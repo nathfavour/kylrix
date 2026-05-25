@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
       try {
         const { listCollaborators } = await import('@/lib/appwrite');
         const collabs: any = await listCollaborators(noteId);
-        const allowed = Array.isArray(collabs?.rows) && collabs.documents.some((c: any) => c.userId === user.$id);
+        const allowed = Array.isArray(collabs?.rows) && collabs.rows.some((c: any) => c.userId === user.$id);
         if (!allowed) return NextResponse.json({ error: 'Not found' }, { status: 404 });
       } catch {
         return NextResponse.json({ error: 'Not found' }, { status: 404 });
