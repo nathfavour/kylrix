@@ -1079,65 +1079,87 @@ export const ChatService = {
         }, permissionSyncAuth);
     },
 
-    async getMessages(conversationId: string, limit = 50, offset = 0, userId?: string) {
+    async getMessages(conversationId: string, limit = 50, offset = 0, userId?: string, options?: { prefetchedConversation?: any }) {
+        console.log('[ChatService] getMessages for:', conversationId, 'limit:', limit);
         // Ensure UI has explicitly unwrapped the Conversation Key before fetching messages
-        const _conv = await this.getConversationById(conversationId, userId);
+        let _conv = options?.prefetchedConversation;
+        if (!_conv) {
+            try {
+                _conv = await this.getConversationById(conversationId, userId);
+            } catch (err) {
+                console.warn('[ChatService] Failed to pre-fetch conversation for messages:', err);
+            }
+        }
+        
         const convKey = userId ? await resolveConversationKey(_conv, userId) : conversationKeyCache.get(conversationId) || ecosystemSecurity.getConversationKey(conversationId);
 
-        const res = await tablesDB.listRows(DB_ID, MSG_TABLE, [
-            Query.equal('conversationId', conversationId),
-            Query.orderDesc('createdAt'),
-            Query.limit(limit),
-            Query.offset(offset)
-        ]);
+        try {
+            const res = await tablesDB.listRows(DB_ID, MSG_TABLE, [
+                Query.equal('conversationId', conversationId),
+                Query.orderDesc('createdAt'),
+                Query.limit(limit),
+                Query.offset(offset)
+            ]);
 
-        // Decrypt messages in parallel
-        res.rows = await Promise.all(res.rows.map(async (msg: any) => {
-            const isEncrypted = ecosystemSecurity.status.isUnlocked && (
-                (msg.type === 'text' && msg.content && msg.content.length > 40) ||
-                (msg.metadata && msg.metadata.length > 40)
-            );
+            console.log('[ChatService] listRows returned:', res.total, 'rows:', res.rows.length);
 
-            if (isEncrypted) {
-                let messageKey = _conv?.type === 'group' && String(_conv?.encryptionVersion || '').toUpperCase() === 'T4' && userId
-                    ? await resolveConversationKey(_conv, userId, msg.createdAt)
-                    : convKey;
-                if (!messageKey && userId) {
-                    await UsersService.forceSyncProfileWithIdentity({ $id: userId });
-                    messageKey = _conv?.type === 'group' && String(_conv?.encryptionVersion || '').toUpperCase() === 'T4'
-                        ? await resolveConversationKey(_conv, userId, msg.createdAt)
-                        : await resolveConversationKey(_conv, userId);
-                }
-                if (!messageKey) return msg;
+            // Decrypt messages in parallel
+            res.rows = await Promise.all(res.rows.map(async (msg: any) => {
+                const isEncrypted = ecosystemSecurity.status.isUnlocked && (
+                    (msg.type === 'text' && msg.content && msg.content.length > 40) ||
+                    (msg.metadata && msg.metadata.length > 40)
+                );
 
-                if (msg.type === 'text' && msg.content && msg.content.length > 40) {
-                    msg.content = await ecosystemSecurity.decryptWithKey(msg.content, messageKey);
-                }
-                if (msg.metadata && msg.metadata.length > 40) {
-                    const decryptedMeta = await ecosystemSecurity.decryptWithKey(msg.metadata, messageKey);
+                if (isEncrypted) {
                     try {
-                        msg.metadata = JSON.parse(decryptedMeta);
-                    } catch {
-                        msg.metadata = decryptedMeta;
+                        let messageKey = _conv?.type === 'group' && String(_conv?.encryptionVersion || '').toUpperCase() === 'T4' && userId
+                            ? await resolveConversationKey(_conv, userId, msg.createdAt)
+                            : convKey;
+                        
+                        if (!messageKey && userId) {
+                            messageKey = _conv?.type === 'group' && String(_conv?.encryptionVersion || '').toUpperCase() === 'T4'
+                                ? await resolveConversationKey(_conv, userId, msg.createdAt)
+                                : await resolveConversationKey(_conv, userId);
+                        }
+
+                        if (!messageKey) return msg;
+
+                        if (msg.type === 'text' && msg.content && msg.content.length > 40) {
+                            msg.content = await ecosystemSecurity.decryptWithKey(msg.content, messageKey);
+                        }
+                        if (msg.metadata && msg.metadata.length > 40) {
+                            const decryptedMeta = await ecosystemSecurity.decryptWithKey(msg.metadata, messageKey);
+                            try {
+                                msg.metadata = JSON.parse(decryptedMeta);
+                            } catch {
+                                msg.metadata = decryptedMeta;
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('[ChatService] Failed to decrypt message:', msg.$id, err);
+                        // Keep encrypted content as fallback
                     }
                 }
+                return msg;
+            }));
+
+            if (res.rows.length > 0) {
+                const latestMessage = res.rows[0];
+                setConversationPreviewCache(conversationId, {
+                    lastMessageId: latestMessage.$id,
+                    lastMessageText: latestMessage.type === 'text' || latestMessage.type === 'attachment'
+                        ? String(latestMessage.content || '')
+                        : `[${latestMessage.type || 'message'}]`,
+                    lastMessageAt: getMessageActivityAt(latestMessage) || latestMessage.$createdAt || latestMessage.$updatedAt || new Date().toISOString(),
+                    lastMessageSenderId: latestMessage.senderId || null,
+                });
             }
-            return msg;
-        }));
 
-        const latestMessage = res.rows[0];
-        if (latestMessage) {
-            setConversationPreviewCache(conversationId, {
-                lastMessageId: latestMessage.$id,
-                lastMessageText: latestMessage.type === 'text' || latestMessage.type === 'attachment'
-                    ? String(latestMessage.content || '')
-                    : `[${latestMessage.type || 'message'}]`,
-                lastMessageAt: getMessageActivityAt(latestMessage) || latestMessage.$createdAt || latestMessage.$updatedAt || new Date().toISOString(),
-                lastMessageSenderId: latestMessage.senderId || null,
-            });
+            return res;
+        } catch (error: any) {
+            console.error('[ChatService] getMessages failed:', error);
+            throw error;
         }
-
-        return res;
     },
 
     /**

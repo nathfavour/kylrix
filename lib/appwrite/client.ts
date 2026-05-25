@@ -99,24 +99,17 @@ const databasesProxy = new Proxy(originalDatabases, {
         if (prop === 'listDocuments') {
             return async (...args: any[]) => {
                 const { databaseId, collectionId, queries } = parseTablesDBListArgs(args);
-                try {
-                    return await originalDatabases.listDocuments(databaseId, collectionId, queries);
-                } catch (e: any) {
-                    const { listRowsSecure } = await import('@/lib/actions/secure-ops');
-                    const res = await listRowsSecure(databaseId, collectionId, queries);
-                    return { total: res.total, documents: res.rows };
-                }
+                const { listRowsSecure } = await import('@/lib/actions/secure-ops');
+                const res = await listRowsSecure(databaseId, collectionId, queries);
+                // Map TablesDB response back to Databases response format (rows -> documents)
+                return { total: res.total, documents: res.rows };
             };
         }
         if (prop === 'getDocument') {
             return async (...args: any[]) => {
                 const { databaseId, collectionId, documentId } = parseDatabasesDeleteArgs(args);
-                try {
-                    return await originalDatabases.getDocument(databaseId, collectionId, documentId);
-                } catch (e: any) {
-                    const { getRowSecure } = await import('@/lib/actions/secure-ops');
-                    return await getRowSecure(databaseId, collectionId, documentId);
-                }
+                const { getRowSecure } = await import('@/lib/actions/secure-ops');
+                return await getRowSecure(databaseId, collectionId, documentId);
             };
         }
         if (prop === 'deleteDocument') {
@@ -156,23 +149,15 @@ const tablesDBProxy = new Proxy(originalTablesDB, {
         if (prop === 'listRows') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, queries } = parseTablesDBListArgs(args);
-                try {
-                    return await originalTablesDB.listRows(databaseId, tableId, queries);
-                } catch (e: any) {
-                    const { listRowsSecure } = await import('@/lib/actions/secure-ops');
-                    return await listRowsSecure(databaseId, tableId, queries);
-                }
+                const { listRowsSecure } = await import('@/lib/actions/secure-ops');
+                return await listRowsSecure(databaseId, tableId, queries);
             };
         }
         if (prop === 'getRow') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, rowId } = parseTablesDBDeleteArgs(args);
-                try {
-                    return await originalTablesDB.getRow(databaseId, tableId, rowId);
-                } catch (e: any) {
-                    const { getRowSecure } = await import('@/lib/actions/secure-ops');
-                    return await getRowSecure(databaseId, tableId, rowId);
-                }
+                const { getRowSecure } = await import('@/lib/actions/secure-ops');
+                return await getRowSecure(databaseId, tableId, rowId);
             };
         }
         if (prop === 'deleteRow') {

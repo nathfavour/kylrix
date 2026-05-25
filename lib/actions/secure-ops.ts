@@ -3284,6 +3284,7 @@ export async function getProfileByUsernameSecure(username: string) {
 }
 
 export async function listRowsSecure(databaseId: string, tableId: string, queries: string[] = []) {
+  console.log('[listRowsSecure] Request:', { databaseId, tableId, queries });
   const tables = createSystemTablesDB();
   try {
     const res = await tables.listRows({
@@ -3291,6 +3292,7 @@ export async function listRowsSecure(databaseId: string, tableId: string, querie
       tableId,
       queries: queries as any,
     });
+    console.log('[listRowsSecure] Success. Total:', res.total, 'Count:', res.rows?.length);
     return JSON.parse(JSON.stringify(res));
   } catch (error: any) {
     console.error('[listRowsSecure] Failed:', error?.message);
@@ -3299,6 +3301,7 @@ export async function listRowsSecure(databaseId: string, tableId: string, querie
 }
 
 export async function getRowSecure(databaseId: string, tableId: string, rowId: string) {
+  console.log('[getRowSecure] Request:', { databaseId, tableId, rowId });
   const tables = createSystemTablesDB();
   try {
     const res = await tables.getRow({

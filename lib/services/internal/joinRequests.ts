@@ -25,13 +25,16 @@ function hashJoinRequestId(resourceType: string, resourceId: string, requesterId
 
 function getConversationInviteEnabled(conversation: any) {
   const inviteToken = normalizeText(conversation?.inviteLink);
-  if (!inviteToken) return false;
+  if (!inviteToken) {
+    console.warn('[getConversationInviteEnabled] No inviteToken found in conversation object');
+    return false;
+  }
   
   const expiryRaw = conversation?.inviteLinkExpiry;
   if (expiryRaw) {
     const expiry = new Date(expiryRaw).getTime();
     if (Number.isFinite(expiry) && expiry < Date.now()) {
-        console.warn('[getConversationInviteEnabled] Invite link expired for:', conversation.$id);
+        console.warn('[getConversationInviteEnabled] Invite link expired for:', conversation.$id, 'Expiry:', expiryRaw);
         return false;
     }
   }
@@ -39,8 +42,18 @@ function getConversationInviteEnabled(conversation: any) {
   const conversationId = conversation?.$id || conversation?.id;
   const isMatch = inviteToken === conversationId;
   
+  console.log('[getConversationInviteEnabled] Validation:', {
+    inviteToken,
+    tokenType: typeof inviteToken,
+    tokenLength: inviteToken.length,
+    conversationId,
+    idType: typeof conversationId,
+    idLength: conversationId?.length,
+    isMatch
+  });
+
   if (!isMatch) {
-    console.warn('[getConversationInviteEnabled] Token mismatch. Token:', inviteToken, 'Expected:', conversationId);
+    console.warn('[getConversationInviteEnabled] Token mismatch detected.');
   }
 
   return isMatch;
