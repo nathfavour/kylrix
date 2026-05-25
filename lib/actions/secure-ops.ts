@@ -3401,9 +3401,11 @@ export async function listRowsSecure(databaseId: string, tableId: string, querie
       queries: queries as any,
     });
     console.log('[listRowsSecure] Success. Total:', res.total, 'Count:', res.rows?.length);
+    // Unified response: 'rows' is now the primary key, 'documents' is legacy
     return JSON.parse(JSON.stringify({
         total: res.total,
-        rows: res.rows
+        rows: res.rows,
+        documents: res.rows
     }));
   } catch (error: any) {
     console.error('[listRowsSecure] Failed:', error?.message);
