@@ -38,14 +38,14 @@ export default function NoteReactions({ targetId, targetType = TargetType.NOTE, 
               Query.equal('targetId', targetId),
               Query.orderAsc('createdAt'),
               Query.limit(500)]);
-            return res.documents as unknown as Reactions[];
+            return res.rows as unknown as Reactions[];
           } catch (sdkError) {
             const effectiveNoteId = targetType === TargetType.NOTE ? targetId : noteId;
             if (!effectiveNoteId) throw sdkError;
             const res = await fetch(`/api/shared/${effectiveNoteId}/reactions?targetId=${targetId}&targetType=${targetType}`);
             if (!res.ok) throw sdkError;
             const payload = await res.json();
-            return (payload?.documents || []) as Reactions[];
+            return (payload?.rows || []) as Reactions[];
           }
         },
         1000 * 60 * 10

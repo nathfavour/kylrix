@@ -49,7 +49,7 @@ async function calculateStackedPeriod(databases: ReturnType<typeof createSystemC
       Query.orderDesc('updatedAt'),
       Query.limit(1),
       Query.select(['$id', 'currentPeriodStart', 'currentPeriodEnd', 'createdAt', 'updatedAt', 'status', 'plan'])]);
-    const activeSubscriptions = (existingSubs.documents as SubscriptionRow[]).filter((row) => String(row.status || '').toLowerCase() === 'active');
+    const activeSubscriptions = (existingSubs.rows as SubscriptionRow[]).filter((row) => String(row.status || '').toLowerCase() === 'active');
     const latestSubscription = pickLatestSubscription(activeSubscriptions);
     if (latestSubscription?.currentPeriodEnd) {
       const latestExpiry = new Date(latestSubscription.currentPeriodEnd);
@@ -292,7 +292,7 @@ export async function claimCouponAction(couponIdInput?: string, jwtInput?: strin
       Query.orderDesc('$createdAt'),
       Query.limit(1),
       Query.select(['$id', 'userId', 'actorId', 'relatedUserId', 'status', 'metadata', 'discountPercent', 'expiresAt', '$createdAt'])]);
-    coupon = couponResult.documents[0];
+    coupon = couponResult.rows[0];
     if (!coupon) return { ok: true, claimed: false, message: 'No active coupon found' };
   }
 
@@ -410,7 +410,7 @@ export async function claimCouponAction(couponIdInput?: string, jwtInput?: strin
       Query.limit(1),
       Query.select(['$id', 'userId', 'tier'])]);
     if (profileResult.total > 0) {
-      await databases.updateDocument(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.PROFILES, profileResult.documents[0].$id, {
+      await databases.updateDocument(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.PROFILES, profileResult.rows[0].$id, {
         tier: 'PRO',
       });
     }
@@ -497,7 +497,7 @@ export async function hydrateSessionAction(jwt?: string | null) {
 
     return {
       authenticated: true as const,
-      profile: profileRes.documents[0] || null,
+      profile: profileRes.rows[0] || null,
       billing: {
         tier: entitlement.uiTier,
         active: entitlement.active,
@@ -518,7 +518,7 @@ export async function hydrateSessionAction(jwt?: string | null) {
           publicProfile: true,
         })),
       },
-      presence: activityRes.documents[0] || null,
+      presence: activityRes.rows[0] || null,
     };
   } catch (error) {
     console.error('[hydrateSessionAction] Error:', error);

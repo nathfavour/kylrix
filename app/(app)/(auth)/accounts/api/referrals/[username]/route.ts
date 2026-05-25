@@ -38,7 +38,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ username:
       Query.equal('username', username),
       Query.limit(1)]);
 
-    const profile = result.documents[0] || null;
+    const profile = result.rows[0] || null;
     if (!profile || !profile.username) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404, headers: corsHeaders });
     }

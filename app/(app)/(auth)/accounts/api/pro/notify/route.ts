@@ -463,7 +463,7 @@ export async function POST(req: Request) {
         Query.equal('userId', meta.payerUserId)]);
 
       if (profileRes.total > 0) {
-        await databases.updateDocument(CHAT_DATABASE_ID, PROFILES_COLLECTION_ID, profileRes.documents[0].$id, {
+        await databases.updateDocument(CHAT_DATABASE_ID, PROFILES_COLLECTION_ID, profileRes.rows[0].$id, {
           tier: 'PRO',
         });
       }

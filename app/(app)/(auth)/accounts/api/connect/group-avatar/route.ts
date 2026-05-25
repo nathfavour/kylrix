@@ -39,7 +39,7 @@ async function isConversationMember(databases: ReturnType<typeof createSystemCli
     Query.equal('userId', userId),
     Query.limit(1)]).catch(() => ({ documents: [] as any[] }));
 
-  return Boolean(memberRows.documents[0]);
+  return Boolean(memberRows.rows[0]);
 }
 
 export async function GET(req: NextRequest) {

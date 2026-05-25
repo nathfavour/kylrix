@@ -101,7 +101,7 @@ async function getProfileByUserId(databases: ReturnType<typeof createSystemClien
     Query.limit(2)]);
 
   return {
-    profile: result.documents[0] || null,
+    profile: result.rows[0] || null,
     total: result.total,
   };
 }

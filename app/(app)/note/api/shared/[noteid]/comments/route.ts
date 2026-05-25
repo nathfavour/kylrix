@@ -61,7 +61,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ note
         Query.limit(200)]
     );
 
-    return NextResponse.json({ documents: res.documents });
+    return NextResponse.json({ documents: res.rows });
   } catch (error: any) {
     console.error('Error fetching shared comments:', error);
     return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });

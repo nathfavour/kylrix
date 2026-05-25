@@ -47,7 +47,7 @@ async function resolveConversationParticipants(databases: ReturnType<typeof crea
     Query.limit(1000)]).catch(() => ({ documents: [] as any[] }));
 
   return Array.from(new Set<string>(
-    (memberRows.documents || [])
+    (memberRows.rows || [])
       .map((row: any) => row.userId)
       .filter((userId: unknown): userId is string => typeof userId === 'string' && userId.trim().length > 0),
   ));
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
       Query.limit(1000)]);
 
     let reaction;
-    const existingRows = (existing.documents || []).slice().sort((left: any, right: any) => getReactionSortTime(right) - getReactionSortTime(left));
+    const existingRows = (existing.rows || []).slice().sort((left: any, right: any) => getReactionSortTime(right) - getReactionSortTime(left));
     const primaryRow = existingRows[0] || null;
 
     if (primaryRow) {
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
           Query.equal('userId', user.$id),
           Query.equal('messageId', messageId),
           Query.limit(1000)]);
-        const fallbackRows = (fallback.documents || []).slice().sort((left: any, right: any) => getReactionSortTime(right) - getReactionSortTime(left));
+        const fallbackRows = (fallback.rows || []).slice().sort((left: any, right: any) => getReactionSortTime(right) - getReactionSortTime(left));
         const fallbackPrimary = fallbackRows[0];
         if (!fallbackPrimary) {
           throw error;
@@ -204,7 +204,7 @@ export async function DELETE(req: NextRequest) {
       Query.equal('userId', user.$id),
       Query.equal('messageId', messageId),
       Query.limit(1000)]);
-    const rowsToDelete = (existing.documents || []).slice().sort((left: any, right: any) => getReactionSortTime(right) - getReactionSortTime(left));
+    const rowsToDelete = (existing.rows || []).slice().sort((left: any, right: any) => getReactionSortTime(right) - getReactionSortTime(left));
     if (!rowsToDelete.length) {
       return NextResponse.json(
         {

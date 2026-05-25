@@ -3395,7 +3395,7 @@ export async function listRowsSecure(databaseId: string, tableId: string, querie
   const tables = new TablesDB(client);
 
   try {
-    const res = await tables.listRows({
+    const res = await collections.listRows({
       databaseId,
       tableId,
       queries: queries as any,
@@ -3421,7 +3421,7 @@ export async function getRowSecure(databaseId: string, tableId: string, rowId: s
   const tables = new TablesDB(client);
 
   try {
-    const res = await tables.getRow({
+    const res = await collections.getRow({
       databaseId,
       tableId,
       rowId,

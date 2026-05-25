@@ -624,9 +624,10 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       fetchOptimized(calsKey, () => calendarApi.list(calQueries), force ? 0 : FLOW_WARM_TTL)]);
 
     return { 
-      tasks: tList.documents.map(mapAppwriteTaskToTask), 
-      projects: cList.documents.map(mapAppwriteCalendarToProject) 
+      tasks: (tList?.rows || []).map(mapAppwriteTaskToTask), 
+      projects: (cList?.rows || []).map(mapAppwriteCalendarToProject) 
     };
+
   }, [fetchOptimized]);
 
   // Initial Data Fetch

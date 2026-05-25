@@ -47,7 +47,7 @@ export default function TagsPage() {
     try {
       setLoading(true);
       const response = await listTags();
-      setTags(response.documents as unknown as Tags[]);
+      setTags(response.rows as unknown as Tags[]);
     } catch (err: any) {
        setError(err instanceof Error ? err.message : 'Failed to fetch tags');
     } finally {

@@ -49,10 +49,10 @@ export default function SharedNotesPage() {
 
         if (user && user.$id) {
           const myPublicResult = await listPublicNotesByUser(user.$id);
-          const myPublicNotes = myPublicResult.documents as unknown as Notes[];
+          const myPublicNotes = myPublicResult.rows as unknown as Notes[];
           
           // Partition shared notes into private and public
-          const sharedDocs = sharedResult.documents as SharedNote[];
+          const sharedDocs = sharedResult.rows as SharedNote[];
           const sharedPrivate = sharedDocs.filter(n => !n.isPublic);
           const sharedPublic = sharedDocs.filter(n => n.isPublic);
 

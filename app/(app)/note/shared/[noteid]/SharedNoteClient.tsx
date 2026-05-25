@@ -364,7 +364,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
           });
           if (profileRes.ok) {
             const profilesPayload = await profileRes.json();
-            const author = profilesPayload.documents?.[0];
+            const author = profilesPayload.rows?.[0];
             if (author) {
               setAuthorProfile(author);
             }

@@ -34,7 +34,7 @@ async function fetchProfile(databases: ReturnType<typeof createSystemClient>["da
     Query.equal("userId", userId),
     Query.limit(2)]);
 
-  return result.documents[0] || null;
+  return result.rows[0] || null;
 }
 
 async function fetchIdentityRows(databases: ReturnType<typeof createSystemClient>["databases"], userId: string) {
@@ -47,7 +47,7 @@ async function fetchIdentityRows(databases: ReturnType<typeof createSystemClient
       Query.limit(100)],
   );
 
-  return result.documents;
+  return result.rows;
 }
 
 async function fetchConversation(databases: ReturnType<typeof createSystemClient>["databases"], conversationId: string) {
@@ -67,7 +67,7 @@ async function fetchKeyMappings(databases: ReturnType<typeof createSystemClient>
       Query.limit(1000)],
   );
 
-  return result.documents;
+  return result.rows;
 }
 
 async function fetchEpochIds(databases: ReturnType<typeof createSystemClient>["databases"], conversationId: string) {

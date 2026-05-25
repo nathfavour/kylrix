@@ -30,7 +30,7 @@ export async function listCouponsAction() {
     Query.equal('type', 'coupon'),
     Query.orderDesc('$createdAt'),
     Query.limit(100)]);
-  return result.documents;
+  return result.rows;
 }
 
 export async function createCouponAction(input: {

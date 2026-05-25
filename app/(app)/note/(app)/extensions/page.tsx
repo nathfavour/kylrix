@@ -169,7 +169,7 @@ export default function ExtensionsPage() {
     try {
       setLoading(true);
       const result = await listExtensions();
-      setExtensions(result.documents as unknown as Extensions[]);
+      setExtensions(result.rows as unknown as Extensions[]);
     } catch (error: any) {
       console.error('Failed to load extensions:', error);
     } finally {

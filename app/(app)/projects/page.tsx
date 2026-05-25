@@ -233,7 +233,7 @@ export default function ProjectsPage() {
     setLoading(true);
     try {
       const res = await ProjectsService.listProjects();
-      setProjects(res.documents);
+      setProjects(res.rows);
     } catch (err: any) {
       showError('Failed to load projects', err.message);
     } finally {

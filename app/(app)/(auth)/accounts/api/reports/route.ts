@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
       queries.push(Query.equal('status', statusFilter.toLowerCase()));
     }
     const result = await databases.listDocuments(CHAT_DB_ID, EVENTS_TABLE_ID, queries);
-    const reports = result.documents;
+    const reports = result.rows;
 
     return NextResponse.json({ success: true, reports }, { headers: corsHeaders });
   } catch (error: any) {

@@ -65,7 +65,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         APPWRITE_CONFIG.TABLES.NOTE.ACTIVITY_LOG,
         [Query.equal('userId', user.$id), Query.orderDesc('timestamp'), Query.limit(50)]
       );
-      const logs = res.documents as unknown as ActivityLog[];
+      const logs = res.rows as unknown as ActivityLog[];
       setNotifications(logs);
       setUnreadCount(calculateUnread(logs));
     } catch (error: unknown) {

@@ -113,8 +113,9 @@ export function NotesProvider({ children }: { children: ReactNode }) {
           hydrateTags: true
         });
 
-        if (res.documents.length > 0) {
+        if (res?.rows?.length > 0) {
           const newDocs = res.rows as unknown as Notes[];
+
           setNotes(prev => {
             const existingIds = new Set(prev.map(n => n.$id));
             const distinctNew = newDocs.filter(n => !existingIds.has(n.$id));

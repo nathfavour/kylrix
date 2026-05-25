@@ -755,13 +755,13 @@ export default function CommentsSection({ noteId }: CommentsProps) {
         async () => {
           try {
             const res = await listComments(noteId);
-            return res.documents as unknown as Comments[];
+            return res.rows as unknown as Comments[];
           } catch (sdkError) {
             console.warn('Comments fetch: SDK path failed, trying shared API fallback');
             const res = await fetch(`/api/shared/${noteId}/comments`);
             if (!res.ok) throw sdkError;
             const payload = await res.json();
-            return (payload?.documents || []) as Comments[];
+            return (payload?.rows || []) as Comments[];
           }
         },
         1000 * 60 * 10
@@ -794,7 +794,7 @@ export default function CommentsSection({ noteId }: CommentsProps) {
           });
           if (profilesRes.ok) {
             const profilesPayload = await profilesRes.json();
-            users = profilesPayload.documents || [];
+            users = profilesPayload.rows || [];
           }
         }
 

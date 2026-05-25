@@ -161,7 +161,7 @@ export function useSearch<T extends { $id: string; [key: string]: any }>({
       } else {
         // Use backend search
         const result = await performBackendSearch(query, page);
-        setBackendData(result.documents);
+        setBackendData(result.rows);
         setTotalCount(result.total);
       }
     } catch (err: any) {

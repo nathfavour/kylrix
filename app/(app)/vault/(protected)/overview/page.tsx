@@ -82,7 +82,7 @@ export default function OverviewPage() {
           total?: number;
           documents?: Array<Record<string, unknown>>;
         };
-        const totalCreds = credsTyped.total ?? credsTyped.documents?.length ?? 0;
+        const totalCreds = credsTyped.total ?? credsTyped.rows?.length ?? 0;
 
         let dupGroupsLocal: Array<{
           key: string;
@@ -101,7 +101,7 @@ export default function OverviewPage() {
             )
           );
           const recentWindowTyped = recentWindow as { documents?: any[] };
-          const items = recentWindowTyped.documents || [];
+          const items = recentWindowTyped.rows || [];
           const fieldCandidates = [
             "username",
             "password",
@@ -163,7 +163,7 @@ export default function OverviewPage() {
           }));
         } catch {
           const credsTyped2 = credsResp as { documents?: any[] };
-          recentItems = (credsTyped2.documents || [])
+          recentItems = (credsTyped2.rows || [])
             .slice(0, 5)
             .map((d) => ({
               $id: String((d as Record<string, unknown>)["$id"]),
