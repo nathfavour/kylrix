@@ -236,7 +236,7 @@ export function ChatNotificationProvider({ children }: { children: ReactNode }) 
         });
 
         // 2. Subscribe to Call Signals via Activity Table
-        const activityChannel = `databases.${APPWRITE_CONFIG.DATABASES.CHAT}.collections.${...}.documents`;
+        const activityChannel = `databases.${APPWRITE_CONFIG.DATABASES.CHAT}.collections.${APPWRITE_CONFIG.COLLECTIONS.CHAT.APP_ACTIVITY}.documents`;
 
         const unsubActivity = realtime.subscribe([activityChannel], (response) => {
             if (response.events.some(e => e.includes('.update') || e.includes('.create'))) {
