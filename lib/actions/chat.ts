@@ -9,7 +9,6 @@ import {
   repairConversationInternal,
   joinRequestInternal
 } from '@/lib/services/internal/chat';
-import { createServerClient } from '@/lib/appwrite-server-only';
 import { Query } from 'node-appwrite';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { createSystemTablesDB } from '@/lib/appwrite-admin';
