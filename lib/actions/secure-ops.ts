@@ -1574,18 +1574,6 @@ export async function addProjectCollaboratorSecure(projectId: string, targetUser
   const tables = createSystemTablesDB();
   const { databases, teams } = createSystemClient();
 
-  // 1. Sync to native Appwrite Team for optimized read-access
-  try {
-      await teams.createMembership(
-          projectId, 
-          [permissionLevel], 
-          undefined, 
-          targetUserId
-      );
-  } catch (teamErr: any) {
-      console.warn('[addProjectCollaboratorSecure] Team membership sync skipped or failed:', teamErr?.message);
-  }
-
   // 2. Fetch current project to update permissions
   const project = await collections.getRow({
       databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
@@ -1601,17 +1589,36 @@ export async function addProjectCollaboratorSecure(projectId: string, targetUser
   const currentCollaborators = metadata.collaborators ? Object.keys(metadata.collaborators) : [];
 
   // Fetch owner to check plan
-  const owner = await getActor(undefined); // Fallback to current session
-  if (currentCollaborators.length >= 8 && !hasPaidKylrixPlan(owner)) {
+  const { users } = createSystemClient();
+  const owner = await users.get(project.ownerId);
+  const isPro = hasPaidKylrixPlan(owner);
+
+  if (currentCollaborators.length >= 8 && !isPro) {
       throw new Error('Limit reached: Free plan is limited to 8 collaborators. Upgrade to PRO for unlimited team members.');
+  }
+
+  // 1. Sync to native Appwrite Team for optimized read-access (PRO ONLY)
+  if (isPro) {
+      try {
+          await teams.createMembership(
+              projectId, 
+              [permissionLevel], 
+              undefined, 
+              targetUserId
+          );
+      } catch (teamErr: any) {
+          console.warn('[addProjectCollaboratorSecure] Team membership sync skipped or failed:', teamErr?.message);
+      }
   }
 
   // Update physical permissions: add READ permission only
   const newPermissions = new Set(project.$permissions || []);
   newPermissions.add(`read("user:${targetUserId}")`);
-  // Ensure native team permission is present
-  newPermissions.add(`read("team:${projectId}")`);
 
+  // Ensure native team permission is present (PRO ONLY)
+  if (isPro) {
+      newPermissions.add(`read("team:${projectId}")`);
+  }
   if (!metadata.collaborators) {
     metadata.collaborators = {};
   }
