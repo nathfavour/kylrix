@@ -7,7 +7,7 @@ import { PresenceService, UserPresenceState, PresencePayload } from '@/lib/servi
 interface PresenceContextType {
     globalPresence: Record<string, PresencePayload>;
     resourcePresence: Record<string, PresencePayload[]>;
-    joinResource: (databaseId: string, collectionId: string, documentId: string) => () => void;
+    joinResource: (databaseId: string, tableId: string, rowId: string) => () => void;
     setMyState: (state: UserPresenceState, activity?: string) => void;
 }
 
@@ -77,32 +77,32 @@ export const PresenceProvider = ({ children }: { children: React.ReactNode }) =>
         };
     }, [user?.$id, setMyState]);
 
-    const joinResource = useCallback((databaseId: string, collectionId: string, documentId: string) => {
+    const joinResource = useCallback((databaseId: string, tableId: string, rowId: string) => {
         if (!user?.$id) return () => {};
 
-        const channel = PresenceService.getResourceChannel(databaseId, collectionId, documentId);
+        const channel = PresenceService.getResourceChannel(databaseId, tableId, rowId);
         
         // On-demand: only track if we haven't joined yet
         activeResourcesRef.current.add(channel);
         
         const unsub = PresenceService.subscribeToPresence(channel, (payload: PresencePayload) => {
             setResourcePresence(prev => {
-                const current = prev[documentId] || [];
+                const current = prev[rowId] || [];
                 const filtered = current.filter(p => p.userId !== payload.userId);
                 
                 if (payload.state === 'offline') {
-                    return { ...prev, [documentId]: filtered };
+                    return { ...prev, [rowId]: filtered };
                 }
 
                 return {
                     ...prev,
-                    [documentId]: [...filtered, payload]
+                    [rowId]: [...filtered, payload]
                 };
             });
         });
 
         // Announce myself to the resource
-        setMyState('online', `Viewing ${collectionId}`);
+        setMyState('online', `Viewing ${tableId}`);
 
         return () => {
             activeResourcesRef.current.delete(channel);

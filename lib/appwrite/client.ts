@@ -101,8 +101,12 @@ const databasesProxy = new Proxy(originalDatabases, {
                 const { databaseId, collectionId, queries } = parseTablesDBListArgs(args);
                 const { listRowsSecure } = await import('@/lib/actions/secure-ops');
                 const res = await listRowsSecure(databaseId, collectionId, queries);
-                // Map TablesDB response back to Databases response format (rows -> documents)
-                return { total: res.total, documents: res.rows };
+                // Unified response: 'rows' is now the primary key, 'documents' is legacy
+                return { 
+                    total: res.total, 
+                    rows: res.rows,
+                    documents: res.rows 
+                };
             };
         }
         if (prop === 'getDocument') {

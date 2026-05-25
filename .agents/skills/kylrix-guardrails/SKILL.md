@@ -18,4 +18,5 @@ disable-model-invocation: true
 8. For privileged operations, enforce `ADMINS` email allowlist checks server-side; do not rely only on role labels.
 9. For token/network operations, require explicit singleton state-row checks before allowing mutations.
 10. Do not create or use app-exposed API route surfaces (`/api/*`, `/accounts/api/*`) for core app operations. Implement secure in-code server functions/actions and call those directly from the codebase.
+11. **Terminology Standard**: Strictly use "Table" (not Collection) and "Row" (not Document). This applies to code (methods like `listRows`), comments, logs, and all UI copy. The terms "document" and "collection" are legacy/deprecated within this ecosystem.
 

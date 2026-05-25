@@ -123,17 +123,16 @@ export default function ProjectDetailPage() {
       const p = await ProjectsService.getProject(projectId as string);
       setProject(p);
       const objects = await ProjectsService.listProjectObjects(projectId as string);
-      setProjectObjects(objects.documents);
-      
+      setProjectObjects(objects.rows);
+
       // Resolve entities
-      await resolveEntities(objects.documents);
+      await resolveEntities(objects.rows);
     } catch (err: any) {
       showError('Failed to load project', err.message);
     } finally {
       setLoading(false);
     }
   }, [projectId, showError]);
-
   const resolveEntities = async (objects: ProjectObjects[]) => {
     setResolving(true);
     try {

@@ -16,32 +16,32 @@ import { permissionsInternal } from '@/lib/services/internal/permissions';
 import { dispatchEmail } from '@/lib/services/internal/emailDispatch';
 import { executeCascadeDeleteSecure } from './cascade-delete';
 
-// Short-lived in-memory cache for document reads during permission checks.
+// Short-lived in-memory cache for row reads during permission checks.
 // Prevents duplicate database fetches within a short timeframe (e.g. 5 seconds).
-const documentCache = new Map<string, { doc: any; timestamp: number }>();
+const rowCache = new Map<string, { row: any; timestamp: number }>();
 const CACHE_TTL_MS = 5000; // 5 seconds
 
 export async function getRowCached(params: { databaseId: string; tableId: string; rowId: string }) {
   const cacheKey = `${params.databaseId}:${params.tableId}:${params.rowId}`;
   const now = Date.now();
-  const cached = documentCache.get(cacheKey);
+  const cached = rowCache.get(cacheKey);
   if (cached && (now - cached.timestamp < CACHE_TTL_MS)) {
-    return cached.doc;
+    return cached.row;
   }
   const tables = createSystemTablesDB();
-  const doc = await tables.getRow(params);
-  if (doc) {
+  const row = await tables.getRow(params);
+  if (row) {
     // Prune expired entries to keep memory low
-    if (documentCache.size > 100) {
-      for (const [key, val] of documentCache.entries()) {
+    if (rowCache.size > 100) {
+      for (const [key, val] of rowCache.entries()) {
         if (now - val.timestamp > CACHE_TTL_MS) {
-          documentCache.delete(key);
+          rowCache.delete(key);
         }
       }
     }
-    documentCache.set(cacheKey, { doc, timestamp: now });
+    rowCache.set(cacheKey, { row, timestamp: now });
   }
-  return doc;
+  return row;
 }
 
 /** 
@@ -1029,32 +1029,32 @@ export async function createNoteSecure(data: any, jwt?: string) {
  */
 export async function verifyResourcePermissionSecure(params: {
   databaseId?: string;
-  collectionId?: string;
-  documentId?: string;
+  tableId?: string;
+  rowId?: string;
   actorId: string;
   action: 'create' | 'read' | 'update' | 'delete';
   ownerFields?: string[];
   metadataField?: string;
   data?: any;
 }) {
-  const { databaseId, collectionId, documentId, actorId, action, ownerFields = ['userId', 'ownerId'], metadataField = 'metadata', data } = params;
+  const { databaseId, tableId, rowId, actorId, action, ownerFields = ['userId', 'ownerId'], metadataField = 'metadata', data } = params;
   
-  let doc = data;
-  if (!doc && databaseId && collectionId && documentId) {
-    doc = await getRowCached({
+  let row = data;
+  if (!row && databaseId && tableId && rowId) {
+    row = await getRowCached({
       databaseId: databaseId,
-      tableId: collectionId,
-      rowId: documentId,
+      tableId: tableId,
+      rowId: rowId,
     }).catch(() => null);
   }
 
-  if (!doc) {
+  if (!row) {
     return false;
   }
   
   let isOwner = false;
   for (const field of ownerFields) {
-    const val = String(doc[field] || '').trim();
+    const val = String(row[field] || '').trim();
     if (val && val === actorId) {
       isOwner = true;
       break;
@@ -1073,19 +1073,19 @@ export async function verifyResourcePermissionSecure(params: {
 
   // 1. Native Visibility Flags (isPublic, isGuest)
   // These grant universal read-only access based on the new native columns.
-  const isGuest = doc.isGuest === true;
-  const isPublic = doc.isPublic === true;
+  const isGuest = row.isGuest === true;
+  const isPublic = row.isPublic === true;
 
   // 2. Project-Level Inheritance (isGeneral)
   // If a resource is linked to a project with isGeneral = true, all project members inherit read access.
   let isInheritedGeneralRead = false;
-  if (action === 'read' && documentId) {
+  if (action === 'read' && rowId) {
     try {
       const tables = createSystemTablesDB();
       const objLinks = await tables.listRows({
         databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
         tableId: 'project_objects',
-        queries: [Query.equal('entityId', documentId)] as any
+        queries: [Query.equal('entityId', rowId)] as any
       });
       
       for (const link of objLinks.rows) {
@@ -3377,32 +3377,43 @@ export async function getProfileByUsernameSecure(username: string) {
   }
 }
 
-export async function listRowsSecure(databaseId: string, tableId: string, queries: string[] = []) {
+export async function listRowsSecure(databaseId: string, tableId: string, queries: string[] = [], jwt?: string) {
   console.log('[listRowsSecure] Request:', { databaseId, tableId, queries });
-  const tables = createSystemTablesDB();
+  
+  // Use user-scoped client to respect Row Level Security
+  const { client } = await createServerClient(jwt);
+  const databases = new Databases(client);
+
   try {
-    const res = await tables.listRows({
+    const res = await databases.listDocuments(
       databaseId,
       tableId,
-      queries: queries as any,
-    });
-    console.log('[listRowsSecure] Success. Total:', res.total, 'Count:', res.rows?.length);
-    return JSON.parse(JSON.stringify(res));
+      queries as any,
+    );
+    console.log('[listRowsSecure] Success. Total:', res.total, 'Count:', res.documents?.length);
+    return JSON.parse(JSON.stringify({
+        total: res.total,
+        rows: res.documents
+    }));
   } catch (error: any) {
     console.error('[listRowsSecure] Failed:', error?.message);
     throw error;
   }
 }
 
-export async function getRowSecure(databaseId: string, tableId: string, rowId: string) {
+export async function getRowSecure(databaseId: string, tableId: string, rowId: string, jwt?: string) {
   console.log('[getRowSecure] Request:', { databaseId, tableId, rowId });
-  const tables = createSystemTablesDB();
+  
+  // Use user-scoped client to respect Row Level Security
+  const { client } = await createServerClient(jwt);
+  const databases = new Databases(client);
+
   try {
-    const res = await tables.getRow({
+    const res = await databases.getDocument(
       databaseId,
       tableId,
       rowId,
-    });
+    );
     return JSON.parse(JSON.stringify(res));
   } catch (error: any) {
     console.error('[getRowSecure] Failed:', error?.message);
