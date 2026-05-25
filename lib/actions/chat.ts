@@ -10,6 +10,9 @@ import {
   joinRequestInternal
 } from '@/lib/services/internal/chat';
 import { createServerClient } from '@/lib/appwrite-server-only';
+import { Query } from 'node-appwrite';
+import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
+import { createSystemTablesDB } from '@/lib/appwrite-admin';
 
 export async function createMessageAction(payload: {
   conversationId: string;
@@ -161,4 +164,53 @@ export async function joinRequestAction(payload: {
   }
 
   return await joinRequestInternal(securedPayload);
+}
+
+export async function getConversationsAction(payload: {
+  userId: string;
+  jwt?: string;
+}) {
+  const { account } = await createServerClient(payload.jwt);
+  const actor = await account.get();
+  
+  if (!actor?.$id || actor.$id !== payload.userId) {
+    throw new Error('Unauthorized');
+  }
+
+  const tables = createSystemTablesDB();
+  const DB_ID = APPWRITE_CONFIG.DATABASES.CHAT;
+  const CONV_TABLE = APPWRITE_CONFIG.TABLES.CHAT.CONVERSATIONS;
+  const CONV_MEMBERS_TABLE = 'conversationMembers';
+
+  try {
+    const memberRows = await tables.listRows({
+      databaseId: DB_ID,
+      tableId: CONV_MEMBERS_TABLE,
+      queries: [Query.equal('userId', payload.userId), Query.limit(1000)]
+    });
+
+    const conversationIds = Array.from(new Set(
+      (memberRows.rows || [])
+          .map((row: any) => row.conversationId)
+          .filter(Boolean)
+    ));
+
+    if (conversationIds.length === 0) {
+        return { total: 0, rows: [] };
+    }
+
+    const conversationsResult = await tables.listRows({
+        databaseId: DB_ID,
+        tableId: CONV_TABLE,
+        queries: [Query.equal('$id', conversationIds), Query.limit(conversationIds.length)]
+    });
+
+    return JSON.parse(JSON.stringify({
+        total: conversationsResult.total,
+        rows: conversationsResult.rows
+    }));
+  } catch (error: any) {
+    console.error('[getConversationsAction] Failed:', error?.message);
+    throw error;
+  }
 }

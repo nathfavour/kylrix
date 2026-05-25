@@ -15,6 +15,7 @@ import {
     clearConversationFootprintAction,
     deleteConversationFullyAction,
     nuclearWipeConversationAction,
+    getConversationsAction,
 } from '@/lib/actions/chat';
 
 
@@ -685,55 +686,33 @@ export const ChatService = {
     async getConversations(userId: string) {
         console.log('[ChatService] getConversations for:', userId);
 
-        const memberRows = await tablesDB.listRows(DB_ID, CONV_MEMBERS_TABLE, [
-            Query.equal('userId', userId),
-            Query.limit(1000)
-        ]).catch(() => ({ rows: [] as any[] }));
-
-        const conversationIds = Array.from(new Set(
-            (memberRows.rows || [])
-                .map((row: any) => row.conversationId)
-                .filter(Boolean)
-        ));
-
         let conversationRows: any[] = [];
-        let memberRowsByConversation = new Map<string, string[]>();
+        let total = 0;
 
-        if (conversationIds.length > 0) {
-            const conversationsResult = await tablesDB.listRows(DB_ID, CONV_TABLE, [
-                Query.equal('$id', conversationIds),
-                Query.limit(conversationIds.length)
-            ]).catch(() => ({ rows: [] as any[] }));
-
-            conversationRows = conversationsResult.rows || [];
-
-            const allMembers = await tablesDB.listRows(DB_ID, CONV_MEMBERS_TABLE, [
-                Query.equal('conversationId', conversationIds),
-                Query.limit(Math.min(1000, conversationIds.length * 10))
-            ]).catch(() => ({ rows: [] as any[] }));
-
-            memberRowsByConversation = new Map<string, string[]>();
-            for (const row of allMembers.rows || []) {
-                if (!row?.conversationId || !row?.userId) continue;
-                const existing = memberRowsByConversation.get(row.conversationId) || [];
-                if (!existing.includes(row.userId)) existing.push(row.userId);
-                memberRowsByConversation.set(row.conversationId, existing);
-            }
-        } else {
+        try {
+            const response = await getConversationsAction({ userId });
+            conversationRows = response.rows || [];
+            total = response.total || 0;
+        } catch (err) {
+            console.error('[ChatService] getConversationsAction failed:', err);
+            // Fallback to legacy client-side check just in case, though it will likely be empty
             const legacy = await tablesDB.listRows(DB_ID, CONV_TABLE, [
                 Query.contains('participants', userId),
                 Query.limit(100)
             ]).catch(() => ({ rows: [] as any[] }));
             conversationRows = legacy.rows || [];
-            for (const conversation of conversationRows) {
-                const participants = Array.isArray(conversation.participants) ? conversation.participants.filter(Boolean) : [];
-                if (participants.length) memberRowsByConversation.set(conversation.$id, participants);
+            total = legacy.rows.length;
+        }
+
+        const memberRowsByConversation = new Map<string, string[]>();
+        // Initialize with participants already in the conversation object
+        for (const conv of conversationRows) {
+            if (Array.isArray(conv.participants)) {
+                memberRowsByConversation.set(conv.$id, conv.participants.filter(Boolean));
             }
         }
 
-        const previewConversationIds = conversationIds.length > 0
-            ? conversationIds
-            : conversationRows.map((conversation) => conversation.$id).filter(Boolean);
+        const previewConversationIds = conversationRows.map((conversation) => conversation.$id).filter(Boolean);
         const needsPreviewHydration = conversationRows.some((conversation) => !conversation.lastMessageAt || !conversation.lastMessageText);
         const latestMessageByConversation = new Map<string, any>();
 
