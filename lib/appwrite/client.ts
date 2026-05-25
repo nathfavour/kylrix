@@ -79,6 +79,22 @@ export const databases = new Proxy(originalDatabases, {
                 }
             };
         }
+        if (prop === 'getDocument') {
+            return async (...args: any[]) => {
+                const { databaseId, collectionId, documentId } = parseDatabasesDeleteArgs(args);
+                if (typeof window !== 'undefined') {
+                    try {
+                        return await originalDatabases.getDocument(databaseId, collectionId, documentId);
+                    } catch (e: any) {
+                        const { getRowSecure } = await import('@/lib/actions/secure-ops');
+                        return await getRowSecure(databaseId, collectionId, documentId);
+                    }
+                } else {
+                    const { getRowSecure } = await import('@/lib/actions/secure-ops');
+                    return await getRowSecure(databaseId, collectionId, documentId);
+                }
+            };
+        }
         if (prop === 'deleteDocument') {
             return async (...args: any[]) => {
                 const { databaseId, collectionId, documentId } = parseDatabasesDeleteArgs(args);
@@ -177,6 +193,22 @@ export const tablesDB = new Proxy(originalTablesDB, {
                 } else {
                     const { listRowsSecure } = await import('@/lib/actions/secure-ops');
                     return await listRowsSecure(databaseId, tableId, queries);
+                }
+            };
+        }
+        if (prop === 'getRow') {
+            return async (...args: any[]) => {
+                const { databaseId, tableId, rowId } = parseTablesDBDeleteArgs(args);
+                if (typeof window !== 'undefined') {
+                    try {
+                        return await originalTablesDB.getRow(databaseId, tableId, rowId);
+                    } catch (e: any) {
+                        const { getRowSecure } = await import('@/lib/actions/secure-ops');
+                        return await getRowSecure(databaseId, tableId, rowId);
+                    }
+                } else {
+                    const { getRowSecure } = await import('@/lib/actions/secure-ops');
+                    return await getRowSecure(databaseId, tableId, rowId);
                 }
             };
         }
