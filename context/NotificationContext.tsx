@@ -8,6 +8,7 @@ import {
   APPWRITE_DATABASE_ID, 
   APPWRITE_TABLE_ID_ACTIVITYLOG 
 } from '@/lib/appwrite';
+import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { useAuth } from '@/context/auth/AuthContext';
 import type { ActivityLog } from '@/types/appwrite';
 
@@ -86,7 +87,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated || !user?.$id) return;
 
-    const channel = `databases.${APPWRITE_DATABASE_ID}.collections.${APPWRITE_CONFIG.COLLECTIONS.CHAT.APP_ACTIVITY}.documents`;
+    const channel = `databases.${APPWRITE_CONFIG.DATABASES.CHAT}.collections.app_activity.documents`;
     
     const unsub = realtime.subscribe(channel, (response) => {
       const payload = response.payload as ActivityLog;
