@@ -1862,7 +1862,7 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
                                 <Typography variant="caption" sx={{ color: '#9B9691', fontWeight: 700, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                     {(() => {
                                         const otherId = conversation.participants.find((p: string) => p !== user?.$id);
-                                        const otherPresence = presence[otherId];
+                                        const otherPresence = globalPresence?.[otherId];
                                         if (!otherPresence) return 'Offline';
 
                                         const isOnline = otherPresence.status === 'online' && (Date.now() - new Date(otherPresence.lastSeen).getTime() < 1000 * 60 * 5);

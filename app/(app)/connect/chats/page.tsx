@@ -142,9 +142,22 @@ export default function Home() {
   useEffect(() => {
     const unsubscribe = ecosystemSecurity.onStatusChange((status) => {
       setIsUnlocked(status.isUnlocked);
+      if (status.isUnlocked) {
+        setActiveTab('secure');
+      } else {
+        setActiveTab('public');
+      }
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (isUnlocked) {
+      setActiveTab('secure');
+    } else {
+      setActiveTab('public');
+    }
+  }, [isUnlocked]);
 
   // Removed aggressive auto-prompt to allow browsing public huddles frictionless
   useEffect(() => {
