@@ -21,6 +21,11 @@ import {
   AvatarGroup,
   Tooltip,
   TextField,
+  Drawer,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   Plus,
@@ -69,7 +74,7 @@ import { createComment, listComments } from '@/lib/appwrite/note';
 import { client } from '@/lib/appwrite/client';
 import { ChatService } from '@/lib/services/chat';
 import { createMessageAction } from '@/lib/actions/chat';
-import { Send, Clock, Mic, Square, Tag, ShieldCheck, Camera, PhoneCall, FileSpreadsheet } from 'lucide-react';
+import { Send, Clock, Mic, Square, Tag, ShieldCheck, Camera, PhoneCall, FileSpreadsheet, X } from 'lucide-react';
 import MuralPattern from '@/components/chat/MuralPattern';
 import { VoiceMessage } from '@/components/chat/VoiceMessage';
 import { StorageService } from '@/lib/services/storage';
@@ -132,6 +137,38 @@ export default function ProjectDetailPage() {
   const [extractGoalsNote, setExtractGoalsNote] = useState<Notes | null>(null);
   const [isAddSubProjectModalOpen, setIsAddSubProjectModalOpen] = useState(false);
   const [initializingHuddle, setInitializingHuddle] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editStatus, setEditStatus] = useState<'active' | 'completed' | 'paused' | 'on_hold'>('active');
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  useEffect(() => {
+    if (project && isSettingsOpen) {
+      setEditTitle(project.title || '');
+      setEditDesc(project.description || '');
+      setEditStatus((project.status || 'active') as any);
+    }
+  }, [project, isSettingsOpen]);
+
+  const handleSaveSettings = async () => {
+    if (!editTitle.trim() || savingSettings || !project) return;
+    setSavingSettings(true);
+    try {
+      await ProjectsService.updateProject(project.$id, {
+        title: editTitle.trim(),
+        description: editDesc.trim(),
+        status: editStatus
+      });
+      showSuccess('Project settings updated successfully!');
+      fetchProjectData();
+      setIsSettingsOpen(false);
+    } catch (err) {
+      console.error('Failed to update project settings:', err);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const metadata = useMemo(() => {
     if (!project?.metadata) return {};
@@ -398,6 +435,7 @@ export default function ProjectDetailPage() {
 
                 <Button
                     variant="outlined"
+                    onClick={() => setIsSettingsOpen(true)}
                     sx={{
                         borderRadius: '14px',
                         borderColor: 'rgba(255,255,255,0.06)',
@@ -863,6 +901,167 @@ export default function ProjectDetailPage() {
           onExtracted={fetchProjectData}
         />
       )}
+
+      {/* Project Settings Bottom Drawer */}
+      <Drawer
+        anchor="bottom"
+        open={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        keepMounted={false}
+        disablePortal={true}
+        PaperProps={{
+          sx: {
+            bgcolor: '#0E0C0A',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+            borderTopLeftRadius: '32px',
+            borderTopRightRadius: '32px',
+            maxHeight: '60vh',
+            height: 'auto',
+            color: '#fff',
+            backgroundImage: 'none',
+            p: { xs: 3, sm: 4 }
+          }
+        }}
+      >
+        <Box sx={{ width: 40, height: 4, bgcolor: 'rgba(255,255,255,0.15)', borderRadius: '2px', mx: 'auto', mb: 3 }} />
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '-0.01em' }}>
+              Project Settings
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
+              Manage details and status for {project?.title}
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setIsSettingsOpen(false)} sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+            <X size={20} />
+          </IconButton>
+        </Stack>
+
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            <Stack spacing={2.5}>
+              <TextField
+                fullWidth
+                label="Project Title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                variant="outlined"
+                InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)', '&.Mui-focused': { color: '#6366F1' } } }}
+                InputProps={{
+                  sx: {
+                    bgcolor: '#13110F',
+                    borderRadius: '12px',
+                    color: 'white',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    '&:hover': { borderColor: 'rgba(255,255,255,0.12)' },
+                    '&.Mui-focused': { borderColor: '#6366F1' }
+                  }
+                }}
+              />
+              <TextField
+                fullWidth
+                label="Description"
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                multiline
+                rows={3}
+                variant="outlined"
+                InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)', '&.Mui-focused': { color: '#6366F1' } } }}
+                InputProps={{
+                  sx: {
+                    bgcolor: '#13110F',
+                    borderRadius: '12px',
+                    color: 'white',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    '&:hover': { borderColor: 'rgba(255,255,255,0.12)' },
+                    '&.Mui-focused': { borderColor: '#6366F1' }
+                  }
+                }}
+              />
+            </Stack>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <Stack spacing={2.5} sx={{ height: '100%', justifyContent: 'space-between' }}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="project-status-label" sx={{ color: 'rgba(255,255,255,0.5)', '&.Mui-focused': { color: '#6366F1' } }}>Status</InputLabel>
+                <Select
+                  labelId="project-status-label"
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as any)}
+                  label="Status"
+                  sx={{
+                    bgcolor: '#13110F',
+                    borderRadius: '12px',
+                    color: 'white',
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.06)' },
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.12)' },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#6366F1' }
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        bgcolor: '#13110F',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        color: 'white',
+                        '& .MuiMenuItem-root': {
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          py: 1,
+                          '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+                          '&.Mui-selected': { bgcolor: 'rgba(99, 102, 241, 0.15)', color: '#6366F1' }
+                        }
+                      }
+                    }
+                  }}
+                >
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="completed">Completed</MenuItem>
+                  <MenuItem value="paused">Paused</MenuItem>
+                  <MenuItem value="on_hold">On Hold</MenuItem>
+                </Select>
+              </FormControl>
+
+              <Stack direction="row" spacing={2} sx={{ mt: { xs: 3, md: 'auto' }, pt: 2 }}>
+                <Button
+                  variant="outlined"
+                  onClick={() => setIsSettingsOpen(false)}
+                  sx={{
+                    flex: 1,
+                    borderRadius: '12px',
+                    borderColor: 'rgba(255,255,255,0.06)',
+                    color: 'rgba(255,255,255,0.6)',
+                    fontWeight: 800,
+                    textTransform: 'none',
+                    py: 1.5,
+                    '&:hover': { borderColor: 'rgba(255,255,255,0.2)', bgcolor: alpha('#fff', 0.02) }
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  disabled={savingSettings || !editTitle.trim()}
+                  onClick={handleSaveSettings}
+                  sx={{
+                    flex: 1,
+                    borderRadius: '12px',
+                    bgcolor: '#6366F1',
+                    color: '#000',
+                    fontWeight: 900,
+                    textTransform: 'none',
+                    py: 1.5,
+                    '&:hover': { bgcolor: alpha('#6366F1', 0.9) }
+                  }}
+                >
+                  {savingSettings ? <CircularProgress size={20} color="inherit" /> : 'Save'}
+                </Button>
+              </Stack>
+            </Stack>
+          </Grid>
+        </Grid>
+      </Drawer>
 
       {isAddSubProjectModalOpen && (
         <ProjectAddSubProjectModal
@@ -1518,7 +1717,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
         justifyContent="space-between" 
         alignItems="center" 
         sx={{ 
-          p: 2.25, 
+          p: { xs: 1.25, sm: 1.5 }, 
           borderBottom: '1px solid rgba(255,255,255,0.06)', 
           bgcolor: 'rgba(10, 9, 8, 0.85)',
           backdropFilter: 'blur(12px)',
@@ -1551,40 +1750,26 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
             Private Chat (Disabled)
           </Button>
         </Stack>
-        
-        {/* Story Summary / Countdown Info */}
-        {activeMode === 'huddle' && chatNoteId && (
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Button
-              size="small"
-              startIcon={<FileText size={14} />}
-              onClick={handleSaveAsStory}
-              sx={{
-                bgcolor: 'rgba(236, 72, 153, 0.1)', 
-                color: '#EC4899', 
-                fontWeight: 800, 
-                fontSize: '0.75rem', 
-                px: 2, 
-                py: 0.75, 
-                borderRadius: '8px', 
-                textTransform: 'none',
-                border: '1px solid rgba(236, 72, 153, 0.15)',
-                '&:hover': { bgcolor: 'rgba(236, 72, 153, 0.15)' }
-              }}
-            >
-              Save Story
-            </Button>
-          </Stack>
-        )}
       </Stack>
 
       {/* Main Panel Content */}
-      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+      <Box sx={{ 
+        flex: 1, 
+        minHeight: 0, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        position: 'relative', 
+        overflow: 'hidden',
+        m: 1.5,
+        borderRadius: '16px',
+        border: '1px solid rgba(255,255,255,0.05)',
+        bgcolor: '#080706' // Deep black console chat viewport
+      }}>
         {/* Decorative Grid Patterns matching chat background */}
         <MuralPattern />
 
         {loading && (
-          <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', bgcolor: 'rgba(10,9,8,0.7)', zIndex: 2 }}>
+          <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', bgcolor: 'rgba(10,9,8,0.7)', zIndex: 3 }}>
             <CircularProgress size={28} sx={{ color: '#6366F1' }} />
           </Box>
         )}
@@ -1616,10 +1801,10 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
             <Box sx={{ 
               flex: 1, 
               overflowY: 'auto', 
-              p: 3, 
+              p: 2, 
               display: 'flex', 
               flexDirection: 'column', 
-              gap: 2.5,
+              gap: 1.75,
               position: 'relative',
               zIndex: 1,
               '&::-webkit-scrollbar': {
@@ -1656,14 +1841,21 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
                         elevation={0}
                         sx={{
                           p: isVoice ? 1.25 : 1.75,
-                          borderRadius: '20px',
-                          borderTopRightRadius: isSelf ? 0 : '20px',
-                          borderTopLeftRadius: isSelf ? '20px' : 0,
-                          bgcolor: isSelf ? '#6366F1' : '#161412',
-                          border: isSelf ? 'none' : '1px solid rgba(255,255,255,0.06)',
-                          color: '#fff',
-                          boxShadow: isSelf ? '0 8px 24px rgba(99, 102, 241, 0.12)' : 'none',
-                          backgroundImage: 'none'
+                          borderRadius: isSelf ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
+                          bgcolor: isSelf ? '#1C1A18' : '#161412', // Lifted vs Base
+                          backgroundImage: 'none',
+                          border: '1px solid #23211F',
+                          borderRight: isSelf ? '3px solid #6366F1' : '1px solid #23211F',
+                          borderLeft: !isSelf ? '3px solid #34322F' : '1px solid #23211F',
+                          color: isSelf ? '#FFFFFF' : '#F5F2ED',
+                          boxShadow: '0 4px 12px -4px rgba(0,0,0,0.8)',
+                          position: 'relative',
+                          zIndex: 2,
+                          transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                          '&:hover': {
+                              transform: 'translateY(-1px)',
+                              boxShadow: '0 6px 16px -4px rgba(0,0,0,0.9)',
+                          }
                         }}
                       >
                         {isVoice && voiceUrl ? (
@@ -1689,8 +1881,8 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
               component="form" 
               onSubmit={handleSendMessage} 
               sx={{ 
-                p: 2.25, 
-                borderTop: '1px solid rgba(255,255,255,0.06)', 
+                p: { xs: 1.25, sm: 1.5 }, 
+                borderTop: '1px solid rgba(255,255,255,0.05)', 
                 bgcolor: 'rgba(10, 9, 8, 0.95)',
                 backdropFilter: 'blur(12px)',
                 position: 'relative',
@@ -1772,7 +1964,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
                       isRecording 
                         ? "Recording in progress..." 
                         : activeMode === 'huddle' 
-                          ? "Type huddle message (auto-cleans in 7 days)..." 
+                          ? "Type huddle message..." 
                           : "Type cryptographically secure message..."
                     }
                     variant="standard"
