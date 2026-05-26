@@ -59,6 +59,7 @@ const GlobalSearchAvatar = ({ u }: { u: any }) => {
 export const ChatList = ({ externalQuery = '' }: { externalQuery?: string }) => {
     const { user } = useAuth();
     const { unreadConversations } = useChatNotifications();
+    const { presence: globalPresence } = usePresence();
     const router = useRouter();
     const { requestSudo } = useSudo();
     const [conversations, setConversations] = useState<any[]>([]);
@@ -722,7 +723,7 @@ export const ChatList = ({ externalQuery = '' }: { externalQuery?: string }) => 
                                                 fallback={conv.name?.replace(/^@/, '').charAt(0).toUpperCase() || 'U'}
                                                 size={48}
                                                 pro={conv.isSelf}
-                                                status={conv.type === 'direct' ? globalPresence[conv.otherUserId]?.state : undefined}
+                                                status={conv.type === 'direct' && conv.otherUserId ? globalPresence?.[conv.otherUserId]?.state : undefined}
                                             />
                                         </Box>
                                     <ListItemText

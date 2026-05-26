@@ -43,13 +43,14 @@ import { ecosystemSecurity } from '@/lib/ecosystem/security';
 interface MasterPassDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  intent?: 'unlock' | 'initialize' | 'upgrade';
 }
 
 const VAULT_PRIMARY = "#10B981"; // Emerald
 const BG_COLOR = "#0A0908";
 const SURFACE_COLOR = "#161412";
 
-export function MasterPassDrawer({ isOpen, onClose }: MasterPassDrawerProps) {
+export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterPassDrawerProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { setIsDrawerOpen } = useDrawerState();
@@ -78,10 +79,18 @@ export function MasterPassDrawer({ isOpen, onClose }: MasterPassDrawerProps) {
   const [migrationStatus, setMigrationStatus] = useState<'idle' | 'upgrading' | 'success' | 'error'>('idle');
   const [isCriticalError, setIsCriticalError] = useState(false);
   const isMigratingRef = useRef(false);
+  const onSuccessRef = useRef(onSuccess);
+
+  // Keep onSuccessRef updated without triggering useEffect re-runs
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
 
   const [mode, setMode] = useState<"passkey" | "password" | "pin" | "initialize" | "migrating" | null>(null);
 
   useEffect(() => {
+      if (!isOpen) return;
+
       masterPassCrypto.setMigrationCallbacks(
           () => {
               isMigratingRef.current = true;
@@ -93,21 +102,24 @@ export function MasterPassDrawer({ isOpen, onClose }: MasterPassDrawerProps) {
               setMigrationStatus(success ? 'success' : 'error');
               if (!success) {
                   setIsCriticalError(true);
-                  return; // Don't call onSuccess, stay open with warning
+                  return;
               }
               setTimeout(() => {
                   if (isOpen) {
-                      onSuccess();
+                      onSuccessRef.current();
                       isMigratingRef.current = false;
                   }
               }, 1500);
           }
       );
+      
       return () => {
-          masterPassCrypto.setMigrationCallbacks(() => {}, () => {});
-          isMigratingRef.current = false;
+          // Only clear if the drawer is truly closing to preserve mid-flight state
+          if (!isMigratingRef.current) {
+              masterPassCrypto.setMigrationCallbacks(() => {}, () => {});
+          }
       };
-  }, [onSuccess, isOpen]);
+  }, [isOpen]);
   const [pin, setPin] = useState("");
   const [hasPin, setHasPin] = useState(false);
 
@@ -187,12 +199,11 @@ export function MasterPassDrawer({ isOpen, onClose }: MasterPassDrawerProps) {
   useEffect(() => {
     if (!user || !isOpen) return;
 
-    // Auto-success if already unlocked
-    if (masterPassCrypto.isVaultUnlocked()) {
+    // Auto-success if already unlocked (EXCEPT for manual upgrades)
+    if (masterPassCrypto.isVaultUnlocked() && intent !== 'upgrade') {
       onSuccess();
       return;
     }
-
     setLoading(true);
 
     const isKylrixDomain = typeof window !== 'undefined' && 
@@ -215,6 +226,8 @@ export function MasterPassDrawer({ isOpen, onClose }: MasterPassDrawerProps) {
 
         if (!passwordPresent) {
           setMode("initialize");
+        } else if (intent === "upgrade") {
+          setMode("password");
         } else if (effectivePasskeyPresent) {
           setMode("passkey");
           if (!passkeyTriggeredRef.current) {
@@ -222,11 +235,11 @@ export function MasterPassDrawer({ isOpen, onClose }: MasterPassDrawerProps) {
               handlePasskeyUnlock();
           }
         } else if (pinSet) {
-
           setMode("pin");
         } else {
           setMode("password");
         }
+
       })
       .catch(() => {
         setIsFirstTime(true);

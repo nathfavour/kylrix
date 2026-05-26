@@ -251,15 +251,15 @@ export class MasterPassCrypto {
         return false; // No keychain entry found
       }
 
-      const isArgon = !!keychainEntry.isArgon;
+      const isArgon = !!keychainEntry.isArgon || (keychainEntry.params && keychainEntry.params.includes("Argon2id"));
 
       // Derive AuthKey using the stored salt
       const salt = new Uint8Array(
         atob(keychainEntry.salt).split("").map(c => c.charCodeAt(0))
       );
 
+      logDebug(`[Vault] Unlocking with ${isArgon ? "Argon2id" : "Legacy PBKDF2"}...`);
       const authKey = await this.deriveKey(password, salt, isArgon);
-
       // Unwrap the MEK
       const wrappedKeyBytes = new Uint8Array(
         atob(keychainEntry.wrappedKey).split("").map(c => c.charCodeAt(0))

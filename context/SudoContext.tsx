@@ -11,13 +11,13 @@ import { useAuth } from '@/context/auth/AuthContext';
 interface SudoOptions {
     onSuccess: () => void;
     onCancel?: () => void;
-    intent?: "unlock" | "initialize" | "reset";
+    intent?: "unlock" | "initialize" | "reset" | "upgrade";
     forcePrompt?: boolean;
 }
 
 interface SudoContextType {
     requestSudo: (options: SudoOptions) => void;
-    promptSudo: (intent?: "unlock" | "initialize" | "reset", forcePrompt?: boolean) => Promise<boolean>;
+    promptSudo: (intent?: "unlock" | "initialize" | "reset" | "upgrade", forcePrompt?: boolean) => Promise<boolean>;
     isUnlocked: boolean;
     hasMasterpass: boolean | null;
     hasPasskey: boolean | null;

@@ -39,7 +39,7 @@ interface SudoModalProps {
     onSuccess: () => void;
     onCancel?: () => void;
     onClose?: () => void;
-    intent?: "unlock" | "initialize" | "reset";
+    intent?: "unlock" | "initialize" | "reset" | "upgrade";
     app?: KylrixApp;
 }
 
@@ -148,6 +148,11 @@ export default function SudoModal({
                     return;
                 }
 
+                if (intent === "upgrade") {
+                    setMode("password");
+                    setIsDetecting(false);
+                    return;
+                }
                 if (intent === "reset") {
                     const callbackUrl = encodeURIComponent(window.location.href);
                     router.push(`/vault/reset?callbackUrl=${callbackUrl}`);
