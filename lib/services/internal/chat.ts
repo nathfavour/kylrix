@@ -197,6 +197,7 @@ export async function createMessageInternal(payload: {
       attachments: payload.attachments || [],
       replyTo: payload.replyTo || null,
       readBy: [payload.senderId],
+      isVoice: payload.type === 'voice' || payload.content?.startsWith('__voice_note__:'),
       createdAt: now,
       updatedAt: now,
     },

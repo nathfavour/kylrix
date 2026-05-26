@@ -4315,12 +4315,10 @@ export async function listGhostNoteChatsSecure(jwt?: string) {
     APPWRITE_CONFIG.TABLES.NOTE.NOTES,
     [
       Query.equal('isThread', true),
-      Query.equal('isChat', true),
       Query.limit(100)
     ],
     jwt
   ).catch(() => ({ rows: [] }));
-
   // Sort by updatedAt descending
   const rows = [...(res.rows || [])];
 
