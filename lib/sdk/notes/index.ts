@@ -1,7 +1,6 @@
-import { ID, type Models } from 'appwrite';
 import { createCrossObjectMetadata, type CrossObjectOrigin } from '../orchestration';
 
-export interface NoteCreationContext<NoteRow = Models.Document> {
+export interface NoteCreationContext<NoteRow = any> {
   databaseId: string;
   tableId: string;
   getCurrentUser: () => Promise<{ $id: string } | null>;
@@ -11,6 +10,7 @@ export interface NoteCreationContext<NoteRow = Models.Document> {
   cleanDocumentData: <T>(data: Partial<T>) => Record<string, unknown>;
   filterNoteData: (data: Record<string, unknown>) => Record<string, unknown>;
   syncTags?: (params: { noteId: string; rawTags: string[]; userId: string; now: string }) => Promise<void>;
+  generateId?: () => string;
 }
 
 export interface NoteCreationInput {
@@ -24,7 +24,7 @@ export interface NoteCreationInput {
   attachments?: unknown[];
 }
 
-export function createNoteCreationService<NoteRow = Models.Document>(deps: NoteCreationContext<NoteRow>) {
+export function createNoteCreationService<NoteRow = any>(deps: NoteCreationContext<NoteRow>) {
   return {
     async createNote(data: NoteCreationInput) {
       const user = await deps.getCurrentUser();
@@ -33,7 +33,7 @@ export function createNoteCreationService<NoteRow = Models.Document>(deps: NoteC
       }
 
       const now = new Date().toISOString();
-      const docId = ID.unique();
+      const docId = deps.generateId ? deps.generateId() : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       const cleanData = deps.cleanDocumentData(data);
       const noteData = { ...cleanData } as Record<string, unknown>;
       delete noteData.attachments;
