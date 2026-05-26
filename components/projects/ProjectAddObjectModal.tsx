@@ -2,9 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
+  Drawer,
   Box,
   Typography,
   IconButton,
@@ -93,25 +91,35 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
   };
 
   return (
-    <Dialog
+    <Drawer
+      anchor="bottom"
       open={open}
       onClose={onClose}
-      fullWidth
-      maxWidth="sm"
-      PaperProps={{
-        sx: {
+      ModalProps={{ keepMounted: false, disablePortal: true }}
+      sx={{
+        zIndex: 1300,
+        '& .MuiDrawer-paper': {
+          height: '60dvh',
+          maxHeight: '60dvh',
+          borderTopLeftRadius: '28px',
+          borderTopRightRadius: '28px',
           bgcolor: '#161412',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: '28px',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderLeft: '1px solid rgba(255,255,255,0.06)',
+          borderRight: '1px solid rgba(255,255,255,0.06)',
           backgroundImage: 'none',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          maxWidth: '600px',
+          mx: 'auto',
         }
       }}
     >
-      <DialogTitle sx={{ p: 3, pb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6" sx={{ fontWeight: 900 }}>Integrate Object</Typography>
+      <Box sx={{ p: 3, pb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h6" sx={{ fontWeight: 900, color: '#fff' }}>Integrate Object</Typography>
         <IconButton onClick={onClose} size="small" sx={{ color: 'rgba(255,255,255,0.4)' }}><X size={20} /></IconButton>
-      </DialogTitle>
+      </Box>
       
       <Box sx={{ borderBottom: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="fullWidth">
@@ -130,18 +138,18 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
             onChange={(e) => setQuery(e.target.value)}
             InputProps={{
                 startAdornment: <Search size={16} style={{ marginRight: '8px', opacity: 0.5 }} />,
-                sx: { bgcolor: 'rgba(255,255,255,0.02)', borderRadius: '12px' }
+                sx: { bgcolor: 'rgba(255,255,255,0.02)', borderRadius: '12px', color: '#fff' }
             }}
         />
       </Box>
 
-      <DialogContent sx={{ p: 0, maxHeight: 400 }}>
+      <Box sx={{ flex: 1, overflowY: 'auto' }}>
         {loading ? (
             <Box sx={{ display: 'grid', placeItems: 'center', py: 4 }}><CircularProgress size={20} /></Box>
         ) : results.length === 0 ? (
             <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', py: 6, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>No resources found matching your query.</Typography>
         ) : (
-            <List>
+            <List sx={{ py: 0 }}>
                 {results.map((item) => (
                     <ListItem key={item.$id} disablePadding>
                         <ListItemButton 
@@ -151,7 +159,7 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
                         >
                             <ListItemText 
                                 primary={item.title || item.name} 
-                                primaryTypographyProps={{ sx: { fontWeight: 700, fontSize: '0.9rem' } }}
+                                primaryTypographyProps={{ sx: { fontWeight: 700, fontSize: '0.9rem', color: '#fff' } }}
                                 secondary={item.summary || item.username || 'System Object'}
                                 secondaryTypographyProps={{ sx: { fontSize: '0.75rem', opacity: 0.5 } }}
                             />
@@ -161,7 +169,7 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
                 ))}
             </List>
         )}
-      </DialogContent>
-    </Dialog>
+      </Box>
+    </Drawer>
   );
 }

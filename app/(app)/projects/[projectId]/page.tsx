@@ -841,7 +841,6 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState<string>('');
   
   const metadata = React.useMemo(() => {
     try {
@@ -859,46 +858,6 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Dynamic countdown timer for Ghost Notes
-  useEffect(() => {
-    if (activeMode !== 'huddle' || !chatNoteId) return;
-    
-    let timerInterval: NodeJS.Timeout;
-    const updateTimer = async () => {
-      try {
-        const { getNote } = await import('@/lib/appwrite/note');
-        const note = await getNote(chatNoteId);
-        if (note && note.metadata) {
-          const noteMeta = JSON.parse(note.metadata);
-          const expiresAt = new Date(noteMeta.expiresAt).getTime();
-          
-          const tick = () => {
-            const now = Date.now();
-            const diff = expiresAt - now;
-            
-            if (diff <= 0) {
-              setTimeRemaining('Expired');
-              clearInterval(timerInterval);
-            } else {
-              const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-              const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-              const mins = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
-              setTimeRemaining(`${days}d ${hours}h ${mins}m remaining`);
-            }
-          };
-          
-          tick();
-          timerInterval = setInterval(tick, 60000);
-        }
-      } catch {}
-    };
-
-    updateTimer();
-    return () => {
-      if (timerInterval) clearInterval(timerInterval);
-    };
-  }, [activeMode, chatNoteId]);
 
   // Load and Subscribe to Huddle Thread (Ghost Note)
   useEffect(() => {
@@ -1173,12 +1132,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
         {/* Story Summary / Countdown Info */}
         {activeMode === 'huddle' && chatNoteId && (
           <Stack direction="row" spacing={1.5} alignItems="center">
-            {timeRemaining && (
-              <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: '#F59E0B' }}>
-                <Clock size={14} />
-                <Typography variant="caption" sx={{ fontWeight: 800 }}>{timeRemaining}</Typography>
-              </Stack>
-            )}
+            {/* Discussion Thread is saved from de-allocation due to isThread flag */}
             <Button
               size="small"
               startIcon={<FileText size={14} />}
