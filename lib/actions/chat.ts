@@ -183,11 +183,12 @@ export async function getConversationsAction(payload: {
   const CONV_MEMBERS_TABLE = 'conversationMembers';
 
   try {
+    // 1. Fetch conversations from standard conversationMembers table
     const memberRows = await tables.listRows({
       databaseId: DB_ID,
       tableId: CONV_MEMBERS_TABLE,
       queries: [Query.equal('userId', payload.userId), Query.limit(1000)]
-    });
+    }).catch(() => ({ total: 0, rows: [] }));
 
     const conversationIds = Array.from(new Set(
       (memberRows.rows || [])
@@ -195,19 +196,47 @@ export async function getConversationsAction(payload: {
           .filter(Boolean)
     ));
 
-    if (conversationIds.length === 0) {
-        return { total: 0, rows: [] };
+    let standardConversations: any[] = [];
+    if (conversationIds.length > 0) {
+      const standardRes = await tables.listRows({
+          databaseId: DB_ID,
+          tableId: CONV_TABLE,
+          queries: [Query.equal('$id', conversationIds), Query.limit(Math.min(100, conversationIds.length))]
+      }).catch(() => ({ total: 0, rows: [] }));
+      standardConversations = standardRes.rows || [];
     }
 
-    const conversationsResult = await tables.listRows({
-        databaseId: DB_ID,
-        tableId: CONV_TABLE,
-        queries: [Query.equal('$id', conversationIds), Query.limit(conversationIds.length)]
+    // 2. Fetch legacy conversations directly where participants list contains user ID
+    const legacyRes = await tables.listRows({
+      databaseId: DB_ID,
+      tableId: CONV_TABLE,
+      queries: [
+        Query.contains('participants', payload.userId),
+        Query.limit(100)
+      ]
+    }).catch(() => ({ total: 0, rows: [] }));
+    const legacyConversations = legacyRes.rows || [];
+
+    // 3. Combine and deduplicate
+    const combinedMap = new Map<string, any>();
+    for (const conv of [...standardConversations, ...legacyConversations]) {
+      if (conv && conv.$id) {
+        combinedMap.set(conv.$id, conv);
+      }
+    }
+
+    const uniqueConversations = Array.from(combinedMap.values());
+
+    // 4. Sort by active timestamp descending
+    uniqueConversations.sort((a: any, b: any) => {
+      const timeA = new Date(a.lastMessageAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.lastMessageAt || b.createdAt || 0).getTime();
+      return timeB - timeA;
     });
 
     return JSON.parse(JSON.stringify({
-        total: conversationsResult.total,
-        rows: conversationsResult.rows
+        total: uniqueConversations.length,
+        rows: uniqueConversations
     }));
   } catch (error: any) {
     console.error('[getConversationsAction] Failed:', error?.message);
