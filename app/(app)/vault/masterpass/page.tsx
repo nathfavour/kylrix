@@ -109,6 +109,13 @@ function MasterPassPageInner() {
 
     setSubmitting(true);
     try {
+      // Hard check against race conditions or direct page access
+      if (hasMasterpass) {
+          toast.error('Vault already initialized. Redirecting...');
+          router.replace(callbackUrl);
+          return;
+      }
+
       const success = await masterPassCrypto.unlock(password, user.$id, true);
       if (!success) {
         toast.error('Could not initialize master password.');
@@ -125,9 +132,14 @@ function MasterPassPageInner() {
       
       // Immediately offer passkey setup
       setShowPasskeySetup(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('MasterPass setup error:', err);
-      toast.error('Failed to set up master password.');
+      if (err.message === 'VAULT_ALREADY_EXISTS') {
+          toast.error('Your vault is already initialized. Please login normally.');
+          router.replace(callbackUrl);
+      } else {
+          toast.error('Failed to set up master password.');
+      }
     } finally {
       setSubmitting(false);
     }

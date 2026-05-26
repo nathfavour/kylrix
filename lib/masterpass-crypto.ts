@@ -178,6 +178,17 @@ export class MasterPassCrypto {
 
       // 2. If first time setup, create new keychain entry
       if (isFirstTime) {
+          // CRITICAL GUARD: Ensure we don't overwrite an existing vault
+          const { AppwriteService } = await import("./appwrite");
+          const existingEntries = await AppwriteService.listKeychainEntries(userId);
+          const hasExisting = existingEntries.some(e => e.type === 'password');
+          
+          if (hasExisting) {
+              logError("[MasterPass] Refusing to initialize: Vault already exists for this user.");
+              // Throw specific error that UI can catch
+              throw new Error("VAULT_ALREADY_EXISTS");
+          }
+
         // Generate a random MEK for new users
         this.masterKey = await this.generateRandomMEK();
 
