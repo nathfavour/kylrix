@@ -57,14 +57,27 @@ export default function NotesPage() {
   const router = useRouter();
   const openNoteIdParam = searchParams.get('openNoteId');
 
+  const visibleNotes = useMemo(() => {
+    const safeNotes = Array.isArray(allNotes) ? allNotes : [];
+    return safeNotes.filter((n: any) => {
+      try {
+        const meta = JSON.parse(n.metadata || '{}');
+        const isEncrypted = meta.isEncrypted === true || meta.isEncrypted === 'true' || n.isEncrypted === true;
+        return !isEncrypted;
+      } catch {
+        return !n.isEncrypted;
+      }
+    });
+  }, [allNotes]);
+
   // Fetch notes action for the search hook
   const fetchNotesAction = useCallback(async () => {
-    const safeNotes = Array.isArray(allNotes) ? allNotes : [];
+    const safeNotes = Array.isArray(visibleNotes) ? visibleNotes : [];
     return {
       documents: safeNotes,
       total: safeNotes.length
     };
-  }, [allNotes]);
+  }, [visibleNotes]);
 
   // Search and pagination configuration
   const searchConfig = useMemo(() => ({
@@ -105,16 +118,16 @@ export default function NotesPage() {
     previousPage,
     clearSearch
   } = useSearch({
-    data: allNotes,
+    data: visibleNotes,
     fetchDataAction: fetchNotesAction,
     searchConfig,
     paginationConfig
   });
 
   const regularSourceNotes = useMemo(() => {
-    if (hasSearchResults) return allNotes;
-    return allNotes.filter(n => !n.isPinned);
-  }, [allNotes, hasSearchResults]);
+    if (hasSearchResults) return visibleNotes;
+    return visibleNotes.filter(n => !n.isPinned);
+  }, [visibleNotes, hasSearchResults]);
 
   const handleNoteCreated = useCallback((newNote: Notes) => {
     upsertNote(newNote);
@@ -204,9 +217,9 @@ export default function NotesPage() {
 
   const hasReopenedRef = useRef(false);
   useEffect(() => {
-    if (!activeContentKey || isDynamicSidebarOpen || !allNotes.length || hasReopenedRef.current) return;
+    if (!activeContentKey || isDynamicSidebarOpen || !visibleNotes.length || hasReopenedRef.current) return;
     
-    const targetNote = allNotes.find((candidate) => candidate.$id === activeContentKey);
+    const targetNote = visibleNotes.find((candidate) => candidate.$id === activeContentKey);
     if (targetNote) {
       hasReopenedRef.current = true;
       openSidebar(
@@ -219,12 +232,12 @@ export default function NotesPage() {
         { hideHeader: true }
       );
     }
-  }, [activeContentKey, allNotes, isDynamicSidebarOpen, openSidebar, handleNoteUpdated, handleNoteDeleted]);
+  }, [activeContentKey, visibleNotes, isDynamicSidebarOpen, openSidebar, handleNoteUpdated, handleNoteDeleted]);
 
   useEffect(() => {
     if (!openNoteIdParam) return;
 
-    const targetNote = allNotes.find((candidate) => candidate.$id === openNoteIdParam);
+    const targetNote = visibleNotes.find((candidate) => candidate.$id === openNoteIdParam);
     const cleanParams = () => {
       if (typeof window === 'undefined') return;
       const params = new URLSearchParams(window.location.search);
@@ -288,14 +301,14 @@ export default function NotesPage() {
   }, [isCollapsed, isDynamicSidebarOpen]);
 
   const tags = useMemo(() => {
-    const existingTags = Array.from(new Set(allNotes.flatMap(note => note.tags || [])));
+    const existingTags = Array.from(new Set(visibleNotes.flatMap(note => note.tags || [])));
     return existingTags.length > 0 ? existingTags.slice(0, 8) : ['Personal', 'Work', 'Ideas', 'To-Do'];
-  }, [allNotes]);
+  }, [visibleNotes]);
 
   const pinnedNotes = useMemo(() => {
     if (hasSearchResults) return [];
-    return allNotes.filter(n => !!n.isPinned);
-  }, [allNotes, hasSearchResults]);
+    return visibleNotes.filter(n => !!n.isPinned);
+  }, [visibleNotes, hasSearchResults]);
 
   const regularNotes = useMemo(() => {
     return paginatedNotes;
@@ -406,8 +419,8 @@ export default function NotesPage() {
                 opacity: 0.8
               }}
             >
-              {allNotes.length < totalNotes && !hasSearchResults ? (
-                <>Syncing <Box component="span" sx={{ fontFamily: 'var(--font-jetbrains-mono)', fontWeight: 700, color: 'secondary.main', fontSize: '0.85rem' }}>{allNotes.length}</Box> of <Box component="span" sx={{ fontFamily: 'var(--font-jetbrains-mono)', fontWeight: 700, fontSize: '0.85rem' }}>{totalNotes}</Box> notes</>
+              {visibleNotes.length < totalNotes && !hasSearchResults ? (
+                <>Syncing <Box component="span" sx={{ fontFamily: 'var(--font-jetbrains-mono)', fontWeight: 700, color: 'secondary.main', fontSize: '0.85rem' }}>{visibleNotes.length}</Box> of <Box component="span" sx={{ fontFamily: 'var(--font-jetbrains-mono)', fontWeight: 700, fontSize: '0.85rem' }}>{totalNotes}</Box> notes</>
               ) : (
                 hasSearchResults ? (
                   <><Box component="span" sx={{ fontFamily: 'var(--font-jetbrains-mono)', fontWeight: 700, color: 'secondary.main', fontSize: '0.85rem' }}>{totalCount}</Box> {totalCount === 1 ? 'result' : 'results'} found</>
@@ -563,7 +576,7 @@ export default function NotesPage() {
               onPageChange={goToPage}
               onNextPage={nextPage}
               onPreviousPage={previousPage}
-              totalCount={hasSearchResults ? totalCount : allNotes.length}
+              totalCount={hasSearchResults ? totalCount : visibleNotes.length}
               pageSize={paginationConfig.pageSize}
               compact={false}
             />
@@ -805,7 +818,7 @@ export default function NotesPage() {
               onPageChange={goToPage}
               onNextPage={nextPage}
               onPreviousPage={previousPage}
-              totalCount={hasSearchResults ? totalCount : (allNotes || []).length}
+              totalCount={hasSearchResults ? totalCount : (visibleNotes || []).length}
               pageSize={paginationConfig.pageSize}
               compact={false}
             />

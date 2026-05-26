@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import {
   Plus,
+  Calendar,
   FolderKanban,
   FileText,
   CheckSquare,
@@ -51,7 +52,7 @@ import { usePresence } from '@/components/providers/PresenceProvider';
 import { IdentityAvatar } from '@/components/IdentityBadge';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { Projects, ProjectObjects, Notes, Tasks, Credentials, Users as UserType } from '@/types/appwrite';
-import { listNotes, listFlowTasks, listKeepCredentials, Query, AppwriteService } from '@/lib/appwrite';
+import { listNotes, listFlowTasks, listKeepCredentials, Query, AppwriteService, listTags } from '@/lib/appwrite';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import ProjectAddObjectModal from '@/components/projects/ProjectAddObjectModal';
 import ProjectExtractGoalsModal from '@/components/projects/ProjectExtractGoalsModal';
@@ -69,6 +70,14 @@ import { client } from '@/lib/appwrite/client';
 import { ChatService } from '@/lib/services/chat';
 import { createMessageAction } from '@/lib/actions/chat';
 import { Send, Clock } from 'lucide-react';
+import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
+import { NoteDetailSidebar } from '@/components/ui/NoteDetailSidebar';
+import { useLayout } from '@/context/LayoutContext';
+import { useOverlay } from '@/components/ui/OverlayContext';
+import CredentialDialog from '@/components/app/dashboard/CredentialDialog';
+import FormDialog from '@/components/forms/FormDialog';
+import { CallActionModal } from '@/components/call/CallActionModal';
+import NewTotpDialog from '@/components/app/totp/new';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -97,6 +106,9 @@ export default function ProjectDetailPage() {
   const { open: openUnified } = useUnifiedDrawer();
   const { user } = useAuth();
   const { joinResource, resourcePresence } = usePresence();
+  const { openSidebar } = useDynamicSidebar();
+  const { openSecondarySidebar } = useLayout();
+  const { openOverlay, closeOverlay } = useOverlay();
 
   useEffect(() => {
       if (projectId) {
@@ -130,14 +142,14 @@ export default function ProjectDetailPage() {
   const handleDiscussionClick = async () => {
     if (!project) return;
     if (metadata.discussionNoteId) {
-      setTabValue(4); // Switch to discussion huddle room
+      setTabValue(6); // Switch to discussion huddle room
     } else {
       setInitializingHuddle(true);
       try {
         await createGhostNoteForProject(project.$id, `${project.title} Discussion`);
         showSuccess('Huddle Discussion spun up successfully!');
         await fetchProjectData();
-        setTabValue(4);
+        setTabValue(6);
       } catch (err: any) {
         showError('Failed to initialize discussion', err.message);
       } finally {
@@ -152,6 +164,12 @@ export default function ProjectDetailPage() {
   const [credentials, setCredentials] = useState<Credentials[]>([]);
   const [collaborators, setCollaborators] = useState<any[]>([]);
   const [subProjects, setSubProjects] = useState<Projects[]>([]);
+  const [forms, setForms] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [tags, setTags] = useState<any[]>([]);
+  const [totps, setTotps] = useState<any[]>([]);
+  const [moments, setMoments] = useState<any[]>([]);
+  const [calls, setCalls] = useState<any[]>([]);
   const [resolving, setResolving] = useState(false);
 
   const fetchProjectData = useCallback(async () => {
@@ -171,6 +189,7 @@ export default function ProjectDetailPage() {
       setLoading(false);
     }
   }, [projectId, showError]);
+
   const resolveEntities = async (objects: ProjectObjects[]) => {
     setResolving(true);
     try {
@@ -179,35 +198,28 @@ export default function ProjectDetailPage() {
       const credentialIds = objects.filter(o => o.entityKind === 'password' || o.entityKind === 'credential').map(o => o.entityId);
       const collaboratorIds = objects.filter(o => o.entityKind === 'collaborator').map(o => o.entityId);
       const subProjectIds = objects.filter(o => o.entityKind === 'project').map(o => o.entityId);
+      const formIds = objects.filter(o => o.entityKind === 'form').map(o => o.entityId);
+      const eventIds = objects.filter(o => o.entityKind === 'event').map(o => o.entityId);
+      const tagIds = objects.filter(o => o.entityKind === 'tag').map(o => o.entityId);
+      const totpIds = objects.filter(o => o.entityKind === 'totp').map(o => o.entityId);
+      const momentIds = objects.filter(o => o.entityKind === 'moment').map(o => o.entityId);
+      const callIds = objects.filter(o => o.entityKind === 'call').map(o => o.entityId);
 
-      if (noteIds.length) {
-          const res = await listNotes([Query.equal('$id', noteIds)]);
-          setNotes(res.rows);
-      } else setNotes([]);
+      const promises = [
+        noteIds.length ? listNotes([Query.equal('$id', noteIds)]).then(r => setNotes(r.rows)).catch(() => setNotes([])) : Promise.resolve(setNotes([])),
+        taskIds.length ? listFlowTasks([Query.equal('$id', taskIds)]).then(r => setTasks(r.rows)).catch(() => setTasks([])) : Promise.resolve(setTasks([])),
+        credentialIds.length ? listKeepCredentials([Query.equal('$id', credentialIds)]).then(r => setCredentials(r.rows)).catch(() => setCredentials([])) : Promise.resolve(setCredentials([])),
+        collaboratorIds.length ? AppwriteService.getUsersByIds(collaboratorIds).then((r: any) => setCollaborators(r)).catch(() => setCollaborators([])) : Promise.resolve(setCollaborators([])),
+        subProjectIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, 'projects', [Query.equal('$id', subProjectIds)]).then((r: any) => setSubProjects(r.rows)).catch(() => setSubProjects([])) : Promise.resolve(setSubProjects([])),
+        formIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.FLOW, APPWRITE_CONFIG.TABLES.FLOW.FORMS, [Query.equal('$id', formIds)]).then((r: any) => setForms(r.rows)).catch(() => setForms([])) : Promise.resolve(setForms([])),
+        eventIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.KYLRIXFLOW, 'events', [Query.equal('$id', eventIds)]).then((r: any) => setEvents(r.rows)).catch(() => setEvents([])) : Promise.resolve(setEvents([])),
+        tagIds.length ? listTags([Query.equal('$id', tagIds)]).then(r => setTags(r.rows)).catch(() => setTags([])) : Promise.resolve(setTags([])),
+        totpIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER, 'totpSecrets', [Query.equal('$id', totpIds)]).then((r: any) => setTotps(r.rows)).catch(() => setTotps([])) : Promise.resolve(setTotps([])),
+        momentIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.MOMENTS, [Query.equal('$id', momentIds)]).then((r: any) => setMoments(r.rows)).catch(() => setMoments([])) : Promise.resolve(setMoments([])),
+        callIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.CALL_LINKS, [Query.equal('$id', callIds)]).then((r: any) => setCalls(r.rows)).catch(() => setCalls([])) : Promise.resolve(setCalls([])),
+      ];
 
-      if (taskIds.length) {
-          const res = await listFlowTasks([Query.equal('$id', taskIds)]);
-          setTasks(res.rows);
-      } else setTasks([]);
-
-      if (credentialIds.length) {
-          const res = await listKeepCredentials([Query.equal('$id', credentialIds)]);
-          setCredentials(res.rows);
-      } else setCredentials([]);
-      if (collaboratorIds.length) {
-          const res = await AppwriteService.getUsersByIds(collaboratorIds);
-          setCollaborators(res);
-      } else setCollaborators([]);
-
-      if (subProjectIds.length) {
-          const res = await (databases as any).listRows(
-              APPWRITE_CONFIG.DATABASES.CHAT,
-              'projects',
-              [Query.equal('$id', subProjectIds)]
-          );
-          setSubProjects(res.rows);
-      } else setSubProjects([]);
-
+      await Promise.all(promises);
     } catch (err) {
       console.error('Failed to resolve entities', err);
     } finally {
@@ -439,14 +451,14 @@ export default function ProjectDetailPage() {
                             allowScrollButtonsMobile
                             sx={{
                                 '& .MuiTab-root': {
-                                    color: 'rgba(255,255,255,0.4)',
+                                    color: 'rgba(255, 255, 255, 0.4)',
                                     fontWeight: 900,
                                     textTransform: 'none',
                                     minHeight: 72,
                                     fontSize: '0.95rem',
                                     letterSpacing: '0.01em',
-                                    mr: { xs: 2, md: 4 },
-                                    px: { xs: 1.5, md: 3 },
+                                    mr: { xs: 1.5, md: 3 },
+                                    px: { xs: 1, md: 2 },
                                     '&.Mui-selected': { color: '#6366F1' }
                                 },
                                 '& .MuiTabs-indicator': { bgcolor: '#6366F1', height: 3, borderRadius: '3px 3px 0 0' }
@@ -456,11 +468,14 @@ export default function ProjectDetailPage() {
                             <Tab label="Execution Goals" icon={<CheckSquare size={18} />} iconPosition="start" />
                             <Tab label="Vault Assets" icon={<Lock size={18} />} iconPosition="start" />
                             <Tab label="Sub-Projects" icon={<FolderKanban size={18} />} iconPosition="start" />
+                            <Tab label="Events & Calls" icon={<Calendar size={18} />} iconPosition="start" />
+                            <Tab label="Interconnected Flow" icon={<Workflow size={18} />} iconPosition="start" />
                             <Tab label="Project Discussion" icon={<MessageCircle size={18} />} iconPosition="start" />
                         </Tabs>
                     </Box>
 
                     <Box sx={{ p: { xs: 2, md: 4 } }}>
+                        {/* Integrated Notes */}
                         <CustomTabPanel value={tabValue} index={0}>
                             {resolving ? <LoadingPlaceholder /> : notes.length === 0 ? <EmptyState kind="note" /> : (
                                 <Grid container spacing={2}>
@@ -470,7 +485,14 @@ export default function ProjectDetailPage() {
                                                 title={note.title || 'Untitled Note'} 
                                                 kind="note"
                                                 metadata={note.tags?.slice(0, 3).join(' • ') || 'No tags'}
-                                                onOpen={() => router.push(`/note/notes/${note.$id}`)}
+                                                onOpen={() => openSidebar(
+                                                  <NoteDetailSidebar 
+                                                    note={note} 
+                                                    onUpdate={fetchProjectData} 
+                                                    onDelete={fetchProjectData} 
+                                                  />, 
+                                                  'note-detail'
+                                                )}
                                                 onUnlink={() => handleRemoveObject(note.$id)}
                                                 onExtractGoals={() => {
                                                     setExtractGoalsNote(note);
@@ -483,6 +505,7 @@ export default function ProjectDetailPage() {
                             )}
                         </CustomTabPanel>
                         
+                        {/* Execution Goals */}
                         <CustomTabPanel value={tabValue} index={1}>
                             {resolving ? <LoadingPlaceholder /> : tasks.length === 0 ? <EmptyState kind="goal" /> : (
                                 <Grid container spacing={2}>
@@ -492,7 +515,7 @@ export default function ProjectDetailPage() {
                                                 title={task.title} 
                                                 kind="goal"
                                                 metadata={`${task.status.replace('-', ' ')} • ${task.priority}`}
-                                                onOpen={() => router.push(`/flow?taskId=${task.$id}`)}
+                                                onOpen={() => openSecondarySidebar('task', task.$id)}
                                                 onUnlink={() => handleRemoveObject(task.$id)}
                                             />
                                         </Grid>
@@ -501,17 +524,45 @@ export default function ProjectDetailPage() {
                             )}
                         </CustomTabPanel>
 
+                        {/* Vault Assets */}
                         <CustomTabPanel value={tabValue} index={2}>
-                            {resolving ? <LoadingPlaceholder /> : credentials.length === 0 ? <EmptyState kind="password" /> : (
+                            {resolving ? <LoadingPlaceholder /> : (credentials.length === 0 && totps.length === 0) ? <EmptyState kind="password" /> : (
                                 <Grid container spacing={2}>
                                     {credentials.map(cred => (
                                         <Grid item xs={12} key={cred.$id}>
                                             <ResourceItem 
                                                 title={cred.name} 
                                                 kind="password"
-                                                metadata={cred.username || 'Shared access'}
-                                                onOpen={() => router.push(`/vault?id=${cred.$id}`)}
+                                                metadata={cred.username || 'Shared secret'}
+                                                onOpen={() => openOverlay(
+                                                  <CredentialDialog 
+                                                    open={true} 
+                                                    onClose={closeOverlay} 
+                                                    initial={cred} 
+                                                    onSaved={fetchProjectData} 
+                                                  />
+                                                )}
                                                 onUnlink={() => handleRemoveObject(cred.$id)}
+                                            />
+                                        </Grid>
+                                    ))}
+                                    {totps.map(totp => (
+                                        <Grid item xs={12} key={totp.$id}>
+                                            <ResourceItem 
+                                                title={totp.issuer || totp.name || 'Smart Code'} 
+                                                kind="totp"
+                                                metadata={totp.accountName || 'TOTP secret'}
+                                                onOpen={() => openOverlay(
+                                                  <NewTotpDialog 
+                                                    open={true} 
+                                                    onClose={() => {
+                                                      closeOverlay();
+                                                      fetchProjectData();
+                                                    }} 
+                                                    initialData={totp} 
+                                                  />
+                                                )}
+                                                onUnlink={() => handleRemoveObject(totp.$id)}
                                             />
                                         </Grid>
                                     ))}
@@ -519,6 +570,7 @@ export default function ProjectDetailPage() {
                             )}
                         </CustomTabPanel>
 
+                        {/* Sub-Projects */}
                         <CustomTabPanel value={tabValue} index={3}>
                             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
                                 <Button
@@ -564,7 +616,94 @@ export default function ProjectDetailPage() {
                             )}
                         </CustomTabPanel>
 
+                        {/* Events & Calls */}
                         <CustomTabPanel value={tabValue} index={4}>
+                            {resolving ? <LoadingPlaceholder /> : (events.length === 0 && calls.length === 0) ? <EmptyState kind="event" /> : (
+                                <Grid container spacing={2}>
+                                    {events.map(event => (
+                                        <Grid item xs={12} key={event.$id}>
+                                            <ResourceItem 
+                                                title={event.title} 
+                                                kind="event"
+                                                metadata={`${event.location || 'No location'} • ${new Date(event.startTime).toLocaleString()}`}
+                                                onOpen={() => openSecondarySidebar('event', event.$id, event)}
+                                                onUnlink={() => handleRemoveObject(event.$id)}
+                                            />
+                                        </Grid>
+                                    ))}
+                                    {calls.map(call => (
+                                        <Grid item xs={12} key={call.$id}>
+                                            <ResourceItem 
+                                                title={call.title || 'Call Link'} 
+                                                kind="call"
+                                                metadata={`Scheduled Type: ${call.type || 'video'}`}
+                                                onOpen={() => openOverlay(
+                                                  <CallActionModal 
+                                                    open={true} 
+                                                    onClose={() => {
+                                                      closeOverlay();
+                                                      fetchProjectData();
+                                                    }} 
+                                                  />
+                                                )}
+                                                onUnlink={() => handleRemoveObject(call.$id)}
+                                            />
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            )}
+                        </CustomTabPanel>
+
+                        {/* Interconnected Flow: Forms, Tags, Moments */}
+                        <CustomTabPanel value={tabValue} index={5}>
+                            {resolving ? <LoadingPlaceholder /> : (forms.length === 0 && tags.length === 0 && moments.length === 0) ? <EmptyState kind="flow" /> : (
+                                <Grid container spacing={2}>
+                                    {forms.map(form => (
+                                        <Grid item xs={12} key={form.$id}>
+                                            <ResourceItem 
+                                                title={form.title || 'Untitled Form'} 
+                                                kind="form"
+                                                metadata={form.description || 'Interactive Flow Schema'}
+                                                onOpen={() => openOverlay(
+                                                  <FormDialog 
+                                                    open={true} 
+                                                    onClose={closeOverlay} 
+                                                    form={form} 
+                                                    onSaved={fetchProjectData} 
+                                                  />
+                                                )}
+                                                onUnlink={() => handleRemoveObject(form.$id)}
+                                            />
+                                        </Grid>
+                                    ))}
+                                    {tags.map(tag => (
+                                        <Grid item xs={12} key={tag.$id}>
+                                            <ResourceItem 
+                                                title={`# ${tag.name}`} 
+                                                kind="tag"
+                                                metadata={`Color accent: ${tag.color || 'default'}`}
+                                                onOpen={() => openUnified('new-tag', { tag, onSuccess: fetchProjectData })}
+                                                onUnlink={() => handleRemoveObject(tag.$id)}
+                                            />
+                                        </Grid>
+                                    ))}
+                                    {moments.map(moment => (
+                                        <Grid item xs={12} key={moment.$id}>
+                                            <ResourceItem 
+                                                title={moment.caption || 'Integrated Moment'} 
+                                                kind="moment"
+                                                metadata={`Published: ${new Date(moment.$createdAt || moment.createdAt).toLocaleDateString()}`}
+                                                onOpen={() => router.push(`/connect/post/${moment.$id}`)}
+                                                onUnlink={() => handleRemoveObject(moment.$id)}
+                                            />
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            )}
+                        </CustomTabPanel>
+
+                        {/* Project Discussion */}
+                        <CustomTabPanel value={tabValue} index={6}>
                             <ProjectDiscussionTab 
                                 project={project} 
                                 fetchProjectData={fetchProjectData}

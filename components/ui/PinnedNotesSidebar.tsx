@@ -14,7 +14,15 @@ export function PinnedNotesSidebar() {
   const { closeSidebar } = useDynamicSidebar();
 
   const pinnedNotes = useMemo(() => {
-    return allNotes.filter((n) => !!n.isPinned);
+    return allNotes.filter((n) => {
+      try {
+        const meta = JSON.parse(n.metadata || '{}');
+        const isEncrypted = meta.isEncrypted === true || meta.isEncrypted === 'true' || n.isEncrypted === true;
+        return !!n.isPinned && !isEncrypted;
+      } catch {
+        return !!n.isPinned && !n.isEncrypted;
+      }
+    });
   }, [allNotes]);
 
   const handleNoteUpdated = (updatedNote: Notes) => {
