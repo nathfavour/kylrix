@@ -320,7 +320,7 @@ export class EcosystemSecurity {
         atob(keyChainEntry.salt).split("").map(c => c.charCodeAt(0))
       );
 
-      const isArgon = !!keyChainEntry.isArgon;
+      const isArgon = !!keyChainEntry.isArgon || (keyChainEntry.params && keyChainEntry.params.includes("Argon2id"));
       const authKey = await this.deriveKey(password, salt, isArgon);
       const wrappedKeyBytes = new Uint8Array(
         atob(keyChainEntry.wrappedKey).split("").map(c => c.charCodeAt(0))
@@ -825,10 +825,19 @@ export class EcosystemSecurity {
     const res = await tablesDB.listRows(
       APPWRITE_CONFIG.DATABASES.VAULT,
       APPWRITE_CONFIG.TABLES.VAULT.KEYCHAIN,
-      [Query.equal('userId', userId), Query.limit(1)]
+      [Query.equal('userId', userId), Query.limit(10)]
     );
     const rows = res.rows || [];
-    return rows[0] || null;
+    if (rows.length === 0) return null;
+
+    // Prioritization: 
+    // 1. Prefer password type (not passkey/identity)
+    // 2. Prefer non-pending entry
+    const passwordEntries = rows.filter((r: any) => r.type === 'password');
+    if (passwordEntries.length === 0) return rows[0]; // fallback to whatever exists
+
+    const stableEntry = passwordEntries.find((r: any) => !r.isPending);
+    return stableEntry || passwordEntries[0];
   }
 
   getConversationKey(conversationId: string): CryptoKey | null {

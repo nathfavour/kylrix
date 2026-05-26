@@ -77,8 +77,31 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
 
   const [passkeyIncentiveDone, setPasskeyIncentiveDone] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState<'idle' | 'upgrading' | 'success' | 'error'>('idle');
+  const [migrationProgress, setMigrationProgress] = useState(0);
   const [isCriticalError, setIsCriticalError] = useState(false);
+  const [isPendingVault, setIsPendingVault] = useState(false);
   const isMigratingRef = useRef(false);
+
+  useEffect(() => {
+      if (migrationStatus !== 'upgrading') {
+          if (migrationStatus === 'success') setMigrationProgress(100);
+          return;
+      }
+      
+      setMigrationProgress(0);
+      const interval = setInterval(() => {
+          setMigrationProgress(prev => {
+              if (prev >= 95) {
+                  clearInterval(interval);
+                  return prev;
+              }
+              return prev + Math.random() * 15;
+          });
+      }, 350);
+      
+      return () => clearInterval(interval);
+  }, [migrationStatus]);
+
   const onSuccessRef = useRef(onSuccess);
 
   // Keep onSuccessRef updated without triggering useEffect re-runs
@@ -216,9 +239,20 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
     AppwriteService.listKeychainEntries(user.$id)
       .then((entries: any[]) => {
         const passkeyPresent = entries.some((e: any) => e.type === 'passkey');
-        const passwordPresent = entries.some((e: any) => e.type === 'password');
+        const passwordEntries = entries.filter((e: any) => e.type === 'password');
+        const passwordPresent = passwordEntries.length > 0;
+
+        // Prioritize stable over pending for authentication
+        const stableEntry = passwordEntries.find(e => !e.isPending);
+        const pendingEntry = passwordEntries.find(e => e.isPending);
+
+        const bestEntry = stableEntry || pendingEntry || passwordEntries[0];
+
+        // isPendingVault should be true if we are on a pending entry OR if a zombie pending entry exists
+        setIsPendingVault(!!pendingEntry);
 
         // Disable passkey if not on kylrix.space domain
+
         const effectivePasskeyPresent = passkeyPresent && isKylrixDomain;
 
         setHasPasskey(effectivePasskeyPresent);
@@ -420,7 +454,28 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
       {/* Content */}
       <Box sx={{ flex: 1, overflowY: 'auto', mb: 3 }}>
         <Stack spacing={3} component="form" onSubmit={handleSubmit}>
+          {isPendingVault && mode !== 'migrating' && (
+              <Box sx={{ 
+                  p: 2, 
+                  bgcolor: alpha('#F59E0B', 0.05), 
+                  borderRadius: '16px', 
+                  border: '1px solid rgba(245, 158, 11, 0.2)',
+                  display: 'flex',
+                  gap: 2,
+                  alignItems: 'flex-start'
+              }}>
+                  <ErrorOutlineIcon sx={{ color: '#F59E0B', mt: 0.25 }} />
+                  <Box>
+                      <Typography sx={{ fontWeight: 800, color: '#fff', fontSize: '0.9rem' }}>Resuming High-Priority Upgrade</Typography>
+                      <Typography variant="caption" sx={{ color: '#9B9691', lineHeight: 1.4, display: 'block', mt: 0.5 }}>
+                          A previous cryptographic transition was interrupted. Please enter your master password to stabilize and finalize your T5 Core upgrade.
+                      </Typography>
+                  </Box>
+              </Box>
+          )}
+
           {mode === "migrating" && (
+
             <Box sx={{ 
                 py: 6, 
                 display: 'flex', 
@@ -432,18 +487,26 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
             }}>
                 <Box sx={{ position: 'relative', display: 'grid', placeItems: 'center' }}>
                     <CircularProgress 
-                        size={64} 
-                        thickness={2} 
-                        sx={{ color: '#6366F1' }} 
-                        variant={migrationStatus === 'upgrading' ? 'indeterminate' : 'determinate'}
-                        value={100}
+                        size={80} 
+                        thickness={1.5} 
+                        sx={{ color: migrationStatus === 'error' ? '#EF4444' : '#6366F1' }} 
+                        variant="determinate"
+                        value={migrationProgress}
                     />
-                    <Box sx={{ position: 'absolute' }}>
-                        {migrationStatus === 'upgrading' && <ShieldIcon sx={{ fontSize: 24, color: '#6366F1' }} />}
-                        {migrationStatus === 'success' && <ShieldIcon sx={{ fontSize: 24, color: '#10B981' }} />}
-                        {migrationStatus === 'error' && <ErrorOutlineIcon sx={{ fontSize: 24, color: '#EF4444' }} />}
+                    <Box sx={{ position: 'absolute', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        {migrationStatus === 'upgrading' && (
+                            <>
+                                <ShieldIcon sx={{ fontSize: 24, color: '#6366F1', mb: 0.5 }} />
+                                <Typography sx={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', fontWeight: 900, color: 'white' }}>
+                                    {Math.round(migrationProgress)}%
+                                </Typography>
+                            </>
+                        )}
+                        {migrationStatus === 'success' && <ShieldIcon sx={{ fontSize: 32, color: '#10B981' }} />}
+                        {migrationStatus === 'error' && <ErrorOutlineIcon sx={{ fontSize: 32, color: '#EF4444' }} />}
                     </Box>
                 </Box>
+
                 <Box>
                     <Typography sx={{ fontWeight: 900, color: 'white', mb: 1, fontFamily: 'var(--font-clash)', fontSize: '1.25rem' }}>
                         {migrationStatus === 'upgrading' && 'Hardening Security...'}

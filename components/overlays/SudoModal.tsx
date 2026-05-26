@@ -72,6 +72,7 @@ export default function SudoModal({
     const [hasMasterpass, setHasMasterpass] = useState<boolean | null>(null);
     const [mode, setMode] = useState<"passkey" | "password" | "initialize" | null>(null);
     const [isDetecting, setIsDetecting] = useState(true);
+    const [isPendingVault, setIsPendingVault] = useState(false);
     const [showPasskeyIncentive, setShowPasskeyIncentive] = useState(false);
     const passkeyTriggeredRef = useRef(false);
     const appTone = getAppTone(app);
@@ -131,10 +132,21 @@ export default function SudoModal({
             // Check for passkey keychain entry
             AppwriteService.listKeychainEntries(user.$id).then((entries: any[]) => {
                 const passkeyPresent = entries.some((e: any) => e.type === 'passkey');
-                const passwordPresent = entries.some((e: any) => e.type === 'password');
+                const passwordEntries = entries.filter((e: any) => e.type === 'password');
+                const passwordPresent = passwordEntries.length > 0;
+                
+                // Prioritize stable over pending for authentication
+                const stableEntry = passwordEntries.find(e => !e.isPending);
+                const pendingEntry = passwordEntries.find(e => e.isPending);
+                
+                const bestEntry = stableEntry || pendingEntry || passwordEntries[0];
+                
+                // isPendingVault should be true if we are on a pending entry OR if a zombie pending entry exists
+                setIsPendingVault(!!pendingEntry);
+                setHasMasterpass(passwordPresent);
+                
                 const passkeyAllowed = passkeyPresent && isKylrixDomain;
                 setHasPasskey(passkeyAllowed);
-                setHasMasterpass(passwordPresent);
 
                 // Intent Logic
                 if (intent === "initialize") {
@@ -213,24 +225,16 @@ export default function SudoModal({
 
         setLoading(true);
         try {
-            // Find password keychain entry
-            const entries = await AppwriteService.listKeychainEntries(user.$id);
-            const passwordEntry = entries.find((e: any) => e.type === 'password');
+            const success = await masterPassCrypto.unlock(
+              password,
+              user.$id,
+              false
+            );
 
-            if (!passwordEntry) {
-                setHasMasterpass(false);
-                handleRedirectToVaultSetup();
-                setLoading(false);
-                return;
-            }
-
-            const isValid = await ecosystemSecurity.unlock(password, passwordEntry);
-            if (isValid) {
-                const activeMek = ecosystemSecurity.getMasterKey();
-                if (activeMek) {
-                    const rawMek = await crypto.subtle.exportKey("raw", activeMek);
-                    await masterPassCrypto.importKey(rawMek);
-                    await masterPassCrypto.unlockWithImportedKey();
+            if (success) {
+                // IF MIGRATING: Don't call handleSuccessWithSync yet.
+                if (isMigratingRef.current) {
+                    return;
                 }
                 toast.success("Verified");
                 handleSuccessWithSync();
@@ -239,7 +243,12 @@ export default function SudoModal({
             }
         } catch (error: any) {
             console.error(error);
-            toast.error("Verification failed");
+            if (error.message === 'VAULT_ALREADY_EXISTS') {
+                toast.error("Vault already initialized.");
+                handleSuccessWithSync();
+            } else {
+                toast.error("Verification failed");
+            }
         } finally {
             setLoading(false);
         }
@@ -365,11 +374,82 @@ export default function SudoModal({
             <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
 
             <Box sx={{ px: { xs: 2.5, sm: 3 }, py: { xs: 1.5, sm: 2 }, flex: '1 1 auto', minHeight: 0, overflowY: 'auto', scrollbarGutter: 'stable', pb: 'calc(8px + env(safe-area-inset-bottom))', bgcolor: '#161412' }}>
-                {isDetecting || (loading && !password) ? (
+                {isDetecting || (loading && !password && mode !== 'migrating') ? (
                     <Box sx={{ display: "flex", justifyContent: "center", py: 2.5 }}>
                         <CircularProgress sx={{ color: accentColor }} />
                     </Box>
+                ) : mode === "migrating" ? (
+                  <Box sx={{ 
+                      py: 6, 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      textAlign: 'center',
+                      gap: 3 
+                  }}>
+                      <Box sx={{ position: 'relative', display: 'grid', placeItems: 'center' }}>
+                          <CircularProgress 
+                              size={80} 
+                              thickness={1.5} 
+                              sx={{ color: migrationStatus === 'error' ? '#EF4444' : accentColor }} 
+                              variant="determinate"
+                              value={migrationProgress}
+                          />
+                          <Box sx={{ position: 'absolute', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                              {migrationStatus === 'upgrading' && (
+                                  <>
+                                      <Shield sx={{ fontSize: 24, color: accentColor, mb: 0.5 }} />
+                                      <Typography sx={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', fontWeight: 900, color: 'white' }}>
+                                          {Math.round(migrationProgress)}%
+                                      </Typography>
+                                  </>
+                              )}
+                              {migrationStatus === 'success' && <CheckCircle size={32} color="#10B981" />}
+                              {migrationStatus === 'error' && <AlertTriangle size={32} color="#EF4444" />}
+                          </Box>
+                      </Box>
+
+                      <Box>
+                          <Typography sx={{ fontWeight: 900, color: 'white', mb: 1, fontFamily: 'var(--font-clash)', fontSize: '1.25rem' }}>
+                              {migrationStatus === 'upgrading' && 'Hardening Security...'}
+                              {migrationStatus === 'success' && 'Upgrade Complete'}
+                              {migrationStatus === 'error' && 'Critical Update Interrupted'}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#9B9691', maxWidth: '320px', mx: 'auto', mb: 3 }}>
+                              {migrationStatus === 'upgrading' && 'Upgrading your vault to memory-hard Argon2id protection.'}
+                              {migrationStatus === 'success' && 'Your identity is now protected with elite architectural standards.'}
+                              {migrationStatus === 'error' && (
+                                  <Box sx={{ color: '#F59E0B', fontWeight: 800 }}>
+                                      DO NOT REFRESH THIS TAB. <br/>
+                                      <span style={{ fontWeight: 500, fontSize: '0.85rem' }}>Your encryption key is currently resident in RAM. We are stabilizing your secure perimeter.</span>
+                                  </Box>
+                              )}
+                          </Typography>
+
+                          {isCriticalError && (
+                              <Button
+                                  variant="contained"
+                                  onClick={() => {
+                                      // Manual retry using the resident master password
+                                      handlePasswordVerify();
+                                  }}
+                                  sx={{
+                                      bgcolor: '#F59E0B',
+                                      color: '#000',
+                                      fontWeight: 900,
+                                      borderRadius: '12px',
+                                      px: 4,
+                                      '&:hover': { bgcolor: '#D97706' }
+                                  }}
+                              >
+                                  Retry Stabilization
+                              </Button>
+                          )}
+                      </Box>
+                  </Box>
                 ) : mode === "passkey" ? (
+
                     <Stack spacing={2} sx={{ mt: 1.5, alignItems: "center" }}>
                         <Box
                             onClick={handlePasskeyVerify}
@@ -431,10 +511,31 @@ export default function SudoModal({
                     </Stack>
                 ) : (
                     <Stack spacing={2.25} component="form" onSubmit={handlePasswordVerify}>
+                        {isPendingVault && (
+                            <Box sx={{ 
+                                p: 2, 
+                                bgcolor: alpha('#F59E0B', 0.05), 
+                                borderRadius: '16px', 
+                                border: '1px solid rgba(245, 158, 11, 0.2)',
+                                display: 'flex',
+                                gap: 2,
+                                alignItems: 'flex-start'
+                            }}>
+                                <AlertTriangle size={20} color="#F59E0B" style={{ marginTop: 2, flexShrink: 0 }} />
+                                <Box>
+                                    <Typography sx={{ fontWeight: 800, color: '#fff', fontSize: '0.9rem' }}>Resuming High-Priority Upgrade</Typography>
+                                    <Typography variant="caption" sx={{ color: '#9B9691', lineHeight: 1.4, display: 'block', mt: 0.5 }}>
+                                        A previous cryptographic transition was interrupted. Please enter your master password to stabilize and finalize your T5 Core upgrade.
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        )}
+
                         <Box>
                             <Typography variant="caption" sx={{ color: "rgba(255, 255, 255, 0.4)", fontWeight: 600, mb: 1, display: "block" }}>
                                 MASTER PASSWORD
                             </Typography>
+
                             <TextField
                                 fullWidth
                                 type={showPassword ? "text" : "password"}

@@ -242,6 +242,21 @@ export class MasterPassCrypto {
     );
   }
 
+  private decodeBase64(base64: string): Uint8Array {
+      try {
+          const normalized = base64.replace(/-/g, '+').replace(/_/g, '/');
+          const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+          const binary = atob(padded);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+              bytes[i] = binary.charCodeAt(i);
+          }
+          return bytes;
+      } catch {
+          return new Uint8Array(0);
+      }
+  }
+
   // Unlock using the Keychain architecture
   private async unlockWithKeychain(password: string, userId: string): Promise<boolean> {
     try {
@@ -254,20 +269,18 @@ export class MasterPassCrypto {
       const isArgon = !!keychainEntry.isArgon || (keychainEntry.params && keychainEntry.params.includes("Argon2id"));
 
       // Derive AuthKey using the stored salt
-      const salt = new Uint8Array(
-        atob(keychainEntry.salt).split("").map(c => c.charCodeAt(0))
-      );
+      const salt = this.decodeBase64(keychainEntry.salt);
 
       logDebug(`[Vault] Unlocking with ${isArgon ? "Argon2id" : "Legacy PBKDF2"}...`);
       const authKey = await this.deriveKey(password, salt, isArgon);
+
       // Unwrap the MEK
-      const wrappedKeyBytes = new Uint8Array(
-        atob(keychainEntry.wrappedKey).split("").map(c => c.charCodeAt(0))
-      );
+      const wrappedKeyBytes = this.decodeBase64(keychainEntry.wrappedKey);
 
       // Extract IV (first 16 bytes)
       const iv = wrappedKeyBytes.slice(0, MasterPassCrypto.IV_SIZE);
       const ciphertext = wrappedKeyBytes.slice(MasterPassCrypto.IV_SIZE);
+
 
       try {
         const mekBytes = await crypto.subtle.decrypt(
@@ -366,13 +379,21 @@ export class MasterPassCrypto {
       const wrappedKeyBase64 = btoa(String.fromCharCode(...combined));
       const saltBase64 = btoa(String.fromCharCode(...salt));
 
-      // If NOT pending (e.g. standard creation), check if entry exists to update or create
-      if (!isPending) {
-          const existing = await AppwriteService.listKeychainEntries(userId);
-          const passwordEntry = existing.find((k: any) => k.type === 'password');
-
-          if (passwordEntry) {
-            await AppwriteService.deleteKeychainEntry(passwordEntry.$id);
+      // CRITICAL: Clean up existing entries to prevent metadata bloat
+      const existing = await AppwriteService.listKeychainEntries(userId);
+      const passwordEntries = existing.filter((k: any) => k.type === 'password');
+      
+      // If we are creating a PENDING entry, delete any existing PENDING ones first
+      if (isPending) {
+          const pendingEntries = passwordEntries.filter(e => e.isPending);
+          for (const pe of pendingEntries) {
+              await AppwriteService.deleteKeychainEntry(pe.$id);
+          }
+      } else {
+          // If we are creating a STABLE entry (finalizing), delete the legacy row
+          const stableEntries = passwordEntries.filter(e => !e.isPending);
+          for (const se of stableEntries) {
+              await AppwriteService.deleteKeychainEntry(se.$id);
           }
       }
 

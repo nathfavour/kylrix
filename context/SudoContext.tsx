@@ -58,7 +58,8 @@ export function SudoProvider({ children }: { children: ReactNode }) {
     const { isUnlocked, hasMasterpass, hasPasskey } = securityStatus;
 
     const requestSudo = useCallback((options: SudoOptions) => {
-        if (isUnlocked && !options.forcePrompt) {
+        // Force prompt for 'upgrade' intent always, as password is required for re-wrapping
+        if (isUnlocked && !options.forcePrompt && options.intent !== "upgrade") {
             options.onSuccess();
             return;
         }
@@ -67,8 +68,8 @@ export function SudoProvider({ children }: { children: ReactNode }) {
         setIsSudoOpen(true);
     }, [isUnlocked]);
 
-    const promptSudo = useCallback((intent: "unlock" | "initialize" | "reset" = "unlock", forcePrompt = false) => {
-        if (isUnlocked && !forcePrompt) return Promise.resolve(true);
+    const promptSudo = useCallback((intent: "unlock" | "initialize" | "reset" | "upgrade" = "unlock", forcePrompt = false) => {
+        if (isUnlocked && !forcePrompt && intent !== "upgrade") return Promise.resolve(true);
 
         return new Promise<boolean>((resolve) => {
             setSudoPromise({ resolve });

@@ -8,22 +8,39 @@ export * from './projects';
 
 import { AppwriteService as SharedService } from './auth';
 import { VaultService } from './vault';
+import { ProjectsService } from './projects';
 
-// Merge AppwriteService methods from all domains
+// Merge AppwriteService methods from all domains into a robust unified interface
 export const AppwriteService = {
-  // From Vault (Inject all static methods from VaultService)
-  ...VaultService,
-  
-  // From Auth/Shared (these override vault methods if both exist)
+  // --- Global Identity & Profiles ---
   ensureGlobalProfile: SharedService.ensureGlobalProfile,
   getGlobalProfileStatus: SharedService.getGlobalProfileStatus,
-  getReferralStatus: SharedService.getReferralStatus,
-  applyReferral: SharedService.applyReferral,
+  getProfile: SharedService.getProfile,
+  getProfileByUsername: SharedService.getProfileByUsername,
   searchGlobalProfiles: SharedService.searchGlobalProfiles,
+  getUsersByIds: SharedService.getUsersByIds,
+  recordProfileEvent: SharedService.recordProfileEvent,
+
+  // --- Security & Keychain ---
   listKeychainEntries: SharedService.listKeychainEntries,
   createKeychainEntry: SharedService.createKeychainEntry,
+  updateKeychainEntry: SharedService.updateKeychainEntry,
   deleteKeychainEntry: SharedService.deleteKeychainEntry,
+  setMasterpassFlag: SharedService.setMasterpassFlag,
+  hasMasterpass: SharedService.hasMasterpass,
+
+  // --- Vault & User State ---
+  getUserDoc: VaultService.getUserDoc,
+  getUserDocById: VaultService.getUserDocById,
+  
+  // --- Referrals ---
+  getReferralStatus: SharedService.getReferralStatus,
+  applyReferral: SharedService.applyReferral,
+
+  // --- Ghost/Ephemeral Objects ---
   createGhostNote: SharedService.createGhostNote,
   createSendGhostObject: SharedService.createSendGhostObject,
-  recordProfileEvent: SharedService.recordProfileEvent,
+
+  // --- Project Service Integration ---
+  ...ProjectsService
 } as any;
