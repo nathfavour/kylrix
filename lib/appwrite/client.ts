@@ -20,6 +20,17 @@ export const account = new Account(client);
 const originalDatabases = new Databases(client);
 const originalTablesDB = new TablesDB(client);
 
+// Helper to fetch JWT securely from client-side SDK
+async function getJwt(): Promise<string | undefined> {
+  try {
+    const res = await account.createJWT();
+    return res.jwt;
+  } catch (e) {
+    console.warn('[client-ops] Failed to generate JWT:', e);
+    return undefined;
+  }
+}
+
 // --- HELPER PARSERS (Hoisted/Early Defined) ---
 
 function parseDatabasesArgs(args: any[]) {
@@ -84,36 +95,46 @@ const databasesProxy = new Proxy(originalDatabases, {
                 const { databaseId, tableId, rowId, data, permissions } = parseDatabasesArgs(args);
                 const payload = data ? { ...data } : {};
                 if (rowId) payload.$id = rowId;
+                const jwt = await getJwt();
                 const { createRowSecure } = await import('@/lib/actions/secure-ops');
-                return await createRowSecure(databaseId, tableId, payload, permissions);
+                return await createRowSecure(databaseId, tableId, payload, permissions, jwt);
             };
         }
         if (prop === 'updateRow' || prop === 'updateDocument') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, rowId, data, permissions } = parseDatabasesArgs(args);
+                const jwt = await getJwt();
                 const { updateRowSecure } = await import('@/lib/actions/secure-ops');
-                return await updateRowSecure(databaseId, tableId, rowId, data, permissions);
+                return await updateRowSecure(databaseId, tableId, rowId, data, permissions, jwt);
             };
         }
         if (prop === 'listRows' || prop === 'listDocuments') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, queries } = parseTablesDBListArgs(args);
+                const jwt = await getJwt();
                 const { listRowsSecure } = await import('@/lib/actions/secure-ops');
-                return await listRowsSecure(databaseId, tableId, queries);
+                const res = await listRowsSecure(databaseId, tableId, queries, jwt);
+                return { 
+                    total: res.total, 
+                    rows: res.rows,
+                    documents: res.rows 
+                };
             };
         }
         if (prop === 'getRow' || prop === 'getDocument') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, rowId } = parseDatabasesDeleteArgs(args);
+                const jwt = await getJwt();
                 const { getRowSecure } = await import('@/lib/actions/secure-ops');
-                return await getRowSecure(databaseId, tableId, rowId);
+                return await getRowSecure(databaseId, tableId, rowId, jwt);
             };
         }
         if (prop === 'deleteRow' || prop === 'deleteDocument') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, rowId } = parseDatabasesDeleteArgs(args);
+                const jwt = await getJwt();
                 const { deleteRowSecure } = await import('@/lib/actions/secure-ops');
-                return await deleteRowSecure(databaseId, tableId, rowId);
+                return await deleteRowSecure(databaseId, tableId, rowId, jwt);
             };
         }
         const val = Reflect.get(target, prop, receiver);
@@ -130,36 +151,41 @@ const tablesDBProxy = new Proxy(originalTablesDB, {
                 const { databaseId, tableId, rowId, data, permissions } = parseTablesDBArgs(args);
                 const payload = data ? { ...data } : {};
                 if (rowId) payload.$id = rowId;
+                const jwt = await getJwt();
                 const { createRowSecure } = await import('@/lib/actions/secure-ops');
-                return await createRowSecure(databaseId, tableId, payload, permissions);
+                return await createRowSecure(databaseId, tableId, payload, permissions, jwt);
             };
         }
         if (prop === 'updateRow') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, rowId, data, permissions } = parseTablesDBArgs(args);
+                const jwt = await getJwt();
                 const { updateRowSecure } = await import('@/lib/actions/secure-ops');
-                return await updateRowSecure(databaseId, tableId, rowId, data, permissions);
+                return await updateRowSecure(databaseId, tableId, rowId, data, permissions, jwt);
             };
         }
         if (prop === 'listRows') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, queries } = parseTablesDBListArgs(args);
+                const jwt = await getJwt();
                 const { listRowsSecure } = await import('@/lib/actions/secure-ops');
-                return await listRowsSecure(databaseId, tableId, queries);
+                return await listRowsSecure(databaseId, tableId, queries, jwt);
             };
         }
         if (prop === 'getRow') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, rowId } = parseTablesDBDeleteArgs(args);
+                const jwt = await getJwt();
                 const { getRowSecure } = await import('@/lib/actions/secure-ops');
-                return await getRowSecure(databaseId, tableId, rowId);
+                return await getRowSecure(databaseId, tableId, rowId, jwt);
             };
         }
         if (prop === 'deleteRow') {
             return async (...args: any[]) => {
                 const { databaseId, tableId, rowId } = parseTablesDBDeleteArgs(args);
+                const jwt = await getJwt();
                 const { deleteRowSecure } = await import('@/lib/actions/secure-ops');
-                return await deleteRowSecure(databaseId, tableId, rowId);
+                return await deleteRowSecure(databaseId, tableId, rowId, jwt);
             };
         }
         const val = Reflect.get(target, prop, receiver);

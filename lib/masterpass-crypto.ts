@@ -285,19 +285,32 @@ export class MasterPassCrypto {
           ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
         );
 
-        // --- SEAMLESS MIGRATION: PBKDF2 -> Argon2id ---
+        // --- SEAMLESS MIGRATION: PBKDF2 -> Argon2id (Double-Lock Pattern) ---
         if (!isArgon) {
-            logDebug("[Migration] Legacy PBKDF2 detected. Upgrading to Argon2id on-the-fly...");
+            logDebug("[Migration] Legacy PBKDF2 detected. Initializing Double-Lock upgrade...");
             this.onMigrationStart?.();
-            this.createKeychainEntry(this.masterKey, password, userId, true)
-                .then(() => {
-                    logDebug("[Migration] Successfully upgraded to Argon2id");
-                    this.onMigrationEnd?.(true);
-                })
-                .catch(err => {
-                    logError("[Migration] Failed to upgrade keychain to Argon2id", err);
-                    this.onMigrationEnd?.(false);
-                });
+            try {
+                // 1. Write new elite entry (marked as PENDING)
+                // We keep the old entry alive until the new one is confirmed.
+                const { AppwriteService } = await import("./appwrite");
+                const newEntry = await this.createKeychainEntry(this.masterKey, password, userId, true, true);
+                
+                // 2. Delete legacy entry
+                if (keychainEntry.$id) {
+                    await AppwriteService.deleteKeychainEntry(keychainEntry.$id);
+                }
+
+                // 3. Finalize new entry (remove PENDING status)
+                await AppwriteService.updateKeychainEntry(newEntry.$id, { isPending: false });
+
+                logDebug("[Migration] Successfully upgraded to Argon2id via Double-Lock.");
+                this.onMigrationEnd?.(true);
+            } catch (err) {
+                logError("[Migration] Critical failure during Double-Lock upgrade", err as Error);
+                this.onMigrationEnd?.(false);
+                // Return true anyway because the user IS unlocked in memory, 
+                // but the UI will show the "Do Not Refresh" critical warning via onMigrationEnd.
+            }
         }
 
         return true;
@@ -312,7 +325,7 @@ export class MasterPassCrypto {
   }
 
   // Create a new keychain entry (wraps the MEK with the password)
-  private async createKeychainEntry(mek: CryptoKey, password: string, userId: string, useArgon = true): Promise<void> {
+  private async createKeychainEntry(mek: CryptoKey, password: string, userId: string, useArgon = true, isPending = false): Promise<any> {
     try {
       const { AppwriteService } = await import("./appwrite");
 
@@ -339,21 +352,24 @@ export class MasterPassCrypto {
       const wrappedKeyBase64 = btoa(String.fromCharCode(...combined));
       const saltBase64 = btoa(String.fromCharCode(...salt));
 
-      // Check if entry exists to update or create
-      const existing = await AppwriteService.listKeychainEntries(userId);
-      const passwordEntry = existing.find((k: any) => k.type === 'password');
+      // If NOT pending (e.g. standard creation), check if entry exists to update or create
+      if (!isPending) {
+          const existing = await AppwriteService.listKeychainEntries(userId);
+          const passwordEntry = existing.find((k: any) => k.type === 'password');
 
-      if (passwordEntry) {
-        await AppwriteService.deleteKeychainEntry(passwordEntry.$id);
+          if (passwordEntry) {
+            await AppwriteService.deleteKeychainEntry(passwordEntry.$id);
+          }
       }
 
-      await AppwriteService.createKeychainEntry({
+      return await AppwriteService.createKeychainEntry({
         userId,
         type: 'password',
         credentialId: null,
         wrappedKey: wrappedKeyBase64,
         salt: saltBase64,
         isArgon: useArgon,
+        isPending: isPending,
         params: JSON.stringify(useArgon ? {
           memory: MasterPassCrypto.ARGON2_MEMORY,
           iterations: MasterPassCrypto.ARGON2_ITERATIONS,

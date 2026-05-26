@@ -13,6 +13,7 @@ import {
   Stack,
   TextField,
   Typography,
+  alpha,
 } from '@mui/material';
 import { masterPassCrypto } from '@/lib/masterpass-crypto';
 import { AppwriteService, setMasterpassFlag } from '@/lib/appwrite';

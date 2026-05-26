@@ -58,6 +58,7 @@ export default function SettingsPage() {
     const { requestSudo } = useSudo();
     const { open: openDrawer } = useUnifiedDrawer();
     const [isUnlocked, setIsUnlocked] = useState(ecosystemSecurity.status.isUnlocked);
+    const [isArgon, setIsArgon] = useState(ecosystemSecurity.status.isArgon);
     const [passkeySetupOpen, setPasskeySetupOpen] = useState(false);
     const [hasMasterpass, setHasMasterpass] = useState<boolean | null>(null);
 
@@ -152,6 +153,9 @@ export default function SettingsPage() {
         const unsubscribe = ecosystemSecurity.onStatusChange((status) => {
             if (status.isUnlocked !== isUnlocked) {
                 setIsUnlocked(status.isUnlocked);
+            }
+            if (status.isArgon !== isArgon) {
+                setIsArgon(status.isArgon);
             }
         });
 
@@ -471,7 +475,24 @@ export default function SettingsPage() {
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <Box>
                                         <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'white' }}>Vault Status</Typography>
-                                        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.45)' }}>Current encryption state of your session</Typography>
+                                        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.45)', mb: 0.5 }}>Current encryption state of your session</Typography>
+                                        
+                                        {hasMasterpass && (
+                                            <Typography variant="caption" sx={{ 
+                                                fontFamily: 'var(--font-mono)', 
+                                                fontWeight: 700, 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: 0.75,
+                                                fontSize: '0.65rem',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.05em',
+                                                color: isArgon ? '#10B981' : '#F59E0B'
+                                            }}>
+                                                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'currentColor' }} />
+                                                {isArgon ? 'Vault upgraded to T5 core' : 'Unlock to upgrade to Argon2id'}
+                                            </Typography>
+                                        )}
                                     </Box>
                                     <Button 
                                         variant={isUnlocked ? 'outlined' : 'contained'}

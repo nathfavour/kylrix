@@ -26,7 +26,8 @@ export class EcosystemSecurity {
   private hasPasskeyState: boolean | null = null;
   private hasRecoveryCodesState: boolean | null = null;
   private passkeyReminderAtState: string | null = null;
-  private statusListeners: Set<(status: { isUnlocked: boolean; hasKey: boolean; hasIdentity: boolean; hasMasterpass: boolean | null; hasPasskey: boolean | null; hasRecoveryCodes: boolean | null; passkeyReminderAt: string | null }) => void> = new Set();
+  private isArgonState: boolean | null = null;
+  private statusListeners: Set<(status: { isUnlocked: boolean; hasKey: boolean; hasIdentity: boolean; hasMasterpass: boolean | null; hasPasskey: boolean | null; hasRecoveryCodes: boolean | null; passkeyReminderAt: string | null; isArgon: boolean | null }) => void> = new Set();
   // SECURITY: Tab-specific secret (RAM-only) to protect against XSS
   private tabSessionSecret: Uint8Array | null = null;
 
@@ -81,7 +82,7 @@ export class EcosystemSecurity {
     });
   }
 
-  onStatusChange(listener: (status: { isUnlocked: boolean; hasKey: boolean; hasIdentity: boolean; hasMasterpass: boolean | null; hasPasskey: boolean | null; hasRecoveryCodes: boolean | null; passkeyReminderAt: string | null }) => void) {
+  onStatusChange(listener: (status: { isUnlocked: boolean; hasKey: boolean; hasIdentity: boolean; hasMasterpass: boolean | null; hasPasskey: boolean | null; hasRecoveryCodes: boolean | null; passkeyReminderAt: string | null; isArgon: boolean | null }) => void) {
     this.statusListeners.add(listener);
     listener(this.status);
 
@@ -117,6 +118,9 @@ export class EcosystemSecurity {
         ? userDoc.backupCodes.length > 0
         : Boolean(userDoc?.backupCodes);
       this.passkeyReminderAtState = userDoc?.passkey_reminder_at || null;
+      
+      const passwordEntry = keychainEntries.find((entry: any) => entry?.type === 'password');
+      this.isArgonState = passwordEntry ? !!passwordEntry.isArgon : false;
 
       this.emitStatusChange();
       return this.status;
@@ -890,7 +894,8 @@ export class EcosystemSecurity {
       hasMasterpass: this.hasMasterpassState,
       hasPasskey: this.hasPasskeyState,
       hasRecoveryCodes: this.hasRecoveryCodesState,
-      passkeyReminderAt: this.passkeyReminderAtState
+      passkeyReminderAt: this.passkeyReminderAtState,
+      isArgon: this.isArgonState
     };
   }
 }

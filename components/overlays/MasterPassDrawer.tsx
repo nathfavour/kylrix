@@ -76,23 +76,37 @@ export function MasterPassDrawer({ isOpen, onClose }: MasterPassDrawerProps) {
 
   const [passkeyIncentiveDone, setPasskeyIncentiveDone] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState<'idle' | 'upgrading' | 'success' | 'error'>('idle');
+  const [isCriticalError, setIsCriticalError] = useState(false);
+  const isMigratingRef = useRef(false);
 
   const [mode, setMode] = useState<"passkey" | "password" | "pin" | "initialize" | "migrating" | null>(null);
 
   useEffect(() => {
       masterPassCrypto.setMigrationCallbacks(
           () => {
+              isMigratingRef.current = true;
               setMode("migrating");
               setMigrationStatus('upgrading');
+              setIsCriticalError(false);
           },
           (success) => {
               setMigrationStatus(success ? 'success' : 'error');
+              if (!success) {
+                  setIsCriticalError(true);
+                  return; // Don't call onSuccess, stay open with warning
+              }
               setTimeout(() => {
-                  if (isOpen) onSuccess();
+                  if (isOpen) {
+                      onSuccess();
+                      isMigratingRef.current = false;
+                  }
               }, 1500);
           }
       );
-      return () => masterPassCrypto.setMigrationCallbacks(() => {}, () => {});
+      return () => {
+          masterPassCrypto.setMigrationCallbacks(() => {}, () => {});
+          isMigratingRef.current = false;
+      };
   }, [onSuccess, isOpen]);
   const [pin, setPin] = useState("");
   const [hasPin, setHasPin] = useState(false);
@@ -283,7 +297,14 @@ export function MasterPassDrawer({ isOpen, onClose }: MasterPassDrawerProps) {
         );
 
         if (success) {
+          // IF MIGRATING: Don't call onSuccess yet.
+          // The migration end callback will handle it after the visual delay.
+          if (isMigratingRef.current) {
+              return;
+          }
+
           const skipTimestamp = localStorage.getItem(
+
             `passkey_skip_${user.$id}`
           );
           const sevenDays = 7 * 24 * 60 * 60 * 1000;

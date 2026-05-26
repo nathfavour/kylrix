@@ -151,6 +151,15 @@ export class AppwriteService {
     );
   }
 
+  static async updateKeychainEntry(id: string, data: any): Promise<any> {
+    return await databases.updateRow(
+      VAULT_DATABASE_ID,
+      VAULT_COLLECTION_ID_KEYCHAIN,
+      id,
+      data
+    );
+  }
+
   static async deleteKeychainEntry(id: string): Promise<void> {
     await databases.deleteRow(
       VAULT_DATABASE_ID,
