@@ -3615,6 +3615,28 @@ export async function createGhostNoteForProjectSecure(projectId: string, title?:
   });
 
   const tables = createSystemTablesDB();
+  
+  // Fetch parent project to mirror permissions
+  const project = await tables.getRow({
+    databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
+    tableId: 'projects',
+    rowId: projectId
+  }).catch(() => null);
+
+  if (!project) {
+      throw new Error('Project not found');
+  }
+
+  // Derive permissions from the parent project
+  const projectPermissions = project.$permissions || [];
+  // We want to extract all 'read' roles from the parent project to mirror them on the thread
+  const authorizedReadRoles = projectPermissions
+      .filter((p: string) => p.startsWith('read('))
+      .map((p: string) => p.substring(5, p.length - 1));
+
+  // Build strict permissions: No read("any")!
+  const threadPermissions = authorizedReadRoles.map(role => `read(${role})`);
+
   const result = await tables.createRow({
     databaseId: APPWRITE_CONFIG.DATABASES.NOTE,
     tableId: APPWRITE_CONFIG.TABLES.NOTE.NOTES,
@@ -3623,39 +3645,31 @@ export async function createGhostNoteForProjectSecure(projectId: string, title?:
       title: title || 'Project Discussion',
       content: '',
       format: 'markdown',
-      isPublic: true,
-      userId: null,
+      isPublic: false,
+      userId: project.ownerId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       metadata,
       isGhost: true,
       isThread: true,
     },
-    permissions: [`read("any")`],
+    permissions: threadPermissions,
   });
 
   // Update parent project metadata with discussionNoteId
-  const project = await tables.getRow({
+  let projMeta: any = {};
+  try {
+    projMeta = JSON.parse(project.metadata || '{}');
+  } catch {}
+  projMeta.discussionNoteId = result.$id;
+  await tables.updateRow({
     databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
     tableId: 'projects',
-    rowId: projectId
-  }).catch(() => null);
-  
-  if (project) {
-    let projMeta: any = {};
-    try {
-      projMeta = JSON.parse(project.metadata || '{}');
-    } catch {}
-    projMeta.discussionNoteId = result.$id;
-    await tables.updateRow({
-      databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
-      tableId: 'projects',
-      rowId: projectId,
-      data: {
-        metadata: JSON.stringify(projMeta)
-      }
-    });
-  }
+    rowId: projectId,
+    data: {
+      metadata: JSON.stringify(projMeta)
+    }
+  });
 
   return JSON.parse(JSON.stringify(result));
 }
@@ -4295,20 +4309,21 @@ export async function listGhostNoteChatsSecure(jwt?: string) {
     throw new Error('Unauthorized');
   }
 
-  const tables = createSystemTablesDB();
-  
-  // Fetch all ghost notes the actor has access to (Appwrite filters by permissions automatically)
-  const res = await tables.listRows({
-    databaseId: APPWRITE_CONFIG.DATABASES.NOTE,
-    tableId: APPWRITE_CONFIG.TABLES.NOTE.NOTES,
-    queries: [
+  // Use the secure user-scoped list proxy to respect native document permissions
+  const res = await listRowsSecure(
+    APPWRITE_CONFIG.DATABASES.NOTE,
+    APPWRITE_CONFIG.TABLES.NOTE.NOTES,
+    [
       Query.equal('isThread', true),
+      Query.equal('isChat', true),
       Query.limit(100)
-    ]
-  }).catch(() => ({ rows: [] }));
+    ],
+    jwt
+  ).catch(() => ({ rows: [] }));
 
   // Sort by updatedAt descending
-  const rows = [...res.rows];
+  const rows = [...(res.rows || [])];
+
   rows.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
 
   return JSON.parse(JSON.stringify(rows));

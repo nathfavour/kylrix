@@ -80,9 +80,8 @@ export function ClientProviders({ children }: { children: ReactNode }) {
                                                   </TokenOpsProvider>
                                                 </AppChromeProvider>
                                               </PotatoProvider>
-                                            </ToastProvider>
-                                          </ContextMenuProvider>
-                                        </OverlayProvider>
+                                            </ContextMenuProvider>
+                                          </ToastProvider>                                        </OverlayProvider>
                                       </AIProvider>
                                     </AgenticDrawerProvider>
                                   </ProUpgradeProvider>
