@@ -40,6 +40,7 @@ import {
   Settings as SettingsIcon,
   MoreHorizontal,
   PlusCircle,
+  MessageSquare,
   Workflow,
   History,
   Globe,
@@ -115,6 +116,35 @@ export default function ProjectDetailPage() {
   const [isExtractModalOpen, setIsExtractModalOpen] = useState(false);
   const [extractGoalsNote, setExtractGoalsNote] = useState<Notes | null>(null);
   const [isAddSubProjectModalOpen, setIsAddSubProjectModalOpen] = useState(false);
+  const [initializingHuddle, setInitializingHuddle] = useState(false);
+
+  const metadata = useMemo(() => {
+    if (!project?.metadata) return {};
+    try {
+      return JSON.parse(project.metadata);
+    } catch {
+      return {};
+    }
+  }, [project?.metadata]);
+
+  const handleDiscussionClick = async () => {
+    if (!project) return;
+    if (metadata.discussionNoteId) {
+      setTabValue(4); // Switch to discussion huddle room
+    } else {
+      setInitializingHuddle(true);
+      try {
+        await createGhostNoteForProject(project.$id, `${project.title} Discussion`);
+        showSuccess('Huddle Discussion spun up successfully!');
+        await fetchProjectData();
+        setTabValue(4);
+      } catch (err: any) {
+        showError('Failed to initialize discussion', err.message);
+      } finally {
+        setInitializingHuddle(false);
+      }
+    }
+  };
 
   // Resolved entities
   const [notes, setNotes] = useState<Notes[]>([]);
@@ -260,8 +290,8 @@ export default function ProjectDetailPage() {
       <Box sx={{ maxWidth: 1440, mx: 'auto', px: { xs: 2, md: 4 }, pt: { xs: 2, md: 6 }, pb: 10 }}>
         
         {/* Modern Breadcrumb / Top Bar */}
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 6 }}>
-            <Stack direction="row" alignItems="center" spacing={2.5}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 3, md: 0 }} alignItems={{ xs: 'flex-start', md: 'center' }} justifyContent="space-between" sx={{ mb: 6 }}>
+            <Stack direction="row" alignItems="center" spacing={2.5} sx={{ width: { xs: '100%', md: 'auto' } }}>
                 <IconButton
                     onClick={() => router.push('/projects')}
                     sx={{
@@ -276,9 +306,9 @@ export default function ProjectDetailPage() {
                 >
                     <ArrowLeft size={20} />
                 </IconButton>
-                <Box>
+                <Box sx={{ minWidth: 0 }}>
                     <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: { xs: '1.25rem', md: '1.8rem' }, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em' }}>
+                        <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: { xs: '1.25rem', md: '1.8rem' }, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', noWrap: true }}>
                             {project.title}
                         </Typography>
                         <Chip 
@@ -301,10 +331,10 @@ export default function ProjectDetailPage() {
                 </Box>
             </Stack>
 
-            <Stack direction="row" spacing={1.5} alignItems="center">
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
                 {/* Active Collaborators HUD */}
                 {projectId && resourcePresence[projectId as string]?.length > 0 && (
-                    <Stack direction="row" spacing={-1.5} sx={{ mr: 2 }}>
+                    <Stack direction="row" spacing={-1.5} sx={{ mr: 2, display: { xs: 'none', sm: 'flex' } }}>
                         {resourcePresence[projectId as string].map((p, idx) => (
                             <IdentityAvatar 
                                 key={p.userId}
@@ -316,6 +346,41 @@ export default function ProjectDetailPage() {
                     </Stack>
                 )}
 
+                {/* Instant Discussion Huddle Spin-up Button */}
+                <IconButton
+                    onClick={handleDiscussionClick}
+                    disabled={initializingHuddle}
+                    sx={{
+                        width: 44,
+                        height: 44,
+                        bgcolor: metadata.discussionNoteId ? alpha('#818CF8', 0.15) : '#161412',
+                        color: metadata.discussionNoteId ? '#818CF8' : 'rgba(255,255,255,0.6)',
+                        border: `1px solid ${metadata.discussionNoteId ? alpha('#818CF8', 0.3) : 'rgba(255,255,255,0.06)'}`,
+                        borderRadius: '14px',
+                        '&:hover': { 
+                            bgcolor: metadata.discussionNoteId ? alpha('#818CF8', 0.25) : '#1C1A18',
+                            color: '#fff',
+                            borderColor: '#818CF8'
+                        },
+                        transition: 'all 0.2s ease',
+                        position: 'relative'
+                    }}
+                >
+                    {initializingHuddle ? <CircularProgress size={20} color="inherit" /> : <MessageSquare size={20} />}
+                    {metadata.discussionNoteId && (
+                        <Box sx={{
+                            position: 'absolute',
+                            top: -2,
+                            right: -2,
+                            width: 10,
+                            height: 10,
+                            borderRadius: '50%',
+                            bgcolor: '#818CF8',
+                            border: '2px solid #0A0908'
+                        }} />
+                    )}
+                </IconButton>
+
                 <Button
                     variant="outlined"
                     startIcon={<SettingsIcon size={18} />}
@@ -325,7 +390,7 @@ export default function ProjectDetailPage() {
                         color: 'rgba(255,255,255,0.6)',
                         fontWeight: 800,
                         textTransform: 'none',
-                        px: 2.5,
+                        px: { xs: 1.5, md: 2.5 },
                         '&:hover': { borderColor: 'rgba(255,255,255,0.2)', bgcolor: alpha('#fff', 0.02) }
                     }}
                 >
@@ -341,12 +406,12 @@ export default function ProjectDetailPage() {
                         color: '#000',
                         fontWeight: 900,
                         textTransform: 'none',
-                        px: 3,
+                        px: { xs: 2, md: 3 },
                         boxShadow: '0 12px 24px rgba(99, 102, 241, 0.2)',
                         '&:hover': { bgcolor: alpha('#6366F1', 0.9) }
                     }}
                 >
-                    Integrate Object
+                    Integrate
                 </Button>
             </Stack>
         </Stack>
@@ -369,6 +434,9 @@ export default function ProjectDetailPage() {
                         <Tabs 
                             value={tabValue} 
                             onChange={(_, v) => setTabValue(v)}
+                            variant="scrollable"
+                            scrollButtons="auto"
+                            allowScrollButtonsMobile
                             sx={{
                                 '& .MuiTab-root': {
                                     color: 'rgba(255,255,255,0.4)',
@@ -377,7 +445,8 @@ export default function ProjectDetailPage() {
                                     minHeight: 72,
                                     fontSize: '0.95rem',
                                     letterSpacing: '0.01em',
-                                    mr: 4,
+                                    mr: { xs: 2, md: 4 },
+                                    px: { xs: 1.5, md: 3 },
                                     '&.Mui-selected': { color: '#6366F1' }
                                 },
                                 '& .MuiTabs-indicator': { bgcolor: '#6366F1', height: 3, borderRadius: '3px 3px 0 0' }
@@ -391,7 +460,7 @@ export default function ProjectDetailPage() {
                         </Tabs>
                     </Box>
 
-                    <Box sx={{ p: 4 }}>
+                    <Box sx={{ p: { xs: 2, md: 4 } }}>
                         <CustomTabPanel value={tabValue} index={0}>
                             {resolving ? <LoadingPlaceholder /> : notes.length === 0 ? <EmptyState kind="note" /> : (
                                 <Grid container spacing={2}>
@@ -1070,7 +1139,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
   const hasChat = activeMode === 'huddle' ? !!chatNoteId : !!encryptedGroupId;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: 600, bgcolor: 'rgba(255,255,255,0.01)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.04)', overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: { xs: 450, md: 600 }, bgcolor: 'rgba(255,255,255,0.01)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.04)', overflow: 'hidden' }}>
       
       {/* Mode Control & Toolbar */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2.25, borderBottom: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(0,0,0,0.15)' }}>
