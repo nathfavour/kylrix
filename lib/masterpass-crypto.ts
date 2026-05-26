@@ -212,6 +212,9 @@ export class MasterPassCrypto {
 
       return false;
     } catch (error: unknown) {
+      if ((error as Error).message === 'VAULT_ALREADY_EXISTS') {
+          throw error;
+      }
       logError("Failed to unlock vault", error as Error);
       return false;
     }
