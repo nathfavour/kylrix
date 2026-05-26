@@ -779,7 +779,7 @@ export const ChatList = ({ externalQuery = '' }: { externalQuery?: string }) => 
                     }}
                 >
                     <Tab value="secure" label="Secure Chat (E2EE)" />
-                    <Tab value="public" label="Public Huddles" />
+                    <Tab value="public" label="Threads" />
                 </Tabs>
             </Box>
 
