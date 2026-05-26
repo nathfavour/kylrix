@@ -371,14 +371,26 @@ export const ChatList = ({
         }
         setSearching(true);
         try {
-            const res = await UsersService.searchUsers(query);
+            const { searchGlobalUsers } = await import('@/lib/ecosystem/identity');
+            const res = await searchGlobalUsers(query);
             const rows = Array.isArray(res)
                 ? res
                 : Array.isArray((res as any)?.rows)
                     ? (res as any).rows
                     : [];
+            
+            // Format results robustly so both direct row properties and mapped properties are set
+            const mapped = rows.map((u: any) => ({
+                ...u,
+                $id: u.$id || u.id,
+                userId: u.userId || u.id,
+                displayName: u.displayName || u.title || '',
+                username: u.username || u.subtitle?.replace(/^@/, '') || '',
+                avatar: u.avatar || null
+            }));
+
             // Hide current user from results
-            const filtered = rows.filter((u: any) => (u.userId || u.$id) !== user?.$id);
+            const filtered = mapped.filter((u: any) => (u.userId || u.$id) !== user?.$id);
             setSearchResults(filtered);
         } catch (error) {
             console.error('Global search failed:', error);

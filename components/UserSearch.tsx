@@ -73,16 +73,17 @@ export default function UserSearch({
 
     setIsSearching(true);
     try {
-      const res = await UsersService.searchUsers(searchQuery);
+      const { searchGlobalUsers } = await import('@/lib/ecosystem/identity');
+      const res = await searchGlobalUsers(searchQuery);
       const nextRows = Array.isArray(res) ? res : (res as any)?.rows || [];
       
       // Seed identity cache
       nextRows.forEach((u: any) => seedIdentityCache(u));
 
       const normalized = nextRows.map((u: any) => ({
-        id: u.userId || u.$id,
-        title: u.displayName || u.username || 'Kylrix User',
-        subtitle: u.username ? `@${u.username}` : u.userId || u.$id || '',
+        id: u.id || u.userId || u.$id,
+        title: u.displayName || u.username || u.title || 'Kylrix User',
+        subtitle: u.username ? `@${u.username}` : u.userId || u.$id || u.subtitle || '',
         avatar: u.avatar || null,
         profilePicId: u.avatar || null,
         ...u // Preserve original for identity flags
