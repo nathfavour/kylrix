@@ -142,6 +142,7 @@ export default function ProjectDetailPage() {
   const [extractGoalsNote, setExtractGoalsNote] = useState<Notes | null>(null);
   const [isAddSubProjectModalOpen, setIsAddSubProjectModalOpen] = useState(false);
   const [initializingHuddle, setInitializingHuddle] = useState(false);
+  const [discussionMenuAnchor, setDiscussionMenuAnchor] = useState<HTMLElement | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
@@ -414,6 +415,12 @@ export default function ProjectDetailPage() {
                 {/* Instant Discussion Huddle Spin-up Button */}
                 <IconButton
                     onClick={handleDiscussionClick}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      if (metadata.discussionNoteId) {
+                        setDiscussionMenuAnchor(e.currentTarget);
+                      }
+                    }}
                     disabled={initializingHuddle}
                     sx={{
                         width: 44,
@@ -445,6 +452,27 @@ export default function ProjectDetailPage() {
                         }} />
                     )}
                 </IconButton>
+                <Menu
+                    anchorEl={discussionMenuAnchor}
+                    open={Boolean(discussionMenuAnchor)}
+                    onClose={() => setDiscussionMenuAnchor(null)}
+                >
+                    <MenuItem onClick={async () => {
+                      setDiscussionMenuAnchor(null);
+                      if (metadata.discussionNoteId) {
+                        try {
+                          await deleteGhostNoteForProject(metadata.discussionNoteId);
+                          showSuccess('Discussion deleted successfully');
+                          // Update local metadata to remove reference
+                          await fetchProjectData();
+                        } catch (err: any) {
+                          showError('Failed to delete discussion', err.message);
+                        }
+                      }
+                    }} sx={{ color: '#FF4D4D', fontWeight: 600 }}>
+                      <Trash2 size={16} style={{ marginRight: 8 }} /> Delete Discussion
+                    </MenuItem>
+                </Menu>
 
                 <Button
                     variant="outlined"

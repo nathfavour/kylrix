@@ -256,6 +256,11 @@ export async function createGhostNoteForProject(projectId: string, title?: strin
   return createGhostNoteForProjectSecure(projectId, title, jwt);
 }
 
+export async function deleteGhostNoteForProject(noteId: string) {
+  const jwt = await getJwt();
+  return deleteRow(APPWRITE_CONFIG.DATABASES.NOTE, APPWRITE_CONFIG.TABLES.NOTE.NOTES, noteId);
+}
+
 export async function promoteGhostThreadToStory(projectId: string, noteId: string) {
   const jwt = await getJwt();
   return promoteGhostThreadToStorySecure(projectId, noteId, jwt);
