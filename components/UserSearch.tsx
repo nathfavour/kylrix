@@ -21,6 +21,7 @@ import {
 import { UsersService } from '@/lib/services/users';
 import { fetchProfilePreview } from '@/lib/profile-preview';
 import { IdentityAvatar, computeIdentityFlags } from './common/IdentityBadge';
+import { seedIdentityCache } from '@/lib/identity-cache';
 
 interface User {
   id: string;
@@ -72,8 +73,13 @@ export default function UserSearch({
 
     setIsSearching(true);
     try {
-      const users = await UsersService.searchUsers(searchQuery);
-      const normalized = users.map((u: any) => ({
+      const res = await UsersService.searchUsers(searchQuery);
+      const nextRows = Array.isArray(res) ? res : (res as any)?.rows || [];
+      
+      // Seed identity cache
+      nextRows.forEach((u: any) => seedIdentityCache(u));
+
+      const normalized = nextRows.map((u: any) => ({
         id: u.userId || u.$id,
         title: u.displayName || u.username || 'Kylrix User',
         subtitle: u.username ? `@${u.username}` : u.userId || u.$id || '',
