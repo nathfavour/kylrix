@@ -1157,7 +1157,7 @@ export async function listApiKeys(queries: any[] = []) {
 
 // --- COMMENTS CRUD ---
 
-export async function createComment(noteId: string, content: string, parentCommentId: string | null = null) {
+export async function createComment(noteId: string, content: string, parentCommentId: string | null = null, metadata: string | null = null, isVoice: boolean = false) {
   const user = await getCurrentUser();
   if (!user || !user.$id) throw new Error("User not authenticated");
   
@@ -1176,6 +1176,8 @@ export async function createComment(noteId: string, content: string, parentComme
     userId: user.$id,
     createdAt: new Date().toISOString(),
     parentCommentId,
+    metadata,
+    isVoice: isVoice || content?.startsWith('__voice_note__:')
   };
 
   const permissions = [

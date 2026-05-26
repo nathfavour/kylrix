@@ -2838,9 +2838,9 @@ export async function createCallSecure(data: any, jwt?: string) {
 
   const permissions = [];
   if (data.allowGuests) {
-    permissions.push(`read("any")`);
+    permissions.push(Permission.read(Role.user(actor.$id)));
   } else {
-    permissions.push(`read("users")`);
+    permissions.push(Permission.read(Role.user(actor.$id)));
   }
   permissions.push(`read("user:${actor.$id}")`);
   permissions.push(`update("user:${actor.$id}")`);
@@ -2947,7 +2947,7 @@ export async function createSendGhostObjectSecure(data: {
       isGhost: true,
       isThread: false,
     },
-    permissions: [`read("any")`],
+    permissions: [Permission.read(Role.user(actor.$id))],
   });
 
   return JSON.parse(JSON.stringify(result));
@@ -2980,7 +2980,7 @@ export async function createGhostNoteForCallSecure(callId: string, title?: strin
       isGhost: true,
       isThread: true,
     },
-    permissions: [`read("any")`],
+    permissions: [Permission.read(Role.user(actor.$id))],
   });
 
   return JSON.parse(JSON.stringify(result));
@@ -3908,7 +3908,7 @@ export async function createGhostNoteForResourceSecure(
       isGhost: true,
       isThread: true,
     },
-    permissions: [`read("any")`],
+    permissions: [Permission.read(Role.user(actor.$id))],
   });
 
   return JSON.parse(JSON.stringify(result));

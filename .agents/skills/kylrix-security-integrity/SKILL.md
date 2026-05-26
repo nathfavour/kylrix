@@ -2,14 +2,19 @@
 
 ## Overview
 
-The Kylrix Security Integrity skill ensures that no sensitive data, cryptographic metadata, or temporary diagnostic artifacts are ever committed to the repository. It enforces the **Zero-Leak Policy**.
+The Kylrix Security Integrity skill ensures that no sensitive data, cryptographic metadata, or temporary diagnostic artifacts are ever committed to the repository. It enforces a strict **Zero-Leak Policy** and mandates the use of server-side identity management.
 
 ## Core Mandates
 
-- **Zero-Commit Policy:** Never `git add` or `commit` files with `.txt`, `.py`, `.csv`, `.log`, or `.data` extensions unless explicitly part of the application source (e.g., `README.md` is fine, but `debug_dump.txt` is prohibited).
+- **Zero-Commit Policy:** Never `git add` or `commit` files with `.txt`, `.py`, `.csv`, `.log`, or `.data` extensions. These are strictly diagnostic and must be purged before completion.
+- **Strict Permission Guardrails (CRITICAL):**
+    - **Prohibited Permissions:** Never use `read("any")` or `read("users")` Appwrite permissions.
+    - **Maximum Permission:** The absolute maximum Appwrite-level permission ever granted is `read("user:[ID]")` for the creator and specific collaborators.
+    - **Native Visibility Flags:** Public or Guest access is controlled EXCLUSIVELY via the `isPublic` and `isGuest` boolean columns.
+    - **Server-Side Enforcement:** Retrieval of public/shared resources is handled via Server Actions using the system client with explicit `isPublic` filters, bypassing client-side SDK limitations.
 - **Environment Isolation:** Ensure `.env` and `.data/` folders are always in `.gitignore`.
 - **Sensitive Metadata Protection:** Prohibit the logging or printing of `wrappedKey`, `salt`, `masterPassword`, or `userId` in production-bound code.
-- **Isomorphic Consistency:** Standardize all security-critical operations (encryption, decryption, key derivation) within the `MasterPassCrypto` and `EcosystemSecurity` services.
+- **Terminology Standard**: Strictly use "Table" and "Row". Never reintroduce "Collection" or "Document".
 
 ## Automated Cleanup Patterns
 
@@ -33,6 +38,5 @@ Maintain the following blocks in `.gitignore`:
 ## Prohibited Patterns
 
 - **No Local Dumps:** Never use `appwrite tables-db list-rows ... > dump.txt` inside the repository directory without immediate deletion.
-- **No Hardcoded Keys:** Prohibit embedding any cryptographic keys or secrets directly in the source code.
-- **No Admin-Only Bypasses:** Ensure all client-facing secure actions utilize the user-scoped client to respect Row Level Security.
-- **No Terminology Regression:** Strictly use "Table" and "Row". Never reintroduce "Collection" or "Document".
+- **No read("any"):** Any PR or change introducing `read("any")` is considered a critical security failure.
+- **No Client-Side Writes:** Direct database writes via the Client SDK are prohibited. All mutations must route through secure Server Actions.
