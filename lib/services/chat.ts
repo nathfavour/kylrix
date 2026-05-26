@@ -691,7 +691,9 @@ export const ChatService = {
         let total = 0;
 
         try {
-            const response = await getConversationsAction({ userId });
+            const tokenRes = await account.createJWT().catch(() => null);
+            const jwt = tokenRes?.jwt || undefined;
+            const response = await getConversationsAction({ userId, jwt });
             conversationRows = response.rows || [];
             total = response.total || 0;
         } catch (err) {
