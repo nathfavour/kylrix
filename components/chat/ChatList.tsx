@@ -39,6 +39,12 @@ import BookmarkIcon from '@mui/icons-material/BookmarkOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import LockIcon from '@mui/icons-material/LockOutlined';
 import ArrowLeftIcon from '@mui/icons-material/ArrowBack';
+import ProjectIcon from '@mui/icons-material/FolderSpecialOutlined';
+import TaskIcon from '@mui/icons-material/AssignmentTurnedInOutlined';
+import EventIcon from '@mui/icons-material/CalendarTodayOutlined';
+import FormIcon from '@mui/icons-material/DescriptionOutlined';
+import TagIcon from '@mui/icons-material/LocalOfferOutlined';
+import NoteIcon from '@mui/icons-material/StickyNote2Outlined';
 import { fetchProfilePreview } from '@/lib/profile-preview';
 import { IdentityAvatar } from '../IdentityBadge';
 import { seedIdentityCache, getCachedIdentityById  } from '@/lib/identity-cache';
@@ -262,13 +268,18 @@ export const ChatList = ({
                     metadataObj = {};
                 }
 
+                const isChat = !!(note.isChat || metadataObj.isChat || linkedResourceType === 'chat');
+                const cleanLinkedResourceType = isChat ? null : (linkedResourceType || null);
+
                 const participants = note.collaborators || metadataObj.participants || [];
                 const otherId = participants.find((p: string) => p !== user.$id);
                 
-                let otherName = 'Huddle';
+                let otherName = note.title || 'Huddle';
                 let avatarUrl = null;
                 
-                if (otherId) {
+                if (cleanLinkedResourceType) {
+                    otherName = note.title || linkedResourceName || `${cleanLinkedResourceType.charAt(0).toUpperCase() + cleanLinkedResourceType.slice(1)} Huddle`;
+                } else if (otherId) {
                     const cachedOther = getCachedIdentityById(otherId);
                     if (cachedOther) {
                         otherName = cachedOther.displayName || cachedOther.username || `@${otherId.slice(0, 7)}`;
@@ -299,6 +310,9 @@ export const ChatList = ({
                     name: otherName,
                     avatarUrl,
                     isGhostChat: true,
+                    linkedResourceType: cleanLinkedResourceType,
+                    linkedResourceId,
+                    linkedResourceName,
                     lastMessageText: note.content || 'Huddle discussion initialized',
                     lastMessageAt: note.updatedAt || note.$createdAt,
                 };
@@ -1224,24 +1238,110 @@ export const ChatList = ({
                                         }}
                                     >
                                         <Box sx={{ mr: 2, display: 'inline-flex' }}>
-                                            <IdentityAvatar
-                                                src={conv.avatarUrl}
-                                                alt={conv.name}
-                                                fallback={conv.name?.replace(/^@/, '').charAt(0).toUpperCase() || 'H'}
-                                                size={48}
-                                                status={conv.otherUserId ? globalPresence?.[conv.otherUserId]?.state : undefined}
-                                            />
+                                            {conv.linkedResourceType ? (
+                                                <Box sx={{
+                                                    width: 48,
+                                                    height: 48,
+                                                    borderRadius: '16px',
+                                                    display: 'grid',
+                                                    placeItems: 'center',
+                                                    bgcolor: alpha(
+                                                        conv.linkedResourceType === 'project' ? '#6366F1' :
+                                                        conv.linkedResourceType === 'task' ? '#10B981' :
+                                                        conv.linkedResourceType === 'event' ? '#EC4899' :
+                                                        conv.linkedResourceType === 'form' ? '#8B5CF6' :
+                                                        conv.linkedResourceType === 'tag' ? '#EF4444' : '#F59E0B',
+                                                        0.1
+                                                    ),
+                                                    color: 
+                                                        conv.linkedResourceType === 'project' ? '#818CF8' :
+                                                        conv.linkedResourceType === 'task' ? '#34D399' :
+                                                        conv.linkedResourceType === 'event' ? '#F472B6' :
+                                                        conv.linkedResourceType === 'form' ? '#A78BFA' :
+                                                        conv.linkedResourceType === 'tag' ? '#F87171' : '#FBBF24',
+                                                    border: '1px solid',
+                                                    borderColor: alpha(
+                                                        conv.linkedResourceType === 'project' ? '#818CF8' :
+                                                        conv.linkedResourceType === 'task' ? '#34D399' :
+                                                        conv.linkedResourceType === 'event' ? '#F472B6' :
+                                                        conv.linkedResourceType === 'form' ? '#A78BFA' :
+                                                        conv.linkedResourceType === 'tag' ? '#F87171' : '#FBBF24',
+                                                        0.15
+                                                    )
+                                                }}>
+                                                    {conv.linkedResourceType === 'project' && <ProjectIcon sx={{ fontSize: 24 }} />}
+                                                    {conv.linkedResourceType === 'task' && <TaskIcon sx={{ fontSize: 24 }} />}
+                                                    {conv.linkedResourceType === 'event' && <EventIcon sx={{ fontSize: 24 }} />}
+                                                    {conv.linkedResourceType === 'form' && <FormIcon sx={{ fontSize: 24 }} />}
+                                                    {conv.linkedResourceType === 'tag' && <TagIcon sx={{ fontSize: 24 }} />}
+                                                    {!['project', 'task', 'event', 'form', 'tag'].includes(conv.linkedResourceType) && <NoteIcon sx={{ fontSize: 24 }} />}
+                                                </Box>
+                                            ) : (
+                                                <IdentityAvatar
+                                                    src={conv.avatarUrl}
+                                                    alt={conv.name}
+                                                    fallback={conv.name?.replace(/^@/, '').charAt(0).toUpperCase() || 'H'}
+                                                    size={48}
+                                                    status={conv.otherUserId ? globalPresence?.[conv.otherUserId]?.state : undefined}
+                                                />
+                                            )}
                                         </Box>
                                         <ListItemText
-                                            primary={conv.name}
+                                            primary={
+                                                <Stack direction="row" alignItems="center" spacing={1}>
+                                                    <Typography sx={{
+                                                        fontWeight: 800,
+                                                        fontSize: '1rem',
+                                                        color: '#fff',
+                                                        fontFamily: 'var(--font-clash)',
+                                                        letterSpacing: '-0.01em'
+                                                    }}>
+                                                        {conv.name}
+                                                    </Typography>
+                                                    {conv.linkedResourceType && (
+                                                        <Box sx={{
+                                                            px: 1,
+                                                            py: 0.25,
+                                                            borderRadius: '6px',
+                                                            bgcolor: alpha(
+                                                                conv.linkedResourceType === 'project' ? '#6366F1' :
+                                                                conv.linkedResourceType === 'task' ? '#10B981' :
+                                                                conv.linkedResourceType === 'event' ? '#EC4899' :
+                                                                conv.linkedResourceType === 'form' ? '#8B5CF6' :
+                                                                conv.linkedResourceType === 'tag' ? '#EF4444' : '#F59E0B',
+                                                                0.1
+                                                            ),
+                                                            border: '1px solid',
+                                                            borderColor: alpha(
+                                                                conv.linkedResourceType === 'project' ? '#818CF8' :
+                                                                conv.linkedResourceType === 'task' ? '#34D399' :
+                                                                conv.linkedResourceType === 'event' ? '#F472B6' :
+                                                                conv.linkedResourceType === 'form' ? '#A78BFA' :
+                                                                conv.linkedResourceType === 'tag' ? '#F87171' : '#FBBF24',
+                                                                0.2
+                                                            )
+                                                        }}>
+                                                            <Typography sx={{
+                                                                fontSize: '9px',
+                                                                fontWeight: 900,
+                                                                fontFamily: 'var(--font-mono)',
+                                                                color: 
+                                                                    conv.linkedResourceType === 'project' ? '#818CF8' :
+                                                                    conv.linkedResourceType === 'task' ? '#34D399' :
+                                                                    conv.linkedResourceType === 'event' ? '#F472B6' :
+                                                                    conv.linkedResourceType === 'form' ? '#A78BFA' :
+                                                                    conv.linkedResourceType === 'tag' ? '#F87171' : '#FBBF24',
+                                                                textTransform: 'uppercase',
+                                                                letterSpacing: '0.05em'
+                                                            }}>
+                                                                {conv.linkedResourceType}
+                                                            </Typography>
+                                                        </Box>
+                                                    )}
+                                                </Stack>
+                                            }
                                             secondary={conv.lastMessageText}
-                                            primaryTypographyProps={{
-                                                fontWeight: 800,
-                                                fontSize: '1rem',
-                                                color: '#fff',
-                                                fontFamily: 'var(--font-clash)',
-                                                letterSpacing: '-0.01em'
-                                            }}
+                                            primaryTypographyProps={{ component: 'div' }}
                                             secondaryTypographyProps={{
                                                 noWrap: true,
                                                 fontSize: '0.85rem',

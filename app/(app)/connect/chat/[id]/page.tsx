@@ -24,7 +24,7 @@ export default function ChatPage() {
             try {
                 // If it is a ghost-note huddle, getNote will succeed
                 const note = await getNote(conversationId) as any;
-                if (note && note.isChat) {
+                if (note && (note.isChat || note.isThread || note.isGhost)) {
                     setIsHuddleChat(true);
                     setHuddleTitle(note.title || 'Huddle Chat');
                 }

@@ -4297,58 +4297,21 @@ export async function listGhostNoteChatsSecure(jwt?: string) {
 
   const tables = createSystemTablesDB();
   
-  // 1. Fetch notes created by the current user
-  const ownedRes = await tables.listRows({
+  // Fetch all ghost notes the actor has access to (Appwrite filters by permissions automatically)
+  const res = await tables.listRows({
     databaseId: APPWRITE_CONFIG.DATABASES.NOTE,
     tableId: APPWRITE_CONFIG.TABLES.NOTE.NOTES,
     queries: [
-      Query.equal('isGhost', true),
-      Query.equal('isChat', true),
-      Query.equal('userId', actor.$id),
+      Query.equal('isThread', true),
       Query.limit(100)
     ]
   }).catch(() => ({ rows: [] }));
 
-  // 2. Fetch notes where the user is a collaborator
-  const collabRes = await tables.listRows({
-    databaseId: APPWRITE_CONFIG.DATABASES.FLOW,
-    tableId: 'Collaborators',
-    queries: [
-      Query.equal('resourceType', 'note'),
-      Query.equal('userId', actor.$id),
-      Query.limit(200)
-    ]
-  }).catch(() => ({ rows: [] }));
-
-  const sharedNoteIds = collabRes.rows.map((c: any) => c.resourceId);
-  let sharedNotes: any[] = [];
-  
-  if (sharedNoteIds.length > 0) {
-    const sharedRes = await tables.listRows({
-      databaseId: APPWRITE_CONFIG.DATABASES.NOTE,
-      tableId: APPWRITE_CONFIG.TABLES.NOTE.NOTES,
-      queries: [
-        Query.equal('$id', sharedNoteIds),
-        Query.equal('isGhost', true),
-        Query.equal('isChat', true),
-        Query.limit(100)
-      ]
-    }).catch(() => ({ rows: [] }));
-    sharedNotes = sharedRes.rows;
-  }
-
-  // Combine and deduplicate
-  const allNotes = [...ownedRes.rows, ...sharedNotes];
-  const uniqueNotesMap = new Map();
-  for (const note of allNotes) {
-    uniqueNotesMap.set(note.$id, note);
-  }
-  
-  const uniqueNotes = Array.from(uniqueNotesMap.values());
   // Sort by updatedAt descending
-  uniqueNotes.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+  const rows = [...res.rows];
+  rows.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
 
-  return JSON.parse(JSON.stringify(uniqueNotes));
+  return JSON.parse(JSON.stringify(rows));
 }
 
 
