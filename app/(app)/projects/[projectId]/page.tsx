@@ -69,7 +69,10 @@ import { createComment, listComments } from '@/lib/appwrite/note';
 import { client } from '@/lib/appwrite/client';
 import { ChatService } from '@/lib/services/chat';
 import { createMessageAction } from '@/lib/actions/chat';
-import { Send, Clock } from 'lucide-react';
+import { Send, Clock, Mic, Square, Tag, ShieldCheck, Camera, PhoneCall, FileSpreadsheet } from 'lucide-react';
+import MuralPattern from '@/components/chat/MuralPattern';
+import { VoiceMessage } from '@/components/chat/VoiceMessage';
+import { StorageService } from '@/lib/services/storage';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { NoteDetailSidebar } from '@/components/ui/NoteDetailSidebar';
 import { useLayout } from '@/context/LayoutContext';
@@ -395,18 +398,25 @@ export default function ProjectDetailPage() {
 
                 <Button
                     variant="outlined"
-                    startIcon={<SettingsIcon size={18} />}
                     sx={{
                         borderRadius: '14px',
                         borderColor: 'rgba(255,255,255,0.06)',
                         color: 'rgba(255,255,255,0.6)',
                         fontWeight: 800,
                         textTransform: 'none',
-                        px: { xs: 1.5, md: 2.5 },
+                        px: { xs: 1.5, sm: 2.5 },
+                        minWidth: { xs: '44px', sm: 'auto' },
+                        height: 44,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         '&:hover': { borderColor: 'rgba(255,255,255,0.2)', bgcolor: alpha('#fff', 0.02) }
                     }}
                 >
-                    Settings
+                    <SettingsIcon size={18} />
+                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 1 }}>
+                        Settings
+                    </Box>
                 </Button>
                 <Button
                     variant="contained"
@@ -899,54 +909,162 @@ function ResourceItem({
     onUnlink: () => void,
     onExtractGoals?: () => void
 }) {
-    const icon = kind === 'note' ? <FileText size={20} /> : kind === 'goal' ? <CheckSquare size={20} /> : kind === 'project' ? <FolderKanban size={20} /> : <Lock size={20} />;
-    const accent = kind === 'note' ? '#EC4899' : kind === 'goal' ? '#A855F7' : kind === 'project' ? '#6366F1' : '#10B981';
+    // Elegant mapping for all 9 types (Notes, Goals, Secrets/Credentials, Forms, Events, Tags, TOTPs, Moments, Calls)
+    const getKindAssets = (k: string) => {
+        const lower = k?.toLowerCase() || '';
+        switch (lower) {
+            case 'note':
+                return { icon: <FileText size={20} />, accent: '#EC4899' }; // Pink
+            case 'goal':
+                return { icon: <CheckSquare size={20} />, accent: '#A855F7' }; // Purple
+            case 'secret':
+            case 'password':
+            case 'credential':
+                return { icon: <Lock size={20} />, accent: '#10B981' }; // Emerald
+            case 'totp':
+                return { icon: <ShieldCheck size={20} />, accent: '#6366F1' }; // Indigo
+            case 'form':
+                return { icon: <FileSpreadsheet size={20} />, accent: '#3B82F6' }; // Blue
+            case 'event':
+                return { icon: <Calendar size={20} />, accent: '#F59E0B' }; // Amber
+            case 'tag':
+                return { icon: <Tag size={20} />, accent: '#06B6D4' }; // Cyan
+            case 'moment':
+                return { icon: <Camera size={20} />, accent: '#E11D48' }; // Rose
+            case 'call':
+                return { icon: <PhoneCall size={20} />, accent: '#EF4444' }; // Red
+            default:
+                return { icon: <FolderKanban size={20} />, accent: '#818CF8' }; // Default Violet
+        }
+    };
+
+    const { icon, accent } = getKindAssets(kind);
 
     return (
         <Paper
             elevation={0}
             sx={{
-                bgcolor: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.04)',
-                borderRadius: '20px',
-                p: 2.5,
+                bgcolor: '#13110F',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '24px',
+                p: { xs: 2, sm: 2.5 },
                 display: 'flex',
-                alignItems: 'center',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'flex-start', sm: 'center' },
                 justifyContent: 'space-between',
+                gap: { xs: 2, sm: 3 },
                 backgroundImage: 'none',
-                transition: 'all 0.2s ease',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative',
+                overflow: 'hidden',
+                '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '4px',
+                    height: '100%',
+                    bgcolor: accent,
+                    opacity: 0.6,
+                    transition: 'all 0.2s ease',
+                },
                 '&:hover': { 
-                    bgcolor: 'rgba(255,255,255,0.03)', 
-                    borderColor: alpha(accent, 0.2),
-                    transform: 'translateY(-1px)'
+                    bgcolor: '#181613', 
+                    borderColor: alpha(accent, 0.25),
+                    transform: 'translateY(-1.5px)',
+                    boxShadow: `0 8px 24px ${alpha(accent, 0.05)}`,
+                    '&::before': {
+                        opacity: 1,
+                        height: '100%'
+                    }
                 }
             }}
         >
-            <Stack direction="row" spacing={2.5} alignItems="center" sx={{ minWidth: 0 }}>
+            <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 0, width: '100%' }}>
                 <Box sx={{ 
                     width: 44, 
                     height: 44, 
-                    borderRadius: '12px', 
-                    bgcolor: alpha(accent, 0.1), 
+                    borderRadius: '14px', 
+                    bgcolor: alpha(accent, 0.08), 
                     color: accent, 
                     display: 'grid', 
                     placeItems: 'center',
-                    border: `1px solid ${alpha(accent, 0.2)}`
+                    border: `1px solid ${alpha(accent, 0.15)}`,
+                    flexShrink: 0,
+                    transition: 'all 0.2s ease',
                 }}>
                     {icon}
                 </Box>
-                <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1rem', noWrap: true }}>{title}</Typography>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{metadata}</Typography>
+                <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+                    <Typography 
+                        sx={{ 
+                            color: '#fff', 
+                            fontWeight: 800, 
+                            fontSize: '0.95rem',
+                            lineHeight: 1.3,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            mb: 0.5
+                        }}
+                    >
+                        {title}
+                    </Typography>
+                    <Typography 
+                        variant="caption" 
+                        sx={{ 
+                            color: 'rgba(255,255,255,0.4)', 
+                            fontWeight: 800, 
+                            textTransform: 'uppercase', 
+                            letterSpacing: '0.08em',
+                            fontSize: '0.68rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            bgcolor: 'rgba(255,255,255,0.03)',
+                            px: 1,
+                            py: 0.25,
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255,255,255,0.04)'
+                        }}
+                    >
+                        {metadata || kind}
+                    </Typography>
                 </Box>
             </Stack>
-            <Stack direction="row" spacing={1}>
+
+            <Stack 
+                direction="row" 
+                spacing={1.5} 
+                alignItems="center" 
+                justifyContent={{ xs: 'flex-end', sm: 'flex-start' }}
+                sx={{ 
+                    width: { xs: '100%', sm: 'auto' },
+                    flexShrink: 0,
+                    borderTop: { xs: '1px solid rgba(255,255,255,0.04)', sm: 'none' },
+                    pt: { xs: 1.5, sm: 0 },
+                }}
+            >
                 {onExtractGoals && (
                     <Button
                         size="small"
                         startIcon={<Sparkles size={14} />}
                         onClick={onExtractGoals}
-                        sx={{ color: '#818CF8', fontWeight: 800, textTransform: 'none', '&:hover': { color: '#A5B4FC' } }}
+                        sx={{ 
+                            color: '#818CF8', 
+                            fontWeight: 800, 
+                            textTransform: 'none', 
+                            fontSize: '0.8rem',
+                            px: 1.5,
+                            py: 0.5,
+                            borderRadius: '10px',
+                            bgcolor: alpha('#818CF8', 0.05),
+                            border: `1px solid ${alpha('#818CF8', 0.15)}`,
+                            '&:hover': { 
+                                color: '#A5B4FC', 
+                                bgcolor: alpha('#818CF8', 0.1),
+                                borderColor: '#818CF8'
+                            } 
+                        }}
                     >
                         Extract Goals
                     </Button>
@@ -955,12 +1073,42 @@ function ResourceItem({
                     size="small"
                     startIcon={<ExternalLink size={14} />}
                     onClick={onOpen}
-                    sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 800, textTransform: 'none', '&:hover': { color: '#fff' } }}
+                    sx={{ 
+                        color: 'rgba(255,255,255,0.6)', 
+                        fontWeight: 800, 
+                        textTransform: 'none', 
+                        fontSize: '0.8rem',
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: '10px',
+                        bgcolor: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        '&:hover': { 
+                            color: '#fff',
+                            bgcolor: 'rgba(255,255,255,0.05)',
+                            borderColor: 'rgba(255,255,255,0.2)'
+                        } 
+                    }}
                 >
                     View
                 </Button>
-                <IconButton size="small" onClick={onUnlink} sx={{ color: 'rgba(255,255,255,0.1)', '&:hover': { color: '#FF453A', bgcolor: alpha('#FF453A', 0.05) } }}>
-                    <Trash2 size={16} />
+                <IconButton 
+                    size="small" 
+                    onClick={onUnlink} 
+                    sx={{ 
+                        color: 'rgba(255,255,255,0.2)', 
+                        width: 32,
+                        height: 32,
+                        borderRadius: '10px',
+                        border: '1px solid rgba(255,255,255,0.04)',
+                        '&:hover': { 
+                            color: '#FF453A', 
+                            bgcolor: alpha('#FF453A', 0.08),
+                            borderColor: alpha('#FF453A', 0.2)
+                        } 
+                    }}
+                >
+                    <Trash2 size={15} />
                 </IconButton>
             </Stack>
         </Paper>
@@ -980,6 +1128,14 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+
+  // Voice recording states and refs
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const metadata = React.useMemo(() => {
     try {
@@ -997,6 +1153,114 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Clean up timers on component unmount
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) clearTimeout(recordingTimerRef.current);
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Format voice recording seconds into beautiful MM:SS string
+  const formatRecordingTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  // Voice note toggle logic (start/stop)
+  const toggleRecording = async () => {
+    if (isRecording) {
+      // Stop recording
+      if (recordingTimerRef.current) {
+        clearTimeout(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecording(false);
+    } else {
+      // Start recording
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        let options = { audioBitsPerSecond: 16000 };
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          (options as any).mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+          (options as any).mimeType = 'audio/ogg;codecs=opus';
+        }
+        
+        const mediaRecorder = new MediaRecorder(stream, options);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          if (recordingTimerRef.current) {
+            clearTimeout(recordingTimerRef.current);
+            recordingTimerRef.current = null;
+          }
+          if (recordingIntervalRef.current) {
+            clearInterval(recordingIntervalRef.current);
+            recordingIntervalRef.current = null;
+          }
+          
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const audioFile = new File([audioBlob], `voice_note_${Date.now()}.webm`, { type: 'audio/webm' });
+          
+          // Stop all tracks to release microphone
+          stream.getTracks().forEach(track => track.stop());
+
+          setSending(true);
+          try {
+            const uploaded = await StorageService.uploadFile(audioFile, 'voice');
+            if (chatNoteId) {
+              await createComment(chatNoteId, `__voice_note__:${uploaded.$id}`);
+            }
+          } catch (error) {
+            console.error('Failed to send voice note comment:', error);
+          } finally {
+            setSending(false);
+          }
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+        setRecordingSeconds(0);
+        
+        recordingIntervalRef.current = setInterval(() => {
+          setRecordingSeconds(s => s + 1);
+        }, 1000);
+
+        // Limit recording to 120 seconds
+        recordingTimerRef.current = setTimeout(() => {
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            mediaRecorderRef.current.stop();
+          }
+          setIsRecording(false);
+        }, 120000);
+
+      } catch (err) {
+        console.error("Failed to start recording:", err);
+        alert("Microphone access is required for voice notes.");
+      }
+    }
+  };
 
   // Load and Subscribe to Huddle Thread (Ghost Note)
   useEffect(() => {
@@ -1237,11 +1501,31 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
   const hasChat = activeMode === 'huddle' ? !!chatNoteId : !!encryptedGroupId;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: { xs: 450, md: 600 }, bgcolor: 'rgba(255,255,255,0.01)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.04)', overflow: 'hidden' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: { xs: 450, md: 600 }, 
+      bgcolor: '#0A0908', 
+      borderRadius: '24px', 
+      border: '1px solid rgba(255,255,255,0.06)', 
+      overflow: 'hidden',
+      position: 'relative'
+    }}>
       
       {/* Mode Control & Toolbar */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2.25, borderBottom: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(0,0,0,0.15)' }}>
-        <Stack direction="row" spacing={1} sx={{ p: 0.5, bgcolor: '#0A0908', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+      <Stack 
+        direction="row" 
+        justifyContent="space-between" 
+        alignItems="center" 
+        sx={{ 
+          p: 2.25, 
+          borderBottom: '1px solid rgba(255,255,255,0.06)', 
+          bgcolor: 'rgba(10, 9, 8, 0.85)',
+          backdropFilter: 'blur(12px)',
+          zIndex: 2 
+        }}
+      >
+        <Stack direction="row" spacing={1} sx={{ p: 0.5, bgcolor: '#161412', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
           <Button 
             size="small"
             onClick={() => { setActiveMode('huddle'); setMessages([]); }}
@@ -1256,28 +1540,35 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
           </Button>
           <Button 
             size="small"
-            onClick={() => { setActiveMode('private'); setMessages([]); }}
+            disabled
+            title="Private Chat is disabled for Project Discussions"
             sx={{
               px: 2, py: 0.75, borderRadius: '8px', textTransform: 'none', fontWeight: 800, fontSize: '0.8rem',
-              bgcolor: activeMode === 'private' ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-              color: activeMode === 'private' ? '#6366F1' : 'rgba(255,255,255,0.4)',
-              '&:hover': { bgcolor: activeMode === 'private' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.02)' }
+              color: 'rgba(255,255,255,0.2)',
+              '&.Mui-disabled': { color: 'rgba(255,255,255,0.15)' }
             }}
           >
-            Private Chat
+            Private Chat (Disabled)
           </Button>
         </Stack>
         
         {/* Story Summary / Countdown Info */}
         {activeMode === 'huddle' && chatNoteId && (
           <Stack direction="row" spacing={1.5} alignItems="center">
-            {/* Discussion Thread is saved from de-allocation due to isThread flag */}
             <Button
               size="small"
               startIcon={<FileText size={14} />}
               onClick={handleSaveAsStory}
               sx={{
-                bgcolor: 'rgba(236, 72, 153, 0.1)', color: '#EC4899', fontWeight: 800, fontSize: '0.75rem', px: 2, py: 0.75, borderRadius: '8px', textTransform: 'none',
+                bgcolor: 'rgba(236, 72, 153, 0.1)', 
+                color: '#EC4899', 
+                fontWeight: 800, 
+                fontSize: '0.75rem', 
+                px: 2, 
+                py: 0.75, 
+                borderRadius: '8px', 
+                textTransform: 'none',
+                border: '1px solid rgba(236, 72, 153, 0.15)',
                 '&:hover': { bgcolor: 'rgba(236, 72, 153, 0.15)' }
               }}
             >
@@ -1288,7 +1579,10 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
       </Stack>
 
       {/* Main Panel Content */}
-      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+        {/* Decorative Grid Patterns matching chat background */}
+        <MuralPattern />
+
         {loading && (
           <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', bgcolor: 'rgba(10,9,8,0.7)', zIndex: 2 }}>
             <CircularProgress size={28} sx={{ color: '#6366F1' }} />
@@ -1297,7 +1591,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
 
         {!hasChat ? (
           /* Empty / Uninitialized State */
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 4, textAlign: 'center' }}>
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 4, textAlign: 'center', position: 'relative', zIndex: 1 }}>
             {activeMode === 'huddle' ? (
               <>
                 <Box sx={{ width: 56, height: 56, borderRadius: '16px', display: 'grid', placeItems: 'center', bgcolor: 'rgba(99, 102, 241, 0.08)', color: '#6366F1', border: '1px solid rgba(99, 102, 241, 0.15)', mb: 2.5 }}>
@@ -1314,59 +1608,73 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
                   Start Huddle
                 </Button>
               </>
-            ) : (
-              <>
-                <Box sx={{ width: 56, height: 56, borderRadius: '16px', display: 'grid', placeItems: 'center', bgcolor: 'rgba(99, 102, 241, 0.08)', color: '#6366F1', border: '1px solid rgba(99, 102, 241, 0.15)', mb: 2.5 }}>
-                  <Lock size={26} />
-                </Box>
-                <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', mb: 1 }}>Initialize Private Chat Group</Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', maxWidth: 360, lineHeight: 1.5, mb: 3 }}>
-                  Hardened E2E Group leverage cryptographic keys so that only authorized project members can decrypt and read messages. Perfect for secure core team coordinate huddle discussions.
-                </Typography>
-                <Button 
-                  onClick={handleInitPrivate}
-                  sx={{ bgcolor: '#6366F1', color: '#fff', fontWeight: 800, fontSize: '0.8rem', py: 1.25, px: 3, borderRadius: '10px', textTransform: 'none', '&:hover': { bgcolor: '#575CF0' } }}
-                >
-                  Create Secure Group
-                </Button>
-              </>
-            )}
+            ) : null}
           </Box>
         ) : (
           /* Active Chat Viewport */
           <>
-            <Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ 
+              flex: 1, 
+              overflowY: 'auto', 
+              p: 3, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 2.5,
+              position: 'relative',
+              zIndex: 1,
+              '&::-webkit-scrollbar': {
+                width: '6px'
+              },
+              '&::-webkit-scrollbar-track': {
+                background: 'transparent'
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: 'rgba(255,255,255,0.06)',
+                borderRadius: '10px'
+              },
+              '&::-webkit-scrollbar-thumb:hover': {
+                background: 'rgba(255,255,255,0.12)'
+              }
+            }}>
               {messages.length === 0 ? (
                 <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.35 }}>
-                  <Typography variant="caption" sx={{ fontStyle: 'italic' }}>No messages yet. Start the discussion!</Typography>
+                  <Typography variant="caption" sx={{ fontStyle: 'italic', fontWeight: 700 }}>No messages yet. Start the discussion!</Typography>
                 </Box>
               ) : (
                 messages.map((msg) => {
                   const isSelf = msg.senderId === user?.$id;
+                  const isVoice = msg.content?.startsWith('__voice_note__:');
+                  const voiceFileId = isVoice ? msg.content.substring('__voice_note__:'.length) : null;
+                  const voiceUrl = voiceFileId ? StorageService.getFileView(voiceFileId, 'voice') : null;
+
                   return (
-                    <Box key={msg.id} sx={{ alignSelf: isSelf ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, display: 'block', mb: 0.5, textAlign: isSelf ? 'right' : 'left' }}>
+                    <Box key={msg.id} sx={{ alignSelf: isSelf ? 'flex-end' : 'flex-start', maxWidth: '80%', display: 'flex', flexDirection: 'column' }}>
+                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, display: 'block', mb: 0.75, textAlign: isSelf ? 'right' : 'left' }}>
                         {msg.senderName}
                       </Typography>
                       <Paper 
                         elevation={0}
                         sx={{
-                          p: 1.75,
-                          borderRadius: '16px',
-                          borderTopRightRadius: isSelf ? 0 : '16px',
-                          borderTopLeftRadius: isSelf ? '16px' : 0,
-                          bgcolor: isSelf ? '#6366F1' : 'rgba(255,255,255,0.03)',
-                          border: isSelf ? 'none' : '1px solid rgba(255,255,255,0.04)',
+                          p: isVoice ? 1.25 : 1.75,
+                          borderRadius: '20px',
+                          borderTopRightRadius: isSelf ? 0 : '20px',
+                          borderTopLeftRadius: isSelf ? '20px' : 0,
+                          bgcolor: isSelf ? '#6366F1' : '#161412',
+                          border: isSelf ? 'none' : '1px solid rgba(255,255,255,0.06)',
                           color: '#fff',
-                          boxShadow: 'none',
+                          boxShadow: isSelf ? '0 8px 24px rgba(99, 102, 241, 0.12)' : 'none',
                           backgroundImage: 'none'
                         }}
                       >
-                        <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.5, wordBreak: 'break-word' }}>
-                          {msg.content}
-                        </Typography>
+                        {isVoice && voiceUrl ? (
+                          <VoiceMessage url={voiceUrl} />
+                        ) : (
+                          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.5, wordBreak: 'break-word' }}>
+                            {msg.content}
+                          </Typography>
+                        )}
                       </Paper>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.65rem', display: 'block', mt: 0.5, textAlign: isSelf ? 'right' : 'left' }}>
+                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.65rem', display: 'block', mt: 0.5, textAlign: isSelf ? 'right' : 'left', fontWeight: 700 }}>
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </Typography>
                     </Box>
@@ -1377,44 +1685,132 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
             </Box>
 
             {/* Input Form */}
-            <Box component="form" onSubmit={handleSendMessage} sx={{ p: 2.25, borderTop: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(0,0,0,0.15)' }}>
-              <Stack direction="row" spacing={1.5}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder={activeMode === 'huddle' ? "Type huddle message (auto-cleans in 7 days)..." : "Type cryptographically secure message..."}
-                  variant="standard"
-                  InputProps={{
-                    disableUnderline: true,
-                    sx: {
+            <Box 
+              component="form" 
+              onSubmit={handleSendMessage} 
+              sx={{ 
+                p: 2.25, 
+                borderTop: '1px solid rgba(255,255,255,0.06)', 
+                bgcolor: 'rgba(10, 9, 8, 0.95)',
+                backdropFilter: 'blur(12px)',
+                position: 'relative',
+                zIndex: 2
+              }}
+            >
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                {/* Microphone / Record Button */}
+                {activeMode === 'huddle' && chatNoteId && (
+                  <IconButton
+                    onClick={toggleRecording}
+                    disabled={sending}
+                    sx={{
+                      color: isRecording ? '#ff4d4d' : 'rgba(255,255,255,0.4)',
+                      width: 44,
+                      height: 44,
+                      flexShrink: 0,
+                      bgcolor: '#161412',
+                      border: `1px solid ${isRecording ? '#ff4d4d' : 'rgba(255,255,255,0.05)'}`,
+                      borderRadius: '12px',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: '#1C1A18',
+                        borderColor: isRecording ? '#ff4d4d' : '#6366F1',
+                        color: '#fff',
+                      },
+                    }}
+                  >
+                    {isRecording ? <Square size={18} fill="#ff4d4d" /> : <Mic size={20} strokeWidth={2} />}
+                  </IconButton>
+                )}
+
+                <Box sx={{ flexGrow: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  {isRecording && (
+                    <Box sx={{
+                      position: 'absolute',
+                      inset: 0,
                       bgcolor: '#0A0908',
                       borderRadius: '12px',
-                      color: 'white',
+                      border: '1px solid #ff4d4d',
+                      display: 'flex',
+                      alignItems: 'center',
                       px: 2,
-                      py: 1,
-                      fontWeight: 600,
-                      fontSize: '0.85rem',
-                      border: '1px solid rgba(255,255,255,0.05)',
-                      '&:hover': { borderColor: 'rgba(255,255,255,0.1)' }
+                      gap: 2,
+                      zIndex: 2,
+                      animation: 'pulse 2s infinite ease-in-out',
+                      '@keyframes pulse': {
+                        '0%, 100%': { borderColor: 'rgba(255,77,77,0.3)', boxShadow: '0 0 4px rgba(255,77,77,0.1)' },
+                        '50%': { borderColor: 'rgba(255,77,77,1)', boxShadow: '0 0 12px rgba(255,77,77,0.2)' }
+                      }
+                    }}>
+                      <Box sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: '#ff4d4d',
+                        animation: 'blink 1s infinite',
+                        '@keyframes blink': {
+                          '0%, 100%': { opacity: 0.3 },
+                          '50%': { opacity: 1 }
+                        }
+                      }} />
+                      <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, flexGrow: 1 }}>
+                        Recording audio note... click square to send
+                      </Typography>
+                      <Typography sx={{ color: '#ff4d4d', fontSize: '0.85rem', fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
+                        {formatRecordingTime(recordingSeconds)}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={inputText}
+                    disabled={isRecording}
+                    onChange={(e) => setInputText(e.target.value)}
+                    placeholder={
+                      isRecording 
+                        ? "Recording in progress..." 
+                        : activeMode === 'huddle' 
+                          ? "Type huddle message (auto-cleans in 7 days)..." 
+                          : "Type cryptographically secure message..."
                     }
-                  }}
-                />
+                    variant="standard"
+                    InputProps={{
+                      disableUnderline: true,
+                      sx: {
+                        bgcolor: '#161412',
+                        borderRadius: '12px',
+                        color: 'white',
+                        px: 2,
+                        py: 1.25,
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        transition: 'all 0.2s ease',
+                        '&:hover': { borderColor: 'rgba(255,255,255,0.1)' },
+                        '&.Mui-focused': { borderColor: '#6366F1' }
+                      }
+                    }}
+                  />
+                </Box>
+                
                 <IconButton 
                   type="submit"
-                  disabled={!inputText.trim() || sending}
+                  disabled={!inputText.trim() || sending || isRecording}
                   sx={{
                     bgcolor: '#6366F1',
                     color: '#fff',
                     borderRadius: '12px',
-                    width: 40,
-                    height: 40,
+                    width: 44,
+                    height: 44,
+                    flexShrink: 0,
+                    transition: 'all 0.2s ease',
                     '&:hover': { bgcolor: '#575CF0' },
                     '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,0.1)' }
                   }}
                 >
-                  <Send size={16} />
+                  <Send size={18} />
                 </IconButton>
               </Stack>
             </Box>
