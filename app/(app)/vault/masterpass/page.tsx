@@ -219,6 +219,43 @@ function MasterPassPageInner() {
               <Box sx={{ py: 6, display: 'grid', placeItems: 'center' }}>
                 <CircularProgress size={28} sx={{ color: '#6366F1' }} />
               </Box>
+            ) : hasMasterpass ? (
+                <Box sx={{ py: 4, textAlign: 'center' }}>
+                    <Box sx={{ 
+                        width: 64, 
+                        height: 64, 
+                        borderRadius: '50%', 
+                        bgcolor: alpha('#10B981', 0.1), 
+                        border: '1px solid #10B981',
+                        display: 'grid',
+                        placeItems: 'center',
+                        mx: 'auto',
+                        mb: 3
+                    }}>
+                        <CheckCircle size={32} color="#10B981" />
+                    </Box>
+                    <Typography variant="h6" sx={{ color: '#fff', fontWeight: 800, mb: 1 }}>
+                        Vault Already Active
+                    </Typography>
+                    <Typography sx={{ color: '#9B9691', fontSize: '0.9rem', mb: 4 }}>
+                        Your encryption perimeter is already established. You can now access your secure data.
+                    </Typography>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={() => router.replace(callbackUrl)}
+                        sx={{ 
+                            bgcolor: '#6366F1', 
+                            color: '#fff', 
+                            fontWeight: 900, 
+                            borderRadius: '16px', 
+                            py: 2,
+                            '&:hover': { bgcolor: '#575CF0' }
+                        }}
+                    >
+                        Go to Dashboard
+                    </Button>
+                </Box>
             ) : (
               <>
                 <Box sx={{ 
