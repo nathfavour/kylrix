@@ -22,7 +22,7 @@ import { burnEphemeralNoteWithProof } from '@/lib/ephemeral/burn-note';
 
 const BG_PAGE = '#0A0908';
 const SURFACE_HOVER = '#1C1A18';
-const RIM = '1px solid rgba(255, 255, 255, 0.05)';
+const RIM = '1px solid #34322F';
 const PRIMARY = '#6366F1';
 
 function SendSparkClock({ createdAt, expiresAt }: { createdAt: string; expiresAt: string }) {
@@ -156,15 +156,18 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
         key={spark.id}
         onContextMenu={(e) => openMenu(e, spark.id)}
         sx={{
-          bgcolor: staleRow ? alpha(BG_PAGE, 0.95) : SURFACE_HOVER,
-          borderRadius: '18px',
-          border: RIM,
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+          bgcolor: staleRow ? '#0A0908' : '#161412',
+          borderRadius: '24px',
+          border: '1px solid #34322F',
+          boxShadow: '0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px rgba(37,35,33,0.9)',
           opacity: staleRow ? 0.72 : 1,
-          transition: 'border-color 0.25s ease, opacity 0.25s ease',
+          transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
           '&:hover': {
-            borderColor: alpha(PRIMARY, staleRow ? 0.25 : 0.35),
+            borderColor: staleRow ? '#34322F' : PRIMARY,
+            bgcolor: staleRow ? '#0A0908' : '#1C1A18',
             opacity: 1,
+            boxShadow: '0 8px 10px -8px rgba(0,0,0,1), 0 6px 8px -6px rgba(37,35,33,1.0)',
+            transform: 'translateY(-2px)',
           },
         }}
       >
@@ -253,11 +256,11 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
           paper: {
             sx: {
               minWidth: 200,
-              bgcolor: SURFACE_HOVER,
-              border: RIM,
+              bgcolor: '#161412',
+              border: '1px solid #34322F',
               borderRadius: '12px',
               py: 0.5,
-              boxShadow: '0 20px 48px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.05)',
+              boxShadow: '0 16px 32px rgba(0,0,0,0.8)',
             },
           },
         }}
@@ -271,7 +274,7 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
             sx={{
               gap: 1.25,
               color: PRIMARY,
-              '&:hover': { bgcolor: alpha(PRIMARY, 0.1) },
+              '&:hover': { bgcolor: '#1C1A18' },
             }}
           >
             <ListItemIcon sx={{ minWidth: 'auto', color: 'inherit' }}>
@@ -288,7 +291,7 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
           sx={{
             gap: 1.25,
             color: '#FF453A',
-            '&:hover': { bgcolor: alpha('#FF453A', 0.08) },
+            '&:hover': { bgcolor: '#1C1A18' },
           }}
         >
           <ListItemIcon sx={{ minWidth: 'auto', color: 'inherit' }}>

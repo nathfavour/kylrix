@@ -658,22 +658,25 @@ export function SendComposer() {
                         textAlign: 'left',
                         textTransform: 'none',
                         p: 1.75,
-                        borderRadius: 2,
+                        borderRadius: '16px',
                         gap: 1,
-                        border: selected ? `1px solid ${alpha(activeColor, 0.55)}` : RIM,
-                        bgcolor: selected ? alpha(activeColor, 0.12) : alpha('#fff', 0.02),
-                        color: '#fff',
+                        border: selected ? `1px solid ${activeColor}` : '1px solid #34322F',
+                        bgcolor: selected ? '#1C1A18' : '#0A0908',
+                        color: '#ffffff',
+                        fontFamily: 'var(--font-satoshi)',
                         minHeight: 108,
+                        transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                         '&:hover': {
-                          bgcolor: selected ? alpha(activeColor, 0.18) : SURFACE_HOVER,
-                          borderColor: alpha('#fff', 0.1),
+                          bgcolor: '#1C1A18',
+                          borderColor: selected ? activeColor : '#4A4845',
+                          transform: 'translateY(-1px)',
                         },
                       }}
                     >
-                      <Icon size={22} color={selected ? activeColor : 'rgba(255,255,255,0.65)'} />
+                      <Icon size={22} color={selected ? activeColor : '#9B9691'} />
                       <Box>
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{label}</Typography>
-                        <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.35 }}>
+                        <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', fontFamily: 'var(--font-satoshi)' }}>{label}</Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#9B9691', lineHeight: 1.35, fontFamily: 'var(--font-satoshi)' }}>
                           {blurb}
                         </Typography>
                       </Box>
@@ -685,15 +688,9 @@ export function SendComposer() {
 
             <Paper
               elevation={0}
-              sx={{
-                p: { xs: 2, sm: 3 },
-                borderRadius: 3,
-                bgcolor: SURFACE,
-                border: RIM,
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
-              }}
+              sx={cardStyle}
             >
-              <Typography sx={{ fontWeight: 700, mb: 2.5, fontSize: '0.95rem' }}>Payload</Typography>
+              <Typography sx={{ fontWeight: 800, mb: 2.5, fontSize: '0.95rem', fontFamily: 'var(--font-clash)', color: '#ffffff' }}>Payload</Typography>
 
               {(kind === 'note' || kind === 'discussion') && (
                 <Stack spacing={2}>

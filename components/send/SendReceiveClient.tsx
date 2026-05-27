@@ -29,14 +29,14 @@ import { sharedNotePublicUrl } from '@/lib/send/shared-note-api';
 import type { SendFilePayload, SendKind, SendPasswordPayload, SendTaskPayload, SendTotpPayload } from '@/lib/send/types';
 
 const SURFACE = '#161412';
-const RIM = '1px solid rgba(255, 255, 255, 0.05)';
+const RIM = '1px solid #34322F';
 const PRIMARY = '#6366F1';
 
 const readOnlyFieldSx = {
-  '& .MuiOutlinedInput-root': { bgcolor: alpha('#fff', 0.03) },
-  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.55)' },
-  '& .MuiOutlinedInput-notchedOutline': { borderColor: alpha('#fff', 0.12) },
-  '& .MuiInputBase-input': { color: '#fff', fontFamily: 'var(--font-mono)', fontSize: '0.95rem' },
+  '& .MuiOutlinedInput-root': { bgcolor: '#000000', borderRadius: '12px' },
+  '& .MuiInputLabel-root': { color: '#9B9691', fontFamily: 'var(--font-satoshi)' },
+  '& .MuiOutlinedInput-notchedOutline': { borderColor: '#34322F' },
+  '& .MuiInputBase-input': { color: '#ffffff', fontFamily: 'var(--font-mono)', fontSize: '0.95rem' },
 } as const;
 
 interface Props {
@@ -277,15 +277,14 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
   const fileMime = fileManifest?.mimeType || '';
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#0A0908', color: 'rgba(255,255,255,0.92)' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#0A0908', color: '#ffffff', fontFamily: 'var(--font-satoshi)' }}>
       <Box
         sx={{
           position: 'sticky',
           top: 0,
-          zIndex: 2,
-          borderBottom: RIM,
-          background: alpha('#0A0908', 0.72),
-          backdropFilter: 'blur(16px)',
+          zIndex: 10,
+          borderBottom: '1px solid #34322F',
+          bgcolor: '#0A0908',
         }}
       >
         <Container maxWidth="lg" sx={{ py: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
@@ -343,10 +342,11 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
             elevation={0}
             sx={{
               p: { xs: 2.5, sm: 3.5 },
-              borderRadius: 3,
-              bgcolor: SURFACE,
-              border: RIM,
-              boxShadow: `0 24px 80px ${alpha('#000', 0.45)}`,
+              borderRadius: '24px',
+              bgcolor: '#161412',
+              border: '1px solid #34322F',
+              boxShadow: '0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px rgba(37,35,33,0.9)',
+              transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           >
             <Stack spacing={2.5}>
@@ -428,14 +428,14 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
                     }}
                     sx={readOnlyFieldSx}
                   />
-                  <Button variant="contained" onClick={() => copy('pw', passwordPayload.password)} sx={{ textTransform: 'none', fontWeight: 700, bgcolor: PRIMARY }}>
+                  <Button variant="contained" onClick={() => copy('pw', passwordPayload.password)} sx={{ textTransform: 'none', fontWeight: 700, bgcolor: PRIMARY, color: '#ffffff', borderRadius: '12px', '&:hover': { bgcolor: '#5558E8' } }}>
                     {copiedField === 'pw' ? <Check size={18} style={{ marginRight: 8 }} /> : <Copy size={18} style={{ marginRight: 8 }} />}
                     Copy password
                   </Button>
                   {passwordPayload.totpSecret && (
-                    <Paper sx={{ p: 2, borderRadius: 2, bgcolor: alpha('#000', 0.25), border: RIM }}>
-                      <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', mb: 1 }}>Authenticator</Typography>
-                      <Typography sx={{ fontFamily: 'var(--font-mono)', fontSize: '2rem', fontWeight: 700, letterSpacing: '0.2em' }}>{totpLive}</Typography>
+                    <Paper sx={{ p: 2, borderRadius: '12px', bgcolor: '#000000', border: '1px solid #34322F' }}>
+                      <Typography sx={{ fontSize: '0.75rem', color: '#9B9691', mb: 1, fontFamily: 'var(--font-satoshi)' }}>Authenticator</Typography>
+                      <Typography sx={{ fontFamily: 'var(--font-mono)', fontSize: '2rem', fontWeight: 700, letterSpacing: '0.2em', color: '#ffffff' }}>{totpLive}</Typography>
                     </Paper>
                   )}
                 </Stack>
@@ -448,14 +448,22 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
                       {[totpPayload.issuer, totpPayload.account].filter(Boolean).join(' · ')}
                     </Typography>
                   )}
-                  <Paper sx={{ p: 3, borderRadius: 2, bgcolor: alpha('#000', 0.25), border: RIM, textAlign: 'center' }}>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', mb: 1 }}>Current code</Typography>
-                    <Typography sx={{ fontFamily: 'var(--font-mono)', fontSize: '2.5rem', fontWeight: 700, letterSpacing: '0.25em' }}>{totpLive}</Typography>
+                  <Paper sx={{ p: 3, borderRadius: '12px', bgcolor: '#000000', border: '1px solid #34322F', textAlign: 'center' }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#9B9691', mb: 1, fontFamily: 'var(--font-satoshi)' }}>Current code</Typography>
+                    <Typography sx={{ fontFamily: 'var(--font-mono)', fontSize: '2.5rem', fontWeight: 700, letterSpacing: '0.25em', color: '#ffffff' }}>{totpLive}</Typography>
                   </Paper>
                   <Button
                     variant="outlined"
                     onClick={() => copy('secret', totpPayload.secret)}
-                    sx={{ textTransform: 'none', fontWeight: 700, borderColor: alpha('#fff', 0.2), color: '#fff' }}
+                    sx={{ 
+                      textTransform: 'none', 
+                      fontWeight: 700, 
+                      borderColor: '#34322F', 
+                      color: '#ffffff',
+                      borderRadius: '12px',
+                      fontFamily: 'var(--font-satoshi)',
+                      '&:hover': { borderColor: '#4A4845', bgcolor: '#1C1A18' }
+                    }}
                   >
                     {copiedField === 'secret' ? 'Copied secret' : 'Copy secret'}
                   </Button>
@@ -504,16 +512,16 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
                       component="iframe"
                       src={fileBlobUrl}
                       title={fileManifest.originalName}
-                      sx={{ width: '100%', height: 480, border: 'none', borderRadius: 2, bgcolor: alpha('#000', 0.35) }}
+                      sx={{ width: '100%', height: 480, border: 'none', borderRadius: '12px', bgcolor: '#000000' }}
                     />
                   )}
                   {textPreview !== null && (fileMime.startsWith('text/') || fileMime === 'application/json') && (
                     <Paper
                       sx={{
                         p: 2,
-                        borderRadius: 2,
-                        bgcolor: alpha('#000', 0.35),
-                        border: RIM,
+                        borderRadius: '12px',
+                        bgcolor: '#000000',
+                        border: '1px solid #34322F',
                         maxHeight: 360,
                         overflow: 'auto',
                         fontFamily: 'var(--font-mono)',
