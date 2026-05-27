@@ -275,7 +275,8 @@ export function EphemeralClaimDrawer({ open, onClose, target, onConsumed }: Prop
           borderTopRightRadius: 20,
           border: RIM,
           borderBottom: 'none',
-          maxHeight: '92vh',
+          maxHeight: '60vh',
+          overflowY: 'auto',
           boxShadow: '0 -24px 64px rgba(0,0,0,0.65)',
         },
       }}

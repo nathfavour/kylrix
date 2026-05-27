@@ -110,6 +110,15 @@ const KINDS: { id: SendKind; label: string; blurb: string; Icon: typeof FileText
   { id: 'discussion', label: 'Discussion', blurb: 'Ephemeral thread', Icon: MessageSquare }
 ];
 
+const KIND_COLORS: Record<SendKind, string> = {
+  note: '#EC4899',       // Pink (Note App)
+  password: '#10B981',   // Green (Vault App)
+  totp: '#10B981',       // Green (Vault App)
+  task: '#A855F7',       // Purple (Flow App)
+  file: '#6366F1',       // Indigo (Accounts/Send)
+  discussion: '#F59E0B'  // Amber/Orange (Connect App)
+};
+
 function formatRemaining(ms: number): string {
   if (ms <= 0) return 'Expired';
   const m = Math.floor(ms / 60000);
@@ -131,6 +140,7 @@ export function SendComposer() {
   const activeMaxLabel = '10 MB';
 
   const [kind, setKind] = useState<SendKind>('note');
+  const themeColor = KIND_COLORS[kind];
   const [expiryMs, setExpiryMs] = useState(SEND_EXPIRY_PRESETS[2].ms);
   const [isSecureMode, setIsSecureMode] = useState(false);
 
@@ -600,14 +610,14 @@ export function SendComposer() {
         >
           <Stack spacing={1} sx={{ mb: 4, textAlign: 'center' }}>
             <Chip
-              icon={<Sparkles size={14} />}
+              icon={<Sparkles size={14} style={{ color: themeColor }} />}
               label="Send by Kylrix"
               sx={{
                 alignSelf: 'center',
                 px: 1,
-                bgcolor: alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.12),
+                bgcolor: alpha(themeColor, 0.12),
                 color: alpha('#fff', 0.9),
-                border: `1px solid ${alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.35)}`,
+                border: `1px solid ${alpha(themeColor, 0.35)}`,
                 fontWeight: 600,
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
@@ -642,10 +652,11 @@ export function SendComposer() {
               <Button
                 onClick={() => setKindDrawerOpen(true)}
                 endIcon={<ChevronDown size={16} />}
-                startIcon={React.createElement(KINDS.find(k => k.id === kind)?.Icon || FileText, { size: 18 })}
+                startIcon={React.createElement(KINDS.find(k => k.id === kind)?.Icon || FileText, { size: 18, color: KIND_COLORS[kind] })}
                 sx={{
                   bgcolor: alpha('#fff', 0.02),
                   border: RIM,
+                  borderColor: alpha(KIND_COLORS[kind], 0.25),
                   borderRadius: '12px',
                   px: 2.5,
                   py: 1.5,
@@ -653,7 +664,7 @@ export function SendComposer() {
                   textTransform: 'none',
                   fontWeight: 800,
                   fontFamily: 'var(--font-clash)',
-                  '&:hover': { bgcolor: SURFACE_HOVER },
+                  '&:hover': { bgcolor: SURFACE_HOVER, borderColor: alpha(KIND_COLORS[kind], 0.55) },
                 }}
               >
                 {KINDS.find(k => k.id === kind)?.label || 'Note'}
@@ -663,10 +674,11 @@ export function SendComposer() {
                 <Button
                   onClick={() => setSecurityDrawerOpen(true)}
                   endIcon={<ChevronDown size={16} />}
-                  startIcon={effectiveSecureMode ? <Lock size={16} color={PRIMARY} /> : <Unlock size={16} color="#10B981" />}
+                  startIcon={effectiveSecureMode ? <Lock size={16} color={KIND_COLORS[kind]} /> : <Unlock size={16} color="#10B981" />}
                   sx={{
                     bgcolor: alpha('#fff', 0.02),
                     border: RIM,
+                    borderColor: alpha(KIND_COLORS[kind], 0.25),
                     borderRadius: '12px',
                     px: 2.5,
                     py: 1.5,
@@ -674,7 +686,7 @@ export function SendComposer() {
                     textTransform: 'none',
                     fontWeight: 800,
                     fontFamily: 'var(--font-clash)',
-                    '&:hover': { bgcolor: SURFACE_HOVER },
+                    '&:hover': { bgcolor: SURFACE_HOVER, borderColor: alpha(KIND_COLORS[kind], 0.55) },
                   }}
                 >
                   {effectiveSecureMode ? 'Zero-Knowledge Sharing' : 'Instant Preview Sharing'}
@@ -690,8 +702,8 @@ export function SendComposer() {
                   p: 0,
                   overflow: 'hidden',
                   '&:focus-within': {
-                      borderColor: alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.4),
-                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.1)}`
+                      borderColor: alpha('#EC4899', 0.45),
+                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#EC4899', 0.15)}`
                   }
                 }}
               >
@@ -730,7 +742,7 @@ export function SendComposer() {
                     </Box>
                     {effectiveSecureMode && (
                       <Tooltip title="This content is zero-knowledge encrypted before upload.">
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: PRIMARY }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#EC4899' }}>
                               <Lock size={12} />
                               <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase' }}>SECURE</Typography>
                           </Box>
@@ -746,11 +758,11 @@ export function SendComposer() {
                           disabled={!draftValid || isCreating}
                           onClick={() => void handleCreateLink()}
                           sx={{ 
-                            color: !draftValid ? 'rgba(255,255,255,0.15)' : (effectiveSecureMode ? PRIMARY : '#10B981'),
-                            bgcolor: draftValid ? alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.08) : 'transparent',
-                            border: draftValid ? `1px solid ${alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.2)}` : '1px solid transparent',
+                            color: !draftValid ? 'rgba(255,255,255,0.15)' : '#EC4899',
+                            bgcolor: draftValid ? alpha('#EC4899', 0.08) : 'transparent',
+                            border: draftValid ? `1px solid ${alpha('#EC4899', 0.2)}` : '1px solid transparent',
                             '&:hover': {
-                              bgcolor: alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.15),
+                              bgcolor: alpha('#EC4899', 0.15),
                             },
                             transition: 'all 0.2s ease',
                           }}
@@ -830,8 +842,8 @@ export function SendComposer() {
                   overflow: 'hidden',
                   position: 'relative',
                   '&:focus-within': {
-                      borderColor: alpha(PRIMARY, 0.4),
-                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha(PRIMARY, 0.1)}`
+                      borderColor: alpha('#F59E0B', 0.45),
+                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#F59E0B', 0.15)}`
                   }
                 }}
               >
@@ -871,7 +883,7 @@ export function SendComposer() {
                     >
                         EPHEMERAL HUDDLE ROOM
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: PRIMARY }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#F59E0B' }}>
                       <Lock size={12} />
                       <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase' }}>E2EE</Typography>
                     </Box>
@@ -885,11 +897,11 @@ export function SendComposer() {
                           disabled={!draftValid || isCreating}
                           onClick={() => void handleCreateLink()}
                           sx={{ 
-                            color: !draftValid ? 'rgba(255,255,255,0.15)' : PRIMARY,
-                            bgcolor: draftValid ? alpha(PRIMARY, 0.08) : 'transparent',
-                            border: draftValid ? `1px solid ${alpha(PRIMARY, 0.2)}` : '1px solid transparent',
+                            color: !draftValid ? 'rgba(255,255,255,0.15)' : '#F59E0B',
+                            bgcolor: draftValid ? alpha('#F59E0B', 0.08) : 'transparent',
+                            border: draftValid ? `1px solid ${alpha('#F59E0B', 0.2)}` : '1px solid transparent',
                             '&:hover': {
-                              bgcolor: alpha(PRIMARY, 0.15),
+                              bgcolor: alpha('#F59E0B', 0.15),
                             },
                             transition: 'all 0.2s ease',
                           }}
@@ -920,7 +932,7 @@ export function SendComposer() {
                   {/* System Note */}
                   <Box sx={{ alignSelf: 'center', bgcolor: 'rgba(0,0,0,0.6)', border: RIM, borderRadius: '12px', px: 2, py: 1, maxWidth: '85%', textAlign: 'center' }}>
                     <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-satoshi)', display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                      <Lock size={12} color={PRIMARY} />
+                      <Lock size={12} color="#F59E0B" />
                       Messages are encrypted. Huddle automatically purges in 7 days.
                     </Typography>
                   </Box>
@@ -930,19 +942,19 @@ export function SendComposer() {
                     <Box sx={{ alignSelf: 'flex-end', maxWidth: '80%', display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                         <Box sx={{ 
-                          bgcolor: PRIMARY, 
-                          color: '#ffffff', 
+                          bgcolor: '#F59E0B', 
+                          color: '#0A0908', 
                           px: 2.5, 
                           py: 1.75, 
                           borderRadius: '20px 20px 4px 20px',
-                          boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)',
+                          boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)',
                         }}>
-                          <Typography sx={{ fontSize: '0.95rem', fontFamily: 'var(--font-satoshi)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                          <Typography sx={{ fontSize: '0.95rem', fontFamily: 'var(--font-satoshi)', whiteSpace: 'pre-wrap', lineHeight: 1.5, fontWeight: 700 }}>
                             {noteBody}
                           </Typography>
                         </Box>
                         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem' }}>
-                          <Lock size={10} /> Zero-Knowledge Secured
+                          <Lock size={10} color="#F59E0B" /> Zero-Knowledge Secured
                         </Typography>
                       </Box>
                       <Box sx={{ 
@@ -1009,7 +1021,7 @@ export function SendComposer() {
                     bgcolor: '#000000', 
                     borderRadius: '16px', 
                     border: '1px solid #34322F',
-                    '&:focus-within': { borderColor: PRIMARY },
+                    '&:focus-within': { borderColor: '#F59E0B' },
                     p: 1.5,
                     display: 'flex',
                     flexDirection: 'column',
@@ -1052,15 +1064,15 @@ export function SendComposer() {
                         onClick={() => void handleCreateLink()}
                         endIcon={isCreating ? <CircularProgress size={14} color="inherit" /> : <SendIcon size={14} />}
                         sx={{
-                          bgcolor: draftValid ? PRIMARY : 'transparent',
-                          color: draftValid ? '#ffffff' : 'rgba(255,255,255,0.2)',
+                          bgcolor: draftValid ? '#F59E0B' : 'transparent',
+                          color: draftValid ? '#0A0908' : 'rgba(255,255,255,0.2)',
                           textTransform: 'none',
                           fontWeight: 800,
                           borderRadius: '8px',
                           px: 2,
                           py: 0.75,
                           '&:hover': {
-                            bgcolor: draftValid ? '#5558E8' : 'transparent',
+                            bgcolor: draftValid ? '#D97706' : 'transparent',
                           }
                         }}
                       >
@@ -1075,7 +1087,13 @@ export function SendComposer() {
             {kind === 'password' && (
               <Paper
                 elevation={0}
-                sx={cardStyle}
+                sx={{
+                  ...cardStyle,
+                  '&:focus-within': {
+                      borderColor: alpha('#10B981', 0.45),
+                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#10B981', 0.15)}`
+                  }
+                }}
               >
                 {/* Vault Header */}
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
@@ -1084,9 +1102,9 @@ export function SendComposer() {
                       width: 32, 
                       height: 32, 
                       borderRadius: '8px', 
-                      bgcolor: alpha(PRIMARY, 0.1),
-                      border: `1px solid ${alpha(PRIMARY, 0.3)}`,
-                      color: PRIMARY,
+                      bgcolor: alpha('#10B981', 0.1),
+                      border: `1px solid ${alpha('#10B981', 0.3)}`,
+                      color: '#10B981',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1106,9 +1124,9 @@ export function SendComposer() {
                   <Stack direction="row" spacing={1} alignItems="center">
                     {/* Glowing state indicator */}
                     <Tooltip title="High Entropy Cryptographic Seal Active">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: alpha(PRIMARY, 0.08), border: `1px solid ${alpha(PRIMARY, 0.2)}`, px: 1, py: 0.5, borderRadius: '6px' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: alpha('#10B981', 0.08), border: `1px solid ${alpha('#10B981', 0.2)}`, px: 1, py: 0.5, borderRadius: '6px' }}>
                         <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10B981', boxShadow: '0 0 6px #10B981' }} />
-                        <Typography sx={{ fontSize: '0.6rem', fontWeight: 900, color: PRIMARY, letterSpacing: '0.05em' }}>SEALED</Typography>
+                        <Typography sx={{ fontSize: '0.6rem', fontWeight: 900, color: '#10B981', letterSpacing: '0.05em' }}>SEALED</Typography>
                       </Box>
                     </Tooltip>
                     
@@ -1119,11 +1137,11 @@ export function SendComposer() {
                           disabled={!draftValid || isCreating}
                           onClick={() => void handleCreateLink()}
                           sx={{ 
-                            color: !draftValid ? 'rgba(255,255,255,0.15)' : PRIMARY,
-                            bgcolor: draftValid ? alpha(PRIMARY, 0.08) : 'transparent',
-                            border: draftValid ? `1px solid ${alpha(PRIMARY, 0.2)}` : '1px solid transparent',
+                            color: !draftValid ? 'rgba(255,255,255,0.15)' : '#10B981',
+                            bgcolor: draftValid ? alpha('#10B981', 0.08) : 'transparent',
+                            border: draftValid ? `1px solid ${alpha('#10B981', 0.2)}` : '1px solid transparent',
                             '&:hover': {
-                              bgcolor: alpha(PRIMARY, 0.15),
+                              bgcolor: alpha('#10B981', 0.15),
                             },
                             transition: 'all 0.2s ease',
                           }}
@@ -1144,7 +1162,7 @@ export function SendComposer() {
                   mb: 3,
                   position: 'relative',
                   overflow: 'hidden',
-                  background: 'radial-gradient(circle at top right, rgba(99, 102, 241, 0.1) 0%, transparent 60%)',
+                  background: 'radial-gradient(circle at top right, rgba(16, 185, 129, 0.08) 0%, transparent 60%)',
                 }}>
                   {/* Interactive SIM/Chip Geometry */}
                   <Box sx={{ 
@@ -1252,7 +1270,13 @@ export function SendComposer() {
             {kind === 'totp' && (
               <Paper
                 elevation={0}
-                sx={cardStyle}
+                sx={{
+                  ...cardStyle,
+                  '&:focus-within': {
+                      borderColor: alpha('#10B981', 0.45),
+                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#10B981', 0.15)}`
+                  }
+                }}
               >
                 {/* Authenticator Header */}
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
@@ -1261,9 +1285,9 @@ export function SendComposer() {
                       width: 32, 
                       height: 32, 
                       borderRadius: '8px', 
-                      bgcolor: alpha(PRIMARY, 0.1),
-                      border: `1px solid ${alpha(PRIMARY, 0.3)}`,
-                      color: PRIMARY,
+                      bgcolor: alpha('#10B981', 0.1),
+                      border: `1px solid ${alpha('#10B981', 0.3)}`,
+                      color: '#10B981',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1300,11 +1324,11 @@ export function SendComposer() {
                           disabled={!draftValid || isCreating}
                           onClick={() => void handleCreateLink()}
                           sx={{ 
-                            color: !draftValid ? 'rgba(255,255,255,0.15)' : PRIMARY,
-                            bgcolor: draftValid ? alpha(PRIMARY, 0.08) : 'transparent',
-                            border: draftValid ? `1px solid ${alpha(PRIMARY, 0.2)}` : '1px solid transparent',
+                            color: !draftValid ? 'rgba(255,255,255,0.15)' : '#10B981',
+                            bgcolor: draftValid ? alpha('#10B981', 0.08) : 'transparent',
+                            border: draftValid ? `1px solid ${alpha('#10B981', 0.2)}` : '1px solid transparent',
                             '&:hover': {
-                              bgcolor: alpha(PRIMARY, 0.15),
+                              bgcolor: alpha('#10B981', 0.15),
                             },
                             transition: 'all 0.2s ease',
                           }}
@@ -1411,7 +1435,13 @@ export function SendComposer() {
             {kind === 'task' && (
               <Paper
                 elevation={0}
-                sx={cardStyle}
+                sx={{
+                  ...cardStyle,
+                  '&:focus-within': {
+                      borderColor: alpha('#A855F7', 0.45),
+                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#A855F7', 0.15)}`
+                  }
+                }}
               >
                 {/* Task Header */}
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
@@ -1420,9 +1450,9 @@ export function SendComposer() {
                       width: 32, 
                       height: 32, 
                       borderRadius: '8px', 
-                      bgcolor: alpha('#10B981', 0.1),
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      color: '#10B981',
+                      bgcolor: alpha('#A855F7', 0.1),
+                      border: '1px solid rgba(168, 85, 247, 0.3)',
+                      color: '#A855F7',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1447,11 +1477,11 @@ export function SendComposer() {
                           disabled={!draftValid || isCreating}
                           onClick={() => void handleCreateLink()}
                           sx={{ 
-                            color: !draftValid ? 'rgba(255,255,255,0.15)' : '#10B981',
-                            bgcolor: draftValid ? alpha('#10B981', 0.08) : 'transparent',
-                            border: draftValid ? `1px solid ${alpha('#10B981', 0.2)}` : '1px solid transparent',
+                            color: !draftValid ? 'rgba(255,255,255,0.15)' : '#A855F7',
+                            bgcolor: draftValid ? alpha('#A855F7', 0.08) : 'transparent',
+                            border: draftValid ? `1px solid ${alpha('#A855F7', 0.2)}` : '1px solid transparent',
                             '&:hover': {
-                              bgcolor: alpha('#10B981', 0.15),
+                              bgcolor: alpha('#A855F7', 0.15),
                             },
                             transition: 'all 0.2s ease',
                           }}
@@ -1536,7 +1566,7 @@ export function SendComposer() {
                       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                         {(['low', 'medium', 'high', 'urgent'] as const).map((p) => {
                           const isSelected = taskPriority === p;
-                          const color = p === 'low' ? '#A1A1AA' : p === 'medium' ? '#10B981' : p === 'high' ? '#F59E0B' : '#EF4444';
+                          const color = p === 'low' ? '#A1A1AA' : p === 'medium' ? '#A855F7' : p === 'high' ? '#F59E0B' : '#EF4444';
                           return (
                             <Button
                               key={p}
@@ -1587,12 +1617,12 @@ export function SendComposer() {
                                 px: 2,
                                 py: 0.75,
                                 borderRadius: '8px',
-                                border: isSelected ? `1px solid #10B981` : '1px solid #34322F',
-                                bgcolor: isSelected ? alpha('#10B981', 0.15) : 'transparent',
+                                border: isSelected ? `1px solid #A855F7` : '1px solid #34322F',
+                                bgcolor: isSelected ? alpha('#A855F7', 0.15) : 'transparent',
                                 color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.4)',
                                 '&:hover': {
-                                  bgcolor: isSelected ? alpha('#10B981', 0.25) : 'rgba(255,255,255,0.02)',
-                                  borderColor: isSelected ? '#10B981' : '#4A4845',
+                                  bgcolor: isSelected ? alpha('#A855F7', 0.25) : 'rgba(255,255,255,0.02)',
+                                  borderColor: isSelected ? '#A855F7' : '#4A4845',
                                 },
                                 transition: 'all 0.25s ease',
                               }}
@@ -1611,7 +1641,13 @@ export function SendComposer() {
             {kind === 'file' && (
               <Paper
                 elevation={0}
-                sx={cardStyle}
+                sx={{
+                  ...cardStyle,
+                  '&:focus-within': {
+                      borderColor: alpha('#6366F1', 0.45),
+                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#6366F1', 0.15)}`
+                  }
+                }}
               >
                 {/* File Header */}
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
@@ -1620,9 +1656,9 @@ export function SendComposer() {
                       width: 32, 
                       height: 32, 
                       borderRadius: '8px', 
-                      bgcolor: alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.1),
-                      border: `1px solid ${alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.3)}`,
-                      color: effectiveSecureMode ? PRIMARY : '#10B981',
+                      bgcolor: alpha('#6366F1', 0.1),
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      color: '#6366F1',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1647,11 +1683,11 @@ export function SendComposer() {
                           disabled={!draftValid || isCreating}
                           onClick={() => void handleCreateLink()}
                           sx={{ 
-                            color: !draftValid ? 'rgba(255,255,255,0.15)' : (effectiveSecureMode ? PRIMARY : '#10B981'),
-                            bgcolor: draftValid ? alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.08) : 'transparent',
-                            border: draftValid ? `1px solid ${alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.2)}` : '1px solid transparent',
+                            color: !draftValid ? 'rgba(255,255,255,0.15)' : '#6366F1',
+                            bgcolor: draftValid ? alpha('#6366F1', 0.08) : 'transparent',
+                            border: draftValid ? `1px solid ${alpha('#6366F1', 0.2)}` : '1px solid transparent',
                             '&:hover': {
-                              bgcolor: alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.15),
+                              bgcolor: alpha('#6366F1', 0.15),
                             },
                             transition: 'all 0.2s ease',
                           }}
@@ -1692,7 +1728,7 @@ export function SendComposer() {
                           borderRadius: '50%',
                           bgcolor: '#161412',
                           border: '1px solid #34322F',
-                          color: effectiveSecureMode ? PRIMARY : '#10B981',
+                          color: '#6366F1',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1735,7 +1771,7 @@ export function SendComposer() {
                 <InputLabel sx={{ color: '#9B9691', fontSize: '0.85rem', fontWeight: 700, fontFamily: 'var(--font-satoshi)' }}>
                   Link Expiry
                 </InputLabel>
-                <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: effectiveSecureMode ? PRIMARY : '#10B981', fontFamily: 'var(--font-mono)' }}>
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: themeColor, fontFamily: 'var(--font-mono)' }}>
                   {formatRemaining(expiryMs)}
                 </Typography>
               </Stack>
@@ -1746,14 +1782,14 @@ export function SendComposer() {
                 step={60000}
                 onChange={(_, v) => setExpiryMs(v as number)}
                 sx={{
-                  color: effectiveSecureMode ? PRIMARY : '#10B981',
+                  color: themeColor,
                   '& .MuiSlider-rail': { bgcolor: '#34322F', opacity: 1 },
                   '& .MuiSlider-thumb': {
                     width: 14,
                     height: 14,
                     bgcolor: '#ffffff',
-                    boxShadow: `0 0 0 4px ${effectiveSecureMode ? 'rgba(99, 102, 241, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`,
-                    '&:hover, &.Mui-focusVisible': { boxShadow: `0 0 0 8px ${effectiveSecureMode ? 'rgba(99, 102, 241, 0.3)' : 'rgba(16, 185, 129, 0.3)'}` },
+                    boxShadow: `0 0 0 4px ${alpha(themeColor, 0.2)}`,
+                    '&:hover, &.Mui-focusVisible': { boxShadow: `0 0 0 8px ${alpha(themeColor, 0.3)}` },
                   },
                 }}
               />
@@ -1766,7 +1802,7 @@ export function SendComposer() {
                     sx={{
                       minWidth: 0,
                       fontSize: '0.75rem',
-                      color: expiryMs === p.ms ? (effectiveSecureMode ? PRIMARY : '#10B981') : 'rgba(255,255,255,0.4)',
+                      color: expiryMs === p.ms ? themeColor : 'rgba(255,255,255,0.4)',
                       fontWeight: expiryMs === p.ms ? 900 : 600,
                       fontFamily: 'var(--font-satoshi)'
                     }}
@@ -1779,7 +1815,13 @@ export function SendComposer() {
 
             <Paper
               elevation={0}
-              sx={cardStyle}
+              sx={{
+                ...cardStyle,
+                '&:focus-within': {
+                    borderColor: alpha(themeColor, 0.45),
+                    boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha(themeColor, 0.15)}`
+                }
+              }}
             >
               <Typography sx={{ fontWeight: 800, mb: 2, fontSize: '0.95rem', fontFamily: 'var(--font-clash)', color: '#ffffff' }}>
                 Discrete Sharing (Optional)
@@ -1807,11 +1849,15 @@ export function SendComposer() {
                 textTransform: 'none',
                 fontWeight: 900,
                 fontSize: '1.05rem',
-                bgcolor: effectiveSecureMode ? PRIMARY : '#10B981',
+                bgcolor: themeColor,
                 fontFamily: 'var(--font-clash)',
-                boxShadow: `0 12px 40px ${alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.35)}`,
-                '&:hover': { bgcolor: effectiveSecureMode ? '#5558E8' : '#059669' },
+                boxShadow: `0 12px 40px ${alpha(themeColor, 0.35)}`,
+                '&:hover': { bgcolor: themeColor, filter: 'brightness(1.15)' },
                 transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                '&.Mui-disabled': {
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                  color: 'rgba(255, 255, 255, 0.15)',
+                }
               }}
             >
               {isCreating ? <CircularProgress size={26} color="inherit" /> : `Create ${effectiveSecureMode ? 'Zero-Knowledge' : 'Send'} Link`}
@@ -1839,8 +1885,8 @@ export function SendComposer() {
                 width: 72,
                 height: 72,
                 borderRadius: '50%',
-                bgcolor: alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.1),
-                color: effectiveSecureMode ? PRIMARY : '#10B981',
+                bgcolor: alpha(themeColor, 0.1),
+                color: themeColor,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1881,7 +1927,7 @@ export function SendComposer() {
               >
                 {createdUrl}
               </Typography>
-              <IconButton onClick={handleCopy} size="small" sx={{ color: effectiveSecureMode ? PRIMARY : '#10B981' }}>
+              <IconButton onClick={handleCopy} size="small" sx={{ color: themeColor }}>
                 <Copy size={20} />
               </IconButton>
             </Box>
@@ -1898,9 +1944,9 @@ export function SendComposer() {
                   textTransform: 'none',
                   fontWeight: 900,
                   fontSize: '1rem',
-                  bgcolor: effectiveSecureMode ? PRIMARY : '#10B981',
+                  bgcolor: themeColor,
                   fontFamily: 'var(--font-clash)',
-                  '&:hover': { bgcolor: effectiveSecureMode ? '#5558E8' : '#059669' },
+                  '&:hover': { bgcolor: themeColor, filter: 'brightness(1.15)' },
                 }}
               >
                 {copied ? 'Copied!' : 'Copy Link'}
@@ -1965,6 +2011,8 @@ export function SendComposer() {
               fontFamily: 'var(--font-satoshi)',
               maxWidth: 'md',
               mx: 'auto',
+              maxHeight: '60vh',
+              overflowY: 'auto',
             }
           }}
         >
@@ -1980,7 +2028,7 @@ export function SendComposer() {
           >
             {KINDS.map(({ id, label, blurb, Icon }) => {
               const selected = kind === id;
-              const activeColor = (id === 'password' || id === 'totp' || id === 'file' || id === 'discussion') || isSecureMode ? PRIMARY : '#10B981';
+              const itemColor = KIND_COLORS[id];
               return (
                 <ListItemButton
                   key={id}
@@ -1995,21 +2043,21 @@ export function SendComposer() {
                   sx={{
                     p: 2,
                     borderRadius: '12px',
-                    border: selected ? `1px solid ${activeColor}` : '1px solid #34322F',
-                    bgcolor: selected ? alpha(activeColor, 0.08) : 'transparent',
-                    '&:hover': { bgcolor: alpha(activeColor, 0.12) },
+                    border: selected ? `1px solid ${itemColor}` : '1px solid #34322F',
+                    bgcolor: selected ? alpha(itemColor, 0.08) : 'transparent',
+                    '&:hover': { bgcolor: alpha(itemColor, 0.12) },
                     display: 'flex',
                     gap: 2,
                     alignItems: 'center',
                     textAlign: 'left',
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 0, color: selected ? activeColor : 'rgba(255,255,255,0.4)' }}>
-                    <Icon size={24} />
+                  <ListItemIcon sx={{ minWidth: 0, color: selected ? itemColor : 'rgba(255,255,255,0.4)' }}>
+                    <Icon size={24} style={{ color: selected ? itemColor : 'rgba(255,255,255,0.4)' }} />
                   </ListItemIcon>
                   <ListItemText
-                    primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)' }}>{label}</Typography>}
-                    secondary={<Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>{blurb}</Typography>}
+                    primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: selected ? '#ffffff' : 'rgba(255,255,255,0.8)' }}>{label}</Typography>}
+                    secondary={<Typography sx={{ fontSize: '0.75rem', color: selected ? alpha(itemColor, 0.7) : 'rgba(255,255,255,0.4)' }}>{blurb}</Typography>}
                   />
                 </ListItemButton>
               );
@@ -2036,6 +2084,8 @@ export function SendComposer() {
               fontFamily: 'var(--font-satoshi)',
               maxWidth: 'md',
               mx: 'auto',
+              maxHeight: '60vh',
+              overflowY: 'auto',
             }
           }}
         >
@@ -2051,17 +2101,17 @@ export function SendComposer() {
               sx={{
                 p: 2,
                 borderRadius: '12px',
-                border: isSecureMode ? `1px solid ${PRIMARY}` : '1px solid #34322F',
-                bgcolor: isSecureMode ? alpha(PRIMARY, 0.08) : 'transparent',
-                '&:hover': { bgcolor: alpha(PRIMARY, 0.12) },
+                border: isSecureMode ? `1px solid ${themeColor}` : '1px solid #34322F',
+                bgcolor: isSecureMode ? alpha(themeColor, 0.08) : 'transparent',
+                '&:hover': { bgcolor: alpha(themeColor, 0.12) },
               }}
             >
-              <ListItemIcon sx={{ color: PRIMARY }}>
+              <ListItemIcon sx={{ color: themeColor }}>
                 <Lock size={20} />
               </ListItemIcon>
               <ListItemText
-                primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)' }}>Zero-Knowledge Sharing</Typography>}
-                secondary={<Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', mt: 0.5 }}>End-to-end encrypted before upload. We never see your data.</Typography>}
+                primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: isSecureMode ? '#ffffff' : 'rgba(255,255,255,0.8)' }}>Zero-Knowledge Sharing</Typography>}
+                secondary={<Typography sx={{ fontSize: '0.75rem', color: isSecureMode ? alpha(themeColor, 0.7) : 'rgba(255,255,255,0.4)', mt: 0.5 }}>End-to-end encrypted before upload. We never see your data.</Typography>}
               />
             </ListItemButton>
 
@@ -2082,8 +2132,8 @@ export function SendComposer() {
                 <Unlock size={20} />
               </ListItemIcon>
               <ListItemText
-                primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)' }}>Instant Preview Sharing</Typography>}
-                secondary={<Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', mt: 0.5 }}>Fast, unencrypted previews. Perfect for public sharing.</Typography>}
+                primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: !isSecureMode ? '#ffffff' : 'rgba(255,255,255,0.8)' }}>Instant Preview Sharing</Typography>}
+                secondary={<Typography sx={{ fontSize: '0.75rem', color: !isSecureMode ? alpha('#10B981', 0.7) : 'rgba(255,255,255,0.4)', mt: 0.5 }}>Fast, unencrypted previews. Perfect for public sharing.</Typography>}
               />
             </ListItemButton>
           </Stack>

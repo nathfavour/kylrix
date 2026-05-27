@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { Clock, Copy, ExternalLink, Import, MoreVertical, Trash2, FileText, KeyRound, ListTodo, Shield, Upload, MessageSquare, Sparkles } from 'lucide-react';
 
-import type { SendSparkRef } from '@/lib/send/types';
+import type { SendSparkRef, SendKind } from '@/lib/send/types';
 import toast from 'react-hot-toast';
 import { burnEphemeralNoteWithProof } from '@/lib/ephemeral/burn-note';
 
@@ -25,7 +25,16 @@ const SURFACE_HOVER = '#1C1A18';
 const RIM = '1px solid #34322F';
 const PRIMARY = '#6366F1';
 
-function SendSparkClock({ createdAt, expiresAt }: { createdAt: string; expiresAt: string }) {
+const KIND_COLORS: Record<SendKind, string> = {
+  note: '#EC4899',       // Pink (Note App)
+  password: '#10B981',   // Green (Vault App)
+  totp: '#10B981',       // Green (Vault App)
+  task: '#A855F7',       // Purple (Flow App)
+  file: '#6366F1',       // Indigo (Accounts/Send)
+  discussion: '#F59E0B'  // Amber/Orange (Connect App)
+};
+
+function SendSparkClock({ createdAt, expiresAt, color = PRIMARY }: { createdAt: string; expiresAt: string; color?: string }) {
   const [pct, setPct] = React.useState(100);
 
   React.useEffect(() => {
@@ -54,7 +63,7 @@ function SendSparkClock({ createdAt, expiresAt }: { createdAt: string; expiresAt
       <svg width={size} height={size}>
         <circle stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} fill="transparent" r={r} cx={c} cy={c} />
         <circle
-          stroke={PRIMARY}
+          stroke={color}
           strokeWidth={stroke}
           strokeDasharray={`${circum} ${circum}`}
           style={{ strokeDashoffset: offset, transition: 'stroke-dashoffset 0.5s ease' }}
@@ -139,6 +148,7 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
   if (sparks.length === 0) return null;
 
   const renderCard = (spark: SendSparkRef, staleRow: boolean) => {
+    const sparkColor = KIND_COLORS[spark.kind] || PRIMARY;
     const Icon = (() => {
       switch (spark.kind) {
         case 'note': return FileText;
@@ -163,7 +173,7 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
           opacity: staleRow ? 0.72 : 1,
           transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
           '&:hover': {
-            borderColor: staleRow ? '#34322F' : PRIMARY,
+            borderColor: staleRow ? '#34322F' : sparkColor,
             bgcolor: staleRow ? '#0A0908' : '#1C1A18',
             opacity: 1,
             boxShadow: '0 8px 10px -8px rgba(0,0,0,1), 0 6px 8px -6px rgba(37,35,33,1.0)',
@@ -174,7 +184,7 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
         <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
             <Stack direction="row" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
-              <Box sx={{ color: PRIMARY, mt: 0.5 }}>
+              <Box sx={{ color: sparkColor, mt: 0.5 }}>
                 <Icon size={20} />
               </Box>
               <Box sx={{ minWidth: 0, flex: 1 }}>
@@ -200,17 +210,17 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
               </Box>
             </Stack>
             <Stack direction="row" spacing={0.25} alignItems="center">
-              <SendSparkClock createdAt={spark.createdAt} expiresAt={spark.expiresAt} />
+              <SendSparkClock createdAt={spark.createdAt} expiresAt={spark.expiresAt} color={sparkColor} />
               <IconButton size="small" onClick={(e) => openMenu(e, spark.id)} sx={{ color: alpha('#fff', 0.35) }}>
                 <MoreVertical size={14} />
               </IconButton>
             </Stack>
           </Stack>
           <Stack direction="row" spacing={0.5} sx={{ mt: 1.25 }} justifyContent="flex-end">
-            <IconButton size="small" aria-label="Copy link" onClick={() => void copyUrl(spark.url)} sx={{ color: PRIMARY }}>
+            <IconButton size="small" aria-label="Copy link" onClick={() => void copyUrl(spark.url)} sx={{ color: sparkColor }}>
               <Copy size={16} />
             </IconButton>
-            <IconButton size="small" aria-label="Open" onClick={() => window.open(spark.url, '_blank')} sx={{ color: PRIMARY }}>
+            <IconButton size="small" aria-label="Open" onClick={() => window.open(spark.url, '_blank')} sx={{ color: sparkColor }}>
               <ExternalLink size={16} />
             </IconButton>
           </Stack>
@@ -222,7 +232,7 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
   return (
     <Stack spacing={2}>
       <Stack direction="row" spacing={1} alignItems="center">
-        <Clock size={16} color={PRIMARY} />
+        <Clock size={16} color="#6366F1" />
         <Typography
           sx={{
             fontFamily: 'var(--font-clash)',
