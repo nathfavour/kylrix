@@ -138,64 +138,83 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
 
   if (sparks.length === 0) return null;
 
-  const renderCard = (spark: SendSparkRef, staleRow: boolean) => (
-    <Card
-      key={spark.id}
-      onContextMenu={(e) => openMenu(e, spark.id)}
-      sx={{
-        bgcolor: staleRow ? alpha(BG_PAGE, 0.95) : SURFACE_HOVER,
-        borderRadius: '18px',
-        border: RIM,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
-        opacity: staleRow ? 0.72 : 1,
-        transition: 'border-color 0.25s ease, opacity 0.25s ease',
-        '&:hover': {
-          borderColor: alpha(PRIMARY, staleRow ? 0.25 : 0.35),
-          opacity: 1,
-        },
-      }}
-    >
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography
-              sx={{
-                fontWeight: 800,
-                fontSize: '0.9rem',
-                letterSpacing: '-0.02em',
-                fontFamily: 'var(--font-satoshi)',
-              }}
-              noWrap
-            >
-              {spark.title}
-            </Typography>
-            <Typography variant="caption" sx={{ display: 'block', opacity: 0.45, mt: 0.35 }}>
-              {spark.kind.toUpperCase()} · {new Date(spark.createdAt).toLocaleDateString()}
-            </Typography>
-            {staleRow && (
-              <Typography variant="caption" sx={{ display: 'block', color: alpha('#fff', 0.55), mt: 0.75, fontWeight: 700 }}>
-                Expired — burn still works if the row exists on the server.
-              </Typography>
-            )}
-          </Box>
-          <Stack direction="row" spacing={0.25} alignItems="center">
-            <SendSparkClock createdAt={spark.createdAt} expiresAt={spark.expiresAt} />
-            <IconButton size="small" onClick={(e) => openMenu(e, spark.id)} sx={{ color: alpha('#fff', 0.35) }}>
-              <MoreVertical size={14} />
+  const renderCard = (spark: SendSparkRef, staleRow: boolean) => {
+    const Icon = (() => {
+      switch (spark.kind) {
+        case 'note': return FileText;
+        case 'password': return KeyRound;
+        case 'task': return ListTodo;
+        case 'totp': return Shield;
+        case 'file': return Upload;
+        case 'discussion': return MessageSquare;
+        default: return Sparkles;
+      }
+    })();
+
+    return (
+      <Card
+        key={spark.id}
+        onContextMenu={(e) => openMenu(e, spark.id)}
+        sx={{
+          bgcolor: staleRow ? alpha(BG_PAGE, 0.95) : SURFACE_HOVER,
+          borderRadius: '18px',
+          border: RIM,
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+          opacity: staleRow ? 0.72 : 1,
+          transition: 'border-color 0.25s ease, opacity 0.25s ease',
+          '&:hover': {
+            borderColor: alpha(PRIMARY, staleRow ? 0.25 : 0.35),
+            opacity: 1,
+          },
+        }}
+      >
+        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+            <Stack direction="row" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
+              <Box sx={{ color: PRIMARY, mt: 0.5 }}>
+                <Icon size={20} />
+              </Box>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: '0.9rem',
+                    letterSpacing: '-0.02em',
+                    fontFamily: 'var(--font-satoshi)',
+                  }}
+                  noWrap
+                >
+                  {spark.title}
+                </Typography>
+                <Typography variant="caption" sx={{ display: 'block', opacity: 0.45, mt: 0.35 }}>
+                  {spark.kind.toUpperCase()} · {new Date(spark.createdAt).toLocaleDateString()}
+                </Typography>
+                {staleRow && (
+                  <Typography variant="caption" sx={{ display: 'block', color: alpha('#fff', 0.55), mt: 0.75, fontWeight: 700 }}>
+                    Expired — burn still works if the row exists on the server.
+                  </Typography>
+                )}
+              </Box>
+            </Stack>
+            <Stack direction="row" spacing={0.25} alignItems="center">
+              <SendSparkClock createdAt={spark.createdAt} expiresAt={spark.expiresAt} />
+              <IconButton size="small" onClick={(e) => openMenu(e, spark.id)} sx={{ color: alpha('#fff', 0.35) }}>
+                <MoreVertical size={14} />
+              </IconButton>
+            </Stack>
+          </Stack>
+          <Stack direction="row" spacing={0.5} sx={{ mt: 1.25 }} justifyContent="flex-end">
+            <IconButton size="small" aria-label="Copy link" onClick={() => void copyUrl(spark.url)} sx={{ color: PRIMARY }}>
+              <Copy size={16} />
+            </IconButton>
+            <IconButton size="small" aria-label="Open" onClick={() => window.open(spark.url, '_blank')} sx={{ color: PRIMARY }}>
+              <ExternalLink size={16} />
             </IconButton>
           </Stack>
-        </Stack>
-        <Stack direction="row" spacing={0.5} sx={{ mt: 1.25 }} justifyContent="flex-end">
-          <IconButton size="small" aria-label="Copy link" onClick={() => void copyUrl(spark.url)} sx={{ color: PRIMARY }}>
-            <Copy size={16} />
-          </IconButton>
-          <IconButton size="small" aria-label="Open" onClick={() => window.open(spark.url.replace('/send/', '/note/shared/'), '_blank')} sx={{ color: PRIMARY }}>
-            <ExternalLink size={16} />
-          </IconButton>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <Stack spacing={2}>
