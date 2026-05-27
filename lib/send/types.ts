@@ -1,4 +1,4 @@
-export type SendKind = 'note' | 'password' | 'totp' | 'task' | 'file';
+export type SendKind = 'note' | 'password' | 'totp' | 'task' | 'file' | 'discussion';
 
 export interface SendExpiryPreset {
   id: string;

@@ -224,7 +224,8 @@ export async function createGhostNote(data: any) {
 }
 
 export async function createSendGhostObject(data: any) {
-  return createSendGhostObjectSecure(data);
+  const jwt = await getJwt();
+  return createSendGhostObjectSecure({ ...data, jwt });
 }
 
 export async function createGhostNoteForCall(callId: string, title?: string) {

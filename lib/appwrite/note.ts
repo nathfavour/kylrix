@@ -2843,11 +2843,11 @@ export async function listNotesPaginated(options: ListNotesPaginatedOptions = {}
 // --- PERMISSIONS HELPERS ---
 
 export function isNotePublic(note: Notes): boolean {
-  return note ? note.isPublic === true : false;
+  return note ? (note.isPublic === true || (note as any).isGuest === true) : false;
 }
 
 export function getNotePublicState(note: Notes): boolean {
-  return note ? note.isPublic === true : false;
+  return note ? (note.isPublic === true || (note as any).isGuest === true) : false;
 }
 
 export function isNoteEditableByAnyone(note: Notes): boolean {

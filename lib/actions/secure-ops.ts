@@ -2915,14 +2915,19 @@ export async function createSendGhostObjectSecure(data: {
   isEncrypted?: boolean;
   creatorDeletionProofHash?: string;
   sendObject: { kind: string; bucketId?: string; fileId?: string };
+  jwt?: string;
 }) {
+  const actor = data.jwt ? await getActor(data.jwt) : null;
   const expiresAt = data.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  
+  const kind = data.sendObject.kind;
+  
   const metadata = JSON.stringify({
     isGhost: true,
     send_object: data.sendObject,
     ghostSecret: data.ghostSecret,
     expiresAt,
-    version: 'v2',
+    version: 'v3',
     isEncrypted: data.isEncrypted ?? false,
     ...(data.creatorDeletionProofHash ? { creatorDeletionProofHash: data.creatorDeletionProofHash } : {}),
   });
@@ -2937,14 +2942,25 @@ export async function createSendGhostObjectSecure(data: {
       content: data.content,
       format: data.format || 'markdown',
       isPublic: true,
-      userId: null,
+      isGuest: true,
+      isEncrypted: data.isEncrypted ?? false,
+      isPass: kind === 'password',
+      isTask: kind === 'task',
+      isFile: kind === 'file',
+      isTotp: kind === 'totp',
+      isDiscussion: kind === 'discussion',
+      userId: actor?.$id || null,
+      creatorId: actor?.$id || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       metadata,
       isGhost: true,
       isThread: false,
     },
-    permissions: [Permission.read(Role.user(actor.$id))],
+    permissions: [
+      Permission.read(Role.any()),
+      ...(actor ? [Permission.write(Role.user(actor.$id)), Permission.delete(Role.user(actor.$id))] : [])
+    ],
   });
 
   return JSON.parse(JSON.stringify(result));

@@ -14,11 +14,24 @@ import type { NextRequest } from 'next/server';
 
 const RELOAD_COOKIE = 'k_rld';
 const REDIRECT_DEPTH_PARAM = '_rd';
+const APPWRITE_PROJECT_ID = '67fe9627001d97e37ef3';
+const SESSION_COOKIE_NAME = `a_session_${APPWRITE_PROJECT_ID.toLowerCase()}`;
 
 // Thresholds
 const MAX_RAPID_RELOADS = 30;         // Max page loads within the window
 const RELOAD_WINDOW_MS = 5_000;       // 5-second sliding window
 const MAX_REDIRECT_DEPTH = 5;         // Max chained redirects before circuit-breaker fires
+
+const PROTECTED_ROUTES = [
+  '/note',
+  '/vault',
+  '/flow',
+  '/connect',
+  '/projects',
+  '/accounts',
+  '/settings',
+  '/agents'
+];
 
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
@@ -31,6 +44,15 @@ export function middleware(request: NextRequest) {
     pathname.includes('.') // static files like .css, .js, .png
   ) {
     return NextResponse.next();
+  }
+
+  // ─── AUTHENTICATION REDIRECT ──────────────────────────────────────────
+  const isProtected = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+  const hasSession = request.cookies.has(SESSION_COOKIE_NAME) || request.cookies.has(`${SESSION_COOKIE_NAME}_legacy`);
+
+  if (isProtected && !hasSession) {
+    const loginUrl = new URL('/send', request.url);
+    return NextResponse.redirect(loginUrl);
   }
 
   // ─── REDIRECT LOOP DEFENSE ────────────────────────────────────────────

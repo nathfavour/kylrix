@@ -29,6 +29,10 @@ import {
   Shield,
   Sparkles,
   Upload,
+  MessageSquare,
+  Lock,
+  Unlock,
+  Users as UsersIcon,
 } from 'lucide-react';
 
 import { ID, Permission, Role } from 'appwrite';
@@ -36,6 +40,7 @@ import { ID, Permission, Role } from 'appwrite';
 import { useAuth } from '@/context/auth/AuthContext';
 import { EphemeralClaimDrawer, type EphemeralClaimTarget } from '@/components/ephemeral/EphemeralClaimDrawer';
 import { SendSparkShelf } from '@/components/send/SendSparkShelf';
+import UserSearch from '@/components/UserSearch';
 import { AppwriteService } from '@/lib/appwrite';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { storage } from '@/lib/appwrite/client';
@@ -74,7 +79,9 @@ const KINDS: { id: SendKind; label: string; blurb: string; Icon: typeof FileText
   { id: 'password', label: 'Password', blurb: 'Credential snapshot', Icon: KeyRound },
   { id: 'task', label: 'Task', blurb: 'Action item', Icon: ListTodo },
   { id: 'totp', label: 'TOTP', blurb: 'Authenticator seed', Icon: Shield },
-  { id: 'file', label: 'File', blurb: 'Up to 7 days in bucket', Icon: Upload }];
+  { id: 'file', label: 'File', blurb: 'Up to 7 days in bucket', Icon: Upload },
+  { id: 'discussion', label: 'Discussion', blurb: 'Ephemeral thread', Icon: MessageSquare }
+];
 
 function formatRemaining(ms: number): string {
   if (ms <= 0) return 'Expired';
@@ -90,7 +97,10 @@ export function SendComposer() {
   const reduceMotion = useReducedMotion();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { user } = useAuth();
+
+  const isSecureMode = pathname?.includes('/secure');
 
   const isPro = useMemo(() => user ? hasPaidKylrixPlan(user) : false, [user]);
   const activeMaxBytes = isPro ? SEND_MAX_FILE_BYTES_PRO : SEND_MAX_FILE_BYTES_FREE;
@@ -111,6 +121,9 @@ export function SendComposer() {
   const [sendFile, setSendFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+
+  // Discrete Sharing
+  const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
 
   const [createdUrl, setCreatedUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -243,20 +256,26 @@ export function SendComposer() {
       let sparkTitle = 'Send';
       let sendObjectPayload: { kind: SendKind; bucketId?: string; fileId?: string } = { kind };
 
-      let encTitle: string;
-      let encContent: string;
-      let noteKey: string;
+      let outTitle: string;
+      let outContent: string;
+      let noteKey: string | null = null;
       let format: string;
+
+      const processData = async (title: string, content: string) => {
+        if (isSecureMode) {
+          const t = await encryptGhostData(title);
+          const c = await encryptGhostData(content, t.key);
+          noteKey = t.key;
+          return { t: t.encrypted, c: c.encrypted };
+        }
+        return { t: title, c: content };
+      };
 
       if (kind === 'note') {
         sparkTitle = noteTitle.trim() || 'Note';
-        const titlePlain = sparkTitle;
-        const bodyPlain = noteBody.trim();
-        const t = await encryptGhostData(titlePlain);
-        const c = await encryptGhostData(bodyPlain, t.key);
-        encTitle = t.encrypted;
-        encContent = c.encrypted;
-        noteKey = t.key;
+        const { t, c } = await processData(sparkTitle, noteBody.trim());
+        outTitle = t;
+        outContent = c;
         format = 'markdown';
       } else if (kind === 'password') {
         const bundle: SendPasswordPayload = {
@@ -266,11 +285,9 @@ export function SendComposer() {
         };
         const label = username.trim() ? `Credential · ${username.trim()}` : 'Credential';
         sparkTitle = label;
-        const t = await encryptGhostData(label);
-        const c = await encryptGhostData(JSON.stringify(bundle), t.key);
-        encTitle = t.encrypted;
-        encContent = c.encrypted;
-        noteKey = t.key;
+        const { t, c } = await processData(label, JSON.stringify(bundle));
+        outTitle = t;
+        outContent = c;
         format = 'json';
       } else if (kind === 'task') {
         const bundle: SendTaskPayload = {
@@ -278,11 +295,9 @@ export function SendComposer() {
           detail: taskDetail.trim() || undefined,
         };
         sparkTitle = bundle.title;
-        const t = await encryptGhostData(bundle.title);
-        const c = await encryptGhostData(JSON.stringify(bundle), t.key);
-        encTitle = t.encrypted;
-        encContent = c.encrypted;
-        noteKey = t.key;
+        const { t, c } = await processData(bundle.title, JSON.stringify(bundle));
+        outTitle = t;
+        outContent = c;
         format = 'json';
       } else if (kind === 'totp') {
         const bundle: SendTotpPayload = {
@@ -290,12 +305,16 @@ export function SendComposer() {
           secret: totpSecret.trim(),
         };
         sparkTitle = bundle.issuer || 'Authenticator';
-        const t = await encryptGhostData(bundle.issuer || 'Authenticator');
-        const c = await encryptGhostData(JSON.stringify(bundle), t.key);
-        encTitle = t.encrypted;
-        encContent = c.encrypted;
-        noteKey = t.key;
+        const { t, c } = await processData(sparkTitle, JSON.stringify(bundle));
+        outTitle = t;
+        outContent = c;
         format = 'json';
+      } else if (kind === 'discussion') {
+        sparkTitle = noteTitle.trim() || 'Discussion';
+        const { t, c } = await processData(sparkTitle, noteBody.trim() || 'Welcome to the thread.');
+        outTitle = t;
+        outContent = c;
+        format = 'markdown';
       } else if (kind === 'file') {
         const f = sendFile;
         if (!f) {
@@ -308,31 +327,52 @@ export function SendComposer() {
         }
         sparkTitle = f.name || 'File';
         const buf = await f.arrayBuffer();
-        const titlePlain = sparkTitle;
-        const t = await encryptGhostData(titlePlain);
-        noteKey = t.key;
-        encTitle = t.encrypted;
-        const cipherBytes = encryptGhostBinaryToBytes(buf, noteKey);
-        const uploadBlob = new Blob([cipherBytes.slice()], { type: 'application/octet-stream' });
-        const uploadFile = new File([uploadBlob], 'send.enc', { type: 'application/octet-stream' });
-        const formData = new FormData();
-        formData.append('file', uploadFile);
-        formData.append('bucketId', APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL);
-        const uploaded = await secureUploadFile(formData); //
-        sendObjectPayload = {
-          kind: 'file',
-          bucketId: APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
-          fileId: uploaded.$id,
-        };
-        const manifest: SendFilePayload = {
-          bucketId: APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
-          fileId: uploaded.$id,
-          originalName: f.name,
-          mimeType: f.type || 'application/octet-stream',
-          size: f.size,
-        };
-        const c = await encryptGhostData(JSON.stringify(manifest), noteKey);
-        encContent = c.encrypted;
+        
+        if (isSecureMode) {
+          const t = await encryptGhostData(sparkTitle);
+          noteKey = t.key;
+          outTitle = t.encrypted;
+          const cipherBytes = encryptGhostBinaryToBytes(buf, noteKey);
+          const uploadBlob = new Blob([cipherBytes.slice()], { type: 'application/octet-stream' });
+          const uploadFile = new File([uploadBlob], 'send.enc', { type: 'application/octet-stream' });
+          const formData = new FormData();
+          formData.append('file', uploadFile);
+          formData.append('bucketId', APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL);
+          const uploaded = await secureUploadFile(formData);
+          sendObjectPayload = {
+            kind: 'file',
+            bucketId: APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
+            fileId: uploaded.$id,
+          };
+          const manifest: SendFilePayload = {
+            bucketId: APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
+            fileId: uploaded.$id,
+            originalName: f.name,
+            mimeType: f.type || 'application/octet-stream',
+            size: f.size,
+          };
+          const c = await encryptGhostData(JSON.stringify(manifest), noteKey);
+          outContent = c.encrypted;
+        } else {
+          outTitle = sparkTitle;
+          const formData = new FormData();
+          formData.append('file', f);
+          formData.append('bucketId', APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL);
+          const uploaded = await secureUploadFile(formData);
+          sendObjectPayload = {
+            kind: 'file',
+            bucketId: APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
+            fileId: uploaded.$id,
+          };
+          const manifest: SendFilePayload = {
+            bucketId: APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
+            fileId: uploaded.$id,
+            originalName: f.name,
+            mimeType: f.type || 'application/octet-stream',
+            size: f.size,
+          };
+          outContent = JSON.stringify(manifest);
+        }
         format = 'json';
       } else {
         toast.error('Unsupported send type.');
@@ -340,18 +380,32 @@ export function SendComposer() {
       }
 
       const note = await AppwriteService.createSendGhostObject({
-        title: encTitle,
-        content: encContent,
+        title: outTitle,
+        content: outContent,
         format,
         ghostSecret,
         expiresAt,
-        isEncrypted: true,
+        isEncrypted: isSecureMode,
         creatorDeletionProofHash,
         sendObject: sendObjectPayload,
       });
 
+      // Handle discrete sharing (collaborators)
+      if (selectedUsers.length > 0) {
+        const { createCollaborator } = await import('@/lib/appwrite/note');
+        await Promise.all(selectedUsers.map(u => 
+          createCollaborator({
+            resourceId: note.$id,
+            resourceType: 'note',
+            userId: u.id,
+            permission: 'read'
+          })
+        ));
+      }
+
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const url = `${origin}/send/${note.$id}/${noteKey}`;
+      const baseUrl = isSecureMode ? `${origin}/send/secure` : `${origin}/send`;
+      const url = isSecureMode ? `${baseUrl}/${note.$id}/${noteKey}` : `${baseUrl}/${note.$id}`;
       setCreatedUrl(url);
       setCopied(false);
 
@@ -375,7 +429,7 @@ export function SendComposer() {
         return next;
       });
 
-      toast.success('Secure link created');
+      toast.success(isSecureMode ? 'Secure link created' : 'Send link created');
     } catch (e: unknown) {
       console.error('[Send]', e);
       toast.error(e instanceof Error ? e.message : 'Could not create send link');
@@ -384,6 +438,7 @@ export function SendComposer() {
     }
   }, [
     kind,
+    isSecureMode,
     expiryMs,
     noteTitle,
     noteBody,
@@ -395,6 +450,7 @@ export function SendComposer() {
     totpIssuer,
     totpSecret,
     sendFile,
+    selectedUsers,
     activeMaxBytes,
     activeMaxLabel]);
 
@@ -441,8 +497,9 @@ export function SendComposer() {
           pointerEvents: 'none',
           position: 'fixed',
           inset: 0,
-          background:
-            'radial-gradient(ellipse 78% 48% at 50% -18%, rgba(99, 102, 241, 0.22), transparent 56%), radial-gradient(ellipse 55% 38% at 100% 0%, rgba(236, 72, 153, 0.07), transparent 52%), radial-gradient(ellipse 48% 32% at 0% 100%, rgba(16, 185, 129, 0.06), transparent 46%)',
+          background: isSecureMode ?
+            'radial-gradient(ellipse 78% 48% at 50% -18%, rgba(99, 102, 241, 0.22), transparent 56%), radial-gradient(ellipse 55% 38% at 100% 0%, rgba(236, 72, 153, 0.07), transparent 52%), radial-gradient(ellipse 48% 32% at 0% 100%, rgba(16, 185, 129, 0.06), transparent 46%)' :
+            'radial-gradient(ellipse 78% 48% at 50% -18%, rgba(16, 185, 129, 0.15), transparent 56%), radial-gradient(ellipse 55% 38% at 100% 0%, rgba(99, 102, 241, 0.05), transparent 52%)',
           zIndex: 0,
         }}
       />
@@ -456,13 +513,13 @@ export function SendComposer() {
           <Stack spacing={1} sx={{ mb: 4, textAlign: 'center' }}>
             <Chip
               icon={<Sparkles size={14} />}
-              label="Send by Kylrix"
+              label={isSecureMode ? "Secure Send" : "Send by Kylrix"}
               sx={{
                 alignSelf: 'center',
                 px: 1,
-                bgcolor: alpha(PRIMARY, 0.12),
+                bgcolor: alpha(isSecureMode ? PRIMARY : '#10B981', 0.12),
                 color: alpha('#fff', 0.9),
-                border: `1px solid ${alpha(PRIMARY, 0.35)}`,
+                border: `1px solid ${alpha(isSecureMode ? PRIMARY : '#10B981', 0.35)}`,
                 fontWeight: 600,
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
@@ -478,12 +535,30 @@ export function SendComposer() {
                 fontSize: { xs: '2rem', md: '2.75rem' },
               }}
             >
-              Live sharing that melts away
+              {isSecureMode ? "Zero-Knowledge Sharing" : "Instant Preview Sharing"}
             </Typography>
             <Typography sx={{ color: 'rgba(255,255,255,0.62)', maxWidth: 520, mx: 'auto', lineHeight: 1.6 }}>
-              Ship encrypted send-objects with one link. Anyone can open—no signup wall. Everything expires automatically (max{' '}
-              {formatRemaining(SEND_MAX_TTL_MS)}).
+              {isSecureMode ? 
+                "End-to-end encrypted objects with one link. We never see your data. Keys stay on your device." :
+                "Fast, unencrypted previews for notes, tasks, and files. Perfect for discovery and public sharing."
+              }
             </Typography>
+            
+            <Box sx={{ mt: 2 }}>
+              <Button
+                component={Link}
+                href={isSecureMode ? '/send' : '/send/secure'}
+                startIcon={isSecureMode ? <Unlock size={16} /> : <Lock size={16} />}
+                sx={{ 
+                  textTransform: 'none', 
+                  color: isSecureMode ? '#10B981' : PRIMARY,
+                  bgcolor: alpha(isSecureMode ? '#10B981' : PRIMARY, 0.05),
+                  '&:hover': { bgcolor: alpha(isSecureMode ? '#10B981' : PRIMARY, 0.1) }
+                }}
+              >
+                Switch to {isSecureMode ? 'Normal Send' : 'Secure Send'}
+              </Button>
+            </Box>
           </Stack>
         </motion.div>
 
@@ -521,12 +596,13 @@ export function SendComposer() {
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(5, 1fr)' },
+                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(6, 1fr)' },
                   gap: 1.25,
                 }}
               >
                 {KINDS.map(({ id, label, blurb, Icon }) => {
                   const selected = kind === id;
+                  const activeColor = isSecureMode ? PRIMARY : '#10B981';
                   return (
                     <Button
                       key={id}
@@ -545,17 +621,17 @@ export function SendComposer() {
                         p: 1.75,
                         borderRadius: 2,
                         gap: 1,
-                        border: selected ? `1px solid ${alpha(PRIMARY, 0.55)}` : RIM,
-                        bgcolor: selected ? alpha(PRIMARY, 0.12) : alpha('#fff', 0.02),
+                        border: selected ? `1px solid ${alpha(activeColor, 0.55)}` : RIM,
+                        bgcolor: selected ? alpha(activeColor, 0.12) : alpha('#fff', 0.02),
                         color: '#fff',
                         minHeight: 108,
                         '&:hover': {
-                          bgcolor: selected ? alpha(PRIMARY, 0.18) : SURFACE_HOVER,
+                          bgcolor: selected ? alpha(activeColor, 0.18) : SURFACE_HOVER,
                           borderColor: alpha('#fff', 0.1),
                         },
                       }}
                     >
-                      <Icon size={22} color={selected ? PRIMARY : 'rgba(255,255,255,0.65)'} />
+                      <Icon size={22} color={selected ? activeColor : 'rgba(255,255,255,0.65)'} />
                       <Box>
                         <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{label}</Typography>
                         <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.35 }}>
@@ -580,22 +656,22 @@ export function SendComposer() {
             >
               <Typography sx={{ fontWeight: 700, mb: 2.5, fontSize: '0.95rem' }}>Payload</Typography>
 
-              {kind === 'note' && (
+              {(kind === 'note' || kind === 'discussion') && (
                 <Stack spacing={2}>
                   <TextField
-                    label="Title (optional)"
+                    label={kind === 'note' ? "Title (optional)" : "Discussion Topic"}
                     fullWidth
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}
                     sx={fieldSx}
                   />
                   <TextField
-                    label="Note"
+                    label={kind === 'note' ? "Note" : "Initial Message"}
                     fullWidth
                     required
                     multiline
                     minRows={6}
-                    placeholder="Write what you want to share…"
+                    placeholder={kind === 'note' ? "Write what you want to share…" : "Start the conversation…"}
                     value={noteBody}
                     onChange={(e) => setNoteBody(e.target.value)}
                     sx={fieldSx}
@@ -749,6 +825,31 @@ export function SendComposer() {
               </Stack>
             </Paper>
 
+            <Paper
+              elevation={0}
+              sx={{
+                p: { xs: 2, sm: 3 },
+                borderRadius: 3,
+                bgcolor: SURFACE,
+                border: RIM,
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+              }}
+            >
+              <Typography sx={{ fontWeight: 700, mb: 2, fontSize: '0.95rem' }}>
+                Discrete Sharing (Optional)
+              </Typography>
+              <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)', mb: 2 }}>
+                Send directly to specific users in the ecosystem. They will be added as collaborators.
+              </Typography>
+              <UserSearch
+                label=""
+                placeholder="Search for users to share with..."
+                selectedUsers={selectedUsers}
+                onSelect={(u) => setSelectedUsers([...selectedUsers, u])}
+                onRemove={(id) => setSelectedUsers(selectedUsers.filter(u => u.id !== id))}
+              />
+            </Paper>
+
             <Button
               variant="contained"
               size="large"
@@ -760,19 +861,17 @@ export function SendComposer() {
                 textTransform: 'none',
                 fontWeight: 700,
                 fontSize: '1.05rem',
-                bgcolor: PRIMARY,
-                boxShadow: `0 12px 40px ${alpha(PRIMARY, 0.35)}`,
-                '&:hover': { bgcolor: '#5558E8' },
+                bgcolor: isSecureMode ? PRIMARY : '#10B981',
+                boxShadow: `0 12px 40px ${alpha(isSecureMode ? PRIMARY : '#10B981', 0.35)}`,
+                '&:hover': { bgcolor: isSecureMode ? '#5558E8' : '#059669' },
               }}
             >
-              {isCreating ? <CircularProgress size={26} color="inherit" /> : 'Create secure link'}
+              {isCreating ? <CircularProgress size={26} color="inherit" /> : `Create ${isSecureMode ? 'secure' : 'send'} link`}
             </Button>
 
             <Typography sx={{ textAlign: 'center', fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)', px: 2, lineHeight: 1.6 }}>
-              Encrypted ghost rows in the note database — same privacy model as classic ghost notes, plus a{' '}
-              <Box component="span" sx={{ fontFamily: 'var(--font-mono)', color: alpha('#fff', 0.55) }}>send_object</Box> tag in metadata so
-              we render the right surface. Max {formatRemaining(SEND_MAX_TTL_MS)}. Files use ciphertext in{' '}
-              <Box component="span" sx={{ fontFamily: 'var(--font-mono)', color: alpha('#fff', 0.55) }}>{APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL}</Box>.
+              {isSecureMode ? 'Encrypted' : 'Unencrypted'} ghost rows in the note database — same 7-day auto-clearing relay.
+              {isSecureMode && ' The key stays in the link fragment only.'}
             </Typography>
           </Stack>
         ) : (
