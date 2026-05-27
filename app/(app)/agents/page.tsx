@@ -252,7 +252,7 @@ export default function AssistantsWorkspacePage() {
                                 const isWorking = agent.status === 'working';
 
                                 return (
-                                    <Grid xs={12} sm={6} key={agent.$id}>
+                                    <Grid size={{ xs: 12, sm: 6 }} key={agent.$id}>
                                         <Box sx={{
                                             bgcolor: SURFACE_ASH,
                                             p: 2.5,
