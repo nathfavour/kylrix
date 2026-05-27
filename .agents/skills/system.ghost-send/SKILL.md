@@ -14,20 +14,23 @@ The **Unified Send** system is the flagship discovery engine for the Kylrix suit
 ### 1. The 7-Day Purge Rule
 Every object created via `/send` is a **Ghost Object**. 
 -   **Identification**: Marked with `isGhost: true`.
--   **Lifecycle**: Subjects the row (and associated binary files in `general_storage`) to an automated 7-day cleanup sweep.
+-   **Lifecycle**: Subjects the row to an automated 7-day cleanup sweep via `cleanupExpiredPublicGhostNotes`.
+-   **Recursive Purge**: The cleanup is fully recursive. Deleting a ghost note cascades to `general_storage` files (if `isFile`), comments, reactions, and associated voice notes (by extracting `voiceFileId` from the metadata).
 -   **Persistence**: If a user wants to keep a Send item, they MUST "Claim" it before the 7-day window expires.
 
 ### 2. Zero-Idle Onboarding
 To maintain momentum and leave no user time idle, unauthenticated traffic to protected sub-apps (`/note`, `/vault`, `/flow`, etc.) is **redirected to `/send`** via middleware. This ensures new users land on a high-value creation surface rather than a login wall.
 
 ### 3. Forced Encryption (Security First)
--   **Credentials**: Passwords (`isPass`) and TOTP seeds (`isTotp`) are **ALWAYS** encrypted (`isEncrypted: true`) regardless of the UI toggle.
--   **Files**: Binary content (`isFile`) is **ALWAYS** encrypted at the byte level. The `title` and `content` (metadata) can remain unencrypted to support rich link previews, but the actual payload is zero-knowledge.
+The legacy `/send/secure` sub-route is **ABANDONED**. Everything is unified on `/send` with a dynamic UI toggle.
+-   **Credentials & Files**: Passwords (`isPass`), TOTP seeds (`isTotp`), and Files (`isFile`) are **ALWAYS** zero-knowledge encrypted regardless of the UI toggle. The toggle hides itself and locks to "Secure Mode".
+-   **Notes & Discussions**: Can be either public previews or zero-knowledge encrypted based on the user's toggle.
+-   **Sub-items**: Comments in an encrypted discussion inherit the encryption state and are E2E encrypted with the same URL key fragment.
 
 ### 4. Polymorphic Relaying
 The `notes` table carries diverse payloads using first-class booleans:
 -   `isPass`, `isTask`, `isFile`, `isTotp`, `isDiscussion`.
--   This avoids the complexity of separate "Ghost" tables and enables high-performance indexing for the 7-day sweep.
+-   This avoids the complexity of separate "Ghost" tables and enables high-performance indexing. `isDiscussion` represents ephemeral chat threads, while `isThread` represents permanent, claimed huddles.
 
 ### 5. Discrete Sharing (The Collaborators Engine)
 While most Sends are global (`isPublic: true` && `isGuest: true`), the system supports **Selective Audience** delivery. 
