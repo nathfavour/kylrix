@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   alpha,
   Box,
@@ -57,7 +57,6 @@ import {
   SEND_MAX_TTL_MS,
   SEND_SPARK_STORAGE_KEY,
   SEND_SPARKS_MAX,
-  clampExpiryMs,
 } from '@/lib/send/constants';
 import type {
   SendFilePayload,
@@ -67,7 +66,7 @@ import type {
   SendTaskPayload,
   SendTotpPayload,
 } from '@/lib/send/types';
-import { hasPaidKylrixPlan } from '@/lib/utils';
+import { clampExpiryMs, hasPaidKylrixPlan } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 const BG = '#0A0908';
@@ -114,6 +113,7 @@ export function SendComposer() {
     if (kind === 'password' || kind === 'totp') return true;
     return isSecureMode;
   }, [kind, isSecureMode]);
+
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
   const [username, setUsername] = useState('');
@@ -155,102 +155,82 @@ export function SendComposer() {
         const raw = localStorage.getItem(SEND_SPARK_STORAGE_KEY);
         if (!raw) {
           setSendSparks([]);
-          return;
+        } else {
+          setSendSparks(JSON.parse(raw));
         }
-        const parsed = JSON.parse(raw) as SendSparkRef[];
-        if (!Array.isArray(parsed)) return;
-        const cutoff = Date.now() - SEND_MAX_TTL_MS;
-        const valid = parsed.filter((s) => new Date(s.createdAt).getTime() > cutoff);
-        setSendSparks(valid);
-        if (valid.length !== parsed.length) {
-          localStorage.setItem(SEND_SPARK_STORAGE_KEY, JSON.stringify(valid));
-        }
-      } catch {
-        setSendSparks([]);
-      }
-    };
-    loadSparks();
-    setSendSparksHydrated(true);
-    window.addEventListener('storage', loadSparks);
-    return () => window.removeEventListener('storage', loadSparks);
-  }, []);
-
-  useEffect(() => {
-    if (searchParams.get('claimOpen') !== '1') return;
-    if (!sendSparksHydrated) return;
-
-    const id = peekEphemeralClaimResume('send');
-
-    const stripClaimQuery = () => {
-      router.replace('/send', { scroll: false });
-    };
-
-    if (!id) {
-      stripClaimQuery();
-      return;
-    }
-
-    const spark = sendSparks.find((s) => s.id === id);
-    if (!spark) {
-      clearEphemeralClaimResume();
-      stripClaimQuery();
-      return;
-    }
-
-    clearEphemeralClaimResume();
-    setClaimTarget({
-      noteId: spark.id,
-      claimSecret: spark.deletionSecret,
-      sendKind: spark.kind,
-      stashKind: 'send',
-      sendUrl: spark.url,
-    });
-    setClaimOpen(true);
-    stripClaimQuery();
-  }, [searchParams, sendSparks, router, sendSparksHydrated]);
-
-  const handleConsumedSendSpark = useCallback((noteId: string) => {
-    setSendSparks((prev) => {
-      const next = prev.filter((s) => s.id !== noteId);
-      try {
-        localStorage.setItem(SEND_SPARK_STORAGE_KEY, JSON.stringify(next));
       } catch {
         /* ignore */
       }
-      window.dispatchEvent(new Event('storage'));
-      return next;
-    });
-  }, []);
+      setSendSparksHydrated(true);
+    };
+    loadSparks();
 
-  const handleClaimSendSpark = useCallback((spark: SendSparkRef) => {
-    setClaimTarget({
-      noteId: spark.id,
-      claimSecret: spark.deletionSecret,
-      sendKind: spark.kind,
-      stashKind: 'send',
-      sendUrl: spark.url,
-    });
-    setClaimOpen(true);
-  }, []);
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === SEND_SPARK_STORAGE_KEY) loadSparks();
+    };
+    window.addEventListener('storage', handleStorage);
 
-  const expiryLabel = useMemo(() => formatRemaining(expiryMs), [expiryMs]);
+    // Resume claim after auth if param is present
+    if (searchParams.get('claimOpen') === '1') {
+      const pendingId = peekEphemeralClaimResume('send');
+      if (pendingId) {
+        const sparksRaw = localStorage.getItem(SEND_SPARK_STORAGE_KEY);
+        if (sparksRaw) {
+          const list = JSON.parse(sparksRaw) as SendSparkRef[];
+          const match = list.find(s => s.id === pendingId);
+          if (match) {
+            setClaimTarget({
+              noteId: match.id,
+              claimSecret: match.deletionSecret,
+              sendKind: match.kind,
+              stashKind: 'send',
+              sendUrl: match.url
+            });
+            setClaimOpen(true);
+            clearEphemeralClaimResume();
+          }
+        }
+      }
+    }
+
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [searchParams]);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
+    else if (e.type === 'dragleave') setDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files?.[0]) {
+      const file = e.dataTransfer.files[0];
+      setSendFile(file);
+      setFileName(file.name);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      const file = e.target.files[0];
+      setSendFile(file);
+      setFileName(file.name);
+    }
+  };
 
   const draftValid = useMemo(() => {
-    switch (kind) {
-      case 'note':
-        return noteBody.trim().length > 0;
-      case 'password':
-        return password.trim().length > 0;
-      case 'task':
-        return taskTitle.trim().length > 0;
-      case 'totp':
-        return totpSecret.trim().length > 0;
-      case 'file':
-        return Boolean(sendFile && sendFile.size > 0 && sendFile.size <= activeMaxBytes);
-      default:
-        return false;
-    }
-  }, [kind, noteBody, password, taskTitle, totpSecret, sendFile, activeMaxBytes]);
+    if (kind === 'note') return noteBody.trim().length > 0;
+    if (kind === 'password') return password.trim().length > 0;
+    if (kind === 'task') return taskTitle.trim().length > 0;
+    if (kind === 'totp') return totpSecret.trim().length > 0;
+    if (kind === 'file') return !!sendFile;
+    if (kind === 'discussion') return noteTitle.trim().length > 0;
+    return false;
+  }, [kind, noteBody, password, taskTitle, totpSecret, sendFile, noteTitle]);
 
   const handleCreateLink = useCallback(async () => {
     setIsCreating(true);
@@ -268,7 +248,7 @@ export function SendComposer() {
       let format: string;
 
       const processData = async (title: string, content: string) => {
-        if (isSecureMode) {
+        if (effectiveSecureMode) {
           const t = await encryptGhostData(title);
           const c = await encryptGhostData(content, t.key);
           noteKey = t.key;
@@ -334,51 +314,34 @@ export function SendComposer() {
         sparkTitle = f.name || 'File';
         const buf = await f.arrayBuffer();
         
-        if (isSecureMode) {
-          const t = await encryptGhostData(sparkTitle);
-          noteKey = t.key;
-          outTitle = t.encrypted;
-          const cipherBytes = encryptGhostBinaryToBytes(buf, noteKey);
-          const uploadBlob = new Blob([cipherBytes.slice()], { type: 'application/octet-stream' });
-          const uploadFile = new File([uploadBlob], 'send.enc', { type: 'application/octet-stream' });
-          const formData = new FormData();
-          formData.append('file', uploadFile);
-          formData.append('bucketId', APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL);
-          const uploaded = await secureUploadFile(formData);
-          sendObjectPayload = {
-            kind: 'file',
-            bucketId: APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
-            fileId: uploaded.$id,
-          };
-          const manifest: SendFilePayload = {
-            bucketId: APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
-            fileId: uploaded.$id,
-            originalName: f.name,
-            mimeType: f.type || 'application/octet-stream',
-            size: f.size,
-          };
-          const c = await encryptGhostData(JSON.stringify(manifest), noteKey);
-          outContent = c.encrypted;
-        } else {
-          outTitle = sparkTitle;
-          const formData = new FormData();
-          formData.append('file', f);
-          formData.append('bucketId', APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL);
-          const uploaded = await secureUploadFile(formData);
-          sendObjectPayload = {
-            kind: 'file',
-            bucketId: APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
-            fileId: uploaded.$id,
-          };
-          const manifest: SendFilePayload = {
-            bucketId: APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
-            fileId: uploaded.$id,
-            originalName: f.name,
-            mimeType: f.type || 'application/octet-stream',
-            size: f.size,
-          };
-          outContent = JSON.stringify(manifest);
-        }
+        // Files are ALWAYS encrypted for security, but metadata/title can be public for previews
+        const t = await encryptGhostData(sparkTitle);
+        noteKey = t.key;
+        outTitle = t.encrypted;
+        
+        const cipherBytes = encryptGhostBinaryToBytes(buf, noteKey);
+        const uploadBlob = new Blob([cipherBytes.slice()], { type: 'application/octet-stream' });
+        const uploadFile = new File([uploadBlob], 'send.enc', { type: 'application/octet-stream' });
+        const formData = new FormData();
+        formData.append('file', uploadFile);
+        formData.append('bucketId', APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL);
+        const uploaded = await secureUploadFile(formData);
+        
+        sendObjectPayload = {
+          kind: 'file',
+          bucketId: APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
+          fileId: uploaded.$id,
+        };
+        const manifest: SendFilePayload = {
+          bucketId: APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
+          fileId: uploaded.$id,
+          originalName: f.name,
+          mimeType: f.type || 'application/octet-stream',
+          size: f.size,
+        };
+        
+        const c = await encryptGhostData(JSON.stringify(manifest), noteKey);
+        outContent = c.encrypted;
         format = 'json';
       } else {
         toast.error('Unsupported send type.');
@@ -443,7 +406,7 @@ export function SendComposer() {
     }
   }, [
     kind,
-    isSecureMode,
+    effectiveSecureMode,
     expiryMs,
     noteTitle,
     noteBody,
@@ -464,28 +427,55 @@ export function SendComposer() {
     try {
       await navigator.clipboard.writeText(createdUrl);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      toast.success('Copied to clipboard');
+      setTimeout(() => setCopied(false), 3000);
     } catch {
-      setCopied(false);
+      /* ignore */
     }
   }, [createdUrl]);
 
-  const onFiles = useCallback((files: FileList | null) => {
-    const f = files?.[0];
-    if (!f) {
-      setSendFile(null);
-      setFileName(null);
-      return;
-    }
-    if (f.size > activeMaxBytes) {
-      toast.error(`Max file size is ${activeMaxLabel}.`);
-      setSendFile(null);
-      setFileName(null);
-      return;
-    }
-    setSendFile(f);
-    setFileName(f.name);
-  }, [activeMaxBytes, activeMaxLabel]);
+  const handleReset = useCallback(() => {
+    setCreatedUrl(null);
+    setNoteTitle('');
+    setNoteBody('');
+    setUsername('');
+    setPassword('');
+    setTaskTitle('');
+    setTaskDetail('');
+    setTotpIssuer('');
+    setTotpSecret('');
+    setSendFile(null);
+    setFileName(null);
+    setSelectedUsers([]);
+  }, []);
+
+  const handleClaimSendSpark = useCallback((spark: SendSparkRef) => {
+    setClaimTarget({
+      noteId: spark.id,
+      claimSecret: spark.deletionSecret,
+      sendKind: spark.kind,
+      stashKind: 'send',
+      sendUrl: spark.url
+    });
+    setClaimOpen(true);
+  }, []);
+
+  const handleSparkConsumed = useCallback((id: string) => {
+    setSendSparks(prev => {
+        const next = prev.filter(s => s.id !== id);
+        localStorage.setItem(SEND_SPARK_STORAGE_KEY, JSON.stringify(next));
+        return next;
+    });
+  }, []);
+
+  const fieldSx = {
+    '& .MuiOutlinedInput-root': { bgcolor: alpha('#fff', 0.03), borderRadius: 2 },
+    '& .MuiInputLabel-root': { color: alpha('#fff', 0.55) },
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: alpha('#fff', 0.12) },
+    '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: alpha('#fff', 0.2) },
+    '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: alpha(PRIMARY, 0.55) },
+    '& .MuiInputBase-input': { color: '#fff' },
+  } as const;
 
   return (
     <Box
@@ -619,7 +609,7 @@ export function SendComposer() {
               >
                 {KINDS.map(({ id, label, blurb, Icon }) => {
                   const selected = kind === id;
-                  const activeColor = isSecureMode ? PRIMARY : '#10B981';
+                  const activeColor = effectiveSecureMode ? PRIMARY : '#10B981';
                   return (
                     <Button
                       key={id}
@@ -698,20 +688,26 @@ export function SendComposer() {
 
               {kind === 'password' && (
                 <Stack spacing={2}>
-                  <TextField label="Username / URL (optional)" fullWidth value={username} onChange={(e) => setUsername(e.target.value)} sx={fieldSx} />
+                  <TextField
+                    label="Username / Email"
+                    fullWidth
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    sx={fieldSx}
+                  />
                   <TextField
                     label="Password"
-                    type="password"
-                    required
                     fullWidth
+                    required
+                    type="text"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     sx={fieldSx}
                   />
                   <TextField
-                    label="Authenticator secret (optional)"
+                    label="TOTP Secret (optional)"
                     fullWidth
-                    placeholder="Base32 — shown as live code for the recipient"
+                    placeholder="JBSWY3DPEHPK3PXP"
                     value={passwordTotpBundle}
                     onChange={(e) => setPasswordTotpBundle(e.target.value)}
                     sx={fieldSx}
@@ -719,14 +715,43 @@ export function SendComposer() {
                 </Stack>
               )}
 
+              {kind === 'totp' && (
+                <Stack spacing={2}>
+                  <TextField
+                    label="Issuer (e.g. Google, AWS)"
+                    fullWidth
+                    value={totpIssuer}
+                    onChange={(e) => setTotpIssuer(e.target.value)}
+                    sx={fieldSx}
+                  />
+                  <TextField
+                    label="Secret Key"
+                    fullWidth
+                    required
+                    placeholder="JBSWY3DPEHPK3PXP"
+                    value={totpSecret}
+                    onChange={(e) => setTotpSecret(e.target.value)}
+                    sx={fieldSx}
+                  />
+                </Stack>
+              )}
+
               {kind === 'task' && (
                 <Stack spacing={2}>
-                  <TextField label="Task title" required fullWidth value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} sx={fieldSx} />
                   <TextField
-                    label="Details (optional)"
+                    label="Task Title"
+                    fullWidth
+                    required
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                    sx={fieldSx}
+                  />
+                  <TextField
+                    label="Task Details"
                     fullWidth
                     multiline
                     minRows={3}
+                    placeholder="Context or sub-steps…"
                     value={taskDetail}
                     onChange={(e) => setTaskDetail(e.target.value)}
                     sx={fieldSx}
@@ -734,67 +759,66 @@ export function SendComposer() {
                 </Stack>
               )}
 
-              {kind === 'totp' && (
-                <Stack spacing={2}>
-                  <TextField label="Issuer (optional)" fullWidth value={totpIssuer} onChange={(e) => setTotpIssuer(e.target.value)} sx={fieldSx} />
-                  <TextField
-                    label="Secret key"
-                    required
-                    fullWidth
-                    placeholder="Base32 secret"
-                    value={totpSecret}
-                    onChange={(e) => setTotpSecret(e.target.value)}
-                    sx={fieldSx}
-                  />
-                  <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)' }}>
-                    Receiver adds this to their authenticator. Same expiry rules apply—treat it like a hot credential.
-                  </Typography>
-                </Stack>
-              )}
-
               {kind === 'file' && (
-                <Box>
-                  <InputLabel sx={{ color: 'rgba(255,255,255,0.55)', mb: 1.25, fontSize: '0.8rem' }}>
-                    Drop one file (encrypted client-side before upload · max {activeMaxLabel})
-                  </InputLabel>
-                  <Paper
-                    onDragEnter={(e) => {
-                      e.preventDefault();
-                      setDragActive(true);
-                    }}
-                    onDragLeave={(e) => {
-                      e.preventDefault();
-                      setDragActive(false);
-                    }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setDragActive(false);
-                      onFiles(e.dataTransfer.files);
-                    }}
-                    sx={{
-                      border: dragActive ? `1px dashed ${alpha(PRIMARY, 0.65)}` : `1px dashed ${alpha('#fff', 0.14)}`,
-                      borderRadius: 2,
-                      p: 4,
-                      textAlign: 'center',
-                      bgcolor: dragActive ? alpha(PRIMARY, 0.08) : alpha(SURFACE_HOVER, 0.35),
-                      cursor: 'pointer',
-                      transition: 'border-color 0.2s, background 0.2s',
-                    }}
-                    component="label"
-                  >
-                    <input type="file" hidden onChange={(e) => onFiles(e.target.files)} />
-                    <Stack spacing={1} alignItems="center">
-                      <Upload size={28} color={PRIMARY} />
-                      <Typography sx={{ fontWeight: 600 }}>Drop or tap to choose</Typography>
-                      <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
-                        Appwrite bucket <Box component="span" sx={{ fontFamily: 'var(--font-mono)', color: alpha('#fff', 0.65) }}>{APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL}</Box> holds ciphertext only; decrypt with the link key.
-                      </Typography>
+                <Box
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                  sx={{
+                    border: `2px dashed ${dragActive ? alpha(PRIMARY, 0.45) : alpha('#fff', 0.1)}`,
+                    borderRadius: 3,
+                    p: 4,
+                    textAlign: 'center',
+                    bgcolor: dragActive ? alpha(PRIMARY, 0.04) : alpha('#fff', 0.01),
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <input
+                    type="file"
+                    id="send-file-input"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="send-file-input" style={{ cursor: 'pointer' }}>
+                    <Stack spacing={1.5} alignItems="center">
+                      <Box
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '50%',
+                          bgcolor: alpha(PRIMARY, 0.1),
+                          color: PRIMARY,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Upload size={24} />
+                      </Box>
+                      <Box>
+                        <Typography sx={{ fontWeight: 700 }}>
+                          {fileName || 'Click or drag file to share'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
+                          Max {activeMaxLabel} · Always end-to-end encrypted
+                        </Typography>
+                      </Box>
                       {fileName && (
-                        <Chip label={fileName} sx={{ mt: 1, bgcolor: alpha('#fff', 0.08), color: '#fff' }} />
+                        <Button
+                          size="small"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSendFile(null);
+                            setFileName(null);
+                          }}
+                          sx={{ color: '#FF453A', textTransform: 'none' }}
+                        >
+                          Remove
+                        </Button>
                       )}
                     </Stack>
-                  </Paper>
+                  </label>
                 </Box>
               )}
             </Paper>
@@ -806,40 +830,52 @@ export function SendComposer() {
                 borderRadius: 3,
                 bgcolor: SURFACE,
                 border: RIM,
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
               }}
             >
-              <Stack spacing={2}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-                  <Typography sx={{ fontWeight: 700 }}>Expires in · {expiryLabel}</Typography>
-                  <Stack direction="row" gap={1} flexWrap="wrap">
-                    {SEND_EXPIRY_PRESETS.map((p) => (
-                      <Chip
-                        key={p.id}
-                        label={p.label}
-                        onClick={() => setExpiryMs(p.ms)}
-                        sx={{
-                          cursor: 'pointer',
-                          bgcolor: expiryMs === p.ms ? alpha(PRIMARY, 0.22) : alpha('#fff', 0.06),
-                          color: '#fff',
-                          border: expiryMs === p.ms ? `1px solid ${alpha(PRIMARY, 0.45)}` : RIM,
-                          fontWeight: 600,
-                        }}
-                      />
-                    ))}
-                  </Stack>
-                </Stack>
-                <Slider
-                  value={expiryMs}
-                  min={5 * 60 * 1000}
-                  max={SEND_MAX_TTL_MS}
-                  step={5 * 60 * 1000}
-                  onChange={(_, v) => setExpiryMs(Array.isArray(v) ? v[0] : v)}
-                  sx={{
-                    color: PRIMARY,
-                    '& .MuiSlider-thumb': { border: `2px solid ${alpha('#fff', 0.85)}` },
-                  }}
-                />
+              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                <InputLabel sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', fontWeight: 600 }}>
+                  Link Expiry
+                </InputLabel>
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 800, color: PRIMARY }}>
+                  {formatRemaining(expiryMs)}
+                </Typography>
               </Stack>
+              <Slider
+                value={expiryMs}
+                min={SEND_EXPIRY_PRESETS[0].ms}
+                max={SEND_MAX_TTL_MS}
+                step={60000}
+                onChange={(_, v) => setExpiryMs(v as number)}
+                sx={{
+                  color: PRIMARY,
+                  '& .MuiSlider-rail': { bgcolor: alpha('#fff', 0.1) },
+                  '& .MuiSlider-thumb': {
+                    width: 14,
+                    height: 14,
+                    bgcolor: '#fff',
+                    boxShadow: `0 0 0 4px ${alpha(PRIMARY, 0.2)}`,
+                    '&:hover, &.Mui-focusVisible': { boxShadow: `0 0 0 8px ${alpha(PRIMARY, 0.3)}` },
+                  },
+                }}
+              />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                {SEND_EXPIRY_PRESETS.map((p) => (
+                  <Button
+                    key={p.id}
+                    size="small"
+                    onClick={() => setExpiryMs(p.ms)}
+                    sx={{
+                      minWidth: 0,
+                      fontSize: '0.7rem',
+                      color: expiryMs === p.ms ? PRIMARY : 'rgba(255,255,255,0.4)',
+                      fontWeight: expiryMs === p.ms ? 800 : 500,
+                    }}
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+              </Box>
             </Paper>
 
             <Paper
@@ -878,98 +914,133 @@ export function SendComposer() {
                 textTransform: 'none',
                 fontWeight: 700,
                 fontSize: '1.05rem',
-                bgcolor: isSecureMode ? PRIMARY : '#10B981',
-                boxShadow: `0 12px 40px ${alpha(isSecureMode ? PRIMARY : '#10B981', 0.35)}`,
-                '&:hover': { bgcolor: isSecureMode ? '#5558E8' : '#059669' },
+                bgcolor: effectiveSecureMode ? PRIMARY : '#10B981',
+                boxShadow: `0 12px 40px ${alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.35)}`,
+                '&:hover': { bgcolor: effectiveSecureMode ? '#5558E8' : '#059669' },
               }}
             >
-              {isCreating ? <CircularProgress size={26} color="inherit" /> : `Create ${isSecureMode ? 'secure' : 'send'} link`}
+              {isCreating ? <CircularProgress size={26} color="inherit" /> : `Create ${effectiveSecureMode ? 'secure' : 'send'} link`}
             </Button>
 
             <Typography sx={{ textAlign: 'center', fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)', px: 2, lineHeight: 1.6 }}>
-              {isSecureMode ? 'Encrypted' : 'Unencrypted'} ghost rows in the note database — same 7-day auto-clearing relay.
-              {isSecureMode && ' The key stays in the link fragment only.'}
+              {effectiveSecureMode ? 'Encrypted' : 'Unencrypted'} ghost rows in the note database — same 7-day auto-clearing relay.
+              {effectiveSecureMode && ' The key stays in the link fragment only.'}
             </Typography>
           </Stack>
         ) : (
           <Paper
             elevation={0}
             sx={{
-              p: { xs: 3, sm: 4 },
-              borderRadius: 3,
+              p: { xs: 3, sm: 5 },
+              borderRadius: 4,
               bgcolor: SURFACE,
               border: RIM,
               textAlign: 'center',
-              boxShadow: `0 24px 80px ${alpha('#000', 0.45)}`,
+              boxShadow: '0 32px 80px rgba(0,0,0,0.4)',
             }}
           >
-            <Typography sx={{ fontFamily: 'var(--font-clash)', fontWeight: 700, fontSize: '1.5rem', mb: 1 }}>
-              Link ready
-            </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.55)', mb: 3, lineHeight: 1.55 }}>
-              Share once. Recipients open instantly with this URL — no account required. The key stays in the link fragment only on your device until you copy it.
-            </Typography>
-
-            <Paper
+            <Box
               sx={{
-                p: 2,
-                borderRadius: 2,
-                bgcolor: alpha('#000', 0.35),
-                border: RIM,
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                bgcolor: alpha(effectiveSecureMode ? PRIMARY : '#10B981', 0.1),
+                color: effectiveSecureMode ? PRIMARY : '#10B981',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1,
+                justifyContent: 'center',
+                mx: 'auto',
                 mb: 3,
               }}
             >
-              <Typography sx={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '0.82rem', wordBreak: 'break-all', textAlign: 'left' }}>
+              <Check size={32} strokeWidth={3} />
+            </Box>
+            <Typography variant="h5" sx={{ fontWeight: 800, mb: 1.5, fontFamily: 'var(--font-clash)' }}>
+              Link is ready to ship
+            </Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.5)', mb: 4, maxWidth: 360, mx: 'auto' }}>
+              Anyone with this link can {effectiveSecureMode ? 'decrypt' : 'view'} the payload. It will vanish automatically in {formatRemaining(expiryMs)}.
+            </Typography>
+
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: alpha('#000', 0.25),
+                border: RIM,
+                mb: 4,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+              }}
+            >
+              <Typography
+                noWrap
+                sx={{
+                  flex: 1,
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.85rem',
+                  color: alpha('#fff', 0.7),
+                  textAlign: 'left',
+                }}
+              >
                 {createdUrl}
               </Typography>
-              <Tooltip title={copied ? 'Copied' : 'Copy'}>
-                <IconButton onClick={handleCopy} sx={{ color: PRIMARY }}>
-                  {copied ? <Check size={20} /> : <Copy size={20} />}
-                </IconButton>
-              </Tooltip>
-            </Paper>
+              <IconButton onClick={handleCopy} size="small" sx={{ color: effectiveSecureMode ? PRIMARY : '#10B981' }}>
+                <Copy size={18} />
+              </IconButton>
+            </Box>
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="center">
-              <Button variant="outlined" component={Link} href="/send" sx={{ textTransform: 'none', fontWeight: 700, borderColor: alpha('#fff', 0.2), color: '#fff' }}>
-                Send another
-              </Button>
               <Button
                 variant="contained"
-                component={Link}
-                href={createdUrl || '#'}
-                sx={{ textTransform: 'none', fontWeight: 700, bgcolor: PRIMARY }}
+                onClick={handleCopy}
+                startIcon={copied ? <Check size={18} /> : <Copy size={18} />}
+                sx={{
+                  px: 4,
+                  py: 1.25,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  bgcolor: effectiveSecureMode ? PRIMARY : '#10B981',
+                  '&:hover': { bgcolor: effectiveSecureMode ? '#5558E8' : '#059669' },
+                }}
               >
-                Preview recipient page
+                {copied ? 'Copied!' : 'Copy Link'}
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={handleReset}
+                sx={{
+                  px: 3,
+                  py: 1.25,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderColor: alpha('#fff', 0.1),
+                  color: alpha('#fff', 0.7),
+                  '&:hover': { borderColor: alpha('#fff', 0.2), bgcolor: alpha('#fff', 0.02) },
+                }}
+              >
+                Create Another
               </Button>
             </Stack>
           </Paper>
         )}
+
+        <Box sx={{ mt: 8, borderTop: RIM, pt: 4, textAlign: 'center' }}>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', letterSpacing: '0.02em' }}>
+            POLYMORPHIC GHOST RELAY · POWERED BY KYLRIX ORGANIZATION
+          </Typography>
+        </Box>
       </Container>
 
       <EphemeralClaimDrawer
         open={claimOpen}
-        onClose={() => {
-          setClaimOpen(false);
-          setClaimTarget(null);
-        }}
+        onClose={() => setClaimOpen(false)}
         target={claimTarget}
-        onConsumed={handleConsumedSendSpark}
+        onConsumed={handleSparkConsumed}
       />
     </Box>
   );
 }
-
-const fieldSx = {
-  '& .MuiOutlinedInput-root': {
-    bgcolor: alpha('#fff', 0.03),
-    borderRadius: 2,
-  },
-  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.55)' },
-  '& .MuiOutlinedInput-notchedOutline': { borderColor: alpha('#fff', 0.12) },
-  '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: alpha('#fff', 0.2) },
-  '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: alpha(PRIMARY, 0.55) },
-  '& .MuiInputBase-input': { color: '#fff' },
-} as const;
