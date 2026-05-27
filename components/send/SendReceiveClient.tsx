@@ -421,19 +421,7 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
   const meta = parseMeta(verifiedNote);
   const isEncrypted = verifiedNote.isEncrypted === true || (meta as any).isEncrypted;
 
-  if (kind === 'discussion') {
-    return (
-      <HuddleChatWindow
-        chatNoteId={noteId}
-        user={user}
-        title={plainTitle || 'Discussion Huddle'}
-        standalone={true}
-        onBack={() => router.push('/send')}
-        expiresAt={meta.expiresAt}
-        shareLink={typeof window !== 'undefined' ? window.location.href : ''}
-      />
-    );
-  }
+
 
   const NoteContent = () => {
     return (
@@ -665,7 +653,19 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#0A0908', color: 'white' }}>
-      <Box sx={{ pt: 4, pb: 4, bgcolor: alpha(themeColor, 0.02), borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+      <Box sx={{ 
+        bgcolor: '#0E0C0A', 
+        borderBottom: '1px solid #1C1A18', 
+        height: '88px', 
+        boxSizing: 'border-box',
+        display: 'flex',
+        alignItems: 'center',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1300
+      }}>
         <Container maxWidth="md">
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
             <Typography variant="body2" sx={{ color: alpha('#FFFFFF', 0.5), fontWeight: 600 }}>
@@ -683,55 +683,67 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
         </Container>
       </Box>
 
-      <Container maxWidth="md" sx={{ py: 8 }}>
-        <NoteContent />
+      {kind === 'discussion' ? (
+        <HuddleChatWindow
+          chatNoteId={noteId}
+          user={user}
+          title={plainTitle || 'Discussion Huddle'}
+          standalone={true}
+          onBack={() => router.push('/send')}
+          expiresAt={meta.expiresAt}
+          shareLink={typeof window !== 'undefined' ? window.location.href : ''}
+        />
+      ) : (
+        <Container maxWidth="md" sx={{ pt: '108px', pb: 8 }}>
+          <NoteContent />
 
-        <Box sx={{ mt: 4 }}>
-          <NoteReactions targetId={noteId} />
-        </Box>
+          <Box sx={{ mt: 4 }}>
+            <NoteReactions targetId={noteId} />
+          </Box>
 
-        <Box sx={{ mt: 4 }}>
-          <CommentsSection noteId={noteId} decryptionKey={keyParam} />
-        </Box>
+          <Box sx={{ mt: 4 }}>
+            <CommentsSection noteId={noteId} decryptionKey={keyParam} />
+          </Box>
 
           <Box sx={{ mt: 8, textAlign: 'center' }}>
-          <Paper
-            sx={{
-              p: 6,
-              borderRadius: '32px',
-              bgcolor: '#161412',
-              border: '1px solid rgba(99, 102, 241, 0.1)',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.02)'
-            }}
-          >
-            <Typography variant="h4" sx={{ fontWeight: 900, mb: 2, fontFamily: 'var(--font-clash)', color: 'white' }}>
-              Create Your Own Notes
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.6)', mb: 4, maxWidth: 500, mx: 'auto' }}>
-              Join thousands of users who trust Kylrix Note to capture, organize, and share their thoughts.
-            </Typography>
-            <Button
-              component={MuiLink}
-              href="/"
-              variant="contained"
-              size="large"
-              endIcon={<ArrowRightIcon />}
-              sx={{ 
-                borderRadius: '16px', 
-                px: 4, 
-                py: 1.5,
-                bgcolor: themeColor,
-                color: '#000',
-                fontWeight: 800,
-                boxShadow: `0 8px 24px ${alpha(themeColor, 0.2)}`,
-                '&:hover': { bgcolor: alpha(themeColor, 0.8) }
+            <Paper
+              sx={{
+                p: 6,
+                borderRadius: '32px',
+                bgcolor: '#161412',
+                border: '1px solid rgba(99, 102, 241, 0.1)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.02)'
               }}
             >
-              Start Writing for Free
-            </Button>
-          </Paper>
-        </Box>
-      </Container>
+              <Typography variant="h4" sx={{ fontWeight: 900, mb: 2, fontFamily: 'var(--font-clash)', color: 'white' }}>
+                Create Your Own Notes
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.6)', mb: 4, maxWidth: 500, mx: 'auto' }}>
+                Join thousands of users who trust Kylrix Note to capture, organize, and share their thoughts.
+              </Typography>
+              <Button
+                component={MuiLink}
+                href="/"
+                variant="contained"
+                size="large"
+                endIcon={<ArrowRightIcon />}
+                sx={{ 
+                  borderRadius: '16px', 
+                  px: 4, 
+                  py: 1.5,
+                  bgcolor: themeColor,
+                  color: '#000',
+                  fontWeight: 800,
+                  boxShadow: `0 8px 24px ${alpha(themeColor, 0.2)}`,
+                  '&:hover': { bgcolor: alpha(themeColor, 0.8) }
+                }}
+              >
+                Start Writing for Free
+              </Button>
+            </Paper>
+          </Box>
+        </Container>
+      )}
     </Box>
   );
 }

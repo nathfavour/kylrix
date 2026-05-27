@@ -530,12 +530,12 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
   return (
     <Box sx={{ 
       bgcolor: '#0A0908', 
-      position: standalone ? 'absolute' : 'fixed',
-      top: standalone ? 0 : '88px', // Start below GlobalShell topbar
+      position: 'fixed',
+      top: '88px', // Start below the main topbar
       bottom: 0,
       left: 0,
       right: 0,
-      zIndex: standalone ? 1 : 1200,
+      zIndex: 1200,
       overflow: 'hidden',
       display: 'flex', 
       flexDirection: 'column', 
