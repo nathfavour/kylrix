@@ -164,6 +164,14 @@ export type Notes = Models.Row & {
     linkedCredentialId?: string | null;
     linkedCredentialIds?: string[] | null;
     linkedSource?: string | null;
+    isPinned?: boolean | null;
+    isEncrypted?: boolean | null;
+    isGhost?: boolean;
+    isThread?: boolean;
+    isChat?: boolean;
+    creatorId?: string | null;
+    resourceId?: string | null;
+    resourceType?: string | null;
 }
 
 export type Tags = Models.Row & {
