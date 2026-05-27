@@ -19,7 +19,7 @@ import { authenticator } from 'otplib';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
-import { ArrowLeft, Check, Copy, Eye, EyeOff, KeyRound, ListTodo, Shield, Sparkles, FileText, Upload } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Eye, EyeOff, KeyRound, ListTodo, Shield, Sparkles, FileText, Upload, MessageSquare } from 'lucide-react';
 
 import Logo from '@/components/Logo';
 import { storage } from '@/lib/appwrite/client';
