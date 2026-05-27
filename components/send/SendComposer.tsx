@@ -504,27 +504,7 @@ export function SendComposer() {
         overflowX: 'hidden',
       }}
     >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 10,
-          borderBottom: '1px solid #34322F',
-          bgcolor: 'rgba(10, 9, 8, 0.8)',
-          backdropFilter: 'blur(20px)',
-        }}
-      >
-        <Container maxWidth="md" sx={{ py: 2, display: 'flex', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Logo variant="icon" size={26} />
-            <Typography sx={{ fontFamily: 'var(--font-clash)', fontWeight: 600, color: '#ffffff', letterSpacing: '-0.02em', fontSize: '1.1rem' }}>
-              Kylrix Send
-            </Typography>
-          </Box>
-        </Container>
-      </Box>
+
 
       <Box
         sx={{

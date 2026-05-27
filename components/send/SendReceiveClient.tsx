@@ -635,47 +635,7 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#0A0908', color: 'white' }}>
-      <AppBar 
-        position="fixed" 
-        sx={{ 
-          bgcolor: '#161412',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-          backgroundImage: 'none'
-        }}
-      >
-        <Toolbar sx={{ justifyContent: 'space-between', maxWidth: 'lg', mx: 'auto', width: '100%', minHeight: '80px' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Logo 
-              app="note" 
-              size={36} 
-              variant="full"
-              sx={{ cursor: 'pointer', fontFamily: 'var(--font-clash)', fontWeight: 900 }}
-              component={NextLink}
-              href="/send"
-            />
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Tooltip title="Refresh">
-              <IconButton onClick={handleManualRefresh} disabled={isRefreshing} sx={{ color: 'rgba(255,255,255,0.4)' }}>
-                <RefreshIcon sx={{ animation: isRefreshing ? `${spin} 1s linear infinite` : 'none' }} />
-              </IconButton>
-            </Tooltip>
-            {!isAuthenticated && (
-                <Button 
-                    component={NextLink} 
-                    href="/" 
-                    variant="contained" 
-                    sx={{ borderRadius: '12px', fontWeight: 800, bgcolor: PRIMARY, color: '#000', textTransform: 'none' }}
-                >
-                    Get Started
-                </Button>
-            )}
-          </Box>
-        </Toolbar>
-      </AppBar>
-
-      <Box sx={{ pt: 12, pb: 4, bgcolor: alpha(PRIMARY, 0.02), borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+      <Box sx={{ pt: 4, pb: 4, bgcolor: alpha(PRIMARY, 0.02), borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
         <Container maxWidth="md">
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
             <Typography variant="body2" sx={{ color: alpha('#FFFFFF', 0.5), fontWeight: 600 }}>
