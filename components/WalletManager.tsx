@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { account, functions } from '@/lib/appwrite';
+import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import {
   Box,
   Button,
@@ -76,7 +77,7 @@ export default function WalletManager({
 
       // 4. Call connect-wallet endpoint for server verification
       const execution = await functions.createExecution(
-        process.env.NEXT_PUBLIC_FUNCTION_ID!,
+        APPWRITE_CONFIG.FUNCTIONS.WEB3_WALLET,
         JSON.stringify({
           userId,
           address: walletAddress,

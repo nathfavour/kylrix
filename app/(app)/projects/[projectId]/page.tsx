@@ -718,7 +718,8 @@ export default function ProjectDetailPage() {
                                     {subProjects.map(sub => (
                                         <Grid size={{ xs: 12 }} key={sub.$id}>
                                             <ResourceItem 
-                                                title={sub.title || sub.name || 'Untitled Project'} 
+                                                title={sub.title || 'Untitled Project'}
+ 
                                                 kind="project"
                                                 metadata={sub.summary || 'Private Container'}
                                                 onOpen={() => router.push(`/projects/${sub.$id}`)}
