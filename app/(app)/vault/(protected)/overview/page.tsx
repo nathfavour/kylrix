@@ -100,11 +100,13 @@ export default function OverviewPage() {
               windowSize,
               0,
               [Query.orderDesc("$updatedAt")],
-            const recentWindowTyped = recentWindow as {
-              documents?: any[];
-              rows?: any[];
-            };
-            const items = recentWindowTyped.rows || [];
+            )
+          );
+          const recentWindowTyped = recentWindow as {
+            documents?: any[];
+            rows?: any[];
+          };
+          const items = recentWindowTyped.rows || [];
 
           const fieldCandidates = [
             "username",
