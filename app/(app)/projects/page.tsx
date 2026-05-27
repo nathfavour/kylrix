@@ -348,7 +348,8 @@ export default function ProjectsPage() {
       
       <Grid container spacing={2}>
         {displayedTemplates.map((template) => (
-          <Grid item xs={12} sm={6} md={4} key={template.title}>
+          <Grid 
+ xs={12} sm={6} md={4} key={template.title}>
             <TemplateCard template={template} onSelect={openCreateDrawer} />
           </Grid>
         ))}
@@ -496,7 +497,8 @@ export default function ProjectsPage() {
         ) : (
             <Grid container spacing={2.5}>
                 {sortedProjects.map(project => (
-                    <Grid item xs={12} sm={6} lg={4} key={project.$id}>
+                    <Grid 
+ xs={12} sm={6} lg={4} key={project.$id}>
                         <ProjectCard 
                             project={project} 
                             onClick={handleProjectClick}

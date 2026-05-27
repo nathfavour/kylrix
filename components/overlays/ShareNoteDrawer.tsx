@@ -185,8 +185,8 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle }: {
                         verified={editingCollaborator.verified}
                     />
                     <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 900, color: 'white', noWrap: true }}>{editingCollaborator.displayName || editingCollaborator.username}</Typography>
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, display: 'block', noWrap: true }}>@{editingCollaborator.username}</Typography>
+                        <Typography noWrap variant="h6" sx={{ fontWeight: 900, color: 'white' }}>{editingCollaborator.displayName || editingCollaborator.username}</Typography>
+                        <Typography noWrap variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, display: 'block' }}>@{editingCollaborator.username}</Typography>
                     </Box>
                 </Stack>
 

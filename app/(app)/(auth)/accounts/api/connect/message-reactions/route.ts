@@ -44,7 +44,7 @@ async function resolveConversationParticipants(databases: ReturnType<typeof crea
 
   const memberRows = await databases.listDocuments(CHAT_DB_ID, CONVERSATION_MEMBERS_TABLE_ID, [
     Query.equal('conversationId', conversation.$id),
-    Query.limit(1000)]).catch(() => ({ documents: [] as any[] }));
+    Query.limit(1000)]).catch(() => ({ documents: [] as any[], rows: [] as any[] }));
 
   return Array.from(new Set<string>(
     (memberRows.rows || [])

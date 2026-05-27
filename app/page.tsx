@@ -716,7 +716,8 @@ export default function LandingPage() {
           />
 
           <Grid container spacing={4} sx={{ position: 'relative' }} alignItems="start">
-            <Grid item xs={12} md={4}>
+            <Grid 
+ xs={12} md={4}>
               <Stack spacing={2} sx={{ position: { xs: 'relative', md: 'sticky' }, top: { md: 118 } }}>
                 <Typography
                   variant="caption"
@@ -767,7 +768,8 @@ export default function LandingPage() {
               </Stack>
             </Grid>
 
-            <Grid item xs={12} md={8}>
+            <Grid 
+ xs={12} md={8}>
               <Stack spacing={2.25}>
                 {livePanels.map((panel, index) => (
                   <LiveSurfaceCard
