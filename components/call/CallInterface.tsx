@@ -355,7 +355,7 @@ export const CallInterface = ({
         loadMessages();
 
         const unsubscribe = client.subscribe(
-            `databases.${APPWRITE_CONFIG.DATABASES.NOTE}.collections.comments.documents`,
+            `databases.${APPWRITE_CONFIG.DATABASES.NOTE}.collections.${APPWRITE_CONFIG.TABLES.NOTE.COMMENTS}.documents`,
             async (response: any) => {
                 if (!active) return;
                 const events = response.events;
@@ -590,7 +590,7 @@ export const CallInterface = ({
         });
 
         const unsubscribe = client.subscribe(
-            `databases.${APPWRITE_CONFIG.DATABASES.CHAT}.collections.${APPWRITE_CONFIG.COLLECTIONS.CHAT.MESSAGES}.documents`,
+            `databases.${APPWRITE_CONFIG.DATABASES.CHAT}.collections.${APPWRITE_CONFIG.TABLES.CHAT.MESSAGES}.documents`,
             (response: any) => {
                 if (response.events.some((e: string) => e.includes('.update') || e.includes('.create'))) {
                     const activity = response.payload;

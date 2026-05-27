@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, Typography, Box, IconButton, Chip, alpha } from '@mui/material';
+import { Card, CardContent, CardHeader, Typography, Box, IconButton, Chip, alpha, useMediaQuery, useTheme } from '@mui/material';
 import { useContextMenu } from './ui/ContextMenuContext';
 import { useDynamicSidebar } from './ui/DynamicSidebar';
 import { NoteDetailSidebar } from './ui/NoteDetailSidebar';
@@ -46,6 +46,8 @@ interface NoteCardProps {
 }
 
 const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete, onNoteSelect }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [mounted, setMounted] = useState(false);
   const [isShareDrawerOpen, setIsShareDrawerOpen] = useState(false);
   const [isDeleteDrawerOpen, setIsDeleteDrawerOpen] = useState(false);
