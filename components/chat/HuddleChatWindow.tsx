@@ -53,14 +53,11 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
   const router = useRouter();
   const { showSuccess, showError } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
-  const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
   // Thread and Reactions states
   const [activeThreadParent, setActiveThreadParent] = useState<any | null>(null);
-  const [threadInputText, setThreadInputText] = useState('');
-  const [sendToGeneralChecked, setSendToGeneralChecked] = useState(true);
   const [messageAnchorEl, setMessageAnchorEl] = useState<{ el: HTMLElement; msg: any } | null>(null);
 
   // Voice recording states and refs
@@ -273,20 +270,39 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
     };
   }, [chatNoteId, user]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim() || sending) return;
+  const handleSendMainMessage = async (text: string) => {
+    if (!text.trim() || sending) return false;
     setSending(true);
 
     try {
       await createComment(chatNoteId, JSON.stringify({
-        text: inputText.trim(),
+        text: text.trim(),
         type: 'text',
         sendToGeneral: true
       }));
-      setInputText('');
+      return true;
     } catch (err) {
       console.error('Failed to send message:', err);
+      return false;
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSendThreadMessage = async (text: string, sendToGeneral: boolean) => {
+    if (!text.trim() || sending || !activeThreadParent) return false;
+    setSending(true);
+    try {
+      await createComment(chatNoteId, JSON.stringify({
+        text: text.trim(),
+        type: 'text',
+        sendToGeneral
+      }), activeThreadParent.id);
+      loadHuddleMessages();
+      return true;
+    } catch (err) {
+      console.error('Failed to send thread reply:', err);
+      return false;
     } finally {
       setSending(false);
     }
@@ -685,120 +701,14 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
             </Box>
 
             {/* Input Bar */}
-            <Box 
-              component="form" 
-              onSubmit={handleSendMessage} 
-              sx={{ 
-                p: { xs: 1.25, sm: 1.5 }, 
-                borderTop: '1px solid rgba(255,255,255,0.05)', 
-                bgcolor: 'rgba(10, 9, 8, 0.95)',
-                backdropFilter: 'blur(12px)',
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                zIndex: 20
-              }}
-            >              <Stack direction="row" spacing={1.5} alignItems="center">
-                <IconButton
-                  onClick={toggleRecording}
-                  disabled={sending}
-                  sx={{
-                    color: isRecording ? '#ff4d4d' : 'rgba(255,255,255,0.4)',
-                    width: 44,
-                    height: 44,
-                    flexShrink: 0,
-                    bgcolor: '#161412',
-                    border: `1px solid ${isRecording ? '#ff4d4d' : 'rgba(255,255,255,0.05)'}`,
-                    borderRadius: '12px',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      bgcolor: '#1C1A18',
-                      borderColor: isRecording ? '#ff4d4d' : '#F59E0B',
-                      color: '#fff',
-                    },
-                  }}
-                >
-                  {isRecording ? <Square size={18} fill="#ff4d4d" /> : <Mic size={20} />}
-                </IconButton>
-
-                <Box sx={{ flexGrow: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  {isRecording && (
-                    <Box sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      bgcolor: '#0A0908',
-                      borderRadius: '12px',
-                      border: '1px solid #ff4d4d',
-                      display: 'flex',
-                      alignItems: 'center',
-                      px: 2,
-                      gap: 2,
-                      zIndex: 2,
-                      animation: 'pulse 2s infinite ease-in-out',
-                    }}>
-                      <Box sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        bgcolor: '#ff4d4d',
-                        animation: 'blink 1s infinite',
-                      }} />
-                      <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, flexGrow: 1 }}>
-                        Recording audio note... click square to send
-                      </Typography>
-                      <Typography sx={{ color: '#ff4d4d', fontSize: '0.85rem', fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
-                        {formatRecordingTime(recordingSeconds)}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  <TextField
-                    fullWidth
-                    size="small"
-                    value={inputText}
-                    disabled={isRecording}
-                    onChange={(e) => setInputText(e.target.value)}
-                    placeholder={isRecording ? "Recording..." : "Type unencrypted huddle message..."}
-                    variant="standard"
-                    InputProps={{
-                      disableUnderline: true,
-                      sx: {
-                        bgcolor: '#161412',
-                        borderRadius: '12px',
-                        color: 'white',
-                        px: 2,
-                        py: 1.25,
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
-                        border: '1px solid rgba(255,255,255,0.05)',
-                        transition: 'all 0.2s ease',
-                        '&:hover': { borderColor: 'rgba(255,255,255,0.1)' },
-                        '&.Mui-focused': { borderColor: '#F59E0B' }
-                      }
-                    }}
-                  />
-                </Box>
-                
-                <IconButton 
-                  type="submit"
-                  disabled={!inputText.trim() || sending || isRecording}
-                  sx={{
-                    bgcolor: '#F59E0B',
-                    color: '#000',
-                    borderRadius: '12px',
-                    width: 44,
-                    height: 44,
-                    flexShrink: 0,
-                    transition: 'all 0.2s ease',
-                    '&:hover': { bgcolor: '#eab308' },
-                    '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,0.1)' }
-                  }}
-                >
-                  <Send size={18} />
-                </IconButton>
-              </Stack>
-            </Box>
+            <HuddleMainInput
+              onSendMessage={handleSendMainMessage}
+              sending={sending}
+              isRecording={isRecording}
+              toggleRecording={toggleRecording}
+              formatRecordingTime={formatRecordingTime}
+              recordingSeconds={recordingSeconds}
+            />
           </Box>
 
           {/* Right Side: Active Thread Panel */}
@@ -1030,104 +940,10 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                 )}
                 <div ref={threadEndRef} />
               </Box>
-
-              <Box 
-                component="form" 
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!threadInputText.trim() || sending) return;
-                  setSending(true);
-                  try {
-                    await createComment(chatNoteId, JSON.stringify({
-                      text: threadInputText.trim(),
-                      type: 'text',
-                      sendToGeneral: sendToGeneralChecked
-                    }), activeThreadParent.id);
-                    setThreadInputText('');
-                    loadHuddleMessages();
-                  } catch (err) {
-                    console.error('Failed to send thread reply:', err);
-                  } finally {
-                    setSending(false);
-                  }
-                }}
-                sx={{ 
-                  p: 1.5, 
-                  borderTop: '1px solid rgba(255,255,255,0.05)', 
-                  bgcolor: 'rgba(10, 9, 8, 0.95)',
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  zIndex: 20
-                }}
-              >                <Stack spacing={1}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <TextField
-                      fullWidth
-                      size="small"
-                      value={threadInputText}
-                      onChange={(e) => setThreadInputText(e.target.value)}
-                      placeholder="Reply in thread..."
-                      variant="standard"
-                      InputProps={{
-                        disableUnderline: true,
-                        sx: {
-                          bgcolor: '#161412',
-                          borderRadius: '8px',
-                          color: 'white',
-                          px: 1.5,
-                          py: 1,
-                          fontWeight: 600,
-                          fontSize: '0.8rem',
-                          border: '1px solid rgba(255,255,255,0.05)'
-                        }
-                      }}
-                    />
-                    <IconButton 
-                      type="submit"
-                      disabled={!threadInputText.trim() || sending}
-                      sx={{
-                        bgcolor: '#F59E0B',
-                        color: '#000',
-                        borderRadius: '8px',
-                        width: 36,
-                        height: 36,
-                        '&:hover': { bgcolor: '#eab308' }
-                      }}
-                    >
-                      <Send size={14} />
-                    </IconButton>
-                  </Stack>
-
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={sendToGeneralChecked}
-                        onChange={(e) => setSendToGeneralChecked(e.target.checked)}
-                        sx={{
-                          color: 'rgba(255,255,255,0.3)',
-                          p: 0.5,
-                          '&.Mui-focused': { color: '#F59E0B' },
-                          '&.Mui-checked': { color: '#F59E0B' }
-                        }}
-                      />
-                    }
-                    label="Also send to huddle"
-                    componentsProps={{
-                      typography: {
-                        sx: {
-                          fontSize: '0.7rem',
-                          fontWeight: 800,
-                          color: 'rgba(255,255,255,0.5)',
-                          userSelect: 'none'
-                        }
-                      }
-                    }}
-                  />
-                </Stack>
-              </Box>
+              <HuddleThreadInput
+                onSendThreadMessage={handleSendThreadMessage}
+                sending={sending}
+              />
             </Box>
           )}
         </Box>
@@ -1273,6 +1089,259 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
           </Stack>
         </Stack>
       </Popover>
+    </Box>
+  );
+}
+
+interface HuddleMainInputProps {
+  onSendMessage: (text: string) => Promise<boolean>;
+  sending: boolean;
+  isRecording: boolean;
+  toggleRecording: () => void;
+  formatRecordingTime: (secs: number) => string;
+  recordingSeconds: number;
+}
+
+function HuddleMainInput({
+  onSendMessage,
+  sending,
+  isRecording,
+  toggleRecording,
+  formatRecordingTime,
+  recordingSeconds
+}: HuddleMainInputProps) {
+  const [inputText, setInputText] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputText.trim() || sending) return;
+    const success = await onSendMessage(inputText);
+    if (success) {
+      setInputText('');
+    }
+  };
+
+  return (
+    <Box 
+      component="form" 
+      onSubmit={handleSubmit} 
+      sx={{ 
+        p: { xs: 1.25, sm: 1.5 }, 
+        borderTop: '1px solid rgba(255,255,255,0.05)', 
+        bgcolor: 'rgba(10, 9, 8, 0.95)',
+        backdropFilter: 'blur(12px)',
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 20
+      }}
+    >
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <IconButton
+          onClick={toggleRecording}
+          disabled={sending}
+          sx={{
+            color: isRecording ? '#ff4d4d' : 'rgba(255,255,255,0.4)',
+            width: 44,
+            height: 44,
+            flexShrink: 0,
+            bgcolor: '#161412',
+            border: `1px solid ${isRecording ? '#ff4d4d' : 'rgba(255,255,255,0.05)'}`,
+            borderRadius: '12px',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              bgcolor: '#1C1A18',
+              borderColor: isRecording ? '#ff4d4d' : '#F59E0B',
+              color: '#fff',
+            },
+          }}
+        >
+          {isRecording ? <Square size={18} fill="#ff4d4d" /> : <Mic size={20} />}
+        </IconButton>
+
+        <Box sx={{ flexGrow: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+          {isRecording && (
+            <Box sx={{
+              position: 'absolute',
+              inset: 0,
+              bgcolor: '#0A0908',
+              borderRadius: '12px',
+              border: '1px solid #ff4d4d',
+              display: 'flex',
+              alignItems: 'center',
+              px: 2,
+              gap: 2,
+              zIndex: 2,
+              animation: 'pulse 2s infinite ease-in-out',
+            }}>
+              <Box sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                bgcolor: '#ff4d4d',
+                animation: 'blink 1s infinite',
+              }} />
+              <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontWeight: 800, flexGrow: 1 }}>
+                Recording audio note... click square to send
+              </Typography>
+              <Typography sx={{ color: '#ff4d4d', fontSize: '0.85rem', fontWeight: 900, fontFamily: 'var(--font-mono)' }}>
+                {formatRecordingTime(recordingSeconds)}
+              </Typography>
+            </Box>
+          )}
+
+          <TextField
+            fullWidth
+            size="small"
+            value={inputText}
+            disabled={isRecording}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder={isRecording ? "Recording..." : "Type unencrypted huddle message..."}
+            variant="standard"
+            InputProps={{
+              disableUnderline: true,
+              sx: {
+                bgcolor: '#161412',
+                borderRadius: '12px',
+                color: 'white',
+                px: 2,
+                py: 1.25,
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                border: '1px solid rgba(255,255,255,0.05)',
+                transition: 'all 0.2s ease',
+                '&:hover': { borderColor: 'rgba(255,255,255,0.1)' },
+                '&.Mui-focused': { borderColor: '#F59E0B' }
+              }
+            }}
+          />
+        </Box>
+        
+        <IconButton 
+          type="submit"
+          disabled={!inputText.trim() || sending || isRecording}
+          sx={{
+            bgcolor: '#F59E0B',
+            color: '#000',
+            borderRadius: '12px',
+            width: 44,
+            height: 44,
+            flexShrink: 0,
+            transition: 'all 0.2s ease',
+            '&:hover': { bgcolor: '#eab308' },
+            '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,0.1)' }
+          }}
+        >
+          <Send size={18} />
+        </IconButton>
+      </Stack>
+    </Box>
+  );
+}
+
+interface HuddleThreadInputProps {
+  onSendThreadMessage: (text: string, sendToGeneral: boolean) => Promise<boolean>;
+  sending: boolean;
+}
+
+function HuddleThreadInput({
+  onSendThreadMessage,
+  sending
+}: HuddleThreadInputProps) {
+  const [threadInputText, setThreadInputText] = useState('');
+  const [sendToGeneralChecked, setSendToGeneralChecked] = useState(true);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!threadInputText.trim() || sending) return;
+    const success = await onSendThreadMessage(threadInputText, sendToGeneralChecked);
+    if (success) {
+      setThreadInputText('');
+    }
+  };
+
+  return (
+    <Box 
+      component="form" 
+      onSubmit={handleSubmit}
+      sx={{ 
+        p: 1.5, 
+        borderTop: '1px solid rgba(255,255,255,0.05)', 
+        bgcolor: 'rgba(10, 9, 8, 0.95)',
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 20
+      }}
+    >
+      <Stack spacing={1}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <TextField
+            fullWidth
+            size="small"
+            value={threadInputText}
+            onChange={(e) => setThreadInputText(e.target.value)}
+            placeholder="Reply in thread..."
+            variant="standard"
+            InputProps={{
+              disableUnderline: true,
+              sx: {
+                bgcolor: '#161412',
+                borderRadius: '8px',
+                color: 'white',
+                px: 1.5,
+                py: 1,
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                border: '1px solid rgba(255,255,255,0.05)'
+              }
+            }}
+          />
+          <IconButton 
+            type="submit"
+            disabled={!threadInputText.trim() || sending}
+            sx={{
+              bgcolor: '#F59E0B',
+              color: '#000',
+              borderRadius: '8px',
+              width: 36,
+              height: 36,
+              '&:hover': { bgcolor: '#eab308' }
+            }}
+          >
+            <Send size={14} />
+          </IconButton>
+        </Stack>
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              size="small"
+              checked={sendToGeneralChecked}
+              onChange={(e) => setSendToGeneralChecked(e.target.checked)}
+              sx={{
+                color: 'rgba(255,255,255,0.3)',
+                p: 0.5,
+                '&.Mui-focused': { color: '#F59E0B' },
+                '&.Mui-checked': { color: '#F59E0B' }
+              }}
+            />
+          }
+          label="Also send to huddle"
+          componentsProps={{
+            typography: {
+              sx: {
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                color: 'rgba(255,255,255,0.5)',
+                userSelect: 'none'
+              }
+            }
+          }}
+        />
+      </Stack>
     </Box>
   );
 }

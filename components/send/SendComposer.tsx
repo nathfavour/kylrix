@@ -130,6 +130,439 @@ function formatRemaining(ms: number): string {
   return `${d} days`;
 }
 
+interface NoteCardProps {
+  noteTitle: string;
+  setNoteTitle: (val: string) => void;
+  noteBody: string;
+  setNoteBody: (val: string) => void;
+  isTitleManuallyEdited: boolean;
+  setIsTitleManuallyEdited: (val: boolean) => void;
+  handleCreateLink: () => Promise<void>;
+  renderHeaderActions: (tooltipText: string) => React.ReactNode;
+  draftValid: boolean;
+  isCreating: boolean;
+  effectiveSecureMode: boolean;
+  themeColor: string;
+}
+
+function NoteComposerCard({
+  noteTitle,
+  setNoteTitle,
+  noteBody,
+  setNoteBody,
+  isTitleManuallyEdited,
+  setIsTitleManuallyEdited,
+  handleCreateLink,
+  renderHeaderActions,
+  draftValid,
+  isCreating,
+  effectiveSecureMode,
+  themeColor
+}: NoteCardProps) {
+  const [localBody, setLocalBody] = useState(noteBody);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setNoteBody(localBody);
+    }, 80);
+    return () => clearTimeout(handler);
+  }, [localBody, setNoteBody]);
+
+  useEffect(() => {
+    if (noteBody === '') {
+      setLocalBody('');
+    }
+  }, [noteBody]);
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        ...cardStyle,
+        p: 0,
+        overflow: 'hidden',
+        '&:focus-within': {
+            borderColor: alpha('#EC4899', 0.45),
+            boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#EC4899', 0.15)}`
+        }
+      }}
+    >
+      {/* Editor Header */}
+      <Box sx={{ 
+          px: 3, 
+          py: 2, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          borderBottom: '1px solid #34322F',
+          bgcolor: alpha('#fff', 0.01)
+      }}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1, 
+              px: 1.5, 
+              py: 0.5, 
+              borderRadius: '8px', 
+              bgcolor: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.05)'
+          }}>
+            <Typography
+                variant="caption"
+                sx={{
+                    color: localBody.length >= 65000 ? '#FF453A' : 'rgba(255, 255, 255, 0.4)',
+                    fontWeight: 700,
+                    fontFamily: 'var(--font-jetbrains-mono)',
+                    letterSpacing: '0.05em'
+                }}
+            >
+                {localBody.length.toLocaleString()} / 65,000
+            </Typography>
+          </Box>
+          {effectiveSecureMode && (
+            <Tooltip title="This content is zero-knowledge encrypted before upload.">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#EC4899' }}>
+                    <Lock size={12} />
+                    <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase' }}>SECURE</Typography>
+                </Box>
+            </Tooltip>
+          )}
+        </Stack>
+
+        {renderHeaderActions("Type a note to share")}
+      </Box>
+
+      {/* Main Inputs */}
+      <Box sx={{ p: { xs: 3, sm: 5 }, pt: { xs: 2.5, sm: 3 } }}>
+        {(localBody.trim().length > 0 || noteTitle.trim().length > 0) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            transition={{ duration: 0.2 }}
+          >
+            <TextField
+              fullWidth
+              placeholder="Note Title"
+              value={noteTitle}
+              onChange={(e) => {
+                setNoteTitle(e.target.value);
+                setIsTitleManuallyEdited(true);
+              }}
+              variant="standard"
+              InputProps={{
+                disableUnderline: true,
+                sx: { 
+                  fontSize: '2.25rem', 
+                  fontWeight: 900, 
+                  fontFamily: 'var(--font-clash)',
+                  color: 'white', 
+                  mb: 1.5,
+                  '&::placeholder': { opacity: 0.2, color: '#ffffff' }
+                }
+              }}
+            />
+          </motion.div>
+        )}
+        <TextField
+          fullWidth
+          required
+          multiline
+          minRows={10}
+          maxRows={20}
+          placeholder="Start typing your brilliant thoughts…"
+          value={localBody}
+          onChange={(e) => setLocalBody(e.target.value)}
+          variant="standard"
+          InputProps={{
+            disableUnderline: true,
+            sx: { 
+              fontSize: '1.1rem', 
+              lineHeight: 1.7,
+              color: 'rgba(255, 255, 255, 0.75)',
+              fontFamily: 'var(--font-satoshi)',
+              '&::placeholder': { opacity: 0.2, color: '#ffffff' }
+            }
+          }}
+        />
+      </Box>
+    </Paper>
+  );
+}
+
+interface DiscussionCardProps {
+  noteTitle: string;
+  setNoteTitle: (val: string) => void;
+  noteBody: string;
+  setNoteBody: (val: string) => void;
+  isTitleManuallyEdited: boolean;
+  setIsTitleManuallyEdited: (val: boolean) => void;
+  handleCreateLink: () => Promise<void>;
+  renderHeaderActions: (tooltipText: string) => React.ReactNode;
+  draftValid: boolean;
+  isCreating: boolean;
+  user: any;
+  themeColor: string;
+}
+
+function DiscussionComposerCard({
+  noteTitle,
+  setNoteTitle,
+  noteBody,
+  setNoteBody,
+  isTitleManuallyEdited,
+  setIsTitleManuallyEdited,
+  handleCreateLink,
+  renderHeaderActions,
+  draftValid,
+  isCreating,
+  user,
+  themeColor
+}: DiscussionCardProps) {
+  const [localBody, setLocalBody] = useState(noteBody);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setNoteBody(localBody);
+    }, 80);
+    return () => clearTimeout(handler);
+  }, [localBody, setNoteBody]);
+
+  useEffect(() => {
+    if (noteBody === '') {
+      setLocalBody('');
+    }
+  }, [noteBody]);
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        ...cardStyle,
+        p: 0,
+        overflow: 'hidden',
+        position: 'relative',
+        '&:focus-within': {
+            borderColor: alpha('#F59E0B', 0.45),
+            boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#F59E0B', 0.15)}`
+        }
+      }}
+    >
+      {/* Mural Pattern Background */}
+      <MuralPattern />
+      
+      {/* Secure Chat Header */}
+      <Box sx={{ 
+          px: 3, 
+          py: 2, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          borderBottom: '1px solid #34322F',
+          bgcolor: alpha('#0A0908', 0.85),
+          backdropFilter: 'blur(8px)',
+          zIndex: 1,
+          position: 'relative',
+      }}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Box sx={{ 
+              width: 8, 
+              height: 8, 
+              borderRadius: '50%', 
+              bgcolor: '#10B981', 
+              boxShadow: '0 0 8px #10B981',
+          }} />
+          <Typography
+              variant="caption"
+              sx={{
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontFamily: 'var(--font-clash)',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+              }}
+          >
+              EPHEMERAL HUDDLE ROOM
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#F59E0B' }}>
+            <Lock size={12} />
+            <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase' }}>E2EE</Typography>
+          </Box>
+        </Stack>
+
+        {renderHeaderActions("Type a message to share")}
+      </Box>
+
+      {/* Simulated Chat Feed */}
+      <Box 
+        sx={{ 
+          p: 3, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 2, 
+          minHeight: 220, 
+          justifyContent: 'flex-end', 
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        {/* System Note */}
+        <Box sx={{ alignSelf: 'center', bgcolor: 'rgba(0,0,0,0.6)', border: RIM, borderRadius: '12px', px: 2, py: 1, maxWidth: '85%', textAlign: 'center' }}>
+          <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-satoshi)', display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+            <Lock size={12} color="#F59E0B" />
+            Messages are encrypted. Huddle automatically purges in 7 days.
+          </Typography>
+        </Box>
+
+        {/* Outgoing Bubble Preview */}
+        {localBody.trim().length > 0 && (
+          <Box sx={{ alignSelf: 'flex-end', maxWidth: '80%', display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+              <Box sx={{ 
+                bgcolor: '#F59E0B', 
+                color: '#0A0908', 
+                px: 2.5, 
+                py: 1.75, 
+                borderRadius: '20px 20px 4px 20px',
+                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)',
+              }}>
+                <Typography sx={{ fontSize: '0.95rem', fontFamily: 'var(--font-satoshi)', whiteSpace: 'pre-wrap', lineHeight: 1.5, fontWeight: 700 }}>
+                  {localBody}
+                </Typography>
+              </Box>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem' }}>
+                <Lock size={10} color="#F59E0B" /> Zero-Knowledge Secured
+              </Typography>
+            </Box>
+            <Box sx={{ 
+              width: 32, 
+              height: 32, 
+              borderRadius: '50%', 
+              bgcolor: '#34322F', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              fontSize: '0.8rem',
+              fontWeight: 900,
+              border: RIM,
+              color: '#ffffff'
+            }}>
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            </Box>
+          </Box>
+        )}
+      </Box>
+
+      {/* Chat Composer Well */}
+      <Box sx={{ 
+        p: 3, 
+        borderTop: '1px solid #34322F', 
+        bgcolor: alpha('#0A0908', 0.95), 
+        backdropFilter: 'blur(8px)',
+        position: 'relative',
+        zIndex: 1,
+      }}>
+        {/* Conditional Topic Field */}
+        {(localBody.trim().length > 0 || noteTitle.trim().length > 0) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            transition={{ duration: 0.2 }}
+          >
+            <Box
+              component={TextField}
+              fullWidth
+              placeholder="Discussion Topic / Room Name"
+              value={noteTitle}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                setNoteTitle(e.target.value);
+                setIsTitleManuallyEdited(true);
+              }}
+              variant="standard"
+              InputProps={{
+                disableUnderline: true,
+                sx: { 
+                  fontSize: '1.25rem', 
+                  fontWeight: 800, 
+                  fontFamily: 'var(--font-clash)',
+                  color: 'white', 
+                  mb: 2,
+                  px: 1,
+                  '&::placeholder': { opacity: 0.3, color: '#ffffff' }
+                }
+              }}
+            />
+          </motion.div>
+        )}
+
+        <Box sx={{ 
+          bgcolor: '#000000', 
+          borderRadius: '16px', 
+          border: '1px solid #34322F',
+          '&:focus-within': { borderColor: '#F59E0B' },
+          p: 1.5,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1
+        }}>
+          <TextField
+            fullWidth
+            required
+            multiline
+            minRows={3}
+            maxRows={10}
+            placeholder="Open the huddle with a clear message…"
+            value={localBody}
+            onChange={(e) => setLocalBody(e.target.value)}
+            variant="standard"
+            InputProps={{
+              disableUnderline: true,
+              sx: { 
+                fontSize: '1rem', 
+                lineHeight: 1.6,
+                color: 'rgba(255, 255, 255, 0.9)',
+                fontFamily: 'var(--font-satoshi)',
+                px: 1,
+                '&::placeholder': { opacity: 0.3, color: '#ffffff' }
+              }
+            }}
+          />
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 1, borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+            <Stack direction="row" spacing={1}>
+              <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#ffffff' } }}>
+                <Paperclip size={16} />
+              </IconButton>
+              <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#ffffff' } }}>
+                <Mic size={16} />
+              </IconButton>
+            </Stack>
+            <Button
+              size="small"
+              disabled={!draftValid || isCreating}
+              onClick={() => void handleCreateLink()}
+              endIcon={isCreating ? <CircularProgress size={14} color="inherit" /> : <SendIcon size={14} />}
+              sx={{
+                bgcolor: draftValid ? '#F59E0B' : 'transparent',
+                color: draftValid ? '#0A0908' : 'rgba(255,255,255,0.2)',
+                textTransform: 'none',
+                fontWeight: 800,
+                borderRadius: '8px',
+                px: 2,
+                py: 0.75,
+                '&:hover': {
+                  bgcolor: draftValid ? '#D97706' : 'transparent',
+                }
+              }}
+            >
+              Share Huddle
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+    </Paper>
+  );
+}
+
 export function SendComposer() {
   const reduceMotion = useReducedMotion();
   const router = useRouter();
@@ -773,345 +1206,37 @@ export function SendComposer() {
             </Box>
 
             {kind === 'note' && (
-              <Paper
-                elevation={0}
-                sx={{
-                  ...cardStyle,
-                  p: 0,
-                  overflow: 'hidden',
-                  '&:focus-within': {
-                      borderColor: alpha('#EC4899', 0.45),
-                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#EC4899', 0.15)}`
-                  }
-                }}
-              >
-                {/* Editor Header */}
-                <Box sx={{ 
-                    px: 3, 
-                    py: 2, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    borderBottom: '1px solid #34322F',
-                    bgcolor: alpha('#fff', 0.01)
-                }}>
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 1, 
-                        px: 1.5, 
-                        py: 0.5, 
-                        borderRadius: '8px', 
-                        bgcolor: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.05)'
-                    }}>
-                      <Typography
-                          variant="caption"
-                          sx={{
-                              color: noteBody.length >= 65000 ? '#FF453A' : 'rgba(255, 255, 255, 0.4)',
-                              fontWeight: 700,
-                              fontFamily: 'var(--font-jetbrains-mono)',
-                              letterSpacing: '0.05em'
-                          }}
-                      >
-                          {noteBody.length.toLocaleString()} / 65,000
-                      </Typography>
-                    </Box>
-                    {effectiveSecureMode && (
-                      <Tooltip title="This content is zero-knowledge encrypted before upload.">
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#EC4899' }}>
-                              <Lock size={12} />
-                              <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase' }}>SECURE</Typography>
-                          </Box>
-                      </Tooltip>
-                    )}
-                  </Stack>
-
-                  {renderHeaderActions("Type a note to share")}
-                </Box>
-
-                {/* Main Inputs */}
-                <Box sx={{ p: { xs: 3, sm: 5 }, pt: { xs: 2.5, sm: 3 } }}>
-                  {(noteBody.trim().length > 0 || noteTitle.trim().length > 0) && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <TextField
-                        fullWidth
-                        placeholder="Note Title"
-                        value={noteTitle}
-                        onChange={(e) => {
-                          setNoteTitle(e.target.value);
-                          setIsTitleManuallyEdited(true);
-                        }}
-                        variant="standard"
-                        InputProps={{
-                          disableUnderline: true,
-                          sx: { 
-                            fontSize: '2.25rem', 
-                            fontWeight: 900, 
-                            fontFamily: 'var(--font-clash)',
-                            color: 'white', 
-                            mb: 1.5,
-                            '&::placeholder': { opacity: 0.2, color: '#ffffff' }
-                          }
-                        }}
-                      />
-                    </motion.div>
-                  )}
-                  <TextField
-                    fullWidth
-                    required
-                    multiline
-                    minRows={10}
-                    maxRows={20}
-                    placeholder="Start typing your brilliant thoughts…"
-                    value={noteBody}
-                    onChange={(e) => setNoteBody(e.target.value)}
-                    variant="standard"
-                    InputProps={{
-                      disableUnderline: true,
-                      sx: { 
-                        fontSize: '1.1rem', 
-                        lineHeight: 1.7,
-                        color: 'rgba(255, 255, 255, 0.75)',
-                        fontFamily: 'var(--font-satoshi)',
-                        '&::placeholder': { opacity: 0.2, color: '#ffffff' }
-                      }
-                    }}
-                  />
-                </Box>
-              </Paper>
+              <NoteComposerCard
+                noteTitle={noteTitle}
+                setNoteTitle={setNoteTitle}
+                noteBody={noteBody}
+                setNoteBody={setNoteBody}
+                isTitleManuallyEdited={isTitleManuallyEdited}
+                setIsTitleManuallyEdited={setIsTitleManuallyEdited}
+                handleCreateLink={handleCreateLink}
+                renderHeaderActions={renderHeaderActions}
+                draftValid={draftValid}
+                isCreating={isCreating}
+                effectiveSecureMode={effectiveSecureMode}
+                themeColor={themeColor}
+              />
             )}
 
             {kind === 'discussion' && (
-              <Paper
-                elevation={0}
-                sx={{
-                  ...cardStyle,
-                  p: 0,
-                  overflow: 'hidden',
-                  position: 'relative',
-                  '&:focus-within': {
-                      borderColor: alpha('#F59E0B', 0.45),
-                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#F59E0B', 0.15)}`
-                  }
-                }}
-              >
-                {/* Mural Pattern Background */}
-                <MuralPattern />
-                
-                {/* Secure Chat Header */}
-                <Box sx={{ 
-                    px: 3, 
-                    py: 2, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    borderBottom: '1px solid #34322F',
-                    bgcolor: alpha('#0A0908', 0.85),
-                    backdropFilter: 'blur(8px)',
-                    zIndex: 1,
-                    position: 'relative',
-                }}>
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Box sx={{ 
-                        width: 8, 
-                        height: 8, 
-                        borderRadius: '50%', 
-                        bgcolor: '#10B981', 
-                        boxShadow: '0 0 8px #10B981',
-                    }} />
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            color: '#ffffff',
-                            fontWeight: 900,
-                            fontFamily: 'var(--font-clash)',
-                            letterSpacing: '0.08em',
-                            textTransform: 'uppercase',
-                        }}
-                    >
-                        EPHEMERAL HUDDLE ROOM
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#F59E0B' }}>
-                      <Lock size={12} />
-                      <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase' }}>E2EE</Typography>
-                    </Box>
-                  </Stack>
-
-                  {renderHeaderActions("Type a message to share")}
-                </Box>
-
-                {/* Simulated Chat Feed */}
-                <Box 
-                  sx={{ 
-                    p: 3, 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    gap: 2, 
-                    minHeight: 220, 
-                    justifyContent: 'flex-end', 
-                    position: 'relative',
-                    zIndex: 1,
-                  }}
-                >
-                  {/* System Note */}
-                  <Box sx={{ alignSelf: 'center', bgcolor: 'rgba(0,0,0,0.6)', border: RIM, borderRadius: '12px', px: 2, py: 1, maxWidth: '85%', textAlign: 'center' }}>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-satoshi)', display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                      <Lock size={12} color="#F59E0B" />
-                      Messages are encrypted. Huddle automatically purges in 7 days.
-                    </Typography>
-                  </Box>
-
-                  {/* Outgoing Bubble Preview */}
-                  {noteBody.trim().length > 0 && (
-                    <Box sx={{ alignSelf: 'flex-end', maxWidth: '80%', display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-                        <Box sx={{ 
-                          bgcolor: '#F59E0B', 
-                          color: '#0A0908', 
-                          px: 2.5, 
-                          py: 1.75, 
-                          borderRadius: '20px 20px 4px 20px',
-                          boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)',
-                        }}>
-                          <Typography sx={{ fontSize: '0.95rem', fontFamily: 'var(--font-satoshi)', whiteSpace: 'pre-wrap', lineHeight: 1.5, fontWeight: 700 }}>
-                            {noteBody}
-                          </Typography>
-                        </Box>
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem' }}>
-                          <Lock size={10} color="#F59E0B" /> Zero-Knowledge Secured
-                        </Typography>
-                      </Box>
-                      <Box sx={{ 
-                        width: 32, 
-                        height: 32, 
-                        borderRadius: '50%', 
-                        bgcolor: '#34322F', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        fontSize: '0.8rem',
-                        fontWeight: 900,
-                        border: RIM,
-                        color: '#ffffff'
-                      }}>
-                        {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                      </Box>
-                    </Box>
-                  )}
-                </Box>
-
-                {/* Chat Composer Well */}
-                <Box sx={{ 
-                  p: 3, 
-                  borderTop: '1px solid #34322F', 
-                  bgcolor: alpha('#0A0908', 0.95), 
-                  backdropFilter: 'blur(8px)',
-                  position: 'relative',
-                  zIndex: 1,
-                }}>
-                  {/* Conditional Topic Field */}
-                  {(noteBody.trim().length > 0 || noteTitle.trim().length > 0) && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <TextField
-                        fullWidth
-                        placeholder="Discussion Topic / Room Name"
-                        value={noteTitle}
-                        onChange={(e) => {
-                          setNoteTitle(e.target.value);
-                          setIsTitleManuallyEdited(true);
-                        }}
-                        variant="standard"
-                        InputProps={{
-                          disableUnderline: true,
-                          sx: { 
-                            fontSize: '1.25rem', 
-                            fontWeight: 800, 
-                            fontFamily: 'var(--font-clash)',
-                            color: 'white', 
-                            mb: 2,
-                            px: 1,
-                            '&::placeholder': { opacity: 0.3, color: '#ffffff' }
-                          }
-                        }}
-                      />
-                    </motion.div>
-                  )}
-
-                  <Box sx={{ 
-                    bgcolor: '#000000', 
-                    borderRadius: '16px', 
-                    border: '1px solid #34322F',
-                    '&:focus-within': { borderColor: '#F59E0B' },
-                    p: 1.5,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 1
-                  }}>
-                    <TextField
-                      fullWidth
-                      required
-                      multiline
-                      minRows={3}
-                      maxRows={10}
-                      placeholder="Open the huddle with a clear message…"
-                      value={noteBody}
-                      onChange={(e) => setNoteBody(e.target.value)}
-                      variant="standard"
-                      InputProps={{
-                        disableUnderline: true,
-                        sx: { 
-                          fontSize: '1rem', 
-                          lineHeight: 1.6,
-                          color: 'rgba(255, 255, 255, 0.9)',
-                          fontFamily: 'var(--font-satoshi)',
-                          px: 1,
-                          '&::placeholder': { opacity: 0.3, color: '#ffffff' }
-                        }
-                      }}
-                    />
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 1, borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                      <Stack direction="row" spacing={1}>
-                        <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#ffffff' } }}>
-                          <Paperclip size={16} />
-                        </IconButton>
-                        <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#ffffff' } }}>
-                          <Mic size={16} />
-                        </IconButton>
-                      </Stack>
-                      <Button
-                        size="small"
-                        disabled={!draftValid || isCreating}
-                        onClick={() => void handleCreateLink()}
-                        endIcon={isCreating ? <CircularProgress size={14} color="inherit" /> : <SendIcon size={14} />}
-                        sx={{
-                          bgcolor: draftValid ? '#F59E0B' : 'transparent',
-                          color: draftValid ? '#0A0908' : 'rgba(255,255,255,0.2)',
-                          textTransform: 'none',
-                          fontWeight: 800,
-                          borderRadius: '8px',
-                          px: 2,
-                          py: 0.75,
-                          '&:hover': {
-                            bgcolor: draftValid ? '#D97706' : 'transparent',
-                          }
-                        }}
-                      >
-                        Share Huddle
-                      </Button>
-                    </Box>
-                  </Box>
-                </Box>
-              </Paper>
+              <DiscussionComposerCard
+                noteTitle={noteTitle}
+                setNoteTitle={setNoteTitle}
+                noteBody={noteBody}
+                setNoteBody={setNoteBody}
+                isTitleManuallyEdited={isTitleManuallyEdited}
+                setIsTitleManuallyEdited={setIsTitleManuallyEdited}
+                handleCreateLink={handleCreateLink}
+                renderHeaderActions={renderHeaderActions}
+                draftValid={draftValid}
+                isCreating={isCreating}
+                user={user}
+                themeColor={themeColor}
+              />
             )}
 
             {kind === 'password' && (
