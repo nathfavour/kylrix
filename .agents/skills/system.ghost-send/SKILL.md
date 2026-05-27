@@ -19,7 +19,7 @@ Every object created via `/send` is a **Ghost Object**.
 -   **Persistence**: If a user wants to keep a Send item, they MUST "Claim" it before the 7-day window expires.
 
 ### 2. Zero-Idle Onboarding
-To maintain momentum and leave no user time idle, unauthenticated traffic to protected sub-apps (`/note`, `/vault`, `/flow`, etc.) is **redirected to `/send`** via middleware. This ensures new users land on a high-value creation surface rather than a login wall.
+To maintain momentum and leave no user time idle, unauthenticated traffic to protected sub-apps (`/note`, `/vault`, `/flow`, etc.) is **redirected to `/send`** via the centralized `AppLayout` (`app/(app)/layout.tsx`). This uses the established `useAuth` hook and ensures new users land on a high-value creation surface rather than a login wall, while keeping internal APIs completely untouched.
 
 ### 3. Forced Encryption (Security First)
 The legacy `/send/secure` sub-route is **ABANDONED**. Everything is unified on `/send` with a dynamic UI toggle.
