@@ -3440,8 +3440,8 @@ export async function validatePublicNoteAccess(noteId: string): Promise<Notes | 
         noteId
       ) as any;
       
-      // Safety check: isPublic MUST be true
-      if (doc && doc.isPublic === true) {
+      // Safety check: isPublic or isGuest MUST be true
+      if (doc && (doc.isPublic === true || doc.isGuest === true)) {
         hydrateVirtualAttributes(doc);
         try {
           const noteTagsTable = APPWRITE_CONFIG.TABLES.NOTE.NOTE_TAGS || 'note_tags';

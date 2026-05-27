@@ -14,7 +14,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
-import { Clock, Copy, ExternalLink, Import, MoreVertical, Trash2 } from 'lucide-react';
+import { Clock, Copy, ExternalLink, Import, MoreVertical, Trash2, FileText, KeyRound, ListTodo, Shield, Upload, MessageSquare, Sparkles } from 'lucide-react';
 
 import type { SendSparkRef } from '@/lib/send/types';
 import toast from 'react-hot-toast';

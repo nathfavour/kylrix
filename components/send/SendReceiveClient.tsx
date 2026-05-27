@@ -118,14 +118,21 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
           throw new Error('This send link needs the full URL including the decryption key.');
         }
 
-        const dk = keyParam!.trim();
-        const plainTitle = await decryptGhostData(note.title || '', dk);
-        const plainContent = await decryptGhostData(note.content || '', dk);
+        const dk = keyParam?.trim() || '';
+        const isEncrypted = note.isEncrypted === true;
+
+        if (isEncrypted && !hasKey) {
+          throw new Error('This send link needs the full URL including the decryption key.');
+        }
+
+        const plainTitle = isEncrypted ? await decryptGhostData(note.title || '', dk) : (note.title || '');
+        const plainContent = isEncrypted ? await decryptGhostData(note.content || '', dk) : (note.content || '');
 
         setTitlePlain(plainTitle);
 
         switch (meta.send_object.kind) {
           case 'note':
+          case 'discussion':
             setNoteMarkdown(plainContent);
             break;
           case 'password': {
@@ -179,10 +186,10 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
             const downloadUrl = storage.getFileDownload(bucketId, fileId);
             const fileRes = await fetch(downloadUrl);
             if (!fileRes.ok) {
-              throw new Error('Could not download encrypted file.');
+              throw new Error('Could not download file.');
             }
-            const encBuf = await fileRes.arrayBuffer();
-            const plainBuf = decryptGhostBinaryFromBytes(encBuf, dk);
+            const fileBuf = await fileRes.arrayBuffer();
+            const plainBuf = isEncrypted ? decryptGhostBinaryFromBytes(fileBuf, dk) : fileBuf;
             const blob = new Blob([plainBuf], { type: manifest.mimeType || 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
             revokeObjectUrl = url;
@@ -366,7 +373,7 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
                 </Box>
               </Stack>
 
-              {kind === 'note' && (
+              {(kind === 'note' || kind === 'discussion') && (
                 <Box
                   sx={{
                     '& p': { mb: 1.5, lineHeight: 1.65 },
@@ -377,6 +384,21 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
                   <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
                     {noteMarkdown}
                   </ReactMarkdown>
+                  
+                  {kind === 'discussion' && (
+                    <Box sx={{ mt: 4, pt: 3, borderTop: RIM }}>
+                      <Button
+                        variant="contained"
+                        component={Link}
+                        href={`/note/shared/${noteId}${keyParam ? `/${keyParam}` : ''}`}
+                        startIcon={<MessageSquare size={18} />}
+                        fullWidth
+                        sx={{ textTransform: 'none', fontWeight: 700, bgcolor: PRIMARY }}
+                      >
+                        Go to Thread
+                      </Button>
+                    </Box>
+                  )}
                 </Box>
               )}
 
