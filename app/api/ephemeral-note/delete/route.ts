@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { verifyCreatorDeletionProof } from '@/lib/ephemeral/ephemeral-proof';
+import { executeCascadeDeleteSecure } from '@/lib/actions/cascade-delete';
 
 /**
  * Burns an ephemeral ghost / Send row (+ Send file blob) using a per-note deletion secret
@@ -45,10 +46,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid deletion proof' }, { status: 403 });
     }
 
-    const sendObj = meta.send_object as { kind?: string; bucketId?: string; fileId?: string } | undefined;
-    if (sendObj?.kind === 'file' && sendObj.bucketId && sendObj.fileId) {
-      await storage.deleteFile(sendObj.bucketId, sendObj.fileId).catch(() => undefined);
-    }
+    // Recursive cleanup for storage files, comments, reactions, etc.
+    await executeCascadeDeleteSecure(dbId, tableId, noteId);
 
     await databases.deleteDocument(dbId, tableId, noteId);
     return NextResponse.json({ success: true });

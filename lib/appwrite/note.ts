@@ -1170,13 +1170,31 @@ export async function createComment(noteId: string, content: string, parentComme
     console.warn('[createComment] Could not fetch note to inherit permissions:', e);
   }
 
+  let finalMetadata = metadata;
+  if (isVoice || content?.startsWith('__voice_note__:')) {
+    let voiceFileId = null;
+    if (content?.startsWith('__voice_note__:')) {
+      voiceFileId = content.substring('__voice_note__:'.length);
+    } else {
+        try {
+            const parsed = JSON.parse(content);
+            if (parsed.voiceFileId) voiceFileId = parsed.voiceFileId;
+        } catch {}
+    }
+    if (voiceFileId) {
+        const metaObj = (() => { try { return JSON.parse(metadata || '{}'); } catch { return {}; } })();
+        metaObj.voiceFileId = voiceFileId;
+        finalMetadata = JSON.stringify(metaObj);
+    }
+  }
+
   const data = {
     noteId,
     content,
     userId: user.$id,
     createdAt: new Date().toISOString(),
     parentCommentId,
-    metadata,
+    metadata: finalMetadata,
     isVoice: isVoice || content?.startsWith('__voice_note__:'),
     isEncrypted
   };

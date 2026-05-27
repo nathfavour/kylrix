@@ -845,7 +845,16 @@ export default function CommentsSection({ noteId }: CommentsProps) {
     if (!text.trim()) return;
 
     try {
-      const comment = await createComment(noteId, text, parentId);
+      let finalContent = text;
+      let isEncrypted = false;
+      
+      if (decryptionKey) {
+        const encrypted = await encryptGhostData(text, decryptionKey);
+        finalContent = encrypted.encrypted;
+        isEncrypted = true;
+      }
+
+      const comment = await createComment(noteId, finalContent, parentId, null, false, isEncrypted);
       const newCommentDoc = comment as unknown as Comments;
       setComments(prev => [...prev, newCommentDoc]);
 
@@ -873,9 +882,14 @@ export default function CommentsSection({ noteId }: CommentsProps) {
 
   const handleUpdateComment = async (commentId: string, content: string) => {
     try {
-      await updateComment(commentId, { content });
+      let finalContent = content;
+      if (decryptionKey) {
+        const encrypted = await encryptGhostData(content, decryptionKey);
+        finalContent = encrypted.encrypted;
+      }
+      await updateComment(commentId, { content: finalContent });
       setComments(prev =>
-        prev.map(c => c.$id === commentId ? { ...c, content } as Comments : c)
+        prev.map(c => c.$id === commentId ? { ...c, content: finalContent } as Comments : c)
       );
     } catch (error: any) {
       console.error('Failed to update comment:', error);
@@ -936,6 +950,7 @@ export default function CommentsSection({ noteId }: CommentsProps) {
               onDelete={handleDeleteComment}
               userMap={userMap}
               noteId={noteId}
+              decryptionKey={decryptionKey}
             />
             <Divider variant="fullWidth" sx={{ my: 1 }} />
           </div>

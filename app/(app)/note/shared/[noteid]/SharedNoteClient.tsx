@@ -1049,7 +1049,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
           </Box>
 
           <Box sx={{ mt: 4 }}>
-            <CommentsSection noteId={noteId} />
+            <CommentsSection noteId={noteId} decryptionKey={key} />
           </Box>
 
           <Box sx={{ mt: 8, textAlign: 'center' }}>
@@ -1214,7 +1214,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
         </Box>
 
         <Box sx={{ mt: 4 }}>
-          <CommentsSection noteId={noteId} />
+          <CommentsSection noteId={noteId} decryptionKey={key} />
         </Box>
 
           <Box sx={{ mt: 8, textAlign: 'center' }}>
