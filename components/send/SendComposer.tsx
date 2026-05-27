@@ -578,13 +578,13 @@ export function SendComposer() {
                     alignItems: 'center',
                     gap: 2
                 }}>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <Stack direction="row" spacing={1.5} alignItems="center">
                         {effectiveSecureMode ? <Lock size={16} color={PRIMARY} /> : <Unlock size={16} color="#10B981" />}
-                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, fontFamily: 'var(--font-satoshi)', color: '#ffffff' }}>
-                            {effectiveSecureMode ? 'Secure Link Sharing' : 'Instant Preview Sharing'}
+                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#ffffff' }}>
+                            {effectiveSecureMode ? 'Zero-Knowledge Sharing' : 'Instant Preview Sharing'}
                         </Typography>
                     </Stack>
-                    {(kind !== 'password' && kind !== 'totp') && (
+                    {!isMandatorySecure && (
                         <Switch 
                             checked={isSecureMode}
                             onChange={(e) => setIsSecureMode(e.target.checked)}

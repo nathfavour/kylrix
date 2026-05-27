@@ -77,6 +77,8 @@ const spin = keyframes`
   to { transform: rotate(360deg); }
 `;
 
+const PRIMARY = '#6366F1';
+
 const readOnlyFieldSx = {
   '& .MuiOutlinedInput-root': { bgcolor: '#000000', borderRadius: '12px' },
   '& .MuiInputLabel-root': { color: '#9B9691', fontFamily: 'var(--font-satoshi)' },
