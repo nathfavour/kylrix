@@ -154,7 +154,10 @@ export const APPWRITE_CONFIG = {
         ACCOUNT_CLEANUP: '69a6c6fc001dc877979d',
         CONNECT_CALL_CLEANUP: '69a6c841000b2c5aaae3',
         DATA_PORTER: 'data-porter',
-        WEB3_WALLET: '68e76f25001e8b80a6c2'
+        WEB3_WALLET: '68e76f25001e8b80a6c2',
+        FLOW_AGENT_ORCHESTRATOR: 'flow-agent-orchestrator',
+        ECOSYSTEM_CONTEXT_AGGREGATOR: 'ecosystem-context-aggregator',
+        AGENT_ACTION_GUARDRAIL: 'agent-action-guardrail'
     },
     SYSTEM: {
         DOMAIN: 'kylrix.space',

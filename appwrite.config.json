@@ -362,6 +362,7 @@
                 "rows.write",
                 "documents.read",
                 "documents.write"
+            ],
             "buildSpecification": "s-0.5vcpu-512mb",
             "runtimeSpecification": "s-0.5vcpu-512mb",
             "deploymentRetention": 0

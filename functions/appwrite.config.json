@@ -323,6 +323,80 @@
             "buildSpecification": "s-0.5vcpu-512mb",
             "runtimeSpecification": "s-0.5vcpu-512mb",
             "deploymentRetention": 0
+        },
+        {
+            "$id": "flow-agent-orchestrator",
+            "name": "flow-agent-orchestrator",
+            "runtime": "node-25",
+            "path": "functions/flow-agent-orchestrator",
+            "entrypoint": "src/main.js",
+            "execute": [],
+            "enabled": true,
+            "logging": true,
+            "events": [
+                "databases.whisperrflow.tables.tasks.rows.*.create"
+            ],
+            "schedule": "",
+            "timeout": 300,
+            "commands": "npm install -g pnpm && pnpm install",
+            "scopes": [
+                "databases.read",
+                "databases.write",
+                "tables.read",
+                "tables.write",
+                "collections.read",
+                "collections.write",
+                "rows.read",
+                "rows.write",
+                "documents.read",
+                "documents.write",
+                "functions.write"
+            ],
+            "buildSpecification": "s-0.5vcpu-512mb",
+            "runtimeSpecification": "s-0.5vcpu-512mb",
+            "deploymentRetention": 0
+        },
+        {
+            "$id": "ecosystem-context-aggregator",
+            "name": "ecosystem-context-aggregator",
+            "runtime": "node-25",
+            "path": "functions/ecosystem-context-aggregator",
+            "entrypoint": "src/main.js",
+            "execute": [],
+            "enabled": true,
+            "logging": true,
+            "events": [],
+            "schedule": "",
+            "timeout": 120,
+            "commands": "npm install -g pnpm && pnpm install",
+            "scopes": [
+                "databases.read",
+                "tables.read",
+                "collections.read",
+                "rows.read",
+                "documents.read"
+            ],
+            "buildSpecification": "s-0.5vcpu-512mb",
+            "runtimeSpecification": "s-0.5vcpu-512mb",
+            "deploymentRetention": 0
+        },
+        {
+            "$id": "agent-action-guardrail",
+            "name": "agent-action-guardrail",
+            "runtime": "node-25",
+            "path": "functions/agent-action-guardrail",
+            "entrypoint": "src/main.js",
+            "execute": [],
+            "enabled": true,
+            "logging": true,
+            "events": [],
+            "schedule": "",
+            "timeout": 60,
+            "commands": "npm install -g pnpm && pnpm install",
+            "scopes": [],
+            "buildSpecification": "s-0.5vcpu-512mb",
+            "runtimeSpecification": "s-0.5vcpu-512mb",
+            "deploymentRetention": 0
         }
     ]
 }
