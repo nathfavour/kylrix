@@ -4419,6 +4419,145 @@ export async function deleteGhostThreadSecure(threadId: string, jwt?: string) {
     return { success: true, result: JSON.parse(JSON.stringify(result)) };
 }
 
+export async function claimSendObjectSecure(payload: {
+  noteId: string;
+  claimSecret: string;
+  decryptedData?: any;
+  jwt: string;
+}) {
+  const actor = await getActor(payload.jwt);
+  if (!actor?.$id) throw new Error('Unauthorized');
+
+  const tables = createSystemTablesDB();
+  const note = await tables.getRow<any>(
+    APPWRITE_CONFIG.DATABASES.NOTE,
+    APPWRITE_CONFIG.TABLES.NOTE.NOTES,
+    payload.noteId
+  );
+
+  const meta = (() => {
+    try { return JSON.parse(note.metadata || '{}'); } catch { return {}; }
+  })();
+
+  if (meta.ghostSecret !== payload.claimSecret) {
+    throw new Error('Invalid claim secret');
+  }
+
+  const kind = meta.send_object?.kind || 'note';
+  const isPaid = hasPaidKylrixPlan(actor as any);
+
+  // 1. Handle Type-Specific Conversions
+  if (kind === 'note') {
+    await tables.updateRow(
+      APPWRITE_CONFIG.DATABASES.NOTE,
+      APPWRITE_CONFIG.TABLES.NOTE.NOTES,
+      note.$id,
+      { 
+        userId: actor.$id,
+        creatorId: actor.$id,
+        isGuest: false,
+        isPublic: true // Default claimed notes to public for now
+      },
+      [
+        Permission.read(Role.user(actor.$id)),
+        Permission.write(Role.user(actor.$id)),
+        Permission.delete(Role.user(actor.$id)),
+        Permission.read(Role.any())
+      ],
+      { forceSystem: true }
+    );
+  } else if (kind === 'task') {
+    const data = payload.decryptedData;
+    if (!data) throw new Error('Decrypted task data required for claim');
+    
+    await tables.createRow(
+      APPWRITE_CONFIG.DATABASES.FLOW,
+      APPWRITE_CONFIG.TABLES.FLOW.TASKS,
+      ID.unique(),
+      {
+        title: data.title,
+        description: data.detail || '',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: data.dueAt || null,
+        userId: actor.$id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      [
+        Permission.read(Role.user(actor.$id)),
+        Permission.write(Role.user(actor.$id)),
+        Permission.delete(Role.user(actor.$id))
+      ],
+      { forceSystem: true }
+    );
+  } else if (kind === 'discussion') {
+    await tables.updateRow(
+      APPWRITE_CONFIG.DATABASES.NOTE,
+      APPWRITE_CONFIG.TABLES.NOTE.NOTES,
+      note.$id,
+      { 
+        isThread: true, 
+        isGuest: false,
+        userId: actor.$id,
+        creatorId: actor.$id 
+      },
+      [
+        Permission.read(Role.user(actor.$id)),
+        Permission.write(Role.user(actor.$id)),
+        Permission.delete(Role.user(actor.$id)),
+        Permission.read(Role.any())
+      ],
+      { forceSystem: true }
+    );
+  } else if (kind === 'file') {
+    if (!isPaid) {
+      throw new Error('PRO_REQUIRED: Kylrix Pro is required to claim files.');
+    }
+    
+    const manifest = payload.decryptedData;
+    if (!manifest?.fileId) throw new Error('File manifest required for claim');
+
+    // Move file to general_storage
+    const sourceBucket = manifest.bucketId || APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL;
+    
+    // Create new private note for the claimed file
+    await tables.createRow(
+      APPWRITE_CONFIG.DATABASES.NOTE,
+      APPWRITE_CONFIG.TABLES.NOTE.NOTES,
+      ID.unique(),
+      {
+        title: note.title,
+        content: '_Imported from Send — see attachments._',
+        userId: actor.$id,
+        creatorId: actor.$id,
+        isGhost: false,
+        isFile: true,
+        metadata: JSON.stringify({
+          send_object: { ...meta.send_object, bucketId: sourceBucket },
+          isEncrypted: note.isEncrypted
+        })
+      },
+      [
+        Permission.read(Role.user(actor.$id)),
+        Permission.write(Role.user(actor.$id)),
+        Permission.delete(Role.user(actor.$id))
+      ],
+      { forceSystem: true }
+    );
+  }
+
+  // 2. Cleanup the Ghost Link (Delete original row)
+  await tables.deleteRow(
+    APPWRITE_CONFIG.DATABASES.NOTE,
+    APPWRITE_CONFIG.TABLES.NOTE.NOTES,
+    payload.noteId,
+    { forceSystem: true }
+  );
+
+  return { success: true, kind };
+}
+
 
 
 

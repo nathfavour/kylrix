@@ -21,7 +21,7 @@ import { useProUpgrade } from '@/context/ProUpgradeContext';
 import { databases, storage } from '@/lib/appwrite/client';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { addAttachmentToNote } from '@/lib/appwrite/note';
-import { createNote } from '@/lib/actions/client-ops';
+import { claimSendObject, createNote } from '@/lib/actions/client-ops';
 import { createCredential, createTotpSecret } from '@/lib/appwrite/vault';
 import type { SendKind } from '@/lib/send/types';
 import type { SendPasswordPayload, SendTaskPayload, SendTotpPayload, SendFilePayload } from '@/lib/send/types';

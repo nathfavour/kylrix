@@ -325,6 +325,12 @@ export async function listGhostNoteChats() {
   return listGhostNoteChatsSecure(jwt);
 }
 
+export async function claimSendObject(payload: { noteId: string; claimSecret: string; decryptedData?: any }) {
+  const jwt = await getJwt();
+  const { claimSendObjectSecure } = await import('./secure-ops');
+  return claimSendObjectSecure({ ...payload, jwt });
+}
+
 export async function deleteGhostThread(threadId: string) {
     const jwt = await getJwt();
     const { deleteGhostThreadSecure } = await import('./secure-ops');
