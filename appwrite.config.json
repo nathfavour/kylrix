@@ -9225,5 +9225,15 @@
             "encryption": true,
             "antivirus": true
         }
+    ],
+    "teams": [
+        {
+            "$id": "users_admin",
+            "$createdAt": "2025-09-26T10:59:00.018+00:00",
+            "$updatedAt": "2025-09-26T10:59:00.018+00:00",
+            "name": "users_admin",
+            "total": 0,
+            "prefs": {}
+        }
     ]
 }
