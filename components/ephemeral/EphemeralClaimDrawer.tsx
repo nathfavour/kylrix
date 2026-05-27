@@ -159,123 +159,84 @@ export function EphemeralClaimDrawer({ open, onClose, target, onConsumed }: Prop
         } catch {
           throw new Error('Invalid file payload.');
         }
-        const bucketId = meta.send_object?.bucketId || manifest.bucketId;
-        const fileId = meta.send_object?.fileId || manifest.fileId;
-        if (!bucketId || !fileId) throw new Error('Missing file reference.');
 
-        const downloadUrl = storage.getFileDownload(bucketId, fileId);
-        const fileRes = await fetch(downloadUrl);
-        if (!fileRes.ok) throw new Error('Could not download ciphertext.');
-        const encBuf = await fileRes.arrayBuffer();
-        const plainBuf = decryptGhostBinaryFromBytes(encBuf, key);
-        const mime = manifest.mimeType || 'application/octet-stream';
-        const blob = new Blob([plainBuf], { type: mime });
-        const file = new File([blob], manifest.originalName || plainTitle || 'file', { type: mime });
-
-        const owned = await createNote({
-          title: plainTitle || manifest.originalName || 'Imported file',
-          content: '_Imported from Send — see attachments._',
-          isPublic: false,
+        await claimSendObject({
+          noteId: target.noteId,
+          claimSecret: target.claimSecret,
+          decryptedData: manifest
         });
-        await addAttachmentToNote(owned.$id, file);
-        await consumeEphemeralRemote(target.noteId, target.claimSecret);
+
         onConsumed(target.noteId);
         toast.success('File saved to a new private note with attachment.');
         handleClose();
         return;
       }
 
-      if (kind === 'note') {
-        await createNote({
-          title: plainTitle || 'Imported note',
-          content: plainContent,
-          isPublic: true,
-          metadata: JSON.stringify({
-            importedFrom: 'kylrix_ephemeral_claim',
-            ephemeralNoteId: target.noteId,
-          }),
-        });
-      } else if (kind === 'task') {
-        let payload: SendTaskPayload;
-        try {
-          payload = JSON.parse(plainContent) as SendTaskPayload;
-        } catch {
-          throw new Error('Invalid task payload.');
-        }
-        const now = new Date().toISOString();
-        await databases.createRow(
-          APPWRITE_CONFIG.DATABASES.FLOW,
-          APPWRITE_CONFIG.TABLES.FLOW.TASKS,
-          ID.unique(),
-          {
-            title: payload.title,
-            description: payload.detail || '',
-            status: 'todo',
-            priority: 'medium',
-            dueDate: payload.dueAt || null,
-            recurrenceRule: null,
-            tags: [],
-            assigneeIds: [],
-            attachmentIds: [],
-            eventId: null,
-            userId: user.$id,
-            parentId: null,
-            createdAt: now,
-            updatedAt: now,
-          },
-          [
-            Permission.read(Role.user(user.$id))],
-        );
-      } else if (kind === 'password') {
-        let payload: SendPasswordPayload;
-        try {
-          payload = JSON.parse(plainContent) as SendPasswordPayload;
-        } catch {
-          throw new Error('Invalid credential payload.');
-        }
+      if (kind === 'password' || kind === 'totp') {
         let totpId: string | null = null;
-        if (payload.totpSecret?.trim()) {
-          const secretKey = payload.totpSecret.replace(/\s+/g, '').toUpperCase();
-          const totpDoc = await createTotpSecret({
+        if (kind === 'password') {
+          let payload: SendPasswordPayload;
+          try {
+            payload = JSON.parse(plainContent) as SendPasswordPayload;
+          } catch {
+            throw new Error('Invalid credential payload.');
+          }
+          if (payload.totpSecret?.trim()) {
+            const secretKey = payload.totpSecret.replace(/\s+/g, '').toUpperCase();
+            const totpDoc = await createTotpSecret({
+              userId: user.$id,
+              issuer: payload.username?.trim() || 'Imported',
+              accountName: payload.username?.trim() || 'Account',
+              secretKey,
+              algorithm: 'SHA1',
+              digits: 6,
+              period: 30,
+            });
+            totpId = totpDoc.$id;
+          }
+          await createCredential({
             userId: user.$id,
-            issuer: payload.username?.trim() || 'Imported',
-            accountName: payload.username?.trim() || 'Account',
+            itemType: 'login',
+            name: payload.username?.trim() || 'Imported login',
+            username: payload.username?.trim() || null,
+            password: payload.password,
+            url: null,
+            totpId,
+          });
+        } else {
+          let payload: SendTotpPayload;
+          try {
+            payload = JSON.parse(plainContent) as SendTotpPayload;
+          } catch {
+            throw new Error('Invalid authenticator payload.');
+          }
+          const secretKey = payload.secret.replace(/\s+/g, '').toUpperCase();
+          await createTotpSecret({
+            userId: user.$id,
+            issuer: payload.issuer?.trim() || 'Imported',
+            accountName: payload.account?.trim() || payload.issuer?.trim() || 'Authenticator',
             secretKey,
             algorithm: 'SHA1',
             digits: 6,
             period: 30,
           });
-          totpId = totpDoc.$id;
         }
-        await createCredential({
-          userId: user.$id,
-          itemType: 'login',
-          name: payload.username?.trim() || 'Imported login',
-          username: payload.username?.trim() || null,
-          password: payload.password,
-          url: null,
-          totpId,
-        });
-      } else if (kind === 'totp') {
-        let payload: SendTotpPayload;
-        try {
-          payload = JSON.parse(plainContent) as SendTotpPayload;
-        } catch {
-          throw new Error('Invalid authenticator payload.');
+        
+        await consumeEphemeralRemote(target.noteId, target.claimSecret);
+      } else {
+        // Handle all other kinds via unified secure action (Notes, Tasks, Discussions)
+        let decryptedData: any = null;
+        if (kind === 'task') {
+          try { decryptedData = JSON.parse(plainContent); } catch { throw new Error('Invalid task data'); }
         }
-        const secretKey = payload.secret.replace(/\s+/g, '').toUpperCase();
-        await createTotpSecret({
-          userId: user.$id,
-          issuer: payload.issuer?.trim() || 'Imported',
-          accountName: payload.account?.trim() || payload.issuer?.trim() || 'Authenticator',
-          secretKey,
-          algorithm: 'SHA1',
-          digits: 6,
-          period: 30,
+        
+        await claimSendObject({
+          noteId: target.noteId,
+          claimSecret: target.claimSecret,
+          decryptedData
         });
       }
 
-      await consumeEphemeralRemote(target.noteId, target.claimSecret);
       onConsumed(target.noteId);
       toast.success('Imported — ephemeral link is gone.');
       handleClose();

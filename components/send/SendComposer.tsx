@@ -102,8 +102,8 @@ export function SendComposer() {
   const { user } = useAuth();
 
   const isPro = useMemo(() => user ? hasPaidKylrixPlan(user) : false, [user]);
-  const activeMaxBytes = isPro ? SEND_MAX_FILE_BYTES_PRO : SEND_MAX_FILE_BYTES_FREE;
-  const activeMaxLabel = isPro ? '100 MB' : '20 MB';
+  const activeMaxBytes = 10 * 1024 * 1024; // Strict 10MB limit for Send
+  const activeMaxLabel = '10 MB';
 
   const [kind, setKind] = useState<SendKind>('note');
   const [expiryMs, setExpiryMs] = useState(SEND_EXPIRY_PRESETS[2].ms);
