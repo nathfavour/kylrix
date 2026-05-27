@@ -470,7 +470,11 @@ function CommentItem({ comment, onReply, onUpdate, onDelete, depth = 0, userMap,
         : undefined;
 
   // Efficient identity fallback using canonized helpers
-  const displayName = isDeleted ? 'Deleted' : getEffectiveDisplayName(commentUser);
+  const displayName = isDeleted 
+    ? 'Deleted' 
+    : isDeviceOwner 
+      ? 'You' 
+      : getEffectiveDisplayName(commentUser);
   const username = isDeleted ? null : getEffectiveUsername(commentUser);
   const profileLink = username ? `${getEcosystemUrl('connect')}/u/${username}` : '#';
 

@@ -60,6 +60,7 @@ import { useRouter } from 'next/navigation';
 import CommentsSection from '@/app/(app)/note/(app)/notes/Comments';
 import NoteReactions from '@/app/(app)/note/(app)/notes/NoteReactions';
 import MuralPattern from '@/components/chat/MuralPattern';
+import { HuddleChatWindow } from '@/components/chat/HuddleChatWindow';
 
 import Logo from '@/components/common/Logo';
 import { getEcosystemUrl } from '@/constants/ecosystem';
@@ -420,168 +421,19 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
   const meta = parseMeta(verifiedNote);
   const isEncrypted = verifiedNote.isEncrypted === true || (meta as any).isEncrypted;
 
+  if (kind === 'discussion') {
+    return (
+      <HuddleChatWindow
+        chatNoteId={noteId}
+        user={user}
+        title={plainTitle || 'Discussion Huddle'}
+        standalone={true}
+        onBack={() => router.push('/send')}
+      />
+    );
+  }
+
   const NoteContent = () => {
-    if (kind === 'discussion') {
-      return (
-        <Paper 
-          elevation={0}
-          sx={{ 
-            borderRadius: '32px', 
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            bgcolor: '#161412',
-            overflow: 'hidden',
-            color: 'white',
-            boxShadow: '0 20px 40px -15px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.05)',
-            position: 'relative'
-          }}
-        >
-          {/* Secure Chat Header */}
-          <Box sx={{ 
-              px: 4, 
-              py: 2.5, 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              borderBottom: '1px solid #34322F',
-              bgcolor: alpha('#0A0908', 0.85),
-              backdropFilter: 'blur(8px)',
-              zIndex: 2,
-              position: 'relative',
-          }}>
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <Box sx={{ 
-                  width: 8, 
-                  height: 8, 
-                  borderRadius: '50%', 
-                  bgcolor: '#10B981', 
-                  boxShadow: '0 0 8px #10B981',
-              }} />
-              <Typography
-                  variant="caption"
-                  sx={{
-                      color: '#ffffff',
-                      fontWeight: 900,
-                      fontFamily: 'var(--font-clash)',
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                  }}
-              >
-                  EPHEMERAL HUDDLE ROOM
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#F59E0B' }}>
-                <Lock size={12} />
-                <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase' }}>
-                  {isEncrypted ? 'E2EE' : 'Secure'}
-                </Typography>
-              </Box>
-            </Stack>
-            
-            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.4)', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-              Vanishes: {new Date(meta.expiresAt || 0).toLocaleDateString()}
-            </Typography>
-          </Box>
-
-          {/* Mural Pattern Background & Chat Room Content */}
-          <Box 
-            sx={{ 
-              position: 'relative', 
-              bgcolor: '#080706',
-              minHeight: 280,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}
-          >
-            <MuralPattern />
-
-            {/* Discussion Topic Box */}
-            <Box sx={{ p: 4, zIndex: 1, position: 'relative', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-              <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff' }}>
-                Topic: {plainTitle || 'Discussion Huddle'}
-              </Typography>
-            </Box>
-
-            {/* Starter Thread Bubble */}
-            <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 2, zIndex: 1, position: 'relative' }}>
-              <Box sx={{ alignSelf: 'flex-start', maxWidth: '85%', display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
-                {/* Avatar for the author */}
-                <Avatar 
-                  src={authorAvatarUrl || undefined}
-                  sx={{ 
-                    width: 38, 
-                    height: 38, 
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    bgcolor: themeColor, 
-                    color: '#000',
-                    fontSize: '0.95rem',
-                    fontWeight: 900,
-                    flexShrink: 0
-                  }}
-                >
-                  {authorProfile ? getEffectiveDisplayName(authorProfile)[0].toUpperCase() : 'U'}
-                </Avatar>
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.5 }}>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800 }}>
-                    {authorProfile ? getEffectiveDisplayName(authorProfile) : 'Collaborator'} · Thread Starter
-                  </Typography>
-                  
-                  <Box sx={{ 
-                    bgcolor: '#161412', 
-                    color: '#F5F2ED', 
-                    p: 2.5, 
-                    borderRadius: '4px 20px 20px 20px',
-                    border: '1px solid #23211F',
-                    borderLeft: `3px solid ${themeColor}`,
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-                    position: 'relative'
-                  }}
-                  >
-                    <IconButton
-                      onClick={handleCopyContent}
-                      size="small"
-                      sx={{
-                        position: 'absolute',
-                        top: 4,
-                        right: 4,
-                        opacity: 0.3,
-                        color: '#fff',
-                        transition: 'all 0.2s',
-                        '&:hover': { opacity: 1, bgcolor: 'rgba(255,255,255,0.05)' }
-                      }}
-                    >
-                      {isCopied ? <CheckIcon sx={{ fontSize: 14 }} /> : <CopyIcon sx={{ fontSize: 14 }} />}
-                    </IconButton>
-
-                    <Typography sx={{ fontSize: '0.98rem', fontFamily: 'var(--font-satoshi)', whiteSpace: 'pre-wrap', lineHeight: 1.6, fontWeight: 600, pr: 2 }}>
-                      {plainContent}
-                    </Typography>
-                  </Box>
-                  
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem', mt: 0.5, fontWeight: 700 }}>
-                    {new Date(verifiedNote.$createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-
-            {/* System Footer Notice inside the card */}
-            <Box sx={{ p: 2, bgcolor: '#161412', borderTop: '1px solid rgba(255, 255, 255, 0.03)', zIndex: 1, position: 'relative' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.3)', fontFamily: 'var(--font-jetbrains-mono)', fontWeight: 700 }}>
-                  RELAY ID: {verifiedNote.$id.toUpperCase()}
-                </Typography>
-                <Typography variant="caption" sx={{ color: themeColor, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--font-clash)' }}>
-                  HUDDLE ROOM · KYLRIX
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-        </Paper>
-      );
-    }
-
     return (
       <Paper 
         elevation={0}

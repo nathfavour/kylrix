@@ -29,13 +29,14 @@ import {
   ChevronLeft,
   Send,
   Users,
+  Edit,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { IdentityAvatar } from '@/components/IdentityBadge';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { Query, AppwriteService } from '@/lib/appwrite';
 import { databases, client } from '@/lib/appwrite/client';
-import { createComment, listComments, createReaction, deleteReaction, listReactions } from '@/lib/appwrite/note';
+import { createComment, listComments, createReaction, deleteReaction, listReactions, updateComment } from '@/lib/appwrite/note';
 import { TargetType } from '@/types/appwrite';
 import MuralPattern from '@/components/chat/MuralPattern';
 import { VoiceMessage } from '@/components/chat/VoiceMessage';
@@ -47,14 +48,57 @@ interface HuddleChatWindowProps {
   title: string;
   participants?: any[];
   onBack?: () => void;
+  standalone?: boolean;
 }
 
-export function HuddleChatWindow({ chatNoteId, user, title, participants = [], onBack }: HuddleChatWindowProps) {
+export function HuddleChatWindow({ chatNoteId, user, title, participants = [], onBack, standalone = false }: HuddleChatWindowProps) {
   const router = useRouter();
   const { showSuccess, showError } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+
+  const [myCommentIds, setMyCommentIds] = useState<string[]>([]);
+  const [editingMessage, setEditingMessage] = useState<any | null>(null);
+  const [editInputText, setEditInputText] = useState('');
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('kylrix_my_comments');
+      if (stored) {
+        setMyCommentIds(JSON.parse(stored));
+      }
+    } catch {}
+  }, []);
+
+  const handleStartEdit = (msg: any) => {
+    setEditingMessage(msg);
+    const parsed = parseMessageContent(msg.content);
+    setEditInputText(parsed.text);
+    setMessageAnchorEl(null);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editInputText.trim() || sending || !editingMessage) return;
+    setSending(true);
+    try {
+      const parsed = parseMessageContent(editingMessage.content);
+      const updatedContent = JSON.stringify({
+        ...parsed,
+        text: editInputText.trim()
+      });
+      await updateComment(editingMessage.id, { content: updatedContent });
+      showSuccess('Message updated');
+      setEditingMessage(null);
+      loadHuddleMessages();
+    } catch (err) {
+      console.error('Failed to update message:', err);
+      showError('Failed to update message');
+    } finally {
+      setSending(false);
+    }
+  };
 
   // Thread and Reactions states
   const [activeThreadParent, setActiveThreadParent] = useState<any | null>(null);
@@ -275,11 +319,22 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
     setSending(true);
 
     try {
-      await createComment(chatNoteId, JSON.stringify({
+      const res = await createComment(chatNoteId, JSON.stringify({
         text: text.trim(),
         type: 'text',
         sendToGeneral: true
       }));
+      if (res && res.$id) {
+        try {
+          const stored = localStorage.getItem('kylrix_my_comments');
+          const list = stored ? JSON.parse(stored) : [];
+          list.push(res.$id);
+          localStorage.setItem('kylrix_my_comments', JSON.stringify(list));
+          setMyCommentIds(list);
+        } catch (e) {
+          console.warn('Failed to save comment ID to local storage:', e);
+        }
+      }
       return true;
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -293,11 +348,22 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
     if (!text.trim() || sending || !activeThreadParent) return false;
     setSending(true);
     try {
-      await createComment(chatNoteId, JSON.stringify({
+      const res = await createComment(chatNoteId, JSON.stringify({
         text: text.trim(),
         type: 'text',
         sendToGeneral
       }), activeThreadParent.id);
+      if (res && res.$id) {
+        try {
+          const stored = localStorage.getItem('kylrix_my_comments');
+          const list = stored ? JSON.parse(stored) : [];
+          list.push(res.$id);
+          localStorage.setItem('kylrix_my_comments', JSON.stringify(list));
+          setMyCommentIds(list);
+        } catch (e) {
+          console.warn('Failed to save comment ID to local storage:', e);
+        }
+      }
       loadHuddleMessages();
       return true;
     } catch (err) {
@@ -388,12 +454,23 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
           setSending(true);
           try {
             const uploaded = await StorageService.uploadFile(audioFile, 'voice');
-            await createComment(chatNoteId, JSON.stringify({
+            const res = await createComment(chatNoteId, JSON.stringify({
               text: 'Voice Note',
               type: 'voice',
               voiceFileId: uploaded.$id,
               sendToGeneral: true
             }));
+            if (res && res.$id) {
+              try {
+                const stored = localStorage.getItem('kylrix_my_comments');
+                const list = stored ? JSON.parse(stored) : [];
+                list.push(res.$id);
+                localStorage.setItem('kylrix_my_comments', JSON.stringify(list));
+                setMyCommentIds(list);
+              } catch (e) {
+                console.warn('Failed to save comment ID to local storage:', e);
+              }
+            }
           } catch (error) {
             console.error('Failed to send voice note comment:', error);
           } finally {
@@ -451,12 +528,12 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
   return (
     <Box sx={{ 
       bgcolor: '#0A0908', 
-      position: 'fixed',
-      top: '88px', // Start below GlobalShell topbar
+      position: standalone ? 'absolute' : 'fixed',
+      top: standalone ? 0 : '88px', // Start below GlobalShell topbar
       bottom: 0,
       left: 0,
       right: 0,
-      zIndex: 1200,
+      zIndex: standalone ? 1 : 1200,
       overflow: 'hidden',
       display: 'flex', 
       flexDirection: 'column', 
@@ -576,14 +653,15 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                 </Box>
               ) : (
                 generalMessages.map((msg) => {
-                  const isSelf = msg.senderId === user?.$id;
+                  const isDeviceOwner = myCommentIds.includes(msg.id);
+                  const isSelf = msg.senderId === user?.$id || isDeviceOwner;
                   const parsed = parseMessageContent(msg.content);
                   const replyCount = threadReplies[msg.id]?.length || 0;
 
                   return (
                     <Box key={msg.id} sx={{ alignSelf: isSelf ? 'flex-end' : 'flex-start', maxWidth: '80%', display: 'flex', flexDirection: 'column' }}>
                       <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, display: 'block', mb: 0.75, textAlign: isSelf ? 'right' : 'left' }}>
-                        {msg.senderName} {msg.parentCommentId && '• Thread Reply'}
+                        {isDeviceOwner ? 'You' : msg.senderName} {msg.parentCommentId && '• Thread Reply'}
                       </Typography>
                       
                       <Paper 
@@ -701,14 +779,85 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
             </Box>
 
             {/* Input Bar */}
-            <HuddleMainInput
-              onSendMessage={handleSendMainMessage}
-              sending={sending}
-              isRecording={isRecording}
-              toggleRecording={toggleRecording}
-              formatRecordingTime={formatRecordingTime}
-              recordingSeconds={recordingSeconds}
-            />
+            {editingMessage ? (
+              <Box 
+                component="form" 
+                onSubmit={handleSaveEdit} 
+                sx={{ 
+                  p: { xs: 1.25, sm: 1.5 }, 
+                  borderTop: '1px solid rgba(255,255,255,0.05)', 
+                  bgcolor: 'rgba(10, 9, 8, 0.95)',
+                  backdropFilter: 'blur(12px)',
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  zIndex: 20
+                }}
+              >
+                <Stack spacing={1}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="caption" sx={{ color: '#F59E0B', fontWeight: 900 }}>
+                      Editing Message
+                    </Typography>
+                    <IconButton size="small" onClick={() => setEditingMessage(null)} sx={{ color: 'rgba(255,255,255,0.4)' }}>
+                      <X size={14} />
+                    </IconButton>
+                  </Stack>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <TextField
+                      fullWidth
+                      size="small"
+                      value={editInputText}
+                      onChange={(e) => setEditInputText(e.target.value)}
+                      variant="standard"
+                      InputProps={{
+                        disableUnderline: true,
+                        sx: {
+                          bgcolor: '#161412',
+                          borderRadius: '12px',
+                          color: 'white',
+                          px: 2,
+                          py: 1.25,
+                          fontWeight: 600,
+                          fontSize: '0.85rem',
+                          border: '1px solid rgba(255,255,255,0.05)',
+                          transition: 'all 0.2s ease',
+                          '&:hover': { borderColor: 'rgba(255,255,255,0.1)' },
+                          '&.Mui-focused': { borderColor: '#F59E0B' }
+                        }
+                      }}
+                    />
+                    <Button
+                      type="submit"
+                      disabled={!editInputText.trim() || sending}
+                      variant="contained"
+                      sx={{
+                        bgcolor: '#F59E0B',
+                        color: '#000',
+                        borderRadius: '12px',
+                        textTransform: 'none',
+                        fontWeight: 800,
+                        px: 3,
+                        py: 1.25,
+                        '&:hover': { bgcolor: '#eab308' }
+                      }}
+                    >
+                      Save
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Box>
+            ) : (
+              <HuddleMainInput
+                onSendMessage={handleSendMainMessage}
+                sending={sending}
+                isRecording={isRecording}
+                toggleRecording={toggleRecording}
+                formatRecordingTime={formatRecordingTime}
+                recordingSeconds={recordingSeconds}
+              />
+            )}
           </Box>
 
           {/* Right Side: Active Thread Panel */}
@@ -767,7 +916,7 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                 '&::-webkit-scrollbar-thumb': { background: 'rgba(255,255,255,0.06)', borderRadius: '10px' }
               }}>
                 <Box sx={{ borderBottom: '1px solid rgba(255,255,255,0.05)', pb: 2, mb: 1 }}>                  <Typography variant="caption" sx={{ color: '#F59E0B', fontWeight: 900, mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Thread initialized by {activeThreadParent.senderName}
+                    Thread initialized by {myCommentIds.includes(activeThreadParent.id) ? 'You' : activeThreadParent.senderName}
                   </Typography>
                   
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -844,19 +993,19 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                     )}
                   </Box>
                 </Box>
-
                 {threadMessages.length === 0 ? (
                   <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.35, py: 4 }}>
                     <Typography variant="caption" sx={{ fontStyle: 'italic', fontWeight: 700 }}>No replies yet. Send a reply below!</Typography>
                   </Box>
                 ) : (
                   threadMessages.map(reply => {
-                    const isSelfReply = reply.senderId === user?.$id;
+                    const isDeviceReply = myCommentIds.includes(reply.id);
+                    const isSelfReply = reply.senderId === user?.$id || isDeviceReply;
                     const parsedReply = parseMessageContent(reply.content);
                     return (
                       <Box key={reply.id} sx={{ alignSelf: isSelfReply ? 'flex-end' : 'flex-start', maxWidth: '85%', display: 'flex', flexDirection: 'column' }}>
                         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, display: 'block', mb: 0.5, textAlign: isSelfReply ? 'right' : 'left' }}>
-                          {reply.senderName}
+                          {isDeviceReply ? 'You' : reply.senderName}
                         </Typography>
                         <Paper
                           elevation={0}
@@ -1056,35 +1205,58 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
             >
               Copy Text
             </Button>
-            {messageAnchorEl?.msg?.senderId === user?.$id && (
-              <Button
-                size="small"
-                startIcon={<Trash2 size={14} />}
-                onClick={async () => {
-                  if (messageAnchorEl?.msg) {
-                    try {
-                      await databases.deleteRow(APPWRITE_CONFIG.DATABASES.NOTE, 'comments', messageAnchorEl.msg.id);
-                      showSuccess('Message deleted');
-                      loadHuddleMessages();
-                    } catch (e) {
-                      console.error('Delete message failed:', e);
+            {(messageAnchorEl?.msg?.senderId === user?.$id || (messageAnchorEl?.msg && myCommentIds.includes(messageAnchorEl.msg.id))) && (
+              <>
+                <Button
+                  size="small"
+                  startIcon={<Edit size={14} />}
+                  onClick={() => {
+                    if (messageAnchorEl?.msg) {
+                      handleStartEdit(messageAnchorEl.msg);
                     }
-                    setMessageAnchorEl(null);
-                  }
-                }}
-                sx={{ 
-                  justifyContent: 'flex-start', 
-                  color: '#FF453A', 
-                  textTransform: 'none', 
-                  fontWeight: 700,
-                  px: 1.5,
-                  py: 0.75,
-                  borderRadius: '8px',
-                  '&:hover': { bgcolor: alpha('#FF453A', 0.08) }
-                }}
-              >
-                Delete Message
-              </Button>
+                  }}
+                  sx={{ 
+                    justifyContent: 'flex-start', 
+                    color: 'rgba(255,255,255,0.7)', 
+                    textTransform: 'none', 
+                    fontWeight: 700,
+                    px: 1.5,
+                    py: 0.75,
+                    borderRadius: '8px',
+                    '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.04)' }
+                  }}
+                >
+                  Edit Message
+                </Button>
+                <Button
+                  size="small"
+                  startIcon={<Trash2 size={14} />}
+                  onClick={async () => {
+                    if (messageAnchorEl?.msg) {
+                      try {
+                        await databases.deleteRow(APPWRITE_CONFIG.DATABASES.NOTE, 'comments', messageAnchorEl.msg.id);
+                        showSuccess('Message deleted');
+                        loadHuddleMessages();
+                      } catch (e) {
+                        console.error('Delete message failed:', e);
+                      }
+                      setMessageAnchorEl(null);
+                    }
+                  }}
+                  sx={{ 
+                    justifyContent: 'flex-start', 
+                    color: '#FF453A', 
+                    textTransform: 'none', 
+                    fontWeight: 700,
+                    px: 1.5,
+                    py: 0.75,
+                    borderRadius: '8px',
+                    '&:hover': { bgcolor: alpha('#FF453A', 0.08) }
+                  }}
+                >
+                  Delete Message
+                </Button>
+              </>
             )}
           </Stack>
         </Stack>
