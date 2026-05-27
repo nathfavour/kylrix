@@ -165,7 +165,7 @@ export default function CreateProjectModal({ open, onClose, onCreated }: CreateP
             </Grid>
 
             {/* Custom Configuration */}
-            <Grid item xs={12} md={7} sx={{ p: 3 }}>
+            <Grid xs={12} md={7} sx={{ p: 3 }}>
                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', mb: 2, display: 'block' }}>
                     Details
                 </Typography>

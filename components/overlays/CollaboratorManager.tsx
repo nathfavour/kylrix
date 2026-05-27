@@ -185,8 +185,8 @@ export function CollaboratorManager({ isOpen, onClose, resourceId, resourceType,
                         verified={editingAssignee.verified}
                     />
                     <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 900, color: 'white', noWrap: true }}>{editingAssignee.displayName || editingAssignee.username}</Typography>
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, display: 'block', noWrap: true }}>@{editingAssignee.username}</Typography>
+                        <Typography noWrap variant="h6" sx={{ fontWeight: 900, color: 'white' }}>{editingAssignee.displayName || editingAssignee.username}</Typography>
+                        <Typography noWrap variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, display: 'block' }}>@{editingAssignee.username}</Typography>
                     </Box>
                 </Stack>
 
