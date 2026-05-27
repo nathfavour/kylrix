@@ -12,11 +12,15 @@ function NoteLandingInner() {
   const searchParams = useSearchParams();
   const { user, isLoading } = useAuth();
 
-  // Redirect signed-in users to the app — unless they are finishing a ghost claim resume.
+  // Redirect immediately to /note/notes (if authenticated) or /send (if unauthenticated)
   useEffect(() => {
     if (searchParams.get('claimOpen') === '1') return;
-    if (!isLoading && user) {
-      router.push('/note/notes');
+    if (!isLoading) {
+      if (user) {
+        router.replace('/note/notes');
+      } else {
+        router.replace('/send');
+      }
     }
   }, [user, isLoading, router, searchParams]);
 

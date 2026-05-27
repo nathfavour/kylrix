@@ -56,6 +56,15 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/note/api/shared') ||
     pathname.startsWith('/note/api/og');
 
+  // Immediate redirect for /note
+  if ((pathname === '/note' || pathname === '/note/') && !isPublicExempt) {
+    if (hasSession) {
+      return NextResponse.redirect(new URL('/note/notes', request.url));
+    } else {
+      return NextResponse.redirect(new URL('/send', request.url));
+    }
+  }
+
   if (isProtected && !hasSession && !isPublicExempt) {
     const loginUrl = new URL('/send', request.url);
     return NextResponse.redirect(loginUrl);
