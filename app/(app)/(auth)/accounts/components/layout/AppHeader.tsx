@@ -27,10 +27,10 @@ import { account, AppwriteService } from '@/lib/appwrite';
 import { useAuth } from '@/context/auth/AuthContext';
 import { fetchProfilePreview, getCachedProfilePreview } from '@/lib/profile-preview';
 import { getUserProfilePicId } from '@/lib/utils';
-import EcosystemPortal from '../EcosystemPortal';
-import { ReferralInfoDrawer } from '../ReferralInfoDrawer';
-import { IdentityAvatar, IdentityName, computeIdentityFlags } from '../IdentityBadge';
-import Logo from '../Logo';
+import EcosystemPortal from '@/components/common/EcosystemPortal';
+import { ReferralInfoDrawer } from '@/components/ReferralInfoDrawer';
+import { IdentityAvatar, IdentityName, computeIdentityFlags } from '@/components/common/IdentityBadge';
+import Logo from '@/components/common/Logo';
 import { useRouter } from 'next/navigation';
 import { getTopbarLogoHref } from '@/lib/sdk';
 

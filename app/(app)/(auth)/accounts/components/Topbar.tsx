@@ -26,8 +26,8 @@ import {
   Wallet,
 } from 'lucide-react';
 
-import Logo from './Logo';
-import { IdentityAvatar } from './IdentityBadge';
+import Logo from '@/components/common/Logo';
+import { IdentityAvatar } from '@/components/common/IdentityBadge';
 import { AppwriteService } from '@/lib/appwrite';
 import { TOPBAR_LAYOUT, getAppTone } from '@/lib/sdk/design';
 import { createEcosystemPanelItems, createTopbarPanelMotion, createTopbarSearchSurface, isTopbarScrollAtBottom, isTopbarScrollAtTop } from '@/lib/sdk/topbar';

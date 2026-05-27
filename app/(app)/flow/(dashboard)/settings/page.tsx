@@ -26,7 +26,7 @@ import {
 } from '@mui/icons-material';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { AppwriteService, getCurrentUser } from '@/lib/appwrite/client';
-import { PasskeySetup } from '@/components/common/PasskeySetup';
+import { PasskeySetup } from '@/components/overlays/PasskeySetup';
 import { DiscoverabilitySettings } from '@/components/settings/DiscoverabilitySettings';
 import toast from 'react-hot-toast';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';

@@ -47,7 +47,7 @@ import { useSudo } from '@/context/SudoContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { DiscoverabilitySettings } from '@/components/settings/DiscoverabilitySettings';
 import { toast } from 'react-hot-toast';
-import { TelegramDrawer } from '@/app/(app)/(auth)/accounts/components/TelegramDrawer';
+import { TelegramDrawer } from '@/components/overlays/TelegramDrawer';
 import { checkTelegramConnection } from '@/lib/actions/telegram';
 import TelegramIcon from '@mui/icons-material/Telegram';
 

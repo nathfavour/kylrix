@@ -2,9 +2,11 @@
 
 import { Box, Typography, alpha } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { UserPresenceState } from '@/lib/services/presence';
 
 const RING_COLORS = ['#6366F1', '#EC4899', '#10B981', '#A855F7', '#F59E0B'];
 const RING_GRADIENT = `conic-gradient(from 180deg, ${RING_COLORS.join(', ')}, #6366F1)`;
+
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 
 export interface IdentitySignals {
@@ -29,12 +31,8 @@ export function computeIdentityFlags(signals: IdentitySignals) {
   return { verified, pro };
 }
 
-import { useCachedProfilePreview } from '@/hooks/useCachedProfilePreview';
-import { generatePattern } from '@/utils/patternGenerator';
-
 export function IdentityAvatar({
   src,
-  fileId,
   alt,
   fallback,
   verified,
@@ -42,12 +40,12 @@ export function IdentityAvatar({
   size = 40,
   verifiedSize = 16,
   borderRadius = '50%',
-  seed,
-  sx,
+  isPreview = false,
   status,
+  sx,
+  fileId,
 }: {
   src?: string | null;
-  fileId?: string | null;
   alt?: string;
   fallback?: string;
   verified?: boolean;
@@ -55,13 +53,25 @@ export function IdentityAvatar({
   size?: number;
   verifiedSize?: number;
   borderRadius?: string | number;
-  seed?: string;
+  isPreview?: boolean;
+  status?: UserPresenceState;
   sx?: any;
-  status?: string;
+  fileId?: string | null;
 }) {
-  const previewUrl = useCachedProfilePreview(fileId || src, size, size);
+  const getStatusColor = (s: UserPresenceState) => {
+      switch (s) {
+          case 'online': return '#10B981';
+          case 'away': return '#F59E0B';
+          case 'busy': return '#EC4899';
+          default: return 'transparent';
+      }
+  };
 
-  return (
+  // If fileId is provided but no src, we should ideally use getProfilePicturePreview
+  // For now we'll just allow it to pass through types
+  const resolvedSrc = src || (fileId ? `/api/avatar/${fileId}` : null);
+
+  const avatar = (
     <Box
       sx={{
         width: size,
@@ -70,7 +80,13 @@ export function IdentityAvatar({
         position: 'relative',
         display: 'grid',
         placeItems: 'center',
-        ...(pro
+        ...(isPreview
+          ? {
+              border: '2px dotted rgba(99, 102, 241, 0.5)',
+              backgroundColor: 'rgba(99, 102, 241, 0.05)',
+              padding: '2px',
+            }
+          : pro
           ? {
               padding: '2px',
               background: RING_GRADIENT,
@@ -84,36 +100,51 @@ export function IdentityAvatar({
     >
       <Box
         component="img"
-        src={previewUrl || undefined}
+        src={resolvedSrc || undefined}
         alt={alt || ''}
         sx={{
           width: '100%',
           height: '100%',
           borderRadius: `calc(${typeof borderRadius === 'number' ? `${borderRadius}px` : borderRadius} - 2px)`,
           objectFit: 'cover',
-          display: previewUrl ? 'block' : 'none',
+          display: resolvedSrc ? 'block' : 'none',
         }}
       />
-      {!previewUrl && (
+      {!resolvedSrc && (
         <Box
           sx={{
             width: '100%',
             height: '100%',
             borderRadius: `calc(${typeof borderRadius === 'number' ? `${borderRadius}px` : borderRadius} - 2px)`,
-            background: generatePattern(seed || fallback || alt || 'default'),
-            color: '#fff',
+            bgcolor: alpha('#6366F1', 0.12),
+            color: '#6366F1',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontWeight: 900,
             fontSize: `${Math.max(11, size / 3)}px`,
-            textShadow: '0 2px 4px rgba(0,0,0,0.2)',
           }}
         >
-          {fallback || alt?.charAt(0).toUpperCase() || 'U'}
+          {fallback || 'U'}
         </Box>
       )}
+      {status && status !== 'offline' && (
+          <Box 
+              sx={{
+                  position: 'absolute',
+                  right: -1,
+                  bottom: -1,
+                  width: Math.max(10, size / 4),
+                  height: Math.max(10, size / 4),
+                  borderRadius: '50%',
+                  bgcolor: getStatusColor(status),
+                  border: '2px solid #161412',
+                  zIndex: 3
+              }}
+          />
+      )}
       {verified && (
+
         <Box
           sx={{
             position: 'absolute',
@@ -133,6 +164,10 @@ export function IdentityAvatar({
       )}
     </Box>
   );
+
+  if (!pro) return avatar;
+
+  return avatar;
 }
 
 export function IdentityName({
