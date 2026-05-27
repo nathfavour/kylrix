@@ -145,6 +145,8 @@ export default function ProjectDetailPage() {
   const [isAddSubProjectModalOpen, setIsAddSubProjectModalOpen] = useState(false);
   const [initializingHuddle, setInitializingHuddle] = useState(false);
   const [discussionMenuAnchor, setDiscussionMenuAnchor] = useState<HTMLElement | null>(null);
+  const [tabMenuAnchorEl, setTabMenuAnchorEl] = useState<{ x: number, y: number } | null>(null);
+  const [activeTabMenuIndex, setActiveTabMenuIndex] = useState<number | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
@@ -176,6 +178,50 @@ export default function ProjectDetailPage() {
     } finally {
       setSavingSettings(false);
     }
+  };
+
+  const tabLongPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const tabTouchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const handleTabContextMenu = (event: React.MouseEvent, index: number) => {
+    event.preventDefault();
+    setTabMenuAnchorEl({ x: event.clientX, y: event.clientY });
+    setActiveTabMenuIndex(index);
+  };
+
+  const handleTabTouchStart = (e: React.TouchEvent, index: number) => {
+    const touch = e.touches[0];
+    tabTouchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+    if (tabLongPressTimerRef.current) clearTimeout(tabLongPressTimerRef.current);
+    const currentTarget = e.currentTarget;
+    tabLongPressTimerRef.current = setTimeout(() => {
+      const rect = currentTarget.getBoundingClientRect();
+      setTabMenuAnchorEl({ x: rect.left + rect.width / 2, y: rect.bottom });
+      setActiveTabMenuIndex(index);
+      if (navigator.vibrate) navigator.vibrate(10);
+    }, 600);
+  };
+
+  const handleTabTouchMove = (e: React.TouchEvent) => {
+    if (!tabTouchStartPosRef.current) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - tabTouchStartPosRef.current.x;
+    const dy = touch.clientY - tabTouchStartPosRef.current.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 10) {
+      if (tabLongPressTimerRef.current) {
+        clearTimeout(tabLongPressTimerRef.current);
+        tabLongPressTimerRef.current = null;
+      }
+      tabTouchStartPosRef.current = null;
+    }
+  };
+
+  const handleTabTouchEnd = () => {
+    if (tabLongPressTimerRef.current) {
+      clearTimeout(tabLongPressTimerRef.current);
+      tabLongPressTimerRef.current = null;
+    }
+    tabTouchStartPosRef.current = null;
   };
 
   const metadata = useMemo(() => {
