@@ -59,6 +59,12 @@ export default function AppLayout({
 
       if (isDashboard) {
         console.log(`[Gatekeeper] Unauthenticated access to dashboard ${path} -> Redirecting to /send`);
+        
+        // Stash the destination so we can offer to return later
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('kylrix_send_redirect_source', path);
+        }
+
         router.replace('/send');
       }
     }

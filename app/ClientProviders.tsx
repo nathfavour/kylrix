@@ -8,6 +8,7 @@ import { ToastProvider } from '@/components/ui/Toast';
 import { UnifiedDrawerProvider } from '@/context/UnifiedDrawerContext';
 import { TaskProvider } from '@/context/TaskContext';
 import { OverlayProvider } from '@/components/ui/OverlayContext';
+import { DynamicSidebarProvider } from '@/components/ui/DynamicSidebarContext';
 
 const ClientToaster = dynamic(() => import('@/components/ClientToaster'), { ssr: false });
 
@@ -36,6 +37,7 @@ const rootProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   UnifiedDrawerProvider,
   TaskProvider,
   OverlayProvider,
+  DynamicSidebarProvider,
   ToastProvider,
 ];
 
