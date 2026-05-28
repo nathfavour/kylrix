@@ -4,6 +4,8 @@ import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth/AuthContext';
 
+import { EcosystemProviders } from './EcosystemProviders';
+
 /**
  * KYLRIX ECOSYSTEM GATEKEEPER
  * 
@@ -62,5 +64,5 @@ export default function AppLayout({
     }
   }, [isAuthenticated, isLoading, pathname, router]);
 
-  return <>{children}</>;
+  return <EcosystemProviders>{children}</EcosystemProviders>;
 }
