@@ -57,6 +57,7 @@ import { ID, Permission, Role } from 'appwrite';
 import { useAuth } from '@/context/auth/AuthContext';
 import { EphemeralClaimDrawer, type EphemeralClaimTarget } from '@/components/ephemeral/EphemeralClaimDrawer';
 import { SendSparkShelf } from '@/components/send/SendSparkShelf';
+import { AuthDiscoveryDrawer } from '@/components/send/AuthDiscoveryDrawer';
 import UserSearch from '@/components/UserSearch';
 import Logo from '@/components/Logo';
 import { AppwriteService } from '@/lib/appwrite';
@@ -2279,6 +2280,7 @@ export function SendComposer() {
         target={claimTarget}
         onConsumed={handleSparkConsumed}
       />
+      <AuthDiscoveryDrawer />
     </Box>
   );
 }
