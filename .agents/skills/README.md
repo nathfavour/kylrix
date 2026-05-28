@@ -20,6 +20,7 @@ single-codebase workflow.
 - `kylrix-drawer-ui`
 - `kylrix-brand`
 - `kylrix-muted-v3-design`
+- `copy.plain-language`
 - `general-brand`
 - `kylrix-appwrite-audit`
 - `kylrix-sdk-consistency`

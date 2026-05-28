@@ -221,7 +221,7 @@ function NoteComposerCard({
             </Typography>
           </Box>
           {effectiveSecureMode && (
-            <Tooltip title="This content is zero-knowledge encrypted before upload.">
+            <Tooltip title="This content is encrypted before upload.">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#EC4899' }}>
                     <Lock size={12} />
                     <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase' }}>SECURE</Typography>
@@ -431,7 +431,7 @@ function DiscussionComposerCard({
                 </Typography>
               </Box>
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem' }}>
-                <Lock size={10} color="#F59E0B" /> Zero-Knowledge Secured
+                <Lock size={10} color="#F59E0B" /> Encrypted
               </Typography>
             </Box>
             <Box sx={{ 
@@ -1144,7 +1144,7 @@ export function SendComposer() {
                 fontSize: { xs: '2rem', md: '2.75rem' },
               }}
             >
-              {effectiveSecureMode ? "Zero-Knowledge Sharing" : "Instant Preview Sharing"}
+              {effectiveSecureMode ? "Private Sharing" : "Public Preview"}
             </Typography>
             <Typography sx={{ color: 'rgba(255,255,255,0.62)', maxWidth: 520, mx: 'auto', lineHeight: 1.6 }}>
               {effectiveSecureMode ? 
@@ -1200,7 +1200,7 @@ export function SendComposer() {
                     '&:hover': { bgcolor: SURFACE_HOVER, borderColor: alpha(KIND_COLORS[kind], 0.55) },
                   }}
                 >
-                  {effectiveSecureMode ? 'Zero-Knowledge Sharing' : 'Instant Preview Sharing'}
+                  {effectiveSecureMode ? 'Private Sharing' : 'Public Preview'}
                 </Button>
               )}
             </Box>
@@ -1278,7 +1278,7 @@ export function SendComposer() {
                   
                   <Stack direction="row" spacing={1.5} alignItems="center">
                     {/* Glowing state indicator */}
-                    <Tooltip title="High Entropy Cryptographic Seal Active">
+                    <Tooltip title="Secure link active">
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: alpha('#10B981', 0.08), border: `1px solid ${alpha('#10B981', 0.2)}`, px: 1, py: 0.5, borderRadius: '6px' }}>
                         <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10B981', boxShadow: '0 0 6px #10B981' }} />
                         <Typography sx={{ fontSize: '0.6rem', fontWeight: 900, color: '#10B981', letterSpacing: '0.05em' }}>SEALED</Typography>
@@ -1862,11 +1862,11 @@ export function SendComposer() {
                 }
               }}
             >
-              {isCreating ? <CircularProgress size={26} color="inherit" /> : `Create ${effectiveSecureMode ? 'Zero-Knowledge' : 'Send'} Link`}
+              {isCreating ? <CircularProgress size={26} color="inherit" /> : `Create ${effectiveSecureMode ? 'Secure' : 'Send'} Link`}
             </Button>
 
             <Typography sx={{ textAlign: 'center', fontSize: '0.8rem', color: '#9B9691', px: 2, lineHeight: 1.6, fontFamily: 'var(--font-satoshi)' }}>
-              {effectiveSecureMode ? 'Encrypted' : 'Unencrypted'} ghost rows in the note database — same 7-day auto-clearing relay.
+              {effectiveSecureMode ? 'Encrypted' : 'Unencrypted'} rows in the note database — they clear automatically after 7 days.
               {effectiveSecureMode && ' The key stays in the link fragment only.'}
             </Typography>
           </Stack>
@@ -1899,7 +1899,7 @@ export function SendComposer() {
               <Check size={36} strokeWidth={3} />
             </Box>
             <Typography variant="h4" sx={{ fontWeight: 900, mb: 1.5, fontFamily: 'var(--font-clash)', color: '#ffffff' }}>
-              Relay Link Generated
+              Link Created
             </Typography>
             <Typography sx={{ color: '#9B9691', mb: 4, maxWidth: 360, mx: 'auto', fontFamily: 'var(--font-satoshi)' }}>
               Anyone with this link can {effectiveSecureMode ? 'decrypt' : 'view'} the payload. It will vanish automatically in {formatRemaining(expiryMs)}.
@@ -1989,7 +1989,7 @@ export function SendComposer() {
 
         <Box sx={{ mt: 10, borderTop: RIM, pt: 5, textAlign: 'center' }}>
           <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', fontWeight: 900, textTransform: 'uppercase', fontFamily: 'var(--font-clash)' }}>
-            Universal Polymorphic Ghost Relay · Powered by Kylrix Organization
+            Secure Send · Powered by Kylrix
           </Typography>
         </Box>
       </Container>
@@ -2112,8 +2112,8 @@ export function SendComposer() {
                 <Lock size={20} />
               </ListItemIcon>
               <ListItemText
-                primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: isSecureMode ? '#ffffff' : 'rgba(255,255,255,0.8)' }}>Zero-Knowledge Sharing</Typography>}
-                secondary={<Typography sx={{ fontSize: '0.75rem', color: isSecureMode ? alpha(themeColor, 0.7) : 'rgba(255,255,255,0.4)', mt: 0.5 }}>End-to-end encrypted before upload. We never see your data.</Typography>}
+                primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: isSecureMode ? '#ffffff' : 'rgba(255,255,255,0.8)' }}>Private Sharing</Typography>}
+                secondary={<Typography sx={{ fontSize: '0.75rem', color: isSecureMode ? alpha(themeColor, 0.7) : 'rgba(255,255,255,0.4)', mt: 0.5 }}>Encrypted before upload. Only people with the link can open it.</Typography>}
               />
             </ListItemButton>
 
@@ -2134,8 +2134,8 @@ export function SendComposer() {
                 <Unlock size={20} />
               </ListItemIcon>
               <ListItemText
-                primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: !isSecureMode ? '#ffffff' : 'rgba(255,255,255,0.8)' }}>Instant Preview Sharing</Typography>}
-                secondary={<Typography sx={{ fontSize: '0.75rem', color: !isSecureMode ? alpha('#10B981', 0.7) : 'rgba(255,255,255,0.4)', mt: 0.5 }}>Fast, unencrypted previews. Perfect for public sharing.</Typography>}
+                primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: !isSecureMode ? '#ffffff' : 'rgba(255,255,255,0.8)' }}>Public Preview</Typography>}
+                secondary={<Typography sx={{ fontSize: '0.75rem', color: !isSecureMode ? alpha('#10B981', 0.7) : 'rgba(255,255,255,0.4)', mt: 0.5 }}>Fast previews for links that do not need protection.</Typography>}
               />
             </ListItemButton>
           </Stack>
@@ -2170,7 +2170,7 @@ export function SendComposer() {
             Link Expiry
           </Typography>
           <Typography sx={{ fontSize: '0.8rem', color: '#9B9691', mb: 3, fontFamily: 'var(--font-satoshi)' }}>
-            Choose when your polymorphic secure link will automatically purge from the servers.
+            Choose when this link should expire and be removed from the server.
           </Typography>
           
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>

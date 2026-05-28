@@ -463,7 +463,7 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
                         {kind === 'file' ? fileManifest?.originalName || plainTitle || 'File' : plainTitle || 'Untitled'}
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                          {kind} · {isEncrypted ? 'Zero-Knowledge' : 'Preview Link'}
+                          {kind} · {isEncrypted ? 'Private' : 'Preview'}
                       </Typography>
                    </Box>
               </Stack>
@@ -493,7 +493,7 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'rgba(255, 255, 255, 0.4)' }}>
                 <EyeIcon sx={{ fontSize: 16 }} />
-                <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: 'var(--font-satoshi)' }}>Relay Active</Typography>
+                <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: 'var(--font-satoshi)' }}>Link Active</Typography>
               </Box>
               {authorProfile && (
                 <MuiLink 
@@ -640,10 +640,10 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
         <Box sx={{ p: 3, bgcolor: '#161412', borderTop: '1px solid rgba(255, 255, 255, 0.03)' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.3)', fontFamily: 'var(--font-jetbrains-mono)', fontWeight: 700 }}>
-              RELAY ID: {verifiedNote.$id.toUpperCase()}
+              LINK ID: {verifiedNote.$id.toUpperCase()}
             </Typography>
             <Typography variant="caption" sx={{ color: themeColor, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--font-clash)' }}>
-              SECURE RELAY · KYLRIX
+              SECURE LINK · KYLRIX
             </Typography>
           </Box>
         </Box>
@@ -669,7 +669,7 @@ export function SendReceiveClient({ noteId, keyParam }: Props) {
         <Container maxWidth="md">
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
             <Typography variant="body2" sx={{ color: alpha('#FFFFFF', 0.5), fontWeight: 600 }}>
-              {isEncrypted ? 'This link is protected by zero-knowledge encryption.' : 'You are viewing a public preview of a shared item.'}
+              {isEncrypted ? 'This link is protected by encryption.' : 'You are viewing a public preview of a shared item.'}
             </Typography>
             <Button 
               component={NextLink}
