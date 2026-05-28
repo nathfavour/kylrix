@@ -1062,6 +1062,39 @@ export async function verifyResourcePermissionSecure(params: {
     return true;
   }
 
+  // 0. Inherited Project Ownership
+  // If this resource is explicitly linked to a project, the project owner inherits full control.
+  if (actorId && row.resourceType === 'project' && row.resourceId) {
+    try {
+      const project = await getRowCached({
+        databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
+        tableId: 'projects',
+        rowId: row.resourceId,
+      });
+      if (project && project.ownerId === actorId) {
+        return true;
+      }
+    } catch (err) {
+      console.warn('[verifyResourcePermissionSecure] Project inheritance check failed:', err);
+    }
+  }
+
+  // 0.1 Parent Resource Inheritance (e.g. Comments in a Note)
+  if (actorId && tableId === 'comments' && row.noteId) {
+    try {
+      const hasParentAccess = await verifyResourcePermissionSecure({
+        databaseId: APPWRITE_CONFIG.DATABASES.NOTE,
+        tableId: APPWRITE_CONFIG.TABLES.NOTE.NOTES,
+        rowId: row.noteId,
+        actorId,
+        action: action as any,
+      });
+      if (hasParentAccess) return true;
+    } catch (err) {
+      console.warn('[verifyResourcePermissionSecure] Parent note inheritance check failed:', err);
+    }
+  }
+
   if (action === 'create') {
     // For create operations, if the user is not the owner (isOwner is false), they cannot create it.
     // This mathematically ties the create operation strictly to the current user.

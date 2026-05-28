@@ -23,8 +23,26 @@ export default function AppLayout({
   useEffect(() => {
     // Zero-Idle Mandate: Redirect unauthenticated users to /send
     if (!isLoading && !isAuthenticated) {
-      // List of sub-apps that REQUIRE authentication
-      const protectedApps = [
+      const path = pathname || '';
+
+      // 1. PUBLIC WHITELIST (Routes that NEVER redirect)
+      // These are shared resources or public landers
+      const isPublic = 
+        path === '/' ||
+        path.startsWith('/send') ||
+        path.startsWith('/note/shared') ||
+        path.startsWith('/i/') ||
+        path.startsWith('/u/') ||
+        path.startsWith('/p/') ||
+        path.startsWith('/call/') ||
+        path.startsWith('/connect/call/') ||
+        path.startsWith('/flow/forms/') ||
+        path.startsWith('/flow/events/');
+
+      if (isPublic) return;
+
+      // 2. PROTECTED DASHBOARDS (Routes that REQUIRE authentication)
+      const protectedDashboardPrefixes = [
         '/note',
         '/vault',
         '/flow',
@@ -35,16 +53,10 @@ export default function AppLayout({
         '/agents'
       ];
 
-      // Exempt public sub-paths (e.g. shared notes, public APIs handled elsewhere)
-      const isPublicPath = 
-        pathname?.startsWith('/note/shared') || 
-        pathname?.startsWith('/send') ||
-        pathname === '/';
+      const isDashboard = protectedDashboardPrefixes.some(prefix => path.startsWith(prefix));
 
-      const isProtected = protectedApps.some(app => pathname?.startsWith(app));
-
-      if (isProtected && !isPublicPath) {
-        console.log(`[Gatekeeper] Unauthenticated on ${pathname} -> Redirecting to /send`);
+      if (isDashboard) {
+        console.log(`[Gatekeeper] Unauthenticated access to dashboard ${path} -> Redirecting to /send`);
         router.replace('/send');
       }
     }
