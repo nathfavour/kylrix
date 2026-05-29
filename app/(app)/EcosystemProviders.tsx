@@ -20,7 +20,6 @@ import { SudoProvider } from '@/context/SudoContext';
 import { UnifiedDrawerProvider } from '@/context/UnifiedDrawerContext';
 import { NoteDrawerProvider } from '@/context/NoteDrawerContext';
 import { ProUpgradeProvider } from '@/context/ProUpgradeContext';
-import { AgenticDrawerProvider } from '@/context/AgenticDrawerContext';
 import { AIProvider } from '@/context/AIContext';
 import { OverlayProvider } from '@/components/ui/OverlayContext';
 import { ContextMenuProvider } from '@/components/ui/ContextMenuContext';
@@ -81,7 +80,6 @@ const ecosystemProvidersList: Array<React.ComponentType<{ children: ReactNode }>
   SourceProvider,
   NoteDrawerProvider,
   ProUpgradeProvider,
-  AgenticDrawerProvider,
   AIProvider,
   ContextMenuWrapper,
   PotatoProvider,

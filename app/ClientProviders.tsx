@@ -18,6 +18,7 @@ import { SudoProvider } from '@/context/SudoContext';
 import { TokenOpsProvider } from '@/context/TokenOpsContext';
 import { AppChromeProvider } from '@/components/providers/AppChromeProvider';
 import { CallLauncherProvider } from '@/context/CallLauncherContext';
+import { AgenticDrawerProvider } from '@/context/AgenticDrawerContext';
 
 const ClientToaster = dynamic(() => import('@/components/ClientToaster'), { ssr: false });
 
@@ -52,6 +53,7 @@ const rootProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   DrawerStateProvider,
   SudoProvider,
   TokenOpsProvider,
+  AgenticDrawerProvider,
   AppChromeProvider,
   CallLauncherProvider,
   WalletOverlayProvider,
