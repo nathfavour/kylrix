@@ -344,7 +344,16 @@ export const UsersService = {
             permissions.push(Permission.read(Role.any()));
         }
 
-        const updated = await tablesDB.updateRow(DATABASE_ID, TABLE_ID, profile.$id, {}, permissions);
+        const updated = await tablesDB.updateRow(
+            DATABASE_ID, 
+            TABLE_ID, 
+            profile.$id, 
+            { 
+                isPublic: isDiscoverable, 
+                isGuest: isDiscoverable 
+            }, 
+            permissions
+        );
         invalidateUsersProfileRowCache(userId);
         invalidateUsersProfileRowCache(profile.$id);
         if (updated) {
@@ -369,9 +378,13 @@ export const UsersService = {
             permissions.push(Permission.read(Role.any()));
         }
 
-        await storage.updateFile(bucketId, fileId, undefined, permissions);
+        try {
+            await storage.updateFile(bucketId, fileId, undefined, permissions);
+        } catch (e) {
+            console.warn('[setAvatarVisible] Failed to update file permissions:', e);
+        }
 
-        return await this.updateProfile(userId, { avatar: fileId });
+        return await this.updateProfile(userId, { avatar: fileId, isAvatar: isVisible });
     },
 
     async lookupUserByEmail(email: string) {

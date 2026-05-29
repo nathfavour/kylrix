@@ -3,6 +3,7 @@
 import { Box, Typography, alpha } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { UserPresenceState } from '@/lib/services/presence';
+import { storage } from '@/lib/appwrite/client';
 
 const RING_COLORS = ['#6366F1', '#EC4899', '#10B981', '#A855F7', '#F59E0B'];
 const RING_GRADIENT = `conic-gradient(from 180deg, ${RING_COLORS.join(', ')}, #6366F1)`;
@@ -44,6 +45,7 @@ export function IdentityAvatar({
   status,
   sx,
   fileId,
+  isAvatar = true,
 }: {
   src?: string | null;
   alt?: string;
@@ -57,6 +59,7 @@ export function IdentityAvatar({
   status?: UserPresenceState;
   sx?: any;
   fileId?: string | null;
+  isAvatar?: boolean;
 }) {
   const getStatusColor = (s: UserPresenceState) => {
       switch (s) {
@@ -67,9 +70,18 @@ export function IdentityAvatar({
       }
   };
 
-  // If fileId is provided but no src, we should ideally use getProfilePicturePreview
-  // For now we'll just allow it to pass through types
-  const resolvedSrc = src || (fileId ? `/api/avatar/${fileId}` : null);
+  let resolvedSrc = null;
+  if (isAvatar !== false) {
+    if (src) {
+      resolvedSrc = src;
+    } else if (fileId) {
+      try {
+        resolvedSrc = storage.getFilePreview('profile_pictures', fileId, size * 2, size * 2).toString();
+      } catch (e) {
+        console.warn('[IdentityAvatar] Failed to build preview URL:', e);
+      }
+    }
+  }
 
   const avatar = (
     <Box

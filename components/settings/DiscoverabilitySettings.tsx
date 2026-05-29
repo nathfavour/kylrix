@@ -344,9 +344,7 @@ export const DiscoverabilitySettings = () => {
         );
     }
 
-    const isDiscoverable =
-        Array.isArray(profile?.$permissions) &&
-        profile.$permissions.some((p: string) => typeof p === 'string' && p.includes('read("any")'));
+    const isDiscoverable = profile?.isPublic !== false;
 
     const isContactable = !!profile?.publicKey;
 
@@ -435,7 +433,7 @@ export const DiscoverabilitySettings = () => {
                             </Box>
                         </Box>
                         <Switch
-                            checked={resolvedAvatarFileId ? avatarPublicRead : false}
+                            checked={resolvedAvatarFileId ? profile?.isAvatar !== false : false}
                             onChange={(e) => handleToggleAvatarVisibility(e.target.checked)}
                             disabled={savingAvatar || !resolvedAvatarFileId}
                             sx={{

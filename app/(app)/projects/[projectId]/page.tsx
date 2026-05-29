@@ -398,7 +398,7 @@ export default function ProjectDetailPage() {
 
   const handleCopyInviteLink = () => {
       try {
-          const inviteUrl = `${window.location.origin}/projects/${projectId}`;
+          const inviteUrl = `${window.location.origin}/project/${projectId}`;
           navigator.clipboard.writeText(inviteUrl);
           showSuccess('Project invite link copied!');
       } catch (err: any) {
@@ -1021,6 +1021,7 @@ export default function ProjectDetailPage() {
                                     alt={ownerProfile?.displayName || ownerProfile?.name || 'Owner'} 
                                     fallback={(ownerProfile?.displayName || ownerProfile?.name || 'O').charAt(0).toUpperCase()} 
                                     verified={ownerProfile?.verified ?? true} 
+                                    isAvatar={ownerProfile?.isAvatar ?? true}
                                 />
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <Typography noWrap variant="body2" sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: 'white' }}>
@@ -1042,6 +1043,7 @@ export default function ProjectDetailPage() {
                                         alt={user.displayName || user.name || 'Collaborator'} 
                                         fallback={(user.displayName || user.name || 'C').charAt(0).toUpperCase()} 
                                         verified={user.verified} 
+                                        isAvatar={user.isAvatar ?? true}
                                     />
                                     <Box sx={{ flex: 1, minWidth: 0 }}>
                                         <Typography noWrap variant="body2" sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: 'white' }}>
