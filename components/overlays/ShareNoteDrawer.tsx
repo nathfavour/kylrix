@@ -23,11 +23,12 @@ const DRAWER_SX = {
   mx: 'auto'
 };
 
-export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle }: { 
+export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceType = 'note' }: { 
     isOpen: boolean;
     onClose: () => void;
     noteId: string;
     noteTitle: string;
+    resourceType?: 'note' | 'project';
 }) {
   const { setIsDrawerOpen } = useDrawerState();
   const { drawerData } = useUnifiedDrawer();
@@ -52,7 +53,7 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle }: {
         const { jwt } = await account.createJWT();
         const { collaborators } = await getResourceCollaboratorsSecure({
             resourceId: noteId,
-            resourceType: 'note',
+            resourceType: resourceType as any,
             jwt
         });
         setCollaboratorProfiles(collaborators);
@@ -61,7 +62,7 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle }: {
     } finally {
         setIsLoadingExisting(false);
     }
-  }, [noteId]);
+  }, [noteId, resourceType]);
 
   useEffect(() => {
     setIsDrawerOpen(isOpen);
@@ -91,13 +92,23 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle }: {
             await grantPermissionSecure({
                 userId: user.$id,
                 resourceId: noteId,
-                resourceType: 'note',
+                resourceType: resourceType as any,
                 resourceTitle: noteTitle,
                 targetUserId: targetUser.id,
                 permission,
                 actorName: user.name || 'A Kylrix User',
                 jwt: jwt
             });
+            
+            // Notify external listener (e.g. project page to link collaborator)
+            if (drawerData?.onShared) {
+                try {
+                    await drawerData.onShared(targetUser.id);
+                } catch (err) {
+                    console.error('onShared callback failed:', err);
+                }
+            }
+            
             successCount++;
         }
         
@@ -124,7 +135,7 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle }: {
           await grantPermissionSecure({
               userId: user.$id,
               resourceId: noteId,
-              resourceType: 'note',
+              resourceType: resourceType as any,
               resourceTitle: noteTitle,
               targetUserId: editingCollaborator.userId,
               permission: permission,
@@ -147,7 +158,7 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle }: {
       
       openUnified('delete-confirm', {
           title: `Remove Collaborator?`,
-          description: `Are you sure you want to remove ${editingCollaborator.displayName || editingCollaborator.username} from this note? they will lose all access to content and history.`,
+          description: `Are you sure you want to remove ${editingCollaborator.displayName || editingCollaborator.username} from this ${resourceType}? they will lose all access to content and history.`,
           resourceName: 'this access',
           confirmLabel: 'Remove Collaborator',
           onConfirm: async () => {
@@ -156,7 +167,7 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle }: {
                   const { jwt } = await account.createJWT();
                   await revokePermissionSecure({
                       resourceId: noteId,
-                      resourceType: 'note',
+                      resourceType: resourceType as any,
                       targetUserId: editingCollaborator.userId,
                       jwt: jwt
                   });

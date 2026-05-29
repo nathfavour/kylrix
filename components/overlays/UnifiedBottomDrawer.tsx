@@ -34,8 +34,9 @@ export function UnifiedBottomDrawer() {
             return <ShareNoteDrawer 
                 isOpen={true} 
                 onClose={close} 
-                noteId={drawerData?.noteId} 
-                noteTitle={drawerData?.noteTitle} 
+                noteId={drawerData?.noteId || drawerData?.resourceId} 
+                noteTitle={drawerData?.noteTitle || drawerData?.resourceTitle} 
+                resourceType={drawerData?.resourceType || 'note'}
             />;
         case 'assign-goal':
             return <AssignGoalDrawer 
