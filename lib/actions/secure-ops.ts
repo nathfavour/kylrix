@@ -2153,20 +2153,6 @@ export async function acceptProjectInviteSecure(projectId: string, jwt?: string)
     }
   }
 
-  // 5. Notify the project owner
-  try {
-    await dispatchSecureNotification({
-      targetUserId: project.ownerId,
-      type: 'standard',
-      title: 'Invitation Accepted',
-      body: `${actor.name || 'A collaborator'} accepted your invite to join "${project.title}".`,
-      actorName: actor.name || 'A teammate',
-      resourceId: projectId,
-      resourceTitle: project.title,
-      resourceType: 'project'
-    });
-  } catch {}
-
   return { success: true };
 }
 
