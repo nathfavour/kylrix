@@ -86,7 +86,7 @@ export const Profile = ({ username }: ProfileProps) => {
 
     // Subscribe to identity cache updates for this specific username
     // Use debouncing to prevent rapid re-renders from multiple cache updates
-    const debounceTimerRef = useRef<NodeJS.Timeout>();
+    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const lastProfileRef = useRef<any>(profile);
 
     useEffect(() => {

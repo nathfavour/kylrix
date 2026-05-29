@@ -14,7 +14,7 @@ export function PinnedNotesSidebar() {
   const { closeSidebar } = useDynamicSidebar();
 
   const pinnedNotes = useMemo(() => {
-    return allNotes.filter((n) => {
+    return allNotes.filter((n: any) => {
       try {
         const meta = JSON.parse(n.metadata || '{}');
         const isEncrypted = meta.isEncrypted === true || meta.isEncrypted === 'true' || n.isEncrypted === true;
@@ -78,7 +78,7 @@ export function PinnedNotesSidebar() {
             <Typography variant="body2">No pinned notes</Typography>
           </Box>
         ) : (
-          pinnedNotes.map((note) => (
+          pinnedNotes.map((note: any) => (
             <NoteCard
               key={note.$id}
               note={note}

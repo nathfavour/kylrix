@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
             Query.equal('userId', userId),
             Query.limit(1000)
         ]);
-        const conversationIds = Array.from(new Set((memberRows.rows || []).map((row: any) => row.conversationId).filter(Boolean)));
+        const conversationIds = Array.from(new Set((memberRows.documents || []).map((row: any) => row.conversationId).filter(Boolean)));
         const convsRes = conversationIds.length ? await appwriteDatabases.listDocuments(CHAT_DB, CONV_TABLE, [
             Query.equal('$id', conversationIds),
             Query.equal('type', 'direct')
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
         console.log(`[MasterPurge] Found ${convsRes.total} direct conversations to purge`);
 
-        for (const conv of convsRes.rows) {
+        for (const conv of (convsRes as any).documents) {
             // Check if it's a self-chat (all participants are the user)
             const isSelfChat = conv.participants.every((p: string) => p === userId);
             
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
                 Query.limit(1000)
             ]);
             
-            await Promise.all(msgsRes.rows.map(m => appwriteDatabases.deleteDocument(CHAT_DB, MSG_TABLE, m.$id)));
+            await Promise.all(msgsRes.documents.map(m => appwriteDatabases.deleteDocument(CHAT_DB, MSG_TABLE, m.$id)));
 
             // If it was a self-chat, we can just delete the conversation too as it's purely Tier 2
             if (isSelfChat) {
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
             APPWRITE_CONFIG.TABLES.PASSWORD_MANAGER.IDENTITIES,
             [Query.equal('userId', userId)]
         );
-        await Promise.all(identityRows.rows.map(row => appwriteDatabases.deleteDocument(
+        await Promise.all(identityRows.documents.map(row => appwriteDatabases.deleteDocument(
             APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER,
             APPWRITE_CONFIG.TABLES.PASSWORD_MANAGER.IDENTITIES,
             row.$id
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
                     Query.equal('resourceId', userId)])
             ]
         );
-        await Promise.all(keyMappings.rows.map(row => appwriteDatabases.deleteDocument(
+        await Promise.all(keyMappings.documents.map(row => appwriteDatabases.deleteDocument(
             APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER,
             'key_mapping',
             row.$id

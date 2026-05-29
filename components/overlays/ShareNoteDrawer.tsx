@@ -33,7 +33,7 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
     resourceType?: 'note' | 'project';
 }) {
   const { setIsDrawerOpen } = useDrawerState();
-  const { drawerData } = useUnifiedDrawer();
+  const { drawerData, open } = useUnifiedDrawer();
   const { user } = useAuth();
   
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
@@ -159,7 +159,7 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
       if (!editingCollaborator || !user?.$id) return;
       
       onClose(); // Close main drawer to show confirmation Dialog beautifully
-      openUnified('delete-confirm', {
+      open('delete-confirm', {
           title: `Remove Collaborator?`,
           description: `Are you sure you want to remove ${editingCollaborator.displayName || editingCollaborator.username} from this workspace? They will instantly lose all access.`,
           resourceName: 'this access',

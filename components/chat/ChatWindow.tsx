@@ -221,6 +221,8 @@ const ChatDraftInput = React.memo(function ChatDraftInput({
     onSend,
     onToggleRecording,
     typingUsers,
+    conversationId,
+    typingTimeoutRef,
 }: {
     attachment: File | null;
     sending: boolean;
@@ -233,6 +235,8 @@ const ChatDraftInput = React.memo(function ChatDraftInput({
     onSend: (text: string) => Promise<boolean>;
     onToggleRecording: () => void;
     typingUsers: string[];
+    conversationId: string;
+    typingTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
 }) {
     const [draft, setDraft] = useState('');
     const [mentionAnchorEl, setMentionAnchorEl] = useState<null | HTMLElement>(null);
@@ -1085,7 +1089,7 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
     const _handleDeleteMessage = async (messageId: string, _everyone: boolean) => {
         try {
             if (_everyone) {
-                await ChatService.deleteMessage(messageId, conversationId);
+                await ChatService.deleteMessage(messageId);
             } else {
                 // Individual 'delete for me' would require a schema change (deletedBy array)
                 // For now, we only support 'delete for everyone' if author.
@@ -1865,7 +1869,7 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
                                         const otherPresence = globalPresence?.[otherId];
                                         if (!otherPresence) return 'Offline';
 
-                                        const isOnline = otherPresence.status === 'online' && (Date.now() - new Date(otherPresence.lastSeen).getTime() < 1000 * 60 * 5);
+                                        const isOnline = otherPresence.state === 'online' && (Date.now() - new Date(otherPresence.lastSeen || 0).getTime() < 1000 * 60 * 5);
 
                                         if (isOnline) return (
                                             <>
@@ -2435,6 +2439,8 @@ export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
                         onSend={handleSend}
                         onToggleRecording={toggleRecording}
                         typingUsers={typingUsers}
+                        conversationId={conversationId}
+                        typingTimeoutRef={typingTimeoutRef}
                         />
                         </Box>
 

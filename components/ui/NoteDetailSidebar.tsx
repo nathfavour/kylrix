@@ -113,7 +113,7 @@ export function NoteDetailSidebar({
   const [realtimeNote, setRealtimeNote] = useState<Notes | null>(null);
   const noteRef = useRef(note);
   const liveNote = useMemo(
-    () => (realtimeNote?.$id === note.$id ? realtimeNote : allNotes.find((candidate) => candidate.$id === note.$id) || note),
+    () => (realtimeNote?.$id === note.$id ? realtimeNote : allNotes.find((candidate: any) => candidate.$id === note.$id) || note),
     [allNotes, note, realtimeNote]
   );
 
@@ -510,7 +510,7 @@ export function NoteDetailSidebar({
   const displayTitle = isEncryptedNote ? '🔒 Encrypted Note' : (title || liveNote.title || 'Untitled note');
   const displayContent = isEncryptedNote ? '' : (content || liveNote.content || '');
   const displayFormat = isEncryptedNote ? 'text' : format;
-  const displayTags = tags.split(',').map(t => t.trim()).filter(Boolean);
+  const displayTags = tags.split(',').map((t: string) => t.trim()).filter(Boolean);
 
   const currentAttachments = useMemo(() => {
       if (liveNote.attachments && Array.isArray(liveNote.attachments)) {
@@ -692,7 +692,7 @@ export function NoteDetailSidebar({
       <Box sx={{ px: 1 }}>
         <Typography variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Tags</Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {displayTags.length > 0 ? displayTags.map(tag => (
+          {displayTags.length > 0 ? displayTags.map((tag: string) => (
             <Chip key={tag} label={tag} size="small" sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 800, borderRadius: '8px', border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}` }} />
           )) : <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>No tags assigned</Typography>}
         </Box>

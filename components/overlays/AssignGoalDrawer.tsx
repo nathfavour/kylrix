@@ -30,7 +30,7 @@ export function AssignGoalDrawer({ isOpen, onClose, taskId, taskTitle }: {
     taskTitle: string;
 }) {
   const { setIsDrawerOpen } = useDrawerState();
-  const { drawerData } = useUnifiedDrawer();
+  const { drawerData, open } = useUnifiedDrawer();
   const { user } = useAuth();
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [assigneeProfiles, setAssigneeProfiles] = useState<any[]>([]);
@@ -145,7 +145,7 @@ export function AssignGoalDrawer({ isOpen, onClose, taskId, taskTitle }: {
   const handleRevokeAssignee = async () => {
       if (!editingAssignee || !user?.$id) return;
       
-      openUnified('delete-confirm', {
+      open('delete-confirm', {
           title: `Remove Assignee?`,
           description: `Are you sure you want to remove ${editingAssignee.displayName || editingAssignee.username} from this goal? they will lose all access to task details.`,
           resourceName: 'this access',

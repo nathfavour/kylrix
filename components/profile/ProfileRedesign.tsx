@@ -499,7 +499,7 @@ export function ProfileRedesign({ username }: ProfileProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
-  const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { openTokenUserSearch } = useTokenOps();
   const { openWalletWithIntent } = useWalletOverlay();
 

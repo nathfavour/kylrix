@@ -46,7 +46,7 @@ export const NoteSelectorModal = ({ open, onClose, onSelect }: NoteSelectorModal
         [allNotes]
     );
 
-    const filteredNotes = notes.filter(note => 
+    const filteredNotes = notes.filter((note: any) => 
         note.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         note.content?.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -154,7 +154,7 @@ export const NoteSelectorModal = ({ open, onClose, onSelect }: NoteSelectorModal
                     </Box>
                 ) : filteredNotes.length > 0 ? (
                     <List sx={{ pt: 0 }}>
-                        {filteredNotes.map((note) => (
+                        {filteredNotes.map((note: any) => (
                             <ListItem 
                                 key={note.$id} 
                                 component="div"

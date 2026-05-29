@@ -539,6 +539,22 @@ export const CallInterface = ({
         resolveMode();
     }, [user, conversationId, callCode]);
 
+    const endCall = useCallback(() => {
+        if (rtcManager.current) {
+            rtcManager.current.cleanup();
+        }
+        if (user?.$id) {
+            ActivityService.clearLiveCallActivity(user.$id).catch(() => undefined);
+        }
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('kylrix_active_pip');
+            window.dispatchEvent(new Event('kylrix_call_ended'));
+        }
+        if (!isPip) {
+            router.back();
+        }
+    }, [router, user?.$id, isPip]);
+
     useEffect(() => {
         if (!user) return;
 
@@ -739,23 +755,6 @@ export const CallInterface = ({
         }
     };
      
-    const endCall = useCallback(() => {
-        if (rtcManager.current) {
-            rtcManager.current.cleanup();
-        }
-        if (user?.$id) {
-            ActivityService.clearLiveCallActivity(user.$id).catch(() => undefined);
-        }
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('kylrix_active_pip');
-            window.dispatchEvent(new Event('kylrix_call_ended'));
-        }
-        if (!isPip) {
-            router.back();
-        }
-    }, [router, user?.$id, isPip]);
-
-
     useEffect(() => {
         if (!user || !callCode) return;
 

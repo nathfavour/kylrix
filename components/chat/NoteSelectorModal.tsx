@@ -35,7 +35,7 @@ export const NoteSelectorModal = ({ open, onClose, onSelect }: NoteSelectorModal
         onClose();
     };
 
-    const filteredNotes = notes.filter(_note => {
+    const filteredNotes = notes.filter((_note: any) => {
         // Note: Title might be encrypted, but let's assume we can't search easily if it is.
         // Some notes might have plaintext titles if they were migrated or public.
         // In this UI, we might only see "[Encrypted Note]" if locked.
@@ -54,7 +54,7 @@ export const NoteSelectorModal = ({ open, onClose, onSelect }: NoteSelectorModal
                 </Box>
                 <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
                 <TextField fullWidth size="small" placeholder="Search notes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '12px', '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' }, '&:hover fieldset': { borderColor: 'rgba(99,102,241,0.3)' }, '&.Mui-focused fieldset': { borderColor: '#6366F1' } } }} InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 20 }} /></InputAdornment>) }} />
-                {loading ? (<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={24} /></Box>) : (<List sx={{ maxHeight: '400px', overflowY: 'auto' }}>{filteredNotes.length === 0 ? (<Typography variant="body2" sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>No notes found.</Typography>) : (filteredNotes.map((note) => (<ListItemButton key={note.$id} onClick={() => handleSelect(note)} sx={{ borderRadius: '12px', mb: 1, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}><ListItemIcon><NoteIcon sx={{ color: 'primary.main' }} /></ListItemIcon><ListItemText primary={note.title || 'Untitled Note'} secondary={new Date(note.updatedAt).toLocaleDateString()} primaryTypographyProps={{ fontWeight: 600 }} /></ListItemButton>)))}</List>)}
+                {loading ? (<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={24} /></Box>) : (<List sx={{ maxHeight: '400px', overflowY: 'auto' }}>{filteredNotes.length === 0 ? (<Typography variant="body2" sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>No notes found.</Typography>) : (filteredNotes.map((note: any) => (<ListItemButton key={note.$id} onClick={() => handleSelect(note)} sx={{ borderRadius: '12px', mb: 1, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}><ListItemIcon><NoteIcon sx={{ color: 'primary.main' }} /></ListItemIcon><ListItemText primary={note.title || 'Untitled Note'} secondary={new Date(note.updatedAt).toLocaleDateString()} primaryTypographyProps={{ fontWeight: 600 }} /></ListItemButton>)))}</List>)}
             </Box>
         </Drawer>
     );

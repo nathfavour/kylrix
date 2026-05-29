@@ -74,7 +74,7 @@ export default function SudoModal({
     const [passkeyLoading, setPasskeyLoading] = useState(false);
     const [hasPasskey, setHasPasskey] = useState(false);
     const [hasMasterpass, setHasMasterpass] = useState<boolean | null>(null);
-    const [mode, setMode] = useState<"passkey" | "password" | "initialize" | null>(null);
+    const [mode, setMode] = useState<"passkey" | "password" | "initialize" | "migrating" | null>(null);
     const [isDetecting, setIsDetecting] = useState(true);
     const [isPendingVault, setIsPendingVault] = useState(false);
     const [showPasskeyIncentive, setShowPasskeyIncentive] = useState(false);
@@ -467,7 +467,9 @@ export default function SudoModal({
                           <Box sx={{ position: 'absolute', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                               {migrationStatus === 'upgrading' && (
                                   <>
-                                      <Shield sx={{ fontSize: 24, color: accentColor, mb: 0.5 }} />
+                                      <Box sx={{ display: 'flex', fontSize: 24, color: accentColor, mb: 0.5 }}>
+                                        <Shield size={24} />
+                                      </Box>
                                       <Typography sx={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', fontWeight: 900, color: 'white' }}>
                                           {Math.round(migrationProgress)}%
                                       </Typography>

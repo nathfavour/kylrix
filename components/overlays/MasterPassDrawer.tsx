@@ -102,6 +102,28 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
       return () => clearInterval(interval);
   }, [migrationStatus]);
 
+  const { user, refresh, logout } = useAppwriteVault();
+  const { finalizeAuth } = useFinalizeAuth();
+  const router = useRouter();
+
+  const onSuccess = useCallback(async () => {
+    // 1. Sudo Hook: Ensure E2E Identity is created and published
+    if (user?.$id) {
+      try {
+        console.log("Synchronizing Identity...");
+        await ecosystemSecurity.ensureE2EIdentity(user.$id);
+      } catch (e) {
+        console.error("Failed to sync identity on unlock", e);
+      }
+    }
+
+    // 2. Refresh global Appwrite context state so route guards see the unlocked vault
+    await refresh();
+
+    // 3. Complete the flow and navigate once the state is settled
+    await finalizeAuth({ redirect: true, fallback: "/vault" });
+  }, [user?.$id, finalizeAuth, refresh]);
+
   const onSuccessRef = useRef(onSuccess);
 
   // Keep onSuccessRef updated without triggering useEffect re-runs
@@ -143,30 +165,9 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
           }
       };
   }, [isOpen]);
+
   const [pin, setPin] = useState("");
   const [hasPin, setHasPin] = useState(false);
-
-  const { user, refresh, logout } = useAppwriteVault();
-  const { finalizeAuth } = useFinalizeAuth();
-  const router = useRouter();
-
-  const onSuccess = useCallback(async () => {
-    // 1. Sudo Hook: Ensure E2E Identity is created and published
-    if (user?.$id) {
-      try {
-        console.log("Synchronizing Identity...");
-        await ecosystemSecurity.ensureE2EIdentity(user.$id);
-      } catch (e) {
-        console.error("Failed to sync identity on unlock", e);
-      }
-    }
-
-    // 2. Refresh global Appwrite context state so route guards see the unlocked vault
-    await refresh();
-
-    // 3. Complete the flow and navigate once the state is settled
-    await finalizeAuth({ redirect: true, fallback: "/vault" });
-  }, [user?.$id, finalizeAuth, refresh]);
 
   const handleSuccessWithSync = onSuccess;
 

@@ -156,7 +156,7 @@ export default function ProjectDetailPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [ownerProfile, setOwnerProfile] = useState<any | null>(null);
 
-  const handleSaveSettings = async (title: string, summary: string, status: string) => {
+  const handleSaveSettings = async (title: string, summary: string, status: 'active' | 'completed' | 'archived' | 'paused' | 'on_hold') => {
     if (!project) return;
     try {
       await ProjectsService.updateProject(project.$id, {
@@ -2433,7 +2433,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
                               return (
                                 <Chip
                                   key={emoji}
-                                  label={`${emoji} ${userIds.length}`}
+                                  label={`${emoji} ${(userIds as any[]).length}`}
                                   size="small"
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -2749,7 +2749,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
                             return (
                               <Chip
                                 key={emoji}
-                                label={`${emoji} ${userIds.length}`}
+                                label={`${emoji} ${(userIds as any[]).length}`}
                                 size="small"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -2837,7 +2837,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
                                 return (
                                   <Chip
                                     key={emoji}
-                                    label={`${emoji} ${userIds.length}`}
+                                    label={`${emoji} ${(userIds as any[]).length}`}
                                     size="small"
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -3208,8 +3208,8 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
 interface ProjectSettingsDrawerProps {
   open: boolean;
   onClose: () => void;
-  project: any;
-  onSave: (title: string, summary: string, status: string) => Promise<void>;
+  project: Projects;
+  onSave: (title: string, summary: string, status: 'active' | 'completed' | 'archived' | 'paused' | 'on_hold') => Promise<void>;
 }
 
 function ProjectSettingsDrawer({ open, onClose, project, onSave }: ProjectSettingsDrawerProps) {

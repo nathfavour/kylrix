@@ -156,7 +156,7 @@ export function NewChannelDrawer({ isOpen, onClose }: { isOpen: boolean; onClose
                             }}
                             onRemove={(id) => setSelectedUsers(selectedUsers.filter(u => (u.id || u.$id) !== id))}
                             multiple={true}
-                            excludeIds={[user?.$id].filter(Boolean)}
+                            excludeIds={[user?.$id].filter(Boolean) as string[]}
                         />
                     </Box>
 

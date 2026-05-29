@@ -19,7 +19,7 @@ interface AuthContextType {
   isAuthenticating: boolean;
   isAuthenticated: boolean;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<User | null>;
+  refreshUser: (forceRefresh?: boolean) => Promise<User | null>;
   openIDMWindow: (target?: string) => void;
   idmWindowOpen: boolean;
   loginWithEmailOTP: (email: string) => Promise<string>;

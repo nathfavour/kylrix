@@ -327,6 +327,7 @@ export async function listGhostNoteChats() {
 
 export async function claimSendObject(payload: { noteId: string; claimSecret: string; decryptedData?: any }) {
   const jwt = await getJwt();
+  if (!jwt) throw new Error('Unauthenticated');
   const { claimSendObjectSecure } = await import('./secure-ops');
   return claimSendObjectSecure({ ...payload, jwt });
 }

@@ -45,7 +45,6 @@ function SearchResultAvatar({ result }: { result: SearchResult }) {
       <IdentityAvatar
         fileId={result.profilePicId || result.avatar || null}
         alt={result.title}
-        seed={result.id}
         size={32}
         pro={result.pro}
         verified={result.verified}

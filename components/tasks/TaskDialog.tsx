@@ -113,6 +113,7 @@ export default function TaskDialog() {
           ? [creatorId]
           : [],
       creatorId: creatorId || 'guest',
+      isPinned: false,
       isArchived: false,
     });
 

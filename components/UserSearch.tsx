@@ -31,6 +31,7 @@ interface User {
   profilePicId?: string | null;
   displayName?: string;
   username?: string;
+  publicKey?: string | null;
 }
 
 interface UserSearchProps {

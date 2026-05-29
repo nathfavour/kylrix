@@ -27,12 +27,11 @@ export const AppwriteService = {
   createKeychainEntry: SharedService.createKeychainEntry,
   updateKeychainEntry: SharedService.updateKeychainEntry,
   deleteKeychainEntry: SharedService.deleteKeychainEntry,
-  setMasterpassFlag: SharedService.setMasterpassFlag,
+  setMasterpassFlag: VaultService.setMasterpassFlag,
   hasMasterpass: SharedService.hasMasterpass,
 
   // --- Vault & User State ---
   getUserDoc: VaultService.getUserDoc,
-  getUserDocById: VaultService.getUserDocById,
   
   // --- Referrals ---
   getReferralStatus: SharedService.getReferralStatus,

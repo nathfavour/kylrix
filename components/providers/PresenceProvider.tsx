@@ -72,7 +72,7 @@ export const PresenceProvider = ({ children }: { children: React.ReactNode }) =>
         return () => {
             window.removeEventListener('visibilitychange', handleVisibilityChange);
             setMyState('offline');
-            if (typeof unsubGlobal === 'function') unsubGlobal();
+            if (typeof unsubGlobal === 'function') (unsubGlobal as any)();
             else (unsubGlobal as any)?.unsubscribe?.();
         };
     }, [user?.$id, setMyState]);
@@ -107,7 +107,7 @@ export const PresenceProvider = ({ children }: { children: React.ReactNode }) =>
         return () => {
             activeResourcesRef.current.delete(channel);
             setMyState('online'); // Reset to general online
-            if (typeof unsub === 'function') unsub();
+            if (typeof unsub === 'function') (unsub as any)();
             else (unsub as any)?.unsubscribe?.();
         };
     }, [user?.$id, setMyState]);

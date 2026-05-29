@@ -48,6 +48,7 @@ import {
     Import,
 } from 'lucide-react';
 import { AppwriteService } from '@/lib/appwrite';
+import { useLoginDrawer } from '@/context/LoginDrawerContext';
 import { encryptGhostData, decryptGhostData } from '@/lib/encryption/ghost-crypto';
 import { sha256HexUtf8 } from '@/lib/crypto/sha256-hex';
 import { burnEphemeralNoteWithProof } from '@/lib/ephemeral/burn-note';
@@ -632,6 +633,7 @@ const GhostSparkDetailPanel = ({ note, onRecreate, onOpenPublicLink, onClaim }: 
 };
 
 export const GhostEditor = () => {
+    const { open: openLoginDrawer } = useLoginDrawer();
     const router = useRouter();
     const searchParams = useSearchParams();
     const theme = useTheme();

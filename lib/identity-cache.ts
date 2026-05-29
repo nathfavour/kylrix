@@ -10,6 +10,7 @@ export type CachedIdentity = {
   walletAddress: string | null;
   cachedAt: number;
   source?: string;
+  socialStats?: any;
 };
 
 type IdentityInput = Partial<CachedIdentity> & {

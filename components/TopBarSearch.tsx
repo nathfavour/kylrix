@@ -212,7 +212,7 @@ export function TopBarSearch() {
                 </Typography>
               </Box>
               <List sx={{ p: 0, maxHeight: 400, overflowY: 'auto' }}>
-                {searchResults.map((note: Notes) => (
+                {searchResults.map((note: any) => (
                   <ListItemButton
                     key={note.$id}
                     onClick={() => handleResultSelect(note)}
