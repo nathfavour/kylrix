@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { getCurrentUser, account, getKylrixPulse, setKylrixPulse, clearKylrixPulse, invalidateCurrentUserCache } from '@/lib/appwrite';
+import { getCurrentUser, account, getKylrixPulse, setKylrixPulse, clearKylrixPulse, invalidateCurrentUserCache, onCurrentUserChanged } from '@/lib/appwrite';
 import { getEcosystemUrl } from '@/lib/ecosystem';
 
 interface User {
@@ -170,6 +170,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initAuthStarted.current = true;
     refreshUser();
   }, [refreshUser]);
+
+  useEffect(() => {
+    const unsubscribe = onCurrentUserChanged((nextUser) => {
+      setUser(nextUser ? (nextUser as any) : null);
+      if (nextUser) {
+        setKylrixPulse(nextUser);
+      } else {
+        clearKylrixPulse();
+      }
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Handle cross-tab or bridge discovery
   useEffect(() => {

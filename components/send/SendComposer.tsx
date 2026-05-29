@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
@@ -51,6 +51,7 @@ import {
 
 import MuralPattern from '@/components/chat/MuralPattern';
 import { buildAutoTitleFromContent } from '@/constants/noteTitle';
+import { FastDraftInput, type FastDraftInputHandle } from '@/components/common/FastDraftInput';
 
 import { ID, Permission, Role } from 'appwrite';
 
@@ -134,8 +135,7 @@ function formatRemaining(ms: number): string {
 interface NoteCardProps {
   noteTitle: string;
   setNoteTitle: (val: string) => void;
-  noteBody: string;
-  setNoteBody: (val: string) => void;
+  draftInputRef: React.RefObject<FastDraftInputHandle | null>;
   isTitleManuallyEdited: boolean;
   setIsTitleManuallyEdited: (val: boolean) => void;
   handleCreateLink: () => Promise<void>;
@@ -144,13 +144,13 @@ interface NoteCardProps {
   isCreating: boolean;
   effectiveSecureMode: boolean;
   themeColor: string;
+  onBodyEmptyChange: (isEmpty: boolean) => void;
 }
 
-function NoteComposerCard({
+const NoteComposerCard = React.memo(function NoteComposerCard({
   noteTitle,
   setNoteTitle,
-  noteBody,
-  setNoteBody,
+  draftInputRef,
   isTitleManuallyEdited,
   setIsTitleManuallyEdited,
   handleCreateLink,
@@ -158,22 +158,16 @@ function NoteComposerCard({
   draftValid,
   isCreating,
   effectiveSecureMode,
-  themeColor
+  themeColor,
+  onBodyEmptyChange,
 }: NoteCardProps) {
-  const [localBody, setLocalBody] = useState(noteBody);
+  // Track whether the input has content for title visibility, using a ref to avoid re-renders
+  const [hasContent, setHasContent] = useState(false);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setNoteBody(localBody);
-    }, 80);
-    return () => clearTimeout(handler);
-  }, [localBody, setNoteBody]);
-
-  useEffect(() => {
-    if (noteBody === '') {
-      setLocalBody('');
-    }
-  }, [noteBody]);
+  const handleEmptyChange = useCallback((isEmpty: boolean) => {
+    setHasContent(!isEmpty);
+    onBodyEmptyChange(isEmpty);
+  }, [onBodyEmptyChange]);
 
   return (
     <Paper
@@ -199,28 +193,6 @@ function NoteComposerCard({
           bgcolor: alpha('#fff', 0.01)
       }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1, 
-              px: 1.5, 
-              py: 0.5, 
-              borderRadius: '8px', 
-              bgcolor: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.05)'
-          }}>
-            <Typography
-                variant="caption"
-                sx={{
-                    color: localBody.length >= 65000 ? '#FF453A' : 'rgba(255, 255, 255, 0.4)',
-                    fontWeight: 700,
-                    fontFamily: 'var(--font-jetbrains-mono)',
-                    letterSpacing: '0.05em'
-                }}
-            >
-                {localBody.length.toLocaleString()} / 65,000
-            </Typography>
-          </Box>
           {effectiveSecureMode && (
             <Tooltip title="This content is encrypted before upload.">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#EC4899' }}>
@@ -236,7 +208,7 @@ function NoteComposerCard({
 
       {/* Main Inputs */}
       <Box sx={{ p: { xs: 3, sm: 5 }, pt: { xs: 2.5, sm: 3 } }}>
-        {(localBody.trim().length > 0 || noteTitle.trim().length > 0) && (
+        {(hasContent || noteTitle.trim().length > 0) && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -265,37 +237,22 @@ function NoteComposerCard({
             />
           </motion.div>
         )}
-        <TextField
-          fullWidth
-          required
-          multiline
-          minRows={10}
-          maxRows={20}
+        <FastDraftInput
+          ref={draftInputRef}
           placeholder="Start typing your brilliant thoughts…"
-          value={localBody}
-          onChange={(e) => setLocalBody(e.target.value)}
-          variant="standard"
-          InputProps={{
-            disableUnderline: true,
-            sx: { 
-              fontSize: '1.1rem', 
-              lineHeight: 1.7,
-              color: 'rgba(255, 255, 255, 0.75)',
-              fontFamily: 'var(--font-satoshi)',
-              '&::placeholder': { opacity: 0.2, color: '#ffffff' }
-            }
-          }}
+          rows={10}
+          autoFocus
+          onEmptyChange={handleEmptyChange}
         />
       </Box>
     </Paper>
   );
-}
+});
 
 interface DiscussionCardProps {
   noteTitle: string;
   setNoteTitle: (val: string) => void;
-  noteBody: string;
-  setNoteBody: (val: string) => void;
+  draftInputRef: React.RefObject<FastDraftInputHandle | null>;
   isTitleManuallyEdited: boolean;
   setIsTitleManuallyEdited: (val: boolean) => void;
   handleCreateLink: () => Promise<void>;
@@ -304,13 +261,13 @@ interface DiscussionCardProps {
   isCreating: boolean;
   user: any;
   themeColor: string;
+  onBodyEmptyChange: (isEmpty: boolean) => void;
 }
 
-function DiscussionComposerCard({
+const DiscussionComposerCard = React.memo(function DiscussionComposerCard({
   noteTitle,
   setNoteTitle,
-  noteBody,
-  setNoteBody,
+  draftInputRef,
   isTitleManuallyEdited,
   setIsTitleManuallyEdited,
   handleCreateLink,
@@ -318,22 +275,15 @@ function DiscussionComposerCard({
   draftValid,
   isCreating,
   user,
-  themeColor
+  themeColor,
+  onBodyEmptyChange,
 }: DiscussionCardProps) {
-  const [localBody, setLocalBody] = useState(noteBody);
+  const [hasContent, setHasContent] = useState(false);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setNoteBody(localBody);
-    }, 80);
-    return () => clearTimeout(handler);
-  }, [localBody, setNoteBody]);
-
-  useEffect(() => {
-    if (noteBody === '') {
-      setLocalBody('');
-    }
-  }, [noteBody]);
+  const handleEmptyChange = useCallback((isEmpty: boolean) => {
+    setHasContent(!isEmpty);
+    onBodyEmptyChange(isEmpty);
+  }, [onBodyEmptyChange]);
 
   return (
     <Paper
@@ -415,8 +365,8 @@ function DiscussionComposerCard({
           </Typography>
         </Box>
 
-        {/* Outgoing Bubble Preview */}
-        {localBody.trim().length > 0 && (
+        {/* Outgoing Bubble Preview — shows when input has content */}
+        {hasContent && (
           <Box sx={{ alignSelf: 'flex-end', maxWidth: '80%', display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
               <Box sx={{ 
@@ -428,7 +378,7 @@ function DiscussionComposerCard({
                 boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)',
               }}>
                 <Typography sx={{ fontSize: '0.95rem', fontFamily: 'var(--font-satoshi)', whiteSpace: 'pre-wrap', lineHeight: 1.5, fontWeight: 700 }}>
-                  {localBody}
+                  Composing message…
                 </Typography>
               </Box>
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem' }}>
@@ -464,7 +414,7 @@ function DiscussionComposerCard({
         zIndex: 1,
       }}>
         {/* Conditional Topic Field */}
-        {(localBody.trim().length > 0 || noteTitle.trim().length > 0) && (
+        {(hasContent || noteTitle.trim().length > 0) && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -506,27 +456,12 @@ function DiscussionComposerCard({
           flexDirection: 'column',
           gap: 1
         }}>
-          <TextField
-            fullWidth
-            required
-            multiline
-            minRows={3}
-            maxRows={10}
+          <FastDraftInput
+            ref={draftInputRef}
             placeholder="Open the huddle with a clear message…"
-            value={localBody}
-            onChange={(e) => setLocalBody(e.target.value)}
-            variant="standard"
-            InputProps={{
-              disableUnderline: true,
-              sx: { 
-                fontSize: '1rem', 
-                lineHeight: 1.6,
-                color: 'rgba(255, 255, 255, 0.9)',
-                fontFamily: 'var(--font-satoshi)',
-                px: 1,
-                '&::placeholder': { opacity: 0.3, color: '#ffffff' }
-              }
-            }}
+            rows={3}
+            autoFocus
+            onEmptyChange={handleEmptyChange}
           />
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 1, borderTop: '1px solid rgba(255,255,255,0.03)' }}>
             <Stack direction="row" spacing={1}>
@@ -562,7 +497,7 @@ function DiscussionComposerCard({
       </Box>
     </Paper>
   );
-}
+});
 
 export function SendComposer() {
   const reduceMotion = useReducedMotion();
@@ -615,6 +550,12 @@ export function SendComposer() {
 
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
+  // Ref-based input for note/discussion body — zero re-renders on keystroke
+  const noteBodyRef = useRef<FastDraftInputHandle | null>(null);
+  const [noteBodyHasContent, setNoteBodyHasContent] = useState(false);
+  const handleNoteBodyEmptyChange = useCallback((isEmpty: boolean) => {
+    setNoteBodyHasContent(!isEmpty);
+  }, []);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [taskTitle, setTaskTitle] = useState('');
@@ -726,29 +667,34 @@ export function SendComposer() {
     setIsTitleManuallyEdited(false);
   }, [kind]);
 
-  // Seamless auto-title logic
+  // Seamless auto-title logic — debounced to avoid cascading re-renders
+  // Only runs when the input transitions (via the noteBodyHasContent flag), not on every keystroke
   useEffect(() => {
     if (isTitleManuallyEdited) return;
+    if (kind !== 'note' && kind !== 'discussion') return;
 
-    const generatedTitle = buildAutoTitleFromContent(noteBody);
-    if (noteBody.trim()) {
+    // Read the body from the ref imperatively (no React state involved)
+    const raw = noteBodyRef.current?.getValue()?.trim() || '';
+    if (raw) {
+      const generatedTitle = buildAutoTitleFromContent(raw);
       if (generatedTitle !== noteTitle) {
         setNoteTitle(generatedTitle);
       }
     } else {
-      setNoteTitle('');
+      if (noteTitle) setNoteTitle('');
     }
-  }, [noteBody, isTitleManuallyEdited, noteTitle]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteBodyHasContent, isTitleManuallyEdited, kind]);
 
   const draftValid = useMemo(() => {
-    if (kind === 'note') return noteBody.trim().length > 0;
+    if (kind === 'note') return noteBodyHasContent;
     if (kind === 'password') return password.trim().length > 0;
     if (kind === 'task') return taskTitle.trim().length > 0;
     if (kind === 'totp') return totpSecret.trim().length > 0;
     if (kind === 'file') return !!sendFile;
-    if (kind === 'discussion') return noteBody.trim().length > 0;
+    if (kind === 'discussion') return noteBodyHasContent;
     return false;
-  }, [kind, noteBody, password, taskTitle, totpSecret, sendFile]);
+  }, [kind, noteBodyHasContent, password, taskTitle, totpSecret, sendFile]);
 
   const handleCreateLink = useCallback(async () => {
     setIsCreating(true);
@@ -777,7 +723,11 @@ export function SendComposer() {
 
       if (kind === 'note') {
         sparkTitle = noteTitle.trim() || 'Note';
-        const { t, c } = await processData(sparkTitle, noteBody.trim());
+        const bodyText = noteBodyRef.current?.getValue()?.trim() || '';
+        const { t, c } = await processData(sparkTitle, bodyText);
+        outTitle = t;
+        outContent = c;
+        format = 'markdown';
         outTitle = t;
         outContent = c;
         format = 'markdown';
@@ -827,7 +777,8 @@ export function SendComposer() {
         format = 'json';
       } else if (kind === 'discussion') {
         sparkTitle = noteTitle.trim() || 'Discussion';
-        const { t, c } = await processData(sparkTitle, noteBody.trim() || 'Welcome to the thread.');
+        const bodyText = noteBodyRef.current?.getValue()?.trim() || 'Welcome to the thread.';
+        const { t, c } = await processData(sparkTitle, bodyText);
         outTitle = t;
         outContent = c;
         format = 'markdown';
@@ -939,7 +890,6 @@ export function SendComposer() {
     effectiveSecureMode,
     expiryMs,
     noteTitle,
-    noteBody,
     username,
     password,
     passwordTotpBundle,
@@ -971,6 +921,8 @@ export function SendComposer() {
     setCreatedUrl(null);
     setNoteTitle('');
     setNoteBody('');
+    noteBodyRef.current?.clear();
+    setNoteBodyHasContent(false);
     setUsername('');
     setPassword('');
     setTaskTitle('');
@@ -1210,8 +1162,7 @@ export function SendComposer() {
               <NoteComposerCard
                 noteTitle={noteTitle}
                 setNoteTitle={setNoteTitle}
-                noteBody={noteBody}
-                setNoteBody={setNoteBody}
+                draftInputRef={noteBodyRef}
                 isTitleManuallyEdited={isTitleManuallyEdited}
                 setIsTitleManuallyEdited={setIsTitleManuallyEdited}
                 handleCreateLink={handleCreateLink}
@@ -1220,6 +1171,7 @@ export function SendComposer() {
                 isCreating={isCreating}
                 effectiveSecureMode={effectiveSecureMode}
                 themeColor={themeColor}
+                onBodyEmptyChange={handleNoteBodyEmptyChange}
               />
             )}
 
@@ -1227,8 +1179,7 @@ export function SendComposer() {
               <DiscussionComposerCard
                 noteTitle={noteTitle}
                 setNoteTitle={setNoteTitle}
-                noteBody={noteBody}
-                setNoteBody={setNoteBody}
+                draftInputRef={noteBodyRef}
                 isTitleManuallyEdited={isTitleManuallyEdited}
                 setIsTitleManuallyEdited={setIsTitleManuallyEdited}
                 handleCreateLink={handleCreateLink}
@@ -1237,6 +1188,7 @@ export function SendComposer() {
                 isCreating={isCreating}
                 user={user}
                 themeColor={themeColor}
+                onBodyEmptyChange={handleNoteBodyEmptyChange}
               />
             )}
 
