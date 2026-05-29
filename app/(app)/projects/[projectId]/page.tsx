@@ -1649,6 +1649,94 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
   const [sendToGeneralChecked, setSendToGeneralChecked] = useState(true);
   const [messageAnchorEl, setMessageAnchorEl] = useState<{ el: HTMLElement, msg: any } | null>(null);
 
+  // Mention Autocomplete States & Refs
+  const [mentionAnchorEl, setMentionAnchorEl] = useState<HTMLDivElement | null>(null);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionResults, setMentionResults] = useState<any[]>([]);
+  const [mentionLoading, setMentionLoading] = useState(false);
+  const [mentionActiveRange, setMentionActiveRange] = useState<{ start: number; end: number } | null>(null);
+  const [mentionInputSource, setMentionInputSource] = useState<'general' | 'thread'>('general');
+  const mentionContainerRef = useRef<HTMLDivElement | null>(null);
+  const threadMentionContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const closeMentionSuggestions = useCallback(() => {
+    setMentionAnchorEl(null);
+    setMentionResults([]);
+    setMentionQuery('');
+    setMentionActiveRange(null);
+    setMentionLoading(false);
+  }, []);
+
+  const handleInputChange = useCallback((text: string, selectionStart: number, type: 'general' | 'thread') => {
+    if (type === 'general') {
+      setInputText(text);
+    } else {
+      setThreadInputText(text);
+    }
+
+    const caret = selectionStart;
+    const active = getActiveMentionToken(text, caret);
+    if (active) {
+      setMentionQuery(active.query);
+      setMentionActiveRange({ start: active.start, end: active.end });
+      setMentionInputSource(type);
+      setMentionAnchorEl(type === 'general' ? mentionContainerRef.current : threadMentionContainerRef.current);
+    } else {
+      closeMentionSuggestions();
+    }
+  }, [closeMentionSuggestions]);
+
+  const replaceActiveMention = useCallback((item: any) => {
+    if (!mentionActiveRange) return;
+    const mention = `@${item.username || item.title.replace(/\s+/g, '').toLowerCase()}`;
+    const currentValue = mentionInputSource === 'general' ? inputText : threadInputText;
+    const nextValue = `${currentValue.slice(0, mentionActiveRange.start)}${mention} ${currentValue.slice(mentionActiveRange.end)}`;
+    
+    if (mentionInputSource === 'general') {
+      setInputText(nextValue);
+    } else {
+      setThreadInputText(nextValue);
+    }
+    closeMentionSuggestions();
+  }, [mentionActiveRange, mentionInputSource, inputText, threadInputText, closeMentionSuggestions]);
+
+  useEffect(() => {
+    if (!mentionQuery.trim()) {
+      setMentionResults([]);
+      setMentionLoading(false);
+      return;
+    }
+
+    let alive = true;
+    const timer = setTimeout(async () => {
+      setMentionLoading(true);
+      try {
+        const docs = await searchGlobalUsers(mentionQuery.trim(), 6);
+        if (!alive) return;
+        const mapped = docs.map((doc: any) => {
+          const id = doc?.$id || doc?.id || doc?.userId;
+          const username = String(doc?.username || doc?.prefs?.username || doc?.displayName || doc?.name || '').replace(/^@+/, '').trim().toLowerCase();
+          return {
+            id,
+            title: doc?.displayName || doc?.name || username || 'Profile',
+            username: username || null,
+            avatar: doc?.avatar || doc?.profilePicId || doc?.prefs?.profilePicId || null,
+          };
+        });
+        setMentionResults(mapped);
+      } catch (err) {
+        if (alive) setMentionResults([]);
+      } finally {
+        if (alive) setMentionLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [mentionQuery]);
+
   // Voice recording states and refs
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -2324,7 +2412,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
                             <VoiceMessage url={StorageService.getFileView(parsed.voiceFileId, 'voice')} />
                           ) : (
                             <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.5, wordBreak: 'break-word' }}>
-                              {parsed.text}
+                              {renderMessageText(parsed.text)}
                             </Typography>
                           )}
                         </Paper>
@@ -2442,7 +2530,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
                     </IconButton>
                   )}
 
-                  <Box sx={{ flexGrow: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Box ref={mentionContainerRef} sx={{ flexGrow: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
                     {isRecording && (
                       <Box sx={{
                         position: 'absolute',
@@ -2486,7 +2574,20 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
                       size="small"
                       value={inputText}
                       disabled={isRecording}
-                      onChange={(e) => setInputText(e.target.value)}
+                      onChange={(e) => handleInputChange(e.target.value, e.target.selectionStart ?? e.target.value.length, 'general')}
+                      onBlur={() => {
+                        setTimeout(() => closeMentionSuggestions(), 120);
+                      }}
+                      onFocus={(e) => {
+                        const caret = e.currentTarget.selectionStart ?? inputText.length;
+                        const active = getActiveMentionToken(inputText, caret);
+                        if (active) {
+                          setMentionQuery(active.query);
+                          setMentionActiveRange({ start: active.start, end: active.end });
+                          setMentionInputSource('general');
+                          setMentionAnchorEl(mentionContainerRef.current);
+                        }
+                      }}
                       placeholder={
                         isRecording 
                           ? "Recording in progress..." 
@@ -2626,7 +2727,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
                           }
                           return (
                             <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.5, wordBreak: 'break-word' }}>
-                              {parsedParent.text}
+                              {renderMessageText(parsedParent.text)}
                             </Typography>
                           );
                         })()}
@@ -2715,7 +2816,7 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
                               <VoiceMessage url={StorageService.getFileView(parsedReply.voiceFileId, 'voice')} />
                             ) : (
                               <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.5, wordBreak: 'break-word' }}>
-                                {parsedReply.text}
+                                {renderMessageText(parsedReply.text)}
                               </Typography>
                             )}
                           </Paper>
@@ -2795,12 +2896,25 @@ export function ProjectDiscussionTab({ project, fetchProjectData, user }: Projec
                   }}
                 >
                   <Stack spacing={1}>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <Stack ref={threadMentionContainerRef} sx={{ position: 'relative', width: '100%' }} direction="row" spacing={1} alignItems="center">
                       <TextField
                         fullWidth
                         size="small"
                         value={threadInputText}
-                        onChange={(e) => setThreadInputText(e.target.value)}
+                        onChange={(e) => handleInputChange(e.target.value, e.target.selectionStart ?? e.target.value.length, 'thread')}
+                        onBlur={() => {
+                          setTimeout(() => closeMentionSuggestions(), 120);
+                        }}
+                        onFocus={(e) => {
+                          const caret = e.currentTarget.selectionStart ?? threadInputText.length;
+                          const active = getActiveMentionToken(threadInputText, caret);
+                          if (active) {
+                            setMentionQuery(active.query);
+                            setMentionActiveRange({ start: active.start, end: active.end });
+                            setMentionInputSource('thread');
+                            setMentionAnchorEl(threadMentionContainerRef.current);
+                          }
+                        }}
                         placeholder="Reply in thread..."
                         variant="standard"
                         InputProps={{
