@@ -156,7 +156,7 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     if (project && isSettingsOpen) {
       setEditTitle(project.title || '');
-      setEditDesc(project.description || '');
+      setEditDesc(project.summary || '');
       setEditStatus((project.status || 'active') as any);
     }
   }, [project, isSettingsOpen]);
@@ -167,7 +167,7 @@ export default function ProjectDetailPage() {
     try {
       await ProjectsService.updateProject(project.$id, {
         title: editTitle.trim(),
-        description: editDesc.trim(),
+        summary: editDesc.trim(),
         status: editStatus
       });
       showSuccess('Project settings updated successfully!');
