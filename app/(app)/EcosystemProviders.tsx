@@ -74,6 +74,7 @@ const ecosystemProvidersList: Array<React.ComponentType<{ children: ReactNode }>
   AppwriteProvider,
   DocsProvider,
   NotesProvider,
+  TaskProvider,
   ProfileProvider,
   BackgroundTaskProvider,
   NotificationProvider,
