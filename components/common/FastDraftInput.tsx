@@ -1,7 +1,6 @@
 'use client';
 
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
-import { Box, alpha } from '@mui/material';
 
 export interface FastDraftInputHandle {
   getValue: () => string;
@@ -71,32 +70,36 @@ export const FastDraftInput = forwardRef<FastDraftInputHandle, FastDraftInputPro
   }), [syncEmptyState]);
 
   return (
-    <Box
-      component="textarea"
-      ref={inputRef}
-      defaultValue={initialValue}
-      placeholder={placeholder}
-      rows={rows}
-      onInput={(e: React.FormEvent<HTMLTextAreaElement>) => syncEmptyState(e.currentTarget.value)}
-      sx={{
-        width: '100%',
-        border: 'none',
-        outline: 'none',
-        resize: 'none',
-        background: 'transparent',
-        color: 'text.primary',
-        font: 'inherit',
-        fontSize: '1.1rem',
-        fontWeight: 500,
-        lineHeight: 1.6,
-        padding: 0,
-        minHeight: `${rows * 1.6}em`,
-        '&::placeholder': {
-          color: alpha('#FFFFFF', 0.36),
-          opacity: 1,
-        },
-      }}
-    />
+    <>
+      <style>{`
+        .fast-draft-textarea::placeholder {
+          color: rgba(255, 255, 255, 0.36);
+          opacity: 1;
+        }
+      `}</style>
+      <textarea
+        className="fast-draft-textarea"
+        ref={inputRef}
+        defaultValue={initialValue}
+        placeholder={placeholder}
+        rows={rows}
+        onInput={(e: React.FormEvent<HTMLTextAreaElement>) => syncEmptyState(e.currentTarget.value)}
+        style={{
+          width: '100%',
+          border: 'none',
+          outline: 'none',
+          resize: 'none',
+          background: 'transparent',
+          color: '#ffffff',
+          font: 'inherit',
+          fontSize: '1.1rem',
+          fontWeight: 500,
+          lineHeight: 1.6,
+          padding: 0,
+          minHeight: `${rows * 1.6}em`,
+        }}
+      />
+    </>
   );
 });
 

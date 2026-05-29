@@ -100,7 +100,10 @@ const cardStyle = {
   bgcolor: '#161412',
   border: '1px solid #34322F',
   boxShadow: '0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px rgba(37,35,33,0.9)',
-  transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+  transition: 'border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  transform: 'translateZ(0)',
+  willChange: 'transform',
+  backfaceVisibility: 'hidden',
   position: 'relative',
 } as const;
 
