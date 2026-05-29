@@ -76,6 +76,9 @@ import {
   deleteGhostNoteForProject
 } from '@/lib/actions/client-ops';
 
+import { account } from '@/lib/appwrite/client';
+import { getResourceCollaboratorsSecure } from '@/lib/actions/secure-ops';
+
 import { createComment, listComments, createReaction, deleteReaction, listReactions, deleteReactionsForTarget } from '@/lib/appwrite/note';
 import { TargetType } from '@/types/appwrite';
 import { client } from '@/lib/appwrite/client';
@@ -258,10 +261,31 @@ export default function ProjectDetailPage() {
     try {
       const p = await ProjectsService.getProject(projectId as string);
       setProject(p);
+
+      // Resolve owner profile
+      if (p?.ownerId) {
+        AppwriteService.getUsersByIds([p.ownerId])
+          .then((users: any) => setOwnerProfile(users[0] || null))
+          .catch(() => setOwnerProfile(null));
+      }
+
+      // Resolve secure project collaborators (with pending status, roles, and profiles!)
+      try {
+        const { jwt } = await account.createJWT();
+        const { collaborators: collabs } = await getResourceCollaboratorsSecure({
+          resourceId: projectId as string,
+          resourceType: 'project',
+          jwt
+        });
+        setCollaborators(collabs);
+      } catch (collabErr) {
+        console.error('Failed to load project collaborators securely:', collabErr);
+      }
+
       const objects = await ProjectsService.listProjectObjects(projectId as string);
       setProjectObjects(objects.rows);
 
-      // Resolve entities
+      // Resolve other entities
       await resolveEntities(objects.rows);
     } catch (err: any) {
       showError('Failed to load project', err.message);
@@ -276,7 +300,6 @@ export default function ProjectDetailPage() {
       const noteIds = objects.filter(o => o.entityKind === 'note').map(o => o.entityId);
       const taskIds = objects.filter(o => o.entityKind === 'goal' || o.entityKind === 'task').map(o => o.entityId);
       const credentialIds = objects.filter(o => o.entityKind === 'password' || o.entityKind === 'credential').map(o => o.entityId);
-      const collaboratorIds = objects.filter(o => o.entityKind === 'collaborator').map(o => o.entityId);
       const subProjectIds = objects.filter(o => o.entityKind === 'project').map(o => o.entityId);
       const formIds = objects.filter(o => o.entityKind === 'form').map(o => o.entityId);
       const eventIds = objects.filter(o => o.entityKind === 'event').map(o => o.entityId);
@@ -289,7 +312,6 @@ export default function ProjectDetailPage() {
         noteIds.length ? listNotes([Query.equal('$id', noteIds)]).then(r => setNotes(r.rows)).catch(() => setNotes([])) : Promise.resolve(setNotes([])),
         taskIds.length ? listFlowTasks([Query.equal('$id', taskIds)]).then(r => setTasks(r.rows)).catch(() => setTasks([])) : Promise.resolve(setTasks([])),
         credentialIds.length ? listKeepCredentials([Query.equal('$id', credentialIds)]).then(r => setCredentials(r.rows)).catch(() => setCredentials([])) : Promise.resolve(setCredentials([])),
-        collaboratorIds.length ? AppwriteService.getUsersByIds(collaboratorIds).then((r: any) => setCollaborators(r)).catch(() => setCollaborators([])) : Promise.resolve(setCollaborators([])),
         subProjectIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, 'projects', [Query.equal('$id', subProjectIds)]).then((r: any) => setSubProjects(r.rows)).catch(() => setSubProjects([])) : Promise.resolve(setSubProjects([])),
         formIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.FLOW, APPWRITE_CONFIG.TABLES.FLOW.FORMS, [Query.equal('$id', formIds)]).then((r: any) => setForms(r.rows)).catch(() => setForms([])) : Promise.resolve(setForms([])),
         eventIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.KYLRIXFLOW, 'events', [Query.equal('$id', eventIds)]).then((r: any) => setEvents(r.rows)).catch(() => setEvents([])) : Promise.resolve(setEvents([])),
@@ -312,6 +334,37 @@ export default function ProjectDetailPage() {
   }, [fetchProjectData]);
 
   const handleRemoveObject = async (entityId: string) => {
+      // If it's a collaborator, we want to remove them as a collaborator!
+      const isCollaborator = collaborators.some(u => (u.$id === entityId || u.userId === entityId));
+      
+      if (isCollaborator) {
+          const collab = collaborators.find(u => (u.$id === entityId || u.userId === entityId));
+          const entityName = collab?.displayName || collab?.name || collab?.email || 'this collaborator';
+          openUnified('delete-confirm', {
+              title: collab?.status === 'pending' ? `Cancel Invitation?` : `Remove Collaborator?`,
+              description: collab?.status === 'pending' 
+                  ? `This will cancel the pending invitation to "${entityName}".`
+                  : `This will remove "${entityName}" from the project collaborators. They will lose all read and write access.`,
+              resourceName: 'collaborator',
+              confirmLabel: collab?.status === 'pending' ? 'Cancel Invitation' : 'Remove Collaborator',
+              onConfirm: async () => {
+                  try {
+                      await ProjectsService.removeCollaborator(projectId as string, entityId);
+                      showSuccess(collab?.status === 'pending' ? 'Invitation cancelled' : 'Collaborator removed');
+                      setCollaborators(prev => prev.filter(u => u.$id !== entityId && u.userId !== entityId));
+                      // Also cleanup any project_objects if they accepted
+                      const obj = projectObjects.find(o => o.entityId === entityId);
+                      if (obj) {
+                          setProjectObjects(prev => prev.filter(o => o.$id !== obj.$id));
+                      }
+                  } catch (err: any) {
+                      showError(collab?.status === 'pending' ? 'Failed to cancel invitation' : 'Failed to remove collaborator', err.message);
+                  }
+              }
+          });
+          return;
+      }
+
       const obj = projectObjects.find(o => o.entityId === entityId);
       if (!obj) return;
 
@@ -319,7 +372,6 @@ export default function ProjectDetailPage() {
                          tasks.find(t => t.$id === entityId)?.title || 
                          credentials.find(c => c.$id === entityId)?.name || 
                          subProjects.find(p => p.$id === entityId)?.title || 
-                         collaborators.find(u => u.$id === entityId)?.name || 
                          'this object';
 
       openUnified('delete-confirm', {
@@ -342,6 +394,16 @@ export default function ProjectDetailPage() {
               }
           }
       });
+  };
+
+  const handleCopyInviteLink = () => {
+      try {
+          const inviteUrl = `${window.location.origin}/projects/${projectId}`;
+          navigator.clipboard.writeText(inviteUrl);
+          showSuccess('Project invite link copied!');
+      } catch (err: any) {
+          showError('Failed to copy invite link', err.message);
+      }
   };
 
   const handleAddCollaborator = () => {
@@ -921,50 +983,83 @@ export default function ProjectDetailPage() {
                     <Paper
                         elevation={0}
                         sx={{
-                            bgcolor: '#161412',
-                            border: '1px solid rgba(255,255,255,0.06)',
-                            borderRadius: '32px',
+                            bgcolor: '#161412', // Deep Ash
+                            border: '1px solid #1C1A18', // Rim/Border Ash
+                            borderRadius: '28px',
                             p: 3,
                             backgroundImage: 'none',
                         }}
                     >
                         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
-                            <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem' }}>Participants</Typography>
-                            <IconButton 
-                                size="small" 
-                                onClick={handleAddCollaborator}
-                                sx={{ bgcolor: alpha('#6366F1', 0.1), color: '#6366F1', '&:hover': { bgcolor: alpha('#6366F1', 0.2) } }}
-                            >
-                                <Plus size={18} />
-                            </IconButton>
+                            <Typography sx={{ color: '#fff', fontWeight: 900, fontFamily: 'var(--font-clash)', fontSize: '1.1rem', letterSpacing: '-0.01em' }}>Project Members</Typography>
+                            <Stack direction="row" spacing={1}>
+                                <IconButton 
+                                    size="small" 
+                                    onClick={handleCopyInviteLink}
+                                    title="Copy Invite Link"
+                                    sx={{ bgcolor: 'rgba(255, 255, 255, 0.04)', color: 'rgba(255, 255, 255, 0.6)', '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)', color: '#fff' } }}
+                                >
+                                    <Copy size={15} />
+                                </IconButton>
+                                <IconButton 
+                                    size="small" 
+                                    onClick={handleAddCollaborator}
+                                    title="Add Collaborator"
+                                    sx={{ bgcolor: alpha('#6366F1', 0.1), color: '#6366F1', '&:hover': { bgcolor: alpha('#6366F1', 0.2) } }}
+                                >
+                                    <Plus size={18} />
+                                </IconButton>
+                            </Stack>
                         </Stack>
                         
                         <Stack spacing={1.5}>
-                            <Box sx={{ p: 1.5, borderRadius: '16px', bgcolor: alpha('#fff', 0.02), border: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                <IdentityAvatar size={34} src={undefined} fallback="O" verified={true} />
-                                <Box sx={{ flex: 1 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 800 }}>Project Owner</Typography>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Full Control</Typography>
+                            {/* Project Owner Section */}
+                            <Box sx={{ p: 1.5, borderRadius: '16px', bgcolor: '#0A0908', border: '1px solid #1C1A18', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <IdentityAvatar 
+                                    size={34} 
+                                    fileId={ownerProfile?.profilePicId || ownerProfile?.avatar || null} 
+                                    alt={ownerProfile?.displayName || ownerProfile?.name || 'Owner'} 
+                                    fallback={(ownerProfile?.displayName || ownerProfile?.name || 'O').charAt(0).toUpperCase()} 
+                                    verified={ownerProfile?.verified ?? true} 
+                                />
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Typography noWrap variant="body2" sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: 'white' }}>
+                                        {ownerProfile?.displayName || ownerProfile?.name || 'Project Owner'}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}>
+                                        {ownerProfile?.username ? `@${ownerProfile.username}` : 'Full Control'}
+                                    </Typography>
                                 </Box>
-                                <Chip label="OWNER" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 900, bgcolor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }} />
+                                <Chip label="OWNER" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 900, fontFamily: 'var(--font-satoshi)', bgcolor: 'rgba(99, 102, 241, 0.12)', color: '#6366F1' }} />
                             </Box>
 
+                            {/* Collaborators Section (Active and Pending) */}
                             {collaborators.map(user => (
-                                <Box key={user.$id} sx={{ p: 1.5, borderRadius: '16px', bgcolor: alpha('#fff', 0.01), border: '1px solid rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <Box key={user.$id || user.userId} sx={{ p: 1.5, borderRadius: '16px', bgcolor: '#0A0908', border: '1px solid #1C1A18', display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                     <IdentityAvatar 
                                         size={34} 
-                                        fileId={user.profilePicId} 
-                                        alt={user.name} 
-                                        fallback={user.name?.[0].toUpperCase() || 'U'} 
+                                        fileId={user.avatar || user.profilePicId} 
+                                        alt={user.displayName || user.name || 'Collaborator'} 
+                                        fallback={(user.displayName || user.name || 'C').charAt(0).toUpperCase()} 
                                         verified={user.verified} 
                                     />
                                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                                        <Typography noWrap variant="body2" sx={{ fontWeight: 800 }}>{user.name || user.email}</Typography>
-                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Collaborator</Typography>
+                                        <Typography noWrap variant="body2" sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: 'white' }}>
+                                            {user.displayName || user.name || user.email}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', fontFamily: 'var(--font-satoshi)', fontWeight: 600, textTransform: 'capitalize' }}>
+                                            {user.permissionLevel || 'Viewer'}
+                                        </Typography>
                                     </Box>
-                                    <IconButton size="small" onClick={() => handleRemoveObject(user.$id)} sx={{ opacity: 0.2, '&:hover': { opacity: 1, color: '#FF453A' } }}>
-                                        <Trash2 size={14} />
-                                    </IconButton>
+                                    
+                                    <Stack direction="row" spacing={1} alignItems="center">
+                                        {user.status === 'pending' && (
+                                            <Chip label="PENDING" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 900, fontFamily: 'var(--font-satoshi)', bgcolor: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B' }} />
+                                        )}
+                                        <IconButton size="small" onClick={() => handleRemoveObject(user.$id || user.userId)} sx={{ opacity: 0.2, '&:hover': { opacity: 1, color: '#FF453A' } }}>
+                                            <Trash2 size={14} />
+                                        </IconButton>
+                                    </Stack>
                                 </Box>
                             ))}
                         </Stack>

@@ -617,38 +617,66 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
     rowId: input.resourceId,
   }, requester.$id);
 
-  // 2. Set the virtual permission level in metadata.collaborators
+  // 2. Set virtual permission in polymorphic flow.collaborators table
   if (input.resourceType === 'note') {
     const tables = createSystemTablesDB();
-    const noteRow = await tables.getRow({
-      databaseId: dbId,
-      tableId: tableId,
-      rowId: input.resourceId,
-    });
-    let meta: any = {};
-    try {
-      meta = JSON.parse(noteRow.metadata || '{}');
-    } catch {}
+    const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
+    const COLLABORATORS_TABLE = APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators';
 
     // Enforce 8-collaborator limit for FREE tier
-    const currentCollaborators = meta.collaborators ? Object.keys(meta.collaborators) : [];
-    if (currentCollaborators.length >= 8 && !hasPaidKylrixPlan(requester)) {
+    const existingCollabsRes = await tables.listRows({
+      databaseId: FLOW_DATABASE_ID,
+      tableId: COLLABORATORS_TABLE,
+      queries: [
+        Query.equal('resourceId', input.resourceId),
+        Query.equal('resourceType', 'note')
+      ] as any
+    });
+
+    if (existingCollabsRes.rows.length >= 8 && !hasPaidKylrixPlan(requester)) {
         throw new Error('Limit reached: Free plan is limited to 8 collaborators per note. Upgrade to PRO for unlimited sharing.');
     }
 
-    if (!meta.collaborators) {
-      meta.collaborators = {};
-    }
-    meta.collaborators[input.targetUserId] = input.permission; // 'viewer' | 'editor' | 'admin'
-
-    await tables.updateRow({
-      databaseId: dbId,
-      tableId: tableId,
-      rowId: input.resourceId,
-      data: {
-      metadata: JSON.stringify(meta)
-    },
+    const existingCollab = await tables.listRows({
+      databaseId: FLOW_DATABASE_ID,
+      tableId: COLLABORATORS_TABLE,
+      queries: [
+        Query.equal('resourceId', input.resourceId),
+        Query.equal('resourceType', 'note'),
+        Query.equal('userId', input.targetUserId)
+      ] as any
     });
+
+    const permission = input.permission === 'admin' ? 'admin' : (input.permission === 'editor' ? 'write' : 'read');
+
+    if (existingCollab.rows.length > 0) {
+      await tables.updateRow({
+        databaseId: FLOW_DATABASE_ID,
+        tableId: COLLABORATORS_TABLE,
+        rowId: existingCollab.rows[0].$id,
+        data: {
+          permission,
+          status: 'accepted',
+          accepted: true
+        }
+      });
+    } else {
+      await tables.createRow({
+        databaseId: FLOW_DATABASE_ID,
+        tableId: COLLABORATORS_TABLE,
+        rowId: ID.unique(),
+        data: {
+          resourceId: input.resourceId,
+          resourceType: 'note',
+          userId: input.targetUserId,
+          permission,
+          invitedAt: new Date().toISOString(),
+          accepted: true,
+          status: 'accepted',
+          role: 'collaborator'
+        }
+      });
+    }
   }
 
   // 3. Structured Notification Layer (Optional)
@@ -716,7 +744,7 @@ export async function revokePermissionSecure(input: {
         rowId: input.resourceId,
     }, requester.$id);
 
-    // 2. Remove virtual permission from metadata
+    // 2. Remove virtual permission from metadata for legacy compatibility
     if (input.resourceType === 'note') {
         const tables = createSystemTablesDB();
         const noteRow = await tables.getRow({
@@ -739,6 +767,33 @@ export async function revokePermissionSecure(input: {
             },
     });
         }
+    }
+
+    // 3. Remove polymorphic collaborators row for any resource type
+    try {
+      const tables = createSystemTablesDB();
+      const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
+      const COLLABORATORS_TABLE = APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators';
+      const collabsRes = await tables.listRows({
+        databaseId: FLOW_DATABASE_ID,
+        tableId: COLLABORATORS_TABLE,
+        queries: [
+          Query.equal('resourceId', input.resourceId),
+          Query.equal('resourceType', input.resourceType),
+          Query.equal('userId', input.targetUserId)
+        ] as any
+      });
+      await Promise.all(
+        collabsRes.rows.map((row) =>
+          tables.deleteRow({
+            databaseId: FLOW_DATABASE_ID,
+            tableId: COLLABORATORS_TABLE,
+            rowId: row.$id
+          })
+        )
+      );
+    } catch (err) {
+      console.error('[revokePermissionSecure] Failed to remove polymorphic collaborator row:', err);
     }
 
     return { success: true };
@@ -793,14 +848,7 @@ export async function getResourceCollaboratorsSecure(input: {
     let filteredCollabs: Array<{ userId: string, level: string, status: string, accepted: boolean }> = [];
     
     if (input.resourceType === 'note' || input.resourceType === 'project') {
-        let meta: any = {};
-        try {
-            meta = JSON.parse(row.metadata || '{}');
-        } catch {}
-        const collaboratorsMap = meta.collaborators || {};
-
-        // Query polymorphic collaborators table for status (pending/accepted)
-        let polymorphicCollabs: Record<string, { status: string; accepted: boolean }> = {};
+        // Query polymorphic collaborators table as the single source of truth
         try {
             const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
             const COLLABORATORS_TABLE = APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators';
@@ -812,22 +860,31 @@ export async function getResourceCollaboratorsSecure(input: {
                     Query.equal('resourceType', input.resourceType)
                 ] as any
             });
-            for (const c of collabsRes.rows) {
-                polymorphicCollabs[c.userId] = {
-                    status: c.status || 'accepted',
-                    accepted: c.accepted ?? true
-                };
+
+            if (collabsRes.rows.length > 0) {
+                filteredCollabs = collabsRes.rows.map(c => ({
+                    userId: c.userId,
+                    level: c.permission === 'admin' ? 'admin' : (c.permission === 'write' ? 'editor' : 'viewer'),
+                    status: c.status || 'pending',
+                    accepted: c.accepted ?? false
+                }));
+            } else {
+                // Legacy fallback to metadata.collaborators
+                let meta: any = {};
+                try {
+                    meta = JSON.parse(row.metadata || '{}');
+                } catch {}
+                const collaboratorsMap = meta.collaborators || {};
+                filteredCollabs = Object.entries(collaboratorsMap).map(([userId, level]) => ({
+                    userId,
+                    level: String(level),
+                    status: 'accepted',
+                    accepted: true
+                }));
             }
         } catch (e) {
             console.warn('[getResourceCollaboratorsSecure] Failed to query polymorphic status:', e);
         }
-
-        filteredCollabs = Object.entries(collaboratorsMap).map(([userId, level]) => ({
-            userId,
-            level: String(level),
-            status: polymorphicCollabs[userId]?.status || 'accepted',
-            accepted: polymorphicCollabs[userId]?.accepted ?? true
-        }));
     } else {
         // Fallback for tasks
         const rawPermissions = row.$permissions || [];
@@ -1639,9 +1696,8 @@ export async function addProjectCollaboratorSecure(projectId: string, targetUser
   }
 
   const tables = createSystemTablesDB();
-  const { databases, teams } = createSystemClient();
 
-  // 2. Fetch current project to update permissions
+  // 1. Fetch current project
   const project = await tables.getRow({
       databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
       tableId: 'projects',
@@ -1649,136 +1705,394 @@ export async function addProjectCollaboratorSecure(projectId: string, targetUser
     });
 
   // Enforce 8-collaborator limit for FREE tier
-  let metadata: any = {};
-  try {
-    metadata = JSON.parse(project.metadata || '{}');
-  } catch {}
-  const currentCollaborators = metadata.collaborators ? Object.keys(metadata.collaborators) : [];
+  const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
+  const COLLABORATORS_TABLE = APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators';
+
+  const existingCollabsRes = await tables.listRows({
+    databaseId: FLOW_DATABASE_ID,
+    tableId: COLLABORATORS_TABLE,
+    queries: [
+      Query.equal('resourceId', projectId),
+      Query.equal('resourceType', 'project')
+    ] as any
+  });
 
   // Fetch owner to check plan
   const { users } = createSystemClient();
   const owner = await users.get(project.ownerId);
   const isPro = hasPaidKylrixPlan(owner);
 
-  if (currentCollaborators.length >= 8 && !isPro) {
+  if (existingCollabsRes.rows.length >= 8 && !isPro) {
       throw new Error('Limit reached: Free plan is limited to 8 collaborators. Upgrade to PRO for unlimited team members.');
   }
 
-  // 1. Sync to native Appwrite Team for optimized read-access (PRO ONLY)
-  if (isPro) {
-      try {
-          await teams.createMembership(
-              projectId, 
-              [permissionLevel], 
-              undefined, 
-              targetUserId
-          );
-      } catch (teamErr: any) {
-          console.warn('[addProjectCollaboratorSecure] Team membership sync skipped or failed:', teamErr?.message);
-      }
-  }
+  // 2. Create polymorphic collaborator row with status: 'pending' and accepted: false!
+  const existingCollab = await tables.listRows({
+    databaseId: FLOW_DATABASE_ID,
+    tableId: COLLABORATORS_TABLE,
+    queries: [
+      Query.equal('resourceId', projectId),
+      Query.equal('resourceType', 'project'),
+      Query.equal('userId', targetUserId)
+    ] as any
+  });
 
-  // Update physical permissions: add READ permission only
-  const newPermissions = new Set(project.$permissions || []);
-  newPermissions.add(`read("user:${targetUserId}")`);
-
-  // Ensure native team permission is present (PRO ONLY)
-  if (isPro) {
-      newPermissions.add(`read("team:${projectId}")`);
-  }
-  if (!metadata.collaborators) {
-    metadata.collaborators = {};
-  }
-  metadata.collaborators[targetUserId] = permissionLevel;
-  await tables.updateRow({
-      databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
-      tableId: 'projects',
-      rowId: projectId,
+  if (existingCollab.rows.length > 0) {
+    await tables.updateRow({
+      databaseId: FLOW_DATABASE_ID,
+      tableId: COLLABORATORS_TABLE,
+      rowId: existingCollab.rows[0].$id,
       data: {
-      metadata: JSON.stringify(metadata),
+        permission: permissionLevel === 'admin' ? 'admin' : (permissionLevel === 'editor' ? 'write' : 'read'),
+        status: 'pending',
+        accepted: false,
+        role: 'collaborator'
+      }
+    });
+  } else {
+    await tables.createRow({
+      databaseId: FLOW_DATABASE_ID,
+      tableId: COLLABORATORS_TABLE,
+      rowId: ID.unique(),
+      data: {
+        resourceId: projectId,
+        resourceType: 'project',
+        userId: targetUserId,
+        permission: permissionLevel === 'admin' ? 'admin' : (permissionLevel === 'editor' ? 'write' : 'read'),
+        invitedAt: new Date().toISOString(),
+        accepted: false,
+        status: 'pending',
+        role: 'collaborator'
+      }
+    });
+  }
+
+  // 3. Dispatch structured notification email + companion Telegram alert
+  try {
+    await dispatchSecureNotification({
+      targetUserId,
+      type: 'invite',
+      title: 'Project Invitation',
+      body: `${actor.name || 'A Kylrix user'} has invited you to collaborate on the project "${project.title}".`,
+      actorName: actor.name || 'A teammate',
+      resourceId: projectId,
+      resourceTitle: project.title,
+      resourceType: 'project',
+      permission: permissionLevel
+    });
+  } catch (err) {
+    console.error('[addProjectCollaboratorSecure] Notification dispatch failed:', err);
+  }
+
+  return { success: true, pending: true };
+}
+
+export async function getProjectInviteDetailsSecure(projectId: string, jwt?: string) {
+  const actor = await getActor(jwt);
+  if (!actor || !actor.$id) {
+    throw new Error('Unauthorized');
+  }
+
+  const tables = createSystemTablesDB();
+  const project = await tables.getRow({
+    databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
+    tableId: 'projects',
+    rowId: projectId,
+  }).catch(() => null);
+
+  if (!project) {
+    throw new Error('Project not found, or you do not have access');
+  }
+
+  // 1. Check if they are the owner
+  if (project.ownerId === actor.$id) {
+    return {
+      project: {
+        $id: project.$id,
+        title: project.title,
+        summary: project.summary,
+        status: project.status,
+        ownerId: project.ownerId,
+      },
+      isOwner: true,
+      isPending: false,
+      role: 'admin'
+    };
+  }
+
+  // 2. Query polymorphic status and role
+  const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
+  const COLLABORATORS_TABLE = APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators';
+  
+  let status = 'pending';
+  let role = 'viewer';
+  let isInvited = false;
+
+  try {
+    const collabsRes = await tables.listRows({
+      databaseId: FLOW_DATABASE_ID,
+      tableId: COLLABORATORS_TABLE,
+      queries: [
+        Query.equal('resourceId', projectId),
+        Query.equal('resourceType', 'project'),
+        Query.equal('userId', actor.$id)
+      ] as any
+    });
+    if (collabsRes.rows.length > 0) {
+      const c = collabsRes.rows[0];
+      status = c.status || 'pending';
+      role = c.permission === 'admin' ? 'admin' : (c.permission === 'write' ? 'editor' : 'viewer');
+      isInvited = true;
+    } else {
+      // Legacy fallback to metadata.collaborators
+      let metadata: any = {};
+      try {
+        metadata = JSON.parse(project.metadata || '{}');
+      } catch {}
+      const collaborators = metadata.collaborators || {};
+      if (collaborators[actor.$id]) {
+        status = 'pending';
+        role = collaborators[actor.$id];
+        isInvited = true;
+      }
+    }
+  } catch (err) {
+    console.error('[getProjectInviteDetailsSecure] Failed to query polymorphic status:', err);
+  }
+
+  if (!isInvited) {
+    throw new Error('Project not found, or you do not have access');
+  }
+
+  return {
+    project: {
+      $id: project.$id,
+      title: project.title,
+      summary: project.summary,
+      status: project.status,
+      ownerId: project.ownerId,
     },
-      permissions: Array.from(newPermissions),
+    isOwner: false,
+    isPending: status === 'pending',
+    role: role
+  };
+}
+
+export async function acceptProjectInviteSecure(projectId: string, jwt?: string) {
+  const actor = await getActor(jwt);
+  if (!actor || !actor.$id) {
+    throw new Error('Unauthorized');
+  }
+
+  const tables = createSystemTablesDB();
+  const project = await tables.getRow({
+    databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
+    tableId: 'projects',
+    rowId: projectId,
+  }).catch(() => null);
+
+  if (!project) {
+    throw new Error('Project not found');
+  }
+
+  const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
+  const COLLABORATORS_TABLE = APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators';
+
+  // 1. Verify invite via polymorphic collaborators table or legacy fallback
+  let permissionLevel = 'viewer';
+  let isInvited = false;
+  let collabId = null;
+
+  try {
+    const collabsRes = await tables.listRows({
+      databaseId: FLOW_DATABASE_ID,
+      tableId: COLLABORATORS_TABLE,
+      queries: [
+        Query.equal('resourceId', projectId),
+        Query.equal('resourceType', 'project'),
+        Query.equal('userId', actor.$id)
+      ] as any
     });
 
-  // 2. Add object link in project_objects (if not already exists)
-  const existingObjects = await tables.listRows({
+    if (collabsRes.rows.length > 0) {
+      const c = collabsRes.rows[0];
+      permissionLevel = c.permission === 'admin' ? 'admin' : (c.permission === 'write' ? 'editor' : 'viewer');
+      collabId = c.$id;
+      isInvited = true;
+    } else {
+      // Legacy fallback
+      let metadata: any = {};
+      try {
+        metadata = JSON.parse(project.metadata || '{}');
+      } catch {}
+      const collaborators = metadata.collaborators || {};
+      if (collaborators[actor.$id]) {
+        permissionLevel = collaborators[actor.$id];
+        isInvited = true;
+      }
+    }
+  } catch (err) {
+    console.error('[acceptProjectInviteSecure] Verification failed:', err);
+  }
+
+  if (!isInvited) {
+    throw new Error('You are not invited to collaborate on this project');
+  }
+
+  // 2. Update polymorphic collaborators table to 'accepted' and accepted: true
+  try {
+    if (collabId) {
+      await tables.updateRow({
+        databaseId: FLOW_DATABASE_ID,
+        tableId: COLLABORATORS_TABLE,
+        rowId: collabId,
+        data: {
+          status: 'accepted',
+          accepted: true
+        }
+      });
+    } else {
+      // If legacy invite accepted, create the row now to make it primary!
+      await tables.createRow({
+        databaseId: FLOW_DATABASE_ID,
+        tableId: COLLABORATORS_TABLE,
+        rowId: ID.unique(),
+        data: {
+          resourceId: projectId,
+          resourceType: 'project',
+          userId: actor.$id,
+          permission: permissionLevel === 'admin' ? 'admin' : (permissionLevel === 'editor' ? 'write' : 'read'),
+          invitedAt: new Date().toISOString(),
+          accepted: true,
+          status: 'accepted',
+          role: 'collaborator'
+        }
+      });
+    }
+  } catch (err) {
+    console.error('[acceptProjectInviteSecure] Failed to update polymorphic status:', err);
+  }
+
+  // 3. Grant physical Appwrite read permission
+  const newPermissions = new Set(project.$permissions || []);
+  newPermissions.add(`read("user:${actor.$id}")`);
+
+  const { users, teams } = createSystemClient();
+  const owner = await users.get(project.ownerId);
+  const isPro = hasPaidKylrixPlan(owner);
+
+  if (isPro) {
+    newPermissions.add(`read("team:${projectId}")`);
+    try {
+      await teams.createMembership(
+        projectId,
+        [permissionLevel],
+        undefined,
+        actor.$id
+      );
+    } catch (teamErr: any) {
+      console.warn('[acceptProjectInviteSecure] Team membership creation skipped or failed:', teamErr?.message);
+    }
+  }
+
+  let metadata: any = {};
+  try {
+    metadata = JSON.parse(project.metadata || '{}');
+  } catch {}
+
+  await tables.updateRow({
+    databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
+    tableId: 'projects',
+    rowId: projectId,
+    data: {
+      metadata: JSON.stringify(metadata)
+    },
+    permissions: Array.from(newPermissions)
+  });
+
+  // 3. Create object link in project_objects
+  const now = new Date().toISOString();
+  try {
+    const existingObjects = await tables.listRows({
       databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
       tableId: 'project_objects',
       queries: [
-      Query.equal('projectId', projectId),
-      Query.equal('entityKind', 'collaborator'),
-      Query.equal('entityId', targetUserId)] as any,
+        Query.equal('projectId', projectId),
+        Query.equal('entityKind', 'collaborator'),
+        Query.equal('entityId', actor.$id)
+      ] as any,
     });
 
-  let objLink;
-  const now = new Date().toISOString();
-  if (existingObjects.rows.length > 0) {
-    // Update existing
-    objLink = await tables.updateRow({
-      databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
-      tableId: 'project_objects',
-      rowId: existingObjects.rows[0].$id,
-      data: {
-        role: permissionLevel,
-        updatedAt: now,
-      },
-    });
-  } else {
-    // Create new project_objects row
-    const objectPermissions = [
-      Permission.read(Role.user(actor.$id)),
-      Permission.read(Role.user(targetUserId))];
-    objLink = await tables.createRow({
-      databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
-      tableId: 'project_objects',
-      rowId: ID.unique(),
-      data: {
-        projectId,
-        entityKind: 'collaborator',
-        entityId: targetUserId,
-        role: permissionLevel,
-        createdAt: now,
-        updatedAt: now,
-      },
-      permissions: objectPermissions,
-    });
+    if (existingObjects.rows.length === 0) {
+      await tables.createRow({
+        databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
+        tableId: 'project_objects',
+        rowId: ID.unique(),
+        data: {
+          projectId,
+          entityKind: 'collaborator',
+          entityId: actor.$id,
+          role: permissionLevel,
+          createdAt: now,
+          updatedAt: now,
+        },
+        permissions: [
+          Permission.read(Role.user(project.ownerId)),
+          Permission.read(Role.user(actor.$id))
+        ]
+      });
+    }
+  } catch (err) {
+    console.error('[acceptProjectInviteSecure] Failed to write project_objects link:', err);
   }
 
-  // 3. E2E Private Chat Group Member Auto-Sync
-  if (metadata && metadata.encryptedGroupId) {
+  // 4. Create encrypted chat membership (if present)
+  if (metadata.encryptedGroupId) {
     try {
-      const convId = metadata.encryptedGroupId;
       const existingMembers = await tables.listRows({
         databaseId: APPWRITE_CONFIG.DATABASES.CONNECT,
         tableId: 'conversationMembers',
         queries: [
-          Query.equal('conversationId', convId),
-          Query.equal('userId', targetUserId)
+          Query.equal('conversationId', metadata.encryptedGroupId),
+          Query.equal('userId', actor.$id)
         ] as any
       }).catch(() => ({ rows: [] }));
 
       if (existingMembers.rows.length === 0) {
-        const memberPerms = [
-          Permission.read(Role.user(actor.$id)),
-          Permission.read(Role.user(targetUserId))
-        ];
         await tables.createRow({
           databaseId: APPWRITE_CONFIG.DATABASES.CONNECT,
           tableId: 'conversationMembers',
           rowId: ID.unique(),
           data: {
-            conversationId: convId,
-            userId: targetUserId,
+            conversationId: metadata.encryptedGroupId,
+            userId: actor.$id,
           },
-          permissions: memberPerms
+          permissions: [
+            Permission.read(Role.user(project.ownerId)),
+            Permission.read(Role.user(actor.$id))
+          ]
         });
       }
     } catch (e) {
-      console.warn('[addProjectCollaboratorSecure] Failed to sync to E2E project group:', e);
+      console.warn('[acceptProjectInviteSecure] Failed to sync to E2E project group:', e);
     }
   }
 
-  return JSON.parse(JSON.stringify(objLink));
+  // 5. Notify the project owner
+  try {
+    await dispatchSecureNotification({
+      targetUserId: project.ownerId,
+      type: 'standard',
+      title: 'Invitation Accepted',
+      body: `${actor.name || 'A collaborator'} accepted your invite to join "${project.title}".`,
+      actorName: actor.name || 'A teammate',
+      resourceId: projectId,
+      resourceTitle: project.title,
+      resourceType: 'project'
+    });
+  } catch {}
+
+  return { success: true };
 }
 
 export async function removeProjectCollaboratorSecure(projectId: string, targetUserId: string, jwt?: string) {
@@ -1885,6 +2199,32 @@ export async function removeProjectCollaboratorSecure(projectId: string, targetU
     } catch (e) {
       console.warn('[removeProjectCollaboratorSecure] Failed to sync from E2E project group:', e);
     }
+  }
+
+  // 4. Remove polymorphic collaborators row
+  try {
+    const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
+    const COLLABORATORS_TABLE = APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators';
+    const collabsRes = await tables.listRows({
+      databaseId: FLOW_DATABASE_ID,
+      tableId: COLLABORATORS_TABLE,
+      queries: [
+        Query.equal('resourceId', projectId),
+        Query.equal('resourceType', 'project'),
+        Query.equal('userId', targetUserId)
+      ] as any
+    });
+    await Promise.all(
+      collabsRes.rows.map((row) =>
+        tables.deleteRow({
+          databaseId: FLOW_DATABASE_ID,
+          tableId: COLLABORATORS_TABLE,
+          rowId: row.$id
+        })
+      )
+    );
+  } catch (err) {
+    console.error('[removeProjectCollaboratorSecure] Polymorphic collaborators cleanup failed:', err);
   }
 
   return { success: true };
