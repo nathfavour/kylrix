@@ -53,7 +53,7 @@ export class MasterPassCrypto {
 
     return crypto.subtle.importKey(
       "raw",
-      hash,
+      hash as any,
       { name: "AES-GCM", length: MasterPassCrypto.KEY_SIZE },
       true,
       ["encrypt", "decrypt", "wrapKey", "unwrapKey"],
@@ -181,7 +181,7 @@ export class MasterPassCrypto {
           // CRITICAL GUARD: Ensure we don't overwrite an existing vault
           const { AppwriteService } = await import("./appwrite");
           const existingEntries = await AppwriteService.listKeychainEntries(userId);
-          const hasExisting = existingEntries.some(e => e.type === 'password');
+          const hasExisting = existingEntries.some((e: any) => e.type === 'password');
           
           if (hasExisting) {
               logError("[MasterPass] Refusing to initialize: Vault already exists for this user.");
@@ -385,13 +385,13 @@ export class MasterPassCrypto {
       
       // If we are creating a PENDING entry, delete any existing PENDING ones first
       if (isPending) {
-          const pendingEntries = passwordEntries.filter(e => e.isPending);
+          const pendingEntries = passwordEntries.filter((e: any) => e.isPending);
           for (const pe of pendingEntries) {
               await AppwriteService.deleteKeychainEntry(pe.$id);
           }
       } else {
           // If we are creating a STABLE entry (finalizing), delete the legacy row
-          const stableEntries = passwordEntries.filter(e => !e.isPending);
+          const stableEntries = passwordEntries.filter((e: any) => !e.isPending);
           for (const se of stableEntries) {
               await AppwriteService.deleteKeychainEntry(se.$id);
           }

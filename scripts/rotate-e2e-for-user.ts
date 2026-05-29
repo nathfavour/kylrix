@@ -3,6 +3,7 @@
  Admin-only rotation helper: create a new X25519 identity for a user and mark legacy row.
  Run with admin credentials. This script is a high-level helper and must be wired to a secure MEK management flow.
 */
+// @ts-nocheck
 import { createAdminClient } from '../lib/appwrite/admin';
 import { APPWRITE_CONFIG } from '../lib/appwrite/config';
 

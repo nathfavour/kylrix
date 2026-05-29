@@ -238,6 +238,73 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                         InputProps={{ disableUnderline: true, sx: { borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.03)' } }}
                     />
                 );
+            case 'file':
+                const selectedFile = formData[field.id];
+                return (
+                    <Box>
+                        {selectedFile ? (
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.03)' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <SuccessIcon sx={{ color: '#10B981', fontSize: 20 }} />
+                                    <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
+                                        {selectedFile.originalName || 'File uploaded'}
+                                    </Typography>
+                                </Box>
+                                <IconButton size="small" onClick={() => handleFieldChange(field.id, null)} sx={{ color: '#FF453A' }}>
+                                    <XIcon size={16} />
+                                </IconButton>
+                            </Box>
+                        ) : (
+                            <Button
+                                component="label"
+                                variant="outlined"
+                                startIcon={submitting ? <CircularProgress size={16} /> : <UploadIcon size={18} />}
+                                fullWidth
+                                disabled={submitting}
+                                sx={{
+                                    py: 1.5,
+                                    borderRadius: '12px',
+                                    borderColor: 'rgba(255,255,255,0.1)',
+                                    color: 'text.secondary',
+                                    textTransform: 'none',
+                                    bgcolor: 'rgba(255,255,255,0.02)',
+                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.2)' }
+                                }}
+                            >
+                                {submitting ? 'Uploading...' : 'Choose File (Max 5MB)'}
+                                <input
+                                    type="file"
+                                    hidden
+                                    required={field.required && !selectedFile}
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        if (file.size > 5 * 1024 * 1024) {
+                                            alert('File exceeds 5MB limit.');
+                                            return;
+                                        }
+                                        setSubmitting(true);
+                                        try {
+                                            const fData = new FormData();
+                                            fData.append('file', file);
+                                            fData.append('bucketId', APPWRITE_CONFIG.BUCKETS.FORM_ATTACHMENTS);
+                                            const uploaded = await secureUploadFile(fData);
+                                            handleFieldChange(field.id, {
+                                                fileId: uploaded.$id,
+                                                bucketId: APPWRITE_CONFIG.BUCKETS.FORM_ATTACHMENTS,
+                                                originalName: file.name
+                                            });
+                                        } catch (err: any) {
+                                            alert(err.message || 'Failed to upload file.');
+                                        } finally {
+                                            setSubmitting(false);
+                                        }
+                                    }}
+                                />
+                            </Button>
+                        )}
+                    </Box>
+                );
             default:
                 return (
                     <TextField

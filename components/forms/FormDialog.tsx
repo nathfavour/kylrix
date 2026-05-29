@@ -38,12 +38,15 @@ import {
   CloudUpload as SyncIcon,
   Warning as WarningIcon,
   Settings as SettingsIcon,
+  UploadFile as FileUploadIcon,
 } from '@mui/icons-material';
 import { FormsService } from '@/lib/services/forms';
 import { DraftsService, FormDraft } from '@/lib/services/drafts';
 import { Forms, FormsStatus } from '@/generated/appwrite/types';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useDataNexus } from '@/context/DataNexusContext';
+import { hasPaidKylrixPlan } from '@/lib/utils';
+import { useProUpgrade } from '@/context/ProUpgradeContext';
 
 import {
   DndContext, 
@@ -79,7 +82,9 @@ const FIELD_TYPES = [
   { value: 'number', label: 'Number', icon: <NumberIcon fontSize="small" /> },
   { value: 'select', label: 'Dropdown', icon: <ListIcon fontSize="small" /> },
   { value: 'radio', label: 'Single Choice (Radio)', icon: <RadioIcon fontSize="small" /> },
-  { value: 'checkbox', label: 'Multiple Choice (Checkbox)', icon: <CheckIcon fontSize="small" /> }];
+  { value: 'checkbox', label: 'Multiple Choice (Checkbox)', icon: <CheckIcon fontSize="small" /> },
+  { value: 'file', label: 'File Upload (Pro)', icon: <FileUploadIcon fontSize="small" /> }
+];
 
 function SortableField({ 
   field, 
@@ -89,7 +94,9 @@ function SortableField({
   addOption, 
   updateOption, 
   removeOption,
-  isChoiceType 
+  isChoiceType,
+  user,
+  openProUpgrade
 }: any) {
   const {
     attributes,
@@ -158,7 +165,14 @@ function SortableField({
                     <FormControl variant="filled" size="small" sx={{ minWidth: 200 }}>
                         <Select
                             value={field.type}
-                            onChange={(e) => updateField(fIdx, { type: e.target.value })}
+                            onChange={(e) => {
+                                const newType = e.target.value;
+                                if (newType === 'file' && !hasPaidKylrixPlan(user)) {
+                                    openProUpgrade('Form File Uploads');
+                                    return;
+                                }
+                                updateField(fIdx, { type: newType });
+                            }}
                             disableUnderline
                             sx={{ borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700 }}
                             renderValue={(selected) => (
@@ -341,6 +355,7 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const { openProUpgrade } = useProUpgrade();
   const { invalidate } = useDataNexus();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -744,6 +759,8 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
                       updateOption={updateOption}
                       removeOption={removeOption}
                       isChoiceType={isChoiceType}
+                      user={user}
+                      openProUpgrade={openProUpgrade}
                     />
                   ))}
                 </SortableContext>

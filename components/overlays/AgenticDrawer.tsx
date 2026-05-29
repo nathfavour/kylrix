@@ -975,14 +975,18 @@ export function AgenticDrawer() {
                   >
                     {selectedAgent.lastError ? (
                       <Stack direction="row" spacing={1} alignItems="flex-start">
-                        <AlertCircle size={16} color="#EF4444" sx={{ mt: 0.25, flexShrink: 0 }} />
+                        <Box sx={{ mt: 0.25, flexShrink: 0, display: 'flex' }}>
+                            <AlertCircle size={16} color="#EF4444" />
+                        </Box>
                         <Typography sx={{ color: '#FCA5A5', fontSize: '0.8rem', fontFamily: 'monospace', lineHeight: 1.45 }}>
                           Error: {selectedAgent.lastError}
                         </Typography>
                       </Stack>
                     ) : (
                       <Stack direction="row" spacing={1} alignItems="flex-start">
-                        <RefreshCw size={16} color={SYSTEM_SUCCESS} sx={{ mt: 0.25, flexShrink: 0 }} />
+                        <Box sx={{ mt: 0.25, flexShrink: 0, display: 'flex' }}>
+                            <RefreshCw size={16} color={SYSTEM_SUCCESS} />
+                        </Box>
                         <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontFamily: 'monospace', lineHeight: 1.45 }}>
                           {selectedAgent.lastSummary}
                         </Typography>

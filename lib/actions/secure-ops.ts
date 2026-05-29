@@ -618,7 +618,7 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
   }, requester.$id);
 
   // 2. Set virtual permission in polymorphic flow.collaborators table
-  if (input.resourceType === 'note') {
+  if (input.resourceType === 'note' || input.resourceType === 'project') {
     const tables = createSystemTablesDB();
     const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
     const COLLABORATORS_TABLE = APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators';
@@ -629,12 +629,12 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
       tableId: COLLABORATORS_TABLE,
       queries: [
         Query.equal('resourceId', input.resourceId),
-        Query.equal('resourceType', 'note')
+        Query.equal('resourceType', input.resourceType)
       ] as any
     });
 
     if (existingCollabsRes.rows.length >= 8 && !hasPaidKylrixPlan(requester)) {
-        throw new Error('Limit reached: Free plan is limited to 8 collaborators per note. Upgrade to PRO for unlimited sharing.');
+        throw new Error(`Limit reached: Free plan is limited to 8 collaborators per ${input.resourceType}. Upgrade to PRO for unlimited sharing.`);
     }
 
     const existingCollab = await tables.listRows({
@@ -642,7 +642,7 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
       tableId: COLLABORATORS_TABLE,
       queries: [
         Query.equal('resourceId', input.resourceId),
-        Query.equal('resourceType', 'note'),
+        Query.equal('resourceType', input.resourceType),
         Query.equal('userId', input.targetUserId)
       ] as any
     });
@@ -667,7 +667,7 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
         rowId: ID.unique(),
         data: {
           resourceId: input.resourceId,
-          resourceType: 'note',
+          resourceType: input.resourceType,
           userId: input.targetUserId,
           permission,
           invitedAt: new Date().toISOString(),
@@ -4934,8 +4934,7 @@ export async function claimSendObjectSecure(payload: {
         Permission.write(Role.user(actor.$id)),
         Permission.delete(Role.user(actor.$id)),
         Permission.read(Role.any())
-      ],
-      { forceSystem: true }
+      ]
     );
   } else if (kind === 'task') {
     const data = payload.decryptedData;
@@ -4959,8 +4958,7 @@ export async function claimSendObjectSecure(payload: {
         Permission.read(Role.user(actor.$id)),
         Permission.write(Role.user(actor.$id)),
         Permission.delete(Role.user(actor.$id))
-      ],
-      { forceSystem: true }
+      ]
     );
   } else if (kind === 'discussion') {
     await tables.updateRow(
@@ -4978,8 +4976,7 @@ export async function claimSendObjectSecure(payload: {
         Permission.write(Role.user(actor.$id)),
         Permission.delete(Role.user(actor.$id)),
         Permission.read(Role.any())
-      ],
-      { forceSystem: true }
+      ]
     );
   } else if (kind === 'file') {
     if (!isPaid) {
@@ -5013,8 +5010,7 @@ export async function claimSendObjectSecure(payload: {
         Permission.read(Role.user(actor.$id)),
         Permission.write(Role.user(actor.$id)),
         Permission.delete(Role.user(actor.$id))
-      ],
-      { forceSystem: true }
+      ]
     );
   }
 
@@ -5022,8 +5018,7 @@ export async function claimSendObjectSecure(payload: {
   await tables.deleteRow(
     APPWRITE_CONFIG.DATABASES.NOTE,
     APPWRITE_CONFIG.TABLES.NOTE.NOTES,
-    payload.noteId,
-    { forceSystem: true }
+    payload.noteId
   );
 
   return { success: true, kind };

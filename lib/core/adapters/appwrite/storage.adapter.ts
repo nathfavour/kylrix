@@ -20,7 +20,7 @@ export class AppwriteStorageAdapter implements StoragePort {
     let uploadedFile;
     if (typeof window !== 'undefined') {
         // Browser environment: use standard File/Blob
-        const browserFile = new File([file.buffer], file.name, { type: file.type });
+        const browserFile = new File([file.buffer as any], file.name, { type: file.type });
         uploadedFile = await storage.createFile(bucketId, resolvedFileId, browserFile);
     } else {
         // Server environment: use InputFile (safe to import node-appwrite/file here)

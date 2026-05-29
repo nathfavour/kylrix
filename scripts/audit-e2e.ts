@@ -3,6 +3,7 @@
  Admin-only audit script: enumerates e2e-identity keychain rows and reports kty.
  Requires admin credentials (createAdminClient) and admin access to the VAULT DB.
 */
+// @ts-nocheck
 import { createAdminClient } from '../lib/appwrite/admin';
 import { APPWRITE_CONFIG } from '../lib/appwrite/config';
 

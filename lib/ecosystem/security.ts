@@ -184,7 +184,7 @@ export class EcosystemSecurity {
 
     return crypto.subtle.importKey(
       "raw",
-      hash,
+      hash as any,
       { name: "AES-GCM", length: EcosystemSecurity.KEY_SIZE },
       true,
       ["encrypt", "decrypt", "wrapKey", "unwrapKey"],

@@ -136,6 +136,7 @@ export const APPWRITE_CONFIG = {
         MESSAGES: 'messages',
         VAULT_ATTACHMENTS: 'vault_attachments',
         FORM_MEDIA: 'form_media',
+        FORM_ATTACHMENTS: 'form_attachments',
         CHAT_UPLOADS: 'chat_uploads',
         TASK_ATTACHMENTS: 'notes_attachments', // Alias
         EVENT_COVERS: 'event_covers', // Alias

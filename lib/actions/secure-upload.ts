@@ -13,13 +13,19 @@ import { InputFile } from 'node-appwrite/file';
  * Enforces Pro subscription checks for all buckets except profile pictures and voice messages.
  */
 export async function secureUploadFile(formData: FormData, jwt?: string) {
-  const actor = await getActor(jwt);
-  if (!actor || !actor.$id) {
+  let actor = null;
+  try {
+    actor = await getActor(jwt);
+  } catch {}
+
+  const bucketId = formData.get('bucketId') as string;
+  const isAnonymousAllowedBucket = bucketId === APPWRITE_CONFIG.BUCKETS.FORM_ATTACHMENTS || bucketId === APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL;
+
+  if (!actor && !isAnonymousAllowedBucket) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
 
   const file = formData.get('file') as File;
-  const bucketId = formData.get('bucketId') as string;
   const fileId = (formData.get('fileId') as string) || ID.unique();
   if (!file || !bucketId) {
     throw new Error('Bad Request: Missing file or bucketId');
@@ -32,6 +38,7 @@ export async function secureUploadFile(formData: FormData, jwt?: string) {
     notes_attachments: 5 * 1024 * 1024,   // 5 MB
     vault_attachments: 5 * 1024 * 1024,   // 5 MB
     form_media: 10 * 1024 * 1024,        // 10 MB
+    form_attachments: 5 * 1024 * 1024,   // 5 MB
     chat_uploads: 10 * 1024 * 1024,      // 10 MB
     default: 10 * 1024 * 1024,           // 10 MB Guideline ceiling
   };
@@ -49,7 +56,7 @@ export async function secureUploadFile(formData: FormData, jwt?: string) {
     'voice', 
   ];
 
-  if (!allowedFreeBuckets.includes(bucketId)) {
+  if (!allowedFreeBuckets.includes(bucketId) && actor) {
     if (!hasPaidKylrixPlan(actor)) {
       throw new Error('Forbidden: Pro subscription required for this upload operation.');
     }
