@@ -15,7 +15,8 @@ export type UnorganicEmailEventType =
   | 'password_shared'
   | 'message_streak'
   | 'call_started'
-  | 'token_transfer_received';
+  | 'token_transfer_received'
+  | 'project_invited';
 
 export type UnorganicEmailRecipientInput =
   | { userId: string; email?: never }
@@ -80,6 +81,7 @@ const EVENT_PRIORITY: Record<UnorganicEmailEventType, number> = {
   event_registered: 28,
   group_member_added: 20,
   message_streak: 16,
+  project_invited: 50,
 };
 
 const MAX_UNORGANIC_EMAILS = 5;
@@ -200,6 +202,14 @@ function resolveEventCopy(input: Required<Pick<UnorganicEmailDispatchInput, 'eve
   const ctaText = pickText(input.ctaText, 'Open Kylrix');
 
   switch (input.eventType) {
+    case 'project_invited':
+      return {
+        subject: `Invitation to join project: ${resourceTitle}`,
+        title: 'Project Invitation',
+        body: `${actorName} has invited you to collaborate on the project "${resourceTitle}"${rightsLabel ? ` with ${rightsLabel} permissions` : ''}.`.trim(),
+        ctaText,
+        ctaUrl,
+      };
     case 'task_assigned':
       return {
         subject: `New task assignment: ${resourceTitle}`,
@@ -528,6 +538,142 @@ async function createOrLoadQueueRow(tablesDB: TablesDB, rowId: string, data: Rec
   };
 }
 
+function evaluateAntiSpamAndQuota(
+  sentEmails: any[],
+  input: { eventType: string; resourceId?: string | null; actorId?: string | null },
+  now = new Date()
+): { allowed: boolean; blockedReason: string | null } {
+  const eventType = input.eventType;
+  const resourceId = input.resourceId || '';
+  const actorId = input.actorId || '';
+
+  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  // --- 1. ANTI-SPAM DEDUPLICATION FILTERS ---
+
+  // Check rapid succession (same eventType, same resourceId, same actorId within 10 minutes)
+  const rapidSuccessionMatch = sentEmails.find(email => {
+    const sentTime = new Date(email.processedAt || email.sentAt);
+    return (
+      sentTime >= tenMinutesAgo &&
+      email.eventType === eventType &&
+      (email.resourceId || '') === resourceId &&
+      (email.actorId || '') === actorId
+    );
+  });
+  if (rapidSuccessionMatch) {
+    return {
+      allowed: false,
+      blockedReason: `Anti-spam trigger: Rapid succession block. Similar event dispatched within the last 10 minutes.`,
+    };
+  }
+
+  // Token transfer anti-spam: Max 1 email per hour from the same sender
+  if (eventType === 'token_transfer_received') {
+    const recentTransfer = sentEmails.find(email => {
+      const sentTime = new Date(email.processedAt || email.sentAt);
+      return (
+        sentTime >= oneHourAgo &&
+        email.eventType === 'token_transfer_received' &&
+        (email.actorId || '') === actorId
+      );
+    });
+    if (recentTransfer) {
+      return {
+        allowed: false,
+        blockedReason: `Anti-spam trigger: Token transfers from the same wallet are rate-limited to 1 per hour.`,
+      };
+    }
+  }
+
+  // Project invitation anti-spam: Max 1 email per 24 hours for the same project
+  if (eventType === 'project_invited') {
+    const recentInvite = sentEmails.find(email => {
+      const sentTime = new Date(email.processedAt || email.sentAt);
+      return (
+        sentTime >= oneDayAgo &&
+        email.eventType === 'project_invited' &&
+        (email.resourceId || '') === resourceId
+      );
+    });
+    if (recentInvite) {
+      return {
+        allowed: false,
+        blockedReason: `Anti-spam trigger: Duplicate project invitation suppressed. Already invited within the last 24 hours.`,
+      };
+    }
+  }
+
+  // General repeated action spam (e.g. adding and removing within 24 hours): Max 2 of the exact same event type/sender/resource in 24 hours
+  const sameEvent24hCount = sentEmails.filter(email => {
+    const sentTime = new Date(email.processedAt || email.sentAt);
+    return (
+      sentTime >= oneDayAgo &&
+      email.eventType === eventType &&
+      (email.resourceId || '') === resourceId &&
+      (email.actorId || '') === actorId
+    );
+  }).length;
+  if (sameEvent24hCount >= 2) {
+    return {
+      allowed: false,
+      blockedReason: `Anti-spam trigger: Repeated activity threshold exceeded. Suppressing incessant ${eventType} events.`,
+    };
+  }
+
+
+  // --- 2. QUOTA LIMITS ---
+
+  const isBypassed = eventType === 'project_invited' || eventType === 'token_transfer_received';
+
+  if (isBypassed) {
+    // Special high-priority override scale: Max 3 emails per week
+    const weekCount = sentEmails.filter(email => {
+      const sentTime = new Date(email.processedAt || email.sentAt);
+      return sentTime >= sevenDaysAgo && email.eventType === eventType;
+    }).length;
+
+    if (weekCount >= 3) {
+      return {
+        allowed: false,
+        blockedReason: `Quota limit: Overridden high-priority limit of 3 ${eventType} emails per week reached.`,
+      };
+    }
+  } else {
+    // Ordinary emails: Max 5 per month (30 days), and Max 2 per week (7 days)
+    const ordinaryEmails30d = sentEmails.filter(email => {
+      const sentTime = new Date(email.processedAt || email.sentAt);
+      const isEmailBypassed = email.eventType === 'project_invited' || email.eventType === 'token_transfer_received';
+      return sentTime >= thirtyDaysAgo && !isEmailBypassed;
+    });
+
+    const ordinaryEmails7d = ordinaryEmails30d.filter(email => {
+      const sentTime = new Date(email.processedAt || email.sentAt);
+      return sentTime >= sevenDaysAgo;
+    });
+
+    if (ordinaryEmails30d.length >= 5) {
+      return {
+        allowed: false,
+        blockedReason: `Quota limit: Ordinary email limit of 5 per month reached.`,
+      };
+    }
+
+    if (ordinaryEmails7d.length >= 2) {
+      return {
+        allowed: false,
+        blockedReason: `Quota limit: Ordinary email limit of 2 per week reached.`,
+      };
+    }
+  }
+
+  return { allowed: true, blockedReason: null };
+}
+
 export async function dispatchUnorganicEmails(input: UnorganicEmailDispatchInput) {
   const eventType = normalizeEventType(input.eventType);
   const sourceApp = normalizeSourceApp(input.sourceApp);
@@ -609,9 +755,36 @@ export async function dispatchUnorganicEmails(input: UnorganicEmailDispatchInput
       const queueSeed = buildDeduplicationSeed({ ...input, eventType, sourceApp }, recipient, templateKey);
       const dedupeKey = hashQueueKey(queueSeed);
       queueRowId = hashQueueKey(`row:${queueSeed}`);
-      const quotaUsed = await getRecentSentCount(tablesDB, recipient.userId, now);
-      const quotaRemaining = Math.max(0, MAX_UNORGANIC_EMAILS - quotaUsed);
-      const allowed = quotaRemaining > 0 && isPriorityAllowed(priority, quotaRemaining);
+      // Fetch sent history for this recipient within the last 30 days
+      const thirtyDaysAgoStr = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const sentHistoryRes = await tablesDB.listRows(CHAT_DATABASE_ID, UNORGANIC_EMAILS_TABLE_ID, [
+        TablesQuery.equal('recipientId', recipient.userId),
+        TablesQuery.equal('status', 'sent'),
+        TablesQuery.greaterThanEqual('processedAt', thirtyDaysAgoStr),
+        TablesQuery.orderDesc('processedAt'),
+        TablesQuery.limit(100),
+      ]);
+
+      const decision = evaluateAntiSpamAndQuota(
+        sentHistoryRes.rows,
+        {
+          eventType,
+          resourceId: input.resourceId || null,
+          actorId: input.actorId || null,
+        },
+        now
+      );
+
+      const allowed = decision.allowed;
+      const blockedReason = decision.blockedReason;
+
+      // Compute remaining monthly quota for ordinary emails (5 per month)
+      const ordinaryEmails30d = sentHistoryRes.rows.filter(email => {
+        const isEmailBypassed = email.eventType === 'project_invited' || email.eventType === 'token_transfer_received';
+        return !isEmailBypassed;
+      }).length;
+      const quotaRemaining = Math.max(0, 5 - ordinaryEmails30d);
+
       const expiresAt = new Date(now.getTime() + UNORGANIC_EMAIL_WINDOW_MS).toISOString();
       const metadata = buildQueueMetadata({
         input: { ...input, eventType, sourceApp },
@@ -623,7 +796,7 @@ export async function dispatchUnorganicEmails(input: UnorganicEmailDispatchInput
         quotaRemaining,
         queueRowId,
         status: allowed ? 'queued' : 'suppressed',
-        blockedReason: allowed ? null : `Suppressed by quota. Remaining window capacity: ${quotaRemaining}.`,
+        blockedReason: allowed ? null : (blockedReason || 'Suppressed by quota.'),
       });
 
       const baseRow = {
@@ -642,7 +815,7 @@ export async function dispatchUnorganicEmails(input: UnorganicEmailDispatchInput
         sentAt: null,
         expiresAt,
         processedAt: now.toISOString(),
-        blockedReason: allowed ? null : `Suppressed by quota. Remaining window capacity: ${quotaRemaining}.`,
+        blockedReason: allowed ? null : (blockedReason || 'Suppressed by quota.'),
         metadata,
       };
 

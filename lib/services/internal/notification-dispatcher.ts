@@ -46,7 +46,9 @@ export async function dispatchSecureNotification(input: SecureNotificationInput)
   }
 
   const emailPayload = {
-    eventType: input.type === 'invite' ? 'resource_shared' : 'standard_notify',
+    eventType: input.type === 'invite'
+      ? (input.resourceType === 'project' ? 'project_invited' : 'note_collaborator_added')
+      : 'group_member_added',
     sourceApp: 'kylrix',
     actorName: input.actorName || 'A teammate',
     recipientEmails: targetEmail ? [targetEmail] : [],
