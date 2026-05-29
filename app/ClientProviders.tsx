@@ -60,8 +60,6 @@ const rootProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   LocalContextProvider,
   ToastProvider,
 ];
-  ToastProvider,
-];
 
 export function ClientProviders({ children }: { children: ReactNode }) {
   return (
