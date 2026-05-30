@@ -65,13 +65,6 @@ export default function SettingsPage() {
 
     // Telegram state
     const [tgDrawerOpen, setTgDrawerOpen] = useState(false);
-
-    // Google Suite state
-    const [googleConnected, setGoogleConnected] = useState(false);
-    const [googleSyncKeep, setGoogleSyncKeep] = useState(true);
-    const [googleSyncCalendar, setGoogleSyncCalendar] = useState(true);
-    const [googleSyncDrive, setGoogleSyncDrive] = useState(false);
-    const [googleSyncTasks, setGoogleSyncTasks] = useState(true);
     const [minting, setMinting] = useState(false);
   
     // Passkey state
@@ -297,78 +290,19 @@ export default function SettingsPage() {
                                             <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.45)' }}>Connect your Google workspace to sync Keep, Drive, Tasks, and Calendars.</Typography>
                                         </Box>
                                         <Button 
-                                            variant={googleConnected ? 'outlined' : 'contained'}
-                                            onClick={() => {
-                                                setGoogleConnected(!googleConnected);
-                                                toast.success(googleConnected ? 'Google Suite disconnected.' : 'Google Suite integrated successfully!');
-                                            }}
+                                            variant="contained"
+                                            onClick={() => openDrawer('google-integration')}
                                             sx={{ 
                                                 borderRadius: '12px',
                                                 textTransform: 'none',
                                                 fontWeight: 700,
                                                 minWidth: 132,
-                                                ...(googleConnected
-                                                    ? { borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.85)' }
-                                                    : { bgcolor: '#4285F4', '&:hover': { bgcolor: '#357AE8' } })
+                                                bgcolor: '#4285F4', '&:hover': { bgcolor: '#357AE8' }
                                             }}
                                         >
-                                            {googleConnected ? "Disconnect" : "Integrate"}
+                                            Configure
                                         </Button>
                                     </Box>
-
-                                    {googleConnected && (
-                                        <>
-                                            <Divider sx={{ opacity: 0.05 }} />
-                                            <Box>
-                                                <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, color: 'rgba(255,255,255,0.7)' }}>Sync Preferences</Typography>
-                                                <Stack spacing={2}>
-                                                    <FormControlLabel
-                                                        control={<Switch checked={googleSyncKeep} onChange={(e) => setGoogleSyncKeep(e.target.checked)} color="primary" />}
-                                                        label={
-                                                            <Box>
-                                                                <Typography variant="body1" sx={{ fontWeight: 700, color: 'white' }}>Google Keep Sync</Typography>
-                                                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)' }}>Real-time synchronization of notes and quick sheets</Typography>
-                                                            </Box>
-                                                        }
-                                                        sx={{ justifyContent: 'space-between', width: '100%', ml: 0, flexDirection: 'row-reverse' }}
-                                                    />
-                                                    <Divider sx={{ opacity: 0.05 }} />
-                                                    <FormControlLabel
-                                                        control={<Switch checked={googleSyncCalendar} onChange={(e) => setGoogleSyncCalendar(e.target.checked)} color="primary" />}
-                                                        label={
-                                                            <Box>
-                                                                <Typography variant="body1" sx={{ fontWeight: 700, color: 'white' }}>Google Calendar Connections</Typography>
-                                                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)' }}>Bi-directional event schedules and huddle meetings</Typography>
-                                                            </Box>
-                                                        }
-                                                        sx={{ justifyContent: 'space-between', width: '100%', ml: 0, flexDirection: 'row-reverse' }}
-                                                    />
-                                                    <Divider sx={{ opacity: 0.05 }} />
-                                                    <FormControlLabel
-                                                        control={<Switch checked={googleSyncTasks} onChange={(e) => setGoogleSyncTasks(e.target.checked)} color="primary" />}
-                                                        label={
-                                                            <Box>
-                                                                <Typography variant="body1" sx={{ fontWeight: 700, color: 'white' }}>Google Tasks Sync</Typography>
-                                                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)' }}>Synchronize your personal goals and assignees across platforms</Typography>
-                                                            </Box>
-                                                        }
-                                                        sx={{ justifyContent: 'space-between', width: '100%', ml: 0, flexDirection: 'row-reverse' }}
-                                                    />
-                                                    <Divider sx={{ opacity: 0.05 }} />
-                                                    <FormControlLabel
-                                                        control={<Switch checked={googleSyncDrive} onChange={(e) => setGoogleSyncDrive(e.target.checked)} color="primary" />}
-                                                        label={
-                                                            <Box>
-                                                                <Typography variant="body1" sx={{ fontWeight: 700, color: 'white' }}>Google Drive File Picker</Typography>
-                                                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)' }}>Direct attachment of cloud storage assets to chat and notes</Typography>
-                                                            </Box>
-                                                        }
-                                                        sx={{ justifyContent: 'space-between', width: '100%', ml: 0, flexDirection: 'row-reverse' }}
-                                                    />
-                                                </Stack>
-                                            </Box>
-                                        </>
-                                    )}
                                 </Stack>
                             </Paper>
                         </Box>

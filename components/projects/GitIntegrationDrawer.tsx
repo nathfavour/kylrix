@@ -65,7 +65,6 @@ export default function GitIntegrationDrawer({
   const [provider, setProvider] = useState('github');
   const [ownerName, setOwnerName] = useState('');
   const [repoName, setRepoName] = useState('');
-  const [accessToken, setAccessToken] = useState('');
   const [enabled, setEnabled] = useState(true);
   const [syncLogs, setSyncLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -98,7 +97,6 @@ export default function GitIntegrationDrawer({
           setProvider(item.provider || 'github');
           setOwnerName(item.ownerName || '');
           setRepoName(item.repoName || '');
-          setAccessToken(item.accessToken || '');
           setEnabled(item.enabled !== false);
           
           // If we have both config and active identity, advance to step 2 automatically
@@ -140,6 +138,11 @@ export default function GitIntegrationDrawer({
       return;
     }
 
+    if (!githubIdentity) {
+      showError('Validation Error', 'You must link a GitHub account first.');
+      return;
+    }
+
     // Require Masterpass unlock before saving sensitive configuration
     requestSudo({
       onSuccess: async () => {
@@ -149,7 +152,6 @@ export default function GitIntegrationDrawer({
             provider,
             ownerName: ownerName.trim(),
             repoName: repoName.trim(),
-            accessToken: accessToken.trim(),
             enabled,
             metadata: JSON.stringify({
               updatedAt: new Date().toISOString(),
@@ -183,7 +185,6 @@ export default function GitIntegrationDrawer({
             setIntegration(null);
             setOwnerName('');
             setRepoName('');
-            setAccessToken('');
             setSyncLogs([]);
             onSaved();
             setStep(1);
@@ -432,25 +433,6 @@ export default function GitIntegrationDrawer({
                   }}
                 />
               </Stack>
-
-              {/* Secure token key input */}
-              <TextField
-                fullWidth
-                size="small"
-                type="password"
-                label="Secure Access Token / API Key"
-                placeholder="Enter personal access token (optional)"
-                value={accessToken}
-                onChange={(e) => setAccessToken(e.target.value)}
-                InputLabelProps={{ style: { color: 'rgba(255,255,255,0.4)' } }}
-                InputProps={{
-                  style: { color: '#fff' },
-                  sx: {
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
-                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
-                  },
-                }}
-              />
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.25, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: '14px', border: '1px dashed rgba(255,255,255,0.06)' }}>
                 <Shield size={16} style={{ color: '#10B981', flexShrink: 0 }} />

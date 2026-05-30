@@ -21,6 +21,7 @@ const SecureChatSetupDrawer = dynamic(() => import('./SecureChatSetupDrawer').th
 const DeleteConfirmDrawer = dynamic(() => import('./DeleteConfirmDrawer').then(mod => mod.DeleteConfirmDrawer), { ssr: false });
 const ProjectInviteDrawer = dynamic(() => import('./ProjectInviteDrawer').then(mod => mod.ProjectInviteDrawer), { ssr: false });
 const UnifiedFormContent = dynamic(() => import('../forms/UnifiedFormContent').then(mod => mod.UnifiedFormContent), { ssr: false });
+const GoogleIntegrationDrawer = dynamic(() => import('./GoogleIntegrationDrawer').then(mod => mod.GoogleIntegrationDrawer), { ssr: false });
 
 export function UnifiedBottomDrawer() {
   const { activeContent, drawerData, close } = useUnifiedDrawer();
@@ -71,6 +72,8 @@ export function UnifiedBottomDrawer() {
                 formId={drawerData?.formId} 
                 onClose={close} 
             />;
+        case 'google-integration':
+            return <GoogleIntegrationDrawer isOpen={true} onClose={close} />;
         default: return null;
     }
   };
