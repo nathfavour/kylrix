@@ -719,6 +719,12 @@ export default function SettingsPage() {
                     }}
                 />
             )}
+
+            <UnifiedFormDrawer 
+                open={formDrawerOpen}
+                onClose={() => setFormDrawerOpen(false)}
+                formId={FEATURE_FORM_ID}
+            />
         </>
     );
 }
