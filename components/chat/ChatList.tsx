@@ -78,11 +78,13 @@ const GlobalSearchAvatar = ({ u }: { u: any }) => {
 export const ChatList = ({ 
     externalQuery = '',
     activeTab: propActiveTab,
-    onTabChange
+    onTabChange,
+    hideTabs = false
 }: { 
     externalQuery?: string;
     activeTab?: 'secure' | 'public';
     onTabChange?: (tab: 'secure' | 'public') => void;
+    hideTabs?: boolean;
 }) => {
     const { user } = useAuth();
     const { unreadConversations } = useChatNotifications();
@@ -1040,47 +1042,49 @@ export const ChatList = ({
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
             {/* Elegant Pill Tab Switcher */}
-            <Box sx={{ 
-                bgcolor: '#161412',
-                borderRadius: '16px', 
-                p: 0.5,
-                width: 'fit-content',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-                mb: 4
-            }}>
-                <Tabs 
-                    value={activeTab} 
-                    onChange={(_, v) => setActiveTab(v)}
-                    aria-label="chat type tabs"
-                    sx={{
-                        minHeight: 40,
-                        '& .MuiTabs-indicator': {
-                            display: 'none',
-                        },
-                        '& .MuiTab-root': {
+            {!hideTabs && (
+                <Box sx={{ 
+                    bgcolor: '#161412',
+                    borderRadius: '16px', 
+                    p: 0.5,
+                    width: 'fit-content',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    mb: 4
+                }}>
+                    <Tabs 
+                        value={activeTab} 
+                        onChange={(_, v) => setActiveTab(v)}
+                        aria-label="chat type tabs"
+                        sx={{
                             minHeight: 40,
-                            borderRadius: '12px',
-                            textTransform: 'none',
-                            fontWeight: 700,
-                            fontSize: '0.85rem',
-                            color: 'rgba(255, 255, 255, 0.5)',
-                            px: 3,
-                            transition: 'all 0.2s ease',
-                            '&.Mui-selected': {
-                                color: 'white',
-                                bgcolor: 'rgba(255, 255, 255, 0.08)',
+                            '& .MuiTabs-indicator': {
+                                display: 'none',
                             },
-                            '&:hover': {
-                                color: 'white',
-                                bgcolor: 'rgba(255, 255, 255, 0.04)',
+                            '& .MuiTab-root': {
+                                minHeight: 40,
+                                borderRadius: '12px',
+                                textTransform: 'none',
+                                fontWeight: 700,
+                                fontSize: '0.85rem',
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                px: 3,
+                                transition: 'all 0.2s ease',
+                                '&.Mui-selected': {
+                                    color: 'white',
+                                    bgcolor: 'rgba(255, 255, 255, 0.08)',
+                                },
+                                '&:hover': {
+                                    color: 'white',
+                                    bgcolor: 'rgba(255, 255, 255, 0.04)',
+                                }
                             }
-                        }
-                    }}
-                >
-                    <Tab value="secure" label="Secure Chat (E2EE)" />
-                    <Tab value="public" label="Threads" />
-                </Tabs>
-            </Box>
+                        }}
+                    >
+                        <Tab value="secure" label="Secure Chat (E2EE)" />
+                        <Tab value="public" label="Threads" />
+                    </Tabs>
+                </Box>
+            )}
 
             <Box sx={{ flex: 1 }}>
                 {showGlobalResults && (

@@ -19,6 +19,9 @@ import {
   Tooltip,
   Typography,
   CircularProgress,
+  Drawer,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   Bot,
@@ -76,6 +79,9 @@ export default function ConnectTopbar({
   const isPro = hasPaidKylrixPlan(user);
   const router = useRouter();
   const pathname = usePathname();
+  
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
   const activeApp = useMemo<KylrixApp>(() => {
     if (pathname?.startsWith('/note')) return 'note';
@@ -1056,6 +1062,92 @@ export default function ConnectTopbar({
 
   const renderAppPanel = () => {
     if (!appMenuAnchorEl) return null;
+
+    if (isDesktop) {
+      return (
+        <Drawer
+          anchor="left"
+          open={Boolean(appMenuAnchorEl)}
+          onClose={() => setAppMenuAnchorEl(null)}
+          keepMounted={false}
+          disablePortal={true}
+          PaperProps={{
+            sx: {
+              bgcolor: '#161412',
+              width: 320,
+              height: '100vh',
+              borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+              p: 3,
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }
+          }}
+        >
+          {/* Header */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 900, color: '#fff' }}>
+              Ecosystem Apps
+            </Typography>
+            <IconButton onClick={() => setAppMenuAnchorEl(null)} sx={{ color: 'rgba(255, 255, 255, 0.4)', '&:hover': { color: 'white' } }}>
+              <CloseIcon size={18} />
+            </IconButton>
+          </Box>
+          
+          {/* App List */}
+          <Stack spacing={1.5} sx={{ overflowY: 'auto', flex: 1 }}>
+            {connectApps.map((item) => {
+              const appTone = getAppTone(item.app);
+              return (
+                <Button
+                  key={item.href}
+                  fullWidth
+                  onClick={() => {
+                    handleCloseAll();
+                    if (!user && item.app !== 'kylrix') {
+                      openUnified('login');
+                    } else {
+                      router.push(item.href);
+                    }
+                  }}
+                  sx={{
+                    justifyContent: 'flex-start',
+                    textAlign: 'left',
+                    px: 2,
+                    py: 1.5,
+                    borderRadius: '16px',
+                    color: '#fff',
+                    textTransform: 'none',
+                    bgcolor: item.selected ? alpha(appTone.secondary, 0.08) : 'rgba(255, 255, 255, 0.01)',
+                    border: '1px solid transparent',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      bgcolor: alpha(appTone.secondary, 0.12),
+                      borderColor: alpha(appTone.secondary, 0.24),
+                      transform: 'translateX(4px)',
+                    }
+                  }}
+                >
+                  <Stack direction="row" spacing={1.25} alignItems="center" sx={{ width: '100%' }}>
+                    <Box sx={{ width: 32, height: 32, borderRadius: '12px', display: 'grid', placeItems: 'center', bgcolor: alpha(appTone.secondary, 0.08), color: appTone.secondary, flexShrink: 0 }}>
+                      <Logo app={item.app} size={16} variant="icon" />
+                    </Box>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography sx={{ fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.15 }} noWrap>
+                        {item.label}
+                      </Typography>
+                      <Typography sx={{ color: 'rgba(255,255,255,0.56)', fontWeight: 600, fontSize: '0.76rem', lineHeight: 1.35 }} noWrap>
+                        {item.description}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Button>
+              );
+            })}
+          </Stack>
+        </Drawer>
+      );
+    }
 
     return (
       <motion.div

@@ -1,8 +1,9 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { Container } from '@mui/material';
+import { Container, Box, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { Feed } from '@/components/social/Feed';
+import { ChatList } from '@/components/chat/ChatList';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useFAB } from '@/context/FABContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
@@ -95,6 +96,42 @@ function ConnectHomeContent() {
     router.replace(next ? `${pathname}?${next}` : pathname);
   }, [pathname, router, searchParams, shouldCompose]);
 
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+
+  if (isDesktop) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 2, pointerEvents: 'auto' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 4, alignItems: 'flex-start' }}>
+          {/* Moments Column */}
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff', mb: 3 }}>
+              Moments
+            </Typography>
+            <Feed view="personal" composeIntent={composeIntent} />
+          </Box>
+
+          {/* Threads Column */}
+          <Box sx={{ 
+            bgcolor: '#161412', 
+            borderRadius: '24px', 
+            p: 3, 
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            maxHeight: 'calc(100vh - 120px)',
+            overflowY: 'auto' as const,
+            position: 'sticky' as const,
+            top: '108px',
+          }}>
+            <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff', mb: 3 }}>
+              Threads
+            </Typography>
+            <ChatList activeTab="public" hideTabs={true} />
+          </Box>
+        </Box>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="md" sx={{ py: 2, pointerEvents: 'auto' }}>
       <Feed view="personal" composeIntent={composeIntent} />
@@ -104,14 +141,8 @@ function ConnectHomeContent() {
 
 export default function Home() {
   return (
-      <Suspense
-        fallback={
-          <Container maxWidth="md" sx={{ py: 2 }}>
-            <Feed view="personal" composeIntent={null} />
-          </Container>
-        }
-      >
-        <ConnectHomeContent />
-      </Suspense>
+    <Suspense fallback={null}>
+      <ConnectHomeContent />
+    </Suspense>
   );
 }
