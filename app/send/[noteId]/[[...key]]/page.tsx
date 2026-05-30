@@ -55,15 +55,48 @@ export async function generateMetadata({
         : 'View this task shared securely via Kylrix Send.';
     }
 
+    const ogImage = `https://kylrix.space/note/api/og/note/${noteId}`;
+
     return {
       title: displayTitle,
       description: displayDesc,
+      openGraph: {
+        title: displayTitle,
+        description: displayDesc,
+        type: 'article',
+        images: [
+          {
+            url: ogImage,
+            width: 1200,
+            height: 630,
+            alt: displayTitle,
+          },
+        ],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: displayTitle,
+        description: displayDesc,
+        images: [ogImage],
+      },
     };
   } catch (error) {
     console.error('Error generating metadata for Send:', error);
+    const fallbackImage = 'https://kylrix.space/logo_social.png';
     return {
       title: 'Secure Sharing · Kylrix',
       description: 'View shared notes, files, passwords, and more securely.',
+      openGraph: {
+        title: 'Secure Sharing · Kylrix',
+        description: 'View shared notes, files, passwords, and more securely.',
+        images: [{ url: fallbackImage, width: 1200, height: 630 }],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: 'Secure Sharing · Kylrix',
+        description: 'View shared notes, files, passwords, and more securely.',
+        images: [fallbackImage],
+      },
     };
   }
 }
