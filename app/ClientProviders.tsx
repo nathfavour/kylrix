@@ -14,8 +14,10 @@ import { DynamicSidebarProvider } from '@/components/ui/DynamicSidebar';
 import { SidebarProvider } from '@/components/ui/SidebarContext';
 import { WalletOverlayProvider } from '@/context/WalletOverlayContext';
 import { AgenticDrawerProvider } from '@/context/AgenticDrawerContext';
+import { TokenOpsProvider } from '@/context/TokenOpsContext';
 import { AIProvider } from '@/context/AIContext';
 import { AppChromeProvider } from '@/components/providers/AppChromeProvider';
+import { SudoProvider } from '@/context/SudoContext';
 import { DrawerStateProvider } from '@/components/ui/DrawerStateContext';
 import { CallLauncherProvider } from '@/context/CallLauncherContext';
 import { LocalContextProvider } from '@/lib/context-engine';
@@ -46,6 +48,7 @@ const rootProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   LocalContextProvider,
   AppChromeProvider,
   DrawerStateProvider,
+  SudoProvider,
   CallLauncherProvider,
   AuthProvider,
   ThemeProvider,
@@ -59,6 +62,7 @@ const rootProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   SidebarProvider,
   WalletOverlayProvider,
   AgenticDrawerProvider,
+  TokenOpsProvider,
   AIProvider,
 ];
 

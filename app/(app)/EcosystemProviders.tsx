@@ -9,7 +9,6 @@ import { NotificationProvider } from '@/context/NotificationContext';
 import { SourceProvider } from '@/lib/source-context';
 import { PotatoProvider } from '@/components/providers/PotatoProvider';
 import { ProfileProvider } from '@/components/providers/ProfileProvider';
-import { SudoProvider } from '@/context/SudoContext';
 import { UnifiedDrawerProvider } from '@/context/UnifiedDrawerContext';
 import { NoteDrawerProvider } from '@/context/NoteDrawerContext';
 import { ContextMenuProvider } from '@/components/ui/ContextMenuContext';
@@ -67,7 +66,6 @@ const ecosystemProvidersList: Array<React.ComponentType<{ children: ReactNode }>
   BackgroundTaskProvider,
   NotificationProvider,
   SourceProvider,
-  SudoProvider,
   NoteDrawerProvider,
   ContextMenuWrapper,
   PotatoProvider,
