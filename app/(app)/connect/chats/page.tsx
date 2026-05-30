@@ -3,7 +3,7 @@
 import { ChatList } from '@/components/chat/ChatList';
 import { useFAB } from '@/context/FABContext';
 import { MessageSquare, Phone, Hash } from 'lucide-react';
-import { Box, IconButton, Typography, Stack, Button } from '@mui/material';
+import { Box, IconButton, Typography, Stack, Button, Divider } from '@mui/material';
 import { useEffect, Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ChatService } from '@/lib/services/chat';
@@ -15,6 +15,7 @@ import { KeychainService } from '@/lib/appwrite/keychain';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { ArrowLeft, ShieldCheck, Plus } from 'lucide-react';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+import DesktopRightSection from '@/components/layout/DesktopRightSection';
 
 function ChatHandler() {
   const searchParams = useSearchParams();
@@ -196,7 +197,32 @@ export default function Home() {
             </Typography>
           </Stack>
 
-          <ChatList activeTab={activeTab} onTabChange={setActiveTab} />
+          {/* Desktop Stacked View */}
+          <Box sx={{ display: { xs: 'none', lg: 'grid' }, gridTemplateColumns: '1fr 400px', gap: 4, alignItems: 'flex-start' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff', mb: 2 }}>
+                  Secret Chats
+                </Typography>
+                <ChatList activeTab="secure" hideTabs={true} />
+              </Box>
+              <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', my: 2 }} />
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff', mb: 2 }}>
+                  Threads
+                </Typography>
+                <ChatList activeTab="public" hideTabs={true} />
+              </Box>
+            </Box>
+            <Box>
+              <DesktopRightSection panels={['note', 'huddles', 'projects']} />
+            </Box>
+          </Box>
+
+          {/* Mobile Tabbed View */}
+          <Box sx={{ display: { xs: 'block', lg: 'none' } }}>
+            <ChatList activeTab={activeTab} onTabChange={setActiveTab} />
+          </Box>
         </Box>
     </Box>
   );

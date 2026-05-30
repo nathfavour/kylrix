@@ -51,6 +51,7 @@ import { toast } from 'react-hot-toast';
 
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { FolderKanban } from 'lucide-react';
+import DesktopRightSection from '@/components/layout/DesktopRightSection';
 
 export default function FormsDashboard() {
     const { user } = useAuth();
@@ -214,6 +215,8 @@ export default function FormsDashboard() {
             minHeight: '100vh',
             bgcolor: '#000000'
         }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 400px' }, gap: 4, alignItems: 'flex-start' }}>
+                <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
                 <Box>
                     <Typography variant="h3" sx={{ fontWeight: 900, mb: 1, letterSpacing: '-0.04em', fontFamily: 'var(--font-clash)' }}>
@@ -552,7 +555,11 @@ export default function FormsDashboard() {
                 <MuiMenuItem onClick={() => { handleMenuClose(); handleDelete(menuAnchor!.form); }} sx={{ color: '#D14343 !important' }}>
                     <DeleteIcon fontSize="small" /> Delete Form
                 </MuiMenuItem>
-            </Menu>
         </Box>
-    );
+        <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
+          <DesktopRightSection panels={['projects', 'huddles', 'goals']} />
+        </Box>
+      </Box>
+    </Box>
+  );
 }

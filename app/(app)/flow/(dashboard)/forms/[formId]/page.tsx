@@ -38,6 +38,7 @@ import { useToast } from '@/components/ui/Toast';
 import { AppwriteService } from '@/lib/appwrite';
 import { MessageSquare, Clock, FileText, Globe, Send } from 'lucide-react';
 import { TextField } from '@mui/material';
+import DesktopRightSection from '@/components/layout/DesktopRightSection';
 
 export default function FormDetailsPage({ params }: { params: Promise<{ formId: string }> }) {
     const resolvedParams = use(params);
@@ -261,6 +262,8 @@ export default function FormDetailsPage({ params }: { params: Promise<{ formId: 
             minHeight: '100vh',
             bgcolor: '#000000'
         }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 400px' }, gap: 4, alignItems: 'flex-start' }}>
+                <Box>
             {/* Header / Sub-Header */}
             <Box sx={{ mb: 4, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, justifyContent: 'space-between', alignItems: { md: 'center' } }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -543,5 +546,10 @@ export default function FormDetailsPage({ params }: { params: Promise<{ formId: 
                 <Alert severity="success" sx={{ bgcolor: '#10B981', color: '#000', fontWeight: 800, borderRadius: 2 }}>{snackbar}</Alert>
             </Snackbar>
         </Box>
-    );
+        <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
+          <DesktopRightSection panels={['projects', 'huddles', 'goals']} />
+        </Box>
+      </Box>
+    </Box>
+  );
 }

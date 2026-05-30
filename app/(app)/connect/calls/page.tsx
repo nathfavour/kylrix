@@ -1,13 +1,113 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { CallHistory } from '@/components/call/CallHistory';
 import { CallActionModal } from '@/components/call/CallActionModal';
-import { Box, Typography, Container, CircularProgress, Paper, TextField, Button } from '@mui/material';
-import { Hash, ArrowRight } from 'lucide-react';
+import { Box, Typography, Container, CircularProgress, Paper, TextField, Button, Divider } from '@mui/material';
+import { Hash, ArrowRight, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import DesktopRightSection from '@/components/layout/DesktopRightSection';
+import { listNotes } from '@/lib/appwrite';
+
+function NotesFeed() {
+    const [notes, setNotes] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const router = useRouter();
+
+    useEffect(() => {
+        let mounted = true;
+        async function load() {
+            setLoading(true);
+            try {
+                const res = await listNotes([], 5);
+                if (mounted) setNotes(res.rows || []);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        }
+        load();
+        return () => { mounted = false; };
+    }, []);
+
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={24} sx={{ color: '#EC4899' }} />
+            </Box>
+        );
+    }
+
+    return (
+        <Box sx={{ mt: 6 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff' }}>
+                    Recent Notes
+                </Typography>
+                <Button 
+                    size="small" 
+                    onClick={() => router.push('/note/notes')} 
+                    sx={{ color: '#F59E0B', textTransform: 'none', fontWeight: 700 }}
+                >
+                    View All
+                </Button>
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {notes.length === 0 ? (
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center', py: 2 }}>
+                        No recent notes.
+                    </Typography>
+                ) : (
+                    notes.map((note) => (
+                        <Box
+                            key={note.$id}
+                            onClick={() => router.push(`/note/notes/${note.$id}`)}
+                            sx={{
+                                display: 'flex',
+                                gap: 2,
+                                p: 2,
+                                borderRadius: '16px',
+                                bgcolor: 'rgba(255,255,255,0.02)',
+                                border: '1px solid rgba(255,255,255,0.03)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                    bgcolor: 'rgba(255,255,255,0.04)',
+                                    borderColor: 'rgba(255,255,255,0.08)',
+                                    transform: 'translateX(4px)',
+                                }
+                            }}
+                        >
+                            <Box sx={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                bgcolor: 'rgba(236, 72, 153, 0.1)',
+                                color: '#EC4899',
+                                flexShrink: 0,
+                            }}>
+                                <FileText size={20} />
+                            </Box>
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                                <Typography variant="body2" sx={{ fontWeight: 800, color: '#fff' }} noWrap>
+                                    {note.title || 'Untitled Note'}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }} noWrap>
+                                    {note.content ? note.content.substring(0, 60) + '...' : 'Empty Note'}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    ))
+                )}
+            </Box>
+        </Box>
+    );
+}
 
 function CallsContent() {
     const [modalOpen, setModalOpen] = useState(false);
@@ -92,6 +192,11 @@ function CallsContent() {
             
             <CallHistory key={refreshKey} onNewCall={() => setModalOpen(true)} />
 
+            {/* Desktop only Notes Feed sharing the original section */}
+            <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
+                <NotesFeed />
+            </Box>
+
             <CallActionModal 
                 open={modalOpen} 
                 onClose={() => {
@@ -105,10 +210,17 @@ function CallsContent() {
 
 export default function CallsPage() {
     return (
-        <Container maxWidth="md" sx={{ py: 3, position: 'relative', minHeight: '100vh', pointerEvents: 'auto' }}>
-            <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
-                <CallsContent />
-            </Suspense>
+        <Container maxWidth="xl" sx={{ py: 3, position: 'relative', minHeight: '100vh', pointerEvents: 'auto' }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 400px' }, gap: 4, alignItems: 'flex-start' }}>
+                <Box>
+                    <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
+                        <CallsContent />
+                    </Suspense>
+                </Box>
+                <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
+                    <DesktopRightSection panels={['projects', 'threads']} />
+                </Box>
+            </Box>
         </Container>
     );
 }

@@ -31,6 +31,7 @@ import { authenticator } from 'otplib';
 import toast from 'react-hot-toast';
 import NewTotpDialog from '@/components/app/totp/new';
 import { useSudo } from '@/context/SudoContext';
+import DesktopRightSection from '@/components/layout/DesktopRightSection';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,6 +64,13 @@ function TOTPPageContent() {
     id: string | null;
   }>({ open: false, id: null });
   const [editingTotp, setEditingTotp] = useState<TotpItem | null>(null);
+  const [selectedTotp, setSelectedTotp] = useState<TotpItem | null>(null);
+
+  useEffect(() => {
+    if (totpCodes.length > 0 && !selectedTotp) {
+      setSelectedTotp(totpCodes[0]);
+    }
+  }, [totpCodes, selectedTotp]);
 
   const { requestSudo } = useSudo();
 
@@ -213,12 +221,14 @@ function TOTPPageContent() {
 
     return (
       <Paper
+        onClick={() => setSelectedTotp(totp)}
         elevation={0}
         sx={{
           p: 2.5,
           borderRadius: '24px',
-          bgcolor: '#161412',
-          border: '1px solid #1C1A18',
+          bgcolor: selectedTotp?.$id === totp.$id ? '#1C1A18' : '#161412',
+          border: '1px solid',
+          borderColor: selectedTotp?.$id === totp.$id ? alpha('#10B981', 0.4) : '#1C1A18',
           transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
           boxShadow: '0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px rgba(37,35,33,0.9)',
           display: 'flex',
@@ -226,6 +236,7 @@ function TOTPPageContent() {
           alignItems: { xs: 'flex-start', sm: 'center' },
           justifyContent: 'space-between',
           backgroundImage: 'none',
+          cursor: 'pointer',
           '&:hover': {
             bgcolor: '#1C1A18',
             borderColor: alpha('#10B981', 0.2),
@@ -435,6 +446,8 @@ function TOTPPageContent() {
       bgcolor: '#0A0908',
       pt: { xs: 2, md: 4 }
     }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 400px' }, gap: 4, alignItems: 'flex-start', px: { xs: 2, md: 6 } }}>
+        <Box>
       {/* Header & Back Action */}
       <Box sx={{ px: { xs: 2, md: 6 } }}>
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 4 }}>
@@ -668,6 +681,14 @@ function TOTPPageContent() {
           </DialogActions>
         </Dialog>
       )}
+        </Box>
+        <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
+          <DesktopRightSection 
+            panels={['secrets', 'secret_chat']} 
+            contextId={selectedTotp?.issuer || selectedTotp?.accountName || undefined} 
+          />
+        </Box>
+      </Box>
     </Box>
   );
 }

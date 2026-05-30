@@ -18,6 +18,7 @@ import SudoModal from '@/components/overlays/SudoModal';
 import { useAI } from '@/context/AIContext';
 import { useSudo } from '@/context/SudoContext';
 import { useFAB } from '@/context/FABContext';
+import DesktopRightSection from '@/components/layout/DesktopRightSection';
 import { 
   Box, 
   Typography, 
@@ -221,6 +222,8 @@ function DashboardPageContent() {
         opacity: showMasterPassDrawer ? 0.3 : 1,
         pt: { xs: 2, md: 4 }
       }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 400px' }, gap: 4, alignItems: 'flex-start', px: { xs: 2, md: 6 } }}>
+          <Box>
         {/* Header Section */}
         <Box sx={{ px: { xs: 2, md: 6 } }}>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 4 }}>
@@ -367,6 +370,11 @@ function DashboardPageContent() {
           onSuccess={handleMasterPassSuccess}
           onCancel={() => { }}
         />
+        </Box>
+        <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
+          <DesktopRightSection panels={['note', 'totp', 'projects']} />
+        </Box>
+      </Box>
       </Box>
     </>
   );
