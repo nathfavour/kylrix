@@ -132,6 +132,29 @@ export default function SettingsPage() {
     }, [user?.$id]);
 
     useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const shouldScroll = sessionStorage.getItem('scroll_to_google_workspace');
+            if (shouldScroll === 'true') {
+                sessionStorage.removeItem('scroll_to_google_workspace');
+                setTimeout(() => {
+                    const el = document.getElementById('google-workspace-settings');
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Premium glowing pulse highlight effect
+                        const originalBorder = el.style.borderColor;
+                        el.style.boxShadow = '0 0 32px rgba(99, 102, 241, 0.35)';
+                        el.style.borderColor = '#6366F1';
+                        setTimeout(() => {
+                            el.style.boxShadow = 'none';
+                            el.style.borderColor = originalBorder || 'rgba(255, 255, 255, 0.05)';
+                        }, 2800);
+                    }
+                }, 350);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
         const unsubscribe = ecosystemSecurity.onStatusChange((status) => {
             if (status.isUnlocked !== isUnlocked) {
                 setIsUnlocked(status.isUnlocked);
@@ -548,7 +571,7 @@ export default function SettingsPage() {
                     </Box>
 
                     {/* Integrations Category - Google Suite */}
-                    <Box>
+                    <Box id="google-workspace-settings" sx={{ transition: 'all 0.5s ease', borderRadius: '28px', border: '1px solid transparent' }}>
                         <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, display: 'flex', alignItems: 'center', gap: 1.25, color: 'white' }}>
                             <svg viewBox="0 0 24 24" width="20" height="20" style={{ marginRight: 2 }}>
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
