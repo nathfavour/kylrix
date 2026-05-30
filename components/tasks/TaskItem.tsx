@@ -29,6 +29,7 @@ import { format, isToday, isTomorrow, isPast, isThisWeek } from 'date-fns';
 import { Task, Priority } from '@/types';
 import { useTask } from '@/context/TaskContext';
 import { useLayout } from '@/context/LayoutContext';
+import { useSection } from '@/context/SectionContext';
 import { useCallLauncher } from '@/context/CallLauncherContext';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
@@ -59,6 +60,7 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { completeTask, deleteTask, updateTask, labels, projects, selectTask, togglePinTask } = useTask();
   const { openSecondarySidebar } = useLayout();
+  const { setActiveDetail } = useSection();
   const { openCallLauncher } = useCallLauncher();
   const { user } = useAuth();
   const { open: openUnified } = useUnifiedDrawer();
@@ -147,7 +149,7 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
       <Box
         onClick={() => {
           selectTask(task.id);
-          openSecondarySidebar('task', task.id);
+          setActiveDetail({ type: 'goal', id: task.id, data: task });
           onClick?.();
         }}
         onMouseEnter={() => setIsHovered(true)}
