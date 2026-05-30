@@ -269,19 +269,29 @@ export function EphemeralClaimDrawer({ open, onClose, target, onConsumed }: Prop
 
   return (
     <Drawer
-      anchor="bottom"
+      anchor={isDesktop ? 'right' : 'bottom'}
       open={open && Boolean(target)}
       onClose={handleClose}
       slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
       PaperProps={{
         sx: {
           bgcolor: BG,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          border: RIM,
-          borderBottom: 'none',
-          maxHeight: '60vh',
-          overflowY: 'auto',
+          ...(isDesktop ? {
+            height: '100%',
+            maxWidth: 480,
+            width: '100%',
+            borderLeft: RIM,
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
+            borderBottom: 'none',
+          } : {
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            borderTop: RIM,
+            borderBottom: 'none',
+            maxHeight: '60vh',
+            overflowY: 'auto',
+          }),
           boxShadow: '0 -24px 64px rgba(0,0,0,0.65)',
         },
       }}

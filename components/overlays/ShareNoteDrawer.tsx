@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, IconButton, Button, Stack, alpha, CircularProgress } from '@mui/material';
+import { Box, Typography, IconButton, Button, Stack, alpha, CircularProgress, useTheme, useMediaQuery } from '@mui/material';
 import { X, ArrowLeft, Trash2, ChevronDown, ShieldCheck, UserPlus, Settings2 } from 'lucide-react';
 import Drawer from '@mui/material/Drawer';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
@@ -35,6 +35,8 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
   const { setIsDrawerOpen } = useDrawerState();
   const { drawerData, open } = useUnifiedDrawer();
   const { user } = useAuth();
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [collaboratorProfiles, setCollaboratorProfiles] = useState<any[]>([]);
@@ -389,7 +391,34 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
 
   return (
     <>
-      <Drawer anchor="bottom" open={isOpen} onClose={onClose} PaperProps={{ sx: DRAWER_SX }} ModalProps={{ keepMounted: false, disableScrollLock: false, disablePortal: true }}>
+      <Drawer 
+        anchor={isDesktop ? 'right' : 'bottom'} 
+        open={isOpen} 
+        onClose={onClose} 
+        PaperProps={{ 
+            sx: {
+                bgcolor: '#161412', // Deep Ash
+                backgroundImage: 'none',
+                color: '#fff',
+                ...(isDesktop ? {
+                    height: '100%',
+                    maxWidth: 480,
+                    width: '100%',
+                    borderLeft: '1px solid #1C1A18',
+                    borderTopLeftRadius: 0,
+                    borderTopRightRadius: 0,
+                } : {
+                    borderTopLeftRadius: '28px',
+                    borderTopRightRadius: '28px',
+                    borderTop: '1px solid #1C1A18', // Rim/Border Ash
+                    maxWidth: 720,
+                    width: '100%',
+                    mx: 'auto',
+                })
+            } 
+        }} 
+        ModalProps={{ keepMounted: false, disableScrollLock: false, disablePortal: true }}
+      >
         <Box sx={{ p: 2.75, pb: 'calc(2.75rem + env(safe-area-inset-bottom))' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -415,7 +444,7 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
 
       {/* Nested Permission Selection Bottom Drawer */}
       <Drawer
-        anchor="bottom"
+        anchor={isDesktop ? 'right' : 'bottom'}
         open={isPermissionDrawerOpen}
         onClose={() => setIsPermissionDrawerOpen(false)}
         keepMounted={false}
@@ -423,56 +452,67 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
         PaperProps={{
           sx: {
             bgcolor: '#0A0908', // Pitch Black for beautiful nested contrast!
-            borderTop: '1px solid #1C1A18',
-            borderTopLeftRadius: '24px',
-            borderTopRightRadius: '24px',
-            p: 3,
-            maxWidth: 720,
-            width: '100%',
-            mx: 'auto',
             backgroundImage: 'none',
-            color: '#fff'
+            color: '#fff',
+            ...(isDesktop ? {
+                height: '100%',
+                maxWidth: 480,
+                width: '100%',
+                borderLeft: '1px solid #1C1A18',
+                borderTopLeftRadius: 0,
+                borderTopRightRadius: 0,
+            } : {
+                borderTop: '1px solid #1C1A18',
+                borderTopLeftRadius: '24px',
+                borderTopRightRadius: '24px',
+                p: 3,
+                maxWidth: 720,
+                width: '100%',
+                mx: 'auto',
+            })
           }
         }}
       >
-        <Box sx={{ width: 40, height: 4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: '2px', mx: 'auto', mb: 3 }} />
-        
-        <Typography variant="subtitle1" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: 'white', mb: 2, letterSpacing: '-0.01em' }}>
-          Assign Access Level
-        </Typography>
+        <Box sx={{ p: isDesktop ? 3 : 0 }}>
+            {!isDesktop && <Box sx={{ width: 40, height: 4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: '2px', mx: 'auto', mb: 3 }} />}
+            
+            <Typography variant="subtitle1" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: 'white', mb: 2, letterSpacing: '-0.01em' }}>
+            Assign Access Level
+            </Typography>
 
-        <Stack spacing={1.5}>
-          {[
-            { value: 'viewer', title: 'Viewer', desc: 'Can read, download, and review the contents of this workspace.' },
-            { value: 'editor', title: 'Editor', desc: 'Can edit, write updates, comment, and fully shape workspace contents.' },
-            { value: 'admin', title: 'Admin', desc: 'Full ownership level rights, including the ability to manage other collaborators.' }
-          ].map((item) => (
-            <Box
-              key={item.value}
-              onClick={() => {
-                setPermission(item.value as PermissionLevel);
-                setIsPermissionDrawerOpen(false);
-              }}
-              sx={{
-                p: 2,
-                borderRadius: '16px',
-                bgcolor: permission === item.value ? 'rgba(99, 102, 241, 0.08)' : '#161412',
-                border: '1px solid',
-                borderColor: permission === item.value ? '#6366F1' : '#1C1A18',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                '&:hover': { bgcolor: permission === item.value ? 'rgba(99, 102, 241, 0.12)' : 'rgba(255,255,255,0.02)' }
-              }}
-            >
-              <Typography variant="body2" sx={{ fontWeight: 900, fontFamily: 'var(--font-satoshi)', color: 'white', mb: 0.5 }}>
-                {item.title}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-satoshi)', display: 'block', lineHeight: 1.4 }}>
-                {item.desc}
-              </Typography>
-            </Box>
-          ))}
-        </Stack>
+            <Stack spacing={1.5}>
+            {[
+                { value: 'viewer', title: 'Viewer', desc: 'Can read, download, and review the contents of this workspace.' },
+                { value: 'editor', title: 'Editor', desc: 'Can edit, write updates, comment, and fully shape workspace contents.' },
+                { value: 'admin', title: 'Admin', desc: 'Full ownership level rights, including the ability to manage other collaborators.' }
+            ].map((item) => (
+                <Box
+                key={item.value}
+                onClick={() => {
+                    setPermission(item.value as PermissionLevel);
+                    setIsPermissionDrawerOpen(false);
+                }}
+                sx={{
+                    p: 2,
+                    borderRadius: '16px',
+                    bgcolor: permission === item.value ? 'rgba(99, 102, 241, 0.08)' : '#161412',
+                    border: '1px solid',
+                    borderColor: permission === item.value ? '#6366F1' : '#1C1A18',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': { bgcolor: permission === item.value ? 'rgba(99, 102, 241, 0.12)' : 'rgba(255,255,255,0.02)' }
+                }}
+                >
+                <Typography variant="body2" sx={{ fontWeight: 900, fontFamily: 'var(--font-satoshi)', color: 'white', mb: 0.5 }}>
+                    {item.title}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-satoshi)', display: 'block', lineHeight: 1.4 }}>
+                    {item.desc}
+                </Typography>
+                </Box>
+            ))}
+            </Stack>
+        </Box>
       </Drawer>
     </>
   );

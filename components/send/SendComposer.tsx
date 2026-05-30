@@ -1081,6 +1081,88 @@ export function SendComposer() {
       />
 
       <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1, py: { xs: 4, md: 12 }, pb: 10 }}>
+        {/* Conditional Banner */}
+        <Box
+          sx={{
+            mb: 5,
+            borderRadius: '24px',
+            overflow: 'hidden',
+            border: user ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)',
+            background: user
+              ? 'linear-gradient(90deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.03) 100%)'
+              : 'linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(239, 68, 68, 0.03) 100%)',
+            p: { xs: 2.5, sm: 3 },
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { xs: 'flex-start', md: 'center' },
+            justifyContent: 'space-between',
+            gap: 2.5,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          }}
+        >
+          <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontWeight: 900,
+                color: '#fff',
+                fontFamily: 'var(--font-clash)',
+                fontSize: '1.1rem',
+                letterSpacing: '-0.01em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
+              {user ? (
+                <>
+                  <Sparkles size={18} color="#818CF8" />
+                  Active Session Detected
+                </>
+              ) : (
+                <>
+                  <Lock size={18} color="#F59E0B" />
+                  Ecosystem Integration Available
+                </>
+              )}
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.55)', lineHeight: 1.5, fontWeight: 500 }}>
+              {user ? (
+                `You are currently signed in as ${user.name || user.email || 'Teammate'}. Head back to your workspace to manage your active execution containers, notes, and secure vaults.`
+              ) : (
+                "You are sharing as a guest. Create a free account to permanetly save these ghost objects, unlock unlimited encrypted vaults, and collaborate in real-time with up to 8 teammates."
+              )}
+            </Typography>
+          </Stack>
+          <Button
+            variant="contained"
+            onClick={() => {
+              if (user) {
+                router.push('/projects');
+              } else {
+                openUnified('login');
+              }
+            }}
+            sx={{
+              flexShrink: 0,
+              borderRadius: '14px',
+              bgcolor: user ? '#6366F1' : '#F59E0B',
+              color: '#0A0908',
+              fontWeight: 900,
+              textTransform: 'none',
+              px: 3,
+              py: 1.25,
+              fontSize: '0.85rem',
+              '&:hover': {
+                bgcolor: user ? '#4F46E5' : '#D97706',
+                transform: 'translateY(-1px)',
+              },
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {user ? 'Go to Workspace' : 'Unlock Full Suite'}
+          </Button>
+        </Box>
         <motion.div
           initial={reduceMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}

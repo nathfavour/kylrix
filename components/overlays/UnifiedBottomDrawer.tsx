@@ -2,7 +2,7 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { Drawer } from '@mui/material';
+import { Drawer, useTheme, useMediaQuery } from '@mui/material';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 
 // Import all dynamic drawer components
@@ -24,6 +24,8 @@ const UnifiedFormContent = dynamic(() => import('../forms/UnifiedFormContent').t
 
 export function UnifiedBottomDrawer() {
   const { activeContent, drawerData, close } = useUnifiedDrawer();
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
   const renderContent = () => {
     switch (activeContent) {
@@ -80,16 +82,23 @@ export function UnifiedBottomDrawer() {
   if (['secure-chat-setup', 'delete-confirm', 'project-invite', 'form'].includes(activeContent)) {
     return (
         <Drawer
-            anchor="bottom"
+            anchor={isDesktop ? 'right' : 'bottom'}
             open={true}
             onClose={close}
             ModalProps={{ keepMounted: false, disablePortal: true }}
             PaperProps={{
                 sx: {
                     bgcolor: '#161412',
-                    borderTop: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '32px 32px 0 0',
-                    maxHeight: activeContent === 'form' ? '60dvh' : '90dvh',
+                    ...(isDesktop ? {
+                        borderLeft: '1px solid rgba(255,255,255,0.08)',
+                        height: '100%',
+                        maxWidth: 480,
+                        width: '100%'
+                    } : {
+                        borderTop: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '32px 32px 0 0',
+                        maxHeight: activeContent === 'form' ? '60dvh' : '90dvh',
+                    }),
                     overflow: 'hidden'
                 }
             }}
