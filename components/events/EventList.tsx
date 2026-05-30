@@ -23,7 +23,7 @@ import { permissions, EventVisibility } from '@/lib/permissions';
 import { CallService } from '@/lib/services/call';
 import toast from 'react-hot-toast';
 import { Query } from 'appwrite';
-import { MultiSectionContainer } from '@/context/SectionContext';
+import { MultiSectionContainer, useSection } from '@/context/SectionContext';
 
 export default function EventList() {
   const [tabValue, setTabValue] = useState(0);
@@ -31,7 +31,7 @@ export default function EventList() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { projects, userId } = useTask();
-  const { openSecondarySidebar } = useLayout();
+  const { setActiveDetail } = useSection();
   const { isAuthenticated, openIDMWindow } = useAuth();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -281,7 +281,7 @@ export default function EventList() {
           <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={event.id}>
             <EventCard 
               event={event} 
-              onClick={() => openSecondarySidebar('event', event.id, event)} 
+              onClick={() => setActiveDetail({ type: 'event', id: event.id, data: event })} 
             />
           </Grid>
         ))}

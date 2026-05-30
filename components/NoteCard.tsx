@@ -28,6 +28,7 @@ import {
 import { sidebarIgnoreProps } from '@/constants/sidebar';
 import { ShareNoteDrawer } from './overlays/ShareNoteDrawer';
 import { DeleteNoteDrawer } from './overlays/DeleteNoteDrawer';
+import { useSection } from '@/context/SectionContext';
 
 import { toggleNoteVisibility, rotatePublicNoteLink, createTaskFromNote, getShareableUrl, getCurrentPublicNoteShareUrl, getNotePublicState } from '@/lib/appwrite';
 import { createNote, updateNote } from '@/lib/actions/client-ops';
@@ -60,6 +61,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
   const { openSidebar } = useDynamicSidebar();
   const { isPinned, pinNote, unpinNote, upsertNote } = useNotes();
   const { user } = useAuth();
+  const { setActiveDetail } = useSection();
   const { promptSudo } = useSudo();
   const { openProUpgrade } = useProUpgrade();
   const { showSuccess, showError, showInfo } = useToast();
@@ -265,15 +267,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
       onNoteSelect(note);
       return;
     }
-    openSidebar(
-      <NoteDetailSidebar
-        note={note}
-        onUpdate={onUpdate || (() => {})}
-        onDelete={onDelete || (() => {})}
-      />,
-      note.$id || null,
-      { hideHeader: true }
-    );
+    setActiveDetail({ type: 'note', id: note.$id, data: note });
   };
 
   const handleDelete = () => {

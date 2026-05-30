@@ -33,10 +33,12 @@ export default function CredentialDetail({
   credential,
   onClose,
   isMobile,
+  inline = false,
 }: {
   credential: Credentials;
   onClose: () => void;
   isMobile: boolean;
+  inline?: boolean;
 }) {
   const theme = useTheme();
   const [showPassword, setShowPassword] = useState(false);
@@ -163,25 +165,15 @@ export default function CredentialDetail({
     </Paper>
   );
 
-  return (
-    <Drawer
-      anchor="right"
-      open={true}
-      onClose={onClose}
-      variant={isMobile ? "temporary" : "persistent"}
-      PaperProps={{
-        sx: {
-          width: { xs: '100%', sm: 440 },
-          bgcolor: 'rgba(10, 10, 10, 0.95)',
-          backdropFilter: 'blur(25px) saturate(180%)',
-          borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
-          backgroundImage: 'none',
-          boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          flexDirection: 'column'
-        }
-      }}
-    >
+  const content = (
+    <Box sx={{ 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      bgcolor: inline ? 'transparent' : 'rgba(10, 10, 10, 0.95)',
+      width: '100%',
+      minHeight: 0
+    }}>
       {/* Header */}
       <Box sx={{ 
         p: 3, 
@@ -436,6 +428,33 @@ export default function CredentialDetail({
           </Box>
         </Stack>
       </Box>
+    </Box>
+  );
+
+  if (inline) {
+    return content;
+  }
+
+  return (
+    <Drawer
+      anchor="right"
+      open={true}
+      onClose={onClose}
+      variant={isMobile ? "temporary" : "persistent"}
+      PaperProps={{
+        sx: {
+          width: { xs: '100%', sm: 440 },
+          bgcolor: 'rgba(10, 10, 10, 0.95)',
+          backdropFilter: 'blur(25px) saturate(180%)',
+          borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
+          backgroundImage: 'none',
+          boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          flexDirection: 'column'
+        }
+      }}
+    >
+      {content}
     </Drawer>
   );
 }

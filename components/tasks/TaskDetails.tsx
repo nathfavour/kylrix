@@ -83,14 +83,23 @@ const statusLabels: Record<TaskStatus, string> = {
 
 interface TaskDetailsProps {
   taskId: string;
+  onBack?: () => void;
 }
 
-export default function TaskDetails({ taskId }: TaskDetailsProps) {
+export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user } = useAuth();
   const { open: openUnified } = useUnifiedDrawer();
   const { closeSecondarySidebar } = useLayout();
+
+  const handleClose = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      closeSecondarySidebar();
+    }
+  };
   const { joinResource, resourcePresence } = usePresence();
 
   useEffect(() => {
@@ -504,7 +513,7 @@ export default function TaskDetails({ taskId }: TaskDetailsProps) {
     return (
         <Box sx={{ p: 6, textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2 }}>
             <Typography variant="h6" color="text.secondary">Task details unavailable</Typography>
-            <Button variant="outlined" size="small" onClick={closeSecondarySidebar}>Go Back</Button>
+            <Button variant="outlined" size="small" onClick={handleClose}>Go Back</Button>
         </Box>
     );
   }
@@ -569,9 +578,9 @@ export default function TaskDetails({ taskId }: TaskDetailsProps) {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
-          {isMobile && (
+          {(isMobile || onBack) && (
             <IconButton 
-              onClick={closeSecondarySidebar}
+              onClick={handleClose}
               sx={{ color: 'text.secondary', mr: 1 }}
             >
               <BackIcon />
@@ -656,7 +665,7 @@ export default function TaskDetails({ taskId }: TaskDetailsProps) {
           </IconButton>
           <IconButton 
             size="small" 
-            onClick={closeSecondarySidebar} 
+            onClick={handleClose} 
             sx={{ 
               color: 'text.secondary', 
               bgcolor: 'rgba(255, 255, 255, 0.02)',

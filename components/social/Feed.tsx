@@ -68,6 +68,7 @@ import { CallSelectorModal } from './CallSelectorModal';
 import ActorsListDrawer from './ActorsListDrawer';
 import { useAppChrome } from '@/components/providers/AppChromeProvider';
 import { useProfile } from '@/components/providers/ProfileProvider';
+import { useSection } from '@/context/SectionContext';
 import { formatPostTimestamp } from '@/lib/time';
 import { useCachedProfilePreview } from '@/hooks/useCachedProfilePreview';
 import { hasPaidKylrixPlan } from '@/lib/utils';
@@ -830,6 +831,7 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
     const { profile: myProfile } = useProfile();
     const router = useRouter();
     const { openSidebar } = useDynamicSidebar();
+    const { setActiveDetail } = useSection();
     const { setConfiguration, resetConfiguration } = useFAB();
     const initialFeedCache = getInitialFeedCache(view);
     const [moments, setMoments] = useState<any[]>(() => initialFeedCache?.rows || []);
@@ -944,8 +946,8 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
 
     const handleOpenMoment = useCallback((moment: any) => {
         seedMomentPreview(moment);
-        router.push(`/connect/post/${moment.$id}`);
-    }, [router]);
+        setActiveDetail({ type: 'moment', id: moment.$id, data: moment });
+    }, [setActiveDetail]);
 
     const handleToggleLike = async (e: React.MouseEvent, moment: any) => {
         e.stopPropagation();
@@ -1386,17 +1388,7 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
                         }),
                     );
                 }
-                if (isMobile) {
-                    router.push(`/connect/post/${createdMoment.$id}`);
-                } else {
-                    openSidebar(
-                        <PostDetailSidebarContent
-                            momentId={createdMoment.$id}
-                            onOpenFull={() => router.push(`/connect/post/${createdMoment.$id}`)}
-                        />,
-                        `connect_post_${createdMoment.$id}`,
-                    );
-                }
+                setActiveDetail({ type: 'moment', id: createdMoment.$id, data: createdMoment });
             }
             handleCancelComposer();
             // Scroll to top to see own post

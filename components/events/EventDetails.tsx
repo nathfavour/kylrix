@@ -29,11 +29,19 @@ import { Event as LocalEvent } from '@/types';
 interface EventDetailsProps {
   eventId: string;
   initialData?: AppwriteEvent | LocalEvent | any;
+  onBack?: () => void;
 }
 
-export default function EventDetails({ eventId, initialData }: EventDetailsProps) {
+export default function EventDetails({ eventId, initialData, onBack }: EventDetailsProps) {
   const theme = useTheme();
   const { closeSecondarySidebar } = useLayout();
+  const handleClose = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      closeSecondarySidebar();
+    }
+  };
   const [event, setEvent] = useState<AppwriteEvent | LocalEvent | null>(initialData || null);
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
@@ -106,7 +114,7 @@ export default function EventDetails({ eventId, initialData }: EventDetailsProps
             }}
         />
         <IconButton
-            onClick={closeSecondarySidebar}
+            onClick={handleClose}
             sx={{
                 position: 'absolute',
                 top: 8,
