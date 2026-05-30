@@ -422,8 +422,6 @@ export default function TagsPage() {
                 ))}
               </Grid>
             )}
-          </Box>
-
         </MultiSectionContainer>
       </Container>
     </Box>
