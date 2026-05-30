@@ -23,6 +23,9 @@ import { useAgenticDrawer } from '@/context/AgenticDrawerContext';
 import { FABProvider } from '@/context/FABContext';
 import UniversalFAB from '@/components/layout/UniversalFAB';
 import { SuggestionsDeck } from '@/components/ephemeral/SuggestionsDeck';
+import { useAppChrome } from '@/components/providers/AppChromeProvider';
+import { useDrawerState } from '@/components/ui/DrawerStateContext';
+import { useCallLauncher } from '@/context/CallLauncherContext';
 
 // Lazy Components
 const UnifiedBottomDrawer = dynamic(() => import('./overlays/UnifiedBottomDrawer').then(m => m.UnifiedBottomDrawer), { ssr: false });
@@ -33,6 +36,7 @@ const Overlay = dynamic(() => import('@/components/ui/Overlay'), { ssr: false })
 const DynamicSidebar = dynamic(() => import('./ui/DynamicSidebarPanel').then(m => m.DynamicSidebar), { ssr: false });
 const RightSidebar = dynamic(() => import('./layout/RightSidebar'), { ssr: false });
 const AgenticDrawer = dynamic(() => import('./overlays/AgenticDrawer').then(m => m.AgenticDrawer), { ssr: false });
+const UnifiedLeftSidebar = dynamic(() => import('./UnifiedLeftSidebar').then(m => m.UnifiedLeftSidebar), { ssr: false });
 
 export default function GlobalShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -65,6 +69,46 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
   const { isCollapsed } = useSidebarContext();
   const { isWalletOpen, closeWallet } = useWalletOverlay();
   const { isOpen: isAgenticDrawerOpen, closeAgenticDrawer } = useAgenticDrawer();
+  const { mode } = useAppChrome();
+  const { isDrawerOpen } = useDrawerState();
+  const { isOpen: isCallLauncherOpen } = useCallLauncher();
+
+  // Smart responsive Left Sidebar visibility
+  const isNoteFullPageDetail = useMemo(() => Boolean(pathname?.match(/^\/note\/notes\/[^/]+$/)), [pathname]);
+  const isConnectCallDetail = useMemo(() => Boolean(pathname?.match(/^\/connect\/call\/[^/]+$/)), [pathname]);
+  const isConnectChatPage = useMemo(() => Boolean(pathname?.startsWith('/connect/chats') || pathname?.match(/^\/connect\/chat\/[^/]+$/)), [pathname]);
+
+  const showLeftSidebar = useMemo(() => Boolean(
+    isAppRoute &&
+    !isSharedPage &&
+    !isVaultResetRoute &&
+    !isLandingPage &&
+    !isProjectsPage &&
+    !isConnectChatPage &&
+    !pathname?.includes('/settings') &&
+    unifiedDrawerActive === 'navbar' &&
+    mode !== 'compact' &&
+    !isDrawerOpen &&
+    !isNoteFullPageDetail &&
+    !isConnectCallDetail &&
+    !isCallLauncherOpen &&
+    !isOverlayOpen
+  ), [
+    isAppRoute,
+    isSharedPage,
+    isVaultResetRoute,
+    isLandingPage,
+    isProjectsPage,
+    isConnectChatPage,
+    pathname,
+    unifiedDrawerActive,
+    mode,
+    isDrawerOpen,
+    isNoteFullPageDetail,
+    isConnectCallDetail,
+    isCallLauncherOpen,
+    isOverlayOpen
+  ]);
 
   // 3. Automated Logic
   useEffect(() => {
@@ -125,10 +169,12 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
           pt: '88px', // Exact Topbar height
           pb: isLandingPage ? 0 : { xs: 12, md: 4 },
           px: { xs: 0, sm: 2, md: 4 },
+          pl: { xs: 0, sm: 2, md: showLeftSidebar ? 'calc(80px + 32px)' : 4 }, // Dynamic desktop offset padding
           maxWidth: 1600,
           mx: 'auto',
           minHeight: '100vh',
           pointerEvents: 'auto',
+          transition: 'padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         {children}
@@ -144,6 +190,8 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
       {isAppRoute && !isSharedPage && !isVaultResetRoute && !isLandingPage && (
         <UnifiedBottomBar />
       )}
+      
+      {showLeftSidebar && <UnifiedLeftSidebar />}
       {isAppRoute && !isSharedPage && !isVaultResetRoute && !isLandingPage && !isConnectPage && (
         <Box sx={{ display: 'none' }} />
       )}
