@@ -15,6 +15,7 @@ import { WalletOverlayProvider } from '@/context/WalletOverlayContext';
 import { AgenticDrawerProvider } from '@/context/AgenticDrawerContext';
 import { AIProvider } from '@/context/AIContext';
 import { AppChromeProvider } from '@/components/providers/AppChromeProvider';
+import { DrawerStateProvider } from '@/components/ui/DrawerStateContext';
 import { LocalContextProvider } from '@/lib/context-engine';
 
 const ClientToaster = dynamic(() => import('@/components/ClientToaster'), { ssr: false });
@@ -42,6 +43,7 @@ function ComposeProviders({ providers, children }: ComposeProvidersProps) {
 const rootProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   LocalContextProvider,
   AppChromeProvider,
+  DrawerStateProvider,
   AuthProvider,
   ThemeProvider,
   ToastProvider,
