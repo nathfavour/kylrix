@@ -56,6 +56,7 @@ import { FastDraftInput, type FastDraftInputHandle } from '@/components/common/F
 import { ID, Permission, Role } from 'appwrite';
 
 import { useAuth } from '@/context/auth/AuthContext';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { EphemeralClaimDrawer, type EphemeralClaimTarget } from '@/components/ephemeral/EphemeralClaimDrawer';
 import { SendSparkShelf } from '@/components/send/SendSparkShelf';
 import { AuthDiscoveryDrawer } from '@/components/send/AuthDiscoveryDrawer';
@@ -506,7 +507,17 @@ export function SendComposer() {
   const reduceMotion = useReducedMotion();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const { open: openUnified } = useUnifiedDrawer();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && searchParams.get('login') === '1') {
+      // Aggressively pop up the auth drawer if redirected here from a protected route
+      openUnified('login');
+      // Clean up the URL to avoid popping it up again if they cancel
+      router.replace('/send');
+    }
+  }, [isLoading, isAuthenticated, searchParams, openUnified, router]);
 
   const isPro = useMemo(() => user ? hasPaidKylrixPlan(user) : false, [user]);
   const activeMaxBytes = 10 * 1024 * 1024; // Strict 10MB limit for Send

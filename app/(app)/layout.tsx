@@ -60,7 +60,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('kylrix_send_redirect_source', path);
         }
-        router.replace('/send');
+        router.replace('/send?login=1');
       }
     }
   }, [isAuthenticated, isLoading, pathname, router]);
