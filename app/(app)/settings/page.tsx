@@ -724,7 +724,6 @@ export default function SettingsPage() {
                     </Stack>
                 </Box>
             </Box>
-            </Box>
 
             {/* Conditionally unmounted overlays/drawers mathematically preventing click blocking */}
             {passkeySetupOpen && (
