@@ -65,7 +65,6 @@ function ComposeProviders({ providers, children }: ComposeProvidersProps) {
 const ecosystemProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   AuthProvider,
   SudoProvider,
-  SectionProvider,
   AppwriteProvider,
   DocsProvider,
   NotesProvider,
