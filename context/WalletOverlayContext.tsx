@@ -12,6 +12,7 @@ import React, {
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SubscriptionProvider } from '@/context/subscription/SubscriptionContext';
+import { TokenOpsProvider } from '@/context/TokenOpsContext';
 
 /**
  * Heavy crypto deps (ethers, @solana/web3.js, @mysten/sui, bitcoinjs-lib, bip32/39, …) are
@@ -86,12 +87,14 @@ export function WalletOverlayProvider({ children }: { children: React.ReactNode 
         <Suspense fallback={null}>
           <OpenWalletFromQueryEffect pathname={pathname} onOpenRequested={openWallet} />
         </Suspense>
-        <WalletSidebarComponent
-          isOpen={isWalletOpen}
-          onClose={closeWallet}
-          tokenIntent={tokenIntent}
-          onConsumeTokenIntent={consumeTokenIntent}
-        />
+        <TokenOpsProvider>
+          <WalletSidebarComponent
+            isOpen={isWalletOpen}
+            onClose={closeWallet}
+            tokenIntent={tokenIntent}
+            onConsumeTokenIntent={consumeTokenIntent}
+          />
+        </TokenOpsProvider>
       </SubscriptionProvider>
     </WalletOverlayContext.Provider>
   );
