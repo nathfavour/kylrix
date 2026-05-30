@@ -101,6 +101,42 @@ const PRIORITY_RANK: Record<PriorityLabel, number> = {
   critical: 4,
 };
 
+// Memory cache for dispatched row IDs to prevent duplicate database writes and network overhead
+class EmailQueueCache {
+  private cache = new Map<string, { status: string; expiresAt: number }>();
+
+  // Check if a queue ID has already been dispatched/queued recently
+  has(queueId: string): boolean {
+    const entry = this.cache.get(queueId);
+    if (!entry) return false;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(queueId);
+      return false;
+    }
+    return true;
+  }
+
+  // Add a queue ID to the fast memory cache (valid for 10 minutes by default)
+  set(queueId: string, status: string, ttlMs = 10 * 60 * 1000): void {
+    this.cache.set(queueId, {
+      status,
+      expiresAt: Date.now() + ttlMs,
+    });
+  }
+
+  // Inspect the cached status of a queue ID
+  get(queueId: string): string | null {
+    const entry = this.cache.get(queueId);
+    if (!entry || Date.now() > entry.expiresAt) {
+      if (entry) this.cache.delete(queueId);
+      return null;
+    }
+    return entry.status;
+  }
+}
+
+export const emailQueueCache = new EmailQueueCache();
+
 function createSystemTablesClient() {
   const apiKey = process.env.APPWRITE_API;
   if (!apiKey) {
@@ -769,6 +805,24 @@ export async function dispatchUnorganicEmails(input: UnorganicEmailDispatchInput
       const queueSeed = buildDeduplicationSeed({ ...input, eventType, sourceApp }, recipient, templateKey);
       const dedupeKey = hashQueueKey(queueSeed);
       queueRowId = hashQueueKey(`row:${queueSeed}`);
+
+      // Check in-app deduplication cache first to prevent database queries and network overhead
+      const cachedStatus = emailQueueCache.get(queueRowId) as QueueStatus | null;
+      if (cachedStatus && (cachedStatus === 'sent' || cachedStatus === 'queued' || cachedStatus === 'sending' || cachedStatus === 'suppressed')) {
+        queueResults.push({
+          recipientId: recipient.userId,
+          email: recipient.email,
+          queueRowId,
+          queueStatus: cachedStatus,
+          templateKey,
+          priority,
+          priorityScore,
+          quotaRemaining: 5, // Default safe fallback
+          blockedReason: `Deduplicated by in-app memory cache (cached status: ${cachedStatus}).`,
+        });
+        continue;
+      }
+
       // Fetch sent history for this recipient within the last 30 days
       const thirtyDaysAgoStr = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const sentHistoryRes = await tablesDB.listRows(CHAT_DATABASE_ID, UNORGANIC_EMAILS_TABLE_ID, [
@@ -837,6 +891,7 @@ export async function dispatchUnorganicEmails(input: UnorganicEmailDispatchInput
 
       if (!queueRow.created) {
         const existingStatus = String(queueRow.row.status || 'sent') as QueueStatus;
+        emailQueueCache.set(queueRowId, existingStatus);
         queueResults.push({
           recipientId: recipient.userId,
           email: recipient.email,
@@ -851,7 +906,11 @@ export async function dispatchUnorganicEmails(input: UnorganicEmailDispatchInput
         continue;
       }
 
+      // Populate in-app memory cache with the initial status of the newly created queue row
+      emailQueueCache.set(queueRowId, baseRow.status);
+
       if (!allowed) {
+        emailQueueCache.set(queueRowId, 'suppressed');
         queueResults.push({
           recipientId: recipient.userId,
           email: recipient.email,
@@ -905,6 +964,9 @@ export async function dispatchUnorganicEmails(input: UnorganicEmailDispatchInput
         }),
       });
 
+      // Update in-app memory cache to 'sent' state
+      emailQueueCache.set(queueRowId, 'sent');
+
       queueResults.push({
         recipientId: recipient.userId,
         email: recipient.email,
@@ -921,6 +983,8 @@ export async function dispatchUnorganicEmails(input: UnorganicEmailDispatchInput
       if (!queueRowId) {
         queueRowId = hashQueueKey(`row:${eventType}:${sourceApp}:${recipientId}:${templateKey}`);
       }
+      // Populate in-app memory cache with failed state to prevent infinite error re-trigger loop
+      emailQueueCache.set(queueRowId, 'failed');
 
       try {
         await tablesDB.updateRow(CHAT_DATABASE_ID, UNORGANIC_EMAILS_TABLE_ID, queueRowId, {
