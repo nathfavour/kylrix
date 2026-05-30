@@ -16,6 +16,8 @@ import {
   alpha,
   CircularProgress,
   Divider,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { X, GitBranch, Terminal, Shield, RefreshCw, CheckCircle, ChevronRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import { account } from '@/lib/appwrite';
@@ -55,6 +57,10 @@ export default function GitIntegrationDrawer({
 }: GitIntegrationDrawerProps) {
   const { showSuccess, showError } = useToast();
   const { requestSudo } = useSudo();
+  
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const anchor = isDesktop ? 'right' : 'bottom';
   
   const [provider, setProvider] = useState('github');
   const [ownerName, setOwnerName] = useState('');
@@ -214,13 +220,34 @@ export default function GitIntegrationDrawer({
 
   return (
     <Drawer
-      anchor="bottom"
+      anchor={anchor}
       open={isOpen}
       onClose={onClose}
       keepMounted={false}
       disablePortal={true}
       PaperProps={{
-        sx: DRAWER_SX,
+        sx: {
+          ...DRAWER_SX,
+          ...(isDesktop ? {
+            height: '100vh',
+            maxHeight: '100vh',
+            width: '35%',
+            maxWidth: '480px',
+            borderTopLeftRadius: '26px',
+            borderBottomLeftRadius: '26px',
+            borderTopRightRadius: 0,
+            borderBottomRightRadius: 0,
+            borderTop: 0,
+            borderLeft: '1px solid rgba(255,255,255,0.08)',
+            margin: 0,
+          } : {
+            maxHeight: '95vh',
+            width: '100%',
+            borderTopLeftRadius: '26px',
+            borderTopRightRadius: '26px',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+          })
+        }
       }}
     >
       {/* Drawer Header */}
