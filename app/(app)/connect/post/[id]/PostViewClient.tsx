@@ -1060,9 +1060,9 @@ const exportMomentAsImage = async (rootMoment: any) => {
     });
 };
 
-export function PostViewClient() {
+export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: () => void } = {}) {
     const params = useParams();
-    const momentId = Array.isArray(params.id) ? params.id[0] : params.id;
+    const momentId = propId || (Array.isArray(params.id) ? params.id[0] : params.id);
     const router = useRouter();
     const { user } = useAuth();
     const { profile: myProfile } = useProfile();
@@ -1477,7 +1477,11 @@ export function PostViewClient() {
     const currentHasPrev = showAncestors || (Boolean(moment.metadata?.sourceId) && !isQuoteMoment);
     const currentThreadLineMode: ThreadPostViewProps['threadLineMode'] = currentHasPrev ? 'up' : 'none';
     const handleBackToFeed = () => {
-        router.push('/');
+        if (onBack) {
+            onBack();
+        } else {
+            router.push('/');
+        }
     };
 
     return (

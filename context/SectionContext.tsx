@@ -1,10 +1,39 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { Box, Divider, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Divider, useTheme, useMediaQuery, CircularProgress, Typography, Drawer, alpha } from '@mui/material';
 import { usePathname } from 'next/navigation';
 import { recordAnonymizedTelemetry } from '@/lib/actions/client-ops';
 import DesktopRightSection, { PanelType } from '@/components/layout/DesktopRightSection';
+
+// Object detail components imports
+import { PostViewClient } from '@/app/(app)/connect/post/[id]/PostViewClient';
+import { NoteDetailSidebar } from '@/components/ui/NoteDetailSidebar';
+import TaskDetails from '@/components/tasks/TaskDetails';
+import EventDetails from '@/components/events/EventDetails';
+import FormDetailsPage from '@/app/(app)/flow/(dashboard)/forms/[formId]/page';
+import CredentialDetail from '@/components/app/dashboard/CredentialDetail';
+import { TagNotesListSidebar } from '@/components/ui/TagNotesListSidebar';
+import { PublicCall } from '@/app/(app)/connect/call/[id]/PublicCall';
+import { ChatWindow } from '@/components/chat/ChatWindow';
+import { HuddleChatWindow } from '@/components/chat/HuddleChatWindow';
+
+// Helper imports for note detail fetching
+import { Notes } from '@/types/appwrite';
+import { getNote } from '@/lib/appwrite';
+import { updateNote, deleteNote } from '@/lib/actions/client-ops';
+import { useDataNexus } from '@/context/DataNexusContext';
+import { useToast } from '@/components/ui/Toast';
+import CommentsSection from '@/app/(app)/note/(app)/notes/Comments';
+import NoteReactions from '@/app/(app)/note/(app)/notes/NoteReactions';
+import { useAuth } from '@/context/auth/AuthContext';
+import { getNote as getChatNote } from '@/lib/appwrite/note';
+
+export interface ActiveDetail {
+  type: 'note' | 'moment' | 'goal' | 'form' | 'event' | 'tag' | 'secret' | 'chat' | 'call';
+  id: string;
+  data?: any; // Extra initial payload if we have it
+}
 
 export interface SectionConfig {
   columnsCount: number; // 1, 2, 3, or 4 columns
@@ -21,6 +50,8 @@ interface SectionContextType {
   updateRouteOverride: (route: string, override: Partial<SectionConfig>) => void;
   resetOverrides: () => void;
   screenWidth: number;
+  activeDetail: ActiveDetail | null;
+  setActiveDetail: (detail: ActiveDetail | null) => void;
 }
 
 const SectionContext = createContext<SectionContextType | undefined>(undefined);
@@ -41,6 +72,8 @@ const DEFAULT_LAYOUTS: Record<string, PanelType[]> = {
 
 export function SectionProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [activeDetail, setActiveDetail] = useState<ActiveDetail | null>(null);
+  
   const [overrides, setOverrides] = useState<Record<string, Partial<SectionConfig>>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -61,6 +94,11 @@ export function SectionProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Close hijacked details panel automatically on path navigation to prevent UI state leakage
+  useEffect(() => {
+    setActiveDetail(null);
+  }, [pathname]);
 
   // Persist overrides locally and conditionally dispatch 1% anonymous telemetry
   const updateRouteOverride = (route: string, override: Partial<SectionConfig>) => {
@@ -178,7 +216,9 @@ export function SectionProvider({ children }: { children: React.ReactNode }) {
     updateRouteOverride,
     resetOverrides,
     screenWidth,
-  }), [screenWidth, overrides]);
+    activeDetail,
+    setActiveDetail,
+  }), [screenWidth, overrides, activeDetail]);
 
   return (
     <SectionContext.Provider value={contextValue}>
@@ -195,6 +235,238 @@ export function useSection() {
   return context;
 }
 
+// ---------------------------------------------------------
+// REUSABLE CONTAINERS FOR ROUTE-LEVEL INTEGRATION
+// ---------------------------------------------------------
+
+/**
+ * NoteDetailContainer
+ * Surgical replication of NoteEditorPage for unified responsive detail rendering.
+ */
+export function NoteDetailContainer({ noteId, onBack }: { noteId: string; onBack: () => void }) {
+  const [note, setNote] = useState<Notes | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { showSuccess, showError } = useToast();
+  const { fetchOptimized, setCachedData, invalidate, getCachedData } = useDataNexus();
+
+  const CACHE_KEY = useMemo(() => noteId ? `note_${noteId}` : null, [noteId]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!noteId || !CACHE_KEY) {
+      setIsLoading(false);
+      return;
+    }
+    const cached = getCachedData<Notes>(CACHE_KEY);
+    if (cached) {
+      setNote(cached);
+      setIsLoading(false);
+    }
+    (async () => {
+      if (!cached) setIsLoading(true);
+      try {
+        const fetched = await fetchOptimized(CACHE_KEY, () => getNote(noteId));
+        if (mounted) setNote(fetched);
+      } catch (error: any) {
+        showError('Failed to load note', 'Please try again later.');
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [noteId, CACHE_KEY, fetchOptimized, getCachedData]);
+
+  const handleUpdate = async (updated: Notes) => {
+    try {
+      const saved = await updateNote(updated.$id || noteId || '', updated);
+      setNote(saved);
+      if (CACHE_KEY) setCachedData(CACHE_KEY, saved);
+      showSuccess('Saved', 'Note updated successfully');
+    } catch (error: any) {
+      showError('Update failed', 'Could not save your changes.');
+    }
+  };
+
+  const handleDelete = async (noteId: string) => {
+    try {
+      await deleteNote(noteId);
+      if (CACHE_KEY) invalidate(CACHE_KEY);
+      showSuccess('Deleted', 'Note removed');
+      onBack();
+    } catch (error: any) {
+      showError('Delete failed', 'Could not delete the note.');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 8, height: '100%' }}>
+        <CircularProgress color="primary" />
+      </Box>
+    );
+  }
+
+  if (!note) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 8, height: '100%' }}>
+        <Typography color="text.secondary">Note not found.</Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ height: '100%', overflowY: 'auto', p: 3 }}>
+      <NoteDetailSidebar
+        note={note}
+        onUpdate={handleUpdate}
+        onDelete={handleDelete}
+        onBack={onBack}
+        showExpandButton={false}
+        showHeaderDeleteButton={false}
+      />
+      <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box sx={{ p: 2, bgcolor: alpha('#161412', 0.02), borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+          <NoteReactions targetId={noteId} />
+        </Box>
+        <Box sx={{ p: 2, bgcolor: alpha('#161412', 0.02), borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+          <CommentsSection noteId={noteId} />
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+/**
+ * ChatDetailContainer
+ * Unified loader for Chats / Huddle chats thread routing inside E2E and public flows.
+ */
+export function ChatDetailContainer({ conversationId, onBack }: { conversationId: string; onBack: () => void }) {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [isHuddleChat, setIsHuddleChat] = useState(false);
+  const [huddleTitle, setHuddleTitle] = useState('');
+
+  useEffect(() => {
+    if (!conversationId) return;
+    const checkChatType = async () => {
+      try {
+        const note = await getChatNote(conversationId) as any;
+        if (note && (note.isChat || note.isThread || note.isGhost)) {
+          setIsHuddleChat(true);
+          setHuddleTitle(note.title || 'Huddle Chat');
+        }
+      } catch (e) {
+        setIsHuddleChat(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkChatType();
+  }, [conversationId]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'grid', placeItems: 'center', height: '100%', py: 8 }}>
+        <CircularProgress sx={{ color: '#F59E0B' }} />
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ pointerEvents: 'auto', height: '100%' }}>
+      {isHuddleChat ? (
+        <HuddleChatWindow 
+          chatNoteId={conversationId} 
+          user={user} 
+          title={huddleTitle} 
+          onBack={onBack}
+        />
+      ) : (
+        <ChatWindow conversationId={conversationId} onBack={onBack} />
+      )}
+    </Box>
+  );
+}
+
+/**
+ * DetailSectionWrapper
+ * Maps dynamic detail types to unified responsive components.
+ */
+export function DetailSectionWrapper({ detail, onClose }: { detail: ActiveDetail; onClose: () => void }) {
+  switch (detail.type) {
+    case 'moment':
+      return <PostViewClient id={detail.id} onBack={onClose} />;
+    case 'note':
+      return <NoteDetailContainer noteId={detail.id} onBack={onClose} />;
+    case 'goal':
+      return <TaskDetails taskId={detail.id} onBack={onClose} />;
+    case 'event':
+      return <EventDetails eventId={detail.id} initialData={detail.data} onBack={onClose} />;
+    case 'form':
+      return <FormDetailsPage formId={detail.id} onBack={onClose} />;
+    case 'secret':
+      return <CredentialDetail credential={detail.data} onClose={onClose} isMobile={false} inline={true} />;
+    case 'tag':
+      return (
+        <TagNotesListSidebar
+          tag={detail.data}
+          onBack={onClose}
+          onNoteUpdate={() => {}}
+          onNoteDelete={() => {}}
+        />
+      );
+    case 'call':
+      return <PublicCall id={detail.id} />;
+    case 'chat':
+      return <ChatDetailContainer conversationId={detail.id} onBack={onClose} />;
+    default:
+      return null;
+  }
+}
+
+/**
+ * MobileDetailDrawer
+ * 100dvh full-screen bottom drawer overlay representing target screens on mobile devices.
+ */
+export function MobileDetailDrawer({ activeDetail, onClose }: { activeDetail: ActiveDetail | null; onClose: () => void }) {
+  const isOpen = activeDetail !== null;
+
+  return (
+    <Drawer
+      anchor="bottom"
+      open={isOpen}
+      onClose={onClose}
+      variant="temporary"
+      ModalProps={{
+        keepMounted: false,
+        disablePortal: true, // Physical unmount physical containment as per policy
+      }}
+      PaperProps={{
+        sx: {
+          height: '100dvh', // The ONLY exception to the traditional 60% drawer rule
+          width: '100%',
+          bgcolor: '#000000',
+          backgroundImage: 'none',
+          boxShadow: 'none',
+          boxSizing: 'border-box',
+          overflowY: 'auto',
+          zIndex: 9999,
+        }
+      }}
+    >
+      {activeDetail && (
+        <Box sx={{ height: '100%', position: 'relative', bgcolor: '#000000' }}>
+          <DetailSectionWrapper detail={activeDetail} onClose={onClose} />
+        </Box>
+      )}
+    </Drawer>
+  );
+}
+
+// ---------------------------------------------------------
+// MAIN CONTAINER COMPONENT
+// ---------------------------------------------------------
+
 interface MultiSectionContainerProps {
   children: React.ReactNode;
   panels?: PanelType[];
@@ -203,8 +475,7 @@ interface MultiSectionContainerProps {
 
 export function MultiSectionContainer({ children, panels, contextId }: MultiSectionContainerProps) {
   const pathname = usePathname();
-  const { getLayoutForRoute } = useSection();
-  const theme = useTheme();
+  const { getLayoutForRoute, activeDetail, setActiveDetail } = useSection();
 
   const layout = useMemo(() => {
     const calculated = getLayoutForRoute(pathname);
@@ -232,7 +503,12 @@ export function MultiSectionContainer({ children, panels, contextId }: MultiSect
   }, [layout]);
 
   if (layout.columnsCount === 1) {
-    return <Box sx={{ width: '100%' }}>{children}</Box>;
+    return (
+      <Box sx={{ width: '100%' }}>
+        {children}
+        <MobileDetailDrawer activeDetail={activeDetail} onClose={() => setActiveDetail(null)} />
+      </Box>
+    );
   }
 
   return (
@@ -261,6 +537,8 @@ export function MultiSectionContainer({ children, panels, contextId }: MultiSect
 
         if (!section.panels || section.panels.length === 0) return null;
 
+        const isRightmostPanel = section.id === layout.sections[layout.sections.length - 1].id;
+
         return (
           <Box 
             key={section.id} 
@@ -275,7 +553,19 @@ export function MultiSectionContainer({ children, panels, contextId }: MultiSect
               boxSizing: 'border-box'
             }}
           >
-            <DesktopRightSection panels={section.panels} contextId={contextId} />
+            {isRightmostPanel && activeDetail ? (
+              <Box sx={{ 
+                height: '100%', 
+                bgcolor: '#161412', 
+                border: '1px solid rgba(255,255,255,0.08)', 
+                borderRadius: '26px',
+                overflow: 'hidden'
+              }}>
+                <DetailSectionWrapper detail={activeDetail} onClose={() => setActiveDetail(null)} />
+              </Box>
+            ) : (
+              <DesktopRightSection panels={section.panels} contextId={contextId} />
+            )}
           </Box>
         );
       })}
