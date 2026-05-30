@@ -587,3 +587,29 @@ export async function hydrateSessionAction(jwt?: string | null) {
     };
   }
 }
+
+/**
+ * Server Action: Triggers a high-priority subscription expiry reminder email
+ * bypassing ordinary rate limits.
+ */
+export async function sendSubscriptionExpiryReminderAction(jwtInput?: string) {
+  const user = await getAuthenticatedUserForBillingAction({ jwt: jwtInput });
+  if (!user || !user.email) throw new Error('Authentication required');
+
+  try {
+    const { dispatchEmail } = await import('@/lib/services/internal/emailDispatch');
+    await dispatchEmail({
+      eventType: 'subscription_expiry_reminder',
+      sourceApp: 'accounts',
+      recipientEmails: [user.email],
+      recipientIds: [user.$id],
+      actorName: user.name || 'Kylrix User',
+      actorId: user.$id,
+    });
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Billing] Failed to dispatch subscription expiry reminder:', error?.message);
+    return { success: false, error: error?.message };
+  }
+}
+

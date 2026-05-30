@@ -137,6 +137,37 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [user?.$id, authLoading]);
 
+  const checkSubscriptionExpiry = useCallback(async (expiresAt: string | null, active: boolean) => {
+    if (!active || !expiresAt || !user?.$id) return;
+
+    const lastCheckKey = `kylrix_expiry_reminder_check_${user.$id}`;
+    const lastCheck = localStorage.getItem(lastCheckKey);
+    const nowMs = Date.now();
+
+    // Cache check weekly: skip if checked within the last 7 days
+    if (lastCheck && (nowMs - parseInt(lastCheck)) < 7 * 24 * 60 * 60 * 1000) {
+      return;
+    }
+
+    const expiryTime = new Date(expiresAt).getTime();
+    const twoDaysFromNow = nowMs + 2 * 24 * 60 * 60 * 1000;
+
+    // Send expiry reminder email 2 days before actual expiry
+    if (expiryTime <= twoDaysFromNow && expiryTime > nowMs) {
+      try {
+        const { sendSubscriptionExpiryReminderAction } = await import('@/app/(app)/(auth)/accounts/actions/billing');
+        const jwt = await account.createJWT().then((r: { jwt?: string }) => r?.jwt || '').catch(() => '');
+        const res = await sendSubscriptionExpiryReminderAction(jwt || undefined);
+        if (res?.success) {
+          console.log('[SubscriptionContext] Expiry reminder email sent successfully.');
+          localStorage.setItem(lastCheckKey, nowMs.toString());
+        }
+      } catch (err) {
+        console.warn('[SubscriptionContext] Failed to send subscription expiry email:', err);
+      }
+    }
+  }, [user?.$id]);
+
   const hydrateSubscriptionState = useCallback(async (force = false) => {
     if (authLoading || !user?.$id) return;
     setTierLoading(true);
@@ -156,6 +187,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             setTokenBalance({ amount: serverData.billing.balance.amount, symbol: serverData.billing.balance.symbol });
             setWallets(serverData.billing.wallets);
             setCurrentTier(serverData.billing.tier);
+            void checkSubscriptionExpiry(serverData.billing.expiresAt, serverData.billing.active);
             return;
         }
       }
@@ -164,13 +196,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setTokenBalance(bal);
       setWallets(w);
       setCurrentTier(ent.uiTier);
+      void checkSubscriptionExpiry(ent.expiresAt, ent.active);
     } catch (err) {
       console.warn('[SubscriptionContext] Failed to hydrate subscription state:', err);
     } finally {
       setTierLoading(false);
       setBalanceLoading(false);
     }
-  }, [user, authLoading, tokenBalance, wallets.length]);
+  }, [user, authLoading, tokenBalance, wallets.length, checkSubscriptionExpiry]);
 
   useEffect(() => {
     void applyRegionPrefs();

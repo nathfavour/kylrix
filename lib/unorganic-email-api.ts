@@ -16,7 +16,8 @@ export type UnorganicEmailEventType =
   | 'message_streak'
   | 'call_started'
   | 'token_transfer_received'
-  | 'project_invited';
+  | 'project_invited'
+  | 'subscription_expiry_reminder';
 
 export type UnorganicEmailRecipientInput =
   | { userId: string; email?: never }
@@ -82,6 +83,7 @@ const EVENT_PRIORITY: Record<UnorganicEmailEventType, number> = {
   group_member_added: 20,
   message_streak: 16,
   project_invited: 50,
+  subscription_expiry_reminder: 95,
 };
 
 const MAX_UNORGANIC_EMAILS = 5;
@@ -281,6 +283,14 @@ function resolveEventCopy(input: Required<Pick<UnorganicEmailDispatchInput, 'eve
         body: `${actorName} started a call and is waiting for you to join.`.trim(),
         ctaText,
         ctaUrl,
+      };
+    case 'subscription_expiry_reminder':
+      return {
+        subject: `Your Kylrix Pro subscription expires in 2 days`,
+        title: 'Subscription Expiry Reminder',
+        body: `Your paid Kylrix Pro subscription is expiring in 2 days. To avoid being downgraded back to the free plan, please fund your in-app wallet or renew your subscription ahead of expiry.`.trim(),
+        ctaText: 'Renew Subscription',
+        ctaUrl: `${KYLRIX_AUTH_URI}/accounts/settings/profile`,
       };
     default:
       return {
@@ -628,7 +638,9 @@ function evaluateAntiSpamAndQuota(
 
   // --- 2. QUOTA LIMITS ---
 
-  const isBypassed = eventType === 'project_invited' || eventType === 'token_transfer_received';
+  const isBypassed = eventType === 'project_invited' || 
+                     eventType === 'token_transfer_received' || 
+                     eventType === 'subscription_expiry_reminder';
 
   if (isBypassed) {
     // Special high-priority override scale: Max 3 emails per week
@@ -647,7 +659,9 @@ function evaluateAntiSpamAndQuota(
     // Ordinary emails: Max 5 per month (30 days), and Max 2 per week (7 days)
     const ordinaryEmails30d = sentEmails.filter(email => {
       const sentTime = new Date(email.processedAt || email.sentAt);
-      const isEmailBypassed = email.eventType === 'project_invited' || email.eventType === 'token_transfer_received';
+      const isEmailBypassed = email.eventType === 'project_invited' || 
+                              email.eventType === 'token_transfer_received' || 
+                              email.eventType === 'subscription_expiry_reminder';
       return sentTime >= thirtyDaysAgo && !isEmailBypassed;
     });
 

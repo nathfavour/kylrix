@@ -1,6 +1,8 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { AuthProvider } from '@/context/auth/AuthContext';
+import { SudoProvider } from '@/context/SudoContext';
 import { AppwriteProvider } from '@/app/(app)/vault/appwrite-provider';
 import { DocsProvider } from '@/context/DocsContext';
 import { NotesProvider } from '@/context/NotesContext';
@@ -59,6 +61,8 @@ function ComposeProviders({ providers, children }: ComposeProvidersProps) {
  * Mounted only within the protected (app) layout.
  */
 const ecosystemProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
+  AuthProvider,
+  SudoProvider,
   AppwriteProvider,
   DocsProvider,
   NotesProvider,

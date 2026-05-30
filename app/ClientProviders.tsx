@@ -50,7 +50,6 @@ const rootProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   DrawerStateProvider,
   SudoProvider,
   CallLauncherProvider,
-  AuthProvider,
   ThemeProvider,
   ToastProvider,
   UnifiedDrawerProvider,
@@ -64,6 +63,7 @@ const rootProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   AgenticDrawerProvider,
   TokenOpsProvider,
   AIProvider,
+  AuthProvider,
 ];
 
 export function ClientProviders({ children }: { children: ReactNode }) {
