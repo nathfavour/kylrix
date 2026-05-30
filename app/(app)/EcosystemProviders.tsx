@@ -3,7 +3,6 @@
 import { ReactNode } from 'react';
 import { AppwriteProvider } from '@/app/(app)/vault/appwrite-provider';
 import { DocsProvider } from '@/context/DocsContext';
-import { SubscriptionProvider } from '@/context/subscription/SubscriptionContext';
 import { NotesProvider } from '@/context/NotesContext';
 import { BackgroundTaskProvider } from '@/context/BackgroundTaskContext';
 import { NotificationProvider } from '@/context/NotificationContext';
@@ -63,7 +62,6 @@ function ComposeProviders({ providers, children }: ComposeProvidersProps) {
 const ecosystemProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   AppwriteProvider,
   DocsProvider,
-  SubscriptionProvider,
   NotesProvider,
   ProfileProvider,
   BackgroundTaskProvider,

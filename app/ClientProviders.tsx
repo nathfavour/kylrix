@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/lib/theme-context';
 import { ToastProvider } from '@/components/ui/Toast';
 import { UnifiedDrawerProvider } from '@/context/UnifiedDrawerContext';
 import { ProUpgradeProvider } from '@/context/ProUpgradeContext';
+import { SubscriptionProvider } from '@/context/subscription/SubscriptionContext';
 import { TaskProvider } from '@/context/TaskContext';
 import { OverlayProvider } from '@/components/ui/OverlayContext';
 import { DynamicSidebarProvider } from '@/components/ui/DynamicSidebar';
@@ -51,6 +52,7 @@ const rootProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   ToastProvider,
   UnifiedDrawerProvider,
   ProUpgradeProvider,
+  SubscriptionProvider,
   TaskProvider,
   OverlayProvider,
   DynamicSidebarProvider,
