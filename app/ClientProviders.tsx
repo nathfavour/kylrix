@@ -62,6 +62,7 @@ const rootProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   SidebarProvider,
   WalletOverlayProvider,
   AgenticDrawerProvider,
+  LoginDrawerProvider,
   TokenOpsProvider,
   AIProvider,
   AuthProvider,
