@@ -208,7 +208,7 @@ export function SectionProvider({ children }: { children: React.ReactNode }) {
     };
 
     return finalConfig;
-  };
+    }, [overrides, screenWidth]);
 
   const contextValue = useMemo<SectionContextType>(() => ({
     getLayoutForRoute,
