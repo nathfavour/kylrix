@@ -4,20 +4,22 @@ import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth/AuthContext';
 
+import { AuthProvider } from '@/context/auth/AuthContext';
 import { EcosystemProviders } from './EcosystemProviders';
 
-/**
- * KYLRIX ECOSYSTEM GATEKEEPER
- * 
- * Centralized redirection for unauthenticated users hitting protected routes.
- * This replaces aggressive edge middleware with a clean React-level flow
- * using our established useAuth hook.
- */
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  return (
+    <AuthProvider>
+      <AppLayoutContent>{children}</AppLayoutContent>
+    </AuthProvider>
+  );
+}
+
+function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
@@ -25,10 +27,8 @@ export default function AppLayout({
   useEffect(() => {
     // Zero-Idle Mandate: Redirect unauthenticated users to /send
     if (!isLoading && !isAuthenticated) {
+      // ... (keep the same redirect logic) ...
       const path = pathname || '';
-
-      // 1. PUBLIC WHITELIST (Routes that NEVER redirect)
-      // These are shared resources or public landers
       const isPublic = 
         path === '/' ||
         path.startsWith('/send') ||
@@ -43,7 +43,6 @@ export default function AppLayout({
 
       if (isPublic) return;
 
-      // 2. PROTECTED DASHBOARDS (Routes that REQUIRE authentication)
       const protectedDashboardPrefixes = [
         '/note',
         '/vault',
@@ -58,13 +57,9 @@ export default function AppLayout({
       const isDashboard = protectedDashboardPrefixes.some(prefix => path.startsWith(prefix));
 
       if (isDashboard) {
-        console.log(`[Gatekeeper] Unauthenticated access to dashboard ${path} -> Redirecting to /send`);
-        
-        // Stash the destination so we can offer to return later
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('kylrix_send_redirect_source', path);
         }
-
         router.replace('/send');
       }
     }
