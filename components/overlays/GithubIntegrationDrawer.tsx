@@ -135,7 +135,7 @@ export function GithubIntegrationDrawer({
   const logEndRef = useRef<HTMLDivElement>(null);
   const { requestSudo } = useSudo();
 
-  const triggerSyncLog = (type: 'info' | 'success' | 'warn' | 'error', service: string, message: string) => {
+  const triggerSyncLog = useCallback((type: 'info' | 'success' | 'warn' | 'error', service: string, message: string) => {
     const newLog = {
       id: Math.random().toString(),
       timestamp: new Date().toLocaleTimeString(),
@@ -144,7 +144,7 @@ export function GithubIntegrationDrawer({
       message
     };
     setSyncLogs(prev => [...prev, newLog]);
-  };
+  }, [setSyncLogs]);
 
   const fetchIssues = useCallback(async (tokenStr: string, owner: string, repo: string) => {
     if (!owner || !repo) return;

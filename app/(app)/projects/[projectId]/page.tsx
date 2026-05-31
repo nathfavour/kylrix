@@ -3691,7 +3691,7 @@ function GitHubExternalObjectsTab({
     } finally {
       setLoadingLive(prev => ({ ...prev, [repoPath]: false }));
     }
-  };
+  }, [setLoadingLive, setLiveStats]);
 
   const handleAddRepo = async () => {
     let input = repoInput.trim();
