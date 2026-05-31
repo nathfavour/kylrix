@@ -59,6 +59,7 @@ import {
   History,
   Globe,
   RefreshCw,
+  Check,
 } from 'lucide-react';
 import { ProjectsService } from '@/lib/appwrite/projects';
 import { SourceControlService, SourceControlRow } from '@/lib/services/sourceControl';
@@ -1076,6 +1077,7 @@ export default function ProjectDetailPage() {
                             projectId={projectId as string}
                             projectObjects={projectObjects}
                             fetchProjectData={fetchProjectData}
+                            tasks={tasks}
                         />
                     </Box>
                 </Paper>
@@ -3760,11 +3762,13 @@ function ProjectSettingsDrawer({ open, onClose, project, onSave }: ProjectSettin
 function GitHubExternalObjectsTab({
   projectId,
   projectObjects,
-  fetchProjectData
+  fetchProjectData,
+  tasks = []
 }: {
   projectId: string;
   projectObjects: any[];
   fetchProjectData: () => Promise<void>;
+  tasks?: any[];
 }) {
   const [repoInput, setRepoInput] = useState('');
   const [adding, setAdding] = useState(false);
@@ -3909,8 +3913,8 @@ function GitHubExternalObjectsTab({
     });
   }, [unverifiedRepos, liveStats, loadingLive, fetchLiveStats]);
 
-  const handleAddRepo = async () => {
-    let input = repoInput.trim();
+  const handleAddRepo = async (overridePath?: string) => {
+    let input = (overridePath || repoInput).trim();
     if (!input) {
       toast.error('Please enter a GitHub repository path or URL.');
       return;
@@ -4019,7 +4023,7 @@ function GitHubExternalObjectsTab({
             No GitHub connection is required. Paste any public GitHub repository URL or path (e.g. <code>facebook/react</code>) to integrate its live statistics, commit logs, and issues list directly into this project.
           </Typography>
           
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ mb: 2 }}>
             <TextField
               fullWidth
               size="small"
@@ -4041,7 +4045,7 @@ function GitHubExternalObjectsTab({
             <Button
               variant="contained"
               disabled={adding || !repoInput.trim()}
-              onClick={handleAddRepo}
+              onClick={() => handleAddRepo()}
               sx={{
                 borderRadius: '12px',
                 bgcolor: '#6366F1',
@@ -4058,6 +4062,44 @@ function GitHubExternalObjectsTab({
               {adding ? 'Adding...' : 'Add Repository'}
             </Button>
           </Stack>
+
+          <Box sx={{ mt: 2.5 }}>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'block', mb: 1.5, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-mono)' }}>
+              ⚡ Developer Favorites (1-Click Test Drive)
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {[
+                { label: 'React', path: 'facebook/react', logo: '⚛️' },
+                { label: 'Next.js', path: 'vercel/next.js', logo: '▲' },
+                { label: 'Tailwind CSS', path: 'tailwindlabs/tailwindcss', logo: '🎨' }
+              ].map((fav) => (
+                <Chip
+                  key={fav.path}
+                  label={`${fav.logo} ${fav.label}`}
+                  onClick={() => {
+                    setRepoInput(fav.path);
+                    handleAddRepo(fav.path);
+                  }}
+                  disabled={adding}
+                  sx={{
+                    bgcolor: 'rgba(255,255,255,0.02)',
+                    color: 'rgba(255,255,255,0.65)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    borderRadius: '8px',
+                    fontWeight: 800,
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      bgcolor: 'rgba(99, 102, 241, 0.08)',
+                      borderColor: 'rgba(99, 102, 241, 0.25)',
+                      color: '#818CF8'
+                    }
+                  }}
+                />
+              ))}
+            </Box>
+          </Box>
         </Box>
       )}
 
@@ -4109,6 +4151,7 @@ function GitHubExternalObjectsTab({
                               projectObjects={projectObjects}
                               fetchProjectData={fetchProjectData}
                               onClose={closeSidebar}
+                              tasks={tasks}
                             />,
                             'unverified-github-repo'
                           )}
@@ -4217,6 +4260,7 @@ interface UnverifiedGithubRepoDrawerProps {
   projectObjects: any[];
   fetchProjectData: () => Promise<void>;
   onClose: () => void;
+  tasks: any[];
 }
 
 function UnverifiedGithubRepoDrawer({
@@ -4224,7 +4268,8 @@ function UnverifiedGithubRepoDrawer({
   projectId,
   projectObjects,
   fetchProjectData,
-  onClose
+  onClose,
+  tasks = []
 }: UnverifiedGithubRepoDrawerProps) {
   const [issues, setIssues] = useState<any[]>([]);
   const [loadingIssues, setLoadingIssues] = useState(false);
@@ -4236,6 +4281,14 @@ function UnverifiedGithubRepoDrawer({
   const repoObject = useMemo(() => {
     return projectObjects.find(o => o.entityKind === 'unverified_github' && o.entityId === repoPath);
   }, [projectObjects, repoPath]);
+
+  const isAlreadyLinked = useCallback((issue: any) => {
+    return tasks.some(task => {
+      const hasTitleMatch = task.title?.startsWith(`[GitHub #${issue.number}]`);
+      const hasUrlMatch = task.description?.includes(issue.html_url);
+      return hasTitleMatch || hasUrlMatch;
+    });
+  }, [tasks]);
 
   const loadRepoData = useCallback(async () => {
     setLoadingIssues(true);
@@ -4279,9 +4332,9 @@ function UnverifiedGithubRepoDrawer({
       const taskId = ID.unique();
       const now = new Date().toISOString();
 
-      const taskDoc = await databases.createRow(
-        APPWRITE_CONFIG.DATABASES.CHAT,
-        'tasks',
+      await (databases as any).createRow(
+        APPWRITE_CONFIG.DATABASES.FLOW,
+        APPWRITE_CONFIG.TABLES.FLOW.TASKS,
         taskId,
         {
           title: `[GitHub #${issue.number}] ${issue.title}`,
@@ -4294,7 +4347,7 @@ function UnverifiedGithubRepoDrawer({
         }
       );
 
-      await ProjectsService.addObjectToProject(projectId, 'goal', taskDoc.$id);
+      await ProjectsService.addObjectToProject(projectId, 'goal', taskId);
 
       toast.success('Successfully converted to Execution Goal!', { id: toastId });
       fetchProjectData();
@@ -4454,7 +4507,7 @@ function UnverifiedGithubRepoDrawer({
                     </Box>
                   )}
 
-                  <Stack direction="row" spacing={1.5}>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
                     <Button
                       size="small"
                       onClick={() => window.open(issue.html_url, '_blank')}
@@ -4469,21 +4522,42 @@ function UnverifiedGithubRepoDrawer({
                     >
                       Open Live
                     </Button>
-                    <Button
-                      size="small"
-                      disabled={convertingIssueId === issue.id}
-                      onClick={() => handleConvertToGoal(issue)}
-                      startIcon={convertingIssueId === issue.id ? <CircularProgress size={10} color="inherit" /> : <Plus size={10} />}
-                      sx={{
-                        fontSize: '10px',
-                        fontWeight: 900,
-                        textTransform: 'none',
-                        color: '#6366F1',
-                        '&:hover': { color: '#818CF8' }
-                      }}
-                    >
-                      Convert to Goal
-                    </Button>
+
+                    {isAlreadyLinked(issue) ? (
+                      <Chip
+                        icon={<Check size={10} style={{ color: '#10B981', marginLeft: '4px' }} />}
+                        label="Goal Linked"
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: '9px',
+                          fontWeight: 900,
+                          bgcolor: 'rgba(16, 185, 129, 0.1)',
+                          color: '#10B981',
+                          border: '1px solid rgba(16, 185, 129, 0.2)',
+                          borderRadius: '6px',
+                          '& .MuiChip-icon': {
+                            color: '#10B981 !important'
+                          }
+                        }}
+                      />
+                    ) : (
+                      <Button
+                        size="small"
+                        disabled={convertingIssueId === issue.id}
+                        onClick={() => handleConvertToGoal(issue)}
+                        startIcon={convertingIssueId === issue.id ? <CircularProgress size={10} color="inherit" /> : <Plus size={10} />}
+                        sx={{
+                          fontSize: '10px',
+                          fontWeight: 900,
+                          textTransform: 'none',
+                          color: '#6366F1',
+                          '&:hover': { color: '#818CF8' }
+                        }}
+                      >
+                        Convert to Goal
+                      </Button>
+                    )}
                   </Stack>
                 </Paper>
               ))}
