@@ -3982,13 +3982,24 @@ function GitHubExternalObjectsTab({
 
   return (
     <Stack spacing={3}>
-      <Box sx={{ p: 3, borderRadius: '20px', bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 905, color: 'white', mb: 1, fontFamily: 'var(--font-clash)' }}>
-          Associate GitHub Repository (Unverified)
-        </Typography>
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)', mb: 2, display: 'block', lineHeight: 1.5 }}>
-          No GitHub connection is required. Paste any public GitHub repository URL or path (e.g. <code>facebook/react</code>) to integrate its live statistics, commit logs, and issues list directly into this project.
-        </Typography>
+      <Box 
+        sx={{ 
+          p: unverifiedRepos.length === 0 ? 3 : 2.5, 
+          borderRadius: '20px', 
+          bgcolor: 'rgba(255,255,255,0.02)', 
+          border: '1px solid rgba(255,255,255,0.06)' 
+        }}
+      >
+        {unverifiedRepos.length === 0 && (
+          <>
+            <Typography variant="subtitle2" sx={{ fontWeight: 905, color: 'white', mb: 1, fontFamily: 'var(--font-clash)' }}>
+              Associate GitHub Repository (Unverified)
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)', mb: 2, display: 'block', lineHeight: 1.5 }}>
+              No GitHub connection is required. Paste any public GitHub repository URL or path (e.g. <code>facebook/react</code>) to integrate its live statistics, commit logs, and issues list directly into this project.
+            </Typography>
+          </>
+        )}
         
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
