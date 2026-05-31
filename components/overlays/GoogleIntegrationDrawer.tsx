@@ -143,6 +143,48 @@ export function GoogleIntegrationDrawer({
     }
     return true;
   });
+  const [googleSyncDocs, setGoogleSyncDocs] = useState(() => {
+    if (typeof window !== 'undefined' && projectId) {
+      const val = localStorage.getItem(`google_sync_docs_${projectId}`);
+      return val === null ? false : val === 'true';
+    }
+    return false;
+  });
+  const [googleSyncSheets, setGoogleSyncSheets] = useState(() => {
+    if (typeof window !== 'undefined' && projectId) {
+      const val = localStorage.getItem(`google_sync_sheets_${projectId}`);
+      return val === null ? false : val === 'true';
+    }
+    return false;
+  });
+  const [googleSyncSlides, setGoogleSyncSlides] = useState(() => {
+    if (typeof window !== 'undefined' && projectId) {
+      const val = localStorage.getItem(`google_sync_slides_${projectId}`);
+      return val === null ? false : val === 'true';
+    }
+    return false;
+  });
+  const [googleSyncForms, setGoogleSyncForms] = useState(() => {
+    if (typeof window !== 'undefined' && projectId) {
+      const val = localStorage.getItem(`google_sync_forms_${projectId}`);
+      return val === null ? false : val === 'true';
+    }
+    return false;
+  });
+  const [googleSyncMeet, setGoogleSyncMeet] = useState(() => {
+    if (typeof window !== 'undefined' && projectId) {
+      const val = localStorage.getItem(`google_sync_meet_${projectId}`);
+      return val === null ? false : val === 'true';
+    }
+    return false;
+  });
+  const [googleSyncGmail, setGoogleSyncGmail] = useState(() => {
+    if (typeof window !== 'undefined' && projectId) {
+      const val = localStorage.getItem(`google_sync_gmail_${projectId}`);
+      return val === null ? false : val === 'true';
+    }
+    return false;
+  });
 
   const triggerSyncLog = useCallback((type: 'info' | 'success' | 'warn' | 'error', service: string, message: string) => {
     const newLog = {
@@ -155,7 +197,7 @@ export function GoogleIntegrationDrawer({
     setSyncLogs(prev => [...prev, newLog]);
   }, [setSyncLogs]);
 
-  const handleToggleSync = (type: 'keep' | 'calendar' | 'drive' | 'tasks', checked: boolean) => {
+  const handleToggleSync = (type: 'keep' | 'calendar' | 'drive' | 'tasks' | 'docs' | 'sheets' | 'slides' | 'forms' | 'meet' | 'gmail', checked: boolean) => {
     if (type === 'keep') {
       setGoogleSyncKeep(checked);
       if (projectId) localStorage.setItem(`google_sync_keep_${projectId}`, String(checked));
@@ -168,6 +210,24 @@ export function GoogleIntegrationDrawer({
     } else if (type === 'tasks') {
       setGoogleSyncTasks(checked);
       if (projectId) localStorage.setItem(`google_sync_tasks_${projectId}`, String(checked));
+    } else if (type === 'docs') {
+      setGoogleSyncDocs(checked);
+      if (projectId) localStorage.setItem(`google_sync_docs_${projectId}`, String(checked));
+    } else if (type === 'sheets') {
+      setGoogleSyncSheets(checked);
+      if (projectId) localStorage.setItem(`google_sync_sheets_${projectId}`, String(checked));
+    } else if (type === 'slides') {
+      setGoogleSyncSlides(checked);
+      if (projectId) localStorage.setItem(`google_sync_slides_${projectId}`, String(checked));
+    } else if (type === 'forms') {
+      setGoogleSyncForms(checked);
+      if (projectId) localStorage.setItem(`google_sync_forms_${projectId}`, String(checked));
+    } else if (type === 'meet') {
+      setGoogleSyncMeet(checked);
+      if (projectId) localStorage.setItem(`google_sync_meet_${projectId}`, String(checked));
+    } else if (type === 'gmail') {
+      setGoogleSyncGmail(checked);
+      if (projectId) localStorage.setItem(`google_sync_gmail_${projectId}`, String(checked));
     }
     toast.success('Preferences updated securely!');
     triggerSyncLog('info', type, `Sync preference altered to: ${checked ? 'ACTIVE' : 'INACTIVE'}`);
