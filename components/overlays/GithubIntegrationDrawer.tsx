@@ -146,7 +146,7 @@ export function GithubIntegrationDrawer({
     setSyncLogs(prev => [...prev, newLog]);
   };
 
-  const fetchIssues = async (tokenStr: string, owner: string, repo: string) => {
+  const fetchIssues = useCallback(async (tokenStr: string, owner: string, repo: string) => {
     if (!owner || !repo) return;
     setLoadingIssues(true);
     setIssuesError(null);
@@ -183,9 +183,9 @@ export function GithubIntegrationDrawer({
     } finally {
       setLoadingIssues(false);
     }
-  };
+  }, [setLoadingIssues, setIssuesError, setGitIssues, triggerSyncLog]);
 
-  const fetchPullRequests = async (tokenStr: string, owner: string, repo: string) => {
+  const fetchPullRequests = useCallback(async (tokenStr: string, owner: string, repo: string) => {
     if (!owner || !repo) return;
     setLoadingPRs(true);
     setPrsError(null);
@@ -222,7 +222,7 @@ export function GithubIntegrationDrawer({
     } finally {
       setLoadingPRs(false);
     }
-  };
+  }, [setLoadingPRs, setPrsError, setGitPRs, triggerSyncLog]);
 
   const handleMasterSync = async () => {
     if (!githubConnected || !githubToken) {

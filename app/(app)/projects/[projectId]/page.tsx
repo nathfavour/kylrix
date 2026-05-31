@@ -3641,9 +3641,8 @@ function GitHubExternalObjectsTab({
         fetchLiveStats(repoPath);
       }
     });
-  }, [unverifiedRepos]);
-
-  const fetchLiveStats = async (repoPath: string) => {
+  }, [unverifiedRepos, liveStats, loadingLive, fetchLiveStats]);
+  const fetchLiveStats = useCallback(async (repoPath: string) => {
     setLoadingLive(prev => ({ ...prev, [repoPath]: true }));
     try {
       const parts = repoPath.split('/');
