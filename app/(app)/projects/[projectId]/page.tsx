@@ -150,7 +150,6 @@ export default function ProjectDetailPage() {
   const [projectObjects, setProjectObjects] = useState<ProjectObjects[]>([]);
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
-  const [externalTabValue, setExternalTabValue] = useState(0);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isExtractModalOpen, setIsExtractModalOpen] = useState(false);
   const [extractGoalsNote, setExtractGoalsNote] = useState<Notes | null>(null);
@@ -1061,37 +1060,21 @@ export default function ProjectDetailPage() {
                         mt: 4
                     }}
                 >
-                    <Box sx={{ borderBottom: 1, borderColor: 'rgba(255,255,255,0.06)', px: 3, pt: 1, bgcolor: alpha('#fff', 0.01) }}>
-                        <Tabs
-                            value={externalTabValue}
-                            onChange={(_, v) => setExternalTabValue(v)}
-                            sx={{
-                                '& .MuiTab-root': {
-                                    color: 'rgba(255, 255, 255, 0.4)',
-                                    fontWeight: 900,
-                                    textTransform: 'none',
-                                    minHeight: 72,
-                                    fontSize: '0.95rem',
-                                    letterSpacing: '0.01em',
-                                    mr: { xs: 1.5, md: 3 },
-                                    px: { xs: 1, md: 2 },
-                                    '&.Mui-selected': { color: '#6366F1' }
-                                },
-                                '& .MuiTabs-indicator': { bgcolor: '#6366F1', height: 3, borderRadius: '3px 3px 0 0' }
-                            }}
-                        >
-                            <Tab label="GitHub" icon={<FolderKanban size={18} />} iconPosition="start" />
-                        </Tabs>
+                    <Box sx={{ borderBottom: 1, borderColor: 'rgba(255,255,255,0.06)', px: 3, py: 2.5, bgcolor: alpha('#fff', 0.01), display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+                        </svg>
+                        <Typography sx={{ color: '#fff', fontWeight: 900, fontFamily: 'var(--font-clash)', fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
+                            GitHub Repositories
+                        </Typography>
                     </Box>
 
                     <Box sx={{ p: { xs: 2, md: 4 } }}>
-                        {externalTabValue === 0 && (
-                            <GitHubExternalObjectsTab 
-                                projectId={projectId as string}
-                                projectObjects={projectObjects}
-                                fetchProjectData={fetchProjectData}
-                            />
-                        )}
+                        <GitHubExternalObjectsTab 
+                            projectId={projectId as string}
+                            projectObjects={projectObjects}
+                            fetchProjectData={fetchProjectData}
+                        />
                     </Box>
                 </Paper>
 
@@ -4213,38 +4196,5 @@ function GitHubExternalObjectsTab({
         </Grid>
       )}
     </Stack>
-  );
-}
-
-function GoogleExternalObjectsTab({
-  projectId,
-  openUnified
-}: {
-  projectId: string;
-  openUnified: any;
-}) {
-  return (
-    <Box sx={{ p: 4, textAlign: 'center', border: '1px dashed rgba(255,255,255,0.06)', borderRadius: '20px' }}>
-      <Typography variant="body1" sx={{ color: 'white', fontWeight: 800, mb: 1 }}>
-        Google Suite Calendar & Keep Integration
-      </Typography>
-      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 3, maxWidth: 500, mx: 'auto', lineHeight: 1.5 }}>
-        To sync calendars, tasks, and notes with your Google Workspace, please open the Google Suite Integration panel directly.
-      </Typography>
-      <Button
-        variant="outlined"
-        onClick={() => openUnified('google-integration', { context: 'project', projectId })}
-        sx={{
-          borderRadius: '12px',
-          borderColor: 'rgba(255,255,255,0.1)',
-          color: 'white',
-          fontWeight: 800,
-          textTransform: 'none',
-          '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.02)' }
-        }}
-      >
-        Configure Google Suite
-      </Button>
-    </Box>
   );
 }
