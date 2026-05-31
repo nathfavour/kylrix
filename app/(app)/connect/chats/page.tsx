@@ -179,25 +179,25 @@ export default function Home() {
           <ChatHandler />
         </Suspense>
         
-        <Box sx={{ px: { xs: 2, md: 6 } }}>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 4 }}>
-            <IconButton 
-              onClick={() => router.back()} 
-              sx={{ 
-                color: '#fff', 
-                bgcolor: '#161412',
-                border: '1px solid #1C1A18',
-                '&:hover': { bgcolor: '#1C1A18' }
-              }}
-            >
-              <ArrowLeft size={20} />
-            </IconButton>
-            <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff' }}>
-              Connect Chats
-            </Typography>
-          </Stack>
+        <MultiSectionContainer panels={['projects', 'huddles', 'note']}>
+          <Box sx={{ width: '100%' }}>
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 4 }}>
+              <IconButton 
+                onClick={() => router.back()} 
+                sx={{ 
+                  color: '#fff', 
+                  bgcolor: '#161412',
+                  border: '1px solid #1C1A18',
+                  '&:hover': { bgcolor: '#1C1A18' }
+                }}
+              >
+                <ArrowLeft size={20} />
+              </IconButton>
+              <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff' }}>
+                Connect Chats
+              </Typography>
+            </Stack>
 
-          <MultiSectionContainer panels={['note', 'huddles', 'projects']}>
             {/* Desktop Stacked View */}
             <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -221,8 +221,8 @@ export default function Home() {
             <Box sx={{ display: { xs: 'block', lg: 'none' } }}>
               <ChatList activeTab={activeTab} onTabChange={setActiveTab} />
             </Box>
-          </MultiSectionContainer>
-        </Box>
+          </Box>
+        </MultiSectionContainer>
     </Box>
   );
 }

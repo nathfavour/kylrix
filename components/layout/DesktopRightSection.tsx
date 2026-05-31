@@ -26,6 +26,7 @@ import { CallService } from '@/lib/services/call';
 import { listNotes, listTags, listKeepCredentials } from '@/lib/appwrite';
 import { listTotpSecrets } from '@/lib/appwrite/vault';
 import { ChatList } from '@/components/chat/ChatList';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import toast from 'react-hot-toast';
 
 interface PanelState {
@@ -47,7 +48,9 @@ export type PanelType =
   | 'secret_chat'
   | 'settings_discoverability'
   | 'settings_integrations'
-  | 'settings_accounts';
+  | 'settings_accounts'
+  | 'projects_templates'
+  | 'projects_stats';
 
 interface DesktopRightSectionProps {
   panels: PanelType[];
@@ -59,6 +62,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
   const router = useRouter();
   const { user } = useAuth();
   const theme = useTheme();
+  const { open: openUnified } = useUnifiedDrawer();
 
   // Unified panel open/collapse states
   const [openStates, setOpenStates] = useState<Record<string, boolean>>(() => {
@@ -103,7 +107,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
 
   // Load active projects
   useEffect(() => {
-    if (!panels.includes('projects') || !user) return;
+    if ((!panels.includes('projects') && !panels.includes('projects_stats')) || !user) return;
     let mounted = true;
     async function load() {
       setProjectsLoading(true);
@@ -1073,6 +1077,179 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
                 )}
               </Box>
             );
+
+          case 'projects_templates': {
+            const projectTemplates = [
+              { id: 'form-to-project', title: 'Analyze Responses', summary: 'Intake forms to execution tasks.', color: '#6366F1' },
+              { id: 'idea-to-execution', title: 'Launch Projects', summary: 'Roadmaps, syncs & vault secrets.', color: '#EC4899' },
+              { id: 'academic-research', title: 'Deep Research', summary: 'Milestones & studies.', color: '#A855F7' },
+              { id: 'social-pulse', title: 'Grow Audience', summary: 'Sync campaign moment RSVPs.', color: '#10B981' },
+              { id: 'secure-handover', title: 'Secure Delivery', summary: 'Vault-locked delivery handover.', color: '#F59E0B' },
+            ];
+
+            return (
+              <Box key={panel} sx={{
+                bgcolor: '#161412',
+                borderRadius: '24px',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                p: 2.5,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                transition: 'flex 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                flex: isOpen ? '1 1 auto' : '0 0 68px',
+              }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: isOpen ? 2 : 0 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Bot size={18} style={{ color: '#10B981', marginRight: '6px' }} /> Execution Templates
+                  </Typography>
+                  <IconButton onClick={() => togglePanel(panel)} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: 'white' } }}>
+                    {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </IconButton>
+                </Box>
+
+                {isOpen && (
+                  <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.5, mt: 1 }}>
+                    <Stack spacing={1.5}>
+                      {projectTemplates.map((t) => (
+                        <Box
+                          key={t.id}
+                          onClick={() => {
+                            openUnified('new-project', { template: t });
+                          }}
+                          sx={{
+                            display: 'flex',
+                            gap: 1.5,
+                            p: 1.5,
+                            borderRadius: '16px',
+                            bgcolor: 'rgba(255,255,255,0.02)',
+                            border: '1px solid rgba(255,255,255,0.03)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              bgcolor: 'rgba(255,255,255,0.04)',
+                              borderColor: alpha(t.color, 0.3),
+                              transform: 'translateX(3px)',
+                            }
+                          }}
+                        >
+                          <Box sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            bgcolor: alpha(t.color, 0.1),
+                            color: t.color,
+                            flexShrink: 0,
+                          }}>
+                            <FolderKanban size={16} />
+                          </Box>
+                          <Box sx={{ minWidth: 0, flex: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 800, color: '#fff', display: 'block' }} noWrap>
+                              {t.title}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }} noWrap>
+                              {t.summary}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+              </Box>
+            );
+          }
+
+          case 'projects_stats': {
+            const totalProjects = projects.length;
+            const pinnedProjects = projects.filter((p: any) => p.isPinned).length;
+            const statusSpreads = projects.reduce((acc: Record<string, number>, p: any) => {
+              const status = p.status || 'active';
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+            }, {});
+
+            return (
+              <Box key={panel} sx={{
+                bgcolor: '#161412',
+                borderRadius: '24px',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                p: 2.5,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                transition: 'flex 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                flex: isOpen ? '1 1 auto' : '0 0 68px',
+              }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: isOpen ? 2 : 0 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Activity size={18} style={{ color: '#6366F1', marginRight: '6px' }} /> Workspace Stats
+                  </Typography>
+                  <IconButton onClick={() => togglePanel(panel)} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: 'white' } }}>
+                    {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </IconButton>
+                </Box>
+
+                {isOpen && (
+                  <Stack spacing={2} sx={{ mt: 1.5 }}>
+                    <Stack direction="row" spacing={2}>
+                      <Box sx={{ flex: 1, p: 2, borderRadius: '16px', bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 0.5 }}>
+                          Total
+                        </Typography>
+                        <Typography variant="h4" sx={{ fontWeight: 900, color: 'white', fontFamily: 'var(--font-clash)' }}>
+                          {totalProjects}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ flex: 1, p: 2, borderRadius: '16px', bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 0.5 }}>
+                          Pinned
+                        </Typography>
+                        <Typography variant="h4" sx={{ fontWeight: 900, color: '#F59E0B', fontFamily: 'var(--font-clash)' }}>
+                          {pinnedProjects}
+                        </Typography>
+                      </Box>
+                    </Stack>
+
+                    <Box sx={{ p: 2, borderRadius: '16px', bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1.5 }}>
+                        Status Distribution
+                      </Typography>
+                      <Stack spacing={1}>
+                        {Object.entries(statusSpreads).length === 0 ? (
+                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
+                            No status data available.
+                          </Typography>
+                        ) : (
+                          Object.entries(statusSpreads).map(([status, count]: [string, any]) => (
+                            <Stack key={status} direction="row" justifyContent="space-between" alignItems="center">
+                              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'capitalize', fontWeight: 650 }}>
+                                {status}
+                              </Typography>
+                              <Chip 
+                                label={count} 
+                                size="small" 
+                                sx={{ 
+                                  bgcolor: 'rgba(99, 102, 241, 0.1)', 
+                                  color: '#6366F1', 
+                                  fontWeight: 900, 
+                                  fontSize: '0.7rem',
+                                  height: 20
+                                }} 
+                              />
+                            </Stack>
+                          ))
+                        )}
+                      </Stack>
+                    </Box>
+                  </Stack>
+                )}
+              </Box>
+            );
+          }
 
           default:
             return null;

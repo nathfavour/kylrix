@@ -14,7 +14,6 @@ import {
   CircularProgress,
   alpha,
   useTheme,
-  Container,
 } from '@mui/material';
 import {
   Plus,
@@ -47,6 +46,7 @@ import { ProjectsService } from '@/lib/appwrite/projects';
 import { useToast } from '@/components/ui/Toast';
 import { Projects } from '@/types/appwrite';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+import { MultiSectionContainer } from '@/context/SectionContext';
 import { useLocalContext } from '@/lib/context-engine';
 import { useAuth } from '@/lib/auth';
 import { hasPaidKylrixPlan } from '@/lib/utils';
@@ -525,60 +525,64 @@ export default function ProjectsPage() {
   );
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#0A0908', color: '#fff' }}>
-      <Container maxWidth="xl" sx={{ pt: { xs: 4, md: 6 }, pb: 10 }}>
-        {/* Back Button */}
-        <IconButton
-          onClick={() => router.back()}
-          sx={{
-            mb: 3,
-            bgcolor: '#161412',
-            color: '#fff',
-            border: '1px solid rgba(255,255,255,0.06)',
-            '&:hover': { bgcolor: '#1C1A18' },
-          }}
-        >
-          <ArrowLeft size={18} />
-        </IconButton>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#0A0908', color: '#fff', pt: { xs: 4, md: 6 }, pb: 10 }}>
+      <MultiSectionContainer panels={['projects_stats', 'projects_templates']}>
+        <Box sx={{ width: '100%' }}>
+          {/* Back Button */}
+          <IconButton
+            onClick={() => router.back()}
+            sx={{
+              mb: 3,
+              bgcolor: '#161412',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.06)',
+              '&:hover': { bgcolor: '#1C1A18' },
+            }}
+          >
+            <ArrowLeft size={18} />
+          </IconButton>
 
-        {/* Header Section */}
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={4} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'flex-end' }} sx={{ mb: 4 }}>
-            <Box>
-                <Typography variant="h1" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', fontSize: { xs: '2.5rem', md: '3.5rem' }, lineHeight: 1, letterSpacing: '-0.03em' }}>
-                    Active Execution
-                </Typography>
-                <Typography sx={{ mt: 1.5, color: 'rgba(255,255,255,0.4)', maxWidth: 500, fontSize: '1rem', fontWeight: 500 }}>
-                    Outcome-aware containers that unite your context, comms, and secrets into a single high-velocity workspace.
-                </Typography>
-            </Box>
+          {/* Header Section */}
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={4} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'flex-end' }} sx={{ mb: 4 }}>
+              <Box>
+                  <Typography variant="h1" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', fontSize: { xs: '2.5rem', md: '3.5rem' }, lineHeight: 1, letterSpacing: '-0.03em' }}>
+                      Active Execution
+                  </Typography>
+                  <Typography sx={{ mt: 1.5, color: 'rgba(255,255,255,0.4)', maxWidth: 500, fontSize: '1rem', fontWeight: 500 }}>
+                      Outcome-aware containers that unite your context, comms, and secrets into a single high-velocity workspace.
+                  </Typography>
+              </Box>
 
-            <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-                {/* Empty box to maintain layout if needed, but FAB handles creation now */}
-            </Box>
-        </Stack>
+              <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                  {/* Empty box to maintain layout if needed, but FAB handles creation now */}
+              </Box>
+          </Stack>
 
-        {projects.length === 0 ? (
-          <>
-            <Box sx={{ mb: 8 }}>
-              {templatesElement}
-            </Box>
-            <Box sx={{ mb: 6 }}>
-              {projectsListElement}
-            </Box>
-            {workflowsCardElement}
-          </>
-        ) : (
-          <>
-            <Box sx={{ mb: 6 }}>
-              {projectsListElement}
-            </Box>
-            {workflowsCardElement}
-            <Box sx={{ mt: 8 }}>
-              {templatesElement}
-            </Box>
-          </>
-        )}
-      </Container>
+          {projects.length === 0 ? (
+            <>
+              {/* Mobile-only templates display at the top when projects are empty */}
+              <Box sx={{ display: { xs: 'block', lg: 'none' }, mb: 8 }}>
+                {templatesElement}
+              </Box>
+              <Box sx={{ mb: 6 }}>
+                {projectsListElement}
+              </Box>
+              {workflowsCardElement}
+            </>
+          ) : (
+            <>
+              <Box sx={{ mb: 6 }}>
+                {projectsListElement}
+              </Box>
+              {workflowsCardElement}
+              {/* Mobile-only templates display at the bottom when projects exist */}
+              <Box sx={{ display: { xs: 'block', lg: 'none' }, mt: 8 }}>
+                {templatesElement}
+              </Box>
+            </>
+          )}
+        </Box>
+      </MultiSectionContainer>
     </Box>
   );
 }

@@ -66,8 +66,9 @@ const DEFAULT_LAYOUTS: Record<string, PanelType[]> = {
   '/vault/dashboard': ['note', 'totp', 'projects'],
   '/vault/totp': ['secrets', 'secret_chat'],
   '/vault/sharing': ['secrets', 'totp', 'secret_chat'],
-  '/connect/chats': ['note', 'huddles', 'projects'],
+  '/connect/chats': ['projects', 'huddles', 'note'],
   '/connect/calls': ['projects', 'threads'],
+  '/projects': ['projects_stats', 'projects_templates'],
 };
 
 export function SectionProvider({ children }: { children: React.ReactNode }) {

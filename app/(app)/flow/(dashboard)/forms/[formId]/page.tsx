@@ -42,6 +42,7 @@ import { account } from '@/lib/appwrite';
 import { MessageSquare, Clock, FileText, Globe, Send, Share2 } from 'lucide-react';
 import { TextField } from '@mui/material';
 import { MultiSectionContainer } from '@/context/SectionContext';
+import { IdentityAvatar } from '@/components/common/IdentityBadge';
 
 export default function FormDetailsPage({ params, formId: propFormId, onBack }: { params?: Promise<{ formId: string }>; formId?: string; onBack?: () => void }) {
     const resolvedParams = {

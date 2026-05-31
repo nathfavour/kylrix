@@ -842,7 +842,7 @@ function extractCollaboratorsFromPermissions(permissions: string[]): Array<{ use
 
 export async function getResourceCollaboratorsSecure(input: {
     resourceId: string;
-    resourceType: 'note' | 'task' | 'project';
+    resourceType: 'note' | 'task' | 'project' | 'event' | 'form' | 'huddle' | 'call';
     jwt?: string;
 }) {
     const requester = await getActor(input.jwt);
@@ -853,6 +853,10 @@ export async function getResourceCollaboratorsSecure(input: {
                  APPWRITE_CONFIG.DATABASES.FLOW;
     const tableId = input.resourceType === 'note' ? APPWRITE_CONFIG.TABLES.NOTE.NOTES : 
                     input.resourceType === 'project' ? 'projects' :
+                    input.resourceType === 'event' ? (APPWRITE_CONFIG.TABLES.FLOW.EVENTS || 'events') :
+                    input.resourceType === 'form' ? (APPWRITE_CONFIG.TABLES.FLOW.FORMS || 'forms') :
+                    input.resourceType === 'huddle' ? 'huddles' :
+                    input.resourceType === 'call' ? 'calls' :
                     APPWRITE_CONFIG.TABLES.FLOW.TASKS;
 
     const tables = createSystemTablesDB();
@@ -864,7 +868,7 @@ export async function getResourceCollaboratorsSecure(input: {
     
     let filteredCollabs: Array<{ userId: string, level: string, status: string, accepted: boolean }> = [];
     
-    if (input.resourceType === 'note' || input.resourceType === 'project') {
+    if (input.resourceType === 'note' || input.resourceType === 'project' || input.resourceType === 'event' || input.resourceType === 'form' || input.resourceType === 'huddle' || input.resourceType === 'call') {
         // Query polymorphic collaborators table as the single source of truth
         try {
             const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
