@@ -144,7 +144,7 @@ export function GoogleIntegrationDrawer({
     return true;
   });
 
-  const triggerSyncLog = (type: 'info' | 'success' | 'warn' | 'error', service: string, message: string) => {
+  const triggerSyncLog = useCallback((type: 'info' | 'success' | 'warn' | 'error', service: string, message: string) => {
     const newLog = {
       id: Math.random().toString(),
       timestamp: new Date().toLocaleTimeString(),
@@ -153,7 +153,7 @@ export function GoogleIntegrationDrawer({
       message
     };
     setSyncLogs(prev => [...prev, newLog]);
-  };
+  }, [setSyncLogs]);
 
   const handleToggleSync = (type: 'keep' | 'calendar' | 'drive' | 'tasks', checked: boolean) => {
     if (type === 'keep') {
@@ -177,7 +177,7 @@ export function GoogleIntegrationDrawer({
   const [confirmText, setConfirmText] = useState('');
 
   // Fetch functions for Google Workspace APIs
-  const fetchCalendarEvents = async (accessToken: string) => {
+  const fetchCalendarEvents = useCallback(async (accessToken: string) => {
     setLoadingEvents(true);
     setEventsError(null);
     try {
@@ -214,9 +214,9 @@ export function GoogleIntegrationDrawer({
     } finally {
       setLoadingEvents(false);
     }
-  };
+  }, [setLoadingEvents, setEventsError, setCalendarEvents, triggerSyncLog]);
 
-  const fetchGoogleDocs = async (accessToken: string) => {
+  const fetchGoogleDocs = useCallback(async (accessToken: string) => {
     setLoadingDocs(true);
     setDocsError(null);
     try {
@@ -249,7 +249,7 @@ export function GoogleIntegrationDrawer({
     } finally {
       setLoadingDocs(false);
     }
-  };
+  }, [setLoadingDocs, setDocsError, setGoogleDocs, triggerSyncLog]);
 
   const handleImportDoc = async (docId: string, docTitle: string) => {
     if (!googleToken) {
