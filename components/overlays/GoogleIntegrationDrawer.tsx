@@ -399,12 +399,13 @@ export function GoogleIntegrationDrawer({
   }, [syncLogs]);
 
   // Load initial datasets upon authentication
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (googleConnected && googleToken) {
       fetchCalendarEvents(googleToken);
       fetchGoogleDocs(googleToken);
     }
-  }, [googleConnected, googleToken, fetchCalendarEvents, fetchGoogleDocs]);
+  }, [googleConnected, googleToken]);
 
   // Check auth state on drawer load
   useEffect(() => {
