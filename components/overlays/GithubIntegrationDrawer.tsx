@@ -288,7 +288,7 @@ export function GithubIntegrationDrawer({
       }, 450);
     }
     return () => clearInterval(timer);
-  }, [syncing, githubToken, ownerName, repoName, githubSyncIssues, githubSyncPRs]);
+  }, [syncing, githubToken, ownerName, repoName, githubSyncIssues, githubSyncPRs, triggerSyncLog, fetchIssues, fetchPullRequests]);
 
   // Handle active scroll inside the console window
   useEffect(() => {
