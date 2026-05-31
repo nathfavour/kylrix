@@ -611,6 +611,7 @@ export class VaultService {
   static async listIncomingKeyMappings(userId: string): Promise<KeyMapping[]> {
     const response = await listRowsWithRetry(APPWRITE_COLLECTION_KEY_MAPPING_ID, [
       Query.equal("grantee", userId),
+      Query.notEqual("isShared", true),
       Query.orderDesc("$createdAt")]);
     return response.rows as unknown as KeyMapping[];
   }
@@ -623,56 +624,103 @@ export class VaultService {
     );
   }
 
+  private static async getCollaboratedResourceIds(
+    userId: string,
+    resourceType: 'secret' | 'totp',
+  ): Promise<string[]> {
+    try {
+      const response = await originalAppwriteDatabases.listRows(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_COLLECTION_KEY_MAPPING_ID,
+        [
+          Query.equal('grantee', userId),
+          Query.equal('resourceType', resourceType === 'secret' ? 'credential' : 'totp'),
+          Query.equal('isShared', true),
+          Query.limit(100)
+        ]
+      );
+      return response.rows.map((row: any) => row.resourceId).filter(Boolean);
+    } catch (error) {
+      console.error(`[VaultService] Failed to list collaborated resource IDs for ${resourceType}:`, error);
+      return [];
+    }
+  }
+
+  static async migrateCredentialToDEK(credentialId: string): Promise<Credentials> {
+    const existing = await this.getCredential(credentialId);
+    if (existing.dek) {
+      return existing;
+    }
+
+    const dataToUpdate: Partial<Credentials> = {
+      name: existing.name,
+      url: existing.url,
+      username: existing.username,
+      password: existing.password,
+      notes: existing.notes,
+      customFields: existing.customFields,
+      cardNumber: existing.cardNumber,
+      cardholderName: existing.cardholderName,
+      cardExpiry: existing.cardExpiry,
+      cardCVV: existing.cardCVV,
+      cardPIN: existing.cardPIN,
+    };
+
+    return await this.updateCredential(credentialId, dataToUpdate);
+  }
+
+  static async migrateTotpSecretToDEK(totpSecretId: string): Promise<TotpSecrets> {
+    const existing = await this.getTOTPSecret(totpSecretId);
+    if (existing.dek) {
+      return existing;
+    }
+
+    const dataToUpdate: Partial<TotpSecrets> = {
+      issuer: existing.issuer,
+      accountName: existing.accountName,
+      secretKey: existing.secretKey,
+      url: existing.url,
+    };
+
+    return await this.updateTOTPSecret(totpSecretId, dataToUpdate);
+  }
+
   static async shareCredential(
     credentialId: string,
     recipient: { userId: string; publicKey: string },
   ): Promise<KeyMapping> {
-    const credential = await this.getCredential(credentialId);
-    const currentUser = await getCurrentUser();
-    const payload = {
-      kind: "credential",
-      resourceId: credentialId,
-      sharedFrom: credential.userId,
-      data: {
-        userId: recipient.userId,
-        itemType: credential.itemType,
-        name: credential.name,
-        url: credential.url,
-        notes: credential.notes,
-        totpId: credential.totpId,
-        password: credential.password,
-        cardNumber: credential.cardNumber,
-        cardholderName: credential.cardholderName,
-        cardExpiry: credential.cardExpiry,
-        cardCVV: credential.cardCVV,
-        cardPIN: credential.cardPIN,
-        cardType: credential.cardType,
-        folderId: null,
-        tags: credential.tags,
-        customFields: credential.customFields,
-        faviconUrl: credential.faviconUrl,
-        isFavorite: credential.isFavorite,
-        isDeleted: false,
-        deletedAt: null,
-        lastAccessedAt: null,
-        passwordChangedAt: credential.passwordChangedAt,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        username: credential.username,
-        sharedFrom: credential.userId,
-      },
-    };
+    let credential = await this.getCredential(credentialId);
+    if (!credential.dek) {
+      credential = await this.migrateCredentialToDEK(credentialId);
+    }
 
-    const wrapped = await encryptShareEnvelope(payload, recipient.publicKey);
+    const currentUser = await getCurrentUser();
+    const { decryptField } = await import("../masterpass-crypto");
+    const { ecosystemSecurity } = await import("../ecosystem/security");
+
+    const dekBase64 = await decryptField(credential.dek as string);
+    const rawKey = base64ToBytes(dekBase64);
+    const dek = await crypto.subtle.importKey(
+      "raw",
+      rawKey as any,
+      { name: "AES-GCM", length: 256 },
+      true,
+      ["encrypt", "decrypt"]
+    );
+
+    const wrappedKey = await ecosystemSecurity.wrapKeyWithECDH(dek, recipient.publicKey);
+    const senderPublicKey = await ecosystemSecurity.exportIdentityPublicKey() || "";
+
     const created = await this.createKeyMapping(
       {
         resourceId: credentialId,
         resourceType: "credential",
         grantee: recipient.userId,
-        wrappedKey: wrapped.wrappedKey,
+        wrappedKey: wrappedKey,
+        isShared: false,
         metadata: JSON.stringify({
           senderId: credential.userId,
-          senderPublicKey: wrapped.senderPublicKey,
+          senderPublicKey: senderPublicKey,
           sourceName: credential.name,
           createdAt: new Date().toISOString(),
         }),
@@ -681,6 +729,36 @@ export class VaultService {
         Permission.read(Role.user(recipient.userId)),
         Permission.read(Role.user(credential.userId))],
     );
+
+    try {
+      if (typeof window !== 'undefined') {
+        const { grantPermission } = await import('@/lib/actions/client-ops');
+        await grantPermission({
+          userId: credential.userId,
+          resourceId: credentialId,
+          resourceType: 'secret',
+          resourceTitle: credential.name || 'Credential',
+          targetUserId: recipient.userId,
+          permission: 'viewer',
+          actorName: currentUser?.name || currentUser?.email || credential.userId,
+          skipEmail: true,
+        });
+      } else {
+        const { grantPermissionSecure } = await import('@/lib/actions/secure-ops');
+        await grantPermissionSecure({
+          userId: credential.userId,
+          resourceId: credentialId,
+          resourceType: 'secret',
+          resourceTitle: credential.name || 'Credential',
+          targetUserId: recipient.userId,
+          permission: 'viewer',
+          actorName: currentUser?.name || currentUser?.email || credential.userId,
+          skipEmail: true,
+        });
+      }
+    } catch (permError) {
+      console.error("[Vault] Failed to grant read permission for shared credential:", permError);
+    }
 
     try {
       await sendKylrixEmailNotification({
@@ -710,43 +788,38 @@ export class VaultService {
     totpSecretId: string,
     recipient: { userId: string; publicKey: string },
   ): Promise<KeyMapping> {
-    const totpSecret = await this.getTOTPSecret(totpSecretId);
-    const currentUser = await getCurrentUser();
-    const payload = {
-      kind: "totp",
-      resourceId: totpSecretId,
-      sharedFrom: totpSecret.userId,
-      data: {
-        userId: recipient.userId,
-        issuer: totpSecret.issuer,
-        accountName: totpSecret.accountName,
-        secretKey: totpSecret.secretKey,
-        algorithm: totpSecret.algorithm,
-        digits: totpSecret.digits,
-        period: totpSecret.period,
-        url: totpSecret.url,
-        folderId: null,
-        tags: totpSecret.tags,
-        isFavorite: totpSecret.isFavorite,
-        isDeleted: false,
-        deletedAt: null,
-        lastUsedAt: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        sharedFrom: totpSecret.userId,
-      },
-    };
+    let totpSecret = await this.getTOTPSecret(totpSecretId);
+    if (!totpSecret.dek) {
+      totpSecret = await this.migrateTotpSecretToDEK(totpSecretId);
+    }
 
-    const wrapped = await encryptShareEnvelope(payload, recipient.publicKey);
+    const currentUser = await getCurrentUser();
+    const { decryptField } = await import("../masterpass-crypto");
+    const { ecosystemSecurity } = await import("../ecosystem/security");
+
+    const dekBase64 = await decryptField(totpSecret.dek as string);
+    const rawKey = base64ToBytes(dekBase64);
+    const dek = await crypto.subtle.importKey(
+      "raw",
+      rawKey as any,
+      { name: "AES-GCM", length: 256 },
+      true,
+      ["encrypt", "decrypt"]
+    );
+
+    const wrappedKey = await ecosystemSecurity.wrapKeyWithECDH(dek, recipient.publicKey);
+    const senderPublicKey = await ecosystemSecurity.exportIdentityPublicKey() || "";
+
     const created = await this.createKeyMapping(
       {
         resourceId: totpSecretId,
         resourceType: "totp",
         grantee: recipient.userId,
-        wrappedKey: wrapped.wrappedKey,
+        wrappedKey: wrappedKey,
+        isShared: false,
         metadata: JSON.stringify({
           senderId: totpSecret.userId,
-          senderPublicKey: wrapped.senderPublicKey,
+          senderPublicKey: senderPublicKey,
           sourceName: `${totpSecret.issuer} / ${totpSecret.accountName}`,
           createdAt: new Date().toISOString(),
         }),
@@ -755,6 +828,36 @@ export class VaultService {
         Permission.read(Role.user(recipient.userId)),
         Permission.read(Role.user(totpSecret.userId))],
     );
+
+    try {
+      if (typeof window !== 'undefined') {
+        const { grantPermission } = await import('@/lib/actions/client-ops');
+        await grantPermission({
+          userId: totpSecret.userId,
+          resourceId: totpSecretId,
+          resourceType: 'totp',
+          resourceTitle: `${totpSecret.issuer} / ${totpSecret.accountName}`,
+          targetUserId: recipient.userId,
+          permission: 'viewer',
+          actorName: currentUser?.name || currentUser?.email || totpSecret.userId,
+          skipEmail: true,
+        });
+      } else {
+        const { grantPermissionSecure } = await import('@/lib/actions/secure-ops');
+        await grantPermissionSecure({
+          userId: totpSecret.userId,
+          resourceId: totpSecretId,
+          resourceType: 'totp',
+          resourceTitle: `${totpSecret.issuer} / ${totpSecret.accountName}`,
+          targetUserId: recipient.userId,
+          permission: 'viewer',
+          actorName: currentUser?.name || currentUser?.email || totpSecret.userId,
+          skipEmail: true,
+        });
+      }
+    } catch (permError) {
+      console.error("[Vault] Failed to grant read permission for shared totp:", permError);
+    }
 
     try {
       await sendKylrixEmailNotification({
@@ -781,51 +884,23 @@ export class VaultService {
   }
 
   static async acceptSharedCredential(mapping: KeyMapping): Promise<Credentials> {
-    const metadata = readShareMetadata(mapping.metadata);
-    const senderPublicKey = String(metadata.senderPublicKey ?? "");
-    if (!senderPublicKey) {
-      throw new Error("Missing share metadata");
-    }
-
-    const envelope = await decryptShareEnvelope<{
-      kind: string;
-      resourceId: string;
-      sharedFrom: string;
-      data: CredentialsCreate & { sharedFrom?: string | null };
-    }>(mapping.wrappedKey, senderPublicKey);
-
-    const created = await this.createCredential({
-      ...envelope.data,
-      userId: mapping.grantee,
-      sharedFrom: envelope.sharedFrom,
-    });
-
-    await this.deleteKeyMapping(mapping.$id);
-    return created;
+    await appwriteDatabases.updateRow(
+      APPWRITE_DATABASE_ID,
+      APPWRITE_COLLECTION_KEY_MAPPING_ID,
+      mapping.$id,
+      { isShared: true }
+    );
+    return await this.getCredential(mapping.resourceId);
   }
 
   static async acceptSharedTotp(mapping: KeyMapping): Promise<TotpSecrets> {
-    const metadata = readShareMetadata(mapping.metadata);
-    const senderPublicKey = String(metadata.senderPublicKey ?? "");
-    if (!senderPublicKey) {
-      throw new Error("Missing share metadata");
-    }
-
-    const envelope = await decryptShareEnvelope<{
-      kind: string;
-      resourceId: string;
-      sharedFrom: string;
-      data: TotpSecretsCreate & { sharedFrom?: string | null };
-    }>(mapping.wrappedKey, senderPublicKey);
-
-    const created = await this.createTOTPSecret({
-      ...envelope.data,
-      userId: mapping.grantee,
-      sharedFrom: envelope.sharedFrom,
-    });
-
-    await this.deleteKeyMapping(mapping.$id);
-    return created;
+    await appwriteDatabases.updateRow(
+      APPWRITE_DATABASE_ID,
+      APPWRITE_COLLECTION_KEY_MAPPING_ID,
+      mapping.$id,
+      { isShared: true }
+    );
+    return await this.getTOTPSecret(mapping.resourceId);
   }
 
   static async createFolder(
@@ -1108,15 +1183,29 @@ export class VaultService {
     offset: number = 0,
     queries: string[] = [],
   ): Promise<{ total: number; rows: Credentials[] }> {
+    const resourceIds = await this.getCollaboratedResourceIds(userId, 'secret');
+    
+    const baseQueries = [
+      Query.orderAsc("name"),
+      Query.limit(limit),
+      Query.offset(offset),
+      ...queries
+    ];
+    
+    let filterQuery;
+    if (resourceIds.length > 0) {
+      filterQuery = Query.or([
+        Query.equal("userId", userId),
+        Query.equal("$id", resourceIds)
+      ]);
+    } else {
+      filterQuery = Query.equal("userId", userId);
+    }
+
     const response = await appwriteDatabases.listRows(
       APPWRITE_DATABASE_ID,
       APPWRITE_COLLECTION_CREDENTIALS_ID,
-      [
-        Query.equal("userId", userId),
-        Query.orderAsc("name"),
-        Query.limit(limit),
-        Query.offset(offset),
-        ...queries],
+      [filterQuery, ...baseQueries],
     );
 
     const decryptedRows = await Promise.all(
@@ -1196,11 +1285,22 @@ export class VaultService {
       const limit = 100; // Max limit per request
       let response;
 
+      const resourceIds = await this.getCollaboratedResourceIds(userId, 'secret');
+      let filterQuery;
+      if (resourceIds.length > 0) {
+        filterQuery = Query.or([
+          Query.equal("userId", userId),
+          Query.equal("$id", resourceIds)
+        ]);
+      } else {
+        filterQuery = Query.equal("userId", userId);
+      }
+
       do {
         response = await listRowsWithRetry(
           APPWRITE_COLLECTION_CREDENTIALS_ID,
           [
-            Query.equal("userId", userId),
+            filterQuery,
             Query.limit(limit),
             Query.offset(offset),
             ...queries],
@@ -1272,10 +1372,21 @@ export class VaultService {
     }
 
     const request = (async () => {
+      const resourceIds = await this.getCollaboratedResourceIds(userId, 'totp');
+      let filterQuery;
+      if (resourceIds.length > 0) {
+        filterQuery = Query.or([
+          Query.equal("userId", userId),
+          Query.equal("$id", resourceIds)
+        ]);
+      } else {
+        filterQuery = Query.equal("userId", userId);
+      }
+
       const response = await appwriteDatabases.listRows(
         APPWRITE_DATABASE_ID,
         APPWRITE_COLLECTION_TOTPSECRETS_ID,
-        [Query.equal("userId", userId), ...queries],
+        [filterQuery, ...queries],
       );
       const decryptedSecrets = await Promise.all(
         response.rows.map(
@@ -1332,6 +1443,9 @@ export class VaultService {
     if (linkedTags.length) {
       sanitizedData.tags = Array.from(new Set([...(sanitizedData.tags || []), ...linkedTags]));
     }
+    if (existing.dek) {
+      sanitizedData.dek = existing.dek;
+    }
     const encryptedData = await this.encryptRowFields(sanitizedData, "credentials");
     const doc = await appwriteDatabases.updateRow(
       APPWRITE_DATABASE_ID,
@@ -1356,6 +1470,9 @@ export class VaultService {
     const linkedTags = buildVaultNoteTags(options?.linkedNoteIds || []);
     if (linkedTags.length) {
       sanitizedData.tags = Array.from(new Set([...(sanitizedData.tags || []), ...linkedTags]));
+    }
+    if (existing.dek) {
+      sanitizedData.dek = existing.dek;
     }
     const encryptedData = await this.encryptRowFields(sanitizedData, "totpSecrets");
     const doc = await appwriteDatabases.updateRow(
@@ -1570,10 +1687,51 @@ export class VaultService {
       ...(data as Record<string, unknown>),
     };
 
-    const { encryptField, masterPassCrypto } = await import("../masterpass-crypto");
+    const { encryptField, decryptField, masterPassCrypto } = await import("../masterpass-crypto");
+    const { ecosystemSecurity } = await import("../ecosystem/security");
 
     if (!masterPassCrypto.isVaultUnlocked()) {
       throw new Error("Vault is locked - cannot encrypt data");
+    }
+
+    if (tableType === "credentials" || tableType === "totpSecrets") {
+      let dek: CryptoKey;
+      let wrappedDek: string;
+
+      if (result.dek && typeof result.dek === "string" && result.dek.trim().length > 0) {
+        wrappedDek = result.dek;
+        const dekBase64 = await decryptField(wrappedDek);
+        const rawKey = base64ToBytes(dekBase64);
+        dek = await crypto.subtle.importKey(
+          "raw",
+          rawKey as any,
+          { name: "AES-GCM", length: 256 },
+          true,
+          ["encrypt", "decrypt"]
+        );
+      } else {
+        dek = await ecosystemSecurity.generateRandomMEK();
+        const rawKey = await crypto.subtle.exportKey("raw", dek);
+        const dekBase64 = bytesToBase64(new Uint8Array(rawKey));
+        wrappedDek = await encryptField(dekBase64);
+        result.dek = wrappedDek;
+      }
+
+      for (const field of schema.encrypted) {
+        const fieldValue = result[field];
+        if (this.shouldEncryptField(fieldValue)) {
+          try {
+            result[field] = await ecosystemSecurity.encryptWithKey(String(fieldValue), dek);
+          } catch (error: unknown) {
+            console.error(`Failed to encrypt field ${field} with DEK:`, error);
+            throw new Error(`DEK Encryption failed for ${field}: ${error}`);
+          }
+        } else {
+          delete result[field];
+        }
+      }
+
+      return result;
     }
 
     for (const field of schema.encrypted) {
@@ -1586,7 +1744,6 @@ export class VaultService {
           throw new Error(`Encryption failed for ${field}: ${error}`);
         }
       } else {
-        // Remove the field entirely if it's not a non-empty string
         delete result[field];
       }
     }
@@ -1607,43 +1764,117 @@ export class VaultService {
       const { decryptField, masterPassCrypto } = await import(
         "../masterpass-crypto"
       );
+      const { ecosystemSecurity } = await import("../ecosystem/security");
 
-      // Check if vault is unlocked before attempting decryption
       if (!masterPassCrypto.isVaultUnlocked()) {
         console.warn("Vault is locked - returning encrypted data as-is");
+        return result;
+      }
+
+      if (tableType === "credentials" || tableType === "totpSecrets") {
+        const hasDek = result.dek && typeof result.dek === "string" && result.dek.trim().length > 0;
+        let dek: CryptoKey | null = null;
+
+        if (hasDek) {
+          const currentUser = await getCurrentUser().catch(() => null);
+          const isOwner = !currentUser || !result.userId || result.userId === currentUser.$id;
+
+          if (isOwner) {
+            try {
+              const dekBase64 = await decryptField(result.dek as string);
+              const rawKey = base64ToBytes(dekBase64);
+              dek = await crypto.subtle.importKey(
+                "raw",
+                rawKey as any,
+                { name: "AES-GCM", length: 256 },
+                true,
+                ["encrypt", "decrypt"]
+              );
+            } catch (unwrapError) {
+              console.error("Failed to unwrap DEK using MEK for owner:", unwrapError);
+            }
+          } else {
+            try {
+              const mappings = await listRowsWithRetry(APPWRITE_COLLECTION_KEY_MAPPING_ID, [
+                Query.equal("grantee", currentUser.$id),
+                Query.equal("resourceId", result.$id as string),
+                Query.limit(1)
+              ]);
+
+              if (mappings.rows.length > 0) {
+                const mapping = mappings.rows[0] as KeyMapping;
+                const metadata = readShareMetadata(mapping.metadata);
+                const senderPublicKey = String(metadata.senderPublicKey ?? "");
+                if (senderPublicKey) {
+                  dek = await ecosystemSecurity.unwrapKeyWithECDH(mapping.wrappedKey, senderPublicKey);
+                } else {
+                  console.error("Missing sender public key in sharing metadata");
+                }
+              } else {
+                console.error("No key mapping found for collaborated resource:", result.$id);
+              }
+            } catch (unwrapError) {
+              console.error("Failed to unwrap DEK using ECDH for collaborator:", unwrapError);
+            }
+          }
+          
+          if (currentUser && !isOwner) {
+            result.sharedFrom = result.userId;
+          }
+        }
+
+        for (const field of schema.encrypted) {
+          const fieldValue = result[field];
+
+          if (this.shouldDecryptField(fieldValue)) {
+            try {
+              if (hasDek) {
+                if (dek) {
+                  result[field] = await ecosystemSecurity.decryptWithKey(fieldValue as string, dek);
+                } else {
+                  result[field] = "[DECRYPTION_DEK_UNAVAILABLE]";
+                }
+              } else {
+                result[field] = await decryptField(fieldValue as string);
+              }
+            } catch (error: unknown) {
+              console.error(`Failed to decrypt field ${field}:`, error);
+              result[field] = "[DECRYPTION_FAILED]";
+            }
+          } else {
+            result[field] =
+              fieldValue === null
+                ? null
+                : fieldValue === undefined
+                  ? null
+                  : fieldValue;
+          }
+        }
+
         return result;
       }
 
       for (const field of schema.encrypted) {
         const fieldValue = result[field];
 
-        // Only decrypt if the field has encrypted data
         if (this.shouldDecryptField(fieldValue)) {
           try {
-            console.log(
-              `Decrypting field: ${field} for table: ${tableType}`,
-            );
             result[field] = await decryptField(fieldValue as string);
           } catch (error: unknown) {
             console.error(`Failed to decrypt field ${field}:`, error);
             result[field] = "[DECRYPTION_FAILED]";
           }
         } else {
-          // For null/undefined values, keep them as null
           result[field] =
             fieldValue === null
               ? null
               : fieldValue === undefined
                 ? null
                 : fieldValue;
-          console.log(
-            `Skipping decryption for field: ${field} (no encrypted data)`,
-          );
         }
       }
     } catch (error: unknown) {
       console.error("Decryption module not available:", error);
-      // Return original row if decryption module can't be loaded
     }
 
     return result;

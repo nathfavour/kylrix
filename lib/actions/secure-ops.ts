@@ -711,7 +711,7 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
         actorName: input.actorName,
         resourceId: input.resourceId,
         resourceTitle: input.resourceTitle,
-        resourceType: input.resourceType,
+        resourceType: input.resourceType as any,
         permission: input.permission
       });
     } catch (notifErr) {

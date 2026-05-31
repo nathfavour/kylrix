@@ -58,6 +58,7 @@ export type CredentialsCreate = {
   username?: string | null;
   sharedFrom?: string | null;
   attachments?: string | null;
+  dek?: string | null;
 };
 
 export type FoldersCreate = {
@@ -91,6 +92,7 @@ export type TotpSecretsCreate = {
   createdAt?: string | null;
   updatedAt?: string | null;
   sharedFrom?: string | null;
+  dek?: string | null;
 };
 
 export type KeychainCreate = {
@@ -111,4 +113,5 @@ export type KeyMappingCreate = {
   grantee: string;
   wrappedKey: string;
   metadata?: string | null;
+  isShared?: boolean | null;
 };
