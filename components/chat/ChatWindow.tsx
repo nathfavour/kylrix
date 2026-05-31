@@ -411,7 +411,7 @@ const ChatDraftInput = React.memo(function ChatDraftInput({
     );
 });
 
-export const ChatWindow = ({ conversationId }: { conversationId: string }) => {
+export const ChatWindow = ({ conversationId, onBack }: { conversationId: string; onBack?: () => void }) => {
     const { user } = useAuth();
     const { markConversationRead: markConversationReadInContext } = useChatNotifications();
     const { openCallLauncher } = useCallLauncher();

@@ -109,7 +109,7 @@ export function GoogleIntegrationDrawer({
           const googleIdentity = identityList.identities?.find(i => i.provider === 'google');
           if (googleIdentity) {
             setGoogleConnected(true);
-            setGoogleUser(prev => prev || {
+            setGoogleUser((prev: any) => prev || {
               displayName: googleIdentity.providerEmail || 'Connected Account',
               email: googleIdentity.providerEmail || 'google',
               photoURL: null

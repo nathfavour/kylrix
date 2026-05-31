@@ -87,7 +87,7 @@ export function GithubIntegrationDrawer({
           const githubIdentity = identityList.identities?.find(i => i.provider === 'github');
           if (githubIdentity) {
             setGithubConnected(true);
-            setGithubUser(prev => prev || {
+            setGithubUser((prev: any) => prev || {
               displayName: githubIdentity.providerEmail || githubIdentity.providerUid,
               email: githubIdentity.providerEmail || 'github',
               photoURL: null
