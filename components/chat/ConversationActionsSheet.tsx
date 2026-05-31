@@ -38,6 +38,7 @@ import { UsersService } from '@/lib/services/users';
 import { getCachedIdentityById, seedIdentityCache } from '@/lib/identity-cache';
 import { fetchProfilePreview } from '@/lib/profile-preview';
 import { useCallLauncher } from '@/context/CallLauncherContext';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 
 type ConversationActionsSheetProps = {
   conversation: any | null;
@@ -159,6 +160,7 @@ export default function ConversationActionsSheet({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
   const { user } = useAuth();
   const { openCallLauncher } = useCallLauncher();
+  const { open: openUnified } = useUnifiedDrawer();
 
   const [currentConversation, setCurrentConversation] = useState<any | null>(conversation);
   const [directProfile, setDirectProfile] = useState<any | null>(null);
@@ -966,6 +968,25 @@ export default function ConversationActionsSheet({
                       </Stack>
                     )}
                   </Paper>
+                )}
+
+                {isAdmin && (
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => {
+                      onClose(); // close sheet
+                      openUnified('share-note', {
+                        resourceId: currentConversation.$id,
+                        resourceType: 'group',
+                        resourceTitle: currentConversation.name || 'Group Chat'
+                      });
+                    }}
+                    sx={{ mb: 2, py: 1.25, borderRadius: '14px', textTransform: 'none', fontWeight: 800 }}
+                  >
+                    Manage Members & Admins
+                  </Button>
                 )}
 
                 {membersLoading ? (

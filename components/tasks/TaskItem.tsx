@@ -122,9 +122,10 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
 
   const handleAssignGoal = () => {
     handleMenuClose();
-    openUnified('assign-goal', {
-        taskId: task.id,
-        taskTitle: task.title,
+    openUnified('share-note', {
+        resourceId: task.id,
+        resourceType: 'goal',
+        resourceTitle: task.title,
         actorName: user?.name || 'A Kylrix User'
     });
   };

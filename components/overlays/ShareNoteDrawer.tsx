@@ -36,6 +36,12 @@ const getResourceConfig = (type: string) => {
         labelPlural: 'Assignees',
         brandColor: '#A855F7',
         allowedPermissions: ['viewer', 'editor', 'admin'],
+        addOnlyViewer: false,
+        permissionDetails: {
+          viewer: { title: 'Observer', desc: 'Can read, track status, and monitor this goal.' },
+          editor: { title: 'Assignee', desc: 'Can execute tasks, mark items complete, and modify details.' },
+          admin: { title: 'Manager', desc: 'Full administrative rights to modify and assign this goal.' }
+        }
       };
     case 'event':
       return {
@@ -43,6 +49,12 @@ const getResourceConfig = (type: string) => {
         labelPlural: 'Organizers',
         brandColor: '#F59E0B',
         allowedPermissions: ['viewer', 'editor', 'admin'],
+        addOnlyViewer: false,
+        permissionDetails: {
+          viewer: { title: 'Attendee', desc: 'Can view event and register to attend.' },
+          editor: { title: 'Organizer', desc: 'Can edit event details, manage schedule and attendees.' },
+          admin: { title: 'Lead Organizer', desc: 'Full ownership and admin rights over the event.' }
+        }
       };
     case 'huddle':
     case 'call':
@@ -51,6 +63,11 @@ const getResourceConfig = (type: string) => {
         labelPlural: 'Co-hosts',
         brandColor: '#EC4899',
         allowedPermissions: ['viewer', 'admin'], // Viewers elevated to Co-host (Admin)
+        addOnlyViewer: true,
+        permissionDetails: {
+          viewer: { title: 'Participant', desc: 'Can view, listen and participate in the huddle.' },
+          admin: { title: 'Co-host', desc: 'Full moderation rights, including upgrading other participants.' }
+        }
       };
     case 'group':
       return {
@@ -58,6 +75,11 @@ const getResourceConfig = (type: string) => {
         labelPlural: 'Members',
         brandColor: '#3B82F6',
         allowedPermissions: ['viewer', 'admin'], // Viewers elevated to Admin
+        addOnlyViewer: true,
+        permissionDetails: {
+          viewer: { title: 'Member', desc: 'Standard member access to channels, chats and calls.' },
+          admin: { title: 'Admin', desc: 'Full administrative rights to moderate the group.' }
+        }
       };
     case 'form':
       return {
@@ -65,6 +87,12 @@ const getResourceConfig = (type: string) => {
         labelPlural: 'Collaborators',
         brandColor: '#10B981',
         allowedPermissions: ['viewer', 'editor', 'admin'],
+        addOnlyViewer: false,
+        permissionDetails: {
+          viewer: { title: 'Viewer', desc: 'Can view form structure and list responses.' },
+          editor: { title: 'Editor', desc: 'Can edit form fields, styling and settings.' },
+          admin: { title: 'Admin', desc: 'Full admin access, including sharing and deletions.' }
+        }
       };
     case 'project':
       return {
@@ -72,6 +100,12 @@ const getResourceConfig = (type: string) => {
         labelPlural: 'Collaborators',
         brandColor: '#6366F1',
         allowedPermissions: ['viewer', 'editor', 'admin'],
+        addOnlyViewer: false,
+        permissionDetails: {
+          viewer: { title: 'Viewer', desc: 'Can read and review project objects, boards, and chats.' },
+          editor: { title: 'Editor', desc: 'Can add, modify, and shape project details and items.' },
+          admin: { title: 'Admin', desc: 'Full administrator access to manage settings and collaborators.' }
+        }
       };
     case 'note':
     default:
@@ -80,6 +114,12 @@ const getResourceConfig = (type: string) => {
         labelPlural: 'Collaborators',
         brandColor: '#6366F1',
         allowedPermissions: ['viewer', 'editor', 'admin'],
+        addOnlyViewer: false,
+        permissionDetails: {
+          viewer: { title: 'Viewer', desc: 'Can read and view note contents.' },
+          editor: { title: 'Editor', desc: 'Can edit and write updates to the note.' },
+          admin: { title: 'Admin', desc: 'Full admin access, including sharing permissions.' }
+        }
       };
   }
 };
@@ -348,7 +388,7 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
                       <Stack direction="row" alignItems="center" spacing={1.5}>
                         <ShieldCheck size={18} style={{ color: config.brandColor }} />
                         <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'var(--font-satoshi)', color: 'white', textTransform: 'capitalize' }}>
-                          {permission}
+                          {(config.permissionDetails as any)?.[permission]?.title || permission}
                         </Typography>
                       </Stack>
                       <ChevronDown size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -439,7 +479,7 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
                                                 fontFamily: 'var(--font-satoshi)'
                                             }}
                                         >
-                                            {profile.permissionLevel || 'Viewer'}
+                                            {(config.permissionDetails as any)?.[profile.permissionLevel?.toLowerCase() as PermissionLevel]?.title || profile.permissionLevel || 'Viewer'}
                                         </Typography>
                                     </Box>
                                     <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}>
@@ -464,34 +504,36 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
                 />
             </Box>
 
-            <Box>
-                <Typography variant="caption" sx={{ display: 'block', fontSize: '0.72rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', mb: 1, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-satoshi)' }}>
-                    Set Access Rights
-                </Typography>
-                <Box 
-                  onClick={() => setIsPermissionDrawerOpen(true)}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    bgcolor: '#0A0908', 
-                    p: 2,
-                    borderRadius: '16px',
-                    border: '1px solid #1C1A18',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    '&:hover': { borderColor: 'rgba(255,255,255,0.15)' }
-                  }}
-                >
-                  <Stack direction="row" alignItems="center" spacing={1.5}>
-                    <ShieldCheck size={18} style={{ color: config.brandColor }} />
-                    <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'var(--font-satoshi)', color: 'white', textTransform: 'capitalize' }}>
-                      {permission}
-                    </Typography>
-                  </Stack>
-                  <ChevronDown size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
-                </Box>
-            </Box>
+            {!config.addOnlyViewer && (
+              <Box>
+                  <Typography variant="caption" sx={{ display: 'block', fontSize: '0.72rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', mb: 1, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-satoshi)' }}>
+                      Set Access Rights
+                  </Typography>
+                  <Box 
+                    onClick={() => setIsPermissionDrawerOpen(true)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      bgcolor: '#0A0908', 
+                      p: 2,
+                      borderRadius: '16px',
+                      border: '1px solid #1C1A18',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      '&:hover': { borderColor: 'rgba(255,255,255,0.15)' }
+                    }}
+                  >
+                    <Stack direction="row" alignItems="center" spacing={1.5}>
+                      <ShieldCheck size={18} style={{ color: config.brandColor }} />
+                      <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'var(--font-satoshi)', color: 'white', textTransform: 'capitalize' }}>
+                        {(config.permissionDetails as any)?.[permission]?.title || permission}
+                      </Typography>
+                    </Stack>
+                    <ChevronDown size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                  </Box>
+              </Box>
+            )}
 
             <Button 
                 variant="contained" 
@@ -687,9 +729,9 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
 
             <Stack spacing={1.5}>
             {[
-                { value: 'viewer', title: 'Viewer', desc: `Can read, download, and review the contents of this ${resourceType}.` },
-                { value: 'editor', title: 'Editor', desc: `Can edit, write updates, comment, and fully shape ${resourceType} contents.` },
-                { value: 'admin', title: 'Admin', desc: `Full ownership level rights, including the ability to manage other participants.` }
+                { value: 'viewer', title: (config.permissionDetails as any)?.viewer?.title || 'Viewer', desc: (config.permissionDetails as any)?.viewer?.desc || `Can read, download, and review the contents of this ${resourceType}.` },
+                { value: 'editor', title: (config.permissionDetails as any)?.editor?.title || 'Editor', desc: (config.permissionDetails as any)?.editor?.desc || `Can edit, write updates, comment, and fully shape ${resourceType} contents.` },
+                { value: 'admin', title: (config.permissionDetails as any)?.admin?.title || 'Admin', desc: (config.permissionDetails as any)?.admin?.desc || `Full ownership level rights, including the ability to manage other participants.` }
             ].filter(item => config.allowedPermissions.includes(item.value)).map((item) => (
                 <Box
                 key={item.value}

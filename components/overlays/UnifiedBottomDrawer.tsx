@@ -45,11 +45,12 @@ export function UnifiedBottomDrawer() {
                 resourceType={drawerData?.resourceType || 'note'}
             />;
         case 'assign-goal':
-            return <AssignGoalDrawer 
+            return <ShareNoteDrawer 
                 isOpen={true} 
                 onClose={close} 
-                taskId={drawerData?.taskId} 
-                taskTitle={drawerData?.taskTitle} 
+                noteId={drawerData?.taskId || drawerData?.resourceId} 
+                noteTitle={drawerData?.taskTitle || drawerData?.resourceTitle} 
+                resourceType="goal"
             />;
         case 'delete-note':
             return <DeleteNoteDrawer 

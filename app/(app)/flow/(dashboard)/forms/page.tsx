@@ -52,7 +52,7 @@ import { useDataNexus } from '@/context/DataNexusContext';
 import { toast } from 'react-hot-toast';
 
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
-import { FolderKanban } from 'lucide-react';
+import { FolderKanban, Share2 } from 'lucide-react';
 import { useSection, MultiSectionContainer } from '@/context/SectionContext';
 
 export default function FormsDashboard() {
@@ -557,6 +557,16 @@ export default function FormsDashboard() {
                 </MuiMenuItem>
                 <MuiMenuItem onClick={() => handleOpenSettings(menuAnchor!.form)}>
                     <SettingsIcon fontSize="small" /> Settings
+                </MuiMenuItem>
+                <MuiMenuItem onClick={() => { 
+                    handleMenuClose(); 
+                    openDrawer('share-note', {
+                        resourceId: menuAnchor!.form.$id,
+                        resourceType: 'form',
+                        resourceTitle: menuAnchor!.form.title
+                    });
+                }}>
+                    <Share2 size={16} /> Share Form
                 </MuiMenuItem>
                 <MuiMenuItem onClick={() => { handleMenuClose(); handleTogglePin(menuAnchor!.form); }}>
                     <PinIcon fontSize="small" sx={{ color: menuAnchor?.form.isPinned ? '#F59E0B' : 'inherit' }} /> {menuAnchor?.form.isPinned ? 'Unpin' : 'Pin'} Form

@@ -36,7 +36,10 @@ import { client } from '@/lib/appwrite/client';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { useToast } from '@/components/ui/Toast';
 import { AppwriteService } from '@/lib/appwrite';
-import { MessageSquare, Clock, FileText, Globe, Send } from 'lucide-react';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+import { getResourceCollaboratorsSecure } from '@/lib/actions/secure-ops';
+import { account } from '@/lib/appwrite';
+import { MessageSquare, Clock, FileText, Globe, Send, Share2 } from 'lucide-react';
 import { TextField } from '@mui/material';
 import { MultiSectionContainer } from '@/context/SectionContext';
 
@@ -60,6 +63,32 @@ export default function FormDetailsPage({ params, formId: propFormId, onBack }: 
     const [huddleTimeRemaining, setHuddleTimeRemaining] = useState('');
     const [inputText, setInputText] = useState('');
     const huddleMessageEndRef = React.useRef<HTMLDivElement>(null);
+
+    const { open: openUnified } = useUnifiedDrawer();
+    const [collaborators, setCollaborators] = useState<any[]>([]);
+    const [loadingCollaborators, setLoadingCollaborators] = useState(false);
+
+    const fetchCollaborators = useCallback(async () => {
+        if (!resolvedParams.formId) return;
+        setLoadingCollaborators(true);
+        try {
+            const { jwt } = await account.createJWT();
+            const { collaborators: collabs } = await getResourceCollaboratorsSecure({
+                resourceId: resolvedParams.formId,
+                resourceType: 'form',
+                jwt
+            });
+            setCollaborators(collabs || []);
+        } catch (err) {
+            console.error('Failed to fetch form collaborators:', err);
+        } finally {
+            setLoadingCollaborators(false);
+        }
+    }, [resolvedParams.formId]);
+
+    useEffect(() => {
+        fetchCollaborators();
+    }, [fetchCollaborators]);
 
     // Check if Huddle is initialized
     useEffect(() => {
@@ -305,6 +334,19 @@ export default function FormDetailsPage({ params, formId: propFormId, onBack }: 
                         </Button>
                     )}
                     <Button 
+                        variant="outlined" 
+                        startIcon={<Share2 size={16} />} 
+                        onClick={() => openUnified('share-note', {
+                            resourceId: resolvedParams.formId,
+                            resourceType: 'form',
+                            resourceTitle: form.title,
+                            onShared: () => fetchCollaborators()
+                        })}
+                        sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, borderColor: '#161514', color: 'text.primary', bgcolor: '#161514', '&:hover': { bgcolor: '#1F1D1B' } }}
+                    >
+                        Share Form
+                    </Button>
+                    <Button 
                         variant="contained" 
                         color="primary" 
                         startIcon={<EditIcon />} 
@@ -383,6 +425,77 @@ export default function FormDetailsPage({ params, formId: propFormId, onBack }: 
                             <Box component="pre" sx={{ fontSize: '0.75rem', color: 'text.secondary', overflow: 'auto', maxHeight: 400, fontFamily: 'var(--font-jetbrains)', bgcolor: '#1F1D1B', p: 2, borderRadius: 2 }}>
                                 {JSON.stringify(JSON.parse(form.schema || '[]'), null, 2)}
                             </Box>
+                        </Paper>
+
+                        <Paper sx={{ p: 4, mt: 3, borderRadius: 4, bgcolor: '#161514', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content' }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                                <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 900 }}>COLLABORATORS</Typography>
+                                <Button 
+                                    size="small"
+                                    onClick={() => openUnified('share-note', {
+                                        resourceId: resolvedParams.formId,
+                                        resourceType: 'form',
+                                        resourceTitle: form.title,
+                                        onShared: () => fetchCollaborators()
+                                    })}
+                                    sx={{ color: '#10B981', fontWeight: 800, fontSize: '0.7rem', textTransform: 'none', p: 0, minWidth: 0, '&:hover': { textDecoration: 'underline' } }}
+                                >
+                                    + Manage
+                                </Button>
+                            </Box>
+                            
+                            {loadingCollaborators ? (
+                                <CircularProgress size={16} sx={{ color: '#10B981' }} />
+                            ) : collaborators.length === 0 ? (
+                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', display: 'block' }}>
+                                    No co-collaborators added yet.
+                                </Typography>
+                            ) : (
+                                <Stack spacing={1.5}>
+                                    {collaborators.map((profile) => (
+                                        <Box 
+                                            key={profile.$id || profile.userId} 
+                                            onClick={() => openUnified('share-note', {
+                                                resourceId: resolvedParams.formId,
+                                                resourceType: 'form',
+                                                resourceTitle: form.title,
+                                                initialCollaborator: profile,
+                                                onShared: () => fetchCollaborators()
+                                            })}
+                                            sx={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: 1.5, 
+                                                p: 1, 
+                                                borderRadius: '12px', 
+                                                bgcolor: 'rgba(255,255,255,0.02)', 
+                                                border: '1px solid rgba(255,255,255,0.04)',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': {
+                                                    borderColor: 'rgba(255,255,255,0.12)',
+                                                    bgcolor: 'rgba(255,255,255,0.04)'
+                                                }
+                                            }}
+                                        >
+                                            <IdentityAvatar
+                                                fileId={profile.avatar || profile.profilePicId || null}
+                                                alt={profile.displayName || profile.username}
+                                                fallback={(profile.displayName || profile.username || 'U').charAt(0).toUpperCase()}
+                                                size={28}
+                                            />
+                                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                <Typography variant="caption" sx={{ fontWeight: 800, color: 'white', display: 'block' }} noWrap>
+                                                    {profile.displayName || profile.username}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', fontSize: '9px' }}>
+                                                    {profile.permissionLevel || 'Viewer'}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                    ))}
+                                </Stack>
+                            )}
                         </Paper>
                     </Box>
                 </Fade>

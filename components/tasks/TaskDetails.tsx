@@ -905,7 +905,24 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
           )}
 
           <Box sx={{ mt: 3 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1.5, fontSize: '0.65rem', opacity: 0.5 }}>Assignees</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+              <Typography variant="subtitle2" sx={{ fontSize: '0.65rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Assignees</Typography>
+              <Button 
+                size="small"
+                onClick={() => openUnified('share-note', {
+                    resourceId: taskId,
+                    resourceType: 'goal',
+                    resourceTitle: task.title,
+                    actorName: user?.name || 'A Kylrix User',
+                    onShared: () => {
+                        // Invalidate or reload task data if necessary
+                    }
+                })}
+                sx={{ color: '#A855F7', fontWeight: 800, fontSize: '0.7rem', textTransform: 'none', p: 0, minWidth: 0, '&:hover': { textDecoration: 'underline' } }}
+              >
+                + Add Assignee
+              </Button>
+            </Box>
             {isLoadingAssignees ? (
             <CircularProgress size={16} sx={{ color: '#A855F7', ml: 1 }} />
         ) : taskParticipantProfiles.length > 0 ? (
@@ -913,9 +930,10 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
                 {taskParticipantProfiles.map((profile) => (
                     <Box 
                         key={profile.userId} 
-                        onClick={() => openUnified('assign-goal', { 
-                            taskId: taskId,
-                            taskTitle: task.title,
+                        onClick={() => openUnified('share-note', { 
+                            resourceId: taskId,
+                            resourceType: 'goal',
+                            resourceTitle: task.title,
                             actorName: user?.name || 'A Kylrix User',
                             initialCollaborator: profile
                         })}

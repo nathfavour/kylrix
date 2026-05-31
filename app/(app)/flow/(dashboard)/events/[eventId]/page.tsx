@@ -22,6 +22,10 @@ import {
   ContentCopy as ContentCopyIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/context/auth/AuthContext';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+import { getResourceCollaboratorsSecure } from '@/lib/actions/secure-ops';
+import { account } from '@/lib/appwrite';
+import { useCallback } from 'react';
 import { events as eventApi, eventGuests as guestApi } from '@/lib/kylrixflow';
 import { Event } from '@/types/kylrixflow';
 import { format } from 'date-fns';
@@ -96,6 +100,32 @@ export default function EventPage() {
   const [guestId, setGuestId] = useState<string | null>(null);
   const [registering, setRegistering] = useState(false);
   const [attendees, setAttendees] = useState<any[]>([]);
+
+  const { open: openUnified } = useUnifiedDrawer();
+  const [organizers, setOrganizers] = useState<any[]>([]);
+  const [loadingOrganizers, setLoadingOrganizers] = useState(false);
+
+  const fetchOrganizers = useCallback(async () => {
+    if (!eventId) return;
+    setLoadingOrganizers(true);
+    try {
+        const { jwt } = await account.createJWT();
+        const { collaborators } = await getResourceCollaboratorsSecure({
+            resourceId: eventId as string,
+            resourceType: 'event',
+            jwt
+        });
+        setOrganizers(collaborators || []);
+    } catch (orgErr) {
+        console.error('Failed to fetch event organizers:', orgErr);
+    } finally {
+        setLoadingOrganizers(false);
+    }
+  }, [eventId]);
+
+  useEffect(() => {
+    fetchOrganizers();
+  }, [fetchOrganizers]);
 
   // Huddle Discussion State & Effects
   const { showSuccess, showError } = useToast();
@@ -407,6 +437,71 @@ export default function EventPage() {
             <Box sx={{ mb: 4 }}>
               <Typography variant="h6" fontWeight={700} gutterBottom>About</Typography>
               <Typography variant="body1" color="text.secondary">{event.description}</Typography>
+            </Box>
+
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" fontWeight={700}>Organizers</Typography>
+                {user && event.userId === user.$id && (
+                  <Button 
+                    size="small"
+                    onClick={() => openUnified('share-note', {
+                      resourceId: eventId as string,
+                      resourceType: 'event',
+                      resourceTitle: event.title,
+                      onShared: () => fetchOrganizers()
+                    })}
+                    sx={{ color: '#F59E0B', fontWeight: 800, fontSize: '0.75rem', textTransform: 'none', '&:hover': { textDecoration: 'underline' } }}
+                  >
+                    + Manage Organizers
+                  </Button>
+                )}
+              </Box>
+              
+              {loadingOrganizers ? (
+                <CircularProgress size={16} sx={{ color: '#F59E0B' }} />
+              ) : organizers.length === 0 ? (
+                <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', opacity: 0.7 }}>
+                  No co-organizers added yet.
+                </Typography>
+              ) : (
+                <Stack direction="row" spacing={1.5} flexWrap="wrap" sx={{ gap: 1.5 }}>
+                  {organizers.map((org) => (
+                    <Chip
+                      key={org.$id || org.userId}
+                      avatar={
+                        <IdentityAvatar
+                          fileId={org.avatar || null}
+                          alt={org.displayName || org.username}
+                          fallback={(org.displayName || org.username || 'O').charAt(0).toUpperCase()}
+                          size={24}
+                        />
+                      }
+                      label={`${org.displayName || org.username} (${org.permissionLevel || 'Viewer'})`}
+                      onClick={() => {
+                        if (user && event.userId === user.$id) {
+                          openUnified('share-note', {
+                            resourceId: eventId as string,
+                            resourceType: 'event',
+                            resourceTitle: event.title,
+                            initialCollaborator: org,
+                            onShared: () => fetchOrganizers()
+                          });
+                        }
+                      }}
+                      sx={{ 
+                        bgcolor: 'rgba(255,255,255,0.03)', 
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        color: 'white',
+                        fontWeight: 700,
+                        fontFamily: 'var(--font-satoshi)',
+                        fontSize: '0.75rem',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' }
+                      }}
+                    />
+                  ))}
+                </Stack>
+              )}
             </Box>
 
             <Box>
