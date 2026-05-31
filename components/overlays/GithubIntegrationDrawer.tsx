@@ -824,40 +824,53 @@ export function GithubIntegrationDrawer({
                               Repository Settings
                             </Typography>
                             <Stack spacing={2}>
-                              <TextField
-                                fullWidth
-                                label="Repository Owner"
-                                variant="outlined"
-                                size="small"
-                                placeholder="e.g. facebook"
-                                value={ownerName}
-                                onChange={(e) => setOwnerName(e.target.value)}
-                                sx={{
-                                  '& .MuiOutlinedInput-root': {
-                                    bgcolor: '#161412',
-                                    borderRadius: '12px',
-                                    color: 'white',
-                                    '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }
-                                  }
-                                }}
-                              />
-                              <TextField
-                                fullWidth
-                                label="Repository Name"
-                                variant="outlined"
-                                size="small"
-                                placeholder="e.g. react"
-                                value={repoName}
-                                onChange={(e) => setRepoName(e.target.value)}
-                                sx={{
-                                  '& .MuiOutlinedInput-root': {
-                                    bgcolor: '#161412',
-                                    borderRadius: '12px',
-                                    color: 'white',
-                                    '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }
-                                  }
-                                }}
-                              />
+                              {!integration ? (
+                                <>
+                                  <TextField
+                                    fullWidth
+                                    label="Repository Owner"
+                                    variant="outlined"
+                                    size="small"
+                                    placeholder="e.g. facebook"
+                                    value={ownerName}
+                                    onChange={(e) => setOwnerName(e.target.value)}
+                                    sx={{
+                                      '& .MuiOutlinedInput-root': {
+                                        bgcolor: '#161412',
+                                        borderRadius: '12px',
+                                        color: 'white',
+                                        '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }
+                                      }
+                                    }}
+                                  />
+                                  <TextField
+                                    fullWidth
+                                    label="Repository Name"
+                                    variant="outlined"
+                                    size="small"
+                                    placeholder="e.g. react"
+                                    value={repoName}
+                                    onChange={(e) => setRepoName(e.target.value)}
+                                    sx={{
+                                      '& .MuiOutlinedInput-root': {
+                                        bgcolor: '#161412',
+                                        borderRadius: '12px',
+                                        color: 'white',
+                                        '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }
+                                      }
+                                    }}
+                                  />
+                                </>
+                              ) : (
+                                <Box sx={{ p: 2, borderRadius: '12px', bgcolor: '#161412', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', mb: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>
+                                    Connected Repository
+                                  </Typography>
+                                  <Typography variant="body1" sx={{ color: 'white', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                                    {integration.ownerName}/{integration.repoName}
+                                  </Typography>
+                                </Box>
+                              )}
                               <FormControlLabel
                                 control={<Switch checked={enabled} onChange={(e) => setEnabled(e.target.checked)} color="primary" />}
                                 label={

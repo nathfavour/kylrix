@@ -3820,15 +3820,37 @@ function GitHubExternalObjectsTab({
 }) {
   const [repoInput, setRepoInput] = useState('');
   const [adding, setAdding] = useState(false);
-  const [liveStats, setLiveStats] = useState<Record<string, any>>({});
+  const [liveStats, setLiveStats] = useState<Record<string, any>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(`kylrix_github_cache_${projectId}`);
+        return cached ? JSON.parse(cached) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+    return {};
+  });
   const [loadingLive, setLoadingLive] = useState<Record<string, boolean>>({});
 
   const unverifiedRepos = useMemo(() => {
     return projectObjects.filter(o => o.entityKind === 'unverified_github');
   }, [projectObjects]);
 
-  const fetchLiveStats = useCallback(async (repoPath: string) => {
-    setLoadingLive(prev => ({ ...prev, [repoPath]: true }));
+  const fetchLiveStats = useCallback(async (repoPath: string, objectId?: string, currentMetadata?: any) => {
+    const cacheKey = `kylrix_github_cache_${projectId}`;
+    let cachedStats: any = {};
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) cachedStats = JSON.parse(cached);
+      } catch (e) {}
+    }
+    const hasCache = !!cachedStats[repoPath] || (currentMetadata && Object.keys(currentMetadata).length > 0);
+
+    if (!hasCache) {
+      setLoadingLive(prev => ({ ...prev, [repoPath]: true }));
+    }
     try {
       const parts = repoPath.split('/');
       if (parts.length !== 2) throw new Error('Invalid repo');
@@ -3858,32 +3880,82 @@ function GitHubExternalObjectsTab({
         }
       }
 
-      setLiveStats(prev => ({
-        ...prev,
-        [repoPath]: {
-          description: repoData?.description,
-          stars: repoData?.stargazers_count,
-          openIssues: repoData?.open_issues_count,
-          pullsCount,
-          language: repoData?.language,
-          lastCommit: commitData?.[0]?.commit?.message || 'No commits found',
-          lastCommitAuthor: commitData?.[0]?.commit?.author?.name || 'Unknown',
-          lastCommitDate: commitData?.[0]?.commit?.author?.date || ''
+      const newStats = {
+        description: repoData?.description || 'Public Repository',
+        stars: repoData?.stargazers_count || 0,
+        openIssues: repoData?.open_issues_count || 0,
+        pullsCount,
+        language: repoData?.language || 'Codebase',
+        lastCommit: commitData?.[0]?.commit?.message || 'No commits found',
+        lastCommitAuthor: commitData?.[0]?.commit?.author?.name || 'Unknown',
+        lastCommitDate: commitData?.[0]?.commit?.author?.date || ''
+      };
+
+      setLiveStats(prev => {
+        const updated = { ...prev, [repoPath]: newStats };
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(updated));
+          } catch (e) {}
         }
-      }));
+        return updated;
+      });
+
+      if (objectId) {
+        const dbCached = currentMetadata || {};
+        const isChanged = !dbCached ||
+          dbCached.stars !== newStats.stars ||
+          dbCached.openIssues !== newStats.openIssues ||
+          dbCached.pullsCount !== newStats.pullsCount ||
+          dbCached.language !== newStats.language ||
+          dbCached.lastCommit !== newStats.lastCommit ||
+          dbCached.description !== newStats.description;
+
+        if (isChanged) {
+          const updatedMetadata = {
+            isUnverified: true,
+            ...newStats,
+            addedAt: dbCached.addedAt || new Date().toISOString()
+          };
+
+          await updateRow(
+            APPWRITE_CONFIG.DATABASES.CHAT,
+            'project_objects',
+            objectId,
+            { metadata: JSON.stringify(updatedMetadata) }
+          );
+        }
+      }
     } catch (e) {
       console.warn('Failed to fetch live stats for', repoPath, e);
     } finally {
       setLoadingLive(prev => ({ ...prev, [repoPath]: false }));
     }
-  }, [setLoadingLive, setLiveStats]);
+  }, [projectId, setLoadingLive, setLiveStats]);
 
   // Load live statistics dynamically on mount
   useEffect(() => {
     unverifiedRepos.forEach(repo => {
       const repoPath = repo.entityId;
-      if (!liveStats[repoPath] && !loadingLive[repoPath]) {
-        fetchLiveStats(repoPath);
+      
+      let dbCached: any = {};
+      try {
+        dbCached = typeof repo.metadata === 'string' ? JSON.parse(repo.metadata) : repo.metadata || {};
+      } catch (e) {}
+
+      // If not in state, initialize from database cache instantly
+      if (!liveStats[repoPath] && Object.keys(dbCached).length > 0) {
+        setLiveStats(prev => ({ ...prev, [repoPath]: dbCached }));
+      }
+
+      // Quietly fetch in background
+      const lastFetched = localStorage.getItem(`kylrix_github_last_fetch_${repoPath}`);
+      const now = Date.now();
+      const needsFetch = !lastFetched || (now - parseInt(lastFetched, 10) > 5 * 60 * 1000);
+
+      if (needsFetch && !loadingLive[repoPath]) {
+        localStorage.setItem(`kylrix_github_last_fetch_${repoPath}`, now.toString());
+        fetchLiveStats(repoPath, repo.$id, dbCached);
       }
     });
   }, [unverifiedRepos, liveStats, loadingLive, fetchLiveStats]);
