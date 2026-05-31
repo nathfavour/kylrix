@@ -20,8 +20,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { X, GitBranch, Terminal, Shield, RefreshCw, CheckCircle, ChevronRight, ArrowLeft, AlertCircle } from 'lucide-react';
-import { account } from '@/lib/appwrite';
-import { OAuthProvider } from 'appwrite';
+import { GithubAuthAdapter } from '@/lib/integrations/github/auth';
 import { SourceControlService, SourceControlRow } from '@/lib/services/sourceControl';
 import { useToast } from '@/components/ui/Toast';
 import { useSudo } from '@/context/SudoContext';
@@ -74,6 +73,7 @@ export default function GitIntegrationDrawer({
   // OAuth & Identity State
   const [checkingIdentities, setCheckingIdentities] = useState(true);
   const [githubIdentity, setGithubIdentity] = useState<any | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [step, setStep] = useState(1);
 
   // Load existing integration row and check connected identities on mount
@@ -82,12 +82,9 @@ export default function GitIntegrationDrawer({
       setLoading(true);
       setCheckingIdentities(true);
       try {
-        // 1. Fetch connected identities from Appwrite account
-        const identityList = await account.listIdentities();
-        const gitHubIdObj = (identityList.identities || []).find(
-          (id: any) => (id.provider || '').toLowerCase() === 'github'
-        );
-        setGithubIdentity(gitHubIdObj || null);
+        // 1. Fetch connected identities from Firebase Adapter
+        const currentUser = GithubAuthAdapter.getCurrentUser();
+        setGithubIdentity(currentUser || null);
 
         // 2. Fetch source control configuration
         const list = await SourceControlService.listIntegrations(projectId);
@@ -100,7 +97,7 @@ export default function GitIntegrationDrawer({
           setEnabled(item.enabled !== false);
           
           // If we have both config and active identity, advance to step 2 automatically
-          if (gitHubIdObj) {
+          if (currentUser) {
             setStep(2);
           }
         }
@@ -116,19 +113,20 @@ export default function GitIntegrationDrawer({
     }
   }, [isOpen, projectId]);
 
-  // Direct OAuth connection
+  // Direct OAuth connection via Firebase
   const handleConnectGitHub = async () => {
     try {
-      setLoading(true);
-      const redirectUrl = window.location.href;
-      await account.createOAuth2Session(
-        OAuthProvider.Github,
-        redirectUrl,
-        redirectUrl
-      );
+      setIsAuthenticating(true);
+      const result = await GithubAuthAdapter.signIn();
+      if (result?.user) {
+        setGithubIdentity(result.user);
+        showSuccess('Success', 'GitHub account linked successfully!');
+        setStep(2);
+      }
     } catch (err: any) {
       showError('Link failed', err.message || 'Could not connect GitHub account.');
-      setLoading(false);
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -321,11 +319,14 @@ export default function GitIntegrationDrawer({
                   <Button
                     variant="contained"
                     fullWidth
+                    disabled={isAuthenticating}
                     onClick={handleConnectGitHub}
                     startIcon={
+                      isAuthenticating ? <CircularProgress size={18} color="inherit" /> : (
                       <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24" style={{ marginRight: 4 }}>
                         <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
                       </svg>
+                      )
                     }
                     sx={{
                       borderRadius: '14px',
@@ -337,7 +338,7 @@ export default function GitIntegrationDrawer({
                       '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.85)' },
                     }}
                   >
-                    Link GitHub Account
+                    {isAuthenticating ? 'Connecting...' : 'Link GitHub Account'}
                   </Button>
                 </Box>
               ) : (

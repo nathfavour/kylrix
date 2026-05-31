@@ -1,28 +1,25 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
-import firebaseConfig from './firebase-config.json';
+import { getAuth, signInWithPopup, GithubAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
+import firebaseConfig from '../google/firebase-config.json'; // Reusing the same Firebase project
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-const provider = new GoogleAuthProvider();
-// Request Calendar, Docs, and Drive scopes
-provider.addScope('https://www.googleapis.com/auth/calendar');
-provider.addScope('https://www.googleapis.com/auth/documents');
-provider.addScope('https://www.googleapis.com/auth/docs');
-provider.addScope('https://www.googleapis.com/auth/drive.metadata.readonly');
+const provider = new GithubAuthProvider();
+// Request repository access scopes
+provider.addScope('repo');
 
 // Cache the access token in memory.
 let cachedAccessToken: string | null = null;
 let isSigningIn = false;
 
-export interface GoogleAuthState {
+export interface GithubAuthState {
     user: User | null;
     accessToken: string | null;
     isSigningIn: boolean;
 }
 
-export const GoogleAuthAdapter = {
+export const GithubAuthAdapter = {
     /** 
      * Initialize auth state listener. Call this on app load.
      */
@@ -35,8 +32,6 @@ export const GoogleAuthAdapter = {
           if (cachedAccessToken) {
             if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
           } else {
-            // If user is logged in but token was lost (like on page reload),
-            // we might need to re-authenticate or ask for Google login.
             if (onAuthFailure) onAuthFailure();
           }
         } else {
@@ -53,7 +48,7 @@ export const GoogleAuthAdapter = {
       try {
         isSigningIn = true;
         const result = await signInWithPopup(auth, provider);
-        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const credential = GithubAuthProvider.credentialFromResult(result);
         if (!credential?.accessToken) {
           throw new Error('Failed to get access token from Firebase Auth');
         }

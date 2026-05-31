@@ -7,12 +7,17 @@ import Drawer from '@mui/material/Drawer';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import toast from 'react-hot-toast';
 
+import { GoogleAuthAdapter } from '@/lib/integrations/google/auth';
+
 export function GoogleIntegrationDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { setIsDrawerOpen } = useDrawerState();
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   
   const [googleConnected, setGoogleConnected] = useState(false);
+  const [googleUser, setGoogleUser] = useState<any | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
   const [googleSyncKeep, setGoogleSyncKeep] = useState(true);
   const [googleSyncCalendar, setGoogleSyncCalendar] = useState(true);
   const [googleSyncDrive, setGoogleSyncDrive] = useState(false);
@@ -20,11 +25,38 @@ export function GoogleIntegrationDrawer({ isOpen, onClose }: { isOpen: boolean; 
 
   React.useEffect(() => {
     setIsDrawerOpen(isOpen);
+    
+    if (isOpen) {
+      // Check if already connected on open
+      const currentUser = GoogleAuthAdapter.getCurrentUser();
+      if (currentUser) {
+        setGoogleConnected(true);
+        setGoogleUser(currentUser);
+      }
+    }
   }, [isOpen, setIsDrawerOpen]);
 
-  const handleToggleConnection = () => {
-    setGoogleConnected(!googleConnected);
-    toast.success(googleConnected ? 'Google Suite disconnected.' : 'Google Suite integrated successfully!');
+  const handleToggleConnection = async () => {
+    if (googleConnected) {
+      await GoogleAuthAdapter.logout();
+      setGoogleConnected(false);
+      setGoogleUser(null);
+      toast.success('Google Suite disconnected.');
+    } else {
+      setIsAuthenticating(true);
+      try {
+        const result = await GoogleAuthAdapter.signIn();
+        if (result?.user) {
+          setGoogleConnected(true);
+          setGoogleUser(result.user);
+          toast.success('Google Suite integrated successfully!');
+        }
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to connect Google account.');
+      } finally {
+        setIsAuthenticating(false);
+      }
+    }
   };
 
   return (
@@ -74,6 +106,7 @@ export function GoogleIntegrationDrawer({ isOpen, onClose }: { isOpen: boolean; 
              <Button 
                 variant={googleConnected ? 'outlined' : 'contained'}
                 onClick={handleToggleConnection}
+                disabled={isAuthenticating}
                 sx={{ 
                     borderRadius: '12px',
                     textTransform: 'none',
@@ -85,7 +118,7 @@ export function GoogleIntegrationDrawer({ isOpen, onClose }: { isOpen: boolean; 
                         : { bgcolor: '#6366F1', '&:hover': { bgcolor: '#5458E8' } })
                 }}
             >
-                {googleConnected ? "Disconnect Account" : "Connect Google Account"}
+                {isAuthenticating ? 'Connecting...' : (googleConnected ? "Disconnect Account" : "Connect Google Account")}
             </Button>
           </Box>
 
