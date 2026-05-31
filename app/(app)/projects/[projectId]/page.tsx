@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { ID } from 'appwrite';
 import { useRouter, useParams } from 'next/navigation';
 import {
   Box,
@@ -57,6 +58,7 @@ import {
   Workflow,
   History,
   Globe,
+  RefreshCw,
 } from 'lucide-react';
 import { ProjectsService } from '@/lib/appwrite/projects';
 import { SourceControlService, SourceControlRow } from '@/lib/services/sourceControl';
@@ -132,7 +134,7 @@ export default function ProjectDetailPage() {
   const { open: openUnified } = useUnifiedDrawer();
   const { user } = useAuth();
   const { joinResource, resourcePresence } = usePresence();
-  const { openSidebar } = useDynamicSidebar();
+  const { openSidebar, closeSidebar } = useDynamicSidebar();
   const { openSecondarySidebar } = useLayout();
   const { openOverlay, closeOverlay } = useOverlay();
 
@@ -3766,6 +3768,7 @@ function GitHubExternalObjectsTab({
 }) {
   const [repoInput, setRepoInput] = useState('');
   const [adding, setAdding] = useState(false);
+  const { openSidebar, closeSidebar } = useDynamicSidebar();
   const [liveStats, setLiveStats] = useState<Record<string, any>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -4099,7 +4102,16 @@ function GitHubExternalObjectsTab({
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
                         <Typography 
-                          onClick={() => window.open(`https://github.com/${path}`, '_blank')}
+                          onClick={() => openSidebar(
+                            <UnverifiedGithubRepoDrawer 
+                              repoPath={path}
+                              projectId={projectId}
+                              projectObjects={projectObjects}
+                              fetchProjectData={fetchProjectData}
+                              onClose={closeSidebar}
+                            />,
+                            'unverified-github-repo'
+                          )}
                           sx={{ 
                             fontWeight: 900, 
                             color: '#6366F1', 
@@ -4196,5 +4208,289 @@ function GitHubExternalObjectsTab({
         </Grid>
       )}
     </Stack>
+  );
+}
+
+interface UnverifiedGithubRepoDrawerProps {
+  repoPath: string;
+  projectId: string;
+  projectObjects: any[];
+  fetchProjectData: () => Promise<void>;
+  onClose: () => void;
+}
+
+function UnverifiedGithubRepoDrawer({
+  repoPath,
+  projectId,
+  projectObjects,
+  fetchProjectData,
+  onClose
+}: UnverifiedGithubRepoDrawerProps) {
+  const [issues, setIssues] = useState<any[]>([]);
+  const [loadingIssues, setLoadingIssues] = useState(false);
+  const [issuesError, setIssuesError] = useState<string | null>(null);
+  const [convertingIssueId, setConvertingIssueId] = useState<number | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const { user } = useAuth();
+
+  const repoObject = useMemo(() => {
+    return projectObjects.find(o => o.entityKind === 'unverified_github' && o.entityId === repoPath);
+  }, [projectObjects, repoPath]);
+
+  const loadRepoData = useCallback(async () => {
+    setLoadingIssues(true);
+    setIssuesError(null);
+    try {
+      const parts = repoPath.split('/');
+      if (parts.length !== 2) throw new Error('Invalid repo format');
+      const [owner, repo] = parts;
+
+      const statsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
+      }
+
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues?state=open&per_page=15`);
+      if (!res.ok) throw new Error('Failed to load public repository issues.');
+      const data = await res.json();
+      
+      const filteredIssues = data.filter((item: any) => !item.pull_request);
+      setIssues(filteredIssues);
+    } catch (e: any) {
+      setIssuesError(e.message || 'Failed to fetch repository issues.');
+    } finally {
+      setLoadingIssues(false);
+    }
+  }, [repoPath]);
+
+  useEffect(() => {
+    loadRepoData();
+  }, [loadRepoData]);
+
+  const handleConvertToGoal = async (issue: any) => {
+    if (!user || !user.$id) {
+      toast.error('User not authenticated.');
+      return;
+    }
+    setConvertingIssueId(issue.id);
+    const toastId = toast.loading('Converting GitHub issue to local Execution Goal...');
+    try {
+      const taskId = ID.unique();
+      const now = new Date().toISOString();
+
+      const taskDoc = await databases.createRow(
+        APPWRITE_CONFIG.DATABASES.CHAT,
+        'tasks',
+        taskId,
+        {
+          title: `[GitHub #${issue.number}] ${issue.title}`,
+          status: 'todo',
+          priority: 'medium',
+          userId: user.$id,
+          createdAt: now,
+          updatedAt: now,
+          description: `${issue.body || 'No description provided.'}\n\n---\nOrigin: Unverified GitHub Issue\nURL: ${issue.html_url}\nRepository: ${repoPath}`
+        }
+      );
+
+      await ProjectsService.addObjectToProject(projectId, 'goal', taskDoc.$id);
+
+      toast.success('Successfully converted to Execution Goal!', { id: toastId });
+      fetchProjectData();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || 'Failed to convert issue.', { id: toastId });
+    } finally {
+      setConvertingIssueId(null);
+    }
+  };
+
+  return (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#161412', color: '#fff' }}>
+      <Box sx={{ p: 3, borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+          </svg>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="body2" sx={{ fontWeight: 900, color: '#6366F1', fontFamily: 'var(--font-mono)' }}>
+              unverified_github
+            </Typography>
+            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 905, color: '#fff', fontSize: '1rem' }}>
+              {repoPath}
+            </Typography>
+          </Box>
+        </Stack>
+        <IconButton onClick={onClose} size="small" sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+          <X size={16} />
+        </IconButton>
+      </Box>
+
+      <Box sx={{ p: 3, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {stats && (
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 6 }}>
+              <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px' }}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', display: 'block' }}>⭐ Stars</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 900 }}>{stats.stargazers_count}</Typography>
+              </Paper>
+            </Grid>
+            <Grid size={{ xs: 6 }}>
+              <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px' }}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', display: 'block' }}>🎫 Open Issues</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 900 }}>{stats.open_issues_count}</Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+        )}
+
+        <Stack spacing={1.5}>
+          <Button
+            fullWidth
+            variant="outlined"
+            onClick={() => window.open(`https://github.com/${repoPath}`, '_blank')}
+            startIcon={<ExternalLink size={14} />}
+            sx={{
+              borderRadius: '12px',
+              borderColor: 'rgba(255,255,255,0.08)',
+              color: '#fff',
+              textTransform: 'none',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              py: 1.25,
+              '&:hover': { borderColor: '#6366F1', bgcolor: 'rgba(99,102,241,0.03)' }
+            }}
+          >
+            Open on GitHub
+          </Button>
+          <Button
+            fullWidth
+            variant="outlined"
+            onClick={loadRepoData}
+            startIcon={<RefreshCw size={14} />}
+            sx={{
+              borderRadius: '12px',
+              borderColor: 'rgba(255,255,255,0.08)',
+              color: 'rgba(255,255,255,0.7)',
+              textTransform: 'none',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              py: 1.25,
+              '&:hover': { borderColor: 'rgba(255,255,255,0.2)', bgcolor: 'rgba(255,255,255,0.02)', color: '#fff' }
+            }}
+          >
+            Sync Live Feed
+          </Button>
+        </Stack>
+
+        <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Live Open Issues ({issues.length})
+          </Typography>
+
+          {loadingIssues ? (
+            <Box sx={{ py: 6, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <CircularProgress size={24} sx={{ color: '#6366F1' }} />
+            </Box>
+          ) : issuesError ? (
+            <Typography variant="caption" sx={{ color: '#EF4444', fontStyle: 'italic' }}>
+              {issuesError}
+            </Typography>
+          ) : issues.length === 0 ? (
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
+              No open public issues found in this repository.
+            </Typography>
+          ) : (
+            <Stack spacing={2}>
+              {issues.map((issue) => (
+                <Paper
+                  key={issue.id}
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    borderRadius: '16px',
+                    bgcolor: 'rgba(255,255,255,0.01)',
+                    border: '1px solid rgba(255,255,255,0.04)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1.5,
+                    '&:hover': { borderColor: 'rgba(255,255,255,0.08)' }
+                  }}
+                >
+                  <Box>
+                    <Stack direction="row" spacing={1} alignItems="flex-start">
+                      <Typography variant="body2" sx={{ fontWeight: 900, color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-mono)' }}>
+                        #{issue.number}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', lineHeight: 1.4 }}>
+                        {issue.title}
+                      </Typography>
+                    </Stack>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', mt: 0.5, display: 'block' }}>
+                      Opened by @{issue.user?.login} • {new Date(issue.created_at).toLocaleDateString()}
+                    </Typography>
+                  </Box>
+
+                  {issue.labels && issue.labels.length > 0 && (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                      {issue.labels.slice(0, 3).map((label: any) => (
+                        <Chip
+                          key={label.id}
+                          label={label.name}
+                          size="small"
+                          sx={{
+                            height: 18,
+                            fontSize: '8px',
+                            fontWeight: 900,
+                            bgcolor: label.color ? `#${label.color}15` : 'rgba(255,255,255,0.04)',
+                            color: label.color ? `#${label.color}` : '#fff',
+                            border: `1px solid ${label.color ? `#${label.color}30` : 'rgba(255,255,255,0.08)'}`
+                          }}
+                        />
+                      ))}
+                    </Box>
+                  )}
+
+                  <Stack direction="row" spacing={1.5}>
+                    <Button
+                      size="small"
+                      onClick={() => window.open(issue.html_url, '_blank')}
+                      startIcon={<ExternalLink size={10} />}
+                      sx={{
+                        fontSize: '10px',
+                        fontWeight: 900,
+                        textTransform: 'none',
+                        color: 'rgba(255,255,255,0.6)',
+                        '&:hover': { color: '#fff' }
+                      }}
+                    >
+                      Open Live
+                    </Button>
+                    <Button
+                      size="small"
+                      disabled={convertingIssueId === issue.id}
+                      onClick={() => handleConvertToGoal(issue)}
+                      startIcon={convertingIssueId === issue.id ? <CircularProgress size={10} color="inherit" /> : <Plus size={10} />}
+                      sx={{
+                        fontSize: '10px',
+                        fontWeight: 900,
+                        textTransform: 'none',
+                        color: '#6366F1',
+                        '&:hover': { color: '#818CF8' }
+                      }}
+                    >
+                      Convert to Goal
+                    </Button>
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
+          )}
+        </Box>
+      </Box>
+    </Box>
   );
 }
