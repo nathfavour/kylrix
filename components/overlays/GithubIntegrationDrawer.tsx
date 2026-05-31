@@ -303,7 +303,7 @@ export function GithubIntegrationDrawer({
       fetchIssues(githubToken, ownerName, repoName);
       fetchPullRequests(githubToken, ownerName, repoName);
     }
-  }, [githubConnected, githubToken, ownerName, repoName]);
+  }, [githubConnected, githubToken, ownerName, repoName, fetchIssues, fetchPullRequests]);
 
   // Check auth and configuration state on drawer load
   useEffect(() => {

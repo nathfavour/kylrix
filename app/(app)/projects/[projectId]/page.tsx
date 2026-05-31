@@ -694,7 +694,7 @@ export default function ProjectDetailPage() {
                 >
                     <Info size={18} style={{ color: '#6366F1', flexShrink: 0 }} />
                     <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 700, fontSize: '0.85rem', lineHeight: 1.4 }}>
-                        All integrated internal objects inherit project member's permission level, except on object level permission override.
+                        All integrated internal objects inherit project member&apos;s permission level, except on object level permission override.
                     </Typography>
                 </Box>
                 <Paper
@@ -1924,7 +1924,7 @@ function ResourceItem({
                             sx={{ m: 0, width: '100%', justifyContent: 'space-between', flexDirection: 'row-reverse' }}
                         />
                         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.72rem', mt: 0.5, lineHeight: 1.3 }}>
-                            When enabled, this object uses its own permissions instead of inheriting the project's.
+                            When enabled, this object uses its own permissions instead of inheriting the project&apos;s.
                         </Typography>
                     </Box>
                 </Menu>
