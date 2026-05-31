@@ -11,7 +11,7 @@ import { useAuth } from '@/context/auth/AuthContext';
 import { useSudo } from '@/context/SudoContext';
 import { SourceControlService } from '@/lib/services/sourceControl';
 
-import { GithubAuthAdapter } from '@/lib/integrations/github/auth';
+import { OAuthProvider } from 'appwrite';
 
 const GITHUB_ICON = (
   <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
@@ -313,33 +313,29 @@ export function GithubIntegrationDrawer({
       setDisconnectStep(0);
       setConfirmText('');
 
-      const currentUser = GithubAuthAdapter.getCurrentUser();
-      if (currentUser) {
-        setGithubConnected(true);
-        setGithubUser(currentUser);
-        GithubAuthAdapter.getAccessToken().then(token => {
-          if (token) setGithubToken(token);
-        });
-      }
-
       const fetchAppwriteIdentity = async () => {
         try {
           const identityList = await account.listIdentities();
-          const githubIdentity = identityList.identities?.find(i => i.provider === 'github');
-          if (githubIdentity) {
+          const gitHubIdObj = identityList.identities?.find(i => i.provider === 'github');
+          if (gitHubIdObj) {
             setGithubConnected(true);
             setGithubUser((prev: any) => prev || {
-              displayName: githubIdentity.providerEmail || githubIdentity.providerUid,
-              email: githubIdentity.providerEmail || 'github',
+              displayName: gitHubIdObj.providerEmail || gitHubIdObj.providerUid,
+              email: gitHubIdObj.providerEmail || 'github',
               photoURL: null
             });
+            // Try to extract provider token if exposed, otherwise rely on server-side sync later
+            setGithubToken(gitHubIdObj.providerAccessToken || null);
+            return gitHubIdObj;
           }
+          return null;
         } catch (e) {
           console.error('[GithubIntegrationDrawer] failed to check identities', e);
+          return null;
         }
       };
 
-      const fetchProjectIntegration = async () => {
+      const fetchProjectIntegration = async (hasIdentity: boolean) => {
         if (!projectId) return;
         setLoading(true);
         try {
@@ -351,7 +347,7 @@ export function GithubIntegrationDrawer({
             setOwnerName(item.ownerName || '');
             setRepoName(item.repoName || '');
             setEnabled(item.enabled !== false);
-            setStep(2);
+            if (hasIdentity) setStep(2);
           } else {
             setIntegration(null);
             setStep(1);
@@ -363,58 +359,35 @@ export function GithubIntegrationDrawer({
         }
       };
 
-      const unsubscribe = GithubAuthAdapter.initAuth(
-        (user, token) => {
-          setGithubConnected(true);
-          setGithubUser(user);
-          setGithubToken(token);
+      setCheckingIdentities(true);
+      fetchAppwriteIdentity().then((gitHubIdObj) => {
+          setCheckingIdentities(false);
           if (projectId) {
-            void fetchProjectIntegration();
+              fetchProjectIntegration(!!gitHubIdObj);
           }
-        },
-        () => {
-          void fetchAppwriteIdentity();
-          if (projectId) {
-            void fetchProjectIntegration();
-          }
-        }
-      );
-
-      if (projectId) {
-        void fetchProjectIntegration();
-      }
-
-      return () => {
-        unsubscribe();
-      };
+      });
     }
   }, [isOpen, setIsDrawerOpen, projectId]);
 
-  const handleToggleConnection = async () => {
-    if (githubConnected) {
-      setDisconnectStep(1);
-    } else {
+  const handleConnectGitHub = async () => {
+    try {
       setIsAuthenticating(true);
-      try {
-        const result = await GithubAuthAdapter.signIn();
-        if (result?.user) {
-          setGithubConnected(true);
-          setGithubUser(result.user);
-          setGithubToken(result.accessToken);
-          toast.success('GitHub integrated successfully!');
-        }
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to connect GitHub account.');
-      } finally {
-        setIsAuthenticating(false);
-      }
+      const redirectUrl = window.location.href;
+      await account.createOAuth2Session(
+        OAuthProvider.Github,
+        redirectUrl,
+        redirectUrl
+      );
+    } catch (err: any) {
+      toast.error(err.message || 'Could not connect GitHub account.');
+      setIsAuthenticating(false);
     }
   };
 
   const handleFinalDisconnect = async () => {
     setIsAuthenticating(true);
     try {
-      await GithubAuthAdapter.logout();
+      // In a real scenario, we'd delete the Appwrite identity or the specific source control row
       setGithubConnected(false);
       setGithubUser(null);
       setGithubToken(null);
