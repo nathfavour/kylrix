@@ -1201,6 +1201,23 @@ export async function initCloudflareCallTracksSecure(params: { sessionId: string
   return await response.json();
 }
 
+import { verifyTurnstileToken } from '@/lib/turnstile';
+
+// ... (rest of imports)
+
+/**
+ * Verifies a Cloudflare Turnstile token.
+ * Replaces legacy POST /api/turnstile/verify.
+ */
+export async function verifyTurnstileSecure(token: string) {
+  if (!token) throw new Error('token is required');
+  const result = await verifyTurnstileToken(token);
+  if (!result.success) {
+    throw new Error(`Turnstile verification failed: ${result.error_codes?.join(', ') || 'unknown'}`);
+  }
+  return { success: true };
+}
+
 export async function cleanupStaleCallsSecure(input?: { userId?: string; callId?: string | null; cleanupAll?: boolean }) {
   const requester = await getActor();
   if (!requester) return { success: false, reason: 'Unauthorized' };
