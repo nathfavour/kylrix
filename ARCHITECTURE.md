@@ -791,6 +791,14 @@ The following catalog provides a highly detailed engineering breakdown of the 56
 *   **Ecosystem Synergy**: Fuses Terminal and Web browser environments under a single secure collaboration pipeline.
 *   **Next-Gen Optimizations**: Edge-network peer handshakes, automatically establishing direct P2P socket communication between the terminal and browser clients if they are on the same local network.
 
+#### 57. Active-Presence Pulse on Cross-Linked Milestones
+*   **shipped Mechanism & Substrate**: Intercepts `source:kylrixflow:taskId` and `source:kylrixgoal:taskId` markdown links inside notes and tasks using the `FlowPresencePulseLink` component. Also integrates with individual task list rows in `components/tasks/TaskItem.tsx`.
+*   **Data Nexus Caching & Presence Optimization**: Checks `resourcePresence` states from `PresenceProvider.tsx` using `usePresence()`, detecting active collaborator sessions inside huddle channels or project discussion threads contextually.
+*   **Inline Presence Pulse & Non-Blocking Flap-Over**: If teammates are active, a subtle, ash-colored pulsing dot glows right next to the task. Clicking it suppresses standard viewport page redirection and opens a dedicated, slide-out drawer panel (`FlowPresenceFlapOver`) showing the live WebRTC Live Huddle action trigger and the embedded `HuddleChatWindow` discussion thread.
+*   **Acute Architectural Rationale**: Eliminates the remote silo effect completely. teases teammates where current execution focus is happening in real time and lets them join instantly contextually without losing their original workspace page location.
+*   **Ecosystem Synergy**: Unifies productive task items with real-time audio/video call meshes and comment discussion threads.
+*   **Next-Gen Optimizations**: Graphical visualizer showing active collaboration energy levels as color temperature shifts in the task pulse.
+
 ---
 
 **Build freely. Work while you sleep.** 🌙

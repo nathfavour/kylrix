@@ -34,6 +34,8 @@ import { useCallLauncher } from '@/context/CallLauncherContext';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { UserPlus as AssignIcon } from 'lucide-react';
+import { usePresence } from '@/components/providers/PresenceProvider';
+import { FlowPresenceFlapOver } from '@/components/LinkRenderer';
 
 interface TaskItemProps {
   task: Task;
@@ -66,6 +68,12 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
   const { open: openUnified } = useUnifiedDrawer();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [isFlapOverOpen, setIsFlapOverOpen] = useState(false);
+  const { resourcePresence } = usePresence();
+
+  const activeTeammates = resourcePresence[task.id] || [];
+  const projectTeammates = task.projectId ? (resourcePresence[task.projectId] || []) : [];
+  const hasPresence = activeTeammates.length > 0 || projectTeammates.length > 0;
 
   const project = projects.find((p) => p.id === task.projectId);
   const taskLabels = labels.filter((l) => task.labels.includes(l.id));
@@ -233,6 +241,38 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
                 >
                     {task.isPinned && <PinIcon sx={{ fontSize: 14, color: '#F59E0B', transform: 'rotate(45deg)' }} />}
                     {task.title}
+                    {hasPresence && (
+                      <Box
+                        component="span"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setIsFlapOverOpen(true);
+                        }}
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          bgcolor: '#A1A1AA', // ash color
+                          boxShadow: '0 0 6px rgba(161, 161, 170, 0.6)',
+                          display: 'inline-block',
+                          ml: 1,
+                          cursor: 'pointer',
+                          animation: 'ashPresencePulse 2s infinite',
+                          '@keyframes ashPresencePulse': {
+                            '0%': {
+                              boxShadow: '0 0 0 0 rgba(161, 161, 170, 0.4)',
+                            },
+                            '70%': {
+                              boxShadow: '0 0 0 6px rgba(161, 161, 170, 0)',
+                            },
+                            '100%': {
+                              boxShadow: '0 0 0 0 rgba(161, 161, 170, 0)',
+                            }
+                          }
+                        }}
+                      />
+                    )}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
                     {/* Indicators */}
@@ -449,6 +489,15 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
           <ListItemText primary="Delete" primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }} />
         </MenuItem>
       </Menu>
+
+      {isFlapOverOpen && (
+        <FlowPresenceFlapOver
+          isOpen={isFlapOverOpen}
+          onClose={() => setIsFlapOverOpen(false)}
+          task={task}
+          taskId={task.id}
+        />
+      )}
     </>
   );
 });

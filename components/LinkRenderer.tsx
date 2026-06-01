@@ -16,6 +16,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import rehypeSanitize from 'rehype-sanitize';
+import { usePresence } from '@/components/providers/PresenceProvider';
+import { HuddleChatWindow } from '@/components/chat/HuddleChatWindow';
+import { useCallLauncher } from '@/context/CallLauncherContext';
+import { getRowSecure } from '@/lib/actions/secure-ops';
+import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 
 export const generateTOTP = (
   secret: string,
@@ -542,6 +547,10 @@ export function LinkComponent({ href, children }: { href?: string; children?: Re
 
   if (href.startsWith('source:kylrixvault:')) {
     return <VaultTotpLink href={href}>{children}</VaultTotpLink>;
+  }
+
+  if (href.startsWith('source:kylrixflow:') || href.startsWith('source:kylrixgoal:')) {
+    return <FlowPresencePulseLink href={href}>{children}</FlowPresencePulseLink>;
   }
 
   // Parse for `/send/[id]/[key]` or `/send/[id]`
@@ -1181,6 +1190,238 @@ export function SendRelayPreviewCard({
           noteId={noteId}
           keyParam={keyParam}
           decryptedTitle={decryptedTitle}
+        />
+      )}
+    </>
+  );
+}
+
+interface FlowPresenceFlapOverProps {
+  isOpen: boolean;
+  onClose: () => void;
+  task: any | null;
+  taskId: string;
+}
+
+export function FlowPresenceFlapOver({
+  isOpen,
+  onClose,
+  task,
+  taskId
+}: FlowPresenceFlapOverProps) {
+  const { user } = useAppwriteVault();
+  const { openCallLauncher } = useCallLauncher();
+
+  const handleJoinCall = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const participantIds = Array.from(new Set([task?.creatorId || '', ...(task?.assigneeIds || [])].filter(Boolean)));
+    openCallLauncher({
+      source: 'task',
+      taskId: taskId,
+      participantIds,
+      title: task?.title ? `Task Huddle: ${task.title}` : 'Task Huddle',
+    });
+    onClose();
+  };
+
+  return (
+    <Drawer
+      anchor="right"
+      open={isOpen}
+      onClose={onClose}
+      keepMounted={false}
+      disablePortal={true}
+      slotProps={{
+        backdrop: {
+          sx: {
+            bgcolor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(4px)',
+          }
+        }
+      }}
+      PaperProps={{
+        sx: {
+          width: { xs: '100vw', sm: '420px' },
+          bgcolor: '#0A0908',
+          color: '#fff',
+          borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
+          boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.6)',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%'
+        }
+      }}
+    >
+      {/* Header */}
+      <Box sx={{ p: 2.5, borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, overflow: 'hidden' }}>
+          <IconButton size="small" onClick={onClose} sx={{ color: 'rgba(255, 255, 255, 0.6)', '&:hover': { color: '#fff' } }}>
+            <ArrowLeft size={18} />
+          </IconButton>
+          <Box sx={{ overflow: 'hidden' }}>
+            <Typography variant="body1" sx={{ fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {task?.title || 'Milestone discussion'}
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#A855F7', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
+              Milestone Feed
+            </Typography>
+          </Box>
+        </Box>
+        <IconButton size="small" onClick={onClose} sx={{ color: 'rgba(255, 255, 255, 0.4)', '&:hover': { color: '#fff' } }}>
+          <X size={18} />
+        </IconButton>
+      </Box>
+
+      {/* WebRTC Live Huddle Entry */}
+      <Box sx={{ px: 3, pt: 3 }}>
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={handleJoinCall}
+          sx={{
+            bgcolor: 'rgba(161, 161, 170, 0.08)',
+            color: '#fff',
+            textTransform: 'none',
+            fontWeight: 700,
+            borderRadius: '24px',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            py: 1.25,
+            '&:hover': {
+              bgcolor: 'rgba(161, 161, 170, 0.15)',
+              borderColor: 'rgba(255, 255, 255, 0.16)'
+            }
+          }}
+        >
+          Join Live WebRTC Huddle
+        </Button>
+      </Box>
+
+      {/* Discussion Thread Panel */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <HuddleChatWindow
+          chatNoteId={taskId}
+          user={user}
+          title={task?.title || 'Goal Discussion'}
+          standalone={true}
+          onBack={onClose}
+        />
+      </Box>
+    </Drawer>
+  );
+}
+
+export function FlowPresencePulseLink({ href, children }: { href: string; children?: React.ReactNode }) {
+  const taskId = href.replace('source:kylrixflow:', '').replace('source:kylrixgoal:', '');
+  const { getCachedData, setCachedData } = useDataNexus();
+  const { resourcePresence } = usePresence();
+  const { openCallLauncher } = useCallLauncher();
+  const [task, setTask] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Fetch task metadata
+  const loadTask = useCallback(async () => {
+    const cacheKey = `task_meta_${taskId}`;
+    const cached = getCachedData<any>(cacheKey);
+    if (cached) {
+      setTask(cached);
+      return;
+    }
+    setLoading(true);
+    try {
+      const fetched = await getRowSecure(
+        APPWRITE_CONFIG.DATABASES.FLOW,
+        APPWRITE_CONFIG.TABLES.FLOW.TASKS,
+        taskId
+      );
+      if (fetched) {
+        setTask(fetched);
+        setCachedData(cacheKey, fetched);
+      }
+    } catch (err) {
+      console.warn('[FlowPresencePulseLink] Error loading task:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [taskId, getCachedData, setCachedData]);
+
+  useEffect(() => {
+    loadTask();
+  }, [loadTask]);
+
+  // Check if teammates are active in task huddle or project thread
+  const activeTeammates = resourcePresence[taskId] || [];
+  const projectTeammates = task?.projectId ? (resourcePresence[task.projectId] || []) : [];
+  const hasPresence = activeTeammates.length > 0 || projectTeammates.length > 0;
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDrawerOpen(true);
+  };
+
+  const isGoal = href.startsWith('source:kylrixgoal:');
+  const themeColor = isGoal ? '#F59E0B' : '#A855F7'; // Amber for Goal, Purple for Flow
+
+  return (
+    <>
+      <Box
+        component="span"
+        onClick={handleClick}
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.75,
+          color: themeColor,
+          fontWeight: 700,
+          cursor: 'pointer',
+          verticalAlign: 'middle',
+          mx: 0.5,
+          position: 'relative',
+          transition: 'color 0.2s',
+          '&:hover': {
+            color: alpha(themeColor, 0.8),
+          }
+        }}
+      >
+        {children || task?.title || 'Milestone'}
+
+        {/* Pulse Dot */}
+        {hasPresence && (
+          <Box
+            component="span"
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              bgcolor: '#A1A1AA', // ash color
+              boxShadow: '0 0 6px rgba(161, 161, 170, 0.6)',
+              display: 'inline-block',
+              animation: 'ashPresencePulse 2s infinite',
+              '@keyframes ashPresencePulse': {
+                '0%': {
+                  boxShadow: '0 0 0 0 rgba(161, 161, 170, 0.4)',
+                },
+                '70%': {
+                  boxShadow: '0 0 0 6px rgba(161, 161, 170, 0)',
+                },
+                '100%': {
+                  boxShadow: '0 0 0 0 rgba(161, 161, 170, 0)',
+                }
+              }
+            }}
+          />
+        )}
+      </Box>
+
+      {/* Slide-out Flap-Over Panel */}
+      {isDrawerOpen && (
+        <FlowPresenceFlapOver
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          task={task}
+          taskId={taskId}
         />
       )}
     </>
