@@ -5,7 +5,7 @@ import { StorageService } from '@/lib/services/storage';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { useDataNexus } from '@/context/DataNexusContext';
 import { MasterPassDrawer } from '@/components/overlays/MasterPassDrawer';
-import { authenticator } from 'otplib';
+import { generateTOTP } from '@/lib/totp-util';
 import toast from 'react-hot-toast';
 import type { Credentials, TotpSecrets, Notes } from '@/types/appwrite';
 import { isSendObjectMeta, parseSendGhostMetadata } from '@/lib/send/metadata';

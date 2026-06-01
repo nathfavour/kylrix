@@ -70,7 +70,7 @@ import { storage } from '@/lib/appwrite/client';
 import { isSendObjectMeta, parseSendGhostMetadata } from '@/lib/send/metadata';
 import { sharedNotePublicUrl } from '@/lib/send/shared-note-api';
 import type { SendFilePayload, SendKind, SendPasswordPayload, SendTaskPayload, SendTotpPayload } from '@/lib/send/types';
-import { authenticator } from 'otplib';
+import { generateTOTP } from '@/lib/totp-util';
 import { getEffectiveDisplayName } from '@/lib/utils';
 import { fetchProfilePreview, getCachedProfilePreview } from '@/lib/profile-preview';
 
@@ -136,14 +136,8 @@ export function SendReceiveClient({ noteId, keyParam, initialNote }: Props) {
 
   const tickTotp = useCallback((secret: string) => {
     try {
-      authenticator.options = {
-        ...authenticator.options,
-        step: 30,
-        digits: 6,
-        algorithm: 'sha1',
-      } as typeof authenticator.options;
       const normalized = secret.replace(/\s+/g, '').toUpperCase();
-      const code = authenticator.generate(normalized);
+      const code = generateTOTP(normalized);
       setTotpLive(code);
     } catch {
       setTotpLive('—');

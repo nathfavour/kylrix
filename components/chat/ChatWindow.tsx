@@ -2314,7 +2314,7 @@ export const ChatWindow = ({ conversationId, onBack }: { conversationId: string;
                                             })()}
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, alignSelf: isOutgoing ? 'flex-end' : 'flex-start', px: 0.5, position: 'relative', zIndex: 2 }}>
                                                 <Typography variant="caption" sx={{ fontSize: '0.65rem', opacity: 1, color: 'rgba(255,255,255,0.72)', fontWeight: 700 }}>
-                                                    {format(new Date(msg.$createdAt || Date.now()), 'h:mm a')}
+                                                    {formatTime(new Date(msg.$createdAt || Date.now()), { hour: 'numeric', minute: '2-digit', hour12: true })}
                                                 </Typography>
                                                 {isOutgoing && (
                                                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
