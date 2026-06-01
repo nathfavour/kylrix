@@ -185,7 +185,14 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                             onChange={(e) => handleFieldChange(field.id, e.target.value)}
                             required={field.required}
                             disableUnderline
-                            sx={{ borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.03)' }}
+                            sx={{ 
+                                borderRadius: '12px', 
+                                bgcolor: '#0A0908', 
+                                border: '1px solid #34322F', 
+                                color: 'white',
+                                '& .MuiSelect-select': { color: 'white' },
+                                '&:hover': { borderColor: '#6366F1' }
+                            }}
                         >
                             {(field.options || []).map((opt: string) => (
                                 <MenuItem key={opt} value={opt}>{opt}</MenuItem>
@@ -204,7 +211,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                                 key={opt} 
                                 value={opt} 
                                 control={<Radio size="small" />} 
-                                label={<Typography variant="body2">{opt}</Typography>} 
+                                label={<Typography variant="body2" sx={{ fontFamily: 'var(--font-satoshi)', color: '#FFF' }}>{opt}</Typography>} 
                                 sx={{ mb: 0.5 }}
                             />
                         ))}
@@ -223,7 +230,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                                         onChange={(e) => handleCheckboxChange(field.id, opt, e.target.checked)}
                                     />
                                 }
-                                label={<Typography variant="body2">{opt}</Typography>}
+                                label={<Typography variant="body2" sx={{ fontFamily: 'var(--font-satoshi)', color: '#FFF' }}>{opt}</Typography>}
                                 sx={{ mb: 0.5 }}
                             />
                         ))}
@@ -239,7 +246,17 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                         required={field.required}
                         value={formData[field.id] || ''}
                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                        InputProps={{ disableUnderline: true, sx: { borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.03)' } }}
+                        InputProps={{ 
+                            disableUnderline: true, 
+                            sx: { 
+                                borderRadius: '12px', 
+                                bgcolor: '#0A0908', 
+                                border: '1px solid #34322F', 
+                                color: 'white',
+                                fontFamily: 'var(--font-satoshi)',
+                                '&:hover': { borderColor: '#6366F1' } 
+                            } 
+                        }}
                     />
                 );
             case 'file':
@@ -247,10 +264,10 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                 return (
                     <Box>
                         {selectedFile ? (
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.03)' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderRadius: '12px', bgcolor: '#0A0908', border: '1px solid #34322F' }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <SuccessIcon sx={{ color: '#10B981', fontSize: 20 }} />
-                                    <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
+                                    <Typography variant="body2" noWrap sx={{ maxWidth: 200, fontFamily: 'var(--font-satoshi)', color: '#FFF' }}>
                                         {selectedFile.originalName || 'File uploaded'}
                                     </Typography>
                                 </Box>
@@ -268,11 +285,13 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                                 sx={{
                                     py: 1.5,
                                     borderRadius: '12px',
-                                    borderColor: 'rgba(255,255,255,0.1)',
-                                    color: 'text.secondary',
+                                    borderColor: '#34322F',
+                                    color: '#9B9691',
                                     textTransform: 'none',
-                                    bgcolor: 'rgba(255,255,255,0.02)',
-                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.2)' }
+                                    bgcolor: '#1C1A18',
+                                    fontFamily: 'var(--font-satoshi)',
+                                    fontWeight: 800,
+                                    '&:hover': { bgcolor: '#34322F', borderColor: '#6366F1', color: 'white' }
                                 }}
                             >
                                 {submitting ? 'Uploading...' : 'Choose File (Max 5MB)'}
@@ -318,7 +337,17 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                         required={field.required}
                         value={formData[field.id] || ''}
                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                        InputProps={{ disableUnderline: true, sx: { borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.03)' } }}
+                        InputProps={{ 
+                            disableUnderline: true, 
+                            sx: { 
+                                borderRadius: '12px', 
+                                bgcolor: '#0A0908', 
+                                border: '1px solid #34322F', 
+                                color: 'white',
+                                fontFamily: 'var(--font-satoshi)',
+                                '&:hover': { borderColor: '#6366F1' } 
+                            } 
+                        }}
                     />
                 );
         }

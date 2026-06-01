@@ -276,7 +276,7 @@ export default function FormsDashboard() {
                 <Grid container spacing={3}>
                     {[1, 2, 3].map((i) => (
                         <Grid size={{ xs: 12, md: 6, lg: 4 }} key={i}>
-                            <Card sx={{ bgcolor: '#161412', border: '1px solid #34322F', borderRadius: '24px' }}>
+                            <Card sx={{ bgcolor: '#161412', backgroundImage: 'none', border: '1px solid #34322F', borderRadius: '28px', boxShadow: 'none' }}>
                                 <CardContent sx={{ p: 2.5 }}>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                                         <Skeleton variant="rectangular" width={60} height={20} sx={{ borderRadius: '6px', bgcolor: '#1C1A18' }} />
@@ -323,16 +323,17 @@ export default function FormsDashboard() {
                                                     }}
                                                     sx={{ 
                                                         bgcolor: '#161412', 
+                                                        backgroundImage: 'none',
                                                         border: '1px solid #34322F', 
-                                                        borderRadius: '24px',
+                                                        borderRadius: '28px',
                                                         cursor: 'pointer',
-                                                        boxShadow: '0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px rgba(37,35,33,0.9)',
-                                                        transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                                                        boxShadow: 'none',
+                                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                                         '&:hover': {
                                                             bgcolor: '#1C1A18',
                                                             borderColor: '#6366F1',
                                                             transform: 'translateY(-2px)',
-                                                            boxShadow: '0 8px 10px -8px rgba(0,0,0,1), 0 6px 8px -6px rgba(37,35,33,1.0)'
+                                                            boxShadow: '0 12px 24px rgba(0, 0, 0, 0.5)'
                                                         }
                                                     }}
                                                 >
@@ -498,15 +499,16 @@ export default function FormsDashboard() {
                                                 <Card 
                                                     sx={{ 
                                                         bgcolor: '#161412', 
+                                                        backgroundImage: 'none',
                                                         border: '1px solid #34322F', 
-                                                        borderRadius: '24px',
-                                                        boxShadow: '0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px rgba(37,35,33,0.9)',
-                                                        transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                                                        borderRadius: '28px',
+                                                        boxShadow: 'none',
+                                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                                         '&:hover': {
                                                             bgcolor: '#1C1A18',
                                                             borderColor: '#FFB020',
                                                             transform: 'translateY(-2px)',
-                                                            boxShadow: '0 8px 10px -8px rgba(0,0,0,1), 0 6px 8px -6px rgba(37,35,33,1.0)'
+                                                            boxShadow: '0 12px 24px rgba(0, 0, 0, 0.5)'
                                                         }
                                                     }}
                                                 >
