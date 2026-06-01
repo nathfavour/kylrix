@@ -10,25 +10,44 @@ import { InputFile } from 'node-appwrite/file';
 
 /**
  * Securely handles file uploads on the server.
- * Enforces Pro subscription checks for all buckets except profile pictures and voice messages.
+ * Enforces Pro subscription checks and strict bucket whitelisting.
+ * Follows "The Golden Rule of Server Action Security".
  */
 export async function secureUploadFile(formData: FormData, jwt?: string) {
+  const bucketId = String(formData.get('bucketId') || '').trim();
+  const file = formData.get('file') as File;
+  const fileId = String(formData.get('fileId') || ID.unique()).trim();
+
+  // 1. Strict Bucket Whitelist
+  const ALLOWED_BUCKETS = new Set([
+    APPWRITE_CONFIG.BUCKETS.PROFILE_PICTURES,
+    APPWRITE_CONFIG.BUCKETS.MESSAGES,
+    APPWRITE_CONFIG.BUCKETS.NOTES_ATTACHMENTS,
+    APPWRITE_CONFIG.BUCKETS.VAULT_ATTACHMENTS,
+    APPWRITE_CONFIG.BUCKETS.FORM_MEDIA,
+    APPWRITE_CONFIG.BUCKETS.FORM_ATTACHMENTS,
+    APPWRITE_CONFIG.BUCKETS.CHAT_UPLOADS,
+    APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL,
+    'voice'
+  ]);
+
+  if (!bucketId || !ALLOWED_BUCKETS.has(bucketId)) {
+    throw new Error('Forbidden: Invalid or restricted bucket ID.');
+  }
+
+  if (!file) {
+    throw new Error('Bad Request: Missing file component.');
+  }
+
   let actor = null;
   try {
     actor = await getActor(jwt);
   } catch {}
 
-  const bucketId = formData.get('bucketId') as string;
   const isAnonymousAllowedBucket = bucketId === APPWRITE_CONFIG.BUCKETS.FORM_ATTACHMENTS || bucketId === APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL;
 
   if (!actor && !isAnonymousAllowedBucket) {
     throw new Error('Unauthorized: Session expired or invalid');
-  }
-
-  const file = formData.get('file') as File;
-  const fileId = (formData.get('fileId') as string) || ID.unique();
-  if (!file || !bucketId) {
-    throw new Error('Bad Request: Missing file or bucketId');
   }
 
   // 1. Enforce strict server-side bucket size limits and 10MB upward guideline ceiling

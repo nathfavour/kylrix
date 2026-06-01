@@ -22,6 +22,13 @@ export async function createMessageAction(payload: {
   replyTo?: string;
   jwt?: string;
 }) {
+  const conversationId = String(payload.conversationId || '').trim();
+  const content = String(payload.content || '').trim();
+  const type = String(payload.type || 'text').trim();
+  
+  if (!conversationId) throw new Error('conversationId is required');
+  if (!content) throw new Error('content is required');
+
   // Retrieve the authenticated actor securely on the server
   const { getActor } = await import('./secure-ops');
   const actor = await getActor(payload.jwt);
@@ -33,6 +40,9 @@ export async function createMessageAction(payload: {
   // Force senderId to match the authenticated actor's ID to prevent any spoofing
   const securedPayload = {
     ...payload,
+    conversationId,
+    content,
+    type,
     senderId: actor.$id,
     actorId: actor.$id,
   };
@@ -47,6 +57,12 @@ export async function toggleReactionAction(payload: {
   action: 'POST' | 'DELETE';
   jwt?: string;
 }) {
+  const conversationId = String(payload.conversationId || '').trim();
+  const messageId = String(payload.messageId || '').trim();
+  const emoji = String(payload.emoji || '').trim();
+  
+  if (!conversationId || !messageId || !emoji) throw new Error('Missing required fields');
+
   const { getActor } = await import('./secure-ops');
   const actor = await getActor(payload.jwt);
   
@@ -56,6 +72,9 @@ export async function toggleReactionAction(payload: {
 
   return await toggleReactionInternal({
     ...payload,
+    conversationId,
+    messageId,
+    emoji,
     actorId: actor.$id,
   });
 }

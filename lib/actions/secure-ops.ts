@@ -512,13 +512,20 @@ export async function executeSessionRuntimeJobSecure(job: string, jwt?: string) 
 /**
  * Burns an ephemeral ghost / Send row using a per-note deletion secret.
  * Replaces legacy /api/ephemeral-note/delete.
+ * Follows "The Golden Rule of Server Action Security".
  */
-export async function burnEphemeralNoteSecure(params: { noteId: string; deletionSecret: string }) {
+export async function burnEphemeralNoteSecure(params: { noteId: string; deletionSecret: string }, jwt?: string) {
+  const actor = await getActor(jwt);
   const noteId = String(params.noteId || '').trim();
   const deletionSecret = String(params.deletionSecret || '').trim();
+  
   if (!noteId || !deletionSecret) {
     throw new Error('noteId and deletionSecret are required');
   }
+
+  // We don't strictly REQUIRE actor for burning as it's often done anonymously via secret link
+  // but we should log it if they ARE logged in.
+  console.log(`[burnEphemeralNoteSecure] Burn requested for note ${noteId} by actor ${actor?.$id || 'anonymous'}`);
 
   const { databases } = createSystemClient();
   const dbId = APPWRITE_CONFIG.DATABASES.NOTE;
@@ -677,8 +684,12 @@ export async function createHandoffSessionSecure(jwt?: string) {
 /**
  * Resolves user names and avatars for a list of user IDs.
  * Replaces legacy /api/shared/profiles route.
+ * Follows "The Golden Rule of Server Action Security".
  */
-export async function getSharedProfilesSecure(userIds: string[]) {
+export async function getSharedProfilesSecure(userIds: string[], jwt?: string) {
+  const actor = await getActor(jwt);
+  if (!actor?.$id) throw new Error('Unauthorized');
+
   if (!Array.isArray(userIds) || userIds.length === 0) {
     return { documents: [] };
   }
@@ -1000,8 +1011,12 @@ export async function executeMasterPurgeSecure(jwt?: string) {
 /**
  * Fetches cross-app action suggestions.
  * Replaces legacy GET /api/cross/suggest.
+ * Follows "The Golden Rule of Server Action Security".
  */
-export async function getCrossSuggestionsSecure(params: { sourceApp: string; sourceType: string; sourceId: string | null }) {
+export async function getCrossSuggestionsSecure(params: { sourceApp: string; sourceType: string; sourceId: string | null }, jwt?: string) {
+  const actor = await getActor(jwt);
+  if (!actor?.$id) throw new Error('Unauthorized');
+
   const { sourceApp, sourceType, sourceId } = params;
   const baseId = sourceId || 'unknown';
 
