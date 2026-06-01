@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Box, CircularProgress, Typography, alpha, Button } from '@mui/material';
 import { useAuth } from '@/context/auth/AuthContext';
 import { getLastEcosystemRoute } from '@/lib/ecosystem/state-tracker';
+import { getKylrixPulse } from '@/lib/appwrite';
 import { Sparkles, ArrowRight } from 'lucide-react';
 
 export default function RootLanding() {
@@ -14,8 +15,6 @@ export default function RootLanding() {
   const [stayActive, setStayActive] = useState(false);
 
   useEffect(() => {
-    if (isLoading) return;
-
     // Check if stay parameter is specified to skip landing redirects
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.has('stay')) {
@@ -24,23 +23,31 @@ export default function RootLanding() {
       return;
     }
 
-    // Small timeout ensures local storage operations (if any) settle before edge redirect
-    const timeoutId = setTimeout(() => {
-      if (!isAuthenticated) {
+    // AGGRESSIVE OPTIMIZATION FAST-PATH:
+    // Avoid blocking on slow AuthContext iframe/network checks if we can determine state synchronously.
+    const pulse = getKylrixPulse();
+    const hasCachedUser = typeof window !== 'undefined' && !!localStorage.getItem('kylrix_flow_current_user_v2');
+    const isMaybeAuthenticated = !!pulse || hasCachedUser;
+
+    const performRedirect = () => {
+      if (!isMaybeAuthenticated) {
         router.replace('/send');
       } else {
         const lastState = getLastEcosystemRoute();
-        if (lastState && lastState.path && !lastState.path.startsWith('/send')) {
+        if (lastState && lastState.path && !lastState.path.startsWith('/send') && lastState.path !== '/') {
           router.replace(lastState.path);
         } else {
           router.replace('/connect/chats'); // Default fallback for authenticated
         }
       }
       setInit(true);
-    }, 50);
+    };
+
+    // Use a zero timeout to ensure Next.js router is ready and mounting is complete
+    const timeoutId = setTimeout(performRedirect, 0);
 
     return () => clearTimeout(timeoutId);
-  }, [isAuthenticated, isLoading, router]);
+  }, [router]);
 
   // Stay fallback UI
   if (stayActive) {

@@ -49,28 +49,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const router = useRouter();
   const pathname = usePathname();
   const refreshUserRef = useRef<() => Promise<User | null>>(async () => null);
-  const attemptSilentAuthRef = useRef<() => Promise<void>>(async () => {});
+  const attemptSilentAuthRef = useRef<() => Promise<boolean>>(async () => false);
   const sessionVerifySeq = useRef(0);
 
   // 2. Background Revalidation (Mandatory account.get)
-  const attemptSilentAuth = useCallback(async () => {
-    if (typeof window === 'undefined') return;
+  const attemptSilentAuth = useCallback(async (): Promise<boolean> => {
+    if (typeof window === 'undefined') return false;
 
     // Use config to get auth subdomain and domain
     // We import it dynamically to avoid circular issues
     const { APPWRITE_CONFIG } = await import('@/lib/appwrite/config');
     const authSubdomain = APPWRITE_CONFIG.SYSTEM.AUTH_SUBDOMAIN;
     const domain = APPWRITE_CONFIG.SYSTEM.DOMAIN;
-    if (!authSubdomain || !domain) return;
+    if (!authSubdomain || !domain) return false;
 
-    return new Promise<void>((resolve) => {
+    return new Promise<boolean>((resolve) => {
       const iframe = document.createElement('iframe');
       iframe.src = `https://${authSubdomain}.${domain}/silent-check`;
       iframe.style.display = 'none';
 
       const timeout = setTimeout(() => {
         cleanup();
-        resolve();
+        resolve(false);
       }, 5000);
 
       const handleIframeMessage = (event: MessageEvent) => {
@@ -80,12 +80,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           event.data?.type === 'idm:auth-status' &&
           event.data.status === 'authenticated'
         ) {
-          void refreshUserRef.current?.();
           cleanup();
-          resolve();
+          resolve(true);
         } else if (event.data?.type === 'idm:auth-status') {
           cleanup();
-          resolve();
+          resolve(false);
         }
       };
 
@@ -142,13 +141,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return session as any;
       }
 
-      await attemptSilentAuthRef.current?.();
+      const wasSilentlyAuthed = await attemptSilentAuthRef.current?.();
 
-      const retrySession = await getCurrentUser(true);
-      if (retrySession) {
-        setUser(retrySession as any);
-        setKylrixPulse(retrySession);
-        return retrySession as any;
+      if (wasSilentlyAuthed) {
+        const retrySession = await getCurrentUser(true);
+        if (retrySession) {
+          setUser(retrySession as any);
+          setKylrixPulse(retrySession);
+          return retrySession as any;
+        }
       }
 
       setUser(null);
