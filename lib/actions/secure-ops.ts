@@ -515,7 +515,6 @@ export async function executeSessionRuntimeJobSecure(job: string, jwt?: string) 
  * Follows "The Golden Rule of Server Action Security".
  */
 export async function burnEphemeralNoteSecure(params: { noteId: string; deletionSecret: string }, jwt?: string) {
-  const actor = await getActor(jwt);
   const noteId = String(params.noteId || '').trim();
   const deletionSecret = String(params.deletionSecret || '').trim();
   
@@ -523,15 +522,20 @@ export async function burnEphemeralNoteSecure(params: { noteId: string; deletion
     throw new Error('noteId and deletionSecret are required');
   }
 
-  // We don't strictly REQUIRE actor for burning as it's often done anonymously via secret link
-  // but we should log it if they ARE logged in.
-  console.log(`[burnEphemeralNoteSecure] Burn requested for note ${noteId} by actor ${actor?.$id || 'anonymous'}`);
-
   const { databases } = createSystemClient();
   const dbId = APPWRITE_CONFIG.DATABASES.NOTE;
   const tableId = APPWRITE_CONFIG.TABLES.NOTE.NOTES;
 
-  const doc = await databases.getDocument(dbId, tableId, noteId).catch(() => null);
+  // Parallel Fetch: Actor identity + Note document
+  const [actor, doc] = await Promise.all([
+    getActor(jwt),
+    databases.getDocument(dbId, tableId, noteId).catch(() => null)
+  ]);
+
+  // We don't strictly REQUIRE actor for burning as it's often done anonymously via secret link
+  // but we should log it if they ARE logged in.
+  console.log(`[burnEphemeralNoteSecure] Burn requested for note ${noteId} by actor ${actor?.$id || 'anonymous'}`);
+
   if (!doc) {
     throw new Error('Note not found');
   }
@@ -568,13 +572,9 @@ export async function burnEphemeralNoteSecure(params: { noteId: string; deletion
  * Replaces legacy /api/ephemeral-note/consume.
  */
 export async function consumeEphemeralNoteSecure(params: { noteId: string; claimSecret: string }, jwt?: string) {
-  const actor = await getActor(jwt);
-  if (!actor?.$id) {
-    throw new Error('Unauthorized');
-  }
-
   const noteId = String(params.noteId || '').trim();
   const claimSecret = String(params.claimSecret || '').trim();
+  
   if (!noteId || !claimSecret) {
     throw new Error('noteId and claimSecret are required');
   }
@@ -583,7 +583,16 @@ export async function consumeEphemeralNoteSecure(params: { noteId: string; claim
   const dbId = APPWRITE_CONFIG.DATABASES.NOTE;
   const tableId = APPWRITE_CONFIG.TABLES.NOTE.NOTES;
 
-  const doc = await databases.getDocument(dbId, tableId, noteId).catch(() => null);
+  // Parallel Fetch: Actor identity + Note document
+  const [actor, doc] = await Promise.all([
+    getActor(jwt),
+    databases.getDocument(dbId, tableId, noteId).catch(() => null)
+  ]);
+
+  if (!actor?.$id) {
+    throw new Error('Unauthorized');
+  }
+
   if (!doc) {
     throw new Error('Note not found');
   }
