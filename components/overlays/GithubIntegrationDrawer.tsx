@@ -136,6 +136,53 @@ export function GithubIntegrationDrawer({
   const logEndRef = useRef<HTMLDivElement>(null);
   const { requestSudo } = useSudo();
 
+  const [reposList, setReposList] = useState<any[]>([]);
+  const [loadingRepos, setLoadingRepos] = useState(false);
+  const [repoFilter, setRepoFilter] = useState('');
+
+  const handleFetchRepos = async () => {
+    if (!ownerName.trim()) {
+      toast.error('Please enter a Repository Owner (Org or Profile username) first.');
+      return;
+    }
+    setLoadingRepos(true);
+    setReposList([]);
+    setRepoFilter('');
+    
+    const headers: Record<string, string> = {
+      Accept: 'application/vnd.github.v3+json',
+    };
+    if (githubToken) {
+      headers.Authorization = `token ${githubToken}`;
+    }
+
+    try {
+      // 1. Try org repos first
+      let res = await fetch(`https://api.github.com/orgs/${ownerName.trim()}/repos?per_page=100&sort=updated`, { headers });
+      if (!res.ok) {
+        // 2. Fallback to user repos
+        res = await fetch(`https://api.github.com/users/${ownerName.trim()}/repos?per_page=100&sort=updated`, { headers });
+      }
+
+      if (!res.ok) {
+        throw new Error('Failed to find organization or personal profile.');
+      }
+
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setReposList(data);
+        toast.success(`Found ${data.length} repositories!`);
+      } else {
+        throw new Error('Invalid response from GitHub.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Error fetching GitHub repositories.');
+    } finally {
+      setLoadingRepos(false);
+    }
+  };
+
   const triggerSyncLog = useCallback((type: 'info' | 'success' | 'warn' | 'error', service: string, message: string) => {
     const newLog = {
       id: Math.random().toString(),
