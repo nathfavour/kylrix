@@ -1165,8 +1165,12 @@ export async function createAccountEventSecure(params: any, jwt?: string) {
 /**
  * Initializes a new Cloudflare Calls session.
  * Replaces legacy POST /api/calls/session.
+ * Follows "The Golden Rule of Server Action Security".
  */
-export async function initCloudflareCallSessionSecure() {
+export async function initCloudflareCallSessionSecure(jwt?: string) {
+  const actor = await getActor(jwt);
+  if (!actor?.$id) throw new Error('Unauthorized');
+
   const CLOUDFLARE_API_KEY = process.env.CLOUDFLARE_API;
   const CLOUDFLARE_APP_ID = process.env.NEXT_PUBLIC_CLOUDFLARE_APP_ID;
 
@@ -1192,8 +1196,12 @@ export async function initCloudflareCallSessionSecure() {
 /**
  * Adds tracks to an existing Cloudflare Calls session.
  * Replaces legacy POST /api/calls/tracks.
+ * Follows "The Golden Rule of Server Action Security".
  */
-export async function initCloudflareCallTracksSecure(params: { sessionId: string; tracks: any[] }) {
+export async function initCloudflareCallTracksSecure(params: { sessionId: string; tracks: any[] }, jwt?: string) {
+  const actor = await getActor(jwt);
+  if (!actor?.$id) throw new Error('Unauthorized');
+
   const { sessionId, tracks } = params;
   const CLOUDFLARE_API_KEY = process.env.CLOUDFLARE_API;
   const CLOUDFLARE_APP_ID = process.env.NEXT_PUBLIC_CLOUDFLARE_APP_ID;
