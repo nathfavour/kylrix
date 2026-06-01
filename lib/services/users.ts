@@ -131,18 +131,8 @@ async function syncProfileEvent(payload: {
     metadata?: Record<string, unknown>;
 }) {
     try {
-        const res = await fetch(`${getEcosystemUrl('accounts')}/api/account-events`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify(payload),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.error || 'Failed to sync profile event');
-        return data;
+        const { createAccountEventSecure } = await import('@/lib/actions/secure-ops');
+        return await createAccountEventSecure(payload);
     } catch (error) {
         console.warn('[VaultUsersService] Failed to sync profile event:', error);
         return null;

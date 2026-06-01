@@ -61,31 +61,20 @@ export default function ReportUserDialog({
     setMessage(null);
 
     try {
-      const res = await fetch(`${getEcosystemUrl('accounts')}/api/reports`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          targetUserIds: [targetUserId],
-          reason: reason.trim(),
-          notes: notes.trim() || undefined,
-          contextType: selectedContextType,
-          contextId: contextId || undefined,
-          contextUrl: contextUrl || undefined,
-          sourceApp,
-          metadata: {
-            targetUsername,
-            sourceApp,
-          },
-        }),
+      const { createReportSecure } = await import('@/lib/actions/secure-ops');
+      const data = await createReportSecure({
+        targetUserIds: [targetUserId],
+        reason: reason.trim(),
+        notes: notes.trim() || undefined,
+        contextType: selectedContextType,
+        contextId: contextId || undefined,
+        contextUrl: contextUrl || undefined,
+        sourceApp,
+        targetUsername,
       });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data?.error || 'Failed to submit report');
+      if (!data.success) {
+        throw new Error('Failed to submit report');
       }
 
       setMessage('Report submitted as unverified.');

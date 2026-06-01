@@ -1107,6 +1107,44 @@ export async function listReportsSecure(statusFilter?: string, jwt?: string) {
   return { success: true, reports: result.rows };
 }
 
+/**
+ * Creates one or more account event rows (referrals, reports, profile syncs, etc.).
+ * Replaces legacy POST /api/account-events.
+ */
+export async function createAccountEventSecure(params: any, jwt?: string) {
+  const actor = await getActor(jwt);
+  if (!actor?.$id) throw new Error('Unauthorized');
+
+  const { databases } = createSystemClient();
+  const dbId = APPWRITE_CONFIG.DATABASES.CHAT;
+  const tableId = APPWRITE_CONFIG.TABLES.CHAT.ACCOUNT_EVENTS;
+
+  const type = String(params.type || '').trim().toLowerCase();
+  if (!type) throw new Error('type is required');
+
+  const targetUserIds = Array.isArray(params.targetUserIds) ? params.targetUserIds : [params.userId || actor.$id];
+  
+  const created: any[] = [];
+  for (const targetUserId of targetUserIds) {
+    const payload = {
+      userId: targetUserId,
+      type,
+      actorId: actor.$id,
+      relatedUserId: params.relatedUserId || targetUserId,
+      status: params.status || 'active',
+      delta: params.delta ?? null,
+      discountPercent: params.discountPercent ?? null,
+      expiresAt: params.expiresAt || null,
+      metadata: typeof params.metadata === 'string' ? params.metadata : JSON.stringify(params.metadata || {}),
+    };
+
+    const row = await databases.createDocument(dbId, tableId, ID.unique(), payload, [Permission.read(Role.user(targetUserId))]);
+    created.push(row);
+  }
+
+  return { success: true, count: created.length, rows: created };
+}
+
 export async function cleanupStaleCallsSecure(input?: { userId?: string; callId?: string | null; cleanupAll?: boolean }) {
   const requester = await getActor();
   if (!requester) return { success: false, reason: 'Unauthorized' };
