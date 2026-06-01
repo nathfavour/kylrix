@@ -43,7 +43,7 @@ interface TaskItemProps {
 
 const priorityColors: Record<Priority, string> = {
   low: '#A1A1AA',
-  medium: '#10B981',
+  medium: '#14B8A6',
   high: '#F59E0B',
   urgent: '#EF4444',
 };
