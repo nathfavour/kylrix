@@ -872,6 +872,83 @@ export function GithubIntegrationDrawer({
                                       }
                                     }}
                                   />
+                                  <Button
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={handleFetchRepos}
+                                    disabled={loadingRepos}
+                                    sx={{ 
+                                      borderRadius: '12px', 
+                                      textTransform: 'none', 
+                                      borderColor: '#34322F',
+                                      color: '#6366F1',
+                                      fontFamily: 'var(--font-satoshi)',
+                                      fontWeight: 800,
+                                      py: 1,
+                                      '&:hover': { bgcolor: '#1C1A18', borderColor: '#6366F1' }
+                                    }}
+                                  >
+                                    {loadingRepos ? <CircularProgress size={16} sx={{ color: '#6366F1' }} /> : 'Search Repositories'}
+                                  </Button>
+                                  {reposList.length > 0 && (
+                                    <Box sx={{ border: '1px solid #34322F', borderRadius: '16px', p: 1.5, bgcolor: '#000000', maxHeight: 200, overflowY: 'auto' }}>
+                                      <TextField
+                                        fullWidth
+                                        placeholder="Filter repositories..."
+                                        variant="standard"
+                                        size="small"
+                                        value={repoFilter}
+                                        onChange={(e) => setRepoFilter(e.target.value)}
+                                        InputProps={{
+                                          disableUnderline: true,
+                                          sx: {
+                                            bgcolor: '#161412',
+                                            color: 'white',
+                                            borderRadius: '8px',
+                                            px: 1.5,
+                                            py: 0.5,
+                                            fontSize: '0.8rem',
+                                            mb: 1,
+                                            border: '1px solid #34322F'
+                                          }
+                                        }}
+                                      />
+                                      <Stack spacing={0.5}>
+                                        {reposList
+                                          .filter(r => r.name.toLowerCase().includes(repoFilter.toLowerCase()))
+                                          .map((repo) => (
+                                            <Button
+                                              key={repo.id}
+                                              fullWidth
+                                              onClick={() => {
+                                                setRepoName(repo.name);
+                                                toast.success(`Selected: ${repo.name}`);
+                                              }}
+                                              sx={{
+                                                justifyContent: 'flex-start',
+                                                textAlign: 'left',
+                                                px: 1.5,
+                                                py: 1,
+                                                borderRadius: '8px',
+                                                textTransform: 'none',
+                                                bgcolor: repoName === repo.name ? '#1C1A18' : 'transparent',
+                                                border: repoName === repo.name ? '1px solid #6366F1' : '1px solid transparent',
+                                                color: 'white',
+                                                fontSize: '0.8rem',
+                                                '&:hover': { bgcolor: '#1C1A18' }
+                                              }}
+                                            >
+                                              <Box>
+                                                <Typography sx={{ fontWeight: 800, fontSize: '0.8rem', fontFamily: 'var(--font-satoshi)' }}>{repo.name}</Typography>
+                                                {repo.description && (
+                                                  <Typography sx={{ color: '#8E8A86', fontSize: '0.7rem', fontFamily: 'var(--font-satoshi)' }} noWrap>{repo.description}</Typography>
+                                                )}
+                                              </Box>
+                                            </Button>
+                                          ))}
+                                      </Stack>
+                                    </Box>
+                                  )}
                                   <TextField
                                     fullWidth
                                     label="Repository Name"
