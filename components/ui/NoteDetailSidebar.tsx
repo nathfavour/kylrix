@@ -24,6 +24,7 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Skeleton,
   useTheme,
   alpha
 } from '@mui/material';
@@ -90,6 +91,7 @@ export interface NoteDetailSidebarProps {
   onBack?: () => void;
   showExpandButton?: boolean;
   showHeaderDeleteButton?: boolean;
+  isLoading?: boolean;
 }
 
 export function NoteDetailSidebar({
@@ -99,6 +101,7 @@ export function NoteDetailSidebar({
   onBack,
   showExpandButton = true,
   showHeaderDeleteButton = true,
+  isLoading = false,
 }: NoteDetailSidebarProps) {
   const theme = useTheme();
   const { open: openUnified } = useUnifiedDrawer();
@@ -108,6 +111,67 @@ export function NoteDetailSidebar({
   const { openProUpgrade } = useProUpgrade();
   const { closeSidebar } = useDynamicSidebar();
   const { openCallLauncher } = useCallLauncher();
+
+  // Load hooks and check if loading first
+  if (isLoading) {
+    return (
+      <Box className="note-detail-sidebar-root" sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#0A0908', overflow: 'hidden' }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: { xs: 2, md: 2.5 }, pb: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
+              {onBack && (
+                <IconButton disabled sx={{ color: theme.palette.text.secondary }}>
+                  <BackIcon />
+                </IconButton>
+              )}
+              <Skeleton variant="text" width="60%" height={28} sx={{ bgcolor: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
+            </Box>
+            {!onBack && (
+              <IconButton disabled sx={{ color: theme.palette.text.secondary }}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} variant="circular" width={36} height={36} sx={{ bgcolor: 'rgba(255,255,255,0.03)' }} />
+            ))}
+          </Box>
+        </Box>
+
+        {/* Scrollable Content Area */}
+        <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 2.5 }, pt: 3, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {/* Content Card */}
+          <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#161412', border: '1px solid #1C1A18', minHeight: { xs: 340, md: 460 }, height: { xs: 'clamp(340px, 46vh, 460px)', md: 'clamp(460px, 58vh, 760px)' }, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Skeleton variant="text" width="20%" height={16} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }} />
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Skeleton variant="text" width="90%" sx={{ bgcolor: 'rgba(255,255,255,0.04)' }} />
+              <Skeleton variant="text" width="95%" sx={{ bgcolor: 'rgba(255,255,255,0.04)' }} />
+              <Skeleton variant="text" width="80%" sx={{ bgcolor: 'rgba(255,255,255,0.03)' }} />
+              <Skeleton variant="text" width="85%" sx={{ bgcolor: 'rgba(255,255,255,0.03)' }} />
+              <Skeleton variant="text" width="40%" sx={{ bgcolor: 'rgba(255,255,255,0.02)' }} />
+            </Box>
+          </Box>
+
+          {/* Tags Section */}
+          <Box sx={{ px: 1 }}>
+            <Skeleton variant="text" width="15%" height={16} sx={{ bgcolor: 'rgba(255,255,255,0.05)', mb: 1.5 }} />
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Skeleton variant="rounded" width={60} height={24} sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '8px' }} />
+              <Skeleton variant="rounded" width={80} height={24} sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '8px' }} />
+            </Box>
+          </Box>
+
+          {/* Attachments Section */}
+          <Box sx={{ px: 1 }}>
+            <Skeleton variant="text" width="25%" height={16} sx={{ bgcolor: 'rgba(255,255,255,0.05)', mb: 1.5 }} />
+            <Skeleton variant="rounded" width="100%" height={60} sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '18px' }} />
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
 
   const { notes: allNotes, isPinned, pinNote, unpinNote } = useNotes();
   const [realtimeNote, setRealtimeNote] = useState<Notes | null>(null);

@@ -15,7 +15,8 @@ import {
     Tab,
     Stack,
     Snackbar,
-    Alert
+    Alert,
+    Skeleton
 } from '@mui/material';
 import { 
     Edit as EditIcon, 
@@ -48,8 +49,17 @@ export default function FormDetailsPage({ params, formId: propFormId, onBack }: 
     const resolvedParams = {
         formId: propFormId || (params ? use(params).formId : '')
     };
-    const [form, setForm] = useState<Forms | null>(null);
+    const [rawForm, setRawForm] = useState<Forms | null>(null);
     const [loading, setLoading] = useState(true);
+
+    const form = rawForm || (loading ? {
+        $id: resolvedParams.formId as string,
+        title: 'Loading Form...',
+        status: 'draft',
+        schema: '[]',
+        $createdAt: new Date().toISOString(),
+        $updatedAt: new Date().toISOString(),
+    } as any : null);
     const [tab, setTab] = useState(0);
     const [isEditing, setIsEditing] = useState(false);
     const [snackbar, setSnackbar] = useState<string | null>(null);
@@ -257,7 +267,7 @@ export default function FormDetailsPage({ params, formId: propFormId, onBack }: 
         setLoading(true);
         try {
             const data = await FormsService.getForm(resolvedParams.formId);
-            setForm(data);
+            setRawForm(data);
         } catch (err) {
             console.error("Failed to fetch form", err);
         } finally {
@@ -275,8 +285,7 @@ export default function FormDetailsPage({ params, formId: propFormId, onBack }: 
         setSnackbar("Public link copied to clipboard.");
     };
 
-    if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 20 }}><CircularProgress /></Box>;
-    if (!form) return <Box sx={{ p: 4 }}><Typography color="error">Form not found.</Typography></Box>;
+    if (!loading && !form) return <Box sx={{ p: 4 }}><Typography color="error">Form not found.</Typography></Box>;
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -306,20 +315,30 @@ export default function FormDetailsPage({ params, formId: propFormId, onBack }: 
                     </IconButton>
                     <Box>
                         <Stack direction="row" spacing={1} alignItems="center">
-                            <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: '-0.04em' }}>{form.title}</Typography>
-                            <Chip 
-                                label={(form.status || 'unknown').toUpperCase()} 
-                                size="small" 
-                                sx={{ 
-                                    fontSize: '9px', 
-                                    fontWeight: 900, 
-                                    bgcolor: 'transparent',
-                                    color: getStatusColor(form.status || 'draft'),
-                                    border: `1px solid ${getStatusColor(form.status || 'draft')}20`
-                                }} 
-                            />
+                            {loading ? (
+                                <Skeleton variant="text" width={220} height={36} sx={{ bgcolor: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} />
+                            ) : (
+                                <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: '-0.04em' }}>{form.title}</Typography>
+                            )}
+                            {!loading && (
+                                <Chip 
+                                    label={(form.status || 'unknown').toUpperCase()} 
+                                    size="small" 
+                                    sx={{ 
+                                        fontSize: '9px', 
+                                        fontWeight: 900, 
+                                        bgcolor: 'transparent',
+                                        color: getStatusColor(form.status || 'draft'),
+                                        border: `1px solid ${getStatusColor(form.status || 'draft')}20`
+                                    }} 
+                                />
+                            )}
                         </Stack>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Form ID: {form.$id}</Typography>
+                        {loading ? (
+                            <Skeleton variant="text" width={140} height={18} sx={{ bgcolor: 'rgba(255,255,255,0.03)', mt: 1, borderRadius: '3px' }} />
+                        ) : (
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Form ID: {form.$id}</Typography>
+                        )}
                     </Box>
                 </Box>
 
@@ -397,7 +416,15 @@ export default function FormDetailsPage({ params, formId: propFormId, onBack }: 
             {tab === 0 && (
                 <Fade in={true}>
                     <Box>
-                        <SubmissionViewer formId={resolvedParams.formId} formSchema={form.schema} />
+                        {loading ? (
+                            <Stack spacing={2}>
+                                {[1, 2, 3].map((i) => (
+                                    <Skeleton key={i} variant="rounded" width="100%" height={80} sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '12px' }} />
+                                ))}
+                            </Stack>
+                        ) : (
+                            <SubmissionViewer formId={resolvedParams.formId} formSchema={form.schema} />
+                        )}
                     </Box>
                 </Fade>
             )}
@@ -408,7 +435,16 @@ export default function FormDetailsPage({ params, formId: propFormId, onBack }: 
                         <Paper sx={{ p: 4, borderRadius: 4, bgcolor: '#161514', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
                             <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 900, mb: 4, display: 'block' }}>SCHEMA PREVIEW</Typography>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                {JSON.parse(form.schema || '[]').map((field: any) => (
+                                {loading ? (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                        {[1, 2].map((i) => (
+                                            <Box key={i}>
+                                                <Skeleton variant="text" width="30%" height={20} sx={{ bgcolor: 'rgba(255,255,255,0.05)', mb: 1 }} />
+                                                <Skeleton variant="rounded" width="100%" height={56} sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '8px' }} />
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                ) : JSON.parse(form.schema || '[]').map((field: any) => (
                                     <Box key={field.id}>
                                         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 800, opacity: 0.8 }}>
                                             {field.label} {field.required && <Box component="span" sx={{ color: '#ff1744' }}>*</Box>}
@@ -421,83 +457,93 @@ export default function FormDetailsPage({ params, formId: propFormId, onBack }: 
                             </Box>
                         </Paper>
 
-                        <Paper sx={{ p: 4, borderRadius: 4, bgcolor: '#161514', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content' }}>
-                            <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 900, mb: 2, display: 'block' }}>RAW JSON</Typography>
-                            <Box component="pre" sx={{ fontSize: '0.75rem', color: 'text.secondary', overflow: 'auto', maxHeight: 400, fontFamily: 'var(--font-jetbrains)', bgcolor: '#1F1D1B', p: 2, borderRadius: 2 }}>
-                                {JSON.stringify(JSON.parse(form.schema || '[]'), null, 2)}
-                            </Box>
-                        </Paper>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <Paper sx={{ p: 4, borderRadius: 4, bgcolor: '#161514', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content' }}>
+                                <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 900, mb: 2, display: 'block' }}>RAW JSON</Typography>
+                                {loading ? (
+                                    <Skeleton variant="rounded" width="100%" height={160} sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '8px' }} />
+                                ) : (
+                                    <Box component="pre" sx={{ fontSize: '0.75rem', color: 'text.secondary', overflow: 'auto', maxHeight: 400, fontFamily: 'var(--font-jetbrains)', bgcolor: '#1F1D1B', p: 2, borderRadius: 2 }}>
+                                        {JSON.stringify(JSON.parse(form.schema || '[]'), null, 2)}
+                                    </Box>
+                                )}
+                            </Paper>
 
-                        <Paper sx={{ p: 4, mt: 3, borderRadius: 4, bgcolor: '#161514', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content' }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                                <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 900 }}>COLLABORATORS</Typography>
-                                <Button 
-                                    size="small"
-                                    onClick={() => openUnified('share-note', {
-                                        resourceId: resolvedParams.formId,
-                                        resourceType: 'form',
-                                        resourceTitle: form.title,
-                                        onShared: () => fetchCollaborators()
-                                    })}
-                                    sx={{ color: '#10B981', fontWeight: 800, fontSize: '0.7rem', textTransform: 'none', p: 0, minWidth: 0, '&:hover': { textDecoration: 'underline' } }}
-                                >
-                                    + Manage
-                                </Button>
-                            </Box>
-                            
-                            {loadingCollaborators ? (
-                                <CircularProgress size={16} sx={{ color: '#10B981' }} />
-                            ) : collaborators.length === 0 ? (
-                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', display: 'block' }}>
-                                    No co-collaborators added yet.
-                                </Typography>
-                            ) : (
-                                <Stack spacing={1.5}>
-                                    {collaborators.map((profile) => (
-                                        <Box 
-                                            key={profile.$id || profile.userId} 
+                            <Paper sx={{ p: 4, borderRadius: 4, bgcolor: '#161514', border: '1px solid rgba(255, 255, 255, 0.05)', height: 'fit-content' }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                                    <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 900 }}>COLLABORATORS</Typography>
+                                    {!loading && (
+                                        <Button 
+                                            size="small"
                                             onClick={() => openUnified('share-note', {
                                                 resourceId: resolvedParams.formId,
                                                 resourceType: 'form',
                                                 resourceTitle: form.title,
-                                                initialCollaborator: profile,
                                                 onShared: () => fetchCollaborators()
                                             })}
-                                            sx={{ 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                gap: 1.5, 
-                                                p: 1, 
-                                                borderRadius: '12px', 
-                                                bgcolor: 'rgba(255,255,255,0.02)', 
-                                                border: '1px solid rgba(255,255,255,0.04)',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s ease',
-                                                '&:hover': {
-                                                    borderColor: 'rgba(255,255,255,0.12)',
-                                                    bgcolor: 'rgba(255,255,255,0.04)'
-                                                }
-                                            }}
+                                            sx={{ color: '#10B981', fontWeight: 800, fontSize: '0.7rem', textTransform: 'none', p: 0, minWidth: 0, '&:hover': { textDecoration: 'underline' } }}
                                         >
-                                            <IdentityAvatar
-                                                fileId={profile.avatar || profile.profilePicId || null}
-                                                alt={profile.displayName || profile.username}
-                                                fallback={(profile.displayName || profile.username || 'U').charAt(0).toUpperCase()}
-                                                size={28}
-                                            />
-                                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                <Typography variant="caption" sx={{ fontWeight: 800, color: 'white', display: 'block' }} noWrap>
-                                                    {profile.displayName || profile.username}
-                                                </Typography>
-                                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', fontSize: '9px' }}>
-                                                    {profile.permissionLevel || 'Viewer'}
-                                                </Typography>
+                                            + Manage
+                                        </Button>
+                                    )}
+                                </Box>
+                                
+                                {loading ? (
+                                    <Skeleton variant="rounded" width="100%" height={80} sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '8px' }} />
+                                ) : loadingCollaborators ? (
+                                    <CircularProgress size={16} sx={{ color: '#10B981' }} />
+                                ) : collaborators.length === 0 ? (
+                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', display: 'block' }}>
+                                        No co-collaborators added yet.
+                                    </Typography>
+                                ) : (
+                                    <Stack spacing={1.5}>
+                                        {collaborators.map((profile) => (
+                                            <Box 
+                                                key={profile.$id || profile.userId} 
+                                                onClick={() => openUnified('share-note', {
+                                                    resourceId: resolvedParams.formId,
+                                                    resourceType: 'form',
+                                                    resourceTitle: form.title,
+                                                    initialCollaborator: profile,
+                                                    onShared: () => fetchCollaborators()
+                                                })}
+                                                sx={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    gap: 1.5, 
+                                                    p: 1, 
+                                                    borderRadius: '12px', 
+                                                    bgcolor: 'rgba(255,255,255,0.02)', 
+                                                    border: '1px solid rgba(255,255,255,0.04)',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                    '&:hover': {
+                                                        borderColor: 'rgba(255,255,255,0.12)',
+                                                        bgcolor: 'rgba(255,255,255,0.04)'
+                                                    }
+                                                }}
+                                            >
+                                                <IdentityAvatar
+                                                    fileId={profile.avatar || profile.profilePicId || null}
+                                                    alt={profile.displayName || profile.username}
+                                                    fallback={(profile.displayName || profile.username || 'U').charAt(0).toUpperCase()}
+                                                    size={28}
+                                                />
+                                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                    <Typography variant="caption" sx={{ fontWeight: 800, color: 'white', display: 'block' }} noWrap>
+                                                        {profile.displayName || profile.username}
+                                                    </Typography>
+                                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', fontSize: '9px' }}>
+                                                        {profile.permissionLevel || 'Viewer'}
+                                                    </Typography>
+                                                </Box>
                                             </Box>
-                                        </Box>
-                                    ))}
-                                </Stack>
-                            )}
-                        </Paper>
+                                        ))}
+                                    </Stack>
+                                )}
+                            </Paper>
+                        </Box>
                     </Box>
                 </Fade>
             )}

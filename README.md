@@ -184,7 +184,7 @@ Crypto user experience is notoriously broken. Even solutions claiming to fix web
 <h3 align="center">🛑 Responsible Security Disclosure</h3>
 We take infrastructure integrity with absolute seriousness. If you discover a legitimate, critical cryptographic or system vulnerability within the Kylrix ecosystem, **do not create a public GitHub issue.** Doing so endangers active sovereign environments.
 
-Please route comprehensive proof-of-concept logs directly to: **`security@kylrix.space`**
+Please submit a [kylrix bug report](https://www.kylrix.space/flow/form/6a19dc99002634bd33ae) with a comprehensive description and logs.
 
 ---
 

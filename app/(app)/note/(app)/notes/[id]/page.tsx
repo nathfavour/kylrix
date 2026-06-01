@@ -26,7 +26,7 @@ import { useDataNexus } from '@/context/DataNexusContext';
 export default function NoteEditorPage() {
   const { id } = useParams();
   const router = useRouter();
-  const [note, setNote] = useState<Notes | null>(null);
+  const [rawNote, setRawNote] = useState<Notes | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -35,27 +35,36 @@ export default function NoteEditorPage() {
 
   const CACHE_KEY = useMemo(() => id ? `note_${id}` : null, [id]);
 
+  const note = rawNote || (isLoading ? {
+    $id: id as string,
+    title: 'Loading Note...',
+    content: 'Fetching secure note contents and decryption keys...',
+    tags: [],
+    $createdAt: new Date().toISOString(),
+    $updatedAt: new Date().toISOString(),
+  } as any : null);
+
   useEffect(() => {
     let mounted = true;
-
+  
     if (!id || !CACHE_KEY) {
       setIsLoading(false);
       return;
     }
-
+  
     // Try to get from cache first for instant UI
     const cached = getCachedData<Notes>(CACHE_KEY);
     if (cached) {
-      setNote(cached);
+      setRawNote(cached);
       setIsLoading(false);
     }
-
+  
     (async () => {
       if (!cached) setIsLoading(true);
       try {
         const fetched = await fetchOptimized(CACHE_KEY, () => getNote(id as string));
         if (mounted) {
-          setNote(fetched);
+          setRawNote(fetched);
         }
       } catch (error: any) {
         console.error('Failed to load note', error);
@@ -64,7 +73,7 @@ export default function NoteEditorPage() {
         if (mounted) setIsLoading(false);
       }
     })();
-
+  
     return () => {
       mounted = false;
     };
@@ -73,7 +82,7 @@ export default function NoteEditorPage() {
   const handleUpdate = async (updated: Notes) => {
     try {
       const saved = await updateNote(updated.$id || (id as string) || '', updated);
-      setNote(saved);
+      setRawNote(saved);
       // Update cache
       if (CACHE_KEY) setCachedData(CACHE_KEY, saved);
       showSuccess('Saved', 'Note updated successfully');
@@ -99,15 +108,7 @@ export default function NoteEditorPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
-        <CircularProgress color="primary" />
-      </Box>
-    );
-  }
-
-  if (!note) {
+  if (!isLoading && !note) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
         <Typography color="text.secondary">Note not found.</Typography>
@@ -130,6 +131,7 @@ export default function NoteEditorPage() {
             onDelete={handleDelete}
             showExpandButton={false}
             showHeaderDeleteButton={false}
+            isLoading={isLoading}
           />
         </Box>
 

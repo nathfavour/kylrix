@@ -12,7 +12,8 @@ import {
   Card,
   CardContent,
   Chip,
-  alpha
+  alpha,
+  Skeleton
 } from '@mui/material';
 import { 
   Add as AddIcon, 
@@ -99,17 +100,6 @@ export default function TagsPage() {
         <Stack spacing={2} alignItems="center">
           <CircularProgress sx={{ color: '#6366F1' }} />
           <Typography sx={{ color: 'rgba(255, 255, 255, 0.4)', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}>Please log in to manage your tags</Typography>
-        </Stack>
-      </Box>
-    );
-  }
-
-  if (loading) {
-    return (
-      <Box sx={{ minHeight: '100vh', bgcolor: '#0A0908', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Stack spacing={2} alignItems="center">
-          <CircularProgress sx={{ color: '#6366F1' }} />
-          <Typography sx={{ color: 'rgba(255, 255, 255, 0.4)', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}>Loading tags...</Typography>
         </Stack>
       </Box>
     );
@@ -261,7 +251,38 @@ export default function TagsPage() {
             </Stack>
 
             {/* Tags Grid */}
-            {tags.length === 0 ? (
+            {loading ? (
+              <Grid container spacing={4}>
+                {[1, 2, 3, 4].map((i) => (
+                  <Grid size={{ xs: 12, md: 6, lg: 6 }} key={i}>
+                    <Card
+                      sx={{
+                        bgcolor: '#161412',
+                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                        borderRadius: '32px',
+                        backgroundImage: 'none',
+                      }}
+                    >
+                      <CardContent sx={{ p: 4 }}>
+                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+                          <Skeleton variant="rounded" width={48} height={48} sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '16px' }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Skeleton variant="text" width="60%" height={24} sx={{ bgcolor: 'rgba(255,255,255,0.05)', mb: 1, borderRadius: '4px' }} />
+                            <Skeleton variant="text" width="30%" height={16} sx={{ bgcolor: 'rgba(255,255,255,0.02)', borderRadius: '3px' }} />
+                          </Box>
+                        </Stack>
+                        <Skeleton variant="text" width="100%" sx={{ bgcolor: 'rgba(255,255,255,0.03)', mb: 1.5 }} />
+                        <Skeleton variant="text" width="80%" sx={{ bgcolor: 'rgba(255,255,255,0.03)', mb: 3 }} />
+                        <Stack direction="row" spacing={2}>
+                          <Skeleton variant="rounded" width={100} height={36} sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '12px' }} />
+                          <Skeleton variant="rounded" width={100} height={36} sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '12px' }} />
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : tags.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 12 }}>
                 <Box 
                   sx={{ 

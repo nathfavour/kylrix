@@ -150,9 +150,19 @@ export default function ProjectDetailPage() {
       }
   }, [projectId, joinResource]);
 
-  const [project, setProject] = useState<Projects | null>(null);
+  const [rawProject, setRawProject] = useState<Projects | null>(null);
   const [projectObjects, setProjectObjects] = useState<ProjectObjects[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const project = rawProject || (loading ? {
+    title: 'Loading Project...',
+    summary: 'Fetching active workspace details and linking components...',
+    status: 'active',
+    visibility: 'private',
+    updatedAt: new Date().toISOString(),
+    $id: '',
+    metadata: '{}'
+  } as any : null);
   const [tabValue, setTabValue] = useState(0);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isExtractModalOpen, setIsExtractModalOpen] = useState(false);
@@ -273,7 +283,7 @@ export default function ProjectDetailPage() {
     setLoading(true);
     try {
       const p = await ProjectsService.getProject(projectId as string);
-      setProject(p);
+      setRawProject(p);
 
       // Resolve owner profile securely
       if (p?.ownerId) {
@@ -498,15 +508,7 @@ export default function ProjectDetailPage() {
       });
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'grid', placeItems: 'center', minHeight: '80vh' }}>
-        <CircularProgress sx={{ color: '#6366F1' }} />
-      </Box>
-    );
-  }
-
-  if (!project) {
+  if (!loading && !project) {
     return (
       <Box sx={{ textAlign: 'center', py: 10 }}>
         <Typography variant="h5" sx={{ color: '#fff', fontWeight: 900 }}>
@@ -804,7 +806,7 @@ export default function ProjectDetailPage() {
                     <Box sx={{ p: { xs: 2, md: 4 } }}>
                         {/* Integrated Notes */}
                         <CustomTabPanel value={tabValue} index={0}>
-                            {resolving ? <LoadingPlaceholder /> : notes.length === 0 ? <EmptyState kind="note" /> : (
+                            {loading ? <ResourceGridSkeleton /> : resolving ? <LoadingPlaceholder /> : notes.length === 0 ? <EmptyState kind="note" /> : (
                                 <Grid container spacing={2}>
                                     {notes.map(note => (
                                         <Grid size={{ xs: 12 }} key={note.$id}>
@@ -836,7 +838,7 @@ export default function ProjectDetailPage() {
                         
                         {/* Execution Goals */}
                         <CustomTabPanel value={tabValue} index={1}>
-                            {resolving ? <LoadingPlaceholder /> : tasks.length === 0 ? <EmptyState kind="goal" /> : (
+                            {loading ? <ResourceGridSkeleton /> : resolving ? <LoadingPlaceholder /> : tasks.length === 0 ? <EmptyState kind="goal" /> : (
                                 <Grid container spacing={2}>
                                     {tasks.map(task => (
                                         <Grid size={{ xs: 12 }} key={task.$id}>
@@ -857,7 +859,7 @@ export default function ProjectDetailPage() {
 
                         {/* Vault Assets */}
                         <CustomTabPanel value={tabValue} index={2}>
-                            {resolving ? <LoadingPlaceholder /> : (credentials.length === 0 && totps.length === 0) ? <EmptyState kind="password" /> : (
+                            {loading ? <ResourceGridSkeleton /> : resolving ? <LoadingPlaceholder /> : (credentials.length === 0 && totps.length === 0) ? <EmptyState kind="password" /> : (
                                 <Grid container spacing={2}>
                                     {credentials.map(cred => (
                                         <Grid size={{ xs: 12 }} key={cred.$id}>
@@ -934,7 +936,7 @@ export default function ProjectDetailPage() {
                                     Integrate Sub-Project
                                 </Button>
                             </Box>
-                            {resolving ? <LoadingPlaceholder /> : subProjects.length === 0 ? <EmptyState kind="sub-project" /> : (
+                            {loading ? <ResourceGridSkeleton /> : resolving ? <LoadingPlaceholder /> : subProjects.length === 0 ? <EmptyState kind="sub-project" /> : (
                                 <Grid container spacing={2}>
                                     {subProjects.map(sub => (
                                         <Grid size={{ xs: 12 }} key={sub.$id}>
@@ -954,7 +956,7 @@ export default function ProjectDetailPage() {
 
                         {/* Events & Calls */}
                         <CustomTabPanel value={tabValue} index={4}>
-                            {resolving ? <LoadingPlaceholder /> : (events.length === 0 && calls.length === 0) ? <EmptyState kind="event" /> : (
+                            {loading ? <ResourceGridSkeleton /> : resolving ? <LoadingPlaceholder /> : (events.length === 0 && calls.length === 0) ? <EmptyState kind="event" /> : (
                                 <Grid container spacing={2}>
                                     {events.map(event => (
                                         <Grid size={{ xs: 12 }} key={event.$id}>
@@ -994,7 +996,7 @@ export default function ProjectDetailPage() {
 
                         {/* Interconnected Flow: Forms, Tags, Moments */}
                         <CustomTabPanel value={tabValue} index={5}>
-                            {resolving ? <LoadingPlaceholder /> : (forms.length === 0 && tags.length === 0 && moments.length === 0) ? <EmptyState kind="flow" /> : (
+                            {loading ? <ResourceGridSkeleton /> : resolving ? <LoadingPlaceholder /> : (forms.length === 0 && tags.length === 0 && moments.length === 0) ? <EmptyState kind="flow" /> : (
                                 <Grid container spacing={2}>
                                     {forms.map(form => (
                                         <Grid size={{ xs: 12 }} key={form.$id}>
@@ -1542,6 +1544,36 @@ function LoadingPlaceholder() {
         <Box sx={{ display: 'grid', placeItems: 'center', py: 8 }}>
             <CircularProgress size={24} sx={{ color: '#6366F1' }} />
         </Box>
+    );
+}
+
+function ResourceGridSkeleton() {
+    return (
+        <Stack spacing={2} sx={{ py: 2 }}>
+            {[1, 2, 3].map((idx) => (
+                <Box
+                    key={idx}
+                    sx={{
+                        p: 2.5,
+                        borderRadius: '24px',
+                        bgcolor: 'rgba(255,255,255,0.01)',
+                        border: '1px solid rgba(255,255,255,0.04)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                    }}
+                >
+                    <Stack direction="row" spacing={2} alignItems="center" sx={{ width: '100%' }}>
+                        <Skeleton variant="rounded" width={40} height={40} sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }} />
+                        <Box sx={{ flex: 1 }}>
+                            <Skeleton variant="text" width="40%" height={20} sx={{ bgcolor: 'rgba(255,255,255,0.04)', mb: 1 }} />
+                            <Skeleton variant="text" width="25%" height={14} sx={{ bgcolor: 'rgba(255,255,255,0.02)' }} />
+                        </Box>
+                    </Stack>
+                    <Skeleton variant="circular" width={24} height={24} sx={{ bgcolor: 'rgba(255,255,255,0.03)' }} />
+                </Box>
+            ))}
+        </Stack>
     );
 }
 

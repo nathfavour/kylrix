@@ -94,8 +94,20 @@ export default function EventPage() {
   const theme = useTheme();
   const { user, isAuthenticated, openIDMWindow } = useAuth();
 
-  const [event, setEvent] = useState<Event | null>(null);
+  const [rawEvent, setRawEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const event = rawEvent || (loading ? {
+    $id: eventId as string,
+    title: 'Loading Event...',
+    startTime: new Date().toISOString(),
+    endTime: new Date(Date.now() + 3600000).toISOString(),
+    location: 'Loading address...',
+    description: 'Fetching event details...',
+    coverImageId: '',
+    $createdAt: new Date().toISOString(),
+    $updatedAt: new Date().toISOString(),
+  } as any : null);
   const [error, setError] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [guestId, setGuestId] = useState<string | null>(null);
@@ -311,7 +323,7 @@ export default function EventPage() {
           setError('This event is private.');
           return;
         }
-        setEvent(eventData);
+        setRawEvent(eventData);
       } catch (err: any) {
         if (err?.code === 401 || err?.code === 404) {
           setError('This event is private or does not exist.');
@@ -388,16 +400,7 @@ export default function EventPage() {
     navigator.clipboard.writeText(window.location.href);
   };
 
-  if (loading) {
-    return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 3, mb: 4 }} />
-        <Skeleton variant="text" height={60} width="80%" />
-      </Container>
-    );
-  }
-
-  if (error || !event) {
+  if (!loading && (error || !event)) {
     return (
       <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
         <Typography variant="h4">{error || "Event not found"}</Typography>
@@ -416,34 +419,54 @@ export default function EventPage() {
       <MultiSectionContainer panels={['note', 'huddles', 'goals']} contextId={eventId}>
       <Container maxWidth="md" sx={{ px: { xs: 0, sm: 2 } }}>
         <Paper sx={{ overflow: 'hidden', borderRadius: { xs: 0, sm: 3 }, mb: 4 }}>
-          <Box sx={{ height: { xs: 250, md: 350 }, position: 'relative', backgroundSize: 'cover', ...coverStyle }}>
-            <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
-              <Button variant="contained" color="inherit" onClick={handleCopyLink}><ContentCopyIcon fontSize="small" /></Button>
+          {loading ? (
+            <Skeleton variant="rectangular" height={350} sx={{ bgcolor: 'rgba(255,255,255,0.03)' }} />
+          ) : (
+            <Box sx={{ height: { xs: 250, md: 350 }, position: 'relative', backgroundSize: 'cover', ...coverStyle }}>
+              <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+                <Button variant="contained" color="inherit" onClick={handleCopyLink}><ContentCopyIcon fontSize="small" /></Button>
+              </Box>
             </Box>
-          </Box>
+          )}
 
           <Box sx={{ p: { xs: 3, md: 5 } }}>
-            <Typography variant="h3" fontWeight={800} gutterBottom>{event.title}</Typography>
+            {loading ? (
+              <Skeleton variant="text" width="60%" height={48} sx={{ bgcolor: 'rgba(255,255,255,0.05)', mb: 2, borderRadius: '4px' }} />
+            ) : (
+              <Typography variant="h3" fontWeight={800} gutterBottom>{event.title}</Typography>
+            )}
 
-            <Paper variant="outlined" sx={{ p: 3, mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
-              <Box>
-                <Typography variant="subtitle1" fontWeight={600}>{format(startDate, 'EEEE, MMMM d, yyyy')}</Typography>
-                <Typography variant="body2" color="text.secondary">{format(startDate, 'h:mm a')} - {format(endDate, 'h:mm a')}</Typography>
+            {loading ? (
+              <Skeleton variant="rounded" width="100%" height={88} sx={{ bgcolor: 'rgba(255,255,255,0.03)', mb: 4, borderRadius: '12px' }} />
+            ) : (
+              <Paper variant="outlined" sx={{ p: 3, mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={600}>{format(startDate, 'EEEE, MMMM d, yyyy')}</Typography>
+                  <Typography variant="body2" color="text.secondary">{format(startDate, 'h:mm a')} - {format(endDate, 'h:mm a')}</Typography>
+                </Box>
+                <Button variant="contained" onClick={isRegistered ? handleCancelRegistration : handleRegister} disabled={registering}>
+                  {registering ? '...' : isRegistered ? 'Cancel' : 'Register'}
+                </Button>
+              </Paper>
+            )}
+
+            {loading ? (
+              <Box sx={{ mb: 4 }}>
+                <Skeleton variant="text" width="15%" height={24} sx={{ bgcolor: 'rgba(255,255,255,0.05)', mb: 1.5 }} />
+                <Skeleton variant="text" width="100%" sx={{ bgcolor: 'rgba(255,255,255,0.03)' }} />
+                <Skeleton variant="text" width="85%" sx={{ bgcolor: 'rgba(255,255,255,0.03)' }} />
               </Box>
-              <Button variant="contained" onClick={isRegistered ? handleCancelRegistration : handleRegister} disabled={registering}>
-                {registering ? '...' : isRegistered ? 'Cancel' : 'Register'}
-              </Button>
-            </Paper>
-
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" fontWeight={700} gutterBottom>About</Typography>
-              <Typography variant="body1" color="text.secondary">{event.description}</Typography>
-            </Box>
+            ) : (
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h6" fontWeight={700} gutterBottom>About</Typography>
+                <Typography variant="body1" color="text.secondary">{event.description}</Typography>
+              </Box>
+            )}
 
             <Box sx={{ mb: 4 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" fontWeight={700}>Organizers</Typography>
-                {user && event.userId === user.$id && (
+                {!loading && user && event.userId === user.$id && (
                   <Button 
                     size="small"
                     onClick={() => openUnified('share-note', {
@@ -459,7 +482,9 @@ export default function EventPage() {
                 )}
               </Box>
               
-              {loadingOrganizers ? (
+              {loading ? (
+                <Skeleton variant="rounded" width={120} height={32} sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '16px' }} />
+              ) : loadingOrganizers ? (
                 <CircularProgress size={16} sx={{ color: '#F59E0B' }} />
               ) : organizers.length === 0 ? (
                 <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', opacity: 0.7 }}>

@@ -26,7 +26,7 @@ We prioritize simplicity.
 - **Design Philosophy**: Adhere to the "Muted Bold" (Deep Earth) design language. No gradients, no translucency, pure OLED-black backgrounds.
 
 ### 5. Responsible Disclosure
-If you find a security vulnerability, **do not disclose it publicly**. Send a comprehensive report, including logs, directly to `security@kylrix.space`.
+If you find a security vulnerability, **do not disclose it publicly**. Submit a [kylrix bug report](https://www.kylrix.space/flow/form/6a19dc99002634bd33ae) with a comprehensive description and logs.
 
 ---
 
