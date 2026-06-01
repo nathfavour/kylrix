@@ -794,17 +794,18 @@ export async function getReferralStatusSecure(jwt?: string) {
   const { databases } = createSystemClient();
   const dbId = APPWRITE_CONFIG.DATABASES.CHAT;
   
-  const profiles = await databases.listDocuments(dbId, APPWRITE_CONFIG.TABLES.CHAT.PROFILES, [
-    Query.equal('userId', actor.$id),
-    Query.limit(1)
+  const [profiles, events] = await Promise.all([
+    databases.listDocuments(dbId, APPWRITE_CONFIG.TABLES.CHAT.PROFILES, [
+      Query.equal('userId', actor.$id),
+      Query.limit(1)
+    ]),
+    databases.listDocuments(dbId, APPWRITE_CONFIG.TABLES.CHAT.ACCOUNT_EVENTS, [
+      Query.equal('userId', actor.$id),
+      Query.equal('type', 'referral'),
+      Query.limit(1)
+    ]),
   ]);
   const profile = profiles.documents[0] || null;
-
-  const events = await databases.listDocuments(dbId, APPWRITE_CONFIG.TABLES.CHAT.ACCOUNT_EVENTS, [
-    Query.equal('userId', actor.$id),
-    Query.equal('type', 'referral'),
-    Query.limit(1)
-  ]);
   const referralEvent = events.documents[0] || null;
 
   const referrerProfile = referralEvent?.actorId ? await databases.getDocument(dbId, APPWRITE_CONFIG.TABLES.CHAT.PROFILES, referralEvent.actorId).catch(() => null) : null;
@@ -943,8 +944,10 @@ export async function executeMasterPurgeSecure(jwt?: string) {
 
   // 1. Purge Vault Tier 2 Data (Credentials, TOTP Secrets)
   const vaultDb = APPWRITE_CONFIG.DATABASES.VAULT;
-  const creds = await databases.listDocuments(vaultDb, APPWRITE_CONFIG.TABLES.VAULT.KEYCHAIN, [Query.equal('userId', userId), Query.limit(1000)]);
-  const totps = await databases.listDocuments(vaultDb, APPWRITE_CONFIG.TABLES.VAULT.TOTP_SECRETS || 'totpSecrets', [Query.equal('userId', userId), Query.limit(1000)]).catch(() => ({ documents: [] }));
+  const [creds, totps] = await Promise.all([
+    databases.listDocuments(vaultDb, APPWRITE_CONFIG.TABLES.VAULT.KEYCHAIN, [Query.equal('userId', userId), Query.limit(1000)]),
+    databases.listDocuments(vaultDb, APPWRITE_CONFIG.TABLES.VAULT.TOTP_SECRETS || 'totpSecrets', [Query.equal('userId', userId), Query.limit(1000)]).catch(() => ({ documents: [] })),
+  ]);
 
   await Promise.all([
     ...creds.documents.map((c: any) => databases.deleteDocument(vaultDb, APPWRITE_CONFIG.TABLES.VAULT.KEYCHAIN, c.$id)),

@@ -28,26 +28,22 @@ export function requireAdmin(user: any) {
 export async function getAdminStats(actorEmail: string) {
   // Pass the securely verified email into the gated Admin Client
   const { users, databases } = createAdminClient(actorEmail);
-  const userList = await users.list([Query.limit(10), Query.orderDesc('$createdAt')]);
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const [userList, activityResult] = await Promise.all([
+    users.list([Query.limit(10), Query.orderDesc('$createdAt')]),
+    databases.listRows(
+      APPWRITE_CONFIG.DATABASES.NOTE,
+      APPWRITE_CONFIG.TABLES.NOTE.ACTIVITY_LOG,
+      [Query.greaterThanEqual('$createdAt', oneDayAgo), Query.limit(1), Query.select(['$createdAt'])]
+    ).catch(() => null),
+  ]);
   const totalUsers = userList.total;
   const recentUsers = userList.users.map((u) => ({
     name: u.name || 'Anonymous',
     email: u.email,
     date: u.$createdAt,
   }));
-
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  let activeNow = 0;
-  try {
-    const activity = await databases.listRows(
-      APPWRITE_CONFIG.DATABASES.NOTE,
-      APPWRITE_CONFIG.TABLES.NOTE.ACTIVITY_LOG,
-      [Query.greaterThanEqual('$createdAt', oneDayAgo), Query.limit(1), Query.select(['$createdAt'])]
-    );
-    activeNow = activity.total;
-  } catch {
-    activeNow = Math.floor(totalUsers * 0.05);
-  }
+  const activeNow = activityResult ? activityResult.total : Math.floor(totalUsers * 0.05);
 
   return {
     totalUsers,

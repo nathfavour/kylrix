@@ -132,19 +132,18 @@ export async function generateAIResponse(data: {
   systemInstruction?: string;
   apiKey?: string;
 }) {
-    const userHeaders = await headers();
-    const user = await resolveCurrentUser(userHeaders as any);
-
-    if (!user) {
-      throw new Error('Unauthorized');
-    }
-
+    // Fast path: user-provided key bypasses authentication entirely
     const apiKey = data.apiKey || process.env.GOOGLE_API_KEY;
     if (!apiKey) {
       throw new Error('AI service not configured');
     }
 
+    // Only authenticate + check subscription when using platform key
     if (!data.apiKey) {
+      const userHeaders = await headers();
+      const user = await resolveCurrentUser(userHeaders as any);
+      if (!user) throw new Error('Unauthorized');
+
       const ok = await userHasPaidAiAccess((user as { $id: string }).$id);
       if (!ok) {
         throw new Error('AI features require a Pro account. Upgrade to continue or provide your own API key in settings.');
