@@ -295,21 +295,60 @@ export default function ProjectDetailPage() {
   const [calls, setCalls] = useState<any[]>([]);
   const [resolving, setResolving] = useState(false);
 
+  // Local Cache for Project Details to ensure instant back-and-forth navigation
+  useEffect(() => {
+    if (!projectId) return;
+    const cachedData = sessionStorage.getItem(`project_cache_${projectId}`);
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData);
+        setRawProject(parsed.project);
+        setProjectObjects(parsed.projectObjects || []);
+        setCollaborators(parsed.collaborators || []);
+        setNotes(parsed.notes || []);
+        setTasks(parsed.tasks || []);
+        setCredentials(parsed.credentials || []);
+        setSubProjects(parsed.subProjects || []);
+        setForms(parsed.forms || []);
+        setEvents(parsed.events || []);
+        setTags(parsed.tags || []);
+        setTotps(parsed.totps || []);
+        setMoments(parsed.moments || []);
+        setCalls(parsed.calls || []);
+        setOwnerProfile(parsed.ownerProfile || null);
+        setGitIntegration(parsed.gitIntegration || null);
+        setLoading(false);
+      } catch (e) {
+        console.error('Failed to parse project details cache:', e);
+      }
+    }
+  }, [projectId]);
+
   const fetchProjectData = useCallback(async () => {
     if (!projectId) return;
-    setLoading(true);
+    
+    // If we have cached data, don't trigger the heavy visual loading skeleton
+    const hasCache = sessionStorage.getItem(`project_cache_${projectId}`) !== null;
+    if (!hasCache) {
+      setLoading(true);
+    }
+
     try {
       const p = await ProjectsService.getProject(projectId as string);
       setRawProject(p);
 
       // Resolve owner profile securely
+      let resolvedOwner: any = null;
       if (p?.ownerId) {
-        getUsersByIdsSecure([p.ownerId])
-          .then((users: any) => setOwnerProfile(users[0] || null))
-          .catch(() => setOwnerProfile(null));
+        try {
+          const users = await getUsersByIdsSecure([p.ownerId]);
+          resolvedOwner = users[0] || null;
+          setOwnerProfile(resolvedOwner);
+        } catch {}
       }
 
-      // Resolve secure project collaborators (with pending status, roles, and profiles!)
+      // Resolve secure project collaborators
+      let resolvedCollabs: any[] = [];
       try {
         const { jwt } = await account.createJWT();
         const { collaborators: collabs } = await getResourceCollaboratorsSecure({
@@ -317,6 +356,7 @@ export default function ProjectDetailPage() {
           resourceType: 'project',
           jwt
         });
+        resolvedCollabs = collabs;
         setCollaborators(collabs);
       } catch (collabErr) {
         console.error('Failed to load project collaborators securely:', collabErr);
@@ -325,16 +365,30 @@ export default function ProjectDetailPage() {
       const objects = await ProjectsService.listProjectObjects(projectId as string);
       setProjectObjects(objects.rows);
 
-      // Resolve other entities
-      await resolveEntities(objects.rows);
+      // Resolve other entities and capture their resolved values
+      const resolvedEntitiesData = await resolveEntities(objects.rows);
 
-      // Fetch Git integration details for this project
+      // Fetch Git integration details
+      let resolvedGit: any = null;
       try {
         const integrations = await SourceControlService.listIntegrations(projectId as string);
-        setGitIntegration(integrations[0] || null);
+        resolvedGit = integrations[0] || null;
+        setGitIntegration(resolvedGit);
       } catch (gitErr) {
         console.error('Failed to load project git integration:', gitErr);
       }
+
+      // Save everything to session cache for instant subsequent loads
+      const cachePayload = {
+        project: p,
+        projectObjects: objects.rows,
+        collaborators: resolvedCollabs,
+        ownerProfile: resolvedOwner,
+        gitIntegration: resolvedGit,
+        ...resolvedEntitiesData
+      };
+      sessionStorage.setItem(`project_cache_${projectId}`, JSON.stringify(cachePayload));
+
     } catch (err: any) {
       showError('Failed to load project', err.message);
     } finally {
@@ -356,22 +410,67 @@ export default function ProjectDetailPage() {
       const momentIds = objects.filter(o => o.entityKind === 'moment').map(o => o.entityId);
       const callIds = objects.filter(o => o.entityKind === 'call').map(o => o.entityId);
 
-      const promises = [
-        noteIds.length ? listNotes([Query.equal('$id', noteIds)]).then(r => setNotes(r.rows)).catch(() => setNotes([])) : Promise.resolve(setNotes([])),
-        taskIds.length ? listFlowTasks([Query.equal('$id', taskIds)]).then(r => setTasks(r.rows)).catch(() => setTasks([])) : Promise.resolve(setTasks([])),
-        credentialIds.length ? listKeepCredentials([Query.equal('$id', credentialIds)]).then(r => setCredentials(r.rows)).catch(() => setCredentials([])) : Promise.resolve(setCredentials([])),
-        subProjectIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, 'projects', [Query.equal('$id', subProjectIds)]).then((r: any) => setSubProjects(r.rows)).catch(() => setSubProjects([])) : Promise.resolve(setSubProjects([])),
-        formIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.FLOW, APPWRITE_CONFIG.TABLES.FLOW.FORMS, [Query.equal('$id', formIds)]).then((r: any) => setForms(r.rows)).catch(() => setForms([])) : Promise.resolve(setForms([])),
-        eventIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.KYLRIXFLOW, 'events', [Query.equal('$id', eventIds)]).then((r: any) => setEvents(r.rows)).catch(() => setEvents([])) : Promise.resolve(setEvents([])),
-        tagIds.length ? listTags([Query.equal('$id', tagIds)]).then(r => setTags(r.rows)).catch(() => setTags([])) : Promise.resolve(setTags([])),
-        totpIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER, 'totpSecrets', [Query.equal('$id', totpIds)]).then((r: any) => setTotps(r.rows)).catch(() => setTotps([])) : Promise.resolve(setTotps([])),
-        momentIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.MOMENTS, [Query.equal('$id', momentIds)]).then((r: any) => setMoments(r.rows)).catch(() => setMoments([])) : Promise.resolve(setMoments([])),
-        callIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.CALL_LINKS, [Query.equal('$id', callIds)]).then((r: any) => setCalls(r.rows)).catch(() => setCalls([])) : Promise.resolve(setCalls([])),
-      ];
+      const notesPromise = noteIds.length ? listNotes([Query.equal('$id', noteIds)]).then(r => r.rows).catch(() => []) : Promise.resolve([]);
+      const tasksPromise = taskIds.length ? listFlowTasks([Query.equal('$id', taskIds)]).then(r => r.rows).catch(() => []) : Promise.resolve([]);
+      const credentialsPromise = credentialIds.length ? listKeepCredentials([Query.equal('$id', credentialIds)]).then(r => r.rows).catch(() => []) : Promise.resolve([]);
+      const subProjectsPromise = subProjectIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, 'projects', [Query.equal('$id', subProjectIds)]).then((r: any) => r.rows).catch(() => []) : Promise.resolve([]);
+      const formsPromise = formIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.FLOW, APPWRITE_CONFIG.TABLES.FLOW.FORMS, [Query.equal('$id', formIds)]).then((r: any) => r.rows).catch(() => []) : Promise.resolve([]);
+      const eventsPromise = eventIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.KYLRIXFLOW, 'events', [Query.equal('$id', eventIds)]).then((r: any) => r.rows).catch(() => []) : Promise.resolve([]);
+      const tagsPromise = tagIds.length ? listTags([Query.equal('$id', tagIds)]).then(r => r.rows).catch(() => []) : Promise.resolve([]);
+      const totpsPromise = totpIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER, 'totpSecrets', [Query.equal('$id', totpIds)]).then((r: any) => r.rows).catch(() => []) : Promise.resolve([]);
+      const momentsPromise = momentIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.MOMENTS, [Query.equal('$id', momentIds)]).then((r: any) => r.rows).catch(() => []) : Promise.resolve([]);
+      const callsPromise = callIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.CALL_LINKS, [Query.equal('$id', callIds)]).then((r: any) => r.rows).catch(() => []) : Promise.resolve([]);
 
-      await Promise.all(promises);
+      const [
+        resolvedNotes,
+        resolvedTasks,
+        resolvedCreds,
+        resolvedSubProjs,
+        resolvedForms,
+        resolvedEvents,
+        resolvedTags,
+        resolvedTotps,
+        resolvedMoments,
+        resolvedCalls
+      ] = await Promise.all([
+        notesPromise,
+        tasksPromise,
+        credentialsPromise,
+        subProjectsPromise,
+        formsPromise,
+        eventsPromise,
+        tagsPromise,
+        totpsPromise,
+        momentsPromise,
+        callsPromise
+      ]);
+
+      setNotes(resolvedNotes);
+      setTasks(resolvedTasks);
+      setCredentials(resolvedCreds);
+      setSubProjects(resolvedSubProjs);
+      setForms(resolvedForms);
+      setEvents(resolvedEvents);
+      setTags(resolvedTags);
+      setTotps(resolvedTotps);
+      setMoments(resolvedMoments);
+      setCalls(resolvedCalls);
+
+      return {
+        notes: resolvedNotes,
+        tasks: resolvedTasks,
+        credentials: resolvedCreds,
+        subProjects: resolvedSubProjs,
+        forms: resolvedForms,
+        events: resolvedEvents,
+        tags: resolvedTags,
+        totps: resolvedTotps,
+        moments: resolvedMoments,
+        calls: resolvedCalls
+      };
     } catch (err) {
       console.error('Failed to resolve entities', err);
+      return {};
     } finally {
       setResolving(false);
     }

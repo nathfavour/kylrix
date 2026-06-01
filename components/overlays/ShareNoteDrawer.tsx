@@ -561,7 +561,7 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
                 <Stack direction="row" alignItems="center" spacing={1.5}>
                   <Link size={16} style={{ color: config.brandColor }} />
                   <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)' }}>
-                    Invite Link & Claim Codes
+                    Invite Link
                   </Typography>
                 </Stack>
                 <ChevronDown size={16} style={{ color: 'rgba(255,255,255,0.4)', transform: showInviteSection ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
@@ -595,38 +595,10 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
                     </Stack>
                   </Box>
 
-                  <Box>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', mb: 1, display: 'block', fontSize: '10px' }}>
-                      COMPOSITE CLAIM CODE
-                    </Typography>
-                    <Stack direction="row" spacing={1}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        value={inviteCode}
-                        InputProps={{ readOnly: true }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            bgcolor: '#161412',
-                            borderRadius: '10px',
-                            color: 'white',
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            fontFamily: 'var(--font-mono)',
-                            '& fieldset': { borderColor: 'rgba(255,255,255,0.05)' }
-                          }
-                        }}
-                      />
-                      <IconButton onClick={handleCopyCode} sx={{ bgcolor: '#161412', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', color: copiedCode ? '#10B981' : 'white' }}>
-                        {copiedCode ? <Check size={16} /> : <Copy size={16} />}
-                      </IconButton>
-                    </Stack>
-                  </Box>
-
                   <Box sx={{ display: 'flex', gap: 1, p: 1.5, borderRadius: '10px', bgcolor: alpha(config.brandColor, 0.03), border: `1px dashed ${alpha(config.brandColor, 0.15)}`, mt: 1 }}>
                     <Info size={14} style={{ color: config.brandColor, flexShrink: 0, marginTop: 1 }} />
                     <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.4, fontSize: '9px' }}>
-                      Distribute this link or composite code. Anyone accessing this link will be added contextually as an active resource participant with the set default permissions.
+                      Distribute this link. Anyone accessing this link will be added contextually as an active resource participant with the set default permissions.
                     </Typography>
                   </Box>
                 </Stack>
