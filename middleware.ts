@@ -38,10 +38,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/note/notes', request.url));
   }
   
-  if (pathname === '/connect' || pathname === '/connect/') {
-    return NextResponse.redirect(new URL('/connect/chats', request.url));
-  }
-  
   if (pathname === '/flow' || pathname === '/flow/') {
     return NextResponse.redirect(new URL('/flow/tasks', request.url));
   }
