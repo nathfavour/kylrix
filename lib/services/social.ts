@@ -252,18 +252,16 @@ export const SocialService = {
             isLiked: false
         };
 
-        // Fetch counts
-        const counts = await this.getInteractionCounts(moment.$id);
-        enriched.stats = counts;
+        // Parallel Fetch: Counts, Like status, and Pulse status
+        const [counts, isLiked, isPulsed] = await Promise.all([
+            this.getInteractionCounts(moment.$id),
+            currentUserId ? this.isLiked(currentUserId, moment.$id) : Promise.resolve(false),
+            currentUserId ? this.isPulsed(currentUserId, moment.$id).catch(() => false) : Promise.resolve(false)
+        ]);
 
-        if (currentUserId) {
-            enriched.isLiked = await this.isLiked(currentUserId, moment.$id);
-            try {
-                enriched.isPulsed = await this.isPulsed(currentUserId, moment.$id);
-            } catch (_e) {
-                enriched.isPulsed = false;
-            }
-        }
+        enriched.stats = counts;
+        enriched.isLiked = isLiked;
+        enriched.isPulsed = isPulsed;
 
         // Handle Legacy & New Metadata Attachments
         const attachments = metadata?.attachments || [];

@@ -111,5 +111,14 @@ export default async function SendReceivePage({
 
   if (!noteId) return null;
 
-  return <SendReceiveClient noteId={noteId} keyParam={keyParam} />;
+  // Server-side pre-fetch for instant hydration
+  const initialNote = await validatePublicNoteAccess(noteId);
+
+  return (
+    <SendReceiveClient 
+      noteId={noteId} 
+      keyParam={keyParam} 
+      initialNote={initialNote ? JSON.parse(JSON.stringify(initialNote)) : null} 
+    />
+  );
 }
