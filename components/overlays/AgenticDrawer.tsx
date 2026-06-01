@@ -27,6 +27,8 @@ import {
   Power,
   AlertCircle,
   RefreshCw,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 import { useAgenticDrawer } from '@/context/AgenticDrawerContext';
@@ -100,6 +102,8 @@ export function AgenticDrawer() {
   const { openProUpgrade } = useProUpgrade();
   const isPro = hasPaidKylrixPlan(user);
 
+  const [isExpanded, setIsExpanded] = useState(false);
+
   // Nested Overlay State Controllers
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isFrameworkOpen, setIsFrameworkOpen] = useState(false);
@@ -123,6 +127,7 @@ export function AgenticDrawer() {
       setAgentName('');
       setAgentGoal('');
       setError(null);
+      setIsExpanded(false);
     }
   }, [isOpen]);
 
@@ -269,11 +274,12 @@ export function AgenticDrawer() {
           borderRight: 0,
         }
       : {
-          height: '75dvh',
-          borderTopLeftRadius: RADIUS_LARGE,
-          borderTopRightRadius: RADIUS_LARGE,
+          height: isExpanded ? '100dvh' : '75dvh',
+          borderTopLeftRadius: isExpanded ? 0 : RADIUS_LARGE,
+          borderTopRightRadius: isExpanded ? 0 : RADIUS_LARGE,
           border: BORDER,
           borderBottom: 0,
+          transition: 'height 0.3s ease-in-out, border-radius 0.3s ease-in-out',
         }),
     bgcolor: SURFACE_ASH,
     boxShadow: '0 -8px 24px rgba(0,0,0,0.5)',
@@ -311,14 +317,15 @@ export function AgenticDrawer() {
                   borderRight: 0,
                 }
               : {
-                  height: '75dvh',
-                  borderTopLeftRadius: RADIUS_LARGE,
-                  borderTopRightRadius: RADIUS_LARGE,
+                  height: isExpanded ? '100dvh' : '75dvh',
+                  borderTopLeftRadius: isExpanded ? 0 : RADIUS_LARGE,
+                  borderTopRightRadius: isExpanded ? 0 : RADIUS_LARGE,
                   border: BORDER,
                   borderBottom: 0,
+                  transition: 'height 0.3s ease-in-out, border-radius 0.3s ease-in-out',
                 }),
             bgcolor: SURFACE_ASH,
-            boxShadow: 'none',
+            boxShadow: '0 -8px 24px rgba(0,0,0,0.5)',
             backgroundImage: 'none',
             overflow: 'hidden',
             display: 'flex',
@@ -381,18 +388,34 @@ export function AgenticDrawer() {
                 </Typography>
               </Stack>
             </Stack>
-            <IconButton
-              onClick={closeAgenticDrawer}
-              aria-label="Close"
-              sx={{
-                color: '#E8E6E3',
-                bgcolor: VOID,
-                border: BORDER,
-                '&:hover': { bgcolor: HOVER },
-              }}
-            >
-              <X size={18} />
-            </IconButton>
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              {!isDesktop && (
+                <IconButton
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  aria-label={isExpanded ? 'Scale down' : 'Scale up'}
+                  sx={{
+                    color: '#E8E6E3',
+                    bgcolor: VOID,
+                    border: BORDER,
+                    '&:hover': { bgcolor: HOVER },
+                  }}
+                >
+                  {isExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                </IconButton>
+              )}
+              <IconButton
+                onClick={closeAgenticDrawer}
+                aria-label="Close"
+                sx={{
+                  color: '#E8E6E3',
+                  bgcolor: VOID,
+                  border: BORDER,
+                  '&:hover': { bgcolor: HOVER },
+                }}
+              >
+                <X size={16} />
+              </IconButton>
+            </Stack>
           </Stack>
 
           {/* Stats Bar */}
@@ -607,6 +630,20 @@ export function AgenticDrawer() {
                   Initialize System
                 </Typography>
               </Stack>
+              {!isDesktop && (
+                <IconButton
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  aria-label={isExpanded ? 'Scale down' : 'Scale up'}
+                  sx={{
+                    color: '#E8E6E3',
+                    bgcolor: VOID,
+                    border: BORDER,
+                    '&:hover': { bgcolor: HOVER },
+                  }}
+                >
+                  {isExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                </IconButton>
+              )}
             </Stack>
 
             {/* Main Form Scroll Area */}

@@ -34,6 +34,8 @@ import type { Credentials, CredentialsCreate } from '@/lib/appwrite/types';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { generateRandomPassword } from '@/utils/password';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
+import { ArrowUpRight, ChevronUp, ChevronDown } from 'lucide-react';
+import { useSection } from '@/context/SectionContext';
 
 const VAULT_PRIMARY = "#10B981"; // Emerald
 const SURFACE_COLOR = "#161412";
@@ -58,6 +60,13 @@ export default function CredentialDialog({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user } = useAppwriteVault();
   const { setIsDrawerOpen } = useDrawerState();
+  const { setActiveDetail } = useSection();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleClose = () => {
+    onClose();
+    setIsExpanded(false);
+  };
 
   useEffect(() => {
     setIsDrawerOpen(open);
@@ -247,13 +256,94 @@ export default function CredentialDialog({
       if (customFields.length > 0)
         credentialData.customFields = JSON.stringify(customFields) as string;
 
+      let saved: any;
       if (initial && initial.$id) {
-        await updateCredential(initial.$id, credentialData);
+        saved = await updateCredential(initial.$id, credentialData);
       } else {
-        await createCredential(credentialData);
+        saved = await createCredential(credentialData);
       }
       onSaved();
-      onClose();
+      handleClose();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      setError(err.message || "Failed to save credential.");
+    }
+    setLoading(false);
+  };
+
+  const handleMorphToDetail = async () => {
+    if (!form.name.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const type = currentType;
+      const credentialData: CredentialsCreate = {
+        userId: user?.$id || "",
+        name: form.name.trim(),
+        itemType: type,
+        username: null,
+        url: null,
+        notes: null,
+        totpId: initial?.totpId || null,
+        cardNumber: null,
+        cardholderName: null,
+        cardExpiry: null,
+        cardCVV: null,
+        cardPIN: null,
+        cardType: null,
+        folderId: initial?.folderId || null,
+        tags: null,
+        customFields: null,
+        faviconUrl: null,
+        isFavorite: initial?.isFavorite || false,
+        isDeleted: initial?.isDeleted || false,
+        deletedAt: initial?.deletedAt || null,
+        lastAccessedAt: initial?.lastAccessedAt || null,
+        passwordChangedAt: initial?.passwordChangedAt || null,
+        password: null,
+        createdAt:
+          initial && initial.createdAt
+            ? initial.createdAt
+            : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (type === 'login') {
+        credentialData.username = form.username.trim();
+        credentialData.password = form.password.trim();
+        if (form.url && form.url.trim()) credentialData.url = form.url.trim();
+      } else if (type === 'card') {
+        credentialData.cardNumber = form.cardNumber.trim();
+        credentialData.cardholderName = form.cardholderName.trim();
+        credentialData.cardExpiry = form.cardExpiry.trim();
+        credentialData.cardCVV = form.cardCVV.trim();
+        credentialData.cardPIN = form.cardPIN.trim();
+        credentialData.cardType = form.cardType.trim();
+      }
+
+      if (form.notes && form.notes.trim())
+        credentialData.notes = form.notes.trim();
+      if (form.tags && form.tags.trim()) {
+        const tagsArr = form.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0);
+        if (tagsArr.length > 0) credentialData.tags = tagsArr;
+      }
+      if (customFields.length > 0)
+        credentialData.customFields = JSON.stringify(customFields) as string;
+
+      let saved: any;
+      if (initial && initial.$id) {
+        saved = await updateCredential(initial.$id, credentialData);
+      } else {
+        saved = await createCredential(credentialData);
+      }
+      onSaved();
+      if (saved && (saved.$id || saved.id)) {
+        setActiveDetail({ type: 'secret', id: saved.$id || saved.id, data: saved });
+      }
+      handleClose();
     } catch (e: unknown) {
       const err = e as { message?: string };
       setError(err.message || "Failed to save credential.");
@@ -267,21 +357,22 @@ export default function CredentialDialog({
     <Drawer
       anchor={isMobile ? 'bottom' : 'right'}
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       ModalProps={{ keepMounted: false }}
       PaperProps={{
         sx: {
           width: isMobile ? '100%' : 'min(100vw, 600px)',
           maxWidth: '100%',
-          height: isMobile ? '60dvh' : '100%',
-          maxHeight: isMobile ? '60dvh' : '100dvh',
+          height: isMobile ? (isExpanded ? '100dvh' : '60dvh') : '100%',
+          maxHeight: '100dvh',
           bgcolor: BG_COLOR,
           backdropFilter: 'blur(32px) saturate(200%)',
           border: isMobile ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(255, 255, 255, 0.05)',
           backgroundImage: 'none',
-          borderRadius: isMobile ? '24px 24px 0 0' : '0',
+          borderRadius: isMobile ? (isExpanded ? 0 : '24px 24px 0 0') : '0',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          transition: 'height 0.3s ease-in-out'
         }
       }}
     >
@@ -305,9 +396,21 @@ export default function CredentialDialog({
             <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: VAULT_PRIMARY, boxShadow: `0 0 15px ${VAULT_PRIMARY}` }} />
             {initial ? "Edit" : "New"} {currentType.charAt(0).toUpperCase() + currentType.slice(1)}
           </Box>
-          <IconButton onClick={onClose} size="small" sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' } }}>
-            <CloseIcon sx={{ fontSize: 20 }} />
-          </IconButton>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            {form.name.trim().length > 0 && (
+              <IconButton onClick={handleMorphToDetail} size="small" sx={{ color: '#F59E0B', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' } }} title="Go Full Detail">
+                <ArrowUpRight size={20} />
+              </IconButton>
+            )}
+            {isMobile && (
+              <IconButton onClick={() => setIsExpanded(!isExpanded)} size="small" sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+              </IconButton>
+            )}
+            <IconButton onClick={handleClose} size="small" sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+              <CloseIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Stack>
         </Box>
 
         {/* Content */}

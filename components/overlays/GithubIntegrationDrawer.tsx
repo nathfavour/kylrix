@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Typography, IconButton, Button, Stack, alpha, Switch, FormControlLabel, useTheme, useMediaQuery, Chip, TextField, LinearProgress, CircularProgress } from '@mui/material';
-import { X, GitBranch, Terminal, Shield, RefreshCw, CheckCircle, ChevronRight, ArrowLeft, AlertCircle, Play, ChevronDown, ChevronUp, Info, GitPullRequest } from 'lucide-react';
+import { X, GitBranch, Terminal, Shield, RefreshCw, CheckCircle, ChevronRight, ArrowLeft, AlertCircle, Play, ChevronDown, ChevronUp, Info, GitPullRequest, ArrowUpRight } from 'lucide-react';
 import Drawer from '@mui/material/Drawer';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import toast from 'react-hot-toast';
@@ -10,6 +10,7 @@ import { account } from '@/lib/appwrite';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useSudo } from '@/context/SudoContext';
 import { SourceControlService } from '@/lib/services/sourceControl';
+import { useSection } from '@/context/SectionContext';
 
 import { OAuthProvider } from 'appwrite';
 
@@ -72,7 +73,8 @@ export function GithubIntegrationDrawer({
   projectId,
   context = 'settings',
   onSaved,
-  tasks = []
+  tasks = [],
+  isFlapover = false
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -80,12 +82,24 @@ export function GithubIntegrationDrawer({
   context?: 'settings' | 'project';
   onSaved?: () => void;
   tasks?: any[];
+  isFlapover?: boolean;
 }) {
   const { setIsDrawerOpen } = useDrawerState();
+  const { setActiveDetail } = useSection();
+  const [isExpanded, setIsExpanded] = useState(false);
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const { user } = useAuth();
   const kylrixEmail = user?.email || '';
+  
+  const handleMorphToDetail = () => {
+    setActiveDetail({
+      type: 'github' as any,
+      id: 'default',
+      data: { projectId, context, onSaved, tasks }
+    });
+    onClose();
+  };
   
   const [githubConnected, setGithubConnected] = useState(false);
   const [githubUser, setGithubUser] = useState<any | null>(null);
@@ -525,53 +539,38 @@ export function GithubIntegrationDrawer({
     });
   };
 
-  return (
-    <Drawer 
-        anchor={isDesktop ? 'right' : 'bottom'} 
-        open={isOpen} 
-        onClose={onClose} 
-        PaperProps={{ 
-            sx: {
-                bgcolor: '#161412',
-                backgroundImage: 'none',
-                color: '#fff',
-                ...(isDesktop ? {
-                    height: '100%',
-                    maxWidth: 480,
-                    width: '100%',
-                    borderLeft: '1px solid #1C1A18',
-                    borderTopLeftRadius: 0,
-                    borderTopRightRadius: 0,
-                } : {
-                    height: '60dvh',
-                    borderTopLeftRadius: '28px',
-                    borderTopRightRadius: '28px',
-                    borderTop: '1px solid #1C1A18',
-                    maxWidth: 720,
-                    width: '100%',
-                    mx: 'auto',
-                })
-            } 
-        }} 
-        ModalProps={{ keepMounted: false, disableScrollLock: false, disablePortal: true }}
-    >
-      <Box sx={{ p: 3, pb: 'calc(1.5rem + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: '12px', bgcolor: 'rgba(255, 255, 255, 0.08)', color: 'white', flexShrink: 0, '& svg': { width: 22, height: 22 } }}>
-              {GITHUB_ICON}
-            </Box>
-            <Box>
-              <Typography sx={{ fontWeight: 900, fontSize: '1.25rem', color: '#fff', fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em' }}>
-                GitHub Integration
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.45)', mt: 0.5 }}>
-                Connect your GitHub account to access repositories, manage sync settings, and export tasks.
-              </Typography>
-            </Box>
+  const innerContent = (
+    <Box sx={{ p: 3, pb: 'calc(1.5rem + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', bgcolor: '#161412' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: '12px', bgcolor: 'rgba(255, 255, 255, 0.08)', color: 'white', flexShrink: 0, '& svg': { width: 22, height: 22 } }}>
+            {GITHUB_ICON}
           </Box>
-          <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)', p: 0.5 }}><X size={20} /></IconButton>
+          <Box>
+            <Typography sx={{ fontWeight: 900, fontSize: '1.25rem', color: '#fff', fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em' }}>
+              GitHub Integration
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.45)', mt: 0.5 }}>
+              Connect your GitHub account to access repositories, manage sync settings, and export tasks.
+            </Typography>
+          </Box>
         </Box>
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          {!isFlapover && (
+            <IconButton onClick={handleMorphToDetail} size="small" sx={{ color: '#F59E0B' }} title="Go Full Detail">
+              <ArrowUpRight size={20} />
+            </IconButton>
+          )}
+          {!isDesktop && !isFlapover && (
+            <IconButton onClick={() => setIsExpanded(!isExpanded)} size="small" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+              {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+            </IconButton>
+          )}
+          <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)', p: 0.5 }}>
+            <X size={20} />
+          </IconButton>
+        </Stack>
+      </Box>
 
         {disconnectStep === 1 ? (
           <Stack spacing={3}>
@@ -1269,6 +1268,44 @@ export function GithubIntegrationDrawer({
           </Stack>
         )}
       </Box>
+  );
+
+  if (isFlapover) {
+    return innerContent;
+  }
+
+  return (
+    <Drawer 
+        anchor={isDesktop ? 'right' : 'bottom'} 
+        open={isOpen} 
+        onClose={onClose} 
+        PaperProps={{ 
+            sx: {
+                bgcolor: '#161412',
+                backgroundImage: 'none',
+                color: '#fff',
+                ...(isDesktop ? {
+                    height: '100%',
+                    maxWidth: 480,
+                    width: '100%',
+                    borderLeft: '1px solid #1C1A18',
+                    borderTopLeftRadius: 0,
+                    borderTopRightRadius: 0,
+                } : {
+                    height: isExpanded ? '100dvh' : '60dvh',
+                    transition: 'height 0.3s ease-in-out',
+                    borderTopLeftRadius: '28px',
+                    borderTopRightRadius: '28px',
+                    borderTop: '1px solid #1C1A18',
+                    maxWidth: 720,
+                    width: '100%',
+                    mx: 'auto',
+                })
+            } 
+        }} 
+        ModalProps={{ keepMounted: false, disableScrollLock: false, disablePortal: true }}
+    >
+      {innerContent}
     </Drawer>
   );
 }

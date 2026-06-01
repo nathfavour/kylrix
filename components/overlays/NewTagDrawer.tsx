@@ -20,13 +20,17 @@ import {
 import { 
   X as CloseIcon,
   Plus as PlusIcon,
-  Tag as TagIcon
+  Tag as TagIcon,
+  ArrowUpRight,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { Tags } from '@/types/appwrite';
 import { createTag, updateTag } from '@/lib/appwrite';
 import { useAuth } from '@/context/auth/AuthContext';
 import { ID } from 'appwrite';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+import { useSection } from '@/context/SectionContext';
 
 const SURFACE_ASH = '#161412';
 const VOID = '#0A0908';
@@ -61,6 +65,7 @@ export function NewTagDrawer() {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const { activeContent, drawerData, close } = useUnifiedDrawer();
+  const { setActiveDetail } = useSection();
   const isOpen = activeContent === 'new-tag';
   const { user } = useAuth();
   
@@ -132,6 +137,45 @@ export function NewTagDrawer() {
     }
   };
 
+  const handleMorphToDetail = async () => {
+    if (!user?.$id || !formData.name.trim()) return;
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      let savedTag: any;
+      if (editingTag) {
+        savedTag = await updateTag(editingTag.$id, {
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          color: formData.color,
+        });
+      } else {
+        savedTag = await createTag({
+          id: ID.unique(),
+          userId: user.$id,
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          color: formData.color,
+          notes: [],
+          usageCount: 0,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      
+      if (onSuccess) onSuccess();
+      if (savedTag) {
+        setActiveDetail({ type: 'tag', id: savedTag.$id || savedTag.id || formData.name.trim(), data: savedTag });
+      }
+      close();
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : 'Failed to save tag');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const fontUi = 'var(--font-satoshi)';
   const fontDisplay = 'var(--font-clash)';
 
@@ -162,9 +206,9 @@ export function NewTagDrawer() {
                 borderRight: 0,
               }
             : {
-                height: isExpanded ? '92dvh' : '60dvh',
+                height: isExpanded ? '100dvh' : '60dvh',
                 minHeight: '60dvh',
-                maxHeight: '92dvh',
+                maxHeight: '100dvh',
                 transition: BRAND_TRANSITION,
                 borderTopLeftRadius: RADIUS_LARGE,
                 borderTopRightRadius: RADIUS_LARGE,
@@ -180,20 +224,11 @@ export function NewTagDrawer() {
         },
       }}
     >
-      {!isDesktop && (
-        <Box 
-            sx={{ display: 'flex', justifyContent: 'center', py: 1.5, cursor: 'pointer' }}
-            onClick={() => setIsExpanded(!isExpanded)}
-        >
-          <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: '#3D3A36' }} aria-hidden />
-        </Box>
-      )}
-
       <Box
         sx={{
           px: { xs: 2.25, sm: 2.75 },
           pb: 'max(20px, env(safe-area-inset-bottom))',
-          pt: 0,
+          pt: 3,
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
@@ -227,18 +262,52 @@ export function NewTagDrawer() {
               {editingTag ? 'Edit Tag' : 'New Tag'}
             </Typography>
           </Stack>
-          <IconButton
-            onClick={close}
-            aria-label="Close"
-            sx={{
-              color: '#E8E6E3',
-              bgcolor: VOID,
-              border: BORDER,
-              '&:hover': { bgcolor: HOVER },
-            }}
-          >
-            <CloseIcon size={18} />
-          </IconButton>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            {formData.name.trim().length > 0 && (
+              <IconButton 
+                onClick={handleMorphToDetail} 
+                aria-label="Go Full Detail"
+                title="Go Full Detail"
+                sx={{
+                  color: '#F59E0B',
+                  bgcolor: VOID,
+                  border: BORDER,
+                  borderRadius: RADIUS_SMALL,
+                  '&:hover': { bgcolor: HOVER }
+                }}
+              >
+                <ArrowUpRight size={18} />
+              </IconButton>
+            )}
+            {!isDesktop && (
+              <IconButton 
+                onClick={() => setIsExpanded(!isExpanded)} 
+                aria-label="Toggle Fullscreen"
+                sx={{
+                  color: '#E8E6E3',
+                  bgcolor: VOID,
+                  border: BORDER,
+                  borderRadius: RADIUS_SMALL,
+                  '&:hover': { bgcolor: HOVER }
+                }}
+              >
+                {isExpanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+              </IconButton>
+            )}
+            <IconButton
+              onClick={close}
+              aria-label="Close"
+              sx={{
+                color: '#E8E6E3',
+                bgcolor: VOID,
+                border: BORDER,
+                borderRadius: RADIUS_SMALL,
+                '&:hover': { bgcolor: HOVER },
+              }}
+            >
+              <CloseIcon size={18} />
+            </IconButton>
+          </Stack>
         </Stack>
 
         <Box 

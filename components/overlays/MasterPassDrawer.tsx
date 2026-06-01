@@ -795,13 +795,14 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
       }}
       PaperProps={{
         sx: {
-          borderRadius: isMobile ? '24px 24px 0 0' : '0',
+          borderRadius: '0',
           bgcolor: SURFACE_COLOR,
-          border: isMobile ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-          width: isMobile ? '100%' : '420px',
-          maxHeight: isMobile ? '90vh' : 'calc(100dvh - 88px)',
-          height: isMobile ? 'auto' : 'calc(100dvh - 88px)',
-          top: isMobile ? 0 : '88px',
+          border: 'none',
+          width: '100vw',
+          maxWidth: '100vw',
+          maxHeight: '100dvh',
+          height: '100dvh',
+          top: 0,
         }
       }}
     >

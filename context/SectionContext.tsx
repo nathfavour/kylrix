@@ -17,6 +17,7 @@ import { TagNotesListSidebar } from '@/components/ui/TagNotesListSidebar';
 import { PublicCall } from '@/app/(app)/connect/call/[id]/PublicCall';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { HuddleChatWindow } from '@/components/chat/HuddleChatWindow';
+import { GithubIntegrationDrawer } from '@/components/overlays/GithubIntegrationDrawer';
 
 // Helper imports for note detail fetching
 import { Notes } from '@/types/appwrite';
@@ -30,7 +31,7 @@ import { useAuth } from '@/context/auth/AuthContext';
 import { getNote as getChatNote } from '@/lib/appwrite/note';
 
 export interface ActiveDetail {
-  type: 'note' | 'moment' | 'goal' | 'form' | 'event' | 'tag' | 'secret' | 'chat' | 'call';
+  type: 'note' | 'moment' | 'goal' | 'form' | 'event' | 'tag' | 'secret' | 'chat' | 'call' | 'github';
   id: string;
   data?: any; // Extra initial payload if we have it
 }
@@ -430,6 +431,8 @@ export function DetailSectionWrapper({ detail, onClose }: { detail: ActiveDetail
       return <PublicCall id={detail.id} />;
     case 'chat':
       return <ChatDetailContainer conversationId={detail.id} onBack={onClose} />;
+    case 'github':
+      return <GithubIntegrationDrawer isOpen={true} onClose={onClose} {...detail.data} isFlapover={true} />;
     default:
       return null;
   }

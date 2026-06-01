@@ -16,6 +16,7 @@ import {
   Switch,
   useTheme,
   useMediaQuery,
+  Stack,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -33,6 +34,9 @@ import { addHours } from 'date-fns';
 import { EventVisibility } from '@/lib/permissions';
 import UserSearch from '@/components/UserSearch';
 
+import { ArrowUpRight, ChevronUp, ChevronDown } from 'lucide-react';
+import { useSection } from '@/context/SectionContext';
+
 interface User {
   id: string;
   title: string;
@@ -44,12 +48,14 @@ interface User {
 interface EventDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (eventData: any) => void;
+  onSubmit: (eventData: any) => any;
 }
 
 export const EventDialog: React.FC<EventDialogProps> = ({ open, onClose, onSubmit }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { setActiveDetail } = useSection();
+  const [isExpanded, setIsExpanded] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startTime, setStartTime] = useState<Date | null>(new Date());
@@ -96,6 +102,29 @@ export const EventDialog: React.FC<EventDialogProps> = ({ open, onClose, onSubmi
   const handleClose = () => {
     onClose();
     resetForm();
+    setIsExpanded(false);
+  };
+
+  const handleMorphToDetail = async () => {
+    if (!title.trim() || !startTime || !endTime) return;
+
+    const result = await onSubmit({
+      title,
+      description,
+      startTime,
+      endTime,
+      location,
+      url,
+      coverImage,
+      visibility,
+      guests: selectedGuests.map(g => g.id),
+      autoCreateCall
+    });
+
+    if (result && (result.id || result.$id)) {
+      setActiveDetail({ type: 'event', id: result.id || result.$id, data: result });
+    }
+    handleClose();
   };
 
   return (
@@ -110,7 +139,8 @@ export const EventDialog: React.FC<EventDialogProps> = ({ open, onClose, onSubmi
           sx: {
             width: isMobile ? '100%' : 'min(100vw, 600px)',
             maxWidth: '100%',
-            height: isMobile ? '92dvh' : '100%',
+            height: isMobile ? (isExpanded ? '100dvh' : '60dvh') : '100%',
+            transition: 'height 0.3s ease-in-out',
             maxHeight: '100dvh',
             bgcolor: '#161412',
             border: '1px solid #34322F',
@@ -153,9 +183,21 @@ export const EventDialog: React.FC<EventDialogProps> = ({ open, onClose, onSubmi
               </Typography>
             </Box>
           </Box>
-          <IconButton onClick={handleClose} sx={{ color: '#8E8A86', '&:hover': { color: 'white', bgcolor: '#1C1A18' } }}>
-            <CloseIcon sx={{ fontSize: 20 }} />
-          </IconButton>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            {title.trim().length > 0 && (
+              <IconButton onClick={handleMorphToDetail} size="small" sx={{ color: '#F59E0B', '&:hover': { color: 'white', bgcolor: '#1C1A18' } }} title="Go Full Detail">
+                <ArrowUpRight size={20} />
+              </IconButton>
+            )}
+            {isMobile && (
+              <IconButton onClick={() => setIsExpanded(!isExpanded)} size="small" sx={{ color: '#8E8A86', '&:hover': { color: '#F5F2ED', bgcolor: '#1C1A18' } }}>
+                {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+              </IconButton>
+            )}
+            <IconButton onClick={handleClose} sx={{ color: '#8E8A86', '&:hover': { color: 'white', bgcolor: '#1C1A18' } }}>
+              <CloseIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Stack>
         </Box>
 
         {/* Content */}

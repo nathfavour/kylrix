@@ -150,8 +150,10 @@ export default function EventList() {
 
       setEvents([newEvent, ...events]);
       setIsDialogOpen(false);
+      return newEvent;
     } catch (_error: unknown) {
       console.error('Failed to create event', _error);
+      return null;
     }
   };
 

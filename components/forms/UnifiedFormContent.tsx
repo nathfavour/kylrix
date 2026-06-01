@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useEffect, useState } from 'react';
 import { 
     Box, 
@@ -20,21 +18,24 @@ import {
     FormControl,
     IconButton,
     Stack,
-    alpha
+    alpha,
+    Drawer,
+    useTheme,
+    useMediaQuery
 } from '@mui/material';
 import { 
     Send as SendIcon, 
     CheckCircleOutline as SuccessIcon,
-    Close as CloseIcon,
-    Upload as UploadIcon,
-    X as XIcon
+    Upload as UploadIcon
 } from '@mui/icons-material';
+import { ArrowUpRight, ChevronUp, ChevronDown, X as XIcon } from 'lucide-react';
 import { FormsService } from '@/lib/services/forms';
 import { Forms } from '@/generated/appwrite/types';
 import { useDataNexus } from '@/context/DataNexusContext';
 import { secureUploadFile } from '@/lib/actions/client-ops';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { useAuth } from '@/context/auth/AuthContext';
+import { useSection } from '@/context/SectionContext';
 
 interface UnifiedFormContentProps {
     formId: string;
@@ -42,11 +43,20 @@ interface UnifiedFormContentProps {
 }
 
 export function UnifiedFormContent({ formId, onClose }: UnifiedFormContentProps) {
+    const theme = useTheme();
+    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+    const { setActiveDetail } = useSection();
+    const [isExpanded, setIsExpanded] = useState(false);
     const { fetchOptimized } = useDataNexus();
     const { user } = useAuth();
     const [form, setForm] = useState<Forms | null>(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+
+    const handleMorphToDetail = () => {
+        setActiveDetail({ type: 'form', id: formId });
+        onClose();
+    };
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState<Record<string, any>>({});
@@ -178,7 +188,7 @@ export function UnifiedFormContent({ formId, onClose }: UnifiedFormContentProps)
                                     </Typography>
                                 </Box>
                                 <IconButton size="small" onClick={() => handleFieldChange(field.id, null)} sx={{ color: '#FF453A' }}>
-                                    <XIcon sx={{ fontSize: 16 }} />
+                                    <XIcon size={16} />
                                 </IconButton>
                             </Box>
                         ) : (
@@ -250,84 +260,119 @@ export function UnifiedFormContent({ formId, onClose }: UnifiedFormContentProps)
     try { schema = JSON.parse(form?.schema || '[]'); } catch (_e) {}
 
     return (
-        <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            maxHeight: '60dvh',
-            bgcolor: '#050505',
-            backgroundImage: 'radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%)',
-            color: 'white',
-            overflow: 'hidden'
-        }}>
-            <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)' }}>
-                    {form?.title || 'Intelligence Portal'}
-                </Typography>
-                <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.3)' }}>
-                    <XIcon />
-                </IconButton>
-            </Box>
-
-            <Box sx={{ flex: 1, overflowY: 'auto', p: 4 }}>
-                {loading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                        <CircularProgress />
-                    </Box>
-                ) : submitted ? (
-                    <Fade in={true}>
-                        <Box sx={{ textAlign: 'center', py: 4 }}>
-                            <SuccessIcon sx={{ fontSize: 64, color: '#6366F1', mb: 2 }} />
-                            <Typography variant="h5" sx={{ fontWeight: 900, mb: 1 }}>Transmission Complete</Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4 }}>
-                                Your request has been securely injected into the Kylrix nexus.
-                            </Typography>
-                            <Button variant="outlined" onClick={onClose} sx={{ borderRadius: '12px', px: 4 }}>Done</Button>
-                        </Box>
-                    </Fade>
-                ) : error ? (
-                    <Alert severity="error" sx={{ borderRadius: '16px' }}>{error}</Alert>
-                ) : (
-                    <Box component="form" onSubmit={handleSubmit}>
-                        {form?.description && (
-                            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4, lineHeight: 1.6 }}>
-                                {form.description}
-                            </Typography>
+        <Drawer
+            anchor={isDesktop ? 'right' : 'bottom'}
+            open={true}
+            onClose={onClose}
+            ModalProps={{ keepMounted: false, disablePortal: true }}
+            PaperProps={{
+                sx: {
+                    bgcolor: '#161412',
+                    ...(isDesktop ? {
+                        borderLeft: '1px solid rgba(255,255,255,0.08)',
+                        height: '100%',
+                        maxWidth: 480,
+                        width: '100%'
+                    } : {
+                        borderTop: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '32px 32px 0 0',
+                        height: isExpanded ? '100dvh' : '60dvh',
+                        transition: 'height 0.3s ease-in-out',
+                        maxHeight: '100dvh',
+                    }),
+                    overflow: 'hidden'
+                }
+            }}
+        >
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                height: '100%',
+                bgcolor: '#050505',
+                backgroundImage: 'radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%)',
+                color: 'white',
+                overflow: 'hidden'
+            }}>
+                <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)' }}>
+                        {form?.title || 'Intelligence Portal'}
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                        <IconButton onClick={handleMorphToDetail} size="small" sx={{ color: '#F59E0B' }} title="Go Full Detail">
+                            <ArrowUpRight size={20} />
+                        </IconButton>
+                        {!isDesktop && (
+                            <IconButton onClick={() => setIsExpanded(!isExpanded)} size="small" sx={{ color: 'rgba(255,255,255,0.3)' }}>
+                                {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+                            </IconButton>
                         )}
+                        <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.3)' }}>
+                            <XIcon />
+                        </IconButton>
+                    </Stack>
+                </Box>
 
-                        <Stack spacing={4}>
-                            {schema.map((field) => (
-                                <Box key={field.id}>
-                                    <Typography variant="caption" sx={{ display: 'block', fontWeight: 900, color: 'text.secondary', mb: 1.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                                        {field.label} {field.required && <Box component="span" sx={{ color: '#ef4444' }}>*</Box>}
-                                    </Typography>
-                                    {renderField(field)}
-                                </Box>
-                            ))}
-                        </Stack>
-
-                        <Box sx={{ mt: 6, pb: 4 }}>
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                fullWidth
-                                disabled={submitting}
-                                startIcon={submitting ? <CircularProgress size={20} /> : <SendIcon />}
-                                sx={{
-                                    py: 2,
-                                    borderRadius: '16px',
-                                    fontWeight: 900,
-                                    bgcolor: '#6366F1',
-                                    color: 'black',
-                                    boxShadow: '0 8px 32px rgba(99, 102, 241, 0.3)',
-                                    '&:hover': { bgcolor: alpha('#6366F1', 0.9) }
-                                }}
-                            >
-                                {submitting ? 'Transmitting...' : 'Submit Request'}
-                            </Button>
+                <Box sx={{ flex: 1, overflowY: 'auto', p: 4 }}>
+                    {loading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                            <CircularProgress />
                         </Box>
-                    </Box>
-                )}
+                    ) : submitted ? (
+                        <Fade in={true}>
+                            <Box sx={{ textAlign: 'center', py: 4 }}>
+                                <SuccessIcon sx={{ fontSize: 64, color: '#6366F1', mb: 2 }} />
+                                <Typography variant="h5" sx={{ fontWeight: 900, mb: 1 }}>Transmission Complete</Typography>
+                                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4 }}>
+                                    Your request has been securely injected into the Kylrix nexus.
+                                </Typography>
+                                <Button variant="outlined" onClick={onClose} sx={{ borderRadius: '12px', px: 4 }}>Done</Button>
+                            </Box>
+                        </Fade>
+                    ) : error ? (
+                        <Alert severity="error" sx={{ borderRadius: '16px' }}>{error}</Alert>
+                    ) : (
+                        <Box component="form" onSubmit={handleSubmit}>
+                            {form?.description && (
+                                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4, lineHeight: 1.6 }}>
+                                    {form.description}
+                                </Typography>
+                            )}
+
+                            <Stack spacing={4}>
+                                {schema.map((field) => (
+                                    <Box key={field.id}>
+                                        <Typography variant="caption" sx={{ display: 'block', fontWeight: 900, color: 'text.secondary', mb: 1.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                                            {field.label} {field.required && <Box component="span" sx={{ color: '#ef4444' }}>*</Box>}
+                                        </Typography>
+                                        {renderField(field)}
+                                    </Box>
+                                ))}
+                            </Stack>
+
+                            <Box sx={{ mt: 6, pb: 4 }}>
+                                <Button
+                                    type="submit"
+                                    variant="contained"
+                                    fullWidth
+                                    disabled={submitting}
+                                    startIcon={submitting ? <CircularProgress size={20} /> : <SendIcon />}
+                                    sx={{
+                                        py: 2,
+                                        borderRadius: '16px',
+                                        fontWeight: 900,
+                                        bgcolor: '#6366F1',
+                                        color: 'black',
+                                        boxShadow: '0 8px 32px rgba(99, 102, 241, 0.3)',
+                                        '&:hover': { bgcolor: alpha('#6366F1', 0.9) }
+                                    }}
+                                >
+                                    {submitting ? 'Transmitting...' : 'Submit Request'}
+                                </Button>
+                            </Box>
+                        </Box>
+                    )}
+                </Box>
             </Box>
-        </Box>
+        </Drawer>
     );
 }

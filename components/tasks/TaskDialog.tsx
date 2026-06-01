@@ -18,6 +18,7 @@ import {
   Autocomplete,
   useTheme,
   useMediaQuery,
+  Stack,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -29,6 +30,9 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import UserSearch from '@/components/UserSearch';
 import { useTask } from '@/context/TaskContext';
 import { Priority, TaskStatus } from '@/types';
+
+import { ArrowUpRight, ChevronUp, ChevronDown } from 'lucide-react';
+import { useSection } from '@/context/SectionContext';
 
 interface User {
   id: string;
@@ -53,6 +57,8 @@ const statusOptions: { value: TaskStatus; label: string }[] = [
 export default function TaskDialog() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { setActiveDetail } = useSection();
+  const [isExpanded, setIsExpanded] = useState(false);
   const {
     taskDialogOpen,
     setTaskDialogOpen,
@@ -76,6 +82,7 @@ export default function TaskDialog() {
   const handleClose = () => {
     setTaskDialogOpen(false);
     resetForm();
+    setIsExpanded(false);
   };
 
   const resetForm = () => {
@@ -88,6 +95,39 @@ export default function TaskDialog() {
     setDueDate(null);
     setEstimatedTime('');
     setSelectedAssignees([]);
+  };
+
+  const handleMorphToDetail = async () => {
+    if (!title.trim()) return;
+
+    const newTask = await addTask({
+      title: title.trim(),
+      description: description.trim() || undefined,
+      priority,
+      status,
+      projectId,
+      labels: selectedLabels,
+      dueDate: dueDate || undefined,
+      estimatedTime: estimatedTime ? parseInt(estimatedTime, 10) : undefined,
+      subtasks: [],
+      comments: [],
+      attachments: [],
+      reminders: [],
+      timeEntries: [],
+      assigneeIds: selectedAssignees.length > 0
+        ? selectedAssignees.map(u => u.id).filter((id): id is string => id !== null)
+        : creatorId && creatorId !== 'guest'
+          ? [creatorId]
+          : [],
+      creatorId: creatorId || 'guest',
+      isPinned: false,
+      isArchived: false,
+    });
+
+    if (newTask && newTask.id) {
+      setActiveDetail({ type: 'goal', id: newTask.id });
+    }
+    handleClose();
   };
 
   const handleSubmit = () => {
@@ -137,7 +177,8 @@ export default function TaskDialog() {
           sx: {
             width: isMobile ? '100%' : 'min(100vw, 640px)',
             maxWidth: '100%',
-            height: isMobile ? '92dvh' : '100%',
+            height: isMobile ? (isExpanded ? '100dvh' : '60dvh') : '100%',
+            transition: 'height 0.3s ease-in-out',
             maxHeight: '100dvh',
             borderTopLeftRadius: isMobile ? '26px' : 0,
             borderTopRightRadius: isMobile ? '26px' : 0,
@@ -171,9 +212,21 @@ export default function TaskDialog() {
                 INITIALIZE EXECUTION TRACK
             </Typography>
           </Box>
-          <IconButton onClick={handleClose} size="small" sx={{ color: '#9B9691', '&:hover': { color: '#F5F2ED' } }}>
-            <CloseIcon sx={{ fontSize: 20 }} />
-          </IconButton>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            {title.trim().length > 0 && (
+              <IconButton onClick={handleMorphToDetail} size="small" sx={{ color: '#F59E0B', '&:hover': { color: 'white' } }} title="Go Full Detail">
+                <ArrowUpRight size={20} />
+              </IconButton>
+            )}
+            {isMobile && (
+              <IconButton onClick={() => setIsExpanded(!isExpanded)} size="small" sx={{ color: '#9B9691', '&:hover': { color: '#F5F2ED' } }}>
+                {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+              </IconButton>
+            )}
+            <IconButton onClick={handleClose} size="small" sx={{ color: '#9B9691', '&:hover': { color: '#F5F2ED' } }}>
+              <CloseIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Stack>
         </Box>
 
         <Box sx={{ px: 3, py: 2, flex: 1, overflowY: 'auto' }}>

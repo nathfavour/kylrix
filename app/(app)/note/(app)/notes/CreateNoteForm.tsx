@@ -24,7 +24,7 @@ import {
   Public as PublicIcon,
   Brush as PencilIcon,
 } from '@mui/icons-material';
-import { Check } from 'lucide-react';
+import { Check, ArrowUpRight } from 'lucide-react';
 import { buildAutoTitleFromContent } from '@/constants/noteTitle';
 import { useOverlay } from '@/components/ui/OverlayContext';
 import { useToast } from '@/components/ui/Toast';
@@ -36,6 +36,7 @@ import { useNotes } from '@/context/NotesContext';
 import { useDataNexus } from '@/context/DataNexusContext';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { useSudo } from '@/context/SudoContext';
+import { useSection } from '@/context/SectionContext';
 
 interface CreateNoteFormProps {
   onNoteCreated: (note: Notes) => void;
@@ -60,6 +61,7 @@ export default function CreateNoteForm({
 }: CreateNoteFormProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { setActiveDetail } = useSection();
   const { closeOverlay } = useOverlay();
   const { showSuccess, showError } = useToast();
   const { notes: allNotes } = useNotes();
@@ -381,6 +383,18 @@ export default function CreateNoteForm({
     }
   }, [composerKind, content, format, hasPaywall, isPublic, onNoteCreated, paywallAmount, persistedIsPublic, promptSudo, resolvedNoteId, setCachedData, showError, showSuccess, tags, title]);
 
+  const handleMorphToDetail = useCallback(async () => {
+    try {
+      const saved = await persist(false);
+      if (saved && saved.$id) {
+        setActiveDetail({ type: 'note', id: saved.$id });
+      }
+      closeOverlay();
+    } catch (err) {
+      console.error('Failed to morph note to detail', err);
+    }
+  }, [persist, setActiveDetail, closeOverlay]);
+
   const handleClose = useCallback(async () => {
     const shouldPersist = Boolean((resolvedNoteId && isDirty) || (!resolvedNoteId && (title.trim() || content.trim())));
     if (shouldPersist) {
@@ -502,6 +516,12 @@ export default function CreateNoteForm({
               <ToggleButton value={false}><PrivateIcon fontSize="small" /></ToggleButton>
               <ToggleButton value={true}><PublicIcon fontSize="small" /></ToggleButton>
             </ToggleButtonGroup>
+
+            {(content.trim().length > 0 || title.trim().length > 0) && (
+              <IconButton onClick={handleMorphToDetail} sx={{ color: '#F59E0B' }} title="Go Full Detail">
+                <ArrowUpRight size={20} />
+              </IconButton>
+            )}
 
             <IconButton onClick={() => setIsExpanded((prev) => !prev)} sx={{ color: 'rgba(255,255,255,0.7)' }}>
               {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}

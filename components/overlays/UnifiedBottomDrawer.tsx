@@ -83,7 +83,7 @@ export function UnifiedBottomDrawer() {
   if (!content) return null;
 
   // Some components handle their own Drawer wrapper, but for new simple ones we wrap them
-  if (['secure-chat-setup', 'delete-confirm', 'project-invite', 'form'].includes(activeContent)) {
+  if (['secure-chat-setup', 'delete-confirm', 'project-invite'].includes(activeContent)) {
     return (
         <Drawer
             anchor={isDesktop ? 'right' : 'bottom'}

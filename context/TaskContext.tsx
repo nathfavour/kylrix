@@ -487,7 +487,7 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
 // Context
 interface TaskContextType extends TaskState {
   // Task actions
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'position'>) => void;
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'position'>) => Promise<Task | null>;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   completeTask: (id: string) => void;
@@ -749,10 +749,13 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         await syncTaskAccess(newTask.$id, userId, task.assigneeIds || [], task.title, []);
         invalidateTasksNexus(userId);
 
-        dispatch({ type: 'ADD_TASK', payload: mapAppwriteTaskToTask(newTask) });
+        const mapped = mapAppwriteTaskToTask(newTask);
+        dispatch({ type: 'ADD_TASK', payload: mapped });
+        return mapped;
       } catch (error: unknown) {
         console.error('Failed to create task', error);
         dispatch({ type: 'SET_ERROR', payload: 'Failed to create task' });
+        return null;
       }
     },
     [state.userId, invalidateTasksNexus]
