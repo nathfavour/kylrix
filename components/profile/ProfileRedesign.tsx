@@ -49,8 +49,10 @@ import { toast } from 'react-hot-toast';
 type TabKey = 'moments' | 'replies' | 'pulses';
 
 interface ProfileProps {
-  username?: string;
+  username: string;
+  initialProfile?: any;
 }
+
 
 const TAB_KEYS: TabKey[] = ['moments', 'replies', 'pulses'];
 
@@ -471,7 +473,7 @@ function FeedPanel({
   );
 }
 
-export function ProfileRedesign({ username }: ProfileProps) {
+export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
   const { user: currentUser } = useAuth();
   const { profile: myProfile, refreshProfile: refreshMyProfile } = useProfile();
 
@@ -491,8 +493,8 @@ export function ProfileRedesign({ username }: ProfileProps) {
   const preloadedProfile = normalizedUsername ? getProfileView(normalizedUsername)?.profile || null : null;
   const cachedUsernameProfile = normalizedUsername ? getCachedIdentityByUsername(normalizedUsername) : null;
 
-  const [profile, setProfile] = useState<any>(() => preloadedProfile || cachedUsernameProfile);
-  const [loading, setLoading] = useState(() => !normalizedUsername || !(preloadedProfile || cachedUsernameProfile));
+  const [profile, setProfile] = useState<any>(() => initialProfile || preloadedProfile || cachedUsernameProfile);
+  const [loading, setLoading] = useState(() => !normalizedUsername || !(initialProfile || preloadedProfile || cachedUsernameProfile));
   const [error, setError] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);

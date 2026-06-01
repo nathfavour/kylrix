@@ -101,15 +101,16 @@ const readOnlyFieldSx = {
 interface Props {
   noteId: string;
   keyParam?: string;
+  initialNote?: Notes | null;
 }
 
-export function SendReceiveClient({ noteId, keyParam }: Props) {
+export function SendReceiveClient({ noteId, keyParam, initialNote }: Props) {
   const router = useRouter();
-  const [verifiedNote, setVerifiedNote] = useState<Notes | null>(null);
+  const [verifiedNote, setVerifiedNote] = useState<Notes | null>(initialNote || null);
   const [authorProfile, setAuthorProfile] = useState<any>(null);
   const [authorAvatarUrl, setAuthorAvatarUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoadingNote, setIsLoadingNote] = useState(true);
+  const [isLoadingNote, setIsLoadingNote] = useState(!initialNote);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { user, isAuthenticated, isLoading } = useAuth();
   const [isCopied, setIsCopied] = React.useState(false);
