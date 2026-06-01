@@ -21,7 +21,7 @@ import {
     Calendar
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { format } from 'date-fns';
+import { formatTime } from '@/lib/time-util';
 import { FormattedText } from '../common/FormattedText';
 import toast from 'react-hot-toast';
 

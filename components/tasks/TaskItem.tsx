@@ -25,7 +25,7 @@ import {
   PushPin as PinIcon,
 } from '@mui/icons-material';
 import { useMediaQuery, useTheme } from '@mui/material';
-import { format, isToday, isTomorrow, isPast, isThisWeek } from 'date-fns';
+import { formatTime, isToday, isTomorrow, isPast, isThisWeek } from '@/lib/time-util';
 import { Task, Priority } from '@/types';
 import { useTask } from '@/context/TaskContext';
 import { useLayout } from '@/context/LayoutContext';
@@ -141,8 +141,8 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
   const formatDueDate = (date: Date) => {
     if (isToday(date)) return 'Today';
     if (isTomorrow(date)) return 'Tomorrow';
-    if (isThisWeek(date)) return format(date, 'EEEE');
-    return format(date, 'MMM d');
+    if (isThisWeek(date)) return formatTime(date, { weekday: 'long' });
+    return formatTime(date, { month: 'short', day: 'numeric' });
   };
 
   const getDueDateColor = () => {

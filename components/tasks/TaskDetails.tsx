@@ -38,7 +38,7 @@ import {
   AutoFixHigh as AutoFixHighIcon,
   ArrowBack as BackIcon,
 } from '@mui/icons-material';
-import { format } from 'date-fns';
+import { formatTime } from '@/lib/time-util';
 import { Query } from 'appwrite';
 import { useTask } from '@/context/TaskContext';
 import { Priority, TaskStatus } from '@/types';
@@ -847,7 +847,7 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'text.secondary' }}>
                  <CalendarIcon sx={{ fontSize: 18, opacity: 0.6 }} />
                  <Typography variant="body2" fontWeight={700} sx={{ fontFamily: 'var(--font-satoshi)' }}>
-                    {task.dueDate ? format(new Date(task.dueDate), 'MMM d, yyyy') : 'Open Schedule'}
+                    {task.dueDate ? formatTime(new Date(task.dueDate), { month: 'short', day: 'numeric', year: 'numeric' }) : 'Open Schedule'}
                  </Typography>
             </Box>
           </Box>

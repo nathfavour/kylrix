@@ -19,8 +19,16 @@ import {
 } from '@mui/material';
 import { Search as SearchIcon, NoteOutlined as NoteIcon, FolderOutlined as FolderIcon, LocalOfferOutlined as TagIcon, Close as CloseIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { debounce } from 'lodash';
 import { useRouter } from 'next/navigation';
+
+// Internal light-weight debounce
+function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return function(this: any, ...args: Parameters<T>) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn.apply(this, args), delay);
+  } as T;
+}
 import { generatePattern } from '@/utils/patternGenerator';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { IdentityAvatar } from '@/components/common/IdentityBadge';
