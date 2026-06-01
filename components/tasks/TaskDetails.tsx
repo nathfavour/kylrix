@@ -68,7 +68,7 @@ import { Clock, FileText, Globe } from 'lucide-react';
 
 const priorityColors: Record<Priority, string> = {
   low: '#A1A1AA',
-  medium: '#6366F1',
+  medium: '#14B8A6',
   high: '#F59E0B',
   urgent: '#EF4444',
 };
@@ -592,8 +592,8 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
             sx={{
               p: 0,
               color: 'rgba(255, 255, 255, 0.15)',
-              '&.Mui-checked': { color: '#6366F1' },
-              '&:hover': { bgcolor: alpha('#6366F1', 0.1) }
+              '&.Mui-checked': { color: '#A855F7' },
+              '&:hover': { bgcolor: alpha('#A855F7', 0.1) }
             }}
           />
           <Chip
@@ -1015,8 +1015,8 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
                     sx={{ 
                         height: '100%', 
                         width: `${subtaskProgress}%`, 
-                        bgcolor: '#6366F1', 
-                        boxShadow: '0 0 10px rgba(99, 102, 241, 0.4)',
+                        bgcolor: '#A855F7', 
+                        boxShadow: '0 0 10px rgba(168, 85, 247, 0.4)',
                         transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)' 
                     }} 
                 />
@@ -1066,7 +1066,7 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
                     sx={{
                         p: 0,
                         color: 'rgba(255, 255, 255, 0.1)',
-                        '&.Mui-checked': { color: '#6366F1' }
+                        '&.Mui-checked': { color: '#A855F7' }
                     }}
                   />
                 </ListItemIcon>
@@ -1103,7 +1103,7 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
                 size="small" 
                 onClick={handleGenerateSubtasks} 
                 disabled={isGeneratingSubtasks}
-                sx={{ color: '#6366F1' }}
+                sx={{ color: '#A855F7' }}
             >
                 {isGeneratingSubtasks ? <CircularProgress size={16} color="inherit" /> : <AutoFixHighIcon sx={{ fontSize: 18 }} />}
             </IconButton>
@@ -1205,13 +1205,13 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
 
           {huddleLoading && (
             <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', bgcolor: 'rgba(10,9,8,0.7)', zIndex: 2, borderRadius: 2 }}>
-              <CircularProgress size={24} sx={{ color: '#6366F1' }} />
+              <CircularProgress size={24} sx={{ color: '#A855F7' }} />
             </Box>
           )}
 
           {!isHuddleInit ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 3, textAlign: 'center', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 3, bgcolor: 'rgba(255,255,255,0.01)' }}>
-              <Globe size={24} style={{ color: '#6366F1', marginBottom: 12 }} />
+              <Globe size={24} style={{ color: '#A855F7', marginBottom: 12 }} />
               <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', mb: 0.5 }}>Initialize Discussion Huddle</Typography>
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', maxWidth: 300, lineHeight: 1.4, mb: 2 }}>
                 Spin up a real-time huddle discussion thread for this task. Anyone with task access can read and post. Ephemeral chat purges automatically in 7 days.

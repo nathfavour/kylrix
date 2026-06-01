@@ -229,10 +229,10 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [showAllTemplates, setShowAllTemplates] = useState(false);
 
-  const fetchProjects = useCallback(async () => {
+  const fetchProjects = useCallback(async (force = false) => {
     setLoading(true);
     try {
-      const res = await ProjectsService.listProjects();
+      const res = await ProjectsService.listProjects(force);
       setProjects(res.rows);
     } catch (err: any) {
       showError('Failed to load projects', err.message);

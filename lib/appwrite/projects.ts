@@ -3,22 +3,28 @@ import { databases, getCurrentUser } from './client';
 import { APPWRITE_CONFIG } from './config';
 import type { Projects, ProjectObjects } from '@/types/appwrite';
 
+import { getNamedListCache } from '@/lib/services/list-cache';
+
 const DATABASE_ID = APPWRITE_CONFIG.DATABASES.CHAT;
 const PROJECTS_COLLECTION_ID = 'projects';
 const PROJECT_OBJECTS_COLLECTION_ID = 'project_objects';
 
+const projectsCache = getNamedListCache<any[]>('projects', 60000); // 1 minute cache
+
 export const ProjectsService = {
-  async listProjects() {
-    if (typeof window !== 'undefined') {
-      const { account } = await import('./client');
-      const { jwt } = await account.createJWT();
-      const { listProjectsWithCollaborationsSecure } = await import('@/lib/actions/secure-ops');
-      const rows = await listProjectsWithCollaborationsSecure(jwt);
-      return { rows };
-    }
-    const { listProjectsWithCollaborationsSecure } = await import('@/lib/actions/secure-ops');
-    const rows = await listProjectsWithCollaborationsSecure();
-    return { rows };
+  async listProjects(force = false) {
+    return {
+      rows: await projectsCache.fetch(async () => {
+        if (typeof window !== 'undefined') {
+          const { account } = await import('./client');
+          const { jwt } = await account.createJWT();
+          const { listProjectsWithCollaborationsSecure } = await import('@/lib/actions/secure-ops');
+          return await listProjectsWithCollaborationsSecure(jwt);
+        }
+        const { listProjectsWithCollaborationsSecure } = await import('@/lib/actions/secure-ops');
+        return await listProjectsWithCollaborationsSecure();
+      }, force)
+    };
   },
   async getProject(projectId: string) {
     return databases.getRow<any>(
@@ -29,6 +35,7 @@ export const ProjectsService = {
   },
 
   async createProject(data: Partial<Projects>) {
+    projectsCache.invalidate();
     if (typeof window !== 'undefined') {
       const { createProject } = await import('@/lib/actions/client-ops');
       return await createProject(data);
@@ -67,6 +74,7 @@ export const ProjectsService = {
   },
 
   async updateProject(projectId: string, data: Partial<Projects>, permissions?: string[]) {
+    projectsCache.invalidate();
     if (typeof window !== 'undefined') {
       const { updateProject } = await import('@/lib/actions/client-ops');
       return await updateProject(projectId, data, permissions);
@@ -76,6 +84,7 @@ export const ProjectsService = {
   },
 
   async deleteProject(projectId: string, deleteMode: 'detach' | 'created_within' | 'all' = 'detach') {
+    projectsCache.invalidate();
     if (typeof window !== 'undefined') {
       const { deleteProject } = await import('@/lib/actions/client-ops');
       return await deleteProject(projectId, deleteMode);
