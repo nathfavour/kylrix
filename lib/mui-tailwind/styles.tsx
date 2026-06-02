@@ -29,7 +29,7 @@ export function useTheme() {
   };
 }
 
-export function createTheme(options: any = {}) {
+export function useCreateTheme(options: any = {}) {
   const defaultTheme = useTheme();
   return {
     ...defaultTheme,
@@ -44,6 +44,7 @@ export function createTheme(options: any = {}) {
 export const ThemeProvider = ({ children, theme }: any) => {
   return <>{children}</>;
 };
+ThemeProvider.displayName = 'ThemeProvider';
 
 export const styled = (Component: any) => {
   return (stylesOrFn: any) => {
