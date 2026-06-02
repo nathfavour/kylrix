@@ -462,16 +462,19 @@ export const ListItemButton = ({ children, className, ...props }: any) => (
   <button className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-[#1E1B19] ${className || ''}`} {...props}>{children}</button>
 );
 
-export const ListItemText = ({ primary, secondary, children, className, ...props }: any) => (
-  <div className={`flex min-w-0 flex-1 flex-col ${className || ''}`} {...props}>
-    {children ?? (
-      <>
-        <span className="truncate text-sm text-stone-200">{primary}</span>
-        {secondary ? <span className="truncate text-xs text-stone-500">{secondary}</span> : null}
-      </>
-    )}
-  </div>
-);
+export const ListItemText = ({ primary, secondary, children, className, slotProps, sx, ...props }: any) => {
+  const primarySx = cleanSx(slotProps?.primary?.sx || sx || {});
+  return (
+    <div className={`flex min-w-0 flex-1 flex-col ${className || ''}`} {...props}>
+      {children ?? (
+        <>
+          <span className="truncate" style={{ color: 'inherit', ...primarySx }}>{primary}</span>
+          {secondary ? <span className="truncate text-xs text-stone-500">{secondary}</span> : null}
+        </>
+      )}
+    </div>
+  );
+};
 
 // 6. Paper Component
 export const Paper = React.forwardRef(({ children, className, sx, component: Component = 'div', ...props }: any, ref) => {
@@ -827,32 +830,103 @@ export const Alert = ({ children, severity = 'info', className, ...props }: any)
 };
 
 // 22. Menu, MenuItem, Select, FormControl, InputLabel, Radio, RadioGroup, Slider, Collapse, Snackbar
-export const Menu = React.forwardRef(({ open, anchorEl, onClose, children, sx, className, ...props }: any, ref) => {
+export const Menu = React.forwardRef(({
+  open,
+  anchorEl,
+  anchorReference,
+  anchorPosition,
+  anchorOrigin,
+  transformOrigin,
+  onClose,
+  children,
+  sx,
+  className,
+  slotProps,
+  disablePortal,
+  keepMounted,
+  ...props
+}: any, ref) => {
+  const panelRef = React.useRef<HTMLDivElement | null>(null);
   const [coords, setCoords] = React.useState({ top: 0, left: 0 });
 
-  React.useEffect(() => {
-    if (open && anchorEl) {
+  React.useLayoutEffect(() => {
+    if (!open) return;
+
+    if (anchorReference === 'anchorPosition' && anchorPosition) {
+      setCoords({ top: anchorPosition.top, left: anchorPosition.left });
+      return;
+    }
+
+    if (anchorEl) {
       const rect = anchorEl.getBoundingClientRect();
+      const vertical = anchorOrigin?.vertical === 'top' ? 'top' : 'bottom';
+      const horizontal = anchorOrigin?.horizontal === 'right' ? 'right' : 'left';
       setCoords({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
+        top: vertical === 'top' ? rect.top - 4 : rect.bottom + 4,
+        left: horizontal === 'right' ? rect.right : rect.left,
       });
     }
-  }, [open, anchorEl]);
+  }, [open, anchorEl, anchorReference, anchorPosition?.top, anchorPosition?.left, anchorOrigin?.vertical, anchorOrigin?.horizontal]);
 
-  if (!open) return null;
+  React.useLayoutEffect(() => {
+    if (!open || !panelRef.current) return;
+    const panel = panelRef.current;
+    const rect = panel.getBoundingClientRect();
+    let { top, left } = coords;
+
+    const hOrigin = transformOrigin?.horizontal || anchorOrigin?.horizontal;
+    if (hOrigin === 'right') {
+      left = left - rect.width;
+    }
+
+    const margin = 8;
+    if (left + rect.width > window.innerWidth - margin) {
+      left = window.innerWidth - rect.width - margin;
+    }
+    if (top + rect.height > window.innerHeight - margin) {
+      top = window.innerHeight - rect.height - margin;
+    }
+    if (left < margin) left = margin;
+    if (top < margin) top = margin;
+
+    if (left !== coords.left || top !== coords.top) {
+      setCoords({ top, left });
+    }
+  }, [open, coords, children]);
+
+  if (!open && !keepMounted) return null;
+
+  const paperSx = cleanSx(slotProps?.paper?.sx || sx || {});
+
+  const setRefs = (node: HTMLDivElement | null) => {
+    panelRef.current = node;
+    if (typeof ref === 'function') ref(node);
+    else if (ref) ref.current = node;
+  };
 
   return (
-    <div className="fixed inset-0 z-50" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[1400]"
+      onClick={onClose}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onClose?.();
+      }}
+      role="presentation"
+    >
       <div
-        ref={ref}
-        className={`absolute min-w-[12rem] bg-[#141211] border border-[#23211F] rounded-2xl shadow-xl p-2 animate-fade-in ${className || ''}`}
+        ref={setRefs}
+        role="menu"
+        data-kylrix-context-menu="true"
+        className={`fixed z-[1401] overflow-hidden animate-fade-in ${className || ''}`}
         style={{
-          top: `${coords.top}px`,
-          left: `${coords.left}px`,
-          ...cleanSx(sx),
+          top: coords.top,
+          left: coords.left,
+          minWidth: 220,
+          ...paperSx,
         }}
         onClick={(e) => e.stopPropagation()}
+        onContextMenu={(e) => e.preventDefault()}
         {...props}
       >
         {children}
@@ -862,17 +936,35 @@ export const Menu = React.forwardRef(({ open, anchorEl, onClose, children, sx, c
 });
 Menu.displayName = 'Menu';
 
-export const MenuItem = React.forwardRef(({ children, onClick, className, sx, ...props }: any, ref) => (
-  <div
-    ref={ref}
-    onClick={onClick}
-    className={`px-4 py-2 text-sm text-stone-300 hover:bg-[#1E1B19] hover:text-stone-100 rounded-xl cursor-pointer transition-colors ${className || ''}`}
-    style={cleanSx(sx)}
-    {...props}
-  >
-    {children}
-  </div>
-));
+export const MenuItem = React.forwardRef(({ children, onClick, className, sx, ...props }: any, ref) => {
+  const [hovered, setHovered] = React.useState(false);
+  const { root, nested } = splitSx(sx);
+  const rootSx = cleanSx(root);
+  const hoverSx = cleanSx(nested['&:hover'] || {});
+
+  return (
+    <div
+      ref={ref}
+      role="menuitem"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`flex w-full items-center rounded-xl cursor-pointer transition-colors duration-200 ${className || ''}`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        ...rootSx,
+        ...(hovered ? hoverSx : {}),
+      }}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+});
 MenuItem.displayName = 'MenuItem';
 
 export const Select = React.forwardRef(({ value, onChange, children, className, sx, ...props }: any, ref) => {
@@ -1278,16 +1370,20 @@ export const LibraryAdd = ({ children, ...props }: any) => React.createElement('
 export const LightbulbOutlined = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Link = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const LinkOff = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const ListItemIcon = React.forwardRef(({ children, className, sx, ...props }: any, ref) => (
-  <div
-    ref={ref}
-    className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-400 ${className || ''}`}
-    style={cleanSx(sx)}
-    {...props}
-  >
-    {children}
-  </div>
-));
+export const ListItemIcon = React.forwardRef(({ children, className, sx, ...props }: any, ref) => {
+  const resolved = cleanSx(sx);
+  const compact = resolved?.minWidth === 'auto' || resolved?.minWidth === 0;
+  return (
+    <div
+      ref={ref}
+      className={`inline-flex shrink-0 items-center justify-center ${compact ? '' : 'h-8 w-8 rounded-lg'} text-inherit ${className || ''}`}
+      style={resolved}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+});
 ListItemIcon.displayName = 'ListItemIcon';
 export const LocalOffer = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const LocalOfferOutlined = ({ children, ...props }: any) => React.createElement('div', props, children);

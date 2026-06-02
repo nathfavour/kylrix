@@ -61,19 +61,24 @@ export const ContextMenuProvider = ({ children }: { children: ReactNode }) => {
   const { upsertNote } = useNotes();
   const { open: openUnifiedDrawer } = useUnifiedDrawer();
 
-  // Global listeners for close click/keyboard
+  // Global listeners for close click/keyboard (deferred so opening click does not instantly dismiss)
   useEffect(() => {
     if (!isOpen) return;
-    const onClick = (_e: MouseEvent) => {
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-kylrix-context-menu]')) return;
       closeMenu();
     };
     const onEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeMenu();
     };
-    window.addEventListener('click', onClick);
+    const timer = window.setTimeout(() => {
+      window.addEventListener('click', onClick, true);
+    }, 0);
     window.addEventListener('keydown', onEscape);
     return () => {
-      window.removeEventListener('click', onClick);
+      window.clearTimeout(timer);
+      window.removeEventListener('click', onClick, true);
       window.removeEventListener('keydown', onEscape);
     };
   }, [isOpen, closeMenu]);

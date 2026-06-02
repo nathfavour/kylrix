@@ -258,10 +258,12 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
 
   const handleRightClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     openMenu({
       x: e.clientX,
       y: e.clientY,
-      items: contextMenuItems
+      items: contextMenuItems,
+      appType: 'note',
     });
   };
 
@@ -292,7 +294,12 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
     e.preventDefault();
     e.stopPropagation();
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    openMenu({ x: rect.left, y: rect.bottom + 4, items: contextMenuItems });
+    openMenu({
+      x: rect.right,
+      y: rect.bottom + 4,
+      items: contextMenuItems,
+      appType: 'note',
+    });
   };
 
   return (

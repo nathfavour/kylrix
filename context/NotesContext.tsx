@@ -37,7 +37,21 @@ interface NotesContextType {
   isPinned: (noteId: string) => boolean;
 }
 
-const NotesContext = createContext<NotesContextType | undefined>({} as any);
+const NotesContext = createContext<NotesContextType>({
+  notes: [],
+  totalNotes: 0,
+  isLoading: false,
+  error: null,
+  hasMore: false,
+  loadMore: async () => {},
+  refetchNotes: () => {},
+  upsertNote: () => {},
+  removeNote: () => {},
+  pinnedIds: [],
+  pinNote: async () => {},
+  unpinNote: async () => {},
+  isPinned: () => false,
+});
 
 function normalizeVisibility(note: Notes): Notes {
   return {

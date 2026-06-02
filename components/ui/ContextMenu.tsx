@@ -34,6 +34,7 @@ export function ContextMenu({ x, y, onCloseAction, items, appType }: ContextMenu
       onClose={onCloseAction}
       anchorReference="anchorPosition"
       anchorPosition={{ top: y, left: x }}
+      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       keepMounted={false}
       disablePortal={true}
       slotProps={{
