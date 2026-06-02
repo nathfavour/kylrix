@@ -209,6 +209,7 @@ export type Notes = Models.Row & {
     isDiscussion: boolean;
     source: string | null;
     keepPermission: boolean | null;
+    crdt: string | null;
 }
 
 export type Comments = Models.Row & {

@@ -205,6 +205,7 @@ export type NotesCreate = {
     "isDiscussion"?: boolean;
     "source"?: string | null;
     "keepPermission"?: boolean | null;
+    "crdt"?: string | null;
 }
 
 export type Notes = Models.Row & {
@@ -240,6 +241,7 @@ export type Notes = Models.Row & {
     "isDiscussion"?: boolean;
     "source"?: string | null;
     "keepPermission"?: boolean | null;
+    "crdt"?: string | null;
 }
 
 export type CommentsCreate = {
@@ -1916,6 +1918,7 @@ export type DatabaseTableMap = {
         "isDiscussion"?: boolean;
         "source"?: string | null;
         "keepPermission"?: boolean | null;
+        "crdt"?: string | null;
       }, options?: { rowId?: string; permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<Notes>;
       get: (id: string) => Promise<Notes>;
       update: (id: string, data: Partial<{
@@ -1951,6 +1954,7 @@ export type DatabaseTableMap = {
         "isDiscussion"?: boolean;
         "source"?: string | null;
         "keepPermission"?: boolean | null;
+        "crdt"?: string | null;
       }>, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<Notes>;
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
       list: (options?: { queries?: (q: { equal: <K extends QueryableKeys<Notes>>(field: K, value: QueryableFieldValue<Notes, K>) => string; notEqual: <K extends QueryableKeys<Notes>>(field: K, value: QueryableFieldValue<Notes, K>) => string; lessThan: <K extends QueryableKeys<Notes>>(field: K, value: QueryableFieldValue<Notes, K>) => string; lessThanEqual: <K extends QueryableKeys<Notes>>(field: K, value: QueryableFieldValue<Notes, K>) => string; greaterThan: <K extends QueryableKeys<Notes>>(field: K, value: QueryableFieldValue<Notes, K>) => string; greaterThanEqual: <K extends QueryableKeys<Notes>>(field: K, value: QueryableFieldValue<Notes, K>) => string; contains: <K extends QueryableKeys<Notes>>(field: K, value: QueryableFieldValue<Notes, K>) => string; search: <K extends QueryableKeys<Notes>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<Notes>>(field: K) => string; isNotNull: <K extends QueryableKeys<Notes>>(field: K) => string; startsWith: <K extends QueryableKeys<Notes>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<Notes>>(field: K, value: string) => string; between: <K extends QueryableKeys<Notes>>(field: K, start: QueryableFieldValue<Notes, K>, end: QueryableFieldValue<Notes, K>) => string; select: <K extends keyof Notes>(fields: K[]) => string; orderAsc: <K extends keyof Notes>(field: K) => string; orderDesc: <K extends keyof Notes>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[] }) => Promise<{ total: number; rows: Notes[] }>;
