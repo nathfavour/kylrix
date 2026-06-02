@@ -235,13 +235,16 @@ IconButton.displayName = 'IconButton';
 // 4. Card Component
 export const Card = React.forwardRef(({ children, className, sx, ...props }: any, ref) => {
   const hasCustomHover = sx && (sx['&:hover'] || sx.transform || sx.transition);
+  const hasPaddingInSx = sx && typeof sx === 'object' && (
+    'p' in sx || 'padding' in sx || 'px' in sx || 'py' in sx || 'pt' in sx || 'pb' in sx || 'pl' in sx || 'pr' in sx
+  );
   const hoverClasses = !hasCustomHover
     ? "hover:border-pink-500/40 hover:-translate-y-1 hover:scale-[1.01] transition-all duration-500"
     : "transition-all duration-300";
   return (
     <div
       ref={ref}
-      className={`rounded-3xl bg-[#141211] border border-[#23211F] shadow-[1px_1px_0px_#23211F,2px_2px_0px_#1E1B19,3px_3px_0px_#161412,4px_4px_0px_#0A0908,5px_5px_0px_#000000] p-6 ${hoverClasses} ${className || ''}`}
+      className={`rounded-3xl bg-[#141211] border border-[#23211F] shadow-[1px_1px_0px_#23211F,2px_2px_0px_#1E1B19,3px_3px_0px_#161412,4px_4px_0px_#0A0908,5px_5px_0px_#000000] ${hasPaddingInSx ? '' : 'p-6'} ${hoverClasses} ${className || ''}`}
       style={cleanSx(sx)}
       {...props}
     >
@@ -252,9 +255,14 @@ export const Card = React.forwardRef(({ children, className, sx, ...props }: any
 Card.displayName = 'Card';
 
 // 5. CardContent & CardActions
-export const CardContent = ({ children, className, sx, ...props }: any) => (
-  <div className={`p-1 ${className || ''}`} style={cleanSx(sx)} {...props}>{children}</div>
-);
+export const CardContent = ({ children, className, sx, ...props }: any) => {
+  const hasPaddingInSx = sx && typeof sx === 'object' && (
+    'p' in sx || 'padding' in sx || 'px' in sx || 'py' in sx || 'pt' in sx || 'pb' in sx || 'pl' in sx || 'pr' in sx
+  );
+  return (
+    <div className={`${hasPaddingInSx ? '' : 'p-1'} ${className || ''}`} style={cleanSx(sx)} {...props}>{children}</div>
+  );
+};
 export const CardActions = ({ children, className, sx, ...props }: any) => (
   <div className={`flex items-center gap-2 pt-4 ${className || ''}`} style={cleanSx(sx)} {...props}>{children}</div>
 );

@@ -114,7 +114,7 @@ export function NoteDetailSidebar({
   const [realtimeNote, setRealtimeNote] = useState<Notes | null>(null);
   const noteRef = useRef(note);
   const liveNote = useMemo(
-    () => (realtimeNote?.$id === note.$id ? realtimeNote : allNotes.find((candidate: any) => candidate.$id === note.$id) || note),
+    () => (realtimeNote?.$id === note.$id ? realtimeNote : (allNotes || []).find((candidate: any) => candidate.$id === note.$id) || note),
     [allNotes, note, realtimeNote]
   );
 

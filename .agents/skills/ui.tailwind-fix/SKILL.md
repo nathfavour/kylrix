@@ -99,19 +99,93 @@ Each row is a single interactive surface with a **flat flex row** and a **stacke
 | Secondary line | Its own `Typography` below title | `noWrap` on both lines unless intentional |
 | Actions | Separate column `flexShrink: 0` or footer row | `position: 'absolute'` over copy |
 
-### Cards (templates, projects)
+### Cards: use the Note card shell (`components/ui/NoteCard.tsx`)
 
-Extend the same pattern:
+**Reference:** `/note/notes` grid cards. This is the canonical fix for jam-packed project/template cards.
 
-1. **Header row**: icon + text column (title, then summary/meta).
-2. **Body**: only if needed; keep in the column with `lineHeight: 1.5+`.
-3. **Footer**: `mt: 'auto'`, own row—do not overlap the text column.
-4. **Badges**: prefer inline in the title row or top padding; avoid absolute unless `pr` reserves space.
+#### What Note cards do right
+
+| Technique | Note card | Typical broken project card |
+|-----------|-----------|----------------------------|
+| Shell | `Card` + regions, not one `Paper` blob | Single `Paper` with one `p` value |
+| Padding | `CardHeader` **`p: 2.5`** + `CardContent` **`p: 2.5`, `pt: 0`** | Only outer `p: 3` on the whole card |
+| Outer inset | `Card` keeps default **`p-6`** (24px) unless `sx` sets padding | No second inset layer |
+| Header/body split | Title + actions in **header**; body + tags in **content** | Title, meta, body, footer in one `Stack` |
+| Header/body gap | `CardHeader` **`pb: 0.5`** then content **`pt: 0`** | `Stack spacing={2}` only (~16px) between everything |
+| Body rhythm | Content `lineHeight: 1.6`, `fontSize: 0.85rem` | Tight `gap: 0.5` (~4px) between lines |
+| Footer separation | Tags row **`mt: 1.5`** inside `CardContent` | Footer `pt: 2` glued to summary with no body margin |
+| Typography | `component="span"`, unitless `lineHeight` | Default `<p>` or missing line height |
+| Actions | Icon buttons in header row, `flexShrink: 0` | Actions overlapping text column |
+
+#### Required card structure (match NoteCard)
+
+```tsx
+const NAV_SURFACE = '#161412';
+
+<Card
+  onClick={onOpen}
+  sx={{
+    display: 'flex',
+    flexDirection: 'column',
+    cursor: 'pointer',
+    overflow: 'hidden',
+    bgcolor: NAV_SURFACE,
+    border: '1px solid',
+    borderColor: '#34322F',
+    borderRadius: '28px',
+    boxShadow: 'none',
+    // optional fixed height for grids
+  }}
+>
+  <CardHeader
+    sx={{ pb: 0.5, p: 2.5 }}
+    title={
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+        {/* title block + optional icon + action buttons */}
+      </Box>
+    }
+  />
+
+  <CardContent
+    sx={{
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      minHeight: 0,
+      p: 2.5,
+      pt: 0,
+    }}
+  >
+    <Typography component="span" sx={{ fontSize: '0.85rem', lineHeight: 1.6, /* body */ }}>
+      {summary}
+    </Typography>
+
+    <Box sx={{ mt: 1.5, /* footer chips / meta */ }}>
+      …
+    </Box>
+  </CardContent>
+</Card>
+```
+
+#### Do not (project-card anti-pattern)
+
+```tsx
+// BAD: one Paper, one padding, everything in a single Stack
+<Paper sx={{ p: 3 }}>
+  <Stack spacing={2}>
+    <Box>icon + title + summary + actions</Box>
+    <Box borderTop>footer</Box>
+  </Stack>
+</Paper>
+```
 
 ### Shim reminders
 
-- `CardContent` / `CardHeader` must pass `sx` through; titles that are React elements must not be wrapped in extra `text-sm` divs.
-- Spacing tokens in `sx`: `p: 2` → 16px; `gap: 0.35` → ~2.8px—use `gap: 0.5` or higher for readable separation between title and description.
+- `Card` / `Paper` / `CardContent`: skip default Tailwind `p-*` classes when `sx` sets padding.
+- `CardHeader` must render `title` React elements **without** an extra `text-sm` wrapper.
+- Spacing in `sx`: `p: 2.5` → 20px per region; prefer **`gap: 0.75`–`1`** inside text columns, not `0.35`–`0.5` on cards.
+- List rows: `gap: 0.35` is fine; **cards need larger internal gaps**.
 
 ## Anti-pattern: Diagnostics-style alerts
 

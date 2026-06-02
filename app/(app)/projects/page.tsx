@@ -9,6 +9,9 @@ import {
   Chip,
   Grid,
   Paper,
+  Card,
+  CardHeader,
+  CardContent,
   Stack,
   Typography,
   CircularProgress,
@@ -135,123 +138,154 @@ const projectTemplates = [
   }
 ];
 
+const NAV_SURFACE = '#161412';
+
 function TemplateCard({ template, onSelect }: { template: typeof projectTemplates[0], onSelect: (t: any) => void }) {
     const [expanded, setExpanded] = useState(false);
 
     return (
-        <Paper
-            component="button"
-            elevation={0}
+        <Card
             onClick={() => onSelect(template)}
             sx={{
                 width: '100%',
-                p: 3,
                 minHeight: 196,
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'stretch',
-                textAlign: 'left',
-                borderRadius: '24px',
-                bgcolor: '#161412',
-                border: '1px solid rgba(255,255,255,0.06)',
                 cursor: 'pointer',
-                transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                 overflow: 'hidden',
-                boxSizing: 'border-box',
-                '&:hover': { 
-                    bgcolor: '#1C1A18', 
+                bgcolor: NAV_SURFACE,
+                border: '1px solid',
+                borderColor: '#34322F',
+                borderRadius: '28px',
+                boxShadow: 'none',
+                transition: 'border-color 0.2s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                '&:hover': {
+                    bgcolor: '#1C1A18',
                     borderColor: alpha(template.color, 0.3),
                     transform: 'translateY(-4px)',
-                    boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 20px ${alpha(template.color, 0.1)}`
-                }
+                    boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 20px ${alpha(template.color, 0.1)}`,
+                },
             }}
         >
-            <Stack spacing={2} sx={{ flex: 1, height: '100%', width: '100%' }}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.75 }}>
-                    <Box sx={{ width: 44, height: 44, borderRadius: '12px', bgcolor: alpha(template.color, 0.1), color: template.color, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                        <template.icon size={20} strokeWidth={2.5} />
-                    </Box>
-                    <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5, pr: 0.5 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
-                        <Typography
-                          component="span"
-                          variant="body1"
-                          sx={{
-                            fontWeight: 900,
-                            color: '#fff',
-                            fontSize: '1rem',
-                            letterSpacing: '-0.01em',
-                            lineHeight: 1.3,
-                            display: 'block',
-                            flex: 1,
-                            minWidth: 0,
-                          }}
-                        >
-                          {template.title}
-                        </Typography>
-                        {template.isPro && (
-                          <Chip
-                            label="PRO"
-                            size="small"
+            <CardHeader
+                sx={{ pb: 0.5, p: 2.5 }}
+                title={
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.75 }}>
+                        <Box
                             sx={{
-                              flexShrink: 0,
-                              bgcolor: alpha(template.color, 0.1),
-                              color: template.color,
-                              fontWeight: 900,
-                              fontSize: '0.6rem',
-                              height: 20,
-                              fontFamily: 'var(--font-mono)',
-                              border: `1px solid ${alpha(template.color, 0.2)}`,
+                                width: 44,
+                                height: 44,
+                                borderRadius: '12px',
+                                bgcolor: alpha(template.color, 0.1),
+                                color: template.color,
+                                display: 'grid',
+                                placeItems: 'center',
+                                flexShrink: 0,
                             }}
-                          />
-                        )}
-                      </Box>
-                      <Typography
-                        component="span"
-                        variant="body2"
-                        sx={{
-                          color: 'rgba(255,255,255,0.66)',
-                          display: '-webkit-box',
-                          overflow: 'hidden',
-                          WebkitLineClamp: expanded ? 'unset' : 3,
-                          WebkitBoxOrient: 'vertical',
-                          lineHeight: 1.55,
-                          fontWeight: 500,
-                          fontSize: '0.875rem',
-                          flex: 1,
-                          minHeight: expanded ? 'auto' : '4.1em',
-                        }}
-                      >
-                        {expanded ? template.description : template.summary}
-                      </Typography>
+                        >
+                            <template.icon size={20} strokeWidth={2.5} />
+                        </Box>
+                        <Box sx={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+                            <Typography
+                                component="span"
+                                variant="body1"
+                                sx={{
+                                    fontWeight: 900,
+                                    color: '#fff',
+                                    fontSize: '1rem',
+                                    letterSpacing: '-0.01em',
+                                    lineHeight: 1.3,
+                                    display: 'block',
+                                    flex: 1,
+                                    minWidth: 0,
+                                }}
+                            >
+                                {template.title}
+                            </Typography>
+                            {template.isPro && (
+                                <Chip
+                                    label="PRO"
+                                    size="small"
+                                    sx={{
+                                        flexShrink: 0,
+                                        bgcolor: alpha(template.color, 0.1),
+                                        color: template.color,
+                                        fontWeight: 900,
+                                        fontSize: '0.6rem',
+                                        height: 20,
+                                        fontFamily: 'var(--font-mono)',
+                                        border: `1px solid ${alpha(template.color, 0.2)}`,
+                                    }}
+                                />
+                            )}
+                        </Box>
                     </Box>
-                </Box>
+                }
+            />
 
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 'auto', pt: 0.75 }}>
-                    <Button 
-                        size="small" 
+            <CardContent
+                sx={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    minHeight: 0,
+                    p: 2.5,
+                    pt: 0,
+                }}
+            >
+                <Typography
+                    component="span"
+                    variant="body2"
+                    sx={{
+                        color: 'rgba(255,255,255,0.62)',
+                        fontFamily: 'var(--font-satoshi)',
+                        fontSize: '0.85rem',
+                        lineHeight: 1.6,
+                        fontWeight: 500,
+                        display: '-webkit-box',
+                        overflow: 'hidden',
+                        WebkitLineClamp: expanded ? 'unset' : 3,
+                        WebkitBoxOrient: 'vertical',
+                    }}
+                >
+                    {expanded ? template.description : template.summary}
+                </Typography>
+
+                <Box
+                    sx={{
+                        mt: 1.5,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                    }}
+                >
+                    <Button
+                        size="small"
                         onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-                        sx={{ 
-                            p: 0, 
-                            minWidth: 0, 
-                            color: 'rgba(255,255,255,0.42)', 
-                            textTransform: 'none', 
-                            fontSize: '0.75rem', 
+                        sx={{
+                            p: 0,
+                            minWidth: 0,
+                            color: 'rgba(255,255,255,0.42)',
+                            textTransform: 'none',
+                            fontSize: '0.75rem',
                             fontWeight: 800,
                             lineHeight: 1.3,
-                            '&:hover': { color: '#fff', bgcolor: 'transparent' }
+                            '&:hover': { color: '#fff', bgcolor: 'transparent' },
                         }}
                     >
                         {expanded ? 'Show Less' : 'Learn More'}
                     </Button>
                     <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: template.color }}>
-                        <Typography component="span" variant="caption" sx={{ fontWeight: 900, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.2 }}>Activate</Typography>
+                        <Typography component="span" variant="caption" sx={{ fontWeight: 900, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.2 }}>
+                            Activate
+                        </Typography>
                         <Plus size={11} strokeWidth={4} />
                     </Stack>
-                </Stack>
-            </Stack>
-        </Paper>
+                </Box>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -412,96 +446,117 @@ export default function ProjectsPage() {
   );
 
   const workflowsCardElement = (
-    <Paper
-      elevation={0}
+    <Card
       onClick={() => router.push('/projects/workflows')}
       sx={{
         mb: 6,
-        p: 3,
-        borderRadius: '24px',
-        bgcolor: '#141312',
-        border: '1px solid rgba(255, 255, 255, 0.06)',
         cursor: 'pointer',
-        transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-        position: 'relative',
         overflow: 'hidden',
-        display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
-        alignItems: { xs: 'flex-start', md: 'center' },
-        justifyContent: 'space-between',
-        gap: 3,
+        bgcolor: NAV_SURFACE,
+        border: '1px solid',
+        borderColor: 'rgba(255,255,255,0.06)',
+        borderRadius: '28px',
+        boxShadow: 'none',
+        transition: 'border-color 0.2s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
         '&:hover': {
           bgcolor: '#1A1816',
           borderColor: 'rgba(99, 102, 241, 0.3)',
           transform: 'translateY(-2px)',
           boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)',
-        }
+        },
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2.5, flex: 1, minWidth: 0 }}>
-        <Box
-          sx={{
-            width: 56,
-            height: 56,
-            borderRadius: '16px',
-            bgcolor: alpha('#6366F1', 0.08),
-            color: '#6366F1',
-            display: 'grid',
-            placeItems: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <Workflow size={28} strokeWidth={2} />
-        </Box>
-        <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.75, pr: 0.5 }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
-            <Typography component="span" variant="h6" sx={{ fontWeight: 900, color: '#fff', fontSize: '1.2rem', letterSpacing: '-0.02em', lineHeight: 1.25 }}>
-              Smart Action Workflows
-            </Typography>
-            <Chip
-              label={`${Object.keys(savedWorkflows || {}).length} SAVED`}
-              size="small"
+      <CardHeader
+        sx={{ pb: 0.5, p: 2.5 }}
+        title={
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2.5 }}>
+            <Box
               sx={{
+                width: 56,
+                height: 56,
+                borderRadius: '16px',
+                bgcolor: alpha('#6366F1', 0.08),
+                color: '#6366F1',
+                display: 'grid',
+                placeItems: 'center',
                 flexShrink: 0,
-                bgcolor: 'rgba(99, 102, 241, 0.1)',
-                color: '#818CF8',
-                fontWeight: 900,
-                fontSize: '0.65rem',
-                fontFamily: 'var(--font-mono)',
-                border: '1px solid rgba(99, 102, 241, 0.2)',
-                height: 20,
               }}
-            />
+            >
+              <Workflow size={28} strokeWidth={2} />
+            </Box>
+            <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+              <Typography component="span" variant="h6" sx={{ fontWeight: 900, color: '#fff', fontSize: '1.2rem', letterSpacing: '-0.02em', lineHeight: 1.25 }}>
+                Smart Action Workflows
+              </Typography>
+              <Chip
+                label={`${Object.keys(savedWorkflows || {}).length} SAVED`}
+                size="small"
+                sx={{
+                  flexShrink: 0,
+                  bgcolor: 'rgba(99, 102, 241, 0.1)',
+                  color: '#818CF8',
+                  fontWeight: 900,
+                  fontSize: '0.65rem',
+                  fontFamily: 'var(--font-mono)',
+                  border: '1px solid rgba(99, 102, 241, 0.2)',
+                  height: 20,
+                }}
+              />
+            </Box>
           </Box>
-          <Typography component="span" variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500, fontSize: '0.875rem', maxWidth: 640, lineHeight: 1.55, display: 'block' }}>
-            Record, share, and automate action sequences to boost execution speed. Perfect for repetitive workspace tasks and smart guidance.
-          </Typography>
-        </Box>
-      </Box>
-      
-      <Button
-        variant="outlined"
-        onClick={(e) => { e.stopPropagation(); router.push('/projects/workflows'); }}
-        endIcon={<ArrowUpRight size={16} />}
+        }
+      />
+      <CardContent
         sx={{
-          borderRadius: '12px',
-          borderColor: 'rgba(255,255,255,0.08)',
-          color: '#fff',
-          px: 3,
-          py: 1,
-          fontWeight: 800,
-          fontSize: '0.8rem',
-          textTransform: 'none',
-          bgcolor: 'rgba(255,255,255,0.02)',
-          '&:hover': {
-            borderColor: '#6366F1',
-            bgcolor: 'rgba(99, 102, 241, 0.05)'
-          }
+          p: 2.5,
+          pt: 0,
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          alignItems: { xs: 'flex-start', md: 'center' },
+          justifyContent: 'space-between',
+          gap: 2,
         }}
       >
-        Manage Workflows
-      </Button>
-    </Paper>
+        <Typography
+          component="span"
+          variant="body2"
+          sx={{
+            color: 'rgba(255,255,255,0.4)',
+            fontWeight: 500,
+            fontSize: '0.875rem',
+            maxWidth: 640,
+            lineHeight: 1.6,
+            flex: 1,
+            display: 'block',
+          }}
+        >
+          Record, share, and automate action sequences to boost execution speed. Perfect for repetitive workspace tasks and smart guidance.
+        </Typography>
+        <Button
+          variant="outlined"
+          onClick={(e) => { e.stopPropagation(); router.push('/projects/workflows'); }}
+          endIcon={<ArrowUpRight size={16} />}
+          sx={{
+            borderRadius: '12px',
+            borderColor: 'rgba(255,255,255,0.08)',
+            color: '#fff',
+            px: 3,
+            py: 1,
+            fontWeight: 800,
+            fontSize: '0.8rem',
+            textTransform: 'none',
+            flexShrink: 0,
+            bgcolor: 'rgba(255,255,255,0.02)',
+            '&:hover': {
+              borderColor: '#6366F1',
+              bgcolor: 'rgba(99, 102, 241, 0.05)',
+            },
+          }}
+        >
+          Manage Workflows
+        </Button>
+      </CardContent>
+    </Card>
   );
 
   const projectsListElement = (
