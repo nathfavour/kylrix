@@ -16,15 +16,15 @@ import {
   useTheme,
   useMediaQuery
 } from '@/lib/mui-tailwind/material';
-import VisibilityIcon from '@/lib/mui-tailwind/icons/Visibility';
-import VisibilityOffIcon from '@/lib/mui-tailwind/icons/VisibilityOff';
-import LockIcon from '@/lib/mui-tailwind/icons/Lock';
-import ShieldIcon from '@/lib/mui-tailwind/icons/Shield';
-import LogoutIcon from '@/lib/mui-tailwind/icons/Logout';
-import FingerprintIcon from '@/lib/mui-tailwind/icons/Fingerprint';
-import ErrorOutlineIcon from '@/lib/mui-tailwind/icons/ErrorOutline';
-import AppsIcon from '@/lib/mui-tailwind/icons/Apps';
-import CloseIcon from '@/lib/mui-tailwind/icons/Close';
+import VisibilityIcon from '@/lib/mui-tailwind/icons';
+import VisibilityOffIcon from '@/lib/mui-tailwind/icons';
+import LockIcon from '@/lib/mui-tailwind/icons';
+import ShieldIcon from '@/lib/mui-tailwind/icons';
+import LogoutIcon from '@/lib/mui-tailwind/icons';
+import FingerprintIcon from '@/lib/mui-tailwind/icons';
+import ErrorOutlineIcon from '@/lib/mui-tailwind/icons';
+import AppsIcon from '@/lib/mui-tailwind/icons';
+import CloseIcon from '@/lib/mui-tailwind/icons';
 import Logo from '../common/Logo';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { masterPassCrypto } from '@/lib/masterpass-crypto';

@@ -18,11 +18,11 @@ import {
   IconButton,
   alpha,
 } from '@/lib/mui-tailwind/material';
-import LockOpenIcon from '@/lib/mui-tailwind/icons/LockOpen';
-import PersonIcon from '@/lib/mui-tailwind/icons/Person';
-import KeyIcon from '@/lib/mui-tailwind/icons/VpnKey';
-import ShareIcon from '@/lib/mui-tailwind/icons/Share';
-import SearchIcon from '@/lib/mui-tailwind/icons/Search';
+import LockOpenIcon from '@/lib/mui-tailwind/icons';
+import PersonIcon from '@/lib/mui-tailwind/icons';
+import KeyIcon from '@/lib/mui-tailwind/icons';
+import ShareIcon from '@/lib/mui-tailwind/icons';
+import SearchIcon from '@/lib/mui-tailwind/icons';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { searchGlobalUsers } from '@/lib/ecosystem/identity';
 import { EcosystemSecurity } from '@/lib/ecosystem/security';

@@ -14,8 +14,8 @@ import {
   useMediaQuery,
   useTheme,
 } from '@/lib/mui-tailwind/material';
-import CloseIcon from '@/lib/mui-tailwind/icons/Close';
-import ContentCopyIcon from '@/lib/mui-tailwind/icons/ContentCopy';
+import CloseIcon from '@/lib/mui-tailwind/icons';
+import ContentCopyIcon from '@/lib/mui-tailwind/icons';
 import { AuthenticationFactor, AuthenticatorType } from 'appwrite';
 import { account, avatars } from '@/lib/appwrite';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';

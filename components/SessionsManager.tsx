@@ -19,11 +19,11 @@ import {
   Chip,
   IconButton,
 } from '@/lib/mui-tailwind/material';
-import DeleteIcon from '@/lib/mui-tailwind/icons/Delete';
-import RefreshIcon from '@/lib/mui-tailwind/icons/Refresh';
-import LaptopIcon from '@/lib/mui-tailwind/icons/Laptop';
-import PhoneIcon from '@/lib/mui-tailwind/icons/Phone';
-import TabletIcon from '@/lib/mui-tailwind/icons/Tablet';
+import DeleteIcon from '@/lib/mui-tailwind/icons';
+import RefreshIcon from '@/lib/mui-tailwind/icons';
+import LaptopIcon from '@/lib/mui-tailwind/icons';
+import PhoneIcon from '@/lib/mui-tailwind/icons';
+import TabletIcon from '@/lib/mui-tailwind/icons';
 import { Models } from 'appwrite';
 
 interface Session extends Models.Session {

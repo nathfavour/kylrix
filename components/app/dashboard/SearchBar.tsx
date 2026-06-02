@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import SearchIcon from '@/lib/mui-tailwind/icons/Search';
-import CloseIcon from '@/lib/mui-tailwind/icons/Close';
-import AutoAwesomeIcon from '@/lib/mui-tailwind/icons/AutoAwesome';
+import SearchIcon from '@/lib/mui-tailwind/icons';
+import CloseIcon from '@/lib/mui-tailwind/icons';
+import AutoAwesomeIcon from '@/lib/mui-tailwind/icons';
 import { useAI } from '@/context/AIContext';
 import { 
   Box, 

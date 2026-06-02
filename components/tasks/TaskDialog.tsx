@@ -24,9 +24,9 @@ import {
   Close as CloseIcon,
   Flag as FlagIcon,
 } from '@/lib/mui-tailwind/icons';
-import { DatePicker } from '@/lib/mui-tailwind/date-pickers/DatePicker';
-import { LocalizationProvider } from '@/lib/mui-tailwind/date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@/lib/mui-tailwind/date-pickers/AdapterDateFns';
+import { DatePicker } from '@/lib/mui-tailwind/date-pickers';
+import { LocalizationProvider } from '@/lib/mui-tailwind/date-pickers';
+import { AdapterDateFns } from '@/lib/mui-tailwind/date-pickers';
 import UserSearch from '@/components/UserSearch';
 import { useTask } from '@/context/TaskContext';
 import { Priority, TaskStatus } from '@/types';

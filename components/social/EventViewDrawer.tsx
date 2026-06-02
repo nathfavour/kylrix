@@ -12,11 +12,11 @@ import {
     Stack,
     Link as MuiLink
 } from '@/lib/mui-tailwind/material';
-import CloseIcon from '@/lib/mui-tailwind/icons/Close';
-import EventIcon from '@/lib/mui-tailwind/icons/Event';
-import LocationOnIcon from '@/lib/mui-tailwind/icons/LocationOn';
-import AccessTimeIcon from '@/lib/mui-tailwind/icons/AccessTime';
-import LanguageIcon from '@/lib/mui-tailwind/icons/Language';
+import CloseIcon from '@/lib/mui-tailwind/icons';
+import EventIcon from '@/lib/mui-tailwind/icons';
+import LocationOnIcon from '@/lib/mui-tailwind/icons';
+import AccessTimeIcon from '@/lib/mui-tailwind/icons';
+import LanguageIcon from '@/lib/mui-tailwind/icons';
 
 interface EventViewDrawerProps {
     open: boolean;

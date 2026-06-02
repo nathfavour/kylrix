@@ -20,7 +20,7 @@ import {
   TablePagination,
   TextField,
 } from '@/lib/mui-tailwind/material';
-import RefreshIcon from '@/lib/mui-tailwind/icons/Refresh';
+import RefreshIcon from '@/lib/mui-tailwind/icons';
 import { Models } from 'appwrite';
 
 interface Log extends Models.Log {

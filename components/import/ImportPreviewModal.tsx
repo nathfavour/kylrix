@@ -18,11 +18,11 @@ import {
   Chip
 } from '@/lib/mui-tailwind/material';
 import { ImportItem, DeduplicationEngine } from '@/lib/import/deduplication';
-import CheckIcon from '@/lib/mui-tailwind/icons/Check';
-import CloseIcon from '@/lib/mui-tailwind/icons/Close';
-import ArrowForwardIcon from '@/lib/mui-tailwind/icons/ArrowForward';
-import StorageIcon from '@/lib/mui-tailwind/icons/Storage';
-import MergeIcon from '@/lib/mui-tailwind/icons/Merge';
+import CheckIcon from '@/lib/mui-tailwind/icons';
+import CloseIcon from '@/lib/mui-tailwind/icons';
+import ArrowForwardIcon from '@/lib/mui-tailwind/icons';
+import StorageIcon from '@/lib/mui-tailwind/icons';
+import MergeIcon from '@/lib/mui-tailwind/icons';
 
 interface ImportPreviewModalProps {
   isOpen: boolean;

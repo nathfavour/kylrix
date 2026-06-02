@@ -13,13 +13,13 @@ import {
   CircularProgress,
   Avatar
 } from '@/lib/mui-tailwind/material';
-import VpnKeyIcon from '@/lib/mui-tailwind/icons/VpnKey';
-import ShieldIcon from '@/lib/mui-tailwind/icons/Shield';
-import AccessTimeIcon from '@/lib/mui-tailwind/icons/AccessTime';
-import WarningIcon from '@/lib/mui-tailwind/icons/Warning';
-import AddIcon from '@/lib/mui-tailwind/icons/Add';
-import DownloadIcon from '@/lib/mui-tailwind/icons/Download';
-import ChevronRightIcon from '@/lib/mui-tailwind/icons/ChevronRight';
+import VpnKeyIcon from '@/lib/mui-tailwind/icons';
+import ShieldIcon from '@/lib/mui-tailwind/icons';
+import AccessTimeIcon from '@/lib/mui-tailwind/icons';
+import WarningIcon from '@/lib/mui-tailwind/icons';
+import AddIcon from '@/lib/mui-tailwind/icons';
+import DownloadIcon from '@/lib/mui-tailwind/icons';
+import ChevronRightIcon from '@/lib/mui-tailwind/icons';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import {
   appwriteDatabases,

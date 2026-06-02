@@ -20,8 +20,8 @@ import {
     Skeleton,
     Stack
 } from '@/lib/mui-tailwind/material';
-import SearchIcon from '@/lib/mui-tailwind/icons/Search';
-import PersonIcon from '@/lib/mui-tailwind/icons/Person';
+import SearchIcon from '@/lib/mui-tailwind/icons';
+import PersonIcon from '@/lib/mui-tailwind/icons';
 import toast from 'react-hot-toast';
 
 import { useSudo } from '@/context/SudoContext';

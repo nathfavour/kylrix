@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, Container, Typography, Stack, Accordion, AccordionSummary, AccordionDetails } from '@/lib/mui-tailwind/material';
-import ExpandMoreIcon from '@/lib/mui-tailwind/icons/ExpandMore';
+import ExpandMoreIcon from '@/lib/mui-tailwind/icons';
 
 const faqs = [
   {

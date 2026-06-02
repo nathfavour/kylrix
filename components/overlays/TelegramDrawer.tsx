@@ -13,7 +13,7 @@ import {
   alpha,
 } from '@/lib/mui-tailwind/material';
 import { CheckCircle2, Copy, ExternalLink, X } from 'lucide-react';
-import TelegramIcon from '@/lib/mui-tailwind/icons/Telegram';
+import TelegramIcon from '@/lib/mui-tailwind/icons';
 import { initializeTelegramConnection, checkTelegramConnection } from '@/lib/actions/telegram';
 
 interface TelegramDrawerProps {

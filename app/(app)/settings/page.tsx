@@ -51,7 +51,7 @@ import { DiscoverabilitySettings } from '@/components/settings/DiscoverabilitySe
 import { toast } from 'react-hot-toast';
 import { TelegramDrawer } from '@/components/overlays/TelegramDrawer';
 import { checkTelegramConnection } from '@/lib/actions/telegram';
-import TelegramIcon from '@/lib/mui-tailwind/icons/Telegram';
+import TelegramIcon from '@/lib/mui-tailwind/icons';
 
 export default function SettingsPage() {
     const { user } = useAuth();

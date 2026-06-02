@@ -15,9 +15,9 @@ import {
     IconButton,
     Divider
 } from '@/lib/mui-tailwind/material';
-import NoteIcon from '@/lib/mui-tailwind/icons/DescriptionOutlined';
-import SearchIcon from '@/lib/mui-tailwind/icons/SearchOutlined';
-import CloseIcon from '@/lib/mui-tailwind/icons/Close';
+import NoteIcon from '@/lib/mui-tailwind/icons';
+import SearchIcon from '@/lib/mui-tailwind/icons';
+import CloseIcon from '@/lib/mui-tailwind/icons';
 import { useNotes } from '@/context/NotesContext';
 
 interface NoteSelectorModalProps {

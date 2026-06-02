@@ -2,7 +2,7 @@
 
 import { Box, Container, Typography, Button, CircularProgress } from '@/lib/mui-tailwind/material';
 import { alpha } from '@/lib/mui-tailwind/material';
-import ChevronRightIcon from '@/lib/mui-tailwind/icons/ChevronRight';
+import ChevronRightIcon from '@/lib/mui-tailwind/icons';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { useRouter } from 'next/navigation';
 

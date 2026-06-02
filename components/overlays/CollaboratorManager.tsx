@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, IconButton, Button, Stack, Select, MenuItem, FormControl, alpha, CircularProgress } from '@/lib/mui-tailwind/material';
 import { X, ArrowLeft, Trash2 } from 'lucide-react';
-import Drawer from '@/lib/mui-tailwind/material/Drawer';
+import Drawer from '@/lib/mui-tailwind/material';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { grantPermissionSecure, getResourceCollaboratorsSecure, revokePermissionSecure, PermissionLevel } from '@/lib/actions/secure-ops';

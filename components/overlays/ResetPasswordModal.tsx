@@ -15,9 +15,9 @@ import {
   useTheme,
   useMediaQuery
 } from '@/lib/mui-tailwind/material';
-import CloseIcon from '@/lib/mui-tailwind/icons/Close';
-import MailIcon from '@/lib/mui-tailwind/icons/Mail';
-import VpnKeyIcon from '@/lib/mui-tailwind/icons/VpnKey';
+import CloseIcon from '@/lib/mui-tailwind/icons';
+import MailIcon from '@/lib/mui-tailwind/icons';
+import VpnKeyIcon from '@/lib/mui-tailwind/icons';
 import { createPasswordRecovery, updatePasswordRecovery } from '@/lib/appwrite';
 import toast from 'react-hot-toast';
 

@@ -3,9 +3,9 @@
 import { Box, Container, Typography, Grid, Paper, Stack, alpha } from '@/lib/mui-tailwind/material';
 
 const VAULT_PRIMARY = "#10B981";
-import ShieldIcon from '@/lib/mui-tailwind/icons/Shield';
-import LockIcon from '@/lib/mui-tailwind/icons/Lock';
-import FingerprintIcon from '@/lib/mui-tailwind/icons/Fingerprint';
+import ShieldIcon from '@/lib/mui-tailwind/icons';
+import LockIcon from '@/lib/mui-tailwind/icons';
+import FingerprintIcon from '@/lib/mui-tailwind/icons';
 
 export default function Trust() {
   return (

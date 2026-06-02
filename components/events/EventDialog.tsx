@@ -27,9 +27,9 @@ import {
   LinkOff as UnlistedIcon,
   VideoCall as VideoIcon,
 } from '@/lib/mui-tailwind/icons';
-import { DateTimePicker } from '@/lib/mui-tailwind/date-pickers/DateTimePicker';
-import { LocalizationProvider } from '@/lib/mui-tailwind/date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@/lib/mui-tailwind/date-pickers/AdapterDateFns';
+import { DateTimePicker } from '@/lib/mui-tailwind/date-pickers';
+import { LocalizationProvider } from '@/lib/mui-tailwind/date-pickers';
+import { AdapterDateFns } from '@/lib/mui-tailwind/date-pickers';
 import { addHours } from '@/lib/time-util';
 import { EventVisibility } from '@/lib/permissions';
 import UserSearch from '@/components/UserSearch';

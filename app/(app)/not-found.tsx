@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import Button from '@/lib/mui-tailwind/material/Button';
-import Box from '@/lib/mui-tailwind/material/Box';
-import Typography from '@/lib/mui-tailwind/material/Typography';
-import Container from '@/lib/mui-tailwind/material/Container';
+import Button from '@/lib/mui-tailwind/material';
+import Box from '@/lib/mui-tailwind/material';
+import Typography from '@/lib/mui-tailwind/material';
+import Container from '@/lib/mui-tailwind/material';
 
 export default function NotFound() {
   return (

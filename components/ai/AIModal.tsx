@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Drawer, Box, Typography, TextField, Button, CircularProgress, useTheme, useMediaQuery } from '@/lib/mui-tailwind/material';
-import AutoAwesomeIcon from '@/lib/mui-tailwind/icons/AutoAwesome';
-import SendIcon from '@/lib/mui-tailwind/icons/Send';
+import AutoAwesomeIcon from '@/lib/mui-tailwind/icons';
+import SendIcon from '@/lib/mui-tailwind/icons';
 import { useAI } from '@/context/AIContext';
 import { toast } from 'react-hot-toast';
 

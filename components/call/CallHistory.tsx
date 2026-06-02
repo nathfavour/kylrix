@@ -25,16 +25,16 @@ import {
     useTheme,
     useMediaQuery
 } from '@/lib/mui-tailwind/material';
-import CallIcon from '@/lib/mui-tailwind/icons/Call';
-import VideocamIcon from '@/lib/mui-tailwind/icons/Videocam';
-import _CallMissedIcon from '@/lib/mui-tailwind/icons/CallMissed';
-import CallReceivedIcon from '@/lib/mui-tailwind/icons/CallReceived';
-import CallMadeIcon from '@/lib/mui-tailwind/icons/CallMade';
-import AddIcCallIcon from '@/lib/mui-tailwind/icons/AddIcCall';
-import DeleteIcon from '@/lib/mui-tailwind/icons/Delete';
-import StopIcon from '@/lib/mui-tailwind/icons/Stop';
-import RefreshIcon from '@/lib/mui-tailwind/icons/Refresh';
-import HistoryIcon from '@/lib/mui-tailwind/icons/History';
+import CallIcon from '@/lib/mui-tailwind/icons';
+import VideocamIcon from '@/lib/mui-tailwind/icons';
+import _CallMissedIcon from '@/lib/mui-tailwind/icons';
+import CallReceivedIcon from '@/lib/mui-tailwind/icons';
+import CallMadeIcon from '@/lib/mui-tailwind/icons';
+import AddIcCallIcon from '@/lib/mui-tailwind/icons';
+import DeleteIcon from '@/lib/mui-tailwind/icons';
+import StopIcon from '@/lib/mui-tailwind/icons';
+import RefreshIcon from '@/lib/mui-tailwind/icons';
+import HistoryIcon from '@/lib/mui-tailwind/icons';
 import toast from 'react-hot-toast';
 import { seedIdentityCache } from '@/lib/identity-cache';
 import { useSection } from '@/context/SectionContext';

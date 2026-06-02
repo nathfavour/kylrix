@@ -17,15 +17,15 @@ import {
   ListItemIcon,
   ListItemText
 } from '@/lib/mui-tailwind/material';
-import UploadIcon from '@/lib/mui-tailwind/icons/Upload';
-import DownloadIcon from '@/lib/mui-tailwind/icons/Download';
-import DescriptionIcon from '@/lib/mui-tailwind/icons/Description';
-import ShieldIcon from '@/lib/mui-tailwind/icons/Shield';
-import InfoIcon from '@/lib/mui-tailwind/icons/Info';
-import CheckCircleIcon from '@/lib/mui-tailwind/icons/CheckCircle';
-import ErrorOutlineIcon from '@/lib/mui-tailwind/icons/ErrorOutline';
-import VpnKeyIcon from '@/lib/mui-tailwind/icons/VpnKey';
-import FolderIcon from '@/lib/mui-tailwind/icons/Folder';
+import UploadIcon from '@/lib/mui-tailwind/icons';
+import DownloadIcon from '@/lib/mui-tailwind/icons';
+import DescriptionIcon from '@/lib/mui-tailwind/icons';
+import ShieldIcon from '@/lib/mui-tailwind/icons';
+import InfoIcon from '@/lib/mui-tailwind/icons';
+import CheckCircleIcon from '@/lib/mui-tailwind/icons';
+import ErrorOutlineIcon from '@/lib/mui-tailwind/icons';
+import VpnKeyIcon from '@/lib/mui-tailwind/icons';
+import FolderIcon from '@/lib/mui-tailwind/icons';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { validateBitwardenExport } from '@/utils/import/bitwarden-mapper';
 import { useBackgroundTask } from '@/context/BackgroundTaskContext';

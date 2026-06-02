@@ -1,19 +1,19 @@
 "use client";
 
-import Box from '@/lib/mui-tailwind/material/Box';
-import Container from '@/lib/mui-tailwind/material/Container';
-import Typography from '@/lib/mui-tailwind/material/Typography';
-import Grid from '@/lib/mui-tailwind/material/Grid';
-import Paper from '@/lib/mui-tailwind/material/Paper';
+import Box from '@/lib/mui-tailwind/material';
+import Container from '@/lib/mui-tailwind/material';
+import Typography from '@/lib/mui-tailwind/material';
+import Grid from '@/lib/mui-tailwind/material';
+import Paper from '@/lib/mui-tailwind/material';
 import { alpha } from '@/lib/mui-tailwind/material';
 
 const VAULT_PRIMARY = "#10B981";
-import ShieldIcon from '@/lib/mui-tailwind/icons/Shield';
-import LockIcon from '@/lib/mui-tailwind/icons/Lock';
-import VpnKeyIcon from '@/lib/mui-tailwind/icons/VpnKey';
-import FingerprintIcon from '@/lib/mui-tailwind/icons/Fingerprint';
-import PublicIcon from '@/lib/mui-tailwind/icons/Public';
-import SyncIcon from '@/lib/mui-tailwind/icons/Sync';
+import ShieldIcon from '@/lib/mui-tailwind/icons';
+import LockIcon from '@/lib/mui-tailwind/icons';
+import VpnKeyIcon from '@/lib/mui-tailwind/icons';
+import FingerprintIcon from '@/lib/mui-tailwind/icons';
+import PublicIcon from '@/lib/mui-tailwind/icons';
+import SyncIcon from '@/lib/mui-tailwind/icons';
 
 const features = [
   {

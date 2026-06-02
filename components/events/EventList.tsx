@@ -10,7 +10,7 @@ import {
   CircularProgress,
   alpha,
 } from '@/lib/mui-tailwind/material';
-import Grid from '@/lib/mui-tailwind/material/Grid';
+import Grid from '@/lib/mui-tailwind/material';
 import { Add as AddIcon } from '@/lib/mui-tailwind/icons';
 import EventCard from './EventCard';
 import EventDialog from './EventDialog';

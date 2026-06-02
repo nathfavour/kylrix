@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useMemo, useState, useCallback, ReactNode } from 'react';
 import { Box, Typography, LinearProgress, Button, alpha, CircularProgress } from '@/lib/mui-tailwind/material';
-import CheckCircleIcon from '@/lib/mui-tailwind/icons/CheckCircle';
-import WarningIcon from '@/lib/mui-tailwind/icons/Warning';
+import CheckCircleIcon from '@/lib/mui-tailwind/icons';
+import WarningIcon from '@/lib/mui-tailwind/icons';
 import { FloatingContainer } from '@/components/ui/FloatingContainer';
 import { ImportService, type ImportProgress, type ImportResult } from '@/utils/import/import-service';
 

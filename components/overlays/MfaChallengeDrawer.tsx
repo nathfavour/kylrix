@@ -15,7 +15,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@/lib/mui-tailwind/material';
-import CloseIcon from '@/lib/mui-tailwind/icons/Close';
+import CloseIcon from '@/lib/mui-tailwind/icons';
 import { AuthenticationFactor } from 'appwrite';
 import { account } from '@/lib/appwrite';
 import toast from 'react-hot-toast';

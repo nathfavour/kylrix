@@ -19,9 +19,9 @@ import {
     Tab,
     alpha as _alpha
 } from '@/lib/mui-tailwind/material';
-import KeyIcon from '@/lib/mui-tailwind/icons/VpnKeyOutlined';
-import ShieldIcon from '@/lib/mui-tailwind/icons/ShieldOutlined';
-import SearchIcon from '@/lib/mui-tailwind/icons/SearchOutlined';
+import KeyIcon from '@/lib/mui-tailwind/icons';
+import ShieldIcon from '@/lib/mui-tailwind/icons';
+import SearchIcon from '@/lib/mui-tailwind/icons';
 import { EcosystemService } from '@/lib/services/ecosystem';
 import { useAuth } from '@/lib/auth';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';

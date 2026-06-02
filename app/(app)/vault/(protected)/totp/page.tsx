@@ -19,11 +19,11 @@ import {
   InputAdornment
 } from '@/lib/mui-tailwind/material';
 import { alpha } from '@/lib/mui-tailwind/material';
-import ShieldIcon from '@/lib/mui-tailwind/icons/Shield';
-import ContentCopyIcon from '@/lib/mui-tailwind/icons/ContentCopy';
-import EditIcon from '@/lib/mui-tailwind/icons/Edit';
-import DeleteIcon from '@/lib/mui-tailwind/icons/Delete';
-import SearchIcon from '@/lib/mui-tailwind/icons/Search';
+import ShieldIcon from '@/lib/mui-tailwind/icons';
+import ContentCopyIcon from '@/lib/mui-tailwind/icons';
+import EditIcon from '@/lib/mui-tailwind/icons';
+import DeleteIcon from '@/lib/mui-tailwind/icons';
+import SearchIcon from '@/lib/mui-tailwind/icons';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { listTotpSecrets, deleteTotpSecret, listFolders } from '@/lib/appwrite';
