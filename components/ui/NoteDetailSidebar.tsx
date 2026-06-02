@@ -772,7 +772,16 @@ export function NoteDetailSidebar({
 
           {showHeaderDeleteButton && (
             <Tooltip title="Delete">
-              <IconButton onClick={() => setShowDeleteConfirm(true)} sx={{ color: theme.palette.text.secondary, '&:hover': { color: theme.palette.error.main, bgcolor: alpha(theme.palette.error.main, 0.1) } }}>
+              <IconButton 
+                onClick={() => setShowDeleteConfirm(true)} 
+                sx={{ 
+                  color: theme.palette.text.secondary, 
+                  '&:hover': { 
+                    color: theme.palette.error?.main || theme.palette.text.secondary, 
+                    bgcolor: alpha(theme.palette.error?.main || theme.palette.text.secondary, 0.1) 
+                  } 
+                }}
+              >
                 <TrashIcon fontSize="small" />
               </IconButton>
             </Tooltip>
