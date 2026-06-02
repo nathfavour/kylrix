@@ -3,28 +3,39 @@
 import React from 'react';
 import * as Lucide from 'lucide-react';
 
-// Unified wrapper to make Lucide icons behave exactly like MUI icons
-const createIcon = (LucideIcon: any) => {
-  const IconComponent = React.forwardRef(({ fontSize = 'medium', className, style, ...props }: any, ref) => {
+const resolveIconSize = (fontSize: any, sx?: any) => {
+  const fromSx = sx?.fontSize;
+  const raw = fromSx ?? fontSize ?? 'medium';
+  if (raw === 'inherit') return 20;
+  if (raw === 'small') return 16;
+  if (raw === 'large') return 28;
+  if (typeof raw === 'number') return raw;
+  if (typeof raw === 'string' && raw.endsWith('rem')) return parseFloat(raw) * 16;
+  if (typeof raw === 'string' && raw.endsWith('px')) return parseFloat(raw);
+  return 20;
+};
+
+// Unified wrapper to make Lucide icons behave exactly like MUI SvgIcon
+const createIcon = (LucideIcon: any, defaults?: { strokeWidth?: number; fill?: string }) => {
+  const IconComponent = React.forwardRef(({ fontSize = 'medium', className, style, sx, ...props }: any, ref) => {
     if (!LucideIcon) return null;
-    
-    // Map MUI fontSize to size values
-    let size = 20;
-    if (fontSize === 'small') size = 16;
-    if (fontSize === 'large') size = 28;
-    if (typeof fontSize === 'number') size = fontSize;
+
+    const size = resolveIconSize(fontSize, sx);
+    const sxStyle = sx && typeof sx === 'object' ? sx : {};
 
     return (
       <LucideIcon
         ref={ref}
         size={size}
+        strokeWidth={props.strokeWidth ?? defaults?.strokeWidth ?? 1.75}
+        fill={props.fill ?? defaults?.fill ?? 'none'}
         className={className}
-        style={style}
+        style={{ ...sxStyle, ...style }}
         {...props}
       />
     );
   });
-  IconComponent.displayName = 'IconComponent';
+  IconComponent.displayName = LucideIcon?.displayName || 'IconComponent';
   return IconComponent;
 };
 
@@ -283,8 +294,10 @@ export const PlaylistAdd = createIcon((Lucide as any).PlaylistAdd || Lucide.Help
 export const PlaylistAddCheck = createIcon((Lucide as any).PlaylistAddCheck || Lucide.HelpCircle);
 export const Popover = createIcon((Lucide as any).Popover || Lucide.HelpCircle);
 export const Preview = createIcon((Lucide as any).Preview || Lucide.HelpCircle);
-export const PushPin = createIcon((Lucide as any).PushPin || Lucide.HelpCircle);
-export const PushPinOutlined = createIcon((Lucide as any).PushPinOutlined || Lucide.HelpCircle);
+/** Filled pin (pinned state) — matches MUI PushPin */
+export const PushPin = createIcon(Lucide.Pin, { strokeWidth: 2, fill: 'currentColor' });
+/** Outline pin (unpinned) — matches MUI PushPinOutlined */
+export const PushPinOutlined = createIcon(Lucide.Pin, { strokeWidth: 1.5, fill: 'none' });
 export const RadioButtonChecked = createIcon((Lucide as any).RadioButtonChecked || Lucide.HelpCircle);
 export const Reply = createIcon((Lucide as any).Reply || Lucide.HelpCircle);
 export const RotateLeft = createIcon((Lucide as any).RotateLeft || Lucide.HelpCircle);

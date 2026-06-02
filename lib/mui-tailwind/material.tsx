@@ -150,7 +150,47 @@ const splitSx = (sx: any) => {
   return { root, nested };
 };
 
-const cleanSx = (sx: any) => splitSx(sx).root;
+const THEME_FOR_SX = {
+  palette: {
+    mode: 'dark',
+    primary: { main: '#6366F1', dark: '#4F46E5' },
+    secondary: { main: '#EC4899', dark: '#DB2777' },
+    background: { default: '#000000', paper: '#161514' },
+    text: { primary: '#F8FAFC', secondary: '#9B9691' },
+    divider: 'rgba(255, 255, 255, 0.05)',
+  },
+};
+
+const resolvePaletteToken = (value: any): any => {
+  if (typeof value === 'function') {
+    try {
+      return resolvePaletteToken(value(THEME_FOR_SX));
+    } catch {
+      return value;
+    }
+  }
+  if (typeof value !== 'string') return value;
+  const [group, key] = value.split('.');
+  const paletteGroup = (THEME_FOR_SX.palette as any)[group];
+  if (paletteGroup && key && paletteGroup[key] !== undefined) return paletteGroup[key];
+  return value;
+};
+
+const cleanSx = (sx: any) => {
+  const { root } = splitSx(sx);
+  if (!root || typeof root !== 'object') return root;
+  const resolved: Record<string, any> = {};
+  for (const key in root) {
+    const val = root[key];
+    if (key === 'color' || key === 'backgroundColor' || key === 'borderColor' || key === 'bgcolor') {
+      const mappedKey = key === 'bgcolor' ? 'backgroundColor' : key;
+      resolved[mappedKey] = resolvePaletteToken(val);
+      continue;
+    }
+    resolved[key] = val;
+  }
+  return resolved;
+};
 
 const isRenderableComponentType = (value: any) => {
   if (!value) return false;
@@ -213,17 +253,45 @@ export const Button = React.forwardRef(({ children, className, sx, variant = 'te
 });
 Button.displayName = 'Button';
 
-// 3. IconButton Component
+// 3. IconButton Component — MUI default is ghost/transparent (no border box)
 export const IconButton = React.forwardRef(({ children, className, sx, disabled, size, color, edge, ...props }: any, ref) => {
-  const baseClass = "inline-flex items-center justify-center p-2 rounded-xl border border-[#23211F] bg-[#0A0908] text-stone-400 hover:text-stone-200 hover:bg-[#141211] active:scale-95 transition-all";
-  const sizeMap: Record<string, number> = { small: 32, medium: 40, large: 48 };
+  const [hovered, setHovered] = React.useState(false);
+  const { root, nested } = splitSx(sx);
+  const hoverBlock = nested['&:hover'] || {};
+  const hoverResolved = hovered ? cleanSx(hoverBlock) : {};
+  const rootResolved = cleanSx(root);
+
+  const hasExplicitChrome = Boolean(
+    rootResolved?.border ||
+    rootResolved?.borderColor ||
+    rootResolved?.backgroundColor ||
+    rootResolved?.bgcolor
+  );
+
+  const sizeMap: Record<string, number> = { small: 34, medium: 40, large: 48 };
   const pixelSize = typeof size === 'string' ? (sizeMap[size] || 40) : 40;
+
+  const baseClass = hasExplicitChrome
+    ? 'inline-flex items-center justify-center rounded-xl border border-[#23211F] bg-[#0A0908] text-stone-400 hover:text-stone-200 hover:bg-[#141211] active:scale-95 transition-all'
+    : 'inline-flex items-center justify-center rounded-lg border-0 bg-transparent text-inherit active:scale-95 transition-colors duration-200';
+
   return (
     <button
       ref={ref}
+      type="button"
       disabled={disabled}
-      className={`${baseClass} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className || ''}`}
-      style={{ width: pixelSize, height: pixelSize, ...cleanSx(sx) }}
+      className={`${baseClass} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className || ''}`}
+      style={{
+        width: rootResolved?.width ?? pixelSize,
+        height: rootResolved?.height ?? pixelSize,
+        minWidth: rootResolved?.minWidth ?? pixelSize,
+        minHeight: rootResolved?.minHeight ?? pixelSize,
+        padding: rootResolved?.padding ?? rootResolved?.p ?? 4,
+        ...rootResolved,
+        ...hoverResolved,
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       {...props}
     >
       {children}
