@@ -27,7 +27,6 @@ import { useAppChrome } from '@/components/providers/AppChromeProvider';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { useCallLauncher } from '@/context/CallLauncherContext';
 import { useServiceWorker } from '@/hooks/useServiceWorker';
-import { useReloadHijack } from '@/hooks/useReloadHijack';
 
 // Lazy Components
 const UnifiedBottomDrawer = dynamic(() => import('./overlays/UnifiedBottomDrawer').then(m => m.UnifiedBottomDrawer), { ssr: false });
@@ -46,7 +45,6 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
   
   // 0. Aggressive Optimization Hooks
   useServiceWorker();
-  useReloadHijack();
 
   // 1. Route Analysis
   const isAppRoute = useMemo(() => Boolean(

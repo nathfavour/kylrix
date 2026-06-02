@@ -120,42 +120,5 @@ export default function RootLanding() {
     );
   }
 
-  // Fallback UI while authenticating or immediately redirecting
-  if (!init) {
-    return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: '#0A0908',
-          color: '#fff',
-        }}
-      >
-        <Box
-          sx={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            bgcolor: alpha('#6366F1', 0.1),
-            color: '#6366F1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            mb: 3,
-          }}
-        >
-          <Sparkles size={32} />
-        </Box>
-        <CircularProgress size={24} sx={{ color: '#6366F1', mb: 2 }} />
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 800 }}>
-          Resuming Session...
-        </Typography>
-      </Box>
-    );
-  }
-
   return null;
 }
