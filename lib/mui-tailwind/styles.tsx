@@ -48,9 +48,11 @@ ThemeProvider.displayName = 'ThemeProvider';
 
 export const styled = (Component: any) => {
   return (stylesOrFn: any) => {
-    return (props: any) => {
+    const StyledComponent = (props: any) => {
       // Return Component with styles applied or forwarded
       return <Component {...props} />;
     };
+    StyledComponent.displayName = `Styled(${Component.displayName || Component.name || 'Component'})`;
+    return StyledComponent;
   };
 };
