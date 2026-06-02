@@ -464,22 +464,6 @@ export default function VaultTopbar({
               }}
             >
               <Logo app="vault" size={32} />
-              <IconButton
-                size="small"
-                sx={{
-                  position: 'absolute',
-                  right: -6,
-                  bottom: -6,
-                  width: 18,
-                  height: 18,
-                  bgcolor: '#0A0908',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: 'rgba(255,255,255,0.55)',
-                  '&:hover': { bgcolor: '#161412', color: 'white' },
-                }}
-              >
-                <ChevronDown size={11} />
-              </IconButton>
             </Box>
 
             <Box sx={{ flex: 1 }} />
