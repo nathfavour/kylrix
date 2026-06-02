@@ -168,6 +168,7 @@ export default function ConnectTopbar({
 
   const profilePicId = getUserProfilePicId(user) || getSdkUserProfilePicId(user);
   const tone = getAppTone(activeApp);
+  const appAccent = getAppColor(activeApp);
   const profileName = user?.name || user?.email || 'User';
   const profileUsername = (user as any)?.username || (user as any)?.prefs?.username || null;
   
@@ -951,15 +952,15 @@ export default function ConnectTopbar({
               width: '100%',
               borderRadius: '30px',
               bgcolor: '#161412',
-              border: '1px solid rgba(245, 158, 11, 0.28)',
+              border: `1px solid ${alpha(appAccent, 0.28)}`,
               overflow: 'hidden',
             }}
           >
             <Box sx={{ p: 1.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, px: 0.5, mb: 1.25 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 38, height: 38, borderRadius: '14px', display: 'grid', placeItems: 'center', color: '#F59E0B', bgcolor: alpha('#F59E0B', 0.08), border: `1px solid ${alpha('#F59E0B', 0.24)}` }}>
-                    <Logo app="connect" size={18} variant="icon" />
+                  <Box sx={{ width: 38, height: 38, borderRadius: '14px', display: 'grid', placeItems: 'center', color: appAccent, bgcolor: alpha(appAccent, 0.08), border: `1px solid ${alpha(appAccent, 0.24)}` }}>
+                    <Logo app={activeApp} size={18} variant="icon" />
                   </Box>
                   <Box>
                     <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '0.9rem', lineHeight: 1.1 }}>
@@ -1127,10 +1128,10 @@ export default function ConnectTopbar({
                     py: 1.25,
                     textTransform: 'none',
                     fontWeight: 900,
-                    bgcolor: '#F59E0B',
+                    bgcolor: appAccent,
                     color: '#000',
-                    '&:hover': { bgcolor: alpha('#F59E0B', 0.86) },
-                    '&.Mui-disabled': { bgcolor: 'rgba(245,158,11,0.28)', color: 'rgba(255,255,255,0.6)' },
+                    '&:hover': { bgcolor: alpha(appAccent, 0.86) },
+                    '&.Mui-disabled': { bgcolor: alpha(appAccent, 0.28), color: 'rgba(255,255,255,0.6)' },
                   }}
                 >
                   See full profile
@@ -1179,7 +1180,7 @@ export default function ConnectTopbar({
               <Box sx={{ position: 'relative' }}>
                 <Avatar
                   src={isRenderableImageSrc(profileAvatarUrl) ? profileAvatarUrl || undefined : undefined}
-                  sx={{ width: 96, height: 96, bgcolor: tone.secondary, color: '#fff', fontWeight: 900, fontSize: '2rem', borderRadius: '28px', border: `2px solid ${alpha(getAppColor('connect'), 0.2)}` }}
+                  sx={{ width: 96, height: 96, bgcolor: tone.secondary, color: '#fff', fontWeight: 900, fontSize: '2rem', borderRadius: '28px', border: `2px solid ${alpha(appAccent, 0.2)}` }}
                 >
                   {profileName.slice(0, 1).toUpperCase()}
                 </Avatar>
@@ -1319,7 +1320,7 @@ export default function ConnectTopbar({
                 variant="contained"
                 sx={{
                   borderRadius: '16px',
-                  bgcolor: '#F59E0B',
+                  bgcolor: appAccent,
                   color: '#000',
                   py: 1.5,
                   px: 2.5,
@@ -1328,8 +1329,8 @@ export default function ConnectTopbar({
                   fontSize: '0.92rem',
                   display: 'flex',
                   justifyContent: 'center',
-                  '&:hover': { bgcolor: alpha('#F59E0B', 0.86) },
-                  '&.Mui-disabled': { bgcolor: 'rgba(245,158,11,0.15)', color: 'rgba(255,255,255,0.3)' },
+                  '&:hover': { bgcolor: alpha(appAccent, 0.86) },
+                  '&.Mui-disabled': { bgcolor: alpha(appAccent, 0.15), color: 'rgba(255,255,255,0.3)' },
                 }}
               >
                 See Full Profile
@@ -1510,11 +1511,11 @@ export default function ConnectTopbar({
                       py: 1.1,
                       borderRadius: '18px',
                       color: 'white',
-                      bgcolor: item.selected ? alpha('#F59E0B', 0.08) : 'rgba(255,255,255,0.02)',
+                      bgcolor: item.selected ? alpha(appTone.secondary, 0.08) : 'rgba(255,255,255,0.02)',
                       border: '1px solid transparent',
                       '&:hover': {
-                        bgcolor: alpha('#F59E0B', 0.12),
-                        borderColor: alpha('#F59E0B', 0.24),
+                        bgcolor: alpha(appTone.secondary, 0.12),
+                        borderColor: alpha(appTone.secondary, 0.24),
                       },
                     }}
                   >
@@ -1523,10 +1524,10 @@ export default function ConnectTopbar({
                         <Logo app={item.app} size={16} variant="icon" />
                       </Box>
                       <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography sx={{ fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.15 }} noWrap>
+                        <Typography sx={{ color: '#F3F2F0', fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.2 }} noWrap>
                           {item.label}
                         </Typography>
-                        <Typography sx={{ color: 'rgba(255,255,255,0.56)', fontWeight: 600, fontSize: '0.76rem', lineHeight: 1.35 }} noWrap>
+                        <Typography sx={{ color: 'rgba(255,255,255,0.74)', fontWeight: 600, fontSize: '0.76rem', lineHeight: 1.35 }} noWrap>
                           {item.description}
                         </Typography>
                       </Box>
@@ -1732,19 +1733,21 @@ export default function ConnectTopbar({
                   {user && (
                     <Tooltip title="Smart Systems">
                       <IconButton
+                        aria-label="Open smart systems"
                         onClick={() => openAgenticDrawer()}
                         sx={{
                           color: getAppColor(activeApp),
-                          bgcolor: alpha(getAppColor(activeApp), 0.03),
+                          bgcolor: '#0A0908',
                           border: '1px solid',
-                          borderColor: alpha(getAppColor(activeApp), 0.1),
-                          borderRadius: '12px',
-                          width: 42,
-                          height: 42,
-                          '&:hover': { bgcolor: alpha(getAppColor(activeApp), 0.08) },
+                          borderColor: alpha(getAppColor(activeApp), 0.24),
+                          borderRadius: '999px',
+                          width: 38,
+                          height: 38,
+                          boxShadow: `0 8px 22px ${alpha(getAppColor(activeApp), 0.18)}`,
+                          '&:hover': { bgcolor: '#13110F', borderColor: alpha(getAppColor(activeApp), 0.36) },
                         }}
                       >
-                        <Bot size={18} strokeWidth={1.5} />
+                        <Bot size={16} strokeWidth={1.8} />
                       </IconButton>
                     </Tooltip>
                   )}

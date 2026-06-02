@@ -74,17 +74,6 @@ export default function ProjectCard({ project, onClick, onDelete, onTogglePin }:
         }
       }}
     >
-      {/* Decorative gradient overlay */}
-      <Box sx={{ 
-          position: 'absolute', 
-          top: 0, 
-          right: 0, 
-          width: 120, 
-          height: 120, 
-          background: `radial-gradient(circle at top right, ${alpha('#6366F1', 0.05)}, transparent 70%)`,
-          pointerEvents: 'none'
-      }} />
-
       <Stack spacing={2.5}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Stack direction="row" spacing={2} alignItems="center">
@@ -105,7 +94,7 @@ export default function ProjectCard({ project, onClick, onDelete, onTogglePin }:
               <LayoutGrid size={22} strokeWidth={1.5} />
             </Box>
             <Box sx={{ minWidth: 0 }}>
-              <Typography noWrap sx={{ color: '#fff', fontWeight: 900, fontSize: '1.15rem', fontFamily: 'var(--font-clash)', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography noWrap sx={{ color: '#fff', fontWeight: 900, fontSize: '1.05rem', fontFamily: 'var(--font-clash)', display: 'flex', alignItems: 'center', gap: 1, lineHeight: 1.15 }}>
                 {(project as any).isPinned && <Pin size={14} fill="#F59E0B" color="#F59E0B" style={{ transform: 'rotate(45deg)', flexShrink: 0 }} />}
                 <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.title}</Box>
               </Typography>

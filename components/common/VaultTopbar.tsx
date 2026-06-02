@@ -520,19 +520,21 @@ export default function VaultTopbar({
                 <>
                   <Tooltip title="Smart Systems">
                     <IconButton
+                      aria-label="Open smart systems"
                       onClick={openAgenticDrawer}
                       sx={{
                         color: getAppColor('vault'),
-                        bgcolor: alpha(getAppColor('vault'), 0.03),
+                        bgcolor: '#0A0908',
                         border: '1px solid',
-                        borderColor: alpha(getAppColor('vault'), 0.1),
-                        borderRadius: '12px',
-                        width: 42,
-                        height: 42,
-                        '&:hover': { bgcolor: alpha(getAppColor('vault'), 0.08) },
+                        borderColor: alpha(getAppColor('vault'), 0.24),
+                        borderRadius: '999px',
+                        width: 38,
+                        height: 38,
+                        boxShadow: `0 8px 22px ${alpha(getAppColor('vault'), 0.18)}`,
+                        '&:hover': { bgcolor: '#13110F', borderColor: alpha(getAppColor('vault'), 0.36) },
                       }}
                     >
-                      <Bot size={18} strokeWidth={1.5} />
+                      <Bot size={16} strokeWidth={1.8} />
                     </IconButton>
                   </Tooltip>
 

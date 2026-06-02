@@ -70,12 +70,13 @@ export default function UniversalFAB() {
               bgcolor: mainColor,
               color: '#000',
               borderRadius: '20px',
-              boxShadow: `0 8px 32px ${alpha(mainColor, 0.4)}`,
+              boxShadow: `0 10px 34px ${alpha(mainColor, 0.45)}, 0 0 0 1px ${alpha('#ffffff', 0.08)} inset`,
+              backdropFilter: 'blur(14px) saturate(170%)',
               transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
               '&:hover': {
                 bgcolor: mainColor,
                 transform: 'translateY(-4px)',
-                boxShadow: `0 12px 40px ${alpha(mainColor, 0.5)}`,
+                boxShadow: `0 14px 42px ${alpha(mainColor, 0.52)}, 0 0 0 1px ${alpha('#ffffff', 0.1)} inset`,
               }
             }}
           >
@@ -108,15 +109,17 @@ export default function UniversalFAB() {
 
   return (
     <>
-      <Backdrop
-        open={isExpanded}
-        onClick={() => setIsExpanded(false)}
-        sx={{ 
-          zIndex: 1300, 
-          bgcolor: 'rgba(0, 0, 0, 0.4)',
-          backdropFilter: 'blur(12px) saturate(180%)',
-        }}
-      />
+      {isExpanded && (
+        <Backdrop
+          open={true}
+          onClick={() => setIsExpanded(false)}
+          sx={{ 
+            zIndex: 1300, 
+            bgcolor: 'rgba(0, 0, 0, 0.42)',
+            backdropFilter: 'blur(14px) saturate(180%)',
+          }}
+        />
+      )}
       <SpeedDial
         ariaLabel="Universal Actions"
         sx={{
@@ -131,7 +134,10 @@ export default function UniversalFAB() {
             color: isExpanded ? 'white' : '#000',
             borderRadius: '20px',
             border: isExpanded ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
-            boxShadow: isExpanded ? 'none' : `0 8px 32px ${alpha(mainColor || '#6366F1', 0.4)}`,
+            boxShadow: isExpanded
+              ? '0 0 0 1px rgba(255,255,255,0.08) inset'
+              : `0 10px 34px ${alpha(mainColor || '#6366F1', 0.45)}, 0 0 0 1px ${alpha('#ffffff', 0.08)} inset`,
+            backdropFilter: 'blur(14px) saturate(170%)',
             transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
             '&:hover': {
               bgcolor: isExpanded ? 'rgba(255, 255, 255, 0.1)' : (mainColor || '#6366F1'),
