@@ -3,7 +3,7 @@
 import React from 'react';
 
 const OPENBRICKS_TOKENS = {
-  shell: '#0A0908',
+  shell: '#000000',
   surface: '#161412',
   surfaceAlt: '#1C1917',
   border: 'rgba(255,255,255,0.08)',

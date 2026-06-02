@@ -7,7 +7,7 @@
 @source "../hooks";
 
 :root {
-  --background: #0A0908;
+  --background: #000000;
   --foreground: #F5F2ED;
   --surface: #161412;
   --surface-2: #1C1917;
@@ -59,7 +59,7 @@ a {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: #0A0908;
+  background: #000000;
 }
 
 body[data-ui-mood="focus"] {

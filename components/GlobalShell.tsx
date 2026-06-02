@@ -156,7 +156,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     <Box 
         sx={{ 
             minHeight: '100vh', 
-            bgcolor: '#0A0908', 
+            bgcolor: '#000000', 
             color: '#fff',
             position: 'relative',
             overflowX: 'hidden'
