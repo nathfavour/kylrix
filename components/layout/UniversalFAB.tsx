@@ -1,24 +1,26 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Fab, 
-  Typography, 
-  Backdrop, 
+import {
+  Box,
+  Fab,
+  Typography,
+  Backdrop,
   Zoom,
   alpha,
-  SpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon,
   useMediaQuery,
-  useTheme
+  useTheme,
 } from '@/lib/mui-tailwind/material';
 import { Plus, X } from 'lucide-react';
 import { useFAB } from '@/context/FABContext';
 import { usePathname } from 'next/navigation';
 import { useLocalContext } from '@/lib/context-engine';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
+
+const FAB_BOTTOM = {
+  landing: 32,
+  app: { xs: 'calc(104px + env(safe-area-inset-bottom))', md: 32 },
+} as const;
 
 export default function UniversalFAB() {
   const { config } = useFAB();
@@ -30,13 +32,12 @@ export default function UniversalFAB() {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
-  // Landing page has different positioning
   const isLandingPage = pathname === '/';
 
   const isAppRoute = pathname && (
-    pathname.startsWith('/projects') || 
-    pathname.startsWith('/note') || 
-    pathname.startsWith('/flow') || 
+    pathname.startsWith('/projects') ||
+    pathname.startsWith('/note') ||
+    pathname.startsWith('/flow') ||
     pathname.startsWith('/vault') ||
     (pathname.startsWith('/connect') && pathname !== '/connect' && !pathname.includes('/invite/') && !pathname.startsWith('/connect/chat/'))
   );
@@ -50,18 +51,23 @@ export default function UniversalFAB() {
   const mainColor = config.mainColor || '#6366F1';
   const onMainClick = config.onMainClick;
 
-  // If we have a custom main click handler, it's a high-velocity direct action button
+  const anchorSx = {
+    position: 'fixed' as const,
+    bottom: isLandingPage ? FAB_BOTTOM.landing : FAB_BOTTOM.app,
+    right: { xs: 16, md: 32 },
+    zIndex: 1310,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'flex-end',
+    gap: 1.5,
+    pointerEvents: 'none' as const,
+    '& > *': { pointerEvents: 'auto' as const },
+  };
+
   if (onMainClick) {
     return (
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: isLandingPage ? 32 : { xs: 'calc(104px + env(safe-area-inset-bottom))', md: 32 },
-          right: { xs: 16, md: 32 },
-          zIndex: 1400,
-        }}
-      >
-        <Zoom in={true}>
+      <Box sx={anchorSx}>
+        <Zoom in>
           <Fab
             onClick={onMainClick}
             sx={{
@@ -77,7 +83,7 @@ export default function UniversalFAB() {
                 bgcolor: mainColor,
                 transform: 'translateY(-4px)',
                 boxShadow: `0 14px 42px ${alpha(mainColor, 0.52)}`,
-              }
+              },
             }}
           >
             {mainIcon || <Plus size={32} strokeWidth={2} />}
@@ -87,107 +93,139 @@ export default function UniversalFAB() {
     );
   }
 
-  const workflowAction = isRecording ? {
-    id: 'workflow_stop',
-    label: `Stop Recording (${currentWorkflow.length} Steps)`,
-    icon: <X size={20} style={{ color: '#EF4444' }} />,
-    onClick: () => {
-      const name = prompt("Name your workflow:") || "Custom Automated Workflow";
-      const desc = prompt("Workflow description:") || "Recorded chain of actions in Kylrix";
-      stopRecording(name, desc, 'workspace');
-    }
-  } : {
-    id: 'workflow_start',
-    label: 'Record Action Chain',
-    icon: <Plus size={20} style={{ color: '#10B981' }} />,
-    onClick: () => {
-      startRecording();
-    }
-  };
+  const workflowAction = isRecording
+    ? {
+        id: 'workflow_stop',
+        label: `Stop Recording (${currentWorkflow.length} Steps)`,
+        icon: <X size={20} style={{ color: '#EF4444' }} />,
+        onClick: () => {
+          const name = prompt('Name your workflow:') || 'Custom Automated Workflow';
+          const desc = prompt('Workflow description:') || 'Recorded chain of actions in Kylrix';
+          stopRecording(name, desc, 'workspace');
+        },
+      }
+    : {
+        id: 'workflow_start',
+        label: 'Record Action Chain',
+        icon: <Plus size={20} style={{ color: '#10B981' }} />,
+        onClick: () => {
+          startRecording();
+        },
+      };
 
   const speedDialActions = [...actions, workflowAction];
 
   return (
     <>
-      {isExpanded && (
-        <Backdrop
-          open={true}
-          onClick={() => setIsExpanded(false)}
-          sx={{ 
-            zIndex: 1300, 
-            bgcolor: 'rgba(0, 0, 0, 0.42)',
-            backdropFilter: 'blur(14px) saturate(180%)',
-          }}
-        />
-      )}
-      <SpeedDial
-        ariaLabel="Universal Actions"
-        sx={{
-          position: 'fixed',
-          bottom: isLandingPage ? 32 : { xs: 'calc(104px + env(safe-area-inset-bottom))', md: 32 },
-          right: { xs: 16, md: 32 },
-          zIndex: 1310,
-          '& .MuiFab-primary': {
+      <Backdrop open={isExpanded} onClick={() => setIsExpanded(false)} />
+
+      <Box sx={anchorSx}>
+        {speedDialActions.map((action, index) => {
+          const delay = `${index * 0.055}s`;
+          return (
+            <Box
+              key={action.id}
+              component="button"
+              type="button"
+              onClick={() => {
+                action.onClick();
+                setIsExpanded(false);
+              }}
+              aria-label={action.label}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.25,
+                px: 0.5,
+                py: 0.25,
+                border: 'none',
+                background: 'transparent',
+                cursor: isExpanded ? 'pointer' : 'default',
+                textAlign: 'right',
+                opacity: isExpanded ? 1 : 0,
+                visibility: isExpanded ? 'visible' : 'hidden',
+                pointerEvents: isExpanded ? 'auto' : 'none',
+                transform: isExpanded ? 'translateY(0) scale(1)' : 'translateY(16px) scale(0.9)',
+                transition: `opacity 0.32s ease ${delay}, transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}, visibility 0.32s ${delay}`,
+              }}
+            >
+              <Box
+                sx={{
+                  px: 1.75,
+                  py: 1,
+                  borderRadius: '12px',
+                  bgcolor: 'rgba(10, 10, 10, 0.94)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.45)',
+                }}
+              >
+                <Typography
+                  component="span"
+                  sx={{
+                    color: '#FFFFFF',
+                    fontWeight: 800,
+                    fontSize: '0.72rem',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    lineHeight: 1.3,
+                    whiteSpace: 'nowrap',
+                    display: 'block',
+                  }}
+                >
+                  {action.label}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '16px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                  bgcolor: '#0A0908',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: 'rgba(255, 255, 255, 0.88)',
+                  boxShadow: '0 10px 28px rgba(0,0,0,0.5)',
+                  transition: 'transform 0.2s ease, border-color 0.2s ease',
+                  '&:active': { transform: 'scale(0.92)' },
+                }}
+              >
+                {action.icon}
+              </Box>
+            </Box>
+          );
+        })}
+
+        <Fab
+          onClick={() => setIsExpanded((open) => !open)}
+          aria-label={isExpanded ? 'Close actions' : 'Open actions'}
+          sx={{
             width: 64,
             height: 64,
-            bgcolor: isExpanded ? 'rgba(255, 255, 255, 0.05)' : (mainColor || '#6366F1'),
-            color: isExpanded ? 'white' : '#000',
+            bgcolor: isExpanded ? 'rgba(255, 255, 255, 0.08)' : mainColor,
+            color: isExpanded ? '#fff' : '#000',
             borderRadius: '20px',
-            border: isExpanded ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
-            boxShadow: isExpanded
-              ? 'none'
-              : `0 10px 34px ${alpha(mainColor || '#6366F1', 0.45)}`,
+            border: isExpanded ? '1px solid rgba(255, 255, 255, 0.18)' : 'none',
+            boxShadow: isExpanded ? '0 12px 40px rgba(0,0,0,0.55)' : `0 10px 34px ${alpha(mainColor, 0.45)}`,
             backdropFilter: 'blur(14px) saturate(170%)',
-            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-            '&:hover': {
-              bgcolor: isExpanded ? 'rgba(255, 255, 255, 0.1)' : (mainColor || '#6366F1'),
-            }
-          },
-          '& .MuiSpeedDialAction-fab': {
-            bgcolor: 'rgba(10, 10, 10, 0.98)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            color: 'rgba(255, 255, 255, 0.8)',
-            width: 48,
-            height: 48,
-            '&:hover': {
-              bgcolor: 'rgba(99, 102, 241, 0.1)',
-              color: '#6366F1',
-              borderColor: '#6366F1',
-            },
-          },
-          '& .MuiSpeedDialAction-staticTooltipLabel': {
-            bgcolor: 'rgba(10, 10, 10, 0.98)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            color: '#FFFFFF',
-            fontFamily: 'inherit',
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            fontSize: '0.7rem',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            whiteSpace: 'nowrap'
-          },
-        }}
-        icon={<SpeedDialIcon icon={mainIcon || <Plus size={24} />} openIcon={<X size={24} />} />}
-        onOpen={() => setIsExpanded(true)}
-        onClose={() => setIsExpanded(false)}
-        open={isExpanded}
-        direction="up"
-      >
-        {speedDialActions.map((action) => (
-          <SpeedDialAction
-            key={action.id}
-            icon={action.icon}
-            tooltipTitle={action.label}
-            tooltipOpen
-            onClick={() => {
-              action.onClick();
-              setIsExpanded(false);
+            transform: isExpanded ? 'rotate(0deg)' : 'none',
+            transition: 'all 0.38s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            '&:active': { transform: 'scale(0.94)' },
+          }}
+        >
+          <Box
+            sx={{
+              display: 'grid',
+              placeItems: 'center',
+              transform: isExpanded ? 'rotate(45deg)' : 'rotate(0deg)',
+              transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
             }}
-          />
-        ))}
-      </SpeedDial>
+          >
+            {isExpanded ? <X size={28} strokeWidth={2} /> : (mainIcon || <Plus size={28} strokeWidth={2} />)}
+          </Box>
+        </Fab>
+      </Box>
     </>
   );
 }

@@ -944,16 +944,38 @@ export const AutoAwesome = ({ children, ...props }: any) => React.createElement(
 export const AutoFixHigh = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Autocomplete = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const AvatarGroup = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const Backdrop = ({ children, ...props }: any) => React.createElement('div', props, children);
+export const Backdrop = ({ open = false, onClick, children, className, sx, ...props }: any) => {
+  if (!open) return null;
+  return (
+    <div
+      role="presentation"
+      onClick={onClick}
+      className={className || ''}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1300,
+        backgroundColor: 'rgba(0, 0, 0, 0.48)',
+        backdropFilter: 'blur(16px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+        animation: 'kylrixBackdropIn 0.28s ease',
+        ...cleanSx(sx),
+      }}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+};
 export const Block = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const BottomNavigation = React.forwardRef(({ children, value, onChange, className, sx, showLabels, ...props }: any, ref) => {
+export const BottomNavigation = React.forwardRef(({ children, value, onChange, actionColor, className, sx, showLabels, ...props }: any, ref) => {
   return (
     <div
       ref={ref}
-      className={`flex w-full items-center justify-around h-16 ${className || ''}`}
+      className={`flex w-full items-center justify-between ${className || ''}`}
       style={{
-        background: OPENBRICKS_TOKENS.surface,
-        borderTop: `1px solid ${OPENBRICKS_TOKENS.borderSoft}`,
+        background: 'transparent',
+        height: 72,
         ...cleanSx(sx),
       }}
       {...props}
@@ -964,6 +986,8 @@ export const BottomNavigation = React.forwardRef(({ children, value, onChange, c
         const selected = childValue === value;
         return React.cloneElement(child, {
           selected,
+          selectedColor: actionColor,
+          showLabels,
           onClick: (e: any) => {
             if (onChange) onChange(e, childValue);
             if ((child.props as any).onClick) (child.props as any).onClick(e);
@@ -975,21 +999,50 @@ export const BottomNavigation = React.forwardRef(({ children, value, onChange, c
 });
 BottomNavigation.displayName = 'BottomNavigation';
 
-export const BottomNavigationAction = React.forwardRef(({ label, icon, selected, className, sx, ...props }: any, ref) => {
+export const BottomNavigationAction = React.forwardRef(({ label, icon, selected, selectedColor, showLabels = false, className, sx, ...props }: any, ref) => {
+  const [pressing, setPressing] = React.useState(false);
+  const accent = selectedColor || OPENBRICKS_TOKENS.connectAccent;
+
   return (
     <button
       ref={ref}
-      className={`flex flex-col items-center justify-center flex-1 py-1 px-3 text-xs font-medium transition-all duration-300 ${
-        selected ? 'scale-110' : 'hover:text-stone-200'
-      } ${className || ''}`}
+      type="button"
+      className={`flex flex-col items-center justify-center flex-1 border-0 bg-transparent ${className || ''}`}
       style={{
-        color: selected ? OPENBRICKS_TOKENS.connectAccent : OPENBRICKS_TOKENS.textMuted,
+        minWidth: 'auto',
+        padding: 0,
+        height: 56,
+        cursor: 'pointer',
+        color: selected ? accent : 'rgba(255, 255, 255, 0.4)',
+        backgroundColor: 'transparent',
         ...cleanSx(sx),
       }}
+      onPointerDown={() => setPressing(true)}
+      onPointerUp={() => setPressing(false)}
+      onPointerLeave={() => setPressing(false)}
+      onPointerCancel={() => setPressing(false)}
       {...props}
     >
-      {icon && <span className={`mb-1 transition-transform duration-300 ${selected ? 'scale-110' : ''}`}>{icon}</span>}
-      {label && <span>{label}</span>}
+      {icon && (
+        <span
+          className="lucide-wrap"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: pressing
+              ? 'scale(0.88)'
+              : selected
+                ? 'scale(1.2) translateY(-2px)'
+                : 'scale(1)',
+            filter: selected ? `drop-shadow(0 0 8px ${alpha(accent, 0.5)})` : 'none',
+            transition: 'transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.22s ease',
+          }}
+        >
+          {icon}
+        </span>
+      )}
+      {label && showLabels ? <span style={{ marginTop: 4, fontSize: '0.7rem', lineHeight: 1.2 }}>{label}</span> : null}
     </button>
   );
 });
