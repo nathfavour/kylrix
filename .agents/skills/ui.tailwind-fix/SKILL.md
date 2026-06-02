@@ -168,6 +168,23 @@ const NAV_SURFACE = '#161412';
 </Card>
 ```
 
+#### Grid density on `/projects`
+
+The main column shares width with sidebars (`MultiSectionContainer`). **Never use `lg: 4` / `xl: 4` (three columns)** for project or template cards—it compresses cards in the remaining `1fr` lane.
+
+```tsx
+<Grid container spacing={3}>
+  <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', minWidth: 0 }}>
+    <ProjectCard /> {/* width: 100% on Card */}
+  </Grid>
+</Grid>
+```
+
+- **`xs: 12`**: one card per row on phones  
+- **`md: 6`**: two cards per row from tablet up (max two, never three)  
+- **`spacing={3}`**: 24px gutters between cards  
+- **`minWidth: 0`** on grid items: prevents flex overflow squashing text  
+
 #### Do not (project-card anti-pattern)
 
 ```tsx

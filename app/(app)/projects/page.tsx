@@ -435,9 +435,9 @@ export default function ProjectsPage() {
         </Button>
       </Stack>
       
-      <Grid container spacing={2.5}>
+      <Grid container spacing={3}>
         {displayedTemplates.map((template) => (
-          <Grid size={{ xs: 12, sm: 6, lg: 6, xl: 4 }} key={template.title} sx={{ display: 'flex' }}>
+          <Grid size={{ xs: 12, md: 6 }} key={template.title} sx={{ display: 'flex', minWidth: 0 }}>
             <TemplateCard template={template} onSelect={openCreateDrawer} />
           </Grid>
         ))}
@@ -568,9 +568,9 @@ export default function ProjectsPage() {
         </Typography>
         
         {loading ? (
-          <Grid container spacing={2.5}>
+          <Grid container spacing={3}>
             {[1, 2, 3, 4, 5, 6].map((idx) => (
-              <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={idx}>
+              <Grid size={{ xs: 12, md: 6 }} key={idx} sx={{ display: 'flex', minWidth: 0 }}>
                 <ProjectCard 
                   project={{
                     $id: `skeleton-${idx}`,
@@ -607,9 +607,9 @@ export default function ProjectsPage() {
             <Button variant="outlined" onClick={() => openCreateDrawer()} sx={{ borderRadius: '12px', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', px: 4, fontWeight: 800 }}>Start Fresh Project</Button>
           </Paper>
         ) : (
-            <Grid container spacing={2.5}>
+            <Grid container spacing={3}>
                 {sortedProjects.map(project => (
-                    <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={project.$id}>
+                    <Grid size={{ xs: 12, md: 6 }} key={project.$id} sx={{ display: 'flex', minWidth: 0 }}>
                         <ProjectCard 
                             project={project} 
                             onClick={handleProjectClick}

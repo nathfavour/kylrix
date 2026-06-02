@@ -53,6 +53,8 @@ export default function ProjectCard({ project, onClick, onDelete, onTogglePin }:
     <Card
       onClick={() => onClick(project.$id)}
       sx={{
+        width: '100%',
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
         cursor: 'pointer',
