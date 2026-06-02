@@ -111,10 +111,14 @@ IconButton.displayName = 'IconButton';
 
 // 4. Card Component
 export const Card = React.forwardRef(({ children, className, sx, ...props }: any, ref) => {
+  const hasCustomHover = sx && (sx['&:hover'] || sx.transform || sx.transition);
+  const hoverClasses = !hasCustomHover
+    ? "hover:border-pink-500/40 hover:-translate-y-1 hover:scale-[1.01] transition-all duration-500"
+    : "transition-all duration-300";
   return (
     <div
       ref={ref}
-      className={`rounded-3xl bg-[#141211] border border-[#23211F] shadow-[1px_1px_0px_#23211F,2px_2px_0px_#1E1B19,3px_3px_0px_#161412,4px_4px_0px_#0A0908,5px_5px_0px_#000000] p-6 hover:border-pink-500/40 hover:-translate-y-1 hover:scale-[1.01] transition-all duration-500 ${className || ''}`}
+      className={`rounded-3xl bg-[#141211] border border-[#23211F] shadow-[1px_1px_0px_#23211F,2px_2px_0px_#1E1B19,3px_3px_0px_#161412,4px_4px_0px_#0A0908,5px_5px_0px_#000000] p-6 ${hoverClasses} ${className || ''}`}
       style={cleanSx(sx)}
       {...props}
     >
@@ -138,25 +142,56 @@ export const LinearProgress = ({ value = 0, className, ...props }: any) => (
   </div>
 );
 
-export const AppBar = ({ children, className, ...props }: any) => (
-  <header className={`flex items-center justify-between border-b border-[#23211F] bg-[#0A0908] ${className || ''}`} {...props}>
+export const AppBar = React.forwardRef(({ children, className, sx, position = 'fixed', ...props }: any, ref) => {
+  const posClass = position === 'fixed' ? 'fixed top-0 left-0 right-0' : position === 'sticky' ? 'sticky top-0' : '';
+  return (
+    <header
+      ref={ref}
+      className={`w-full flex flex-col border-b border-[#23211F] bg-[#0A0908] ${posClass} ${className || ''}`}
+      style={cleanSx(sx)}
+      {...props}
+    >
+      {children}
+    </header>
+  );
+});
+AppBar.displayName = 'AppBar';
+
+export const Toolbar = React.forwardRef(({ children, className, sx, ...props }: any, ref) => (
+  <div
+    ref={ref}
+    className={`flex items-center gap-3 px-4 py-3 ${className || ''}`}
+    style={cleanSx(sx)}
+    {...props}
+  >
     {children}
-  </header>
-);
+  </div>
+));
+Toolbar.displayName = 'Toolbar';
 
-export const Toolbar = ({ children, className, ...props }: any) => (
-  <div className={`flex items-center gap-3 px-4 py-3 ${className || ''}`} {...props}>{children}</div>
-);
+export const Tabs = React.forwardRef(({ children, className, sx, ...props }: any, ref) => (
+  <div
+    ref={ref}
+    className={`flex items-center gap-2 ${className || ''}`}
+    style={cleanSx(sx)}
+    {...props}
+  >
+    {children}
+  </div>
+));
+Tabs.displayName = 'Tabs';
 
-export const Tabs = ({ children, className, ...props }: any) => (
-  <div className={`flex items-center gap-2 ${className || ''}`} {...props}>{children}</div>
-);
-
-export const Tab = ({ label, children, className, ...props }: any) => (
-  <button className={`rounded-xl px-4 py-2 text-sm font-medium text-stone-300 hover:bg-[#1E1B19] ${className || ''}`} {...props}>
+export const Tab = React.forwardRef(({ label, children, className, sx, ...props }: any, ref) => (
+  <button
+    ref={ref}
+    className={`rounded-xl px-4 py-2 text-sm font-medium text-stone-300 hover:bg-[#1E1B19] ${className || ''}`}
+    style={cleanSx(sx)}
+    {...props}
+  >
     {label ?? children}
   </button>
-);
+));
+Tab.displayName = 'Tab';
 
 export const FormControlLabel = ({ control, label, className, ...props }: any) => (
   <label className={`inline-flex items-center gap-2 ${className || ''}`} {...props}>
@@ -332,17 +367,31 @@ export const TextField = React.forwardRef(({ label, placeholder, value, onChange
 TextField.displayName = 'TextField';
 
 // 11. Dialog Component
-export const Dialog = ({ open, onClose, children, maxWidth = 'sm', fullWidth, ...props }: any) => {
+export const Dialog = React.forwardRef(({ open, onClose, children, maxWidth = 'sm', fullWidth, sx, className, ...props }: any, ref) => {
   if (!open) return null;
+  
+  let maxWClass = "max-w-md";
+  if (maxWidth === 'xs') maxWClass = "max-w-xs";
+  if (maxWidth === 'sm') maxWClass = "max-w-sm";
+  if (maxWidth === 'md') maxWClass = "max-w-md";
+  if (maxWidth === 'lg') maxWClass = "max-w-lg";
+  if (maxWidth === 'xl') maxWClass = "max-w-xl";
+  
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
       <div className="fixed inset-0" onClick={onClose} />
-      <div className={`relative z-10 w-full max-w-${maxWidth} bg-[#141211] border border-[#23211F] rounded-3xl p-6 shadow-2xl animate-scale-up`}>
+      <div
+        ref={ref}
+        className={`relative z-10 w-full ${maxWClass} bg-[#141211] border border-[#23211F] rounded-3xl p-6 shadow-2xl animate-scale-up ${className || ''}`}
+        style={cleanSx(sx)}
+        {...props}
+      >
         {children}
       </div>
     </div>
   );
-};
+});
+Dialog.displayName = 'Dialog';
 
 export const DialogTitle = ({ children, className, ...props }: any) => (
   <h3 className={`text-xl font-bold font-clash text-stone-100 mb-4 ${className || ''}`} {...props}>
@@ -363,18 +412,30 @@ export const DialogActions = ({ children, className, ...props }: any) => (
 );
 
 // 12. Drawer Component
-export const Drawer = ({ open, onClose, anchor = 'right', children, ...props }: any) => {
+export const Drawer = React.forwardRef(({ open, onClose, anchor = 'right', children, PaperProps, keepMounted, disablePortal, ...props }: any, ref) => {
   if (!open) return null;
+  const justifyClass = anchor === 'left' ? 'justify-start' : 'justify-end';
+  const borderClass = anchor === 'left' ? 'border-r border-[#23211F]' : 'border-l border-[#23211F]';
   const posClass = anchor === 'left' ? 'left-0' : 'right-0';
+  
+  const paperSx = { ...(PaperProps?.sx || {}), ...(props.sx || {}) };
+  const paperStyle = cleanSx(paperSx);
+  
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm">
+    <div className={`fixed inset-0 z-50 flex ${justifyClass} bg-black/70 backdrop-blur-sm`}>
       <div className="fixed inset-0" onClick={onClose} />
-      <div className={`relative z-10 w-80 h-full bg-[#141211] border-l border-[#23211F] shadow-2xl p-6 overflow-y-auto ${posClass}`}>
+      <div
+        ref={ref}
+        className={`relative z-10 w-80 h-full bg-[#141211] ${borderClass} shadow-2xl p-6 overflow-y-auto ${posClass}`}
+        style={paperStyle}
+        {...props}
+      >
         {children}
       </div>
     </div>
   );
-};
+});
+Drawer.displayName = 'Drawer';
 
 // 13. CircularProgress Component
 export const CircularProgress = ({ size = 24, className, ...props }: any) => (
@@ -478,32 +539,62 @@ export const Alert = ({ children, severity = 'info', className, ...props }: any)
 };
 
 // 22. Menu, MenuItem, Select, FormControl, InputLabel, Radio, RadioGroup, Slider, Collapse, Snackbar
-export const Menu = ({ open, anchorEl, onClose, children, ...props }: any) => {
+export const Menu = React.forwardRef(({ open, anchorEl, onClose, children, sx, className, ...props }: any, ref) => {
+  const [coords, setCoords] = React.useState({ top: 0, left: 0 });
+
+  React.useEffect(() => {
+    if (open && anchorEl) {
+      const rect = anchorEl.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+      });
+    }
+  }, [open, anchorEl]);
+
   if (!open) return null;
+
   return (
-    <div className="absolute z-50 mt-1 min-w-[12rem] bg-[#141211] border border-[#23211F] rounded-2xl shadow-xl p-2 animate-fade-in">
-      {children}
+    <div className="fixed inset-0 z-50" onClick={onClose}>
+      <div
+        ref={ref}
+        className={`absolute min-w-[12rem] bg-[#141211] border border-[#23211F] rounded-2xl shadow-xl p-2 animate-fade-in ${className || ''}`}
+        style={{
+          top: `${coords.top}px`,
+          left: `${coords.left}px`,
+          ...cleanSx(sx),
+        }}
+        onClick={(e) => e.stopPropagation()}
+        {...props}
+      >
+        {children}
+      </div>
     </div>
   );
-};
+});
+Menu.displayName = 'Menu';
 
-export const MenuItem = ({ children, onClick, className, ...props }: any) => (
+export const MenuItem = React.forwardRef(({ children, onClick, className, sx, ...props }: any, ref) => (
   <div
+    ref={ref}
     onClick={onClick}
     className={`px-4 py-2 text-sm text-stone-300 hover:bg-[#1E1B19] hover:text-stone-100 rounded-xl cursor-pointer transition-colors ${className || ''}`}
+    style={cleanSx(sx)}
     {...props}
   >
     {children}
   </div>
-);
+));
+MenuItem.displayName = 'MenuItem';
 
-export const Select = React.forwardRef(({ value, onChange, children, className, ...props }: any, ref) => {
+export const Select = React.forwardRef(({ value, onChange, children, className, sx, ...props }: any, ref) => {
   return (
     <select
       ref={ref}
       value={value}
       onChange={onChange}
       className={`bg-[#0A0908] border border-[#23211F] text-stone-200 rounded-xl px-4 py-2.5 text-sm font-space-grotesk outline-none focus:border-indigo-500 transition-all ${className || ''}`}
+      style={cleanSx(sx)}
       {...props}
     >
       {children}
@@ -512,33 +603,65 @@ export const Select = React.forwardRef(({ value, onChange, children, className, 
 });
 Select.displayName = 'Select';
 
-export const FormControl = ({ children, className, fullWidth, ...props }: any) => (
-  <div className={`flex flex-col gap-1.5 ${fullWidth ? 'w-full' : ''} ${className || ''}`} {...props}>{children}</div>
-);
+export const FormControl = React.forwardRef(({ children, className, fullWidth, sx, ...props }: any, ref) => (
+  <div
+    ref={ref}
+    className={`flex flex-col gap-1.5 ${fullWidth ? 'w-full' : ''} ${className || ''}`}
+    style={cleanSx(sx)}
+    {...props}
+  >
+    {children}
+  </div>
+));
+FormControl.displayName = 'FormControl';
 
-export const InputLabel = ({ children, className, ...props }: any) => (
-  <label className={`text-xs font-bold text-stone-400 tracking-wide uppercase font-clash ${className || ''}`} {...props}>{children}</label>
-);
+export const InputLabel = React.forwardRef(({ children, className, sx, ...props }: any, ref) => (
+  <label
+    ref={ref}
+    className={`text-xs font-bold text-stone-400 tracking-wide uppercase font-clash ${className || ''}`}
+    style={cleanSx(sx)}
+    {...props}
+  >
+    {children}
+  </label>
+));
+InputLabel.displayName = 'InputLabel';
 
-export const Radio = ({ checked, onChange, disabled, ...props }: any) => (
+export const Radio = React.forwardRef(({ checked, onChange, disabled, className, sx, ...props }: any, ref) => (
   <button
-    onClick={() => !disabled && onChange?.()}
+    ref={ref}
+    onClick={() => !disabled && onChange?.({ target: { checked: !checked } })}
     disabled={disabled}
-    className={`w-5 h-5 rounded-full border border-[#23211F] bg-[#0A0908] flex items-center justify-center transition-all ${checked ? 'border-indigo-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    className={`w-5 h-5 rounded-full border border-[#23211F] bg-[#0A0908] flex items-center justify-center transition-all ${checked ? 'border-indigo-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className || ''}`}
+    style={cleanSx(sx)}
     {...props}
   >
     {checked && <span className="w-2.5 h-2.5 bg-[#6366F1] rounded-full" />}
   </button>
-);
+));
+Radio.displayName = 'Radio';
 
-export const RadioGroup = ({ children, value, onChange, className, ...props }: any) => (
-  <div className={`flex flex-col gap-2 ${className || ''}`} {...props}>{children}</div>
-);
+export const RadioGroup = React.forwardRef(({ children, value, onChange, className, sx, ...props }: any, ref) => (
+  <div
+    ref={ref}
+    className={`flex flex-col gap-2 ${className || ''}`}
+    style={cleanSx(sx)}
+    {...props}
+  >
+    {children}
+  </div>
+));
+RadioGroup.displayName = 'RadioGroup';
 
-export const Slider = ({ value, onChange, min = 0, max = 100, className, ...props }: any) => {
+export const Slider = React.forwardRef(({ value, onChange, min = 0, max = 100, className, sx, ...props }: any, ref) => {
   const percent = ((value - min) / (max - min)) * 100;
   return (
-    <div className={`relative w-full h-2 bg-[#23211F] rounded-full ${className || ''}`} {...props}>
+    <div
+      ref={ref}
+      className={`relative w-full h-2 bg-[#23211F] rounded-full ${className || ''}`}
+      style={cleanSx(sx)}
+      {...props}
+    >
       <div className="absolute top-0 left-0 h-full bg-[#6366F1] rounded-full" style={{ width: `${percent}%` }} />
       <input
         type="range"
@@ -550,22 +673,39 @@ export const Slider = ({ value, onChange, min = 0, max = 100, className, ...prop
       />
     </div>
   );
-};
+});
+Slider.displayName = 'Slider';
 
-export const Collapse = ({ in: isOpen, children, ...props }: any) => {
+export const Collapse = React.forwardRef(({ in: isOpen, children, className, sx, ...props }: any, ref) => {
   if (!isOpen) return null;
-  return <div {...props}>{children}</div>;
-};
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={cleanSx(sx)}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+});
+Collapse.displayName = 'Collapse';
 
-export const Snackbar = ({ open, message, autoHideDuration, onClose, ...props }: any) => {
+export const Snackbar = React.forwardRef(({ open, message, autoHideDuration, onClose, className, sx, ...props }: any, ref) => {
   if (!open) return null;
   return (
-    <div className="fixed bottom-6 right-6 z-50 bg-[#141211] border border-[#23211F] text-stone-200 px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-up" {...props}>
+    <div
+      ref={ref}
+      className={`fixed bottom-6 right-6 z-50 bg-[#141211] border border-[#23211F] text-stone-200 px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-up ${className || ''}`}
+      style={cleanSx(sx)}
+      {...props}
+    >
       <span className="text-sm font-satoshi">{message}</span>
       <button onClick={onClose} className="text-stone-500 hover:text-stone-300 font-bold">×</button>
     </div>
   );
-};
+});
+Snackbar.displayName = 'Snackbar';
 
 export const Abc = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const AccessTime = ({ children, ...props }: any) => React.createElement('div', props, children);
@@ -586,8 +726,47 @@ export const Autocomplete = ({ children, ...props }: any) => React.createElement
 export const AvatarGroup = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Backdrop = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Block = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const BottomNavigation = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const BottomNavigationAction = ({ children, ...props }: any) => React.createElement('div', props, children);
+export const BottomNavigation = React.forwardRef(({ children, value, onChange, className, sx, ...props }: any, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={`flex w-full items-center justify-around h-16 bg-[#161412] ${className || ''}`}
+      style={cleanSx(sx)}
+      {...props}
+    >
+      {React.Children.map(children, (child) => {
+        if (!React.isValidElement(child)) return null;
+        const childValue = (child.props as any).value ?? (child.props as any).id;
+        const selected = childValue === value;
+        return React.cloneElement(child, {
+          selected,
+          onClick: (e: any) => {
+            if (onChange) onChange(e, childValue);
+            if ((child.props as any).onClick) (child.props as any).onClick(e);
+          },
+        } as any);
+      })}
+    </div>
+  );
+});
+BottomNavigation.displayName = 'BottomNavigation';
+
+export const BottomNavigationAction = React.forwardRef(({ label, icon, selected, className, sx, ...props }: any, ref) => {
+  return (
+    <button
+      ref={ref}
+      className={`flex flex-col items-center justify-center flex-1 py-1 px-3 text-xs font-medium transition-all duration-300 ${
+        selected ? 'text-indigo-400 scale-110' : 'text-stone-400 hover:text-stone-200'
+      } ${className || ''}`}
+      style={cleanSx(sx)}
+      {...props}
+    >
+      {icon && <span className={`mb-1 transition-transform duration-300 ${selected ? 'scale-110' : ''}`}>{icon}</span>}
+      {label && <span>{label}</span>}
+    </button>
+  );
+});
+BottomNavigationAction.displayName = 'BottomNavigationAction';
 export const Breadcrumbs = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Brush = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const ButtonBase = ({ children, ...props }: any) => React.createElement('div', props, children);
@@ -598,7 +777,28 @@ export const CardMedia = ({ children, ...props }: any) => React.createElement('d
 export const ChatBubbleOutline = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Circle = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Construction = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const Container = ({ children, maxWidth, fixed, disableGutters, ...props }: any) => React.createElement('div', props, children);
+export const Container = React.forwardRef(({ children, className, sx, maxWidth = 'lg', fixed, disableGutters, ...props }: any, ref) => {
+  let maxWClass = "max-w-7xl";
+  if (maxWidth === 'xs') maxWClass = "max-w-xs";
+  if (maxWidth === 'sm') maxWClass = "max-w-sm";
+  if (maxWidth === 'md') maxWClass = "max-w-md";
+  if (maxWidth === 'lg') maxWClass = "max-w-5xl";
+  if (maxWidth === 'xl') maxWClass = "max-w-7xl";
+  
+  const paddingClass = disableGutters ? "" : "px-4 sm:px-6 lg:px-8";
+  
+  return (
+    <div
+      ref={ref}
+      className={`mx-auto w-full ${maxWClass} ${paddingClass} ${className || ''}`}
+      style={cleanSx(sx)}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+});
+Container.displayName = 'Container';
 export const ContentPaste = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Dashboard = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const DataObject = ({ children, ...props }: any) => React.createElement('div', props, children);
@@ -652,7 +852,40 @@ export const PhotoCamera = ({ children, ...props }: any) => React.createElement(
 export const PictureInPictureAlt = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const PlaylistAdd = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const PlaylistAddCheck = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const Popover = ({ children, ...props }: any) => React.createElement('div', props, children);
+export const Popover = React.forwardRef(({ open, anchorEl, onClose, children, sx, className, ...props }: any, ref) => {
+  const [coords, setCoords] = React.useState({ top: 0, left: 0 });
+
+  React.useEffect(() => {
+    if (open && anchorEl) {
+      const rect = anchorEl.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+      });
+    }
+  }, [open, anchorEl]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50" onClick={onClose}>
+      <div
+        ref={ref}
+        className={`absolute bg-[#141211] border border-[#23211F] rounded-2xl shadow-xl p-4 animate-fade-in ${className || ''}`}
+        style={{
+          top: `${coords.top}px`,
+          left: `${coords.left}px`,
+          ...cleanSx(sx),
+        }}
+        onClick={(e) => e.stopPropagation()}
+        {...props}
+      >
+        {children}
+      </div>
+    </div>
+  );
+});
+Popover.displayName = 'Popover';
 export const Preview = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const PushPin = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const PushPinOutlined = ({ children, ...props }: any) => React.createElement('div', props, children);
