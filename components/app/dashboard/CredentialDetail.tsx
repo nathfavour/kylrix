@@ -19,7 +19,7 @@ import {
   ArrowBack as ArrowBackIcon,
   Close as CloseIcon,
   Globe as LanguageIcon,
-  Calendar as CalendarTodayIcon,
+  CalendarIcon as CalendarTodayIcon,
   ShieldAlert as GppMaybeIcon,
   ShieldCheck as GppGoodIcon,
   OpenInNew as OpenInNewIcon,
