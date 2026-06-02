@@ -88,16 +88,23 @@ const sxKeyMap: Record<string, string> = {
   mr: 'marginRight',
 };
 
-const cleanSx = (sx: any) => {
-  if (!sx || typeof sx !== 'object') return sx;
-  const validSx: any = {};
+const splitSx = (sx: any) => {
+  const root: any = {};
+  const nested: Record<string, any> = {};
+  if (!sx || typeof sx !== 'object') return { root: sx, nested };
   for (const key in sx) {
-    if (key.startsWith('&') || key.startsWith('@')) continue;
+    if (key.startsWith('&')) {
+      nested[key] = sx[key];
+      continue;
+    }
+    if (key.startsWith('@')) continue;
     const mappedKey = sxKeyMap[key] || key;
-    validSx[mappedKey] = normalizeStyleValue(mappedKey, sx[key]);
+    root[mappedKey] = normalizeStyleValue(mappedKey, sx[key]);
   }
-  return validSx;
+  return { root, nested };
 };
+
+const cleanSx = (sx: any) => splitSx(sx).root;
 
 // 1. Box Component
 export const Box = React.forwardRef(({ children, sx, className, component: Component = 'div', display, alignItems, justifyContent, flexWrap, flexDirection, gap, ...props }: any, ref) => {
@@ -783,7 +790,7 @@ export const Autocomplete = ({ children, ...props }: any) => React.createElement
 export const AvatarGroup = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Backdrop = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Block = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const BottomNavigation = React.forwardRef(({ children, value, onChange, className, sx, ...props }: any, ref) => {
+export const BottomNavigation = React.forwardRef(({ children, value, onChange, className, sx, showLabels, ...props }: any, ref) => {
   return (
     <div
       ref={ref}
@@ -1000,8 +1007,109 @@ export const NoteOutlined = ({ children, ...props }: any) => React.createElement
 export const Notes = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Numbers = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const OpenInFull = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const Pagination = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const PaginationItem = ({ children, ...props }: any) => React.createElement('div', props, children);
+export const Pagination = React.forwardRef(
+  (
+    {
+      count,
+      page,
+      onChange,
+      size,
+      renderItem,
+      className,
+      sx,
+      ...props
+    }: any,
+    ref
+  ) => {
+    const safeCount = Number(count ?? 0);
+    const safePage = Number(page ?? 1);
+    if (!safeCount || safeCount <= 1) return null;
+
+    const makeItem = (item: any) => {
+      const handleClick = () => {
+        if (item?.disabled) return;
+        onChange?.(undefined as any, item.page);
+      };
+      return { ...item, onClick: handleClick };
+    };
+
+    const items: any[] = [];
+    items.push(
+      makeItem({
+        type: 'previous',
+        page: Math.max(1, safePage - 1),
+        selected: false,
+        disabled: safePage <= 1,
+      })
+    );
+    for (let i = 1; i <= safeCount; i++) {
+      items.push(makeItem({ type: 'page', page: i, selected: i === safePage, disabled: false }));
+    }
+    items.push(
+      makeItem({
+        type: 'next',
+        page: Math.min(safeCount, safePage + 1),
+        selected: false,
+        disabled: safePage >= safeCount,
+      })
+    );
+
+    return (
+      <div
+        ref={ref}
+        className={`flex items-center gap-2 ${className || ''}`}
+        style={cleanSx(sx)}
+        {...props}
+      >
+        {items.map((item, idx) => (
+          <React.Fragment key={`${item.type}-${item.page}-${idx}`}>
+            {renderItem ? renderItem(item) : <PaginationItem {...item} />}
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  }
+);
+Pagination.displayName = 'Pagination';
+
+export const PaginationItem = React.forwardRef(
+  (
+    {
+      type,
+      page,
+      selected,
+      disabled,
+      onClick,
+      slots,
+      sx,
+      className,
+      ...props
+    }: any,
+    ref
+  ) => {
+    const content =
+      type === 'previous'
+        ? slots?.previous
+        : type === 'next'
+          ? slots?.next
+          : page;
+
+    return (
+      <button
+        ref={ref}
+        type="button"
+        disabled={disabled}
+        onClick={onClick}
+        className={className || ''}
+        style={cleanSx(sx)}
+        {...props}
+      >
+        {typeof content === 'number' ? <span>{content}</span> : content}
+      </button>
+    );
+  }
+);
+PaginationItem.displayName = 'PaginationItem';
 export const PhotoCamera = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const PictureInPictureAlt = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const PlaylistAdd = ({ children, ...props }: any) => React.createElement('div', props, children);
@@ -1048,9 +1156,169 @@ export const Reply = ({ children, ...props }: any) => React.createElement('div',
 export const RotateLeft = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Save = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const ShieldOutlined = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const SpeedDial = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const SpeedDialAction = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const SpeedDialIcon = ({ children, ...props }: any) => React.createElement('div', props, children);
+export const SpeedDial = React.forwardRef(
+  (
+    {
+      ariaLabel,
+      open,
+      onOpen,
+      onClose,
+      icon,
+      children,
+      direction,
+      sx,
+      className,
+      ...props
+    }: any,
+    ref
+  ) => {
+    const handleToggle = () => {
+      if (open) onClose?.();
+      else onOpen?.();
+    };
+
+    const renderedIcon =
+      React.isValidElement(icon) ? React.cloneElement(icon as any, { open }) : icon;
+
+    const { root: rootSx, nested } = splitSx(sx);
+    const fabSx = cleanSx(nested['& .MuiFab-primary']);
+
+    return (
+      <div
+        ref={ref}
+        className={className || ''}
+        style={rootSx}
+        {...props}
+      >
+        <button
+          type="button"
+          className="MuiFab-primary"
+          onClick={handleToggle}
+          aria-label={ariaLabel}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 56,
+            height: 56,
+            borderRadius: 20,
+            border: `1px solid ${OPENBRICKS_TOKENS.borderSoft}`,
+            background: OPENBRICKS_TOKENS.shell,
+            color: OPENBRICKS_TOKENS.text,
+            cursor: 'pointer',
+            ...fabSx,
+          }}
+        >
+          {renderedIcon}
+        </button>
+
+        {open ? (
+          <div
+            className="MuiSpeedDial-actions"
+            style={{
+              display: 'flex',
+              flexDirection: direction === 'up' ? 'column-reverse' : 'column',
+              gap: 10,
+              alignItems: 'flex-end',
+              marginTop: 10,
+            }}
+          >
+            {React.Children.map(children, (child) => {
+              if (!React.isValidElement(child)) return child;
+              return React.cloneElement(child as any, { open, __muiSx: sx });
+            })}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+);
+SpeedDial.displayName = 'SpeedDial';
+
+export const SpeedDialIcon = React.forwardRef(({ icon, openIcon, open }: any, ref) => {
+  return (
+    <span ref={ref} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+      {open ? openIcon : icon}
+    </span>
+  );
+});
+SpeedDialIcon.displayName = 'SpeedDialIcon';
+
+export const SpeedDialAction = React.forwardRef(
+  (
+    {
+      icon,
+      tooltipTitle,
+      tooltipOpen,
+      onClick,
+      open,
+      disabled,
+      className,
+      sx,
+      __muiSx,
+      ...props
+    }: any,
+    ref
+  ) => {
+    const { root: rootSx, nested } = splitSx(__muiSx || sx);
+    const actionFabSx = cleanSx(nested['& .MuiSpeedDialAction-fab']);
+    const tooltipLabelSx = cleanSx(nested['& .MuiSpeedDialAction-staticTooltipLabel']);
+
+    return (
+      <button
+        ref={ref}
+        type="button"
+        disabled={disabled}
+        onClick={onClick}
+        className={`MuiSpeedDialAction-fab ${className || ''}`}
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          padding: 0,
+          width: 48,
+          height: 48,
+          borderRadius: 16,
+          border: `1px solid ${OPENBRICKS_TOKENS.borderSoft}`,
+          background: OPENBRICKS_TOKENS.shell,
+          color: OPENBRICKS_TOKENS.textMuted,
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          ...rootSx,
+          ...actionFabSx,
+        }}
+        aria-label={tooltipTitle || 'Speed dial action'}
+        {...props}
+      >
+        {icon}
+        {tooltipOpen && open && tooltipTitle ? (
+          <span
+            className="MuiSpeedDialAction-staticTooltipLabel"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              height: 24,
+              padding: '6px 12px',
+              borderRadius: 10,
+              background: 'rgba(0,0,0,0.92)',
+              border: `1px solid ${OPENBRICKS_TOKENS.borderSoft}`,
+              color: OPENBRICKS_TOKENS.text,
+              fontWeight: 900,
+              fontSize: '0.72rem',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              ...tooltipLabelSx,
+            }}
+          >
+            {tooltipTitle}
+          </span>
+        ) : null}
+      </button>
+    );
+  }
+);
+SpeedDialAction.displayName = 'SpeedDialAction';
 export const Spellcheck = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Stop = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Summarize = ({ children, ...props }: any) => React.createElement('div', props, children);
