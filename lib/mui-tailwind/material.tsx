@@ -435,12 +435,24 @@ export const Tab = React.forwardRef(({ label, children, className, sx, icon, ico
 ));
 Tab.displayName = 'Tab';
 
-export const FormControlLabel = ({ control, label, className, ...props }: any) => (
-  <label className={`inline-flex items-center gap-2 ${className || ''}`} {...props}>
-    {control}
-    <span>{label}</span>
-  </label>
-);
+export const FormControlLabel = ({ control, label, labelPlacement = 'end', className, sx, ...props }: any) => {
+  const isStart = labelPlacement === 'start';
+  return (
+    <label className={`inline-flex items-center gap-2 ${className || ''}`} style={cleanSx(sx)} {...props}>
+      {isStart ? (
+        <>
+          <span>{label}</span>
+          {control}
+        </>
+      ) : (
+        <>
+          {control}
+          <span>{label}</span>
+        </>
+      )}
+    </label>
+  );
+};
 
 export const InputAdornment = ({ children, className, ...props }: any) => (
   <span className={`inline-flex items-center text-stone-500 ${className || ''}`} {...props}>{children}</span>
@@ -610,8 +622,11 @@ export const TextField = React.forwardRef(({
   maxRows,
   ...props
 }: any, ref) => {
+  const readOnly = InputProps?.readOnly ?? props.readOnly;
   const inputStyle = cleanSx(InputProps?.sx);
-  const inputClass = `w-full bg-[#0A0908] border ${error ? 'border-red-500' : 'border-[#23211F]'} text-stone-200 rounded-xl px-4 py-2.5 text-sm font-space-grotesk outline-none focus:border-indigo-500 transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`;
+  const inputClass = `w-full bg-[#0A0908] border ${error ? 'border-red-500' : 'border-[#23211F]'} text-stone-200 rounded-xl px-4 py-2.5 text-sm font-space-grotesk outline-none focus:border-indigo-500 transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${readOnly ? 'cursor-default' : ''}`;
+  const inputProps = { ...props };
+  delete inputProps.readOnly;
   return (
     <div className={`flex flex-col gap-1.5 ${fullWidth ? 'w-full' : ''} ${className || ''}`} style={cleanSx(sx)}>
       {label && (
@@ -624,12 +639,13 @@ export const TextField = React.forwardRef(({
           ref={inputRef || ref}
           value={value}
           onChange={onChange}
+          readOnly={readOnly}
           disabled={disabled}
           placeholder={placeholder}
           rows={rows ?? minRows ?? 3}
           className={inputClass}
           style={inputStyle}
-          {...props}
+          {...inputProps}
         />
       ) : (
         <input
@@ -637,11 +653,12 @@ export const TextField = React.forwardRef(({
           type={type}
           value={value}
           onChange={onChange}
+          readOnly={readOnly}
           disabled={disabled}
           placeholder={placeholder}
           className={inputClass}
           style={inputStyle}
-          {...props}
+          {...inputProps}
         />
       )}
       {helperText && (
@@ -842,6 +859,7 @@ export const Menu = React.forwardRef(({
   sx,
   className,
   slotProps,
+  PaperProps,
   disablePortal,
   keepMounted,
   ...props
@@ -896,7 +914,7 @@ export const Menu = React.forwardRef(({
 
   if (!open && !keepMounted) return null;
 
-  const paperSx = cleanSx(slotProps?.paper?.sx || sx || {});
+  const paperSx = cleanSx(slotProps?.paper?.sx || PaperProps?.sx || sx || {});
 
   const setRefs = (node: HTMLDivElement | null) => {
     panelRef.current = node;

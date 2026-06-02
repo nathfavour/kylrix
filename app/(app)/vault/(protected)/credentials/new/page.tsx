@@ -20,14 +20,16 @@ import {
   ToggleButton,
   ToggleButtonGroup
 } from '@/lib/mui-tailwind/material';
-import ArrowBackIcon from '@/lib/mui-tailwind/icons';
-import VisibilityIcon from '@/lib/mui-tailwind/icons';
-import VisibilityOffIcon from '@/lib/mui-tailwind/icons';
-import RefreshIcon from '@/lib/mui-tailwind/icons';
-import AddIcon from '@/lib/mui-tailwind/icons';
-import CloseIcon from '@/lib/mui-tailwind/icons';
-import FolderIcon from '@/lib/mui-tailwind/icons';
-import VpnKeyIcon from '@/lib/mui-tailwind/icons';
+import {
+  ArrowBack as ArrowBackIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+  Refresh as RefreshIcon,
+  Add as AddIcon,
+  Close as CloseIcon,
+  Folder as FolderIcon,
+  VpnKey as VpnKeyIcon,
+} from '@/lib/mui-tailwind/icons';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import {
   createCredential,

@@ -14,13 +14,15 @@ import {
   useMediaQuery,
   alpha
 } from '@/lib/mui-tailwind/material';
-import ContentCopyIcon from '@/lib/mui-tailwind/icons';
-import EditIcon from '@/lib/mui-tailwind/icons';
-import DeleteIcon from '@/lib/mui-tailwind/icons';
-import MoreVertIcon from '@/lib/mui-tailwind/icons';
-import PersonIcon from '@/lib/mui-tailwind/icons';
-import LockIcon from '@/lib/mui-tailwind/icons';
-import PinIcon from '@/lib/mui-tailwind/icons';
+import {
+  ContentCopy as ContentCopyIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  MoreVert as MoreVertIcon,
+  Person as PersonIcon,
+  Lock as LockIcon,
+  PushPin as PinIcon,
+} from '@/lib/mui-tailwind/icons';
 import type { Credentials } from '@/lib/appwrite/types';
 import { Shield, ExternalLink } from 'lucide-react';
 
@@ -70,15 +72,17 @@ export default function CredentialItem({
       elevation={0}
       onClick={onClick}
       sx={{
-        p: 2.5,
+        px: 2.25,
+        py: 1.75,
         mb: 1.5,
         borderRadius: '24px',
         bgcolor: '#161412',
-        border: '1px solid #1C1A18',
+        border: '1px solid #34322F',
         cursor: 'pointer',
         transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
         display: 'flex',
         alignItems: 'center',
+        gap: 1.5,
         backgroundImage: 'none',
         // Extreme concentration: pinpoint lift shadow
         boxShadow: `0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px ${alpha('#252321', 0.9)}`,
@@ -119,18 +123,25 @@ export default function CredentialItem({
       </Box>
 
       {/* Info */}
-      <Box sx={{ ml: 3, flexGrow: 1, minWidth: 0 }}>
-        <Typography variant="subtitle1" noWrap sx={{ fontWeight: 900, color: '#fff', lineHeight: 1.2, fontFamily: 'var(--font-clash)', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 1 }}>
-          {credential.isPinned && <PinIcon sx={{ fontSize: 14, color: '#F59E0B', transform: 'rotate(45deg)' }} />}
-          {credential.name}
-        </Typography>
-        <Typography 
-          variant="body2" 
-          noWrap 
-          sx={{ 
-            color: '#9B9691', 
-            mt: 0.5, 
-            fontWeight: 500, 
+      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.35, pr: 0.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+          {credential.isPinned && <PinIcon sx={{ fontSize: 14, color: '#F59E0B', flexShrink: 0 }} />}
+          <Typography
+            component="span"
+            noWrap
+            sx={{ fontWeight: 900, color: '#fff', lineHeight: 1.25, fontFamily: 'var(--font-clash)', fontSize: '1rem' }}
+          >
+            {credential.name}
+          </Typography>
+        </Box>
+        <Typography
+          component="span"
+          noWrap
+          sx={{
+            color: '#9B9691',
+            fontWeight: 500,
+            fontSize: '0.85rem',
+            lineHeight: 1.35,
             fontFamily: 'var(--font-satoshi)',
             filter: isBlurEnabled ? 'blur(4px)' : 'none',
             transition: 'filter 0.3s ease',
@@ -158,7 +169,7 @@ export default function CredentialItem({
       </Box>
 
       {/* Actions */}
-      <Box sx={{ display: 'flex', gap: 0.5, ml: 2 }}>
+      <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
         {!isMobile ? (
           <>
             <Tooltip title="Copy Email">
@@ -198,23 +209,26 @@ export default function CredentialItem({
         anchorEl={copyAnchorEl}
         open={Boolean(copyAnchorEl)}
         onClose={() => setCopyAnchorEl(null)}
-        PaperProps={{
-          sx: {
-            borderRadius: '16px',
-            bgcolor: '#161412',
-            border: '1px solid #1C1A18',
-            backgroundImage: 'none',
-            minWidth: '200px'
-          }
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: '16px',
+              bgcolor: '#161412',
+              border: '1px solid #34322F',
+              backgroundImage: 'none',
+              minWidth: 200,
+              py: 1,
+            },
+          },
         }}
       >
-        <MenuItem onClick={() => handleCopy(credential.username || '')} sx={{ py: 1.5, px: 2.5 }}>
-          <ListItemIcon><PersonIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Copy Username" primaryTypographyProps={{ fontWeight: 800, fontSize: '0.85rem' }} />
+        <MenuItem onClick={() => handleCopy(credential.username || '')} sx={{ py: 1.25, px: 2.5, gap: 1.5 }}>
+          <ListItemIcon sx={{ minWidth: 'auto' }}><PersonIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+          <ListItemText primary="Copy Username" slotProps={{ primary: { sx: { fontWeight: 800, fontSize: '0.85rem', lineHeight: 1.3 } } }} />
         </MenuItem>
-        <MenuItem onClick={() => handleCopy(credential.password || '')} sx={{ py: 1.5, px: 2.5 }}>
-          <ListItemIcon><LockIcon sx={{ fontSize: 18, color: '#10B981' }} /></ListItemIcon>
-          <ListItemText primary="Copy Secret" primaryTypographyProps={{ fontWeight: 800, fontSize: '0.85rem', color: '#10B981' }} />
+        <MenuItem onClick={() => handleCopy(credential.password || '')} sx={{ py: 1.25, px: 2.5, gap: 1.5 }}>
+          <ListItemIcon sx={{ minWidth: 'auto' }}><LockIcon sx={{ fontSize: 18, color: '#10B981' }} /></ListItemIcon>
+          <ListItemText primary="Copy Secret" slotProps={{ primary: { sx: { fontWeight: 800, fontSize: '0.85rem', lineHeight: 1.3, color: '#10B981' } } }} />
         </MenuItem>
       </Menu>
 
@@ -222,27 +236,31 @@ export default function CredentialItem({
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={() => setAnchorEl(null)}
-        PaperProps={{
-          sx: {
-            borderRadius: '16px',
-            bgcolor: '#161412',
-            border: '1px solid #1C1A18',
-            backgroundImage: 'none',
-            minWidth: '180px'
-          }
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: '16px',
+              bgcolor: '#161412',
+              border: '1px solid #34322F',
+              backgroundImage: 'none',
+              minWidth: 180,
+              py: 1,
+            },
+          },
         }}
       >
-        <MenuItem onClick={() => { onEdit(); setAnchorEl(null); }} sx={{ py: 1.5, px: 2.5 }}>
-          <ListItemIcon><EditIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Edit Record" primaryTypographyProps={{ fontWeight: 800, fontSize: '0.85rem' }} />
+        <MenuItem onClick={() => { onEdit(); setAnchorEl(null); }} sx={{ py: 1.25, px: 2.5, gap: 1.5 }}>
+          <ListItemIcon sx={{ minWidth: 'auto' }}><EditIcon sx={{ fontSize: 18 }} /></ListItemIcon>
+          <ListItemText primary="Edit Record" slotProps={{ primary: { sx: { fontWeight: 800, fontSize: '0.85rem', lineHeight: 1.3 } } }} />
         </MenuItem>
-        <MenuItem onClick={() => { onTogglePin?.(); setAnchorEl(null); }} sx={{ py: 1.5, px: 2.5 }}>
-          <ListItemIcon><PinIcon sx={{ fontSize: 18, color: credential.isPinned ? '#F59E0B' : 'inherit' }} /></ListItemIcon>
-          <ListItemText primary={credential.isPinned ? "Unpin Secret" : "Pin Secret"} primaryTypographyProps={{ fontWeight: 800, fontSize: '0.85rem' }} />
+        <MenuItem onClick={() => { onTogglePin?.(); setAnchorEl(null); }} sx={{ py: 1.25, px: 2.5, gap: 1.5 }}>
+          <ListItemIcon sx={{ minWidth: 'auto' }}><PinIcon sx={{ fontSize: 18, color: credential.isPinned ? '#F59E0B' : 'inherit' }} /></ListItemIcon>
+          <ListItemText primary={credential.isPinned ? 'Unpin Secret' : 'Pin Secret'} slotProps={{ primary: { sx: { fontWeight: 800, fontSize: '0.85rem', lineHeight: 1.3 } } }} />
         </MenuItem>
-        <MenuItem onClick={() => { onDelete(); setAnchorEl(null); }} sx={{ py: 1.5, px: 2.5, color: '#FF453A' }}>
-          <ListItemIcon><DeleteIcon sx={{ fontSize: 18, color: '#FF453A' }} /></ListItemIcon>
-          <ListItemText primary="Destroy" primaryTypographyProps={{ fontWeight: 900, fontSize: '0.85rem' }} />
+        <MenuItem onClick={() => { onDelete(); setAnchorEl(null); }} sx={{ py: 1.25, px: 2.5, gap: 1.5, color: '#FF453A' }}>
+          <ListItemIcon sx={{ minWidth: 'auto' }}><DeleteIcon sx={{ fontSize: 18, color: '#FF453A' }} /></ListItemIcon>
+          <ListItemText primary="Destroy" slotProps={{ primary: { sx: { fontWeight: 900, fontSize: '0.85rem', lineHeight: 1.3 } } }} />
         </MenuItem>
       </Menu>
     </Paper>

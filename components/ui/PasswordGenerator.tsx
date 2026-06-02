@@ -103,6 +103,7 @@ export default function PasswordGenerator() {
           <TextField
             fullWidth
             value={password}
+            readOnly
             variant="outlined"
             InputProps={{
               readOnly: true,

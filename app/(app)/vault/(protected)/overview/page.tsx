@@ -13,13 +13,15 @@ import {
   CircularProgress,
   Avatar
 } from '@/lib/mui-tailwind/material';
-import VpnKeyIcon from '@/lib/mui-tailwind/icons';
-import ShieldIcon from '@/lib/mui-tailwind/icons';
-import AccessTimeIcon from '@/lib/mui-tailwind/icons';
-import WarningIcon from '@/lib/mui-tailwind/icons';
-import AddIcon from '@/lib/mui-tailwind/icons';
-import DownloadIcon from '@/lib/mui-tailwind/icons';
-import ChevronRightIcon from '@/lib/mui-tailwind/icons';
+import {
+  VpnKey as VpnKeyIcon,
+  Shield as ShieldIcon,
+  AccessTime as AccessTimeIcon,
+  Warning as WarningIcon,
+  Add as AddIcon,
+  Download as DownloadIcon,
+  ChevronRight as ChevronRightIcon,
+} from '@/lib/mui-tailwind/icons';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import {
   appwriteDatabases,
@@ -223,15 +225,17 @@ export default function OverviewPage() {
           sx={{ mb: 5 }}
         >
           <Box>
-            <Typography variant="h4" sx={{ 
+            <Typography component="span" variant="h4" sx={{ 
+              display: 'block',
               fontWeight: 900, 
               fontFamily: 'var(--font-clash)',
               letterSpacing: '-0.04em',
-              mb: 0.5
+              mb: 0.5,
+              lineHeight: 1.2,
             }}>
               Overview
             </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.4)', fontWeight: 500 }}>
+            <Typography component="span" variant="body2" sx={{ display: 'block', color: 'rgba(255, 255, 255, 0.4)', fontWeight: 500, lineHeight: 1.45 }}>
               A quick snapshot of your secure vault.
             </Typography>
           </Box>
@@ -292,80 +296,91 @@ export default function OverviewPage() {
           </Paper>
         )}
 
-        {/* Stats Grid */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Stats Grid — fluid auto-fill (see ui.tailwind-fix) */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))',
+            gap: 3,
+            mb: 4,
+            width: '100%',
+          }}
+        >
           {[
             { label: 'Total Credentials', value: stats.totalCreds, icon: VpnKeyIcon, color: '#6366F1' },
             { label: 'TOTP Codes', value: stats.totpCount, icon: ShieldIcon, color: '#10B981' },
             { label: 'Recent Activity', value: Math.min(stats.totalCreds, 5), icon: AccessTimeIcon, color: '#A855F7' },
-            { label: 'Security Alerts', value: 0, icon: WarningIcon, color: '#F59E0B' }
+            { label: 'Security Alerts', value: 0, icon: WarningIcon, color: '#F59E0B' },
           ].map((stat, i) => (
-            <Grid size={{ xs: 6, md: 3 }} key={i}>
-              <Paper sx={{ 
-                p: 3, 
-                borderRadius: '24px', 
+            <Paper
+              key={i}
+              sx={{
+                p: 2.5,
+                borderRadius: '24px',
                 bgcolor: '#161412',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-                position: 'relative',
-                boxShadow: '0 1px 0 rgba(0, 0, 0, 0.4)',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '1px',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  borderRadius: '24px',
-                },
+                border: '1px solid #34322F',
+                backgroundImage: 'none',
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  borderColor: alpha(stat.color, 0.3),
-                  transform: 'translateY(-2px)',
-                  boxShadow: `0 10px 20px ${alpha(stat.color, 0.05)}, 0 1px 0 rgba(0, 0, 0, 0.4)`
-                }
-              }}>
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', fontSize: '0.65rem' }}>
-                    {stat.label}
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 900, mt: 0.5, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em' }}>
-                    {loading ? <CircularProgress size={20} thickness={6} sx={{ color: 'rgba(255, 255, 255, 0.2)' }} /> : stat.value}
-                  </Typography>
-                </Box>
-                <Box sx={{ 
-                  width: 40, 
-                  height: 40, 
-                  borderRadius: '12px', 
-                  bgcolor: alpha(stat.color, 0.05), 
-                  border: `1px solid ${alpha(stat.color, 0.1)}`,
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center' 
-                }}>
-                  <stat.icon sx={{ fontSize: 20, color: stat.color }} />
-                </Box>
-              </Paper>
-            </Grid>
+                gap: 1.5,
+                transition: 'border-color 0.2s ease',
+                '&:hover': { borderColor: alpha(stat.color, 0.35) },
+              }}
+            >
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.35, minWidth: 0 }}>
+                <Typography
+                  component="span"
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.4)',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.65rem',
+                    lineHeight: 1.25,
+                  }}
+                >
+                  {stat.label}
+                </Typography>
+                <Typography
+                  component="span"
+                  sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', fontSize: '1.75rem', lineHeight: 1.15 }}
+                >
+                  {loading ? <CircularProgress size={20} thickness={6} sx={{ color: 'rgba(255, 255, 255, 0.2)' }} /> : stat.value}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '12px',
+                  bgcolor: alpha(stat.color, 0.08),
+                  border: `1px solid ${alpha(stat.color, 0.15)}`,
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <stat.icon sx={{ fontSize: 20, color: stat.color }} />
+              </Box>
+            </Paper>
           ))}
-        </Grid>
+        </Box>
 
         <Grid container spacing={3}>
           {/* Recent Items */}
           <Grid size={{ xs: 12, md: 7 }}>
             <Paper sx={{ 
-              p: 4, 
+              p: 2.5, 
               borderRadius: '28px', 
-              bgcolor: 'rgba(10, 10, 10, 0.9)',
-              backdropFilter: 'blur(25px) saturate(180%)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              height: '100%'
+              bgcolor: '#161412',
+              border: '1px solid #34322F',
+              backgroundImage: 'none',
+              height: '100%',
             }}>
-              <Typography variant="h6" sx={{ fontWeight: 900, mb: 3, fontFamily: 'var(--font-space-grotesk)' }}>
+              <Typography component="span" variant="h6" sx={{ display: 'block', fontWeight: 900, mb: 2.5, fontFamily: 'var(--font-space-grotesk)', lineHeight: 1.25 }}>
                 Recent Items
               </Typography>
               <Stack spacing={1.5}>
@@ -386,8 +401,9 @@ export default function OverviewPage() {
                       sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
-                        justifyContent: 'space-between',
-                        p: 2,
+                        gap: 1.5,
+                        px: 2.25,
+                        py: 1.5,
                         borderRadius: '18px',
                         bgcolor: 'rgba(255, 255, 255, 0.02)',
                         border: '1px solid transparent',
@@ -397,32 +413,30 @@ export default function OverviewPage() {
                         '&:hover': {
                           bgcolor: 'rgba(255, 255, 255, 0.05)',
                           borderColor: 'rgba(255, 255, 255, 0.1)',
-                          transform: 'translateX(4px)'
-                        }
+                        },
                       }}
                     >
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar sx={{ 
-                          width: 40, 
-                          height: 40, 
-                          borderRadius: '12px', 
-                          bgcolor: 'rgba(255, 255, 255, 0.05)',
-                          fontSize: '1rem',
-                          fontWeight: 800,
-                          color: '#6366F1'
-                        }}>
-                          {item.name?.[0]?.toUpperCase() ?? "?"}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body1" sx={{ fontWeight: 700 }}>{item.name}</Typography>
-                          {item.username && (
-                            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.4)', fontWeight: 500 }}>
-                              {item.username}
-                            </Typography>
-                          )}
-                        </Box>
-                      </Stack>
-                      <ChevronRightIcon sx={{ fontSize: 18, color: "rgba(255, 255, 255, 0.3)" }} />
+                      <Avatar sx={{ 
+                        width: 40, 
+                        height: 40, 
+                        borderRadius: '12px', 
+                        bgcolor: 'rgba(255, 255, 255, 0.05)',
+                        fontSize: '1rem',
+                        fontWeight: 800,
+                        color: '#6366F1',
+                        flexShrink: 0,
+                      }}>
+                        {item.name?.[0]?.toUpperCase() ?? "?"}
+                      </Avatar>
+                      <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                        <Typography component="span" sx={{ fontWeight: 700, fontSize: '0.9rem', lineHeight: 1.25 }} noWrap>{item.name}</Typography>
+                        {item.username && (
+                          <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.4)', fontWeight: 500, fontSize: '0.76rem', lineHeight: 1.35 }} noWrap>
+                            {item.username}
+                          </Typography>
+                        )}
+                      </Box>
+                      <ChevronRightIcon sx={{ fontSize: 18, color: 'rgba(255, 255, 255, 0.3)', flexShrink: 0 }} />
                     </Box>
                   ))
                 )}
@@ -433,15 +447,15 @@ export default function OverviewPage() {
           {/* Duplicate Items */}
           <Grid size={{ xs: 12, md: 5 }}>
             <Paper sx={{ 
-              p: 4, 
+              p: 2.5, 
               borderRadius: '28px', 
-              bgcolor: 'rgba(10, 10, 10, 0.9)',
-              backdropFilter: 'blur(25px) saturate(180%)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              height: '100%'
+              bgcolor: '#161412',
+              border: '1px solid #34322F',
+              backgroundImage: 'none',
+              height: '100%',
             }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-space-grotesk)' }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
+                <Typography component="span" variant="h6" sx={{ display: 'block', fontWeight: 900, fontFamily: 'var(--font-space-grotesk)', lineHeight: 1.25 }}>
                   Duplicates
                 </Typography>
                 <Box sx={{ 

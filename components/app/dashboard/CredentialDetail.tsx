@@ -12,17 +12,19 @@ import {
   Paper,
   Stack
 } from '@/lib/mui-tailwind/material';
-import ContentCopyIcon from '@/lib/mui-tailwind/icons';
-import VisibilityIcon from '@/lib/mui-tailwind/icons';
-import VisibilityOffIcon from '@/lib/mui-tailwind/icons';
-import ArrowBackIcon from '@/lib/mui-tailwind/icons';
-import CloseIcon from '@/lib/mui-tailwind/icons';
-import LanguageIcon from '@/lib/mui-tailwind/icons';
-import CalendarTodayIcon from '@/lib/mui-tailwind/icons';
-import GppMaybeIcon from '@/lib/mui-tailwind/icons';
-import GppGoodIcon from '@/lib/mui-tailwind/icons';
-import OpenInNewIcon from '@/lib/mui-tailwind/icons';
-import FolderIcon from '@/lib/mui-tailwind/icons';
+import {
+  ContentCopy as ContentCopyIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+  ArrowBack as ArrowBackIcon,
+  Close as CloseIcon,
+  Globe as LanguageIcon,
+  Calendar as CalendarTodayIcon,
+  ShieldAlert as GppMaybeIcon,
+  ShieldCheck as GppGoodIcon,
+  OpenInNew as OpenInNewIcon,
+  Folder as FolderIcon,
+} from '@/lib/mui-tailwind/icons';
 import ProjectLinker from '@/components/projects/ProjectLinker';
 import type { Credentials } from '@/lib/appwrite/types';
 import { storage } from '@/lib/appwrite';

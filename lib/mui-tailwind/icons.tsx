@@ -209,7 +209,7 @@ const fallbackProxy = new Proxy({}, {
 export default fallbackProxy;
 
 export const Abc = createIcon((Lucide as any).Abc || Lucide.HelpCircle);
-export const AccessTime = createIcon((Lucide as any).AccessTime || Lucide.HelpCircle);
+export const AccessTime = createIcon(Lucide.Clock);
 export const Accordion = createIcon((Lucide as any).Accordion || Lucide.HelpCircle);
 export const AccordionDetails = createIcon((Lucide as any).AccordionDetails || Lucide.HelpCircle);
 export const AccordionSummary = createIcon((Lucide as any).AccordionSummary || Lucide.HelpCircle);
@@ -273,10 +273,10 @@ export const LibraryAdd = createIcon((Lucide as any).LibraryAdd || Lucide.HelpCi
 export const LightbulbOutlined = createIcon((Lucide as any).LightbulbOutlined || Lucide.HelpCircle);
 export const LinkOff = createIcon((Lucide as any).LinkOff || Lucide.HelpCircle);
 export const ListItemIcon = createIcon((Lucide as any).ListItemIcon || Lucide.HelpCircle);
-export const LocalOffer = createIcon((Lucide as any).LocalOffer || Lucide.HelpCircle);
+export const LocalOffer = createIcon(Lucide.Tag);
 export const LocalOfferOutlined = createIcon((Lucide as any).LocalOfferOutlined || Lucide.HelpCircle);
 export const LocationOn = createIcon((Lucide as any).LocationOn || Lucide.HelpCircle);
-export const LockOpen = createIcon((Lucide as any).LockOpen || Lucide.HelpCircle);
+export const LockOpen = createIcon(Lucide.LockOpen);
 export const Login = createIcon((Lucide as any).Login || Lucide.HelpCircle);
 export const Logout = createIcon((Lucide as any).Logout || Lucide.HelpCircle);
 export const MarkEmailRead = createIcon((Lucide as any).MarkEmailRead || Lucide.HelpCircle);

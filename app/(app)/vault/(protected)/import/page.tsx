@@ -17,15 +17,17 @@ import {
   ListItemIcon,
   ListItemText
 } from '@/lib/mui-tailwind/material';
-import UploadIcon from '@/lib/mui-tailwind/icons';
-import DownloadIcon from '@/lib/mui-tailwind/icons';
-import DescriptionIcon from '@/lib/mui-tailwind/icons';
-import ShieldIcon from '@/lib/mui-tailwind/icons';
-import InfoIcon from '@/lib/mui-tailwind/icons';
-import CheckCircleIcon from '@/lib/mui-tailwind/icons';
-import ErrorOutlineIcon from '@/lib/mui-tailwind/icons';
-import VpnKeyIcon from '@/lib/mui-tailwind/icons';
-import FolderIcon from '@/lib/mui-tailwind/icons';
+import {
+  Upload as UploadIcon,
+  Download as DownloadIcon,
+  Description as DescriptionIcon,
+  Shield as ShieldIcon,
+  Info as InfoIcon,
+  CheckCircle as CheckCircleIcon,
+  ErrorOutline as ErrorOutlineIcon,
+  VpnKey as VpnKeyIcon,
+  Folder as FolderIcon,
+} from '@/lib/mui-tailwind/icons';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { validateBitwardenExport } from '@/utils/import/bitwarden-mapper';
 import { useBackgroundTask } from '@/context/BackgroundTaskContext';

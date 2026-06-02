@@ -25,25 +25,25 @@ export default function LandingPage() {
       flexDirection: 'column', 
       minHeight: 'calc(100vh - 88px)', 
       color: 'white',
-      backgroundImage: 'radial-gradient(circle at 50% -20%, rgba(16, 185, 129, 0.08) 0%, transparent 50%)'
+      bgcolor: '#0A0908',
     }}>
       <Box component="main" sx={{ flex: 1, py: { xs: 4, md: 8 } }}>
         <Container maxWidth="md">
           <Stack spacing={6}>
             {/* Header Section */}
             <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h3" sx={{ 
+              <Typography component="span" variant="h3" sx={{ 
+                display: 'block',
                 fontWeight: 900, 
                 mb: 2,
                 fontSize: { xs: '2rem', md: '2.5rem' },
-                background: 'linear-gradient(135deg, #10B981 0%, #10B981 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
+                color: '#10B981',
+                lineHeight: 1.2,
               }}>
                 Generate Secure Passwords
               </Typography>
-              <Typography variant="body1" sx={{ 
+              <Typography component="span" variant="body1" sx={{ 
+                display: 'block',
                 color: 'rgba(255, 255, 255, 0.6)',
                 maxWidth: '500px',
                 mx: 'auto',
