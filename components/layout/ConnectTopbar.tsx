@@ -530,11 +530,11 @@ export default function ConnectTopbar({
                               }}>
                                 <Bot size={18} />
                               </Box>
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.86rem', mb: 0.25 }}>
+                              <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.35, pr: 0.5 }}>
+                                <Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.86rem', lineHeight: 1.25 }}>
                                   {suggestion.title}
                                 </Typography>
-                                <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.76rem', lineHeight: 1.3 }}>
+                                <Typography component="span" sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.76rem', lineHeight: 1.35 }}>
                                   {suggestion.description}
                                 </Typography>
                               </Box>
@@ -643,11 +643,11 @@ export default function ConnectTopbar({
                             }}>
                               <Logo app={action.kind as any} size={16} variant="icon" />
                             </Box>
-                            <Box sx={{ minWidth: 0, flex: 1, pr: 0.5 }}>
-                              <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.25 }} noWrap>
+                            <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35, pr: 0.5 }}>
+                              <Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.25 }} noWrap>
                                 {action.title}
                               </Typography>
-                              <Typography sx={{ color: 'rgba(255,255,255,0.66)', fontWeight: 600, fontSize: '0.76rem', mt: 0.35, lineHeight: 1.35 }}>
+                              <Typography component="span" sx={{ color: 'rgba(255,255,255,0.66)', fontWeight: 600, fontSize: '0.76rem', lineHeight: 1.35 }}>
                                 {action.description}
                               </Typography>
                             </Box>
@@ -719,31 +719,36 @@ export default function ConnectTopbar({
                             }} />
                           )}
                           
-                          <Box sx={{ pl: notif.read ? 0 : 2, pr: 4 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                              <Typography sx={{
+                          <Box sx={{ pl: notif.read ? 0 : 2, pr: 4, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography component="span" sx={{
                                 color: 'white',
                                 fontWeight: 800,
                                 fontSize: '0.84rem',
+                                lineHeight: 1.25,
                                 opacity: notif.read ? 0.7 : 1,
-                                pr: 1
+                                pr: 1,
+                                minWidth: 0,
+                                flex: 1,
                               }}>
                                 {notif.title}
                               </Typography>
-                              <Typography sx={{
+                              <Typography component="span" sx={{
                                 color: 'rgba(255,255,255,0.36)',
                                 fontSize: '0.68rem',
                                 fontWeight: 600,
-                                ml: 'auto'
+                                lineHeight: 1.2,
+                                ml: 'auto',
+                                flexShrink: 0,
                               }}>
                                 {notif.time}
                               </Typography>
                             </Box>
-                            <Typography sx={{
+                            <Typography component="span" sx={{
                               color: 'rgba(255,255,255,0.66)',
                               fontSize: '0.76rem',
                               lineHeight: 1.4,
-                              fontWeight: 500
+                              fontWeight: 500,
                             }}>
                               {notif.message}
                             </Typography>
@@ -795,8 +800,8 @@ export default function ConnectTopbar({
                           display: 'flex',
                           alignItems: 'center',
                           gap: 1.25,
-                          px: 2,
-                          py: 1.25,
+                          px: 2.25,
+                          py: 1.5,
                           borderRadius: '18px',
                           bgcolor: 'rgba(255,255,255,0.02)',
                           border: '1px solid rgba(255,255,255,0.05)',
@@ -806,14 +811,14 @@ export default function ConnectTopbar({
                           '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' }
                         }}
                       >
-                        <Box sx={{ width: 36, height: 36, borderRadius: '12px', display: 'grid', placeItems: 'center', bgcolor: `${action.accent}1F`, color: action.accent, flexShrink: 0 }}>
+                        <Box sx={{ width: 38, height: 38, borderRadius: '12px', display: 'grid', placeItems: 'center', bgcolor: `${action.accent}1F`, color: action.accent, flexShrink: 0 }}>
                           <Logo app={action.kind as any} size={16} variant="icon" />
                         </Box>
-                        <Box sx={{ minWidth: 0, flex: 1, pr: 0.5 }}>
-                          <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.2 }} noWrap>
+                        <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35, pr: 0.5 }}>
+                          <Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.25 }} noWrap>
                             {action.title}
                           </Typography>
-                          <Typography sx={{ color: 'rgba(255,255,255,0.68)', fontWeight: 600, fontSize: '0.76rem', lineHeight: 1.35 }} noWrap>
+                          <Typography component="span" sx={{ color: 'rgba(255,255,255,0.68)', fontWeight: 600, fontSize: '0.76rem', lineHeight: 1.35 }} noWrap>
                             {action.description}
                           </Typography>
                         </Box>

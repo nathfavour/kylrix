@@ -100,10 +100,18 @@ const normalizeStyleValue = (key: string, value: any) => {
   if (value === undefined || value === null) return value;
   const resolved = pickResponsiveValue(value);
   if (typeof resolved === 'number') {
+    // Unitless numeric styles (MUI ratios / weights) — never append px.
+    if (key === 'lineHeight' || key === 'opacity' || key === 'zIndex' || key === 'fontWeight' || key === 'flex') {
+      return resolved;
+    }
     if (/(padding|margin|gap)/i.test(key)) {
       return `${resolved * 8}px`;
     }
-    if (/(top|left|right|bottom|width|height|min|max|borderRadius|fontSize)/i.test(key)) {
+    // Match dimensional keys exactly; avoid substring hits like lineHeight → "height".
+    if (
+      /^(width|height|minWidth|minHeight|maxWidth|maxHeight|top|left|right|bottom|fontSize|borderRadius)$/i.test(key) ||
+      /(Width|Height|Top|Left|Right|Bottom|Radius)$/i.test(key)
+    ) {
       return `${resolved}px`;
     }
   }
@@ -244,11 +252,11 @@ export const Card = React.forwardRef(({ children, className, sx, ...props }: any
 Card.displayName = 'Card';
 
 // 5. CardContent & CardActions
-export const CardContent = ({ children, className, ...props }: any) => (
-  <div className={`p-1 ${className || ''}`} {...props}>{children}</div>
+export const CardContent = ({ children, className, sx, ...props }: any) => (
+  <div className={`p-1 ${className || ''}`} style={cleanSx(sx)} {...props}>{children}</div>
 );
-export const CardActions = ({ children, className, ...props }: any) => (
-  <div className={`flex items-center gap-2 pt-4 ${className || ''}`} {...props}>{children}</div>
+export const CardActions = ({ children, className, sx, ...props }: any) => (
+  <div className={`flex items-center gap-2 pt-4 ${className || ''}`} style={cleanSx(sx)} {...props}>{children}</div>
 );
 
 export const LinearProgress = ({ value = 0, className, ...props }: any) => (
@@ -437,6 +445,8 @@ export const Typography = React.forwardRef(({ children, className, sx, variant =
       ref={ref}
       className={`${fontClass} ${className || ''}`}
       style={{
+        // MUI Typography does not use browser default paragraph margins.
+        margin: 0,
         ...(noWrap ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : {}),
         ...(gutterBottom ? { marginBottom: '0.35em' } : {}),
         ...cleanSx(sx),
@@ -994,14 +1004,18 @@ export const Campaign = ({ children, ...props }: any) => React.createElement('di
 export const CardHeader = React.forwardRef(({ avatar, action, title, subheader, children, className, sx, ...props }: any, ref) => (
   <div
     ref={ref}
-    className={`flex items-start gap-3 p-4 ${className || ''}`}
+    className={`flex items-start gap-3 ${className || ''}`}
     style={cleanSx(sx)}
     {...props}
   >
     {avatar ? <div className="shrink-0">{avatar}</div> : null}
     <div className="min-w-0 flex-1">
-      {title ? <div className="text-sm font-semibold text-stone-100">{title}</div> : null}
-      {subheader ? <div className="text-xs text-stone-400">{subheader}</div> : null}
+      {title != null && title !== false
+        ? (React.isValidElement(title) ? title : <div className="text-sm font-semibold text-stone-100">{title}</div>)
+        : null}
+      {subheader != null && subheader !== false
+        ? (React.isValidElement(subheader) ? subheader : <div className="text-xs text-stone-400">{subheader}</div>)
+        : null}
       {children}
     </div>
     {action ? <div className="shrink-0">{action}</div> : null}

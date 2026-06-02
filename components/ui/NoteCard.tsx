@@ -332,6 +332,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
               title={
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
                   <Typography 
+                    component="span"
                     variant="h4" 
                     sx={{ 
                       fontSize: { xs: '0.875rem', sm: '1rem' }, 
@@ -344,7 +345,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
                       WebkitBoxOrient: 'vertical',
                       overflow: 'hidden',
                       flex: 1,
-                      lineHeight: 1.2
+                      lineHeight: 1.2,
                     }}
                   >
                 {isEncryptedNote ? '🔒 Encrypted note' : note.title}
@@ -451,6 +452,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
               ) : (
                 isEncryptedNote ? (
                   <Typography
+                    component="span"
                     variant="body2"
                     sx={{
                       color: 'text.secondary',
@@ -469,13 +471,14 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
                       },
                       WebkitBoxOrient: 'vertical',
                       overflow: 'hidden',
-                      whiteSpace: 'pre-wrap'
+                      whiteSpace: 'pre-wrap',
                     }}
                   >
                     🔒 Encrypted note
                   </Typography>
                 ) : (
                   <Typography 
+                    component="span"
                     variant="body2" 
                     sx={{ 
                       color: 'text.secondary',
@@ -493,7 +496,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
                       },
                       WebkitBoxOrient: 'vertical',
                       overflow: 'hidden',
-                      whiteSpace: 'pre-wrap'
+                      whiteSpace: 'pre-wrap',
                     }}
                   >
                     {note.content}
