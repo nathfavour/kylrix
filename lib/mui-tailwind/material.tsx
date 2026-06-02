@@ -66,8 +66,13 @@ const pickResponsiveValue = (value: any) => {
 const normalizeStyleValue = (key: string, value: any) => {
   if (value === undefined || value === null) return value;
   const resolved = pickResponsiveValue(value);
-  if (typeof resolved === 'number' && /(padding|margin|top|left|right|bottom|gap|width|height|min|max|borderRadius)/i.test(key)) {
-    return `${resolved}px`;
+  if (typeof resolved === 'number') {
+    if (/(padding|margin|gap)/i.test(key)) {
+      return `${resolved * 8}px`;
+    }
+    if (/(top|left|right|bottom|width|height|min|max|borderRadius|fontSize)/i.test(key)) {
+      return `${resolved}px`;
+    }
   }
   return resolved;
 };
@@ -977,17 +982,31 @@ export const FormGroup = ({ children, ...props }: any) => React.createElement('d
 export const Fullscreen = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const FullscreenExit = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const InfoOutlined = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const InputBase = React.forwardRef(({ className, sx, inputRef, endAdornment, startAdornment, ...props }: any, ref) => (
-  <div className={`flex min-w-0 flex-1 items-center gap-2 ${className || ''}`} style={cleanSx(sx)}>
-    {startAdornment}
-    <input
-      ref={inputRef || ref}
-      className="min-w-0 flex-1 bg-transparent text-sm text-stone-100 outline-none placeholder:text-stone-500"
-      {...props}
-    />
-    {endAdornment}
-  </div>
-));
+export const InputBase = React.forwardRef(({ className, sx, inputRef, endAdornment, startAdornment, ...props }: any, ref) => {
+  const { root, nested } = splitSx(sx);
+  const placeholderStyle = nested['& input::placeholder'] || {};
+  return (
+    <div className={`flex min-w-0 flex-1 items-center gap-2 ${className || ''}`} style={root}>
+      {startAdornment}
+      <input
+        ref={inputRef || ref}
+        className="min-w-0 flex-1 bg-transparent text-sm text-stone-100 outline-none placeholder:text-stone-500"
+        style={{
+          ...(placeholderStyle.color ? { ['--kylrix-placeholder-color' as any]: placeholderStyle.color } : {}),
+          ...(placeholderStyle.opacity !== undefined ? { ['--kylrix-placeholder-opacity' as any]: placeholderStyle.opacity } : {}),
+        }}
+        {...props}
+      />
+      {endAdornment}
+      <style jsx>{`
+        input::placeholder {
+          color: var(--kylrix-placeholder-color, rgba(255,255,255,0.5));
+          opacity: var(--kylrix-placeholder-opacity, 1);
+        }
+      `}</style>
+    </div>
+  );
+});
 InputBase.displayName = 'InputBase';
 export const Insights = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Keyboard = ({ children, ...props }: any) => React.createElement('div', props, children);
