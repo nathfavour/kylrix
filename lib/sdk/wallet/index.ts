@@ -7,7 +7,7 @@ import * as secp256k1 from '@noble/secp256k1';
 import * as ed25519 from '@noble/ed25519';
 import { base58, bech32 } from '@scure/base';
 import { keccak_256 } from '@noble/hashes/sha3.js';
-import { ripemd160 as hash160 } from '@noble/hashes/ripemd160';
+import { ripemd160 as hash160 } from '@noble/hashes/legacy.js';
 import { blake2b } from '@noble/hashes/blake2.js';
 
 export type SupportedWalletChain =
