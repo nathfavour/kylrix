@@ -418,7 +418,28 @@ export const Stack = React.forwardRef(({ children, direction = 'column', spacing
 Stack.displayName = 'Stack';
 
 // 10. TextField Component
-export const TextField = React.forwardRef(({ label, placeholder, value, onChange, type = 'text', fullWidth, disabled, error, helperText, className, sx, ...props }: any, ref) => {
+export const TextField = React.forwardRef(({
+  label,
+  placeholder,
+  value,
+  onChange,
+  type = 'text',
+  fullWidth,
+  disabled,
+  error,
+  helperText,
+  className,
+  sx,
+  inputRef,
+  InputProps,
+  multiline,
+  rows,
+  minRows,
+  maxRows,
+  ...props
+}: any, ref) => {
+  const inputStyle = cleanSx(InputProps?.sx);
+  const inputClass = `w-full bg-[#0A0908] border ${error ? 'border-red-500' : 'border-[#23211F]'} text-stone-200 rounded-xl px-4 py-2.5 text-sm font-space-grotesk outline-none focus:border-indigo-500 transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`;
   return (
     <div className={`flex flex-col gap-1.5 ${fullWidth ? 'w-full' : ''} ${className || ''}`} style={cleanSx(sx)}>
       {label && (
@@ -426,16 +447,31 @@ export const TextField = React.forwardRef(({ label, placeholder, value, onChange
           {label}
         </label>
       )}
-      <input
-        ref={ref}
-        type={type}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        placeholder={placeholder}
-        className={`w-full bg-[#0A0908] border ${error ? 'border-red-500' : 'border-[#23211F]'} text-stone-200 rounded-xl px-4 py-2.5 text-sm font-space-grotesk outline-none focus:border-indigo-500 transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-        {...props}
-      />
+      {multiline ? (
+        <textarea
+          ref={inputRef || ref}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          placeholder={placeholder}
+          rows={rows ?? minRows ?? 3}
+          className={inputClass}
+          style={inputStyle}
+          {...props}
+        />
+      ) : (
+        <input
+          ref={inputRef || ref}
+          type={type}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          placeholder={placeholder}
+          className={inputClass}
+          style={inputStyle}
+          {...props}
+        />
+      )}
       {helperText && (
         <span className={`text-xs ${error ? 'text-red-500' : 'text-stone-500'} font-mono`}>
           {helperText}
@@ -1127,6 +1163,15 @@ export const PaginationItem = React.forwardRef(
           ? slots?.next
           : page;
 
+    const renderedContent =
+      typeof content === 'number'
+        ? <span>{content}</span>
+        : React.isValidElement(content)
+          ? content
+          : typeof content === 'function'
+            ? React.createElement(content)
+            : content;
+
     return (
       <button
         ref={ref}
@@ -1137,7 +1182,7 @@ export const PaginationItem = React.forwardRef(
         style={cleanSx(sx)}
         {...props}
       >
-        {typeof content === 'number' ? <span>{content}</span> : content}
+        {renderedContent}
       </button>
     );
   }
