@@ -254,8 +254,20 @@ Match the quick-actions row structure (not a single crushed `Stack`):
 
 ### Vault landing (`/vault`)
 
+- **Routing**: exact path `/vault` is **public** (password generator). Signed-in users redirect to `/vault/dashboard` after `isAuthReady` (masterpass unlock runs there via `SudoModal`).
 - Hero copy: `Typography component="span"`, solid accent color (no gradient text).
-- `PasswordGenerator`: `TextField` with `readOnly` when displaying generated password.
+- **Password display**: do **not** use a cramped `TextField` for read-only output. Use the quick-actions row shell:
+
+```tsx
+<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2.25, py: 1.75, borderRadius: '20px', bgcolor: '#1C1A18', border: '1px solid rgba(255,255,255,0.08)', minHeight: 56 }}>
+  <Box sx={{ minWidth: 0, flex: 1, flexDirection: 'column', gap: 0.35, pr: 0.5 }}>
+    <Typography component="span" sx={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', lineHeight: 1.35, wordBreak: 'break-all' }}>
+      {password}
+    </Typography>
+  </Box>
+  <Stack direction="row" sx={{ flexShrink: 0 }}>{/* copy / refresh */}</Stack>
+</Box>
+```
 
 ## Icon imports (migration pitfall)
 

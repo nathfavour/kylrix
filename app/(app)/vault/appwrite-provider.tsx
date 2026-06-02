@@ -76,8 +76,9 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
             unlocked,
           });
         
-        // Use pathname to skip forcing masterpass on the landing page
-        const isAuthPage = pathname === "/" || pathname === "/landing";
+        // Skip masterpass modal on public landing pages (incl. /vault generator)
+        const isVaultLanding = pathname === '/vault' || pathname === '/vault/';
+        const isAuthPage = pathname === '/' || pathname === '/landing' || isVaultLanding;
         
         // The crypto lock state is the source of truth for whether the vault is usable.
         // If it's an auth page, we don't need to force the modal.
@@ -92,7 +93,8 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
           const retryAccount = getCurrentUserSnapshot() ?? await getCurrentUser(true);
           if (retryAccount) {
             setUser(retryAccount);
-            setNeedsMasterPassword(pathname === "/" || pathname === "/landing" ? false : !masterPassCrypto.isVaultUnlocked());
+            const isLanding = pathname === '/' || pathname === '/landing' || pathname === '/vault' || pathname === '/vault/';
+            setNeedsMasterPassword(isLanding ? false : !masterPassCrypto.isVaultUnlocked());
             return retryAccount;
           }
         }

@@ -6,13 +6,11 @@ import {
   Typography,
   Button,
   Slider,
-  TextField,
   IconButton,
   Stack,
   Switch,
   FormControlLabel,
   Paper,
-  alpha,
   List,
   ListItem,
   Tooltip,
@@ -31,10 +29,9 @@ export default function PasswordGenerator() {
   const [copied, setCopied] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<{ value: string; ts: number }[]>([]);
-  
+
   useEffect(() => {
-    const newPassword = generateRandomPassword(length);
-    setPassword(newPassword);
+    setPassword(generateRandomPassword(length));
   }, [length]);
 
   const handleGenerate = () => {
@@ -51,94 +48,121 @@ export default function PasswordGenerator() {
     await navigator.clipboard.writeText(password);
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
-    toast.success("Copied to clipboard", {
+    toast.success('Copied to clipboard', {
       style: {
-        background: 'rgba(10, 10, 10, 0.95)',
-        backdropFilter: 'blur(25px)',
+        background: '#161412',
         border: '1px solid rgba(255, 255, 255, 0.1)',
         borderRadius: '12px',
-        color: 'white'
-      }
+        color: 'white',
+      },
     });
   };
 
-  const handleLengthChange = (_: any, val: number | number[]) => {
+  const handleLengthChange = (_: unknown, val: number | number[]) => {
     setLength(val as number);
   };
 
   return (
-    <Paper sx={{ 
-      p: 4, 
-      width: '100%', 
-      maxWidth: 420, 
-      bgcolor: '#161412', 
-      border: '1px solid rgba(255, 255, 255, 0.08)',
-      borderRadius: '32px',
+    <Paper sx={{
+      p: 2.5,
+      width: '100%',
+      maxWidth: 420,
+      bgcolor: '#161412',
+      border: '1px solid #34322F',
+      borderRadius: '28px',
       backgroundImage: 'none',
-      boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4)',
+      boxShadow: 'none',
     }}>
-      <Stack spacing={3.5}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', textTransform: 'uppercase', fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.9)' }}>
+      <Stack spacing={3}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
+          <Typography
+            component="span"
+            sx={{
+              fontWeight: 900,
+              fontFamily: 'var(--font-clash)',
+              letterSpacing: '-0.02em',
+              textTransform: 'uppercase',
+              fontSize: '0.85rem',
+              color: 'rgba(255, 255, 255, 0.9)',
+              lineHeight: 1.25,
+            }}
+          >
             Password Generator
           </Typography>
           <FormControlLabel
             control={
-              <Switch 
-                size="small" 
-                checked={showHistory} 
+              <Switch
+                size="small"
+                checked={showHistory}
                 onChange={(e) => setShowHistory(e.target.checked)}
                 sx={{
                   '& .MuiSwitch-switchBase.Mui-checked': { color: '#10B981' },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#10B981' }
+                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#10B981' },
                 }}
               />
             }
-            label={<Typography variant="caption" sx={{ fontWeight: 700, color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.05em' }}>HISTORY</Typography>}
+            label={
+              <Typography component="span" sx={{ fontWeight: 700, color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.05em', fontSize: '0.7rem', lineHeight: 1.2 }}>
+                HISTORY
+              </Typography>
+            }
             labelPlacement="start"
           />
         </Box>
 
-        <Box sx={{ position: 'relative' }}>
-          <TextField
-            fullWidth
-            value={password}
-            readOnly
-            variant="outlined"
-            InputProps={{
-              readOnly: true,
-              sx: {
+        {/* Password display — topbar quick-actions row pattern (px 2.25 / py 1.5) */}
+        <Box
+          sx={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            px: 2.25,
+            py: 1.75,
+            borderRadius: '20px',
+            bgcolor: '#1C1A18',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            minHeight: 56,
+          }}
+        >
+          <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35, pr: 0.5 }}>
+            <Typography
+              component="span"
+              sx={{
                 fontFamily: 'var(--font-mono)',
-                fontSize: '1.15rem',
-                bgcolor: '#1C1A18',
-                borderRadius: '20px',
-                color: '#10B981',
+                fontSize: { xs: '0.95rem', sm: '1.05rem' },
                 fontWeight: 600,
-                '& fieldset': { border: '1px solid rgba(255, 255, 255, 0.05)' },
-                '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                '&.Mui-focused fieldset': { borderColor: '#10B981' },
-                pr: 10
-              }
-            }}
-          />
-          <Stack direction="row" spacing={0.5} sx={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
+                color: '#10B981',
+                lineHeight: 1.35,
+                wordBreak: 'break-all',
+                display: 'block',
+              }}
+            >
+              {password}
+            </Typography>
+          </Box>
+          <Stack direction="row" spacing={0.25} sx={{ flexShrink: 0 }}>
             <Tooltip title="Copy">
-              <IconButton onClick={handleCopy} size="small" sx={{ color: copied ? '#10B981' : 'rgba(255, 255, 255, 0.3)' }}>
+              <IconButton onClick={handleCopy} size="small" sx={{ color: copied ? '#10B981' : 'rgba(255, 255, 255, 0.35)' }}>
                 <ContentCopyIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
             <Tooltip title="Regenerate">
-              <IconButton onClick={handleGenerate} size="small" sx={{ color: 'rgba(255, 255, 255, 0.3)' }}>
+              <IconButton onClick={handleGenerate} size="small" sx={{ color: 'rgba(255, 255, 255, 0.35)' }}>
                 <RefreshIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
           </Stack>
         </Box>
 
-        <Box sx={{ px: 1 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
-            <Typography variant="caption" sx={{ fontWeight: 800, color: 'rgba(255, 255, 255, 0.3)', letterSpacing: '0.1em' }}>LENGTH</Typography>
-            <Typography variant="caption" sx={{ fontWeight: 900, color: '#10B981', fontFamily: 'var(--font-mono)' }}>{length} CHR</Typography>
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, px: 0.5 }}>
+            <Typography component="span" sx={{ fontWeight: 800, color: 'rgba(255, 255, 255, 0.3)', letterSpacing: '0.1em', fontSize: '0.7rem', lineHeight: 1.25 }}>
+              LENGTH
+            </Typography>
+            <Typography component="span" sx={{ fontWeight: 900, color: '#10B981', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', lineHeight: 1.25 }}>
+              {length} CHR
+            </Typography>
           </Box>
           <Slider
             value={length}
@@ -148,80 +172,97 @@ export default function PasswordGenerator() {
             sx={{
               color: '#10B981',
               height: 6,
+              px: 0.5,
               '& .MuiSlider-thumb': {
                 width: 20,
                 height: 20,
                 bgcolor: '#10B981',
                 border: '4px solid #161412',
-                '&:hover, &.Mui-focusVisible': { boxShadow: '0 0 0 8px rgba(16, 185, 129, 0.16)' }
+                '&:hover, &.Mui-focusVisible': { boxShadow: '0 0 0 8px rgba(16, 185, 129, 0.16)' },
               },
               '& .MuiSlider-track': { border: 'none' },
-              '& .MuiSlider-rail': { opacity: 0.1, bgcolor: 'white' }
+              '& .MuiSlider-rail': { opacity: 0.1, bgcolor: 'white' },
             }}
           />
         </Box>
 
-        <Stack spacing={1.5}>
-          <Button
-            fullWidth
-            variant="contained"
-            onClick={handleGenerate}
-            sx={{
-              bgcolor: '#10B981',
-              color: '#000',
-              fontWeight: 900,
-              borderRadius: '18px',
-              py: 2,
-              fontFamily: 'var(--font-clash)',
-              fontSize: '0.9rem',
-              letterSpacing: '0.02em',
-              '&:hover': { bgcolor: '#059669', transform: 'translateY(-1px)' },
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-          >
-            Generate Password
-          </Button>
-        </Stack>
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={handleGenerate}
+          sx={{
+            bgcolor: '#10B981',
+            color: '#000',
+            fontWeight: 900,
+            borderRadius: '18px',
+            py: 1.75,
+            fontFamily: 'var(--font-clash)',
+            fontSize: '0.9rem',
+            letterSpacing: '0.02em',
+            lineHeight: 1.25,
+            '&:hover': { bgcolor: '#059669' },
+            transition: 'background-color 0.2s ease',
+          }}
+        >
+          Generate Password
+        </Button>
 
         {showHistory && (
-          <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-              <HistoryIcon sx={{ fontSize: 14, color: "rgba(255, 255, 255, 0.4)" }} />
-              <Typography variant="caption" sx={{ fontWeight: 700, color: 'rgba(255, 255, 255, 0.4)' }}>RECENT PASSWORDS</Typography>
+          <Box sx={{ pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5, px: 0.5 }}>
+              <HistoryIcon sx={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.4)' }} />
+              <Typography component="span" sx={{ fontWeight: 700, color: 'rgba(255, 255, 255, 0.4)', fontSize: '0.7rem', lineHeight: 1.25 }}>
+                RECENT PASSWORDS
+              </Typography>
             </Stack>
             {history.length === 0 ? (
-              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.3)', fontStyle: 'italic' }}>No history yet.</Typography>
+              <Typography component="span" sx={{ display: 'block', color: 'rgba(255, 255, 255, 0.3)', fontStyle: 'italic', fontSize: '0.8rem', lineHeight: 1.45, px: 0.5 }}>
+                No history yet.
+              </Typography>
             ) : (
               <List sx={{ p: 0, maxHeight: 160, overflowY: 'auto' }}>
                 {history.map((item, i) => (
                   <ListItem
                     key={i}
                     sx={{
-                      px: 1.5,
-                      py: 1,
-                      borderRadius: '10px',
-                      mb: 0.5,
+                      px: 2.25,
+                      py: 1.5,
+                      borderRadius: '14px',
+                      mb: 0.75,
                       bgcolor: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(255, 255, 255, 0.04)',
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.05)' }
+                      alignItems: 'center',
+                      gap: 1.5,
+                      '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.05)' },
                     }}
                   >
-                    <Box sx={{ overflow: 'hidden' }}>
-                      <Typography variant="body2" sx={{ fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '0.85rem',
+                          lineHeight: 1.35,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          display: 'block',
+                        }}
+                      >
                         {item.value}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.3)', fontSize: '0.65rem' }}>
+                      <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.3)', fontSize: '0.65rem', lineHeight: 1.3 }}>
                         {new Date(item.ts).toLocaleTimeString()}
                       </Typography>
                     </Box>
-                    <IconButton 
-                      size="small" 
+                    <IconButton
+                      size="small"
                       onClick={() => {
                         navigator.clipboard.writeText(item.value);
-                        toast.success("Copied from history");
+                        toast.success('Copied from history');
                       }}
-                      sx={{ color: 'rgba(255, 255, 255, 0.3)' }}
+                      sx={{ color: 'rgba(255, 255, 255, 0.3)', flexShrink: 0 }}
                     >
                       <ContentCopyIcon sx={{ fontSize: 14 }} />
                     </IconButton>
