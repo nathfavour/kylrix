@@ -59,6 +59,7 @@ const SectionContext = createContext<SectionContextType | undefined>(undefined);
 
 // Core default layouts for flagged routes in Kylrix
 const DEFAULT_LAYOUTS: Record<string, PanelType[]> = {
+  '/note/notes': ['note', 'huddles', 'projects'],
   '/note/tags': ['note', 'huddles', 'projects'],
   '/note/shared': ['tags', 'huddles', 'projects'],
   '/flow/goals': ['forms', 'huddles', 'projects'],
@@ -70,6 +71,7 @@ const DEFAULT_LAYOUTS: Record<string, PanelType[]> = {
   '/connect/chats': ['projects', 'huddles', 'note'],
   '/connect/calls': ['projects', 'threads'],
   '/projects': ['projects_stats', 'projects_templates'],
+  '/projects/[projectId]': ['note', 'huddles', 'goals'],
 };
 
 export function SectionProvider({ children }: { children: React.ReactNode }) {
@@ -175,11 +177,11 @@ export function SectionProvider({ children }: { children: React.ReactNode }) {
     let columnsCount = 2;
     let sections: SectionConfig['sections'] = [];
 
-    if (screenWidth < 1200) {
+    if (screenWidth < 1024) {
       // Mobile & Tablet: Standard single-column flow
       columnsCount = 1;
       sections = [{ id: 'original', type: 'original', width: '1fr' }];
-    } else if (screenWidth >= 1200 && screenWidth < 1600) {
+    } else if (screenWidth >= 1024 && screenWidth < 1600) {
       // Laptop: Standard 2-column sidebar layout
       columnsCount = 2;
       sections = [
@@ -557,7 +559,7 @@ export function MultiSectionContainer({ children, panels, contextId }: MultiSect
           <Box 
             key={section.id} 
             sx={{ 
-              display: { xs: 'none', lg: 'block' },
+              display: { xs: 'none', md: 'block' },
               position: 'sticky',
               top: '108px',
               height: 'calc(100vh - 120px)',
