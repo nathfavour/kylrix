@@ -1,29 +1,15 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Slider,
-  IconButton,
-  Stack,
-  Switch,
-  FormControlLabel,
-  Paper,
-  List,
-  ListItem,
-  Tooltip,
-} from '@/lib/mui-tailwind/material';
-import {
-  ContentCopy as ContentCopyIcon,
-  Refresh as RefreshIcon,
-  History as HistoryIcon,
-} from '@/lib/mui-tailwind/icons';
+import { Copy, Check, RefreshCw, History } from 'lucide-react';
 import { generateRandomPassword } from '@/utils/password';
 import toast from 'react-hot-toast';
 
-export default function PasswordGenerator() {
+interface PasswordGeneratorProps {
+  onPasswordSelect?: (password: string) => void;
+}
+
+export default function PasswordGenerator({ onPasswordSelect }: PasswordGeneratorProps) {
   const [length, setLength] = useState(16);
   const [password, setPassword] = useState(() => generateRandomPassword(16));
   const [copied, setCopied] = useState(false);
@@ -31,8 +17,12 @@ export default function PasswordGenerator() {
   const [history, setHistory] = useState<{ value: string; ts: number }[]>([]);
 
   useEffect(() => {
-    setPassword(generateRandomPassword(length));
-  }, [length]);
+    const newPassword = generateRandomPassword(length);
+    setPassword(newPassword);
+    if (onPasswordSelect) {
+      onPasswordSelect(newPassword);
+    }
+  }, [length, onPasswordSelect]);
 
   const handleGenerate = () => {
     const newPassword = generateRandomPassword(length);
@@ -42,6 +32,9 @@ export default function PasswordGenerator() {
       const next = [{ value: newPassword, ts: Date.now() }, ...prev];
       return next.slice(0, 20);
     });
+    if (onPasswordSelect) {
+      onPasswordSelect(newPassword);
+    }
   };
 
   const handleCopy = async () => {
@@ -58,221 +51,125 @@ export default function PasswordGenerator() {
     });
   };
 
-  const handleLengthChange = (_: unknown, val: number | number[]) => {
-    setLength(val as number);
-  };
-
   return (
-    <Paper sx={{
-      p: 2.5,
-      width: '100%',
-      maxWidth: 420,
-      bgcolor: '#161412',
-      border: '1px solid #34322F',
-      borderRadius: '28px',
-      backgroundImage: 'none',
-      boxShadow: 'none',
-    }}>
-      <Stack spacing={3}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
-          <Typography
-            component="span"
-            sx={{
-              fontWeight: 900,
-              fontFamily: 'var(--font-clash)',
-              letterSpacing: '-0.02em',
-              textTransform: 'uppercase',
-              fontSize: '0.85rem',
-              color: 'rgba(255, 255, 255, 0.9)',
-              lineHeight: 1.25,
-            }}
+    <div className="w-full bg-[#161412] border border-[#34322F] rounded-2xl p-4 flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-black tracking-wider text-white/90 uppercase font-clash">
+          Password Generator
+        </span>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <span className="text-[9px] font-black text-white/40 tracking-widest uppercase">
+            HISTORY
+          </span>
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={showHistory}
+              onChange={(e) => setShowHistory(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-7 h-4 bg-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#161412] after:border-white/10 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#10B981]" />
+          </div>
+        </label>
+      </div>
+
+      {/* Generated Password Box */}
+      <div className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#1C1A18] border border-white/5 rounded-xl min-h-[44px]">
+        <span className="font-mono text-xs sm:text-sm font-semibold text-[#10B981] break-all select-all">
+          {password}
+        </span>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={handleCopy}
+            title="Copy Password"
+            className="p-1.5 rounded-lg text-white/40 hover:text-[#10B981] hover:bg-white/5 transition-colors"
           >
-            Password Generator
-          </Typography>
-          <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                checked={showHistory}
-                onChange={(e) => setShowHistory(e.target.checked)}
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': { color: '#10B981' },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#10B981' },
-                }}
-              />
-            }
-            label={
-              <Typography component="span" sx={{ fontWeight: 700, color: 'rgba(255, 255, 255, 0.4)', letterSpacing: '0.05em', fontSize: '0.7rem', lineHeight: 1.2 }}>
-                HISTORY
-              </Typography>
-            }
-            labelPlacement="start"
-          />
-        </Box>
+            {copied ? <Check size={14} className="text-[#10B981]" /> : <Copy size={14} />}
+          </button>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            title="Regenerate Password"
+            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <RefreshCw size={14} />
+          </button>
+        </div>
+      </div>
 
-        {/* Password display — topbar quick-actions row pattern (px 2.25 / py 1.5) */}
-        <Box
-          sx={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-            px: 2.25,
-            py: 1.75,
-            borderRadius: '20px',
-            bgcolor: '#1C1A18',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            minHeight: 56,
-          }}
-        >
-          <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35, pr: 0.5 }}>
-            <Typography
-              component="span"
-              sx={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: { xs: '0.95rem', sm: '1.05rem' },
-                fontWeight: 600,
-                color: '#10B981',
-                lineHeight: 1.35,
-                wordBreak: 'break-all',
-                display: 'block',
-              }}
-            >
-              {password}
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={0.25} sx={{ flexShrink: 0 }}>
-            <Tooltip title="Copy">
-              <IconButton onClick={handleCopy} size="small" sx={{ color: copied ? '#10B981' : 'rgba(255, 255, 255, 0.35)' }}>
-                <ContentCopyIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Regenerate">
-              <IconButton onClick={handleGenerate} size="small" sx={{ color: 'rgba(255, 255, 255, 0.35)' }}>
-                <RefreshIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        </Box>
+      {/* Length Controls */}
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between text-[9px] font-black text-white/30 tracking-widest">
+          <span>LENGTH</span>
+          <span className="font-mono text-[#10B981] text-xs font-black">{length} CHR</span>
+        </div>
+        <input
+          type="range"
+          min="8"
+          max="64"
+          value={length}
+          onChange={(e) => setLength(Number(e.target.value))}
+          className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#10B981] focus:outline-none"
+        />
+      </div>
 
-        <Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, px: 0.5 }}>
-            <Typography component="span" sx={{ fontWeight: 800, color: 'rgba(255, 255, 255, 0.3)', letterSpacing: '0.1em', fontSize: '0.7rem', lineHeight: 1.25 }}>
-              LENGTH
-            </Typography>
-            <Typography component="span" sx={{ fontWeight: 900, color: '#10B981', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', lineHeight: 1.25 }}>
-              {length} CHR
-            </Typography>
-          </Box>
-          <Slider
-            value={length}
-            min={8}
-            max={64}
-            onChange={handleLengthChange}
-            sx={{
-              color: '#10B981',
-              height: 6,
-              px: 0.5,
-              '& .MuiSlider-thumb': {
-                width: 20,
-                height: 20,
-                bgcolor: '#10B981',
-                border: '4px solid #161412',
-                '&:hover, &.Mui-focusVisible': { boxShadow: '0 0 0 8px rgba(16, 185, 129, 0.16)' },
-              },
-              '& .MuiSlider-track': { border: 'none' },
-              '& .MuiSlider-rail': { opacity: 0.1, bgcolor: 'white' },
-            }}
-          />
-        </Box>
+      {/* Generate Button */}
+      <button
+        type="button"
+        onClick={handleGenerate}
+        className="w-full py-2 px-4 bg-[#10B981] hover:bg-[#0d9b70] text-black font-black text-xs rounded-xl tracking-wider font-clash transition-colors duration-200"
+      >
+        Generate Password
+      </button>
 
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={handleGenerate}
-          sx={{
-            bgcolor: '#10B981',
-            color: '#000',
-            fontWeight: 900,
-            borderRadius: '18px',
-            py: 1.75,
-            fontFamily: 'var(--font-clash)',
-            fontSize: '0.9rem',
-            letterSpacing: '0.02em',
-            lineHeight: 1.25,
-            '&:hover': { bgcolor: '#059669' },
-            transition: 'background-color 0.2s ease',
-          }}
-        >
-          Generate Password
-        </Button>
-
-        {showHistory && (
-          <Box sx={{ pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5, px: 0.5 }}>
-              <HistoryIcon sx={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.4)' }} />
-              <Typography component="span" sx={{ fontWeight: 700, color: 'rgba(255, 255, 255, 0.4)', fontSize: '0.7rem', lineHeight: 1.25 }}>
-                RECENT PASSWORDS
-              </Typography>
-            </Stack>
-            {history.length === 0 ? (
-              <Typography component="span" sx={{ display: 'block', color: 'rgba(255, 255, 255, 0.3)', fontStyle: 'italic', fontSize: '0.8rem', lineHeight: 1.45, px: 0.5 }}>
-                No history yet.
-              </Typography>
-            ) : (
-              <List sx={{ p: 0, maxHeight: 160, overflowY: 'auto' }}>
-                {history.map((item, i) => (
-                  <ListItem
-                    key={i}
-                    sx={{
-                      px: 2.25,
-                      py: 1.5,
-                      borderRadius: '14px',
-                      mb: 0.75,
-                      bgcolor: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid rgba(255, 255, 255, 0.04)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.05)' },
+      {/* History */}
+      {showHistory && (
+        <div className="pt-2 border-t border-white/5 flex flex-col gap-2">
+          <div className="flex items-center gap-1.5 px-0.5 text-white/40">
+            <History size={12} />
+            <span className="text-[9px] font-black tracking-widest uppercase">
+              RECENT PASSWORDS
+            </span>
+          </div>
+          {history.length === 0 ? (
+            <span className="text-[10px] text-white/30 italic px-0.5">
+              No history yet.
+            </span>
+          ) : (
+            <div className="max-h-28 overflow-y-auto pr-1 flex flex-col gap-1.5">
+              {history.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between gap-2 px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-lg hover:bg-white/[0.05] transition-colors"
+                >
+                  <div className="min-w-0 flex-1 flex flex-col">
+                    <span className="font-mono text-xs text-white/80 truncate">
+                      {item.value}
+                    </span>
+                    <span className="text-[8px] text-white/30">
+                      {new Date(item.ts).toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(item.value);
+                      if (onPasswordSelect) onPasswordSelect(item.value);
+                      toast.success('Copied from history');
                     }}
+                    className="p-1 rounded text-white/30 hover:text-white hover:bg-white/5 transition-colors shrink-0"
+                    title="Copy & Use"
                   >
-                    <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
-                      <Typography
-                        component="span"
-                        sx={{
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: '0.85rem',
-                          lineHeight: 1.35,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          display: 'block',
-                        }}
-                      >
-                        {item.value}
-                      </Typography>
-                      <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.3)', fontSize: '0.65rem', lineHeight: 1.3 }}>
-                        {new Date(item.ts).toLocaleTimeString()}
-                      </Typography>
-                    </Box>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        navigator.clipboard.writeText(item.value);
-                        toast.success('Copied from history');
-                      }}
-                      sx={{ color: 'rgba(255, 255, 255, 0.3)', flexShrink: 0 }}
-                    >
-                      <ContentCopyIcon sx={{ fontSize: 14 }} />
-                    </IconButton>
-                  </ListItem>
-                ))}
-              </List>
-            )}
-          </Box>
-        )}
-      </Stack>
-    </Paper>
+                    <Copy size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
