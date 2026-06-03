@@ -76,10 +76,10 @@ export default function TaskList() {
     { field: 'status', label: 'Status' }];
 
   const statusFilters: { status: TaskStatus; label: string; color: string }[] = [
-    { status: 'todo', label: 'To Do', color: theme.palette.grey[500] },
-    { status: 'in-progress', label: 'In Progress', color: theme.palette.info.main },
-    { status: 'done', label: 'Done', color: theme.palette.success.main },
-    { status: 'blocked', label: 'Blocked', color: theme.palette.error.main }];
+    { status: 'todo', label: 'To Do', color: theme.palette.grey?.[500] || '#9E9E9E' },
+    { status: 'in-progress', label: 'In Progress', color: theme.palette.info?.main || '#0288D1' },
+    { status: 'done', label: 'Done', color: theme.palette.success?.main || '#2E7D32' },
+    { status: 'blocked', label: 'Blocked', color: theme.palette.error?.main || '#D32F2F' }];
 
   const handleSortClick = (event: React.MouseEvent<HTMLElement>) => {
     setSortAnchorEl(event.currentTarget);
