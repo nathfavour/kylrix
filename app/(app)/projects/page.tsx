@@ -8,6 +8,7 @@ import {
   Button,
   Chip,
   Paper,
+  Grid,
   Card,
   CardHeader,
   CardContent,
@@ -443,128 +444,60 @@ export default function ProjectsPage() {
         </Button>
       </Stack>
       
-      <Box sx={PROJECT_CARD_GRID_SX}>
+      <Grid container spacing={3}>
         {displayedTemplates.map((template) => (
-          <Box key={template.title} sx={{ minWidth: 0, display: 'flex' }}>
+          <Grid size={{ xs: 12, md: 6 }} key={template.title} sx={{ display: 'flex', minWidth: 0 }}>
             <TemplateCard template={template} onSelect={openCreateDrawer} />
-          </Box>
+          </Grid>
         ))}
-      </Box>
+      </Grid>
     </Box>
   );
 
   const workflowsCardElement = (
-    <Card
+    <div
       onClick={() => router.push('/projects/workflows')}
-      sx={{
-        mb: 6,
-        cursor: 'pointer',
-        overflow: 'hidden',
-        bgcolor: NAV_SURFACE,
-        border: '1px solid',
-        borderColor: 'rgba(255,255,255,0.06)',
-        borderRadius: '28px',
-        boxShadow: 'none',
-        transition: 'border-color 0.2s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-        '&:hover': {
-          bgcolor: '#1A1816',
-          borderColor: 'rgba(99, 102, 241, 0.3)',
-          transform: 'translateY(-2px)',
-          boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)',
-        },
-      }}
+      className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-5 p-6 w-full rounded-[28px] bg-[#161412] border border-white/6 hover:border-[#6366F1]/30 hover:bg-[#1C1A18] transition-all duration-300 ease-out cursor-pointer overflow-hidden mb-6 group select-none max-w-full"
     >
-      <CardHeader
-        sx={{ pb: 0.5, p: 2.5 }}
-        title={
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2.5 }}>
-            <Box
-              sx={{
-                width: 56,
-                height: 56,
-                borderRadius: '16px',
-                bgcolor: alpha('#6366F1', 0.08),
-                color: '#6366F1',
-                display: 'grid',
-                placeItems: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Workflow size={28} strokeWidth={2} />
-            </Box>
-            <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
-              <Typography component="span" variant="h6" sx={{ fontWeight: 900, color: '#fff', fontSize: '1.2rem', letterSpacing: '-0.02em', lineHeight: 1.25 }}>
-                Smart Action Workflows
-              </Typography>
-              <Chip
-                label={`${Object.keys(savedWorkflows || {}).length} SAVED`}
-                size="small"
-                sx={{
-                  flexShrink: 0,
-                  bgcolor: 'rgba(99, 102, 241, 0.1)',
-                  color: '#818CF8',
-                  fontWeight: 900,
-                  fontSize: '0.65rem',
-                  fontFamily: 'var(--font-mono)',
-                  border: '1px solid rgba(99, 102, 241, 0.2)',
-                  height: 20,
-                }}
-              />
-            </Box>
-          </Box>
-        }
-      />
-      <CardContent
-        sx={{
-          p: 2.5,
-          pt: 0,
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          alignItems: { xs: 'flex-start', md: 'center' },
-          justifyContent: 'space-between',
-          gap: 2,
-        }}
-      >
-        <Typography
-          component="span"
-          variant="body2"
-          sx={{
-            color: 'rgba(255,255,255,0.4)',
-            fontWeight: 500,
-            fontSize: '0.875rem',
-            maxWidth: 640,
-            lineHeight: 1.6,
-            flex: 1,
-            display: 'block',
+      <div className="flex items-start gap-4 flex-1 min-w-0 w-full">
+        {/* Left Icon (Workflow) */}
+        <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-[#6366F1]/8 text-[#6366F1] grid place-items-center">
+          <Workflow size={28} strokeWidth={2} />
+        </div>
+
+        {/* Grouped Copy Column */}
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
+          {/* Header Row */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h3 className="text-white text-lg font-black tracking-tight leading-tight">
+              Smart Action Workflows
+            </h3>
+            <span className="flex-shrink-0 bg-[#6366F1]/10 text-[#818CF8] text-[10px] font-black font-mono px-2 py-0.5 rounded border border-[#6366F1]/20">
+              {Object.keys(savedWorkflows || {}).length} SAVED
+            </span>
+          </div>
+
+          {/* Description Content */}
+          <p className="text-sm text-white/40 font-medium leading-relaxed break-words mt-1 max-w-[640px]">
+            Record, share, and automate action sequences to boost execution speed. Perfect for repetitive workspace tasks and smart guidance.
+          </p>
+        </div>
+      </div>
+
+      {/* Action Button */}
+      <div className="flex-shrink-0 w-full md:w-auto mt-3 md:mt-0 flex justify-end">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push('/projects/workflows');
           }}
-        >
-          Record, share, and automate action sequences to boost execution speed. Perfect for repetitive workspace tasks and smart guidance.
-        </Typography>
-        <Button
-          variant="outlined"
-          onClick={(e) => { e.stopPropagation(); router.push('/projects/workflows'); }}
-          endIcon={<ArrowUpRight size={16} />}
-          sx={{
-            borderRadius: '12px',
-            borderColor: 'rgba(255,255,255,0.08)',
-            color: '#fff',
-            px: 3,
-            py: 1,
-            fontWeight: 800,
-            fontSize: '0.8rem',
-            textTransform: 'none',
-            flexShrink: 0,
-            bgcolor: 'rgba(255,255,255,0.02)',
-            '&:hover': {
-              borderColor: '#6366F1',
-              bgcolor: 'rgba(99, 102, 241, 0.05)',
-            },
-          }}
+          className="flex items-center justify-center gap-2 rounded-xl border border-white/8 text-white px-5 py-2.5 text-xs font-extrabold bg-white/2 hover:border-[#6366F1] hover:bg-[#6366F1]/5 transition-all duration-200 w-full md:w-auto"
         >
           Manage Workflows
-        </Button>
-      </CardContent>
-    </Card>
+          <ArrowUpRight size={16} />
+        </button>
+      </div>
+    </div>
   );
 
   const projectsListElement = (
@@ -574,9 +507,9 @@ export default function ProjectsPage() {
         </Typography>
         
         {loading ? (
-          <Box sx={PROJECT_CARD_GRID_SX}>
+          <Grid container spacing={3}>
             {[1, 2, 3, 4, 5, 6].map((idx) => (
-              <Box key={idx} sx={{ minWidth: 0, display: 'flex' }}>
+              <Grid size={{ xs: 12, md: 6 }} key={idx} sx={{ display: 'flex', minWidth: 0 }}>
                 <ProjectCard 
                   project={{
                     $id: `skeleton-${idx}`,
@@ -588,9 +521,9 @@ export default function ProjectsPage() {
                   onClick={() => {}}
                   onDelete={() => {}}
                 />
-              </Box>
+              </Grid>
             ))}
-          </Box>
+          </Grid>
         ) : projects.length === 0 ? (
           <Paper
             elevation={0}
@@ -613,18 +546,18 @@ export default function ProjectsPage() {
             <Button variant="outlined" onClick={() => openCreateDrawer()} sx={{ borderRadius: '12px', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', px: 4, fontWeight: 800 }}>Start Fresh Project</Button>
           </Paper>
         ) : (
-            <Box sx={PROJECT_CARD_GRID_SX}>
+            <Grid container spacing={3}>
                 {sortedProjects.map(project => (
-                    <Box key={project.$id} sx={{ minWidth: 0, display: 'flex' }}>
+                    <Grid size={{ xs: 12, md: 6 }} key={project.$id} sx={{ display: 'flex', minWidth: 0 }}>
                         <ProjectCard 
                             project={project} 
                             onClick={handleProjectClick}
                             onDelete={() => handleDeleteProject(project)}
                             onTogglePin={handleTogglePin}
                         />
-                    </Box>
+                    </Grid>
                 ))}
-            </Box>
+            </Grid>
         )}
     </Box>
   );

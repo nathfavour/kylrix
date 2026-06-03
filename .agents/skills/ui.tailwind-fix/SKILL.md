@@ -18,6 +18,8 @@ Pair with `ui.tailwind-v4` for token/config rules; this skill is **layout and ty
 3. **`Paper` default `p-4` class** fights `sx` padding unless `sx` defines `p` / `px` / `py`.
 4. **Absolute children** (dots, dismiss buttons) without reserved space force `pl`/`pr` hacks and collide with title rows.
 5. **Title + meta on one row** without a dedicated text column causes horizontal squeeze.
+6. **Nested double-padding squish (Default Paper/Card Padding)**: Standard containers like `Paper` or `Card` apply default paddings (`p-4` or `p-6`) if padding isn't explicitly overridden in `sx` (e.g., `p: 0`). When nested, these layers accumulate, crushing the remaining width on mobile and standard viewports. This forces inner text, icons, and action buttons to wrap, clash, and overlay. Always define `p: 0` on outer layout containers and only pad the inner content blocks.
+7. **Unstructured Typography Placement**: Relying on standard typography elements without a dedicated, flex-based stacked text column leads to layout collapse. Elements must be wrapped in structured, padded flex columns to maintain consistent alignment.
 
 ## The reference pattern: Contextual Quick Actions
 
@@ -295,6 +297,53 @@ import { ContentCopy as ContentCopyIcon } from '@/lib/mui-tailwind/icons';
 | `readOnly` / `InputProps.readOnly` | `TextField` | Set native `readOnly` on `<input>` |
 | `PaperProps.sx` | `Menu` | Merge into menu panel styles |
 | `slotProps.primary.sx` | `ListItemText` | Apply to primary span |
+
+## Grid Density & Stacking Comparison (What Fixes vs. What Botches)
+
+| Layout Technique | What Works (Fixes) | What Fails (Reintroduces Squeeze) |
+|------------------|---------------------|-----------------------------------|
+| Grid Wrapper | Responsive `<Grid container spacing={3}>` with discrete column mapping (`xs: 12`, `md: 6`) | CSS auto-fill `minmax(min(100%, 340px), 1fr)` templates when the container is narrow, forcing columns to shrink below minimum safe content width. |
+| Typography | Explicit `component="span"` with custom flex blocks resetting default margins and using inline block displays. | Default `<Typography>` blocks rendering as `<p>` tags with default browser margin-top/bottom collapsing and squishing together. |
+| Nested Padding | Clear separation: `p: 0` on outer `Paper`/`Card` elements, and padding only handled by the inner content blocks. | Accumulating padding layers by nesting Paper/Card elements without explicit `p: 0` overrides, squeezing text containers on mobile screens. |
+
+## Tailwind v4 Layout & Bounding Box Guidelines (QA Feedback)
+
+Layout bugs (especially in Tailwind v4) usually happen when elements fight over the bounding box, specifically when mixing absolute positioning with flex layouts.
+
+### 1. Right Edge Clipping (The Arrow Cut in Half / Horizontal Overflow)
+- **Culprit:** Combining `w-full` or `w-screen` with horizontal margins (`mx-*`), or having an un-shrinkable item inside a flex row pushing the layout out. In Tailwind, `w-full` plus explicit margins expands *beyond* 100%, forcing the container off the right edge of the screen.
+- **Fix:**
+  - **Remove `w-full`** if you are using `mx-*` on that container. Let the margins dictate the width naturally, or use padding (`px-*`) on the outer wrapper instead.
+  - **Absolute Anchor:** Ensure the card/container explicitly has the `relative` class so that any absolute-positioned buttons (e.g. absolute `right-2 top-1/2 -translate-y-1/2`) anchor to the card itself, not the screen viewport.
+  - **Safety Net:** Add `overflow-hidden` or `max-w-full` to the parent container.
+
+### 2. Text Overlap & Alignment (Badge Smashing Description)
+- **Culprit:** Flat DOM hierarchy causing descriptions or text elements to break out of the flex alignment used for the title and icon.
+- **Fix (Group Your Text Content):**
+  - Ensure the left icon/badge has `flex-shrink-0` to avoid being squeezed into oblivion.
+  - Group all text elements (Title, Badge, Description) inside a single vertical flex column that controls its own inner space:
+    ```html
+    <div class="relative flex gap-4 p-4 w-full rounded-2xl bg-[#0a0a0a] overflow-hidden">
+      <div class="flex-shrink-0">
+        <!-- Icon -->
+      </div>
+      <div class="flex-1 min-w-0 flex flex-col gap-1">
+        <h3 class="text-white font-bold truncate">Smart Action Workflows</h3>
+        <div>
+          <span class="bg-ash text-xs px-2 py-0.5 rounded">0 SAVED</span>
+        </div>
+        <p class="text-sm text-gray-400 mt-2 break-words">
+          Record, share, and automate action sequences to boost execution speed.
+        </p>
+      </div>
+      <div class="absolute right-2 top-1/2 -translate-y-1/2">
+        <!-- Arrow / Action -->
+      </div>
+    </div>
+    ```
+  - **Key Classes:**
+    - `flex-shrink-0` on left/right decorative or badge elements.
+    - `flex-1 min-w-0` on the text column wrapper. `min-w-0` prevents long text strings or flex children from breaking parent bounds and causing overflow.
 
 ## Verification
 

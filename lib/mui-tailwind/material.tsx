@@ -408,11 +408,24 @@ export const Tabs = React.forwardRef(({
   const tabRootSx = cleanSx(nested['& .MuiTab-root'] || {});
   const tabSelectedSx = cleanSx((nested['& .MuiTab-root'] || {})['&.Mui-selected'] || {});
   const tabHoverSx = cleanSx((nested['& .MuiTab-root'] || {})['&:hover:not(.Mui-selected)'] || {});
+  
+  const isScrollable = variant === 'scrollable';
+  const scrollableClass = isScrollable ? 'overflow-x-auto flex-nowrap' : 'flex-wrap';
+  
   return (
     <div
       ref={ref}
-      className={`flex items-center gap-2 ${className || ''}`}
-      style={root}
+      className={`flex items-center gap-2 ${scrollableClass} ${className || ''}`}
+      style={{
+        ...root,
+        width: '100%',
+        ...(isScrollable ? {
+          maxWidth: '100%',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        } : {}),
+      }}
       {...props}
     >
       {React.Children.map(children, (child, idx) => {
@@ -454,7 +467,7 @@ export const Tab = React.forwardRef(({
 }: any, ref) => (
   <button
     ref={ref}
-    className={`rounded-xl px-4 py-2 text-sm font-medium ${selected ? 'text-white bg-[#1E1B19]' : 'text-stone-300 hover:bg-[#1E1B19]'} ${fullWidth ? 'flex-1 min-w-0' : ''} ${className || ''}`}
+    className={`rounded-xl px-4 py-2 text-sm font-medium flex-shrink-0 whitespace-nowrap ${selected ? 'text-white bg-[#1E1B19]' : 'text-stone-300 hover:bg-[#1E1B19]'} ${fullWidth ? 'flex-1 min-w-0' : ''} ${className || ''}`}
     style={{
       ...__tabRootSx,
       ...(selected ? __tabSelectedSx : __tabHoverSx),

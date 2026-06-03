@@ -665,7 +665,7 @@ export default function ProjectDetailPage() {
                           <></>
                         ) : (
                           <>
-                            <Typography noWrap sx={{ color: '#fff', fontWeight: 900, fontSize: { xs: '1.25rem', md: '1.8rem' }, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em' }}>
+                            <Typography component="span" noWrap sx={{ color: '#fff', fontWeight: 900, fontSize: { xs: '1.25rem', md: '1.8rem' }, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em' }}>
                                 {project.title}
                             </Typography>
                             <Chip 
@@ -687,7 +687,7 @@ export default function ProjectDetailPage() {
                     {loading ? (
                       <></>
                     ) : (
-                      <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', fontWeight: 600 }}>
+                      <Typography component="span" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', fontWeight: 600 }}>
                           {projectObjects.length} linked ecosystem objects • {collaborators.length + 1} participants
                       </Typography>
                     )}
@@ -826,7 +826,7 @@ export default function ProjectDetailPage() {
                     }}
                 >
                     <Info size={18} style={{ color: '#6366F1', flexShrink: 0 }} />
-                    <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 700, fontSize: '0.85rem', lineHeight: 1.4 }}>
+                    <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 700, fontSize: '0.85rem', lineHeight: 1.4 }}>
                         All integrated internal objects inherit project member&apos;s permission level, except on object level permission override.
                     </Typography>
                 </Box>
@@ -838,7 +838,8 @@ export default function ProjectDetailPage() {
                         borderRadius: '32px',
                         overflow: 'hidden',
                         backgroundImage: 'none',
-                        boxShadow: '0 24px 48px rgba(0,0,0,0.5)'
+                        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+                        p: 0
                     }}
                 >
                     <Box sx={{ borderBottom: 1, borderColor: 'rgba(255,255,255,0.06)', px: 3, pt: 1, bgcolor: alpha('#fff', 0.01) }}>
@@ -1171,14 +1172,15 @@ export default function ProjectDetailPage() {
                         overflow: 'hidden',
                         backgroundImage: 'none',
                         boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
-                        mt: 4
+                        mt: 4,
+                        p: 0
                     }}
                 >
                     <Box sx={{ borderBottom: 1, borderColor: 'rgba(255,255,255,0.06)', px: 3, py: 2.5, bgcolor: alpha('#fff', 0.01), display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
                         </svg>
-                        <Typography sx={{ color: '#fff', fontWeight: 900, fontFamily: 'var(--font-clash)', fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
+                        <Typography component="span" sx={{ color: '#fff', fontWeight: 900, fontFamily: 'var(--font-clash)', fontSize: '1.05rem', letterSpacing: '-0.01em', display: 'block' }}>
                             GitHub Repositories
                         </Typography>
                     </Box>
@@ -1208,7 +1210,7 @@ export default function ProjectDetailPage() {
                                 <Paper elevation={0} sx={{ p: 2.5, borderRadius: '24px', bgcolor: '#161412', border: '1px solid rgba(255,255,255,0.06)', transition: 'all 0.2s ease', cursor: 'pointer', '&:hover': { borderColor: alpha(wf.color, 0.3), transform: 'translateY(-2px)' } }}>
                                     <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1.5 }}>
                                         <Box sx={{ color: wf.color }}><wf.icon size={18} /></Box>
-                                        <Typography variant="body2" sx={{ fontWeight: 800 }}>{wf.title}</Typography>
+                                        <Typography variant="body2" component="span" sx={{ fontWeight: 800 }}>{wf.title}</Typography>
                                     </Stack>
                                     <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>{wf.desc}</Typography>
                                 </Paper>
@@ -1247,7 +1249,7 @@ export default function ProjectDetailPage() {
                                             <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
                                         </svg>
                                     </Box>
-                                    <Typography variant="body2" sx={{ fontWeight: 800 }}>GitHub</Typography>
+                                    <Typography variant="body2" component="span" sx={{ fontWeight: 800 }}>GitHub</Typography>
                                     {gitIntegration?.enabled && (
                                         <Box 
                                             sx={{ 
@@ -1291,7 +1293,7 @@ export default function ProjectDetailPage() {
                         }}
                     >
                         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
-                            <Typography sx={{ color: '#fff', fontWeight: 900, fontFamily: 'var(--font-clash)', fontSize: '1.1rem', letterSpacing: '-0.01em' }}>Project Members</Typography>
+                            <Typography component="span" sx={{ color: '#fff', fontWeight: 900, fontFamily: 'var(--font-clash)', fontSize: '1.1rem', letterSpacing: '-0.01em', display: 'block' }}>Project Members</Typography>
                             <Stack direction="row" spacing={1}>
                                 <IconButton 
                                     size="small" 
@@ -1324,7 +1326,7 @@ export default function ProjectDetailPage() {
                                     isAvatar={ownerProfile?.isAvatar ?? true}
                                 />
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Typography noWrap variant="body2" sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: 'white' }}>
+                                    <Typography component="span" noWrap variant="body2" sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: 'white', display: 'block', mb: 0.25 }}>
                                         {ownerProfile?.displayName || ownerProfile?.name || ownerProfile?.username || ownerProfile?.email || 'Project Owner'}
                                     </Typography>
                                     <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}>
@@ -1372,7 +1374,7 @@ export default function ProjectDetailPage() {
                                         isAvatar={user.isAvatar ?? true}
                                     />
                                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                                        <Typography noWrap variant="body2" sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: 'white' }}>
+                                        <Typography component="span" noWrap variant="body2" sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: 'white', display: 'block', mb: 0.25 }}>
                                             {user.displayName || user.name || user.email}
                                         </Typography>
                                         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', fontFamily: 'var(--font-satoshi)', fontWeight: 600, textTransform: 'capitalize' }}>
@@ -1400,8 +1402,8 @@ export default function ProjectDetailPage() {
                             backgroundImage: 'none',
                         }}
                     >
-                        <Typography sx={{ color: '#fff', fontWeight: 900, mb: 1.5, fontSize: '1.1rem' }}>Project Insights</Typography>
-                        <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', lineHeight: 1.6, mb: 3 }}>
+                        <Typography component="span" sx={{ color: '#fff', fontWeight: 900, mb: 1.5, fontSize: '1.1rem', display: 'block' }}>Project Insights</Typography>
+                        <Typography component="span" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', lineHeight: 1.6, mb: 3, display: 'block' }}>
                             {project.summary || 'This project is used to group and coordinate your work.'}
                         </Typography>
                         
@@ -1410,14 +1412,14 @@ export default function ProjectDetailPage() {
                                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, textTransform: 'uppercase', display: 'block', mb: 1 }}>Visibility</Typography>
                                 <Stack direction="row" spacing={1} alignItems="center" sx={{ color: '#6366F1' }}>
                                     <Globe size={14} />
-                                    <Typography variant="body2" sx={{ fontWeight: 900, textTransform: 'capitalize' }}>{project.visibility}</Typography>
+                                    <Typography variant="body2" component="span" sx={{ fontWeight: 900, textTransform: 'capitalize' }}>{project.visibility}</Typography>
                                 </Stack>
                             </Box>
                             <Box sx={{ p: 2, borderRadius: '16px', bgcolor: alpha('#fff', 0.01), border: '1px solid rgba(255,255,255,0.03)' }}>
                                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, textTransform: 'uppercase', display: 'block', mb: 1 }}>Last Update</Typography>
                                 <Stack direction="row" spacing={1} alignItems="center">
                                     <History size={14} color="rgba(255,255,255,0.4)" />
-                                    <Typography variant="body2" sx={{ fontWeight: 900 }}>{new Date(project.updatedAt || '').toLocaleDateString()}</Typography>
+                                    <Typography variant="body2" component="span" sx={{ fontWeight: 900 }}>{new Date(project.updatedAt || '').toLocaleDateString()}</Typography>
                                 </Stack>
                             </Box>
                         </Stack>
@@ -1831,6 +1833,7 @@ function ResourceItem({
                     <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography 
+                                component="span"
                                 sx={{ 
                                     color: '#fff', 
                                     fontWeight: 800, 
