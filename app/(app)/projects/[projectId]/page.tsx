@@ -1693,23 +1693,13 @@ function renderMessageText(text: string): React.ReactNode {
     }
 
     pieces.push(
-      <Box
-        component="span"
+      <span
         key={`${start}-${username}`}
-        sx={{
-          color: '#6366F1', // Ecosystem primary
-          fontWeight: 800,
-          bgcolor: 'rgba(99, 102, 241, 0.08)',
-          px: 0.4,
-          py: 0.1,
-          borderRadius: '4px',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.9em',
-          userSelect: 'text',
-        }}
+        style={{ fontSize: '0.9em' }}
+        className="text-[#6366F1] font-extrabold bg-[#6366F1]/8 px-1 py-0.5 rounded font-mono select-text"
       >
         @{username}
-      </Box>
+      </span>
     );
 
     lastIndex = end;
@@ -1719,7 +1709,7 @@ function renderMessageText(text: string): React.ReactNode {
     pieces.push(text.slice(lastIndex));
   }
 
-  return <Box component="span" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{pieces}</Box>;
+  return <span className="whitespace-pre-wrap break-all">{pieces}</span>;
 }
 
 interface ProjectSettingsDrawerProps {
@@ -1854,8 +1844,6 @@ function ProjectSettingsDrawer({ open, onClose, project, onSave }: ProjectSettin
         </div>
       </div>
     </>
-  );
-}
   );
 }
 
@@ -2110,111 +2098,69 @@ function GitHubExternalObjectsTab({
   };
 
   return (
-    <Stack spacing={3}>
+    <div className="flex flex-col gap-5">
       {unverifiedRepos.length === 0 && (
-        <Box 
-          sx={{ 
-            p: 3, 
-            borderRadius: '20px', 
-            bgcolor: 'rgba(255,255,255,0.02)', 
-            border: '1px solid rgba(255,255,255,0.06)' 
-          }}
-        >
-          <Typography variant="subtitle2" sx={{ fontWeight: 905, color: 'white', mb: 1, fontFamily: 'var(--font-clash)' }}>
+        <div className="p-5 rounded-[20px] bg-white/[0.02] border border-white/6">
+          <h4 className="text-white text-sm font-black tracking-tight leading-tight mb-1">
             Associate GitHub Repository (Unverified)
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)', mb: 2, display: 'block', lineHeight: 1.5 }}>
+          </h4>
+          <p className="text-xs text-white/45 leading-relaxed mb-4">
             No GitHub connection is required. Paste any public GitHub repository URL or path (e.g. <code>facebook/react</code>) to integrate its live statistics, commit logs, and issues list directly into this project.
-          </Typography>
+          </p>
           
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ mb: 2 }}>
-            <TextField
-              fullWidth
-              size="small"
+          <div className="flex flex-col sm:flex-row gap-3 items-center">
+            <input
+              type="text"
               placeholder="e.g. facebook/react or https://github.com/facebook/react"
               value={repoInput}
               onChange={(e) => setRepoInput(e.target.value)}
               disabled={adding}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: '#161412',
-                  borderRadius: '12px',
-                  color: 'white',
-                  '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                  '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
-                  '&.Mui-focused fieldset': { borderColor: '#6366F1' }
-                }
-              }}
+              className="w-full bg-[#161412] border border-white/8 hover:border-white/15 focus:border-[#6366F1] rounded-[12px] px-4 py-2.5 text-white text-sm outline-none transition-all"
             />
-            <Button
-              variant="contained"
+            <button
               disabled={adding || !repoInput.trim()}
               onClick={() => handleAddRepo()}
-              sx={{
-                borderRadius: '12px',
-                bgcolor: '#6366F1',
-                color: '#000',
-                fontWeight: 900,
-                px: 3,
-                py: 1.25,
-                textTransform: 'none',
-                flexShrink: 0,
-                width: { xs: '100%', sm: 'auto' },
-                '&:hover': { bgcolor: alpha('#6366F1', 0.9) }
-              }}
+              className="w-full sm:w-auto flex-shrink-0 text-black bg-[#6366F1] disabled:opacity-40 hover:bg-[#6366F1]/90 font-black text-sm px-6 py-2.5 rounded-[12px] transition-all shadow-[0_8px_20px_rgba(99,102,241,0.2)]"
             >
               {adding ? 'Adding...' : 'Add Repository'}
-            </Button>
-          </Stack>
+            </button>
+          </div>
 
-          <Box sx={{ mt: 2.5 }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'block', mb: 1.5, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-mono)' }}>
+          <div className="mt-4">
+            <span className="text-[9px] text-white/30 font-black uppercase tracking-wider block mb-2 font-mono">
               ⚡ Developer Favorites (1-Click Test Drive)
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            </span>
+            <div className="flex flex-wrap gap-2">
               {[
                 { label: 'React', path: 'facebook/react', logo: '⚛️' },
                 { label: 'Next.js', path: 'vercel/next.js', logo: '▲' },
                 { label: 'Tailwind CSS', path: 'tailwindlabs/tailwindcss', logo: '🎨' }
               ].map((fav) => (
-                <Chip
+                <button
                   key={fav.path}
-                  label={`${fav.logo} ${fav.label}`}
+                  disabled={adding}
                   onClick={() => {
                     setRepoInput(fav.path);
                     handleAddRepo(fav.path);
                   }}
-                  disabled={adding}
-                  sx={{
-                    bgcolor: 'rgba(255,255,255,0.02)',
-                    color: 'rgba(255,255,255,0.65)',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                    borderRadius: '8px',
-                    fontWeight: 800,
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    '&:hover': {
-                      bgcolor: 'rgba(99, 102, 241, 0.08)',
-                      borderColor: 'rgba(99, 102, 241, 0.25)',
-                      color: '#818CF8'
-                    }
-                  }}
-                />
+                  className="bg-white/2 hover:bg-[#6366F1]/10 text-white/60 hover:text-[#818CF8] border border-white/5 hover:border-[#6366F1]/25 px-2.5 py-1 rounded-[8px] font-extrabold text-[11px] transition-all"
+                >
+                  {fav.logo} {fav.label}
+                </button>
               ))}
-            </Box>
-          </Box>
-        </Box>
+            </div>
+          </div>
+        </div>
       )}
 
       {unverifiedRepos.length === 0 ? (
-        <Box sx={{ p: 4, textAlign: 'center', border: '1px dashed rgba(255,255,255,0.06)', borderRadius: '20px' }}>
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
+        <div className="p-6 text-center border border-dashed border-white/6 rounded-[20px]">
+          <p className="text-sm text-white/40 italic">
             No unverified repositories linked yet.
-          </Typography>
-        </Box>
+          </p>
+        </div>
       ) : (
-        <Grid container spacing={2}>
+        <div className="flex flex-col gap-4">
           {unverifiedRepos.map((repo) => {
             const path = repo.entityId;
             let cached: any = {};
@@ -2226,135 +2172,96 @@ function GitHubExternalObjectsTab({
             const loading = loadingLive[path];
 
             return (
-              <Grid size={{ xs: 12 }} key={repo.$id}>
-                <Box 
-                  sx={{ 
-                    p: 2.5, 
-                    borderRadius: '20px', 
-                    bgcolor: '#0A0908', 
-                    border: '1px solid #1C1A18',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2,
-                    position: 'relative',
-                    transition: 'all 0.2s',
-                    '&:hover': { borderColor: 'rgba(255,255,255,0.1)' }
-                  }}
-                >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: '8px', bgcolor: 'rgba(255,255,255,0.06)', color: 'white' }}>
-                        <FolderKanban size={18} />
-                      </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography 
-                          onClick={() => openSidebar(
-                            <UnverifiedGithubRepoDrawer 
-                              repoPath={path}
-                              projectId={projectId}
-                              projectObjects={projectObjects}
-                              fetchProjectData={fetchProjectData}
-                              onClose={closeSidebar}
-                              tasks={tasks}
-                            />,
-                            'unverified-github-repo'
-                          )}
-                          sx={{ 
-                            fontWeight: 900, 
-                            color: '#6366F1', 
-                            fontSize: '1rem', 
-                            cursor: 'pointer',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            '&:hover': { textDecoration: 'underline' }
-                          }}
-                        >
-                          {path}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>
-                          Linked {new Date(cached.addedAt || repo.$createdAt).toLocaleDateString()}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      {loading && <CircularProgress size={12} sx={{ color: '#F59E0B' }} />}
-                      <Chip 
-                        label="UNVERIFIED" 
-                        size="small" 
-                        sx={{ 
-                          height: 18, 
-                          fontSize: '8px', 
-                          fontWeight: 900, 
-                          bgcolor: 'rgba(245, 158, 11, 0.1)', 
-                          color: '#F59E0B', 
-                          border: '1px solid rgba(245, 158, 11, 0.2)' 
-                        }} 
-                      />
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => handleRemoveRepo(repo.$id)}
-                        sx={{
-                          height: 24,
-                          fontSize: '10px',
-                          fontWeight: 800,
-                          borderColor: 'rgba(239, 68, 68, 0.15)',
-                          color: '#EF4444',
-                          textTransform: 'none',
-                          borderRadius: '8px',
-                          '&:hover': { borderColor: '#EF4444', bgcolor: 'rgba(239, 68, 68, 0.05)' }
-                        }}
+              <div 
+                key={repo.$id}
+                className="p-5 rounded-[20px] bg-[#0A0908] border border-[#1C1A18] hover:border-white/10 flex flex-col gap-4 transition-all duration-300"
+              >
+                <div className="flex justify-between items-start flex-wrap gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-white/5 text-white flex items-center justify-center flex-shrink-0">
+                      <FolderKanban size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <button 
+                        onClick={() => openSidebar(
+                          <UnverifiedGithubRepoDrawer 
+                            repoPath={path}
+                            projectId={projectId}
+                            projectObjects={projectObjects}
+                            fetchProjectData={fetchProjectData}
+                            onClose={closeSidebar}
+                            tasks={tasks}
+                          />,
+                          'unverified-github-repo'
+                        )}
+                        className="font-black text-[#6366F1] hover:text-[#818CF8] hover:underline text-sm md:text-base text-left truncate block max-w-full"
                       >
-                        Unlink
-                      </Button>
-                    </Stack>
-                  </Box>
+                        {path}
+                      </button>
+                      <span className="text-[10px] text-white/40 block mt-0.5">
+                        Linked {new Date(cached.addedAt || repo.$createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
 
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem' }}>
-                    {stats.description || 'Public GitHub Repository'}
-                  </Typography>
+                  <div className="flex items-center gap-2">
+                    {loading && (
+                      <div className="w-3.5 h-3.5 border border-amber-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                    )}
+                    <span className="bg-amber-500/10 text-amber-500 text-[8px] font-black tracking-wider px-1.5 py-0.5 rounded border border-amber-500/20">
+                      UNVERIFIED
+                    </span>
+                    <button
+                      onClick={() => handleRemoveRepo(repo.$id)}
+                      className="text-red-500 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 font-extrabold text-[10px] px-2.5 py-1 rounded-[8px] transition-all"
+                    >
+                      Unlink
+                    </button>
+                  </div>
+                </div>
 
-                  <Grid container spacing={1.5} sx={{ bgcolor: 'rgba(255,255,255,0.01)', p: 1.5, borderRadius: '12px', border: '1px solid rgba(255,255,255,0.02)' }}>
-                    <Grid size={{ xs: 6, sm: 3 }}>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'block' }}>⭐ Stars</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 800 }}>{stats.stars ?? cached.stars ?? '-'}</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 6, sm: 3 }}>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'block' }}>🎫 Open Issues</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 800 }}>{stats.openIssues ?? cached.openIssues ?? '-'}</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 6, sm: 3 }}>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'block' }}>🔀 Open PRs</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 800 }}>{stats.pullsCount ?? cached.pullsCount ?? '-'}</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 6, sm: 3 }}>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'block' }}>🛠️ Language</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 800 }}>{stats.language ?? cached.language ?? '-'}</Typography>
-                    </Grid>
-                  </Grid>
+                <p className="text-xs text-white/70 leading-relaxed">
+                  {stats.description || 'Public GitHub Repository'}
+                </p>
 
-                  {(stats.lastCommit || cached.lastCommit) && (
-                    <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: 'rgba(99, 102, 241, 0.03)', border: '1px dashed rgba(99, 102, 241, 0.15)' }}>
-                      <Typography variant="caption" sx={{ color: '#6366F1', fontWeight: 900, display: 'block', mb: 0.5 }}>
-                        LATEST COMMIT LOG
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', mb: 0.5, fontSize: '0.85rem' }}>
-                        {stats.lastCommit || cached.lastCommit}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
-                        Authored by {stats.lastCommitAuthor || cached.lastCommitAuthor || 'Unknown'} {stats.lastCommitDate || cached.lastCommitDate ? `on ${new Date(stats.lastCommitDate || cached.lastCommitDate).toLocaleDateString()}` : ''}
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-              </Grid>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/[0.01] p-3.5 rounded-[12px] border border-white/2">
+                  <div>
+                    <span className="text-[10px] text-white/30 block mb-0.5">⭐ Stars</span>
+                    <span className="text-sm font-extrabold text-white">{stats.stars ?? cached.stars ?? '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-white/30 block mb-0.5">🎫 Open Issues</span>
+                    <span className="text-sm font-extrabold text-white">{stats.openIssues ?? cached.openIssues ?? '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-white/30 block mb-0.5">🔀 Open PRs</span>
+                    <span className="text-sm font-extrabold text-white">{stats.pullsCount ?? cached.pullsCount ?? '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-white/30 block mb-0.5">🛠️ Language</span>
+                    <span className="text-sm font-extrabold text-white">{stats.language ?? cached.language ?? '-'}</span>
+                  </div>
+                </div>
+
+                {(stats.lastCommit || cached.lastCommit) && (
+                  <div className="p-3.5 rounded-[12px] bg-[#6366F1]/3 border border-[#6366F1]/10">
+                    <span className="text-[10px] text-[#6366F1] font-black block tracking-wider uppercase mb-1">
+                      LATEST COMMIT LOG
+                    </span>
+                    <p className="font-extrabold text-white text-xs leading-normal mb-1.5">
+                      {stats.lastCommit || cached.lastCommit}
+                    </p>
+                    <span className="text-[10px] text-white/40 block">
+                      Authored by {stats.lastCommitAuthor || cached.lastCommitAuthor || 'Unknown'} {stats.lastCommitDate || cached.lastCommitDate ? `on ${new Date(stats.lastCommitDate || cached.lastCommitDate).toLocaleDateString()}` : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
             );
           })}
-        </Grid>
+        </div>
       )}
-    </Stack>
+    </div>
   );
 }
 
@@ -2464,211 +2371,147 @@ function UnverifiedGithubRepoDrawer({
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#161412', color: '#fff' }}>
-      <Box sx={{ p: 3, borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <div className="h-full flex flex-col bg-[#161412] text-white">
+      <div className="p-5 border-b border-white/6 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
             <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
           </svg>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="body2" sx={{ fontWeight: 900, color: '#6366F1', fontFamily: 'var(--font-mono)' }}>
+          <div className="min-w-0">
+            <span className="block font-black text-xs text-[#6366F1] font-mono leading-none mb-1">
               unverified_github
-            </Typography>
-            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 905, color: '#fff', fontSize: '1rem' }}>
+            </span>
+            <span className="block font-black text-sm text-white truncate max-w-[200px] md:max-w-xs leading-none">
               {repoPath}
-            </Typography>
-          </Box>
-        </Stack>
-        <IconButton onClick={onClose} size="small" sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+            </span>
+          </div>
+        </div>
+        <button 
+          onClick={onClose}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white bg-white/2 hover:bg-white/5 transition-all"
+        >
           <X size={16} />
-        </IconButton>
-      </Box>
+        </button>
+      </div>
 
-      <Box sx={{ p: 3, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div className="p-5 flex-1 overflow-y-auto flex flex-col gap-5">
         {stats && (
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 6 }}>
-              <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px' }}>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', display: 'block' }}>⭐ Stars</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 900 }}>{stats.stargazers_count}</Typography>
-              </Paper>
-            </Grid>
-            <Grid size={{ xs: 6 }}>
-              <Paper variant="outlined" sx={{ p: 1.5, bgcolor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '12px' }}>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', display: 'block' }}>🎫 Open Issues</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 900 }}>{stats.open_issues_count}</Typography>
-              </Paper>
-            </Grid>
-          </Grid>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-white/[0.01] border border-white/4 rounded-[12px]">
+              <span className="text-[10px] text-white/35 block mb-1">⭐ Stars</span>
+              <span className="text-sm font-black text-white">{stats.stargazers_count}</span>
+            </div>
+            <div className="p-3 bg-white/[0.01] border border-white/4 rounded-[12px]">
+              <span className="text-[10px] text-white/35 block mb-1">🎫 Open Issues</span>
+              <span className="text-sm font-black text-white">{stats.open_issues_count}</span>
+            </div>
+          </div>
         )}
 
-        <Stack spacing={1.5}>
-          <Button
-            fullWidth
-            variant="outlined"
+        <div className="flex flex-col gap-2">
+          <button
             onClick={() => window.open(`https://github.com/${repoPath}`, '_blank')}
-            startIcon={<ExternalLink size={14} />}
-            sx={{
-              borderRadius: '12px',
-              borderColor: 'rgba(255,255,255,0.08)',
-              color: '#fff',
-              textTransform: 'none',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              py: 1.25,
-              '&:hover': { borderColor: '#6366F1', bgcolor: 'rgba(99,102,241,0.03)' }
-            }}
+            className="w-full flex items-center justify-center gap-1.5 bg-white/2 hover:bg-white/5 border border-white/6 hover:border-white/15 text-white font-extrabold text-sm py-2.5 rounded-[12px] transition-all"
           >
-            Open on GitHub
-          </Button>
-          <Button
-            fullWidth
-            variant="outlined"
+            <ExternalLink size={14} />
+            <span>Open on GitHub</span>
+          </button>
+          <button
             onClick={loadRepoData}
-            startIcon={<RefreshCw size={14} />}
-            sx={{
-              borderRadius: '12px',
-              borderColor: 'rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.7)',
-              textTransform: 'none',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              py: 1.25,
-              '&:hover': { borderColor: 'rgba(255,255,255,0.2)', bgcolor: 'rgba(255,255,255,0.02)', color: '#fff' }
-            }}
+            className="w-full flex items-center justify-center gap-1.5 bg-white/2 hover:bg-white/5 border border-white/6 hover:border-white/15 text-white/70 hover:text-white font-extrabold text-sm py-2.5 rounded-[12px] transition-all"
           >
-            Sync Live Feed
-          </Button>
-        </Stack>
+            <RefreshCw size={14} />
+            <span>Sync Live Feed</span>
+          </button>
+        </div>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+        <div className="h-px bg-white/6" />
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div className="flex flex-col gap-3">
+          <span className="text-[10px] text-white/40 font-black uppercase tracking-wider block font-mono">
             Live Open Issues ({issues.length})
-          </Typography>
+          </span>
 
           {loadingIssues ? (
-            <Box sx={{ py: 6, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <CircularProgress size={24} sx={{ color: '#6366F1' }} />
-            </Box>
+            <div className="py-8 flex justify-center">
+              <div className="w-5 h-5 border border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            </div>
           ) : issuesError ? (
-            <Typography variant="caption" sx={{ color: '#EF4444', fontStyle: 'italic' }}>
-              {issuesError}
-            </Typography>
+            <span className="text-xs text-red-500 italic block">{issuesError}</span>
           ) : issues.length === 0 ? (
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
+            <p className="text-sm text-white/40 italic">
               No open public issues found in this repository.
-            </Typography>
+            </p>
           ) : (
-            <Stack spacing={2}>
+            <div className="flex flex-col gap-3">
               {issues.map((issue) => (
-                <Paper
+                <div 
                   key={issue.id}
-                  variant="outlined"
-                  sx={{
-                    p: 2,
-                    borderRadius: '16px',
-                    bgcolor: 'rgba(255,255,255,0.01)',
-                    border: '1px solid rgba(255,255,255,0.04)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 1.5,
-                    '&:hover': { borderColor: 'rgba(255,255,255,0.08)' }
-                  }}
+                  className="p-4 rounded-[16px] bg-white/[0.01] border border-white/4 hover:border-white/8 flex flex-col gap-3 transition-all duration-200"
                 >
-                  <Box>
-                    <Stack direction="row" spacing={1} alignItems="flex-start">
-                      <Typography variant="body2" sx={{ fontWeight: 900, color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-mono)' }}>
-                        #{issue.number}
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', lineHeight: 1.4 }}>
-                        {issue.title}
-                      </Typography>
-                    </Stack>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', mt: 0.5, display: 'block' }}>
+                  <div>
+                    <div className="flex gap-1.5 items-start">
+                      <span className="font-bold text-[#6366F1] font-mono text-xs mt-0.5">#{issue.number}</span>
+                      <span className="font-extrabold text-white text-xs leading-normal">{issue.title}</span>
+                    </div>
+                    <span className="text-[10px] text-white/35 block mt-1">
                       Opened by @{issue.user?.login} • {new Date(issue.created_at).toLocaleDateString()}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
 
                   {issue.labels && issue.labels.length > 0 && (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    <div className="flex flex-wrap gap-1">
                       {issue.labels.slice(0, 3).map((label: any) => (
-                        <Chip
+                        <span
                           key={label.id}
-                          label={label.name}
-                          size="small"
-                          sx={{
-                            height: 18,
-                            fontSize: '8px',
-                            fontWeight: 900,
-                            bgcolor: label.color ? `#${label.color}15` : 'rgba(255,255,255,0.04)',
-                            color: label.color ? `#${label.color}` : '#fff',
-                            border: `1px solid ${label.color ? `#${label.color}30` : 'rgba(255,255,255,0.08)'}`
+                          style={{
+                            backgroundColor: label.color ? `#${label.color}15` : undefined,
+                            color: label.color ? `#${label.color}` : undefined,
+                            borderColor: label.color ? `#${label.color}30` : undefined,
                           }}
-                        />
+                          className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border bg-white/4 border-white/8 text-white"
+                        >
+                          {label.name}
+                        </span>
                       ))}
-                    </Box>
+                    </div>
                   )}
 
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Button
-                      size="small"
+                  <div className="flex items-center gap-3">
+                    <button
                       onClick={() => window.open(issue.html_url, '_blank')}
-                      startIcon={<ExternalLink size={10} />}
-                      sx={{
-                        fontSize: '10px',
-                        fontWeight: 900,
-                        textTransform: 'none',
-                        color: 'rgba(255,255,255,0.6)',
-                        '&:hover': { color: '#fff' }
-                      }}
+                      className="font-black text-[10px] text-white/50 hover:text-white flex items-center gap-1 transition-colors"
                     >
-                      Open Live
-                    </Button>
+                      <ExternalLink size={10} />
+                      <span>Open Live</span>
+                    </button>
 
                     {isAlreadyLinked(issue) ? (
-                      <Chip
-                        icon={<Check size={10} style={{ color: '#10B981', marginLeft: '4px' }} />}
-                        label="Goal Linked"
-                        size="small"
-                        sx={{
-                          height: 22,
-                          fontSize: '9px',
-                          fontWeight: 900,
-                          bgcolor: 'rgba(16, 185, 129, 0.1)',
-                          color: '#10B981',
-                          border: '1px solid rgba(16, 185, 129, 0.2)',
-                          borderRadius: '6px',
-                          '& .MuiChip-icon': {
-                            color: '#10B981 !important'
-                          }
-                        }}
-                      />
+                      <span className="inline-flex items-center gap-1 text-[9px] font-black text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/20">
+                        <Check size={10} />
+                        <span>Goal Linked</span>
+                      </span>
                     ) : (
-                      <Button
-                        size="small"
+                      <button
                         disabled={convertingIssueId === issue.id}
                         onClick={() => handleConvertToGoal(issue)}
-                        startIcon={convertingIssueId === issue.id ? <CircularProgress size={10} color="inherit" /> : <Plus size={10} />}
-                        sx={{
-                          fontSize: '10px',
-                          fontWeight: 900,
-                          textTransform: 'none',
-                          color: '#6366F1',
-                          '&:hover': { color: '#818CF8' }
-                        }}
+                        className="font-black text-[10px] text-[#6366F1] hover:text-[#818CF8] flex items-center gap-1 transition-colors disabled:opacity-40"
                       >
-                        Convert to Goal
-                      </Button>
+                        {convertingIssueId === issue.id ? (
+                          <div className="w-2.5 h-2.5 border border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Plus size={10} />
+                        )}
+                        <span>Convert to Goal</span>
+                      </button>
                     )}
-                  </Stack>
-                </Paper>
+                  </div>
+                </div>
               ))}
-            </Stack>
+            </div>
           )}
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }
