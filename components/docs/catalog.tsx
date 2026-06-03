@@ -2,15 +2,6 @@
 
 import React from 'react';
 import {
-  Box,
-  Button,
-  Grid,
-  Paper,
-  Stack,
-  Typography,
-  alpha,
-} from '@/lib/mui-tailwind/material';
-import {
   BookOpen,
   FileCode2,
   FolderGit2,
@@ -44,52 +35,51 @@ export interface DocsArticle {
 }
 
 const Section = ({ eyebrow, title, children }: { eyebrow?: string; title: string; children: React.ReactNode }) => (
-  <Stack spacing={2}>
-    {eyebrow ? (
-      <Typography variant="caption" sx={{ color: '#6366F1', fontWeight: 900, letterSpacing: '0.18em' }}>
+  <div className="space-y-4">
+    {eyebrow && (
+      <span className="text-[10px] text-[#6366F1] font-black uppercase tracking-wider block">
         {eyebrow}
-      </Typography>
-    ) : null}
-    <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: '-0.04em' }}>
+      </span>
+    )}
+    <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">
       {title}
-    </Typography>
+    </h3>
     {children}
-  </Stack>
+  </div>
 );
 
 const Callout = ({ title, text, accent = '#6366F1' }: { title: string; text: string; accent?: string }) => (
-  <Box
-    sx={{
-      p: 2.5,
-      borderRadius: 4,
-      bgcolor: alpha(accent, 0.08),
-      border: `1px solid ${alpha(accent, 0.16)}`,
+  <div
+    className="p-5 rounded-2xl"
+    style={{
+      backgroundColor: `${accent}14`, // ~8% opacity
+      border: `1px solid ${accent}29`, // ~16% opacity
     }}
   >
-    <Typography variant="subtitle2" sx={{ color: accent, fontWeight: 900, mb: 1, letterSpacing: '0.14em' }}>
+    <span className="text-xs font-black block mb-2 tracking-wider" style={{ color: accent }}>
       {title}
-    </Typography>
-    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.74)', lineHeight: 1.8 }}>
+    </span>
+    <p className="text-white/75 text-sm leading-relaxed">
       {text}
-    </Typography>
-  </Box>
+    </p>
+  </div>
 );
 
 const ArticleFrame = ({ children, eyebrow, title, summary }: { children: React.ReactNode; eyebrow: string; title: string; summary: string }) => (
-  <Stack spacing={4}>
-    <Box>
-      <Typography variant="caption" sx={{ color: '#6366F1', fontWeight: 900, letterSpacing: '0.24em' }}>
+  <div className="space-y-8">
+    <div>
+      <span className="text-xs text-[#6366F1] font-black uppercase tracking-[0.24em] block">
         {eyebrow}
-      </Typography>
-      <Typography variant="h2" sx={{ mt: 1.5, fontWeight: 900, letterSpacing: '-0.06em' }}>
+      </span>
+      <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mt-3 tracking-tight">
         {title}
-      </Typography>
-      <Typography variant="body1" sx={{ mt: 2, maxWidth: 900, color: 'rgba(255,255,255,0.65)', lineHeight: 1.8 }}>
+      </h1>
+      <p className="text-white/65 mt-4 max-w-4xl text-sm md:text-base leading-relaxed">
         {summary}
-      </Typography>
-    </Box>
+      </p>
+    </div>
     {children}
-  </Stack>
+  </div>
 );
 
 const categories: DocsCategory[] = [
@@ -108,27 +98,25 @@ const articles: DocsArticle[] = [
     keywords: ['ecosystem', 'apps', 'overview', 'graph', 'landing'],
     render: () => (
       <ArticleFrame eyebrow="INTRODUCTION" title="The Reactive Graph" summary="Kylrix is organized as a graph of specialized apps, not a monolith. Docs should mirror that shape: start broad, then fan out by topic and codebase.">
-        <Stack spacing={3}>
+        <div className="space-y-6">
           <Callout title="Core rule" text="Point to the source of truth instead of duplicating state across apps. Docs should explain where the source lives and why." />
-          <Grid container spacing={2}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               { title: 'Accounts', body: 'Root of trust, sessions, passkeys, and ecosystem identity.' },
               { title: 'Vault', body: 'Zero-knowledge state store for secrets, wallets, and MEK-backed data.' },
               { title: 'Flow', body: 'Action engine for work state, schedules, and orchestration.' },
               { title: 'Connect', body: 'Real-time communication with read/unread integrity.' }].map((item) => (
-              <Grid size={{ xs: 12, md: 6 }} key={item.title}>
-                <Paper sx={{ p: 2.5, height: '100%', bgcolor: alpha('#fff', 0.03), border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
-                    {item.title}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.68)', lineHeight: 1.8 }}>
-                    {item.body}
-                  </Typography>
-                </Paper>
-              </Grid>
+              <div key={item.title} className="p-5 h-full bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                <h3 className="font-extrabold text-white mb-2 text-base">
+                  {item.title}
+                </h3>
+                <p className="text-white/65 text-sm leading-relaxed">
+                  {item.body}
+                </p>
+              </div>
             ))}
-          </Grid>
-        </Stack>
+          </div>
+        </div>
       </ArticleFrame>
     ),
   },
@@ -141,7 +129,7 @@ const articles: DocsArticle[] = [
     keywords: ['install', 'setup', 'quick start', 'repo', 'suites'],
     render: () => (
       <ArticleFrame eyebrow="GETTING STARTED" title="Quick Start" summary="Start with product understanding first, then move into local development and contribution flows.">
-        <Stack spacing={3}>
+        <div className="space-y-6">
           <CodeBlock
             languages={{
               typescript: 'pnpm install\npnpm dev',
@@ -154,7 +142,7 @@ const articles: DocsArticle[] = [
             title="Next step"
             text="After quick start, read architecture, then jump into the suite-specific docs (Note, Vault, Flow, Connect)."
           />
-        </Stack>
+        </div>
       </ArticleFrame>
     ),
   },
@@ -166,25 +154,23 @@ const articles: DocsArticle[] = [
     keywords: ['architecture', 'routing', 'state', 'source of truth'],
     render: () => (
       <ArticleFrame eyebrow="SYSTEMS" title="Architecture Principles" summary="The docs should explain the same architecture that the apps enforce: source of truth first, no unnecessary duplication, and clear boundaries around transient versus persistent state.">
-        <Stack spacing={3}>
+        <div className="space-y-6">
           <Section title="Three layers of meaning">
-            <Grid container spacing={2}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
                 { title: 'Pulse', body: 'Live, transient state that should move in realtime rather than sit in tables.' },
                 { title: 'Notification', body: 'Persistent pointers for noteworthy events that the UI evaluates on activity.' },
                 { title: 'Universal session', body: 'One authenticated session spans the ecosystem and powers cross-app access.' }].map((item) => (
-                <Grid size={{ xs: 12, md: 4 }} key={item.title}>
-                  <Paper sx={{ p: 2.5, height: '100%', bgcolor: alpha('#fff', 0.03), border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
-                      {item.title}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.68)', lineHeight: 1.8 }}>
-                      {item.body}
-                    </Typography>
-                  </Paper>
-                </Grid>
+                <div key={item.title} className="p-5 h-full bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                  <h3 className="font-extrabold text-white mb-2 text-base">
+                    {item.title}
+                  </h3>
+                  <p className="text-white/65 text-sm leading-relaxed">
+                    {item.body}
+                  </p>
+                </div>
               ))}
-            </Grid>
+            </div>
           </Section>
           <CodeBlock
             languages={{
@@ -194,7 +180,7 @@ const articles: DocsArticle[] = [
               dart: '// The route should explain the object, not clone it',
             }}
           />
-        </Stack>
+        </div>
       </ArticleFrame>
     ),
   },
@@ -207,28 +193,28 @@ const articles: DocsArticle[] = [
     keywords: ['note', 'notes', 'sharing', 'ai', 'privacy'],
     render: () => (
       <ArticleFrame eyebrow="CODEBASE GUIDE" title="Note" summary="Note docs should explain why features are implemented the way they are in code, not just what the UI does.">
-        <Stack spacing={3}>
+        <div className="space-y-6">
           <Callout
             title="Identity and sharing"
             text="Notes are tied to a user unless they are deliberate ghost notes. Public visibility is link-only, and docs should repeat that rule clearly."
             accent="#EC4899"
           />
           <Section title="What belongs here">
-            <Stack spacing={1.5}>
+            <div className="space-y-3">
               {[
                 'Search and retrieval behavior',
                 'Ghost note isolation and link-only access',
                 'Sharing flows and collaborator rules',
                 'AI enrichment and content intelligence'].map((label) => (
-                <Box key={label} sx={{ px: 2, py: 1.5, borderRadius: 3, bgcolor: alpha('#fff', 0.04), border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                <div key={label} className="px-4 py-3 bg-white/[0.04] border border-white/[0.05] rounded-xl">
+                  <span className="text-sm font-semibold text-white">
                     {label}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               ))}
-            </Stack>
+            </div>
           </Section>
-        </Stack>
+        </div>
       </ArticleFrame>
     ),
   },
@@ -240,24 +226,22 @@ const articles: DocsArticle[] = [
     keywords: ['vault', 'mek', 'unlock', 'decrypt', 'master password'],
     render: () => (
       <ArticleFrame eyebrow="CODEBASE GUIDE" title="Vault" summary="Vault docs should focus on how the encryption tiers work, what happens during unlock and reset flows, and why the system behaves that way.">
-        <Stack spacing={3}>
-          <Grid container spacing={2}>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               { title: 'Tier 2', body: 'Client-side decrypted state backed by the Master Encryption Key.' },
               { title: 'Reset impact', body: 'A master password reset invalidates old MEKs and wipes unreadable Tier 2 material.' },
               { title: 'Passkeys', body: 'Wrapped to the old MEK and purged on reset to avoid stale access.' }].map((item) => (
-              <Grid size={{ xs: 12, md: 4 }} key={item.title}>
-                <Paper sx={{ p: 2.5, height: '100%', bgcolor: alpha('#fff', 0.03), border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
-                    {item.title}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.68)', lineHeight: 1.8 }}>
-                    {item.body}
-                  </Typography>
-                </Paper>
-              </Grid>
+              <div key={item.title} className="p-5 h-full bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                <h3 className="font-extrabold text-white mb-2 text-base">
+                  {item.title}
+                </h3>
+                <p className="text-white/65 text-sm leading-relaxed">
+                  {item.body}
+                </p>
+              </div>
             ))}
-          </Grid>
+          </div>
           <CodeBlock
             languages={{
               typescript: '// Vault docs should explain why data becomes unreadable after reset.',
@@ -266,7 +250,7 @@ const articles: DocsArticle[] = [
               dart: '// Unlocks should be described as derived state, not a permanent session.',
             }}
           />
-        </Stack>
+        </div>
       </ArticleFrame>
     ),
   },
@@ -279,32 +263,30 @@ const articles: DocsArticle[] = [
     keywords: ['security', 'threat model', 'e2ee', 'passkeys', 'session', 'identity'],
     render: () => (
       <ArticleFrame eyebrow="SECURITY" title="Security Model" summary="This category should stitch together the trust model across all apps so readers can trace why each protection exists.">
-        <Stack spacing={3}>
+        <div className="space-y-6">
           <Section title="What docs should repeatedly clarify">
-            <Grid container spacing={2}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { title: 'Database encryption', body: 'Managed by the backend, decrypted before the UI sees it.' },
+                { title: 'Database encryption', body: 'Decrypted before the UI sees it.' },
                 { title: 'Zero-knowledge', body: 'Vault and Connect DMs stay client-decrypted with the MEK.' },
                 { title: 'Documented boundaries', body: 'Every article should say what is allowed, what is link-only, and what gets wiped.' }].map((item) => (
-                <Grid size={{ xs: 12, md: 4 }} key={item.title}>
-                  <Paper sx={{ p: 2.5, height: '100%', bgcolor: alpha('#fff', 0.03), border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
-                      {item.title}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.68)', lineHeight: 1.8 }}>
-                      {item.body}
-                    </Typography>
-                  </Paper>
-                </Grid>
+                <div key={item.title} className="p-5 h-full bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                  <h3 className="font-extrabold text-white mb-2 text-base">
+                    {item.title}
+                  </h3>
+                  <p className="text-white/65 text-sm leading-relaxed">
+                    {item.body}
+                  </p>
+                </div>
               ))}
-            </Grid>
+            </div>
           </Section>
           <Callout
             title="Cross-reference"
             text="Security docs should link back to Note for ghost note behavior, Vault for MEK resets, and Connect for encrypted messages and read-state integrity."
             accent="#10B981"
           />
-        </Stack>
+        </div>
       </ArticleFrame>
     ),
   },
@@ -316,30 +298,28 @@ const articles: DocsArticle[] = [
     keywords: ['connect', 'chat', 'call', 'realtime', 'messaging'],
     render: () => (
       <ArticleFrame eyebrow="CODEBASE GUIDE" title="Connect" summary="Connect docs should focus on realtime pulses, encrypted DMs, read/unread integrity, and why transient state stays transient.">
-        <Stack spacing={3}>
+        <div className="space-y-6">
           <Callout
             title="Realtime first"
             text="When communication is live, docs should explain the pulse path rather than the database path whenever possible."
             accent="#F59E0B"
           />
-          <Grid container spacing={2}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               { title: 'Calls', body: 'Session setup, active call state, and why call history is a separate read model.' },
               { title: 'Messages', body: 'Encrypted DMs and the rules that protect unread/read integrity.' },
               { title: 'Presence', body: 'Transient signals should use realtime rather than long-lived tables.' }].map((item) => (
-              <Grid size={{ xs: 12, md: 4 }} key={item.title}>
-                <Paper sx={{ p: 2.5, height: '100%', bgcolor: alpha('#fff', 0.03), border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
-                    {item.title}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.68)', lineHeight: 1.8 }}>
-                    {item.body}
-                  </Typography>
-                </Paper>
-              </Grid>
+              <div key={item.title} className="p-5 h-full bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                <h3 className="font-extrabold text-white mb-2 text-base">
+                  {item.title}
+                </h3>
+                <p className="text-white/65 text-sm leading-relaxed">
+                  {item.body}
+                </p>
+              </div>
             ))}
-          </Grid>
-        </Stack>
+          </div>
+        </div>
       </ArticleFrame>
     ),
   },
@@ -351,25 +331,23 @@ const articles: DocsArticle[] = [
     keywords: ['flow', 'tasks', 'schedule', 'orchestration', 'calendar'],
     render: () => (
       <ArticleFrame eyebrow="CODEBASE GUIDE" title="Flow" summary="Flow docs should capture the action engine: how work gets queued, why tasks live where they do, and how calendars and work state fit together.">
-        <Stack spacing={3}>
-          <Grid container spacing={2}>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               { title: 'Tasks', body: 'Explain task lifecycles, status transitions, and where source-of-truth state lives.' },
               { title: 'Calendar', body: 'Show how schedule views relate to work state rather than duplicating it.' },
               { title: 'Automation', body: 'Document orchestration triggers and reusable action patterns.' }].map((item) => (
-              <Grid size={{ xs: 12, md: 4 }} key={item.title}>
-                <Paper sx={{ p: 2.5, height: '100%', bgcolor: alpha('#fff', 0.03), border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
-                    {item.title}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.68)', lineHeight: 1.8 }}>
-                    {item.body}
-                  </Typography>
-                </Paper>
-              </Grid>
+              <div key={item.title} className="p-5 h-full bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                <h3 className="font-extrabold text-white mb-2 text-base">
+                  {item.title}
+                </h3>
+                <p className="text-white/65 text-sm leading-relaxed">
+                  {item.body}
+                </p>
+              </div>
             ))}
-          </Grid>
-        </Stack>
+          </div>
+        </div>
       </ArticleFrame>
     ),
   },
@@ -382,26 +360,24 @@ const articles: DocsArticle[] = [
     keywords: ['integrations', 'webhooks', 'automation', 'accounts', 'boundaries'],
     render: () => (
       <ArticleFrame eyebrow="REFERENCE" title="Integrations" summary="Integrations should preserve source-of-truth ownership: read from the owning suite, write through the owning boundary.">
-        <Stack spacing={3}>
-          <Grid container spacing={2}>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               { title: 'Suite ownership', body: 'Use Note, Vault, Flow, and Connect docs to determine where each object is authoritative.' },
               { title: 'Auth boundary', body: 'Route privileged operations through trusted account/session flows, never ad-hoc credentials.' },
               { title: 'Operational safety', body: 'Document retry, idempotency, and failure behavior before shipping integrations.' }].map((item) => (
-              <Grid size={{ xs: 12, md: 4 }} key={item.title}>
-                <Paper sx={{ p: 2.5, height: '100%', bgcolor: alpha('#fff', 0.03), border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
-                    {item.title}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.68)', lineHeight: 1.8 }}>
-                    {item.body}
-                  </Typography>
-                </Paper>
-              </Grid>
+              <div key={item.title} className="p-5 h-full bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                <h3 className="font-extrabold text-white mb-2 text-base">
+                  {item.title}
+                </h3>
+                <p className="text-white/65 text-sm leading-relaxed">
+                  {item.body}
+                </p>
+              </div>
             ))}
-          </Grid>
+          </div>
           <Callout title="Integration checklist" text="Define owner suite, auth model, failure semantics, and observability before implementation." accent="#F59E0B" />
-        </Stack>
+        </div>
       </ArticleFrame>
     ),
   },
@@ -413,34 +389,33 @@ const articles: DocsArticle[] = [
     keywords: ['contributing', 'codebase', 'pull requests', 'architecture', 'standards'],
     render: () => (
       <ArticleFrame eyebrow="REFERENCE" title="Contributing" summary="Contribution docs should help engineers ship safely across suites without breaking shared infrastructure.">
-        <Stack spacing={3}>
-          <Grid container spacing={2}>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               { title: 'Understand the suite first', body: 'Start from the relevant docs page (Note, Vault, Flow, Connect) before touching code.' },
               { title: 'Preserve trusted bridges', body: 'Reuse known working paths and references instead of rewriting foundations.' },
               { title: 'Cross-surface consistency', body: 'When changing shared behavior, verify route, drawer, and topbar consistency across suites.' }].map((item) => (
-              <Grid size={{ xs: 12, md: 4 }} key={item.title}>
-                <Paper sx={{ p: 2.5, height: '100%', bgcolor: alpha('#fff', 0.03), border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
-                    <Box sx={{ color: '#F59E0B', display: 'flex' }}>
-                      {item.title === 'Understand the suite first' ? <Workflow size={16} /> : <Wrench size={16} />}
-                    </Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                      {item.title}
-                    </Typography>
-                  </Stack>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.68)', lineHeight: 1.8 }}>
-                    {item.body}
-                  </Typography>
-                </Paper>
-              </Grid>
+              <div key={item.title} className="p-5 h-full bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="text-[#F59E0B] flex-shrink-0">
+                    {item.title === 'Understand the suite first' ? <Workflow size={16} /> : <Wrench size={16} />}
+                  </div>
+                  <h3 className="font-extrabold text-white text-base">
+                    {item.title}
+                  </h3>
+                </div>
+                <p className="text-white/65 text-sm leading-relaxed">
+                  {item.body}
+                </p>
+              </div>
             ))}
-          </Grid>
+          </div>
           <Callout title="Pull request quality" text="Keep changes surgical, update directly related docs, and avoid unrelated refactors in the same PR." accent="#F59E0B" />
-        </Stack>
+        </div>
       </ArticleFrame>
     ),
-  }];
+  },
+];
 
 export const DOCS_CATEGORIES = categories;
 export const DOCS_ARTICLES = articles;
@@ -476,78 +451,65 @@ export const DocsCard = ({
 }) => {
   const category = getDocsCategory(article.category);
   const Icon = category?.icon || BookOpen;
+  const accentColor = category?.accent || '#6366F1';
 
   return (
-    <Paper
-      sx={{
-        p: 2.5,
-        borderRadius: 4,
-        bgcolor: selected ? alpha('#fff', 0.05) : alpha('#fff', 0.025),
-        border: `1px solid ${selected ? alpha(category?.accent || '#6366F1', 0.32) : 'rgba(255,255,255,0.06)'}`,
-        height: '100%',
+    <div
+      className={`p-5 rounded-2xl h-full transition-all border ${
+        selected ? 'bg-white/[0.05]' : 'bg-white/[0.025]'
+      }`}
+      style={{
+        borderColor: selected ? `${accentColor}52` : 'rgba(255,255,255,0.06)',
       }}
     >
-      <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1.5 }}>
-        <Box sx={{ color: category?.accent || '#6366F1' }}>
+      <div className="flex items-center gap-3 mb-4">
+        <div style={{ color: accentColor }}>
           <Icon size={18} />
-        </Box>
-        <Typography variant="subtitle2" sx={{ letterSpacing: '0.14em', fontWeight: 900, color: category?.accent || '#6366F1' }}>
+        </div>
+        <span className="font-black text-xs tracking-wider block uppercase" style={{ color: accentColor }}>
           {category?.title}
-        </Typography>
-      </Stack>
-      <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
+        </span>
+      </div>
+      <h3 className="font-extrabold text-white mb-2 text-base">
         {article.title}
-      </Typography>
-      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.68)', lineHeight: 1.7 }}>
+      </h3>
+      <p className="text-white/65 text-sm leading-relaxed">
         {article.summary}
-      </Typography>
-    </Paper>
+      </p>
+    </div>
   );
 };
 
 export const DocsLandingHero = () => (
-  <Stack spacing={3}>
-    <Typography variant="subtitle2" sx={{ color: '#6366F1', fontWeight: 900, letterSpacing: '0.3em' }}>
+  <div className="space-y-4">
+    <span className="text-[#6366F1] font-black text-xs tracking-[0.3em] block uppercase">
       DOCUMENTATION
-    </Typography>
-    <Typography variant="h1" sx={{ fontWeight: 900, fontSize: { xs: '2.6rem', md: '4.6rem' }, letterSpacing: '-0.07em' }}>
+    </span>
+    <h1 className="font-black text-4xl md:text-6xl lg:text-7xl text-white tracking-tight leading-none">
       Master the <br /> Ecosystem.
-    </Typography>
-    <Typography variant="subtitle1" sx={{ maxWidth: 840, opacity: 0.62, fontSize: '1.25rem', lineHeight: 1.8 }}>
+    </h1>
+    <p className="max-w-3xl text-white/60 text-lg md:text-xl leading-relaxed">
       Searchable, categorized documentation for the ecosystem, its codebases, its security model, and its reference material.
-    </Typography>
-  </Stack>
+    </p>
+  </div>
 );
 
 export const DocsLandingSearchTip = () => (
-  <Box
-    sx={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 1.5,
-      px: 2,
-      py: 1.5,
-      borderRadius: 3,
-      bgcolor: alpha('#fff', 0.03),
-      border: '1px solid rgba(255,255,255,0.06)',
-    }}
-  >
-    <Search size={16} />
-    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.64)' }}>
+  <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+    <Search size={16} className="text-white/60" />
+    <p className="text-white/60 text-sm">
       Use the sidebar search to jump across topics, codebases, and reference pages.
-    </Typography>
-  </Box>
+    </p>
+  </div>
 );
 
 export const DocsLandingAction = () => (
-  <Button
-    component={NextLink}
+  <NextLink
     href="/docs/quick-start"
-    variant="contained"
-    sx={{ borderRadius: 2.5, px: 3, py: 1.4, fontWeight: 800 }}
+    className="px-6 py-3 bg-[#6366F1] hover:bg-[#6366F1]/90 text-black font-extrabold rounded-[10px] text-sm transition-all text-center inline-block"
   >
     Start with Quick Start
-  </Button>
+  </NextLink>
 );
 
 export const DocsRenderArticle = ({ slug }: { slug: string }) => {

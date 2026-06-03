@@ -3,11 +3,25 @@
 import React, { useEffect, useState, Suspense, useMemo } from 'react';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Box, Container, Typography, CircularProgress, Paper, Button, Stack, Divider } from '@/lib/mui-tailwind/material';
 import { Rocket, Heart, Globe, Clock } from 'lucide-react';
 import { calculateSubscriptionPrice, PPP_DATA } from '@/lib/subscription/ppp';
 import { createBillingCheckoutSessionAction } from '../../../actions/billing';
 import { account } from '@/lib/appwrite/client';
+
+function LoadingSpinner({ size = 28 }: { size?: number }) {
+  return (
+    <svg 
+      className="animate-spin text-[#6366F1]" 
+      xmlns="http://www.w3.org/2000/svg" 
+      fill="none" 
+      viewBox="0 0 24 24"
+      style={{ width: size, height: size }}
+    >
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+  );
+}
 
 function CheckoutContent() {
   const router = useRouter();
@@ -87,115 +101,105 @@ function CheckoutContent() {
 
   if (authLoading || !user) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', bgcolor: '#0A0908' }}>
-        <CircularProgress sx={{ color: '#6366F1' }} />
-      </Box>
+      <div className="flex justify-center items-center h-screen bg-[#0A0908]">
+        <LoadingSpinner size={32} />
+      </div>
     );
   }
 
   return (
-    <Box component="main" sx={{ minHeight: '100vh', bgcolor: '#0A0908', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
-      <Container maxWidth="sm">
-        <Paper 
-          elevation={0}
-          sx={{
-            p: { xs: 4, md: 6 },
-            borderRadius: '40px',
-            background: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(20px)',
-          }}
-        >
-          <Stack spacing={4}>
-            <Box sx={{ textAlign: 'center' }}>
-              <Box sx={{ display: 'inline-flex', p: 2, borderRadius: '20px', bgcolor: 'rgba(99, 102, 241, 0.1)', color: '#6366F1', mb: 3 }}>
+    <main className="min-h-screen bg-[#0A0908] text-white flex items-center justify-center py-8">
+      <div className="w-full max-w-lg px-4">
+        <div className="p-8 md:p-12 rounded-[40px] bg-white/[0.02] border border-white/[0.05] backdrop-blur-[20px]">
+          <div className="space-y-8">
+            <div className="text-center">
+              <div className="inline-flex p-4 rounded-[20px] bg-[#6366F1]/10 text-[#6366F1] mb-6">
                 <Rocket size={32} />
-              </Box>
-              <Typography variant="h4" sx={{ fontFamily: 'Clash Display', fontWeight: 900, mb: 1 }}>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-black mb-2 tracking-tight">
                 {giftRecipientId ? 'Confirm Gift Subscription' : 'Confirm Subscription'}
-              </Typography>
-              <Typography sx={{ opacity: 0.6 }}>
+              </h1>
+              <p className="text-white/60 text-sm">
                 {giftRecipientId
                   ? `Finalizing a gift for ${giftRecipientName || giftRecipientId}.`
                   : `Finalizing your ${months} month ${months >= 12 ? 'yearly' : 'monthly'} access.`}
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
-            <Box sx={{ p: 3, borderRadius: '24px', bgcolor: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-              <Stack spacing={2.5}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Globe size={18} color="#6366F1" />
-                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>Regional Price</Typography>
-                  </Stack>
-                  <Typography sx={{ fontSize: '0.9rem', opacity: 0.8 }}>{region.name}</Typography>
-                </Stack>
+            <div className="p-6 rounded-[24px] bg-white/[0.02] border border-white/[0.05]">
+              <div className="space-y-5">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <Globe size={18} className="text-[#6366F1]" />
+                    <span className="text-sm font-semibold">Regional Price</span>
+                  </div>
+                  <span className="text-sm text-white/80">{region.name}</span>
+                </div>
 
                 {months > 1 && (
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <Clock size={18} color="#6366F1" />
-                      <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>Monthly Rate</Typography>
-                    </Stack>
-                    <Typography sx={{ fontSize: '0.9rem', opacity: 0.8 }}>${monthlyPrice.toFixed(2)}</Typography>
-                  </Stack>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <Clock size={18} className="text-[#6366F1]" />
+                      <span className="text-sm font-semibold">Monthly Rate</span>
+                    </div>
+                    <span className="text-sm text-white/80">${monthlyPrice.toFixed(2)}</span>
+                  </div>
                 )}
                 
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Heart size={18} color="#6366F1" />
-                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>Total Amount</Typography>
-                  </Stack>
-                  <Typography sx={{ fontSize: '1.2rem', fontWeight: 900, fontFamily: 'JetBrains Mono' }}>${expectedPrice.toFixed(2)}</Typography>
-                </Stack>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <Heart size={18} className="text-[#6366F1]" />
+                    <span className="text-sm font-semibold">Total Amount</span>
+                  </div>
+                  <span className="text-lg font-black font-mono">${expectedPrice.toFixed(2)}</span>
+                </div>
 
-                <Divider sx={{ opacity: 0.05 }} />
+                <hr className="border-white/5" />
 
-                <Stack direction="row" spacing={2}>
-                  <Clock size={20} color="#6366F1" style={{ flexShrink: 0, marginTop: 2 }} />
-                  <Typography sx={{ fontSize: '0.85rem', opacity: 0.5, lineHeight: 1.5 }}>
+                <div className="flex gap-4">
+                  <Clock size={20} className="text-[#6366F1] flex-shrink-0 mt-0.5" />
+                  <p className="text-[13px] text-white/50 leading-relaxed">
                     {giftRecipientId
                       ? 'This checkout will create a gift coupon for the recipient. Their account will claim it automatically on login.'
                       : 'Kylrix uses a flexible model. Any amount you send is converted into Pro time. If you send less than the suggested value, your subscription duration will be automatically adjusted to match your payment.'}
-                  </Typography>
-                </Stack>
-              </Stack>
-            </Box>
+                  </p>
+                </div>
+              </div>
+            </div>
 
-            <Box sx={{ textAlign: 'center' }}>
+            <div className="text-center">
               {error ? (
-                <Box>
-                  <Typography sx={{ color: '#ef4444', mb: 3 }}>{error}</Typography>
-                  <Button 
+                <div>
+                  <p className="text-red-500 mb-6 text-sm">{error}</p>
+                  <button 
                     onClick={() => window.location.reload()}
-                    variant="outlined"
-                    sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px', textTransform: 'none' }}
+                    className="px-6 py-2.5 text-white border border-white/10 rounded-[12px] hover:bg-white/5 transition-all text-sm font-semibold"
                   >
                     Try Again
-                  </Button>
-                </Box>
+                  </button>
+                </div>
               ) : (
-                <Stack spacing={2} alignItems="center">
-                  <CircularProgress size={28} sx={{ color: '#6366F1' }} />
-                  <Typography sx={{ fontSize: '0.9rem', opacity: 0.4 }}>
+                <div className="flex flex-col items-center gap-4">
+                  <LoadingSpinner size={28} />
+                  <p className="text-sm text-white/40">
                     Redirecting to secure payment portal...
-                  </Typography>
-                </Stack>
+                  </p>
+                </div>
               )}
-            </Box>
-          </Stack>
-        </Paper>
-      </Container>
-    </Box>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
 
 export default function ProCheckoutPage() {
   return (
     <Suspense fallback={
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', bgcolor: '#0A0908' }}>
-        <CircularProgress sx={{ color: '#6366F1' }} />
-      </Box>
+      <div className="flex justify-center items-center h-screen bg-[#0A0908]">
+        <LoadingSpinner size={32} />
+      </div>
     }>
       <CheckoutContent />
     </Suspense>

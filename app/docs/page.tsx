@@ -1,5 +1,5 @@
 'use client';
-import { Box, Grid, Paper, Stack, Typography, alpha } from '@/lib/mui-tailwind/material';
+
 import DocsShell from '@/components/docs/DocsShell';
 import {
   DOCS_ARTICLES,
@@ -14,60 +14,56 @@ import {
 export default function DocsPage() {
   return (
     <DocsShell>
-      <Stack spacing={6}>
+      <div className="space-y-12">
         <DocsLandingHero />
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+        
+        <div className="flex flex-col md:flex-row gap-4">
           <DocsLandingAction />
           <DocsLandingSearchTip />
-        </Stack>
+        </div>
 
-        <Grid container spacing={2.5}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {DOCS_CATEGORIES.map((category) => {
             const Icon = category.icon;
             const count = DOCS_ARTICLES.filter((article) => article.category === category.id).length;
             return (
-              <Grid key={category.id} size={{ xs: 12, md: 6 }}>
-                <Paper
-                  sx={{
-                    p: 3,
-                    height: '100%',
-                    bgcolor: alpha('#fff', 0.03),
-                    border: `1px solid ${alpha(category.accent, 0.12)}`,
-                  }}
-                >
-                  <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 2 }}>
-                    <Box sx={{ color: category.accent }}>
-                      <Icon size={18} />
-                    </Box>
-                    <Typography variant="subtitle2" sx={{ color: category.accent, fontWeight: 900, letterSpacing: '0.16em' }}>
-                      {category.title}
-                    </Typography>
-                  </Stack>
-                  <Typography variant="h5" sx={{ fontWeight: 900, mb: 1.5 }}>
-                    {count} article{count === 1 ? '' : 's'}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.68)', lineHeight: 1.8 }}>
-                    {category.summary}
-                  </Typography>
-                </Paper>
-              </Grid>
+              <div 
+                key={category.id} 
+                className="p-6 h-full bg-white/[0.03] border rounded-2xl"
+                style={{ borderColor: `${category.accent}20` }}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div style={{ color: category.accent }}>
+                    <Icon size={18} />
+                  </div>
+                  <span className="font-black text-xs tracking-wider block uppercase" style={{ color: category.accent }}>
+                    {category.title}
+                  </span>
+                </div>
+                <h3 className="text-xl md:text-2xl font-black mb-2 text-white">
+                  {count} article{count === 1 ? '' : 's'}
+                </h3>
+                <p className="text-white/65 leading-relaxed text-sm">
+                  {category.summary}
+                </p>
+              </div>
             );
           })}
-        </Grid>
+        </div>
 
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 900, mb: 2 }}>
+        <div>
+          <h2 className="text-2xl font-black mb-6 text-white">
             Featured docs
-          </Typography>
-          <Grid container spacing={2.5}>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {DOCS_FEATURED.map((article) => (
-              <Grid key={article.slug} size={{ xs: 12, md: 6 }}>
+              <div key={article.slug}>
                 <DocsCard article={article} />
-              </Grid>
+              </div>
             ))}
-          </Grid>
-        </Box>
-      </Stack>
+          </div>
+        </div>
+      </div>
     </DocsShell>
   );
 }

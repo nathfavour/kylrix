@@ -1,16 +1,6 @@
 'use client';
 
 import React from 'react';
-import { 
-  Box, 
-  Typography, 
-  Stack, 
-  Tooltip, 
-  IconButton, 
-  alpha, 
-  useTheme,
-  Button
-} from '@/lib/mui-tailwind/material';
 import { useDocs, DocLanguage } from '@/context/DocsContext';
 import { Terminal, Code, Cpu, Package } from 'lucide-react';
 
@@ -23,46 +13,27 @@ const LANGUAGE_CONFIG: Record<DocLanguage, { label: string; icon: any; color: st
 
 export const LanguageSwitcher = () => {
   const { language, setLanguage } = useDocs();
-  const theme = useTheme();
 
   return (
-    <Stack 
-      direction="row" 
-      spacing={1} 
-      sx={{ 
-        p: 0.5, 
-        bgcolor: alpha(theme.palette.text.primary, 0.03), 
-        borderRadius: '12px',
-        border: `1px solid ${alpha(theme.palette.text.primary, 0.05)}`,
-        width: 'fit-content'
-      }}
-    >
+    <div className="flex gap-1 p-1 bg-white/[0.03] border border-white/[0.05] rounded-xl w-fit">
       {(Object.entries(LANGUAGE_CONFIG) as [DocLanguage, typeof LANGUAGE_CONFIG.typescript][]).map(([key, config]) => (
-        <Tooltip key={key} title={config.label}>
-          <Button
-            size="small"
-            onClick={() => setLanguage(key)}
-            sx={{
-              minWidth: 40,
-              height: 32,
-              borderRadius: '8px',
-              color: language === key ? 'white' : alpha(theme.palette.text.primary, 0.4),
-              bgcolor: language === key ? config.color : 'transparent',
-              '&:hover': {
-                bgcolor: language === key ? config.color : alpha(theme.palette.text.primary, 0.05),
-                opacity: 0.9
-              },
-              fontSize: '0.7rem',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
-            }}
-          >
-            {key === 'typescript' ? 'TS' : config.label}
-          </Button>
-        </Tooltip>
+        <button
+          key={key}
+          onClick={() => setLanguage(key)}
+          title={config.label}
+          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+            language === key
+              ? 'text-white'
+              : 'text-white/40 hover:text-white/70 hover:bg-white/5'
+          }`}
+          style={{
+            backgroundColor: language === key ? config.color : 'transparent'
+          }}
+        >
+          {key === 'typescript' ? 'TS' : config.label}
+        </button>
       ))}
-    </Stack>
+    </div>
   );
 };
 
@@ -72,56 +43,24 @@ interface CodeBlockProps {
 
 export const CodeBlock = ({ languages }: CodeBlockProps) => {
   const { language } = useDocs();
-  const theme = useTheme();
   
   const currentCode = languages[language] || languages['typescript'] || 'Code not available for this language.';
 
   return (
-    <Box 
-      sx={{ 
-        position: 'relative',
-        borderRadius: '16px',
-        overflow: 'hidden',
-        border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
-        bgcolor: 'rgba(0,0,0,0.4)',
-        backdropFilter: 'blur(20px)'
-      }}
-    >
-      <Box 
-        sx={{ 
-          px: 3, 
-          py: 1.5, 
-          bgcolor: 'rgba(255,255,255,0.02)', 
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}
-      >
-        <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono', color: '#6366F1', fontWeight: 700, opacity: 0.8 }}>
+    <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] bg-black/40 backdrop-blur-2xl">
+      <div className="px-6 py-3 bg-white/[0.02] border-b border-white/[0.05] flex justify-between items-center">
+        <span className="font-mono text-xs text-[#6366F1] font-bold opacity-80">
           {LANGUAGE_CONFIG[language].label}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#FF5F56' }} />
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#FFBD2E' }} />
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#27C93F' }} />
-        </Box>
-      </Box>
-      <Box 
-        component="pre" 
-        sx={{ 
-          m: 0, 
-          p: 3, 
-          overflowX: 'auto',
-          fontSize: '0.85rem',
-          lineHeight: 1.6,
-          fontFamily: 'JetBrains Mono',
-          color: '#A1A1AA',
-          '& code': { fontFamily: 'inherit' }
-        }}
-      >
+        </span>
+        <div className="flex gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-[#FF5F56]" />
+          <div className="w-2 h-2 rounded-full bg-[#FFBD2E]" />
+          <div className="w-2 h-2 rounded-full bg-[#27C93F]" />
+        </div>
+      </div>
+      <pre className="m-0 p-6 overflow-x-auto text-[13px] leading-relaxed font-mono text-neutral-400">
         <code>{currentCode}</code>
-      </Box>
-    </Box>
+      </pre>
+    </div>
   );
 };

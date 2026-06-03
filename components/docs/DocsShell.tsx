@@ -1,14 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Box, Container } from '@/lib/mui-tailwind/material';
 
 export default function DocsShell({ children }: { children: React.ReactNode }) {
   return (
-    <Box component="div" sx={{ pt: { xs: 3, md: 4 }, pb: 10, pointerEvents: 'auto' }}>
-        <Container maxWidth="lg">
-          <Box sx={{ px: { xs: 2, md: 4 } }}>{children}</Box>
-        </Container>
-    </Box>
+    <div className="pt-6 md:pt-8 pb-20 pointer-events-auto">
+      <div className="max-w-7xl mx-auto px-4 md:px-8">
+        {children}
+      </div>
+    </div>
   );
 }
