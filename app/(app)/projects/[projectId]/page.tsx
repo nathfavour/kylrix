@@ -3,39 +3,7 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { ID } from 'appwrite';
 import { useRouter, useParams } from 'next/navigation';
-import {
-  Box,
-  IconButton,
-  Button,
-  Chip,
-  Grid,
-  Paper,
-  Stack,
-  Typography,
-  CircularProgress,
-  alpha,
-  useTheme,
-  Tabs,
-  Tab,
-  Divider,
-  Avatar,
-  AvatarGroup,
-  Tooltip,
-  TextField,
-  Drawer,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Menu,
-  Popover,
-  Checkbox,
-  FormControlLabel,
-  List,
-  ListItemText,
-  Switch,
-  
-} from '@/lib/mui-tailwind/material';
+
 import {
   Plus,
   Calendar,
