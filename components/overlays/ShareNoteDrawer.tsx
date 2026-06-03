@@ -202,14 +202,15 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
         }
     }
     if (!isOpen) {
-        setEditingCollaborator(null);
-        setSelectedUsers([]);
-        setPermission('viewer');
-        setCopiedLink(false);
-        setCopiedCode(false);
-        setShowInviteSection(false);
+      setEditingCollaborator(null);
+      setSelectedUsers([]);
+      setPermission('viewer');
+      setCopiedLink(false);
+      setCopiedCode(false);
+      setShowInviteSection(false);
     }
-  }, [isOpen, activeResourceId, setIsDrawerOpen, fetchExistingCollaborators, drawerData?.initialCollaborator]);
+    return () => setIsDrawerOpen(false);
+    }, [isOpen, activeResourceId, setIsDrawerOpen, fetchExistingCollaborators, drawerData?.initialCollaborator]);
 
   const handleCopyLink = () => {
     try {

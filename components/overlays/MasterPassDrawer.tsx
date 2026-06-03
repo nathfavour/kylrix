@@ -60,6 +60,7 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
     if (!isOpen) {
         passkeyTriggeredRef.current = false;
     }
+    return () => setIsDrawerOpen(false);
   }, [isOpen, setIsDrawerOpen]);
 
   const [masterPassword, setMasterPassword] = useState("");

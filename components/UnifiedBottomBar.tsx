@@ -48,6 +48,7 @@ export function UnifiedBottomBar() {
     if (pathname?.startsWith('/vault')) return 'vault';
     if (pathname?.startsWith('/flow')) return 'flow';
     if (pathname?.startsWith('/connect')) return 'connect';
+    if (pathname?.startsWith('/projects')) return 'note'; // Default to Note context for Projects hub
     return null;
   }, [pathname]);
 
@@ -66,6 +67,8 @@ export function UnifiedBottomBar() {
   }, [appContext]);
 
   const getCurrentTab = () => {
+    if (pathname?.startsWith('/projects')) return 'projects';
+
     if (appContext === 'note') {
       if (pathname?.includes('/shared')) return 'shared';
       if (pathname?.includes('/tags')) return 'tags';
@@ -96,12 +99,15 @@ export function UnifiedBottomBar() {
       flow: { goals: '/flow/tasks', forms: '/flow/forms', events: '/flow/events', projects: '/projects' },
       connect: { home: '/connect', chats: '/connect/chats', calls: '/connect/calls', projects: '/projects' },
     };
-    if (!appContext) return;
-    router.push(routes[appContext]?.[newValue] || pathname || '/');
+    
+    // Fallback context if navigating from /projects
+    const context = appContext || 'note';
+    router.push(routes[context]?.[newValue] || pathname || '/');
   };
 
   const renderNavItems = () => {
-    if (appContext === 'note') {
+    const context = appContext || 'note';
+    if (context === 'note') {
       return [
         <BottomNavigationAction key="notes" value="notes" icon={<NotesIcon size={24} strokeWidth={1.5} className="lucide" />} />,
         <BottomNavigationAction key="shared" value="shared" icon={<SharedIcon size={24} strokeWidth={1.5} className="lucide" />} />,
@@ -109,7 +115,7 @@ export function UnifiedBottomBar() {
         <BottomNavigationAction key="projects" value="projects" icon={<ProjectsIcon size={24} strokeWidth={1.5} className="lucide" />} />,
       ];
     }
-    if (appContext === 'vault') {
+    if (context === 'vault') {
       return [
         <BottomNavigationAction key="credentials" value="credentials" icon={<VaultIcon size={24} strokeWidth={1.5} className="lucide" />} />,
         <BottomNavigationAction key="sharing" value="sharing" icon={<SharedIcon size={24} strokeWidth={1.5} className="lucide" />} />,
@@ -117,7 +123,7 @@ export function UnifiedBottomBar() {
         <BottomNavigationAction key="projects" value="projects" icon={<ProjectsIcon size={24} strokeWidth={1.5} className="lucide" />} />,
       ];
     }
-    if (appContext === 'flow') {
+    if (context === 'flow') {
       return [
         <BottomNavigationAction key="goals" value="goals" icon={<FlowIcon size={24} strokeWidth={1.5} className="lucide" />} />,
         <BottomNavigationAction key="forms" value="forms" icon={<FormIcon size={24} strokeWidth={1.5} className="lucide" />} />,
@@ -125,7 +131,7 @@ export function UnifiedBottomBar() {
         <BottomNavigationAction key="projects" value="projects" icon={<ProjectsIcon size={24} strokeWidth={1.5} className="lucide" />} />,
       ];
     }
-    if (appContext === 'connect') {
+    if (context === 'connect') {
       return [
         <BottomNavigationAction key="home" value="home" icon={<HomeIcon size={24} strokeWidth={1.5} className="lucide" />} />,
         <BottomNavigationAction key="chats" value="chats" icon={<ConnectIcon size={24} strokeWidth={1.5} className="lucide" />} />,
@@ -138,14 +144,14 @@ export function UnifiedBottomBar() {
 
   const isNoteFullPageDetail = Boolean(pathname?.match(/^\/note\/notes\/[^/]+$/));
   const isConnectCallDetail = Boolean(pathname?.match(/^\/connect\/call\/[^/]+$/));
-  const isConnectChatPage = pathname?.startsWith('/connect/chats') || Boolean(pathname?.match(/^\/connect\/chat\/[^/]+$/));
-  const isProjectsPage = pathname?.startsWith('/projects');
+  const isSpecificChatPage = Boolean(pathname?.match(/^\/connect\/chat\/[^/]+$/));
+  const isSpecificProjectPage = Boolean(pathname?.match(/^\/projects\/[^/]+$/));
 
   if (pathname?.startsWith('/accounts')) return null;
 
   if (
-    isProjectsPage ||
-    isConnectChatPage ||
+    isSpecificChatPage ||
+    isSpecificProjectPage ||
     pathname?.includes('/settings') ||
     activeContent !== 'navbar' ||
     mode === 'compact' ||

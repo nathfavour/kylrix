@@ -64,7 +64,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
   const isConnectPage = pathname?.startsWith('/connect');
 
   // 2. UI State
-  const { activeContent: unifiedDrawerActive, open: openUnified } = useUnifiedDrawer();
+  const { activeContent: unifiedDrawerActive, open: openUnified, close: closeUnified } = useUnifiedDrawer();
   const { showProUpgrade, closeProUpgrade } = useProUpgrade();
   const { taskDialogOpen } = useTask();
   const { secondarySidebar, closeSecondarySidebar } = useLayout();
@@ -74,7 +74,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
   const { isWalletOpen, closeWallet } = useWalletOverlay();
   const { isOpen: isAgenticDrawerOpen, closeAgenticDrawer } = useAgenticDrawer();
   const { mode } = useAppChrome();
-  const { isDrawerOpen } = useDrawerState();
+  const { isDrawerOpen, setIsDrawerOpen } = useDrawerState();
   const { isOpen: isCallLauncherOpen } = useCallLauncher();
 
   // Smart responsive Left Sidebar visibility
@@ -133,6 +133,8 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
       if (showProUpgrade) closeProUpgrade();
       if (secondarySidebar.isOpen) closeSecondarySidebar();
       if (isAgenticDrawerOpen) closeAgenticDrawer();
+      if (isDrawerOpen) setIsDrawerOpen(false);
+      if (unifiedDrawerActive !== 'navbar') closeUnified();
     }
   }, [
     pathname,
@@ -142,12 +144,16 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     showProUpgrade,
     secondarySidebar.isOpen,
     isAgenticDrawerOpen,
+    isDrawerOpen,
+    unifiedDrawerActive,
     closeSidebar,
     closeOverlay,
     closeWallet,
     closeProUpgrade,
     closeSecondarySidebar,
-    closeAgenticDrawer
+    closeAgenticDrawer,
+    setIsDrawerOpen,
+    closeUnified
   ]);
 
   // 4. Stacking Determinism

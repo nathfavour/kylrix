@@ -70,6 +70,7 @@ export default function CredentialDialog({
 
   useEffect(() => {
     setIsDrawerOpen(open);
+    return () => setIsDrawerOpen(false);
   }, [open, setIsDrawerOpen]);
 
   const [showPassword, setShowPassword] = useState(false);

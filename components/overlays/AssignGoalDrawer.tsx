@@ -78,6 +78,7 @@ export function AssignGoalDrawer({ isOpen, onClose, taskId, taskTitle }: {
         setEditingAssignee(null);
         setSelectedUsers([]);
     }
+    return () => setIsDrawerOpen(false);
   }, [isOpen, taskId, setIsDrawerOpen, fetchExistingAssignees, drawerData?.initialCollaborator]);
 
   const handleGrant = async () => {

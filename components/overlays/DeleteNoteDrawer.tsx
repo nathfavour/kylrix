@@ -28,6 +28,7 @@ export function DeleteNoteDrawer({ isOpen, onClose, onConfirm, noteTitle }: {
 
   React.useEffect(() => {
     setIsDrawerOpen(isOpen);
+    return () => setIsDrawerOpen(false);
   }, [isOpen, setIsDrawerOpen]);
 
   const handleDelete = async () => {

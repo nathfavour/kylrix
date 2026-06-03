@@ -231,6 +231,7 @@ export function NoteDetailSidebar({
   // Sync drawer state
   useEffect(() => {
     setIsDrawerOpen(showRotateConfirm);
+    return () => setIsDrawerOpen(false);
   }, [showRotateConfirm, setIsDrawerOpen]);
 
   // Automatically prompt for vault unlock if opening an encrypted note

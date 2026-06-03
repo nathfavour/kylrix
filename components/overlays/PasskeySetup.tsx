@@ -56,6 +56,7 @@ export function PasskeySetup({
 
   useEffect(() => {
     setIsDrawerOpen(open);
+    return () => setIsDrawerOpen(false);
   }, [open, setIsDrawerOpen]);
 
   const [step, setStep] = useState(trustUnlocked && ecosystemSecurity.status.isUnlocked ? 2 : 1);

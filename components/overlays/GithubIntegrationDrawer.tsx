@@ -429,6 +429,7 @@ export function GithubIntegrationDrawer({
           }
       });
     }
+    return () => setIsDrawerOpen(false);
   }, [isOpen, setIsDrawerOpen, projectId]);
 
   const handleConnectGitHub = async () => {

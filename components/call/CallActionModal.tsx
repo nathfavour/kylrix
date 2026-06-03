@@ -68,6 +68,7 @@ export const CallActionModal = ({
 
     useEffect(() => {
         setIsDrawerOpen(open);
+        return () => setIsDrawerOpen(false);
     }, [open, setIsDrawerOpen]);
 
     const [isMobile, setIsMobile] = useState(false);

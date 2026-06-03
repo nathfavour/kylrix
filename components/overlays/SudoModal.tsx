@@ -62,6 +62,7 @@ export default function SudoModal({
 
     useEffect(() => {
         setIsDrawerOpen(isOpen);
+        return () => setIsDrawerOpen(false);
     }, [isOpen, setIsDrawerOpen]);
 
     const cancelHandler = onCancel ?? onClose ?? (() => {});

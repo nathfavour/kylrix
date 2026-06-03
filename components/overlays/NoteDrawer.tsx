@@ -31,6 +31,7 @@ export function NoteDrawer() {
 
   React.useEffect(() => {
     setIsDrawerOpen(isOpen);
+    return () => setIsDrawerOpen(false);
   }, [isOpen, setIsDrawerOpen]);
 
   return (

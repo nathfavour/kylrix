@@ -85,6 +85,7 @@ export function CollaboratorManager({ isOpen, onClose, resourceId, resourceType,
         setEditingAssignee(null);
         setSelectedUsers([]);
     }
+    return () => setIsDrawerOpen(false);
   }, [isOpen, resourceId, setIsDrawerOpen, fetchExistingAssignees, drawerData?.initialCollaborator]);
 
   const handleGrant = async () => {
