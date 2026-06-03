@@ -273,10 +273,12 @@ function LocalProjectCard({ project, onClick, onDelete, onTogglePin }: {
             <h3 className="text-white text-base font-black tracking-tight leading-tight truncate flex-1 min-w-0">
               {project.title}
             </h3>
-            <span className="flex-shrink-0 bg-white/5 text-white/40 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-white/8 flex items-center gap-1">
-              {getVisibilityIcon()}
-              {project.visibility}
-            </span>
+            {project.visibility === 'public' && (
+              <span className="flex-shrink-0 bg-white/5 text-white/40 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-white/8 flex items-center gap-1">
+                {getVisibilityIcon()}
+                {project.visibility}
+              </span>
+            )}
           </div>
 
           {/* Summary / Description Content */}

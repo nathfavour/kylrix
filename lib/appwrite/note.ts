@@ -577,10 +577,9 @@ async function syncTagsForCreatedNote(noteId: string, rawTags: string[], userId:
       const key = tagName.toLowerCase();
       if (!existingTagDocs[key]) {
         try {
-          const created = await databases.createRow(
+          const created = await appwriteDatabases.createRow(
             APPWRITE_DATABASE_ID,
             tagsTable,
-            ID.unique(),
             { name: tagName, nameLower: key, userId, createdAt: now, usageCount: 0 }
           );
           existingTagDocs[key] = created;
@@ -612,10 +611,9 @@ async function syncTagsForCreatedNote(noteId: string, rawTags: string[], userId:
       adjustTagUsage(userId, tagName, 1);
       if (existingPairs.has(pairKey)) continue;
       try {
-        await databases.createRow(
+        await appwriteDatabases.createRow(
           APPWRITE_DATABASE_ID,
           noteTagsTable,
-          ID.unique(),
           { resourceId: noteId, resourceType: 'note', tagId, tag: tagName, userId, createdAt: now }
         );
       } catch (e: any) {
@@ -632,7 +630,7 @@ const noteCreationService = createNoteCreationService({
   tableId: APPWRITE_TABLE_ID_NOTES,
   getCurrentUser,
   createRow: async (databaseId, tableId, data, rowId, permissions) => {
-    return databases.createRow(databaseId, tableId, rowId || ID.unique(), data as any, permissions) as any;
+    return appwriteDatabases.createRow(databaseId, tableId, data as any, permissions) as any;
   },
   getNote,
   getNotePermissions,
@@ -979,38 +977,44 @@ export async function getAllNotes(): Promise<{ rows: Notes[], total: number }> {
 
 // --- TAGS CRUD ---
 
-export async function createTag(data: Partial<Tags>) {
-  // Get current user for userId
-  const user = await getCurrentUser();
-  if (!user || !user.$id) throw new Error("User not authenticated");
-  
-  const name = data.name?.trim();
-  if (!name) throw new Error("Tag name is required");
+export async function createTag(data: Partial<Tags>, jwt?: string) {
+  if (typeof window !== 'undefined') {
+    const { createRow } = await import('@/lib/actions/client-ops');
+    
+    const name = data.name?.trim();
+    if (!name) throw new Error("Tag name is required");
 
-  // Prepare metadata for non-schema fields
-  const metadata: Record<string, any> = {};
-  if (data.color) metadata.color = data.color;
-  if (data.description) metadata.description = data.description;
-  
-  // Create tag with proper schema fields
-  const now = new Date().toISOString();
-  const doc = await databases.createRow(
-    APPWRITE_DATABASE_ID,
-    APPWRITE_TABLE_ID_TAGS,
-    ID.unique(),
-    {
+    const metadata = { color: data.color, description: data.description };
+    const payload = {
       name,
       nameLower: name.toLowerCase(),
-      userId: user.$id,
-      metadata: Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
+      metadata: JSON.stringify(metadata),
       isPublic: !!data.isPublic,
       isGuest: !!data.isGuest,
       usageCount: 0,
-      createdAt: now
-    }
-  );
-  
-  // Return the updated row
+      createdAt: new Date().toISOString()
+    };
+
+    const doc = await createRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, payload);
+    return hydrateTagMetadata(doc as unknown as Tags);
+  }
+
+  const { createRowSecure } = await import('@/lib/actions/secure-ops');
+  const name = data.name?.trim();
+  if (!name) throw new Error("Tag name is required");
+
+  const metadata = { color: data.color, description: data.description };
+  const payload = {
+    name,
+    nameLower: name.toLowerCase(),
+    metadata: JSON.stringify(metadata),
+    isPublic: !!data.isPublic,
+    isGuest: !!data.isGuest,
+    usageCount: 0,
+    createdAt: new Date().toISOString()
+  };
+
+  const doc = await createRowSecure(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, payload, undefined, jwt);
   return hydrateTagMetadata(doc as unknown as Tags);
 }
 
@@ -1019,7 +1023,7 @@ function hydrateTagMetadata(tag: Tags): Tags {
     const t = tag as any;
     if (t.metadata) {
         try {
-            const extra = JSON.parse(t.metadata);
+            const extra = typeof t.metadata === 'string' ? JSON.parse(t.metadata) : t.metadata;
             if (extra && typeof extra === 'object') {
                 Object.assign(t, extra);
             }
@@ -1033,36 +1037,67 @@ export async function getTag(tagId: string): Promise<Tags> {
   return hydrateTagMetadata(doc as unknown as Tags);
 }
 
-export async function updateTag(tagId: string, data: Partial<Tags>) {
-  // Get existing for metadata merge
+export async function updateTag(tagId: string, data: Partial<Tags>, jwt?: string) {
+  if (typeof window !== 'undefined') {
+    const { updateRow } = await import('@/lib/actions/client-ops');
+    const existing = await getTag(tagId);
+    const name = data.name?.trim() || existing.name;
+    
+    const metadata: Record<string, any> = {};
+    try {
+        if ((existing as any).metadata) {
+            Object.assign(metadata, typeof (existing as any).metadata === 'string' ? JSON.parse((existing as any).metadata) : (existing as any).metadata);
+        }
+    } catch {}
+    
+    if (data.color) metadata.color = data.color;
+    if (data.description) metadata.description = data.description;
+
+    const payload = {
+      name,
+      nameLower: name?.toLowerCase(),
+      metadata: JSON.stringify(metadata),
+      isPublic: data.isPublic !== undefined ? !!data.isPublic : existing.isPublic,
+      isGuest: data.isGuest !== undefined ? !!data.isGuest : existing.isGuest,
+    };
+
+    const doc = await updateRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tagId, payload);
+    return hydrateTagMetadata(doc as unknown as Tags);
+  }
+
+  const { updateRowSecure } = await import('@/lib/actions/secure-ops');
   const existing = await getTag(tagId);
-  
   const name = data.name?.trim() || existing.name;
   
   const metadata: Record<string, any> = {};
   try {
       if ((existing as any).metadata) {
-          Object.assign(metadata, JSON.parse((existing as any).metadata));
+          Object.assign(metadata, typeof (existing as any).metadata === 'string' ? JSON.parse((existing as any).metadata) : (existing as any).metadata);
       }
   } catch {}
   
   if (data.color) metadata.color = data.color;
   if (data.description) metadata.description = data.description;
 
-  const update: any = {
+  const payload = {
     name,
-    nameLower: name.toLowerCase(),
-    metadata: Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
+    nameLower: name?.toLowerCase(),
+    metadata: JSON.stringify(metadata),
     isPublic: data.isPublic !== undefined ? !!data.isPublic : existing.isPublic,
     isGuest: data.isGuest !== undefined ? !!data.isGuest : existing.isGuest,
   };
 
-  const doc = await databases.updateRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tagId, update);
+  const doc = await updateRowSecure(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tagId, payload, undefined, jwt);
   return hydrateTagMetadata(doc as unknown as Tags);
 }
 
-export async function deleteTag(tagId: string) {
-  return databases.deleteRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tagId);
+export async function deleteTag(tagId: string, jwt?: string) {
+  if (typeof window !== 'undefined') {
+    const { deleteRow } = await import('@/lib/actions/client-ops');
+    return deleteRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tagId);
+  }
+  const { deleteRowSecure } = await import('@/lib/actions/secure-ops');
+  return deleteRowSecure(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tagId, jwt);
 }
 
 export async function listTags(queries: any[] = [], limit: number = 100) {
@@ -1116,7 +1151,7 @@ export async function getAllTags(): Promise<{ rows: Tags[], total: number }> {
       queries.push(Query.cursorAfter(cursor));
     }
     
-    const res = await databases.listRows(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, queries);
+    const res = await appwriteDatabases.listRows(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, queries);
     const tags = (res.rows as unknown as Tags[]).map(t => hydrateTagMetadata(t));
     
     allTags = [...allTags, ...tags];
