@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { ID } from 'appwrite';
 import { useRouter, useParams } from 'next/navigation';
 
+import { useTheme } from '@/lib/mui-tailwind/styles';
 import {
   Plus,
   Calendar,
