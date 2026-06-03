@@ -12,28 +12,11 @@ import {
 import toast from 'react-hot-toast';
 import CredentialItem from '@/components/app/dashboard/CredentialItem';
 import CredentialDialog from '@/components/app/dashboard/CredentialDialog';
-import CredentialDetail from '@/components/app/dashboard/CredentialDetail';
 import SudoModal from '@/components/overlays/SudoModal';
 import { useAI } from '@/context/AIContext';
 import { useSudo } from '@/context/SudoContext';
 import { useFAB } from '@/context/FABContext';
 import { MultiSectionContainer, useSection } from '@/context/SectionContext';
-import { 
-  Box, 
-  Typography, 
-  Button, 
-  Paper, 
-  CircularProgress, 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  useTheme,
-  useMediaQuery,
-  Stack,
-  IconButton,
-} from '@/lib/mui-tailwind/material';
-import { alpha } from '@/lib/mui-tailwind/material';
 import { ArrowLeft, Plus, Eye, EyeOff } from 'lucide-react';
 
 function DashboardPageContent() {
@@ -41,8 +24,6 @@ function DashboardPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { registerCreateModal } = useAI();
-  const theme = useTheme();
-  const isMobileView = useMediaQuery(theme.breakpoints.down('md'));
   const { requestSudo } = useSudo();
   const { setConfiguration, resetConfiguration } = useFAB();
   const { setActiveDetail } = useSection();
@@ -58,8 +39,7 @@ function DashboardPageContent() {
   const [dialogType, setDialogType] = useState<string>("login");
   const [editCredential, setEditCredential] = useState<Credentials | null>(null);
   const [dialogPrefill, setDialogPrefill] = useState<{ name?: string; url?: string } | undefined>(undefined);
-  const [selectedCredential, setSelectedCredential] = useState<Credentials | null>(null);
-  const [showDetail, setShowDetail] = useState(false);
+  const [, setSelectedCredential] = useState<Credentials | null>(null);
 
   // Delete confirmation state
   const [credentialToDelete, setCredentialToDelete] = useState<Credentials | null>(null);
@@ -202,169 +182,132 @@ function DashboardPageContent() {
 
   if (!isAuthReady || !user) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', bgcolor: '#0A0908' }}>
-        <CircularProgress color="primary" />
-      </Box>
+      <div className="flex items-center justify-center min-h-screen bg-[#0A0908]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+      </div>
     );
   }
 
   return (
     <>
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        minHeight: '100vh', 
-        pb: 10,
-        bgcolor: '#0A0908',
-        transition: 'filter 0.3s ease',
-        filter: showMasterPassDrawer ? 'blur(8px)' : 'none',
-        pointerEvents: showMasterPassDrawer ? 'none' : 'auto',
-        opacity: showMasterPassDrawer ? 0.3 : 1,
-        pt: { xs: 2, md: 4 }
-      }}>
+      <div 
+        className="flex flex-col min-h-screen pb-10 bg-[#0A0908] transition-[filter] duration-300 pt-4 md:pt-8"
+        style={{
+          filter: showMasterPassDrawer ? 'blur(8px)' : 'none',
+          pointerEvents: showMasterPassDrawer ? 'none' : 'auto',
+          opacity: showMasterPassDrawer ? 0.3 : 1,
+        }}
+      >
         <MultiSectionContainer panels={['note', 'totp', 'projects']}>
-          <Box>
-        {/* Header Section */}
-        <Box sx={{ px: { xs: 2, md: 6 } }}>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 4 }}>
-            <IconButton 
-              onClick={() => router.back()} 
-              sx={{ 
-                color: '#fff', 
-                bgcolor: '#161412',
-                border: '1px solid #1C1A18',
-                '&:hover': { bgcolor: '#1C1A18' }
-              }}
-            >
-              <ArrowLeft size={20} />
-            </IconButton>
-            <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff' }}>
-              Secrets
-            </Typography>
-            <IconButton
-              onClick={() => setIsBlurEnabled(!isBlurEnabled)}
-              sx={{
-                color: isBlurEnabled ? 'rgba(255,255,255,0.4)' : '#10B981',
-                bgcolor: '#161412',
-                border: '1px solid #1C1A18',
-                '&:hover': { bgcolor: '#1C1A18' },
-              }}
-              size="small"
-            >
-              {isBlurEnabled ? <EyeOff size={16} /> : <Eye size={16} />}
-            </IconButton>
-          </Stack>
+          <div>
+            {/* Header Section */}
+            <div className="px-4 md:px-12">
+              <div className="flex items-center gap-3.5 mb-8">
+                <button 
+                  onClick={() => router.back()} 
+                  className="p-2 text-white bg-[#161412] border border-[#1C1A18] rounded-xl hover:bg-[#1C1A18] transition-colors"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <h1 className="text-2xl font-black font-clash text-white">
+                  Secrets
+                </h1>
+                <button
+                  onClick={() => setIsBlurEnabled(!isBlurEnabled)}
+                  className={`p-2 border border-[#1C1A18] rounded-xl transition-colors ${
+                    isBlurEnabled ? 'text-white/40 bg-[#161412]' : 'text-[#10B981] bg-[#161412]'
+                  } hover:bg-[#1C1A18]`}
+                >
+                  {isBlurEnabled ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
 
-          {/* Credentials List */}
-          <Stack spacing={1.5} sx={{ maxWidth: 800 }}>
-            {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <CredentialItem key={`skeleton-${i}`} credential={{ $id: `skeleton-${i}`, name: 'Loading...', username: '', type: 'password' } as any} />
-              ))
-            ) : allCredentials.length === 0 ? (
-              <Paper elevation={0} sx={{ 
-                p: 10, 
-                textAlign: 'center', 
-                borderRadius: '32px', 
-                bgcolor: '#161412', 
-                border: '1px dashed #1C1A18'
-              }}>
-                <Typography variant="h6" sx={{ fontWeight: 900, color: '#fff', mb: 1, fontFamily: 'var(--font-clash)' }}>
-                  No Secrets Found
-                </Typography>
-                <Typography sx={{ color: '#9B9691', maxWidth: 320, mx: 'auto' }}>
-                  Your secure vault is ready for its first secret.
-                </Typography>
-              </Paper>
-            ) : (
-              sortedCredentials.map((cred: Credentials) => (
-                <CredentialItem
-                  key={cred.$id}
-                  credential={cred}
-                  onCopy={handleCopy}
-                  onEdit={() => handleEdit(cred)}
-                  onDelete={() => openDeleteModal(cred)}
-                  onTogglePin={() => handleTogglePin(cred.$id)}
-                  isBlurEnabled={isBlurEnabled}
-                  onClick={() => {
-                    setSelectedCredential(cred);
-                    setActiveDetail({ type: 'secret', id: cred.$id, data: cred });
-                  }}
-                />
-              ))
+              {/* Credentials List */}
+              <div className="flex flex-col gap-3.5 max-w-3xl">
+                {loading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <CredentialItem key={`skeleton-${i}`} credential={{ $id: `skeleton-${i}`, name: 'Loading...', username: '', type: 'password' } as any} />
+                  ))
+                ) : allCredentials.length === 0 ? (
+                  <div className="p-24 text-center rounded-[32px] bg-[#161412] border border-dashed border-[#1C1A18]">
+                    <h2 className="text-xl font-black text-white mb-2 font-clash">
+                      No Secrets Found
+                    </h2>
+                    <p className="text-[#9B9691] max-w-xs mx-auto">
+                      Your secure vault is ready for its first secret.
+                    </p>
+                  </div>
+                ) : (
+                  sortedCredentials.map((cred: Credentials) => (
+                    <CredentialItem
+                      key={cred.$id}
+                      credential={cred}
+                      onCopy={handleCopy}
+                      onEdit={() => handleEdit(cred)}
+                      onDelete={() => openDeleteModal(cred)}
+                      onTogglePin={() => handleTogglePin(cred.$id)}
+                      isBlurEnabled={isBlurEnabled}
+                      onClick={() => {
+                        setSelectedCredential(cred);
+                        setActiveDetail({ type: 'secret', id: cred.$id, data: cred });
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+
+            <CredentialDialog
+              open={showDialog}
+              onClose={() => {
+                setShowDialog(false);
+                setDialogPrefill(undefined);
+              }}
+              initial={editCredential}
+              prefill={dialogPrefill}
+              defaultType={dialogType}
+              onSaved={refreshCredentials}
+            />
+
+            {/* Custom Tailwind Delete Modal */}
+            {isDeleteModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                <div className="w-full max-w-md p-6 rounded-[32px] bg-[#161412] border border-[#1C1A18] shadow-[0_40px_80px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in-95 duration-200">
+                  <h3 className="text-2xl font-black font-clash text-[#FF453A] mb-4">
+                    Delete Secret
+                  </h3>
+                  <div className="mb-6">
+                    <p className="text-[#9B9691] font-medium leading-relaxed">
+                      Deleting <strong>{credentialToDelete?.name}</strong> will permanently remove this secret from your vault. This action is irreversible.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <button 
+                      onClick={() => requestSudo({ onSuccess: () => handleDelete() })}
+                      className="w-full py-3.5 px-6 font-black rounded-2xl bg-[#FF453A] text-black hover:bg-[#FF453A]/90 transition-colors"
+                    >
+                      Confirm Deletion
+                    </button>
+                    <button 
+                      onClick={() => setIsDeleteModalOpen(false)}
+                      className="w-full py-3 px-6 font-semibold rounded-2xl text-white/60 hover:text-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
-          </Stack>
-        </Box>
 
-        <CredentialDialog
-          open={showDialog}
-          onClose={() => {
-            setShowDialog(false);
-            setDialogPrefill(undefined);
-          }}
-          initial={editCredential}
-          prefill={dialogPrefill}
-          defaultType={dialogType}
-          onSaved={refreshCredentials}
-        />
-
-        <Dialog
-          open={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          PaperProps={{
-            sx: {
-              borderRadius: '32px',
-              bgcolor: '#161412',
-              border: '1px solid #1C1A18',
-              backgroundImage: 'none',
-              boxShadow: '0 40px 80px rgba(0, 0, 0, 0.6)',
-              p: 2
-            }
-          }}
-        >
-          <DialogTitle sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', fontSize: '1.5rem', color: '#FF453A' }}>
-            Delete Secret
-          </DialogTitle>
-          <DialogContent>
-            <Typography variant="body1" sx={{ color: '#9B9691', fontWeight: 500, lineHeight: 1.6 }}>
-              Deleting <strong>{credentialToDelete?.name}</strong> will permanently remove this secret from your vault. This action is irreversible.
-            </Typography>
-          </DialogContent>
-          <DialogActions sx={{ p: 3, pt: 1, gap: 2, flexDirection: 'column' }}>
-            <Button 
-              fullWidth 
-              variant="contained" 
-              onClick={() => requestSudo({ onSuccess: () => handleDelete() })}
-              sx={{ 
-                borderRadius: '16px', 
-                fontWeight: 900,
-                bgcolor: '#FF453A',
-                color: '#000',
-                py: 1.5,
-                '&:hover': { bgcolor: alpha('#FF453A', 0.9) }
-              }}
-            >
-              Confirm Deletion
-            </Button>
-            <Button 
-              fullWidth 
-              onClick={() => setIsDeleteModalOpen(false)}
-              sx={{ borderRadius: '16px', fontWeight: 800, color: 'rgba(255,255,255,0.6)' }}
-            >
-              Cancel
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <SudoModal
-          isOpen={showMasterPassDrawer}
-          app="vault"
-          onSuccess={handleMasterPassSuccess}
-          onCancel={() => { }}
-        />
-        </Box>
+            <SudoModal
+              isOpen={showMasterPassDrawer}
+              app="vault"
+              onSuccess={handleMasterPassSuccess}
+              onCancel={() => { }}
+            />
+          </div>
         </MultiSectionContainer>
-      </Box>
+      </div>
     </>
   );
 }
@@ -373,12 +316,13 @@ export default function DashboardPage() {
   return (
     <Suspense
       fallback={
-        <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#0A0908' }}>
-          <CircularProgress color="primary" />
-        </Box>
+        <div className="flex items-center justify-center min-h-screen bg-[#0A0908]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+        </div>
       }
     >
       <DashboardPageContent />
     </Suspense>
   );
 }
+
