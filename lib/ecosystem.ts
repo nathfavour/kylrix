@@ -42,6 +42,20 @@ export function getEcosystemUrl(subdomain: string, path = '') {
 
   // Always use path-based routing in unified app (same-origin)
   // Regardless of localhost or production
-  const basePath = APP_BASE_PATHS[subdomain] || `/${subdomain}`;
-  return `${basePath}${path ? (path.startsWith('/') ? path : `/${path}`) : ''}`;
+  const normalizedPath = path ? (path.startsWith('/') ? path : `/${path}`) : '';
+  let basePath = '';
+  if (normalizedPath) {
+    const rawPaths: Record<string, string> = {
+      accounts: '/accounts',
+      note: '/note',
+      vault: '/vault',
+      flow: '/flow',
+      connect: '/connect',
+      kylrix: '/',
+    };
+    basePath = rawPaths[subdomain] || `/${subdomain}`;
+  } else {
+    basePath = APP_BASE_PATHS[subdomain] || `/${subdomain}`;
+  }
+  return `${basePath}${normalizedPath}`;
 }

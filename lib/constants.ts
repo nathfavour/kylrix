@@ -38,6 +38,19 @@ export function getEcosystemUrl(subdomain: string, path = '') {
   }
 
   const normalizedPath = path ? (path.startsWith('/') ? path : `/${path}`) : '';
-  const basePath = APP_BASE_PATHS[subdomain] || `/${subdomain}`;
+  let basePath = '';
+  if (normalizedPath) {
+    const rawPaths: Record<string, string> = {
+      accounts: '/accounts',
+      note: '/note',
+      vault: '/vault',
+      flow: '/flow',
+      connect: '/connect',
+      kylrix: '/',
+    };
+    basePath = rawPaths[subdomain] || `/${subdomain}`;
+  } else {
+    basePath = APP_BASE_PATHS[subdomain] || `/${subdomain}`;
+  }
   return `${basePath}${normalizedPath}`;
 }

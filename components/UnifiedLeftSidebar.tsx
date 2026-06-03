@@ -72,7 +72,7 @@ export function UnifiedLeftSidebar() {
     if (appContext === 'flow') {
       if (pathname?.includes('/forms')) return 'forms';
       if (pathname?.includes('/events')) return 'events';
-      if (pathname === '/flow' || pathname?.includes('/tasks')) return 'goals';
+      if (pathname?.startsWith('/flow/tasks') || pathname?.includes('/tasks')) return 'goals';
       return 'goals';
     }
     if (appContext === 'connect') {
@@ -102,12 +102,12 @@ export function UnifiedLeftSidebar() {
       router.push(routes[newValue] || '/vault/dashboard');
     } else if (appContext === 'flow') {
       const routes: Record<string, string> = {
-        goals: '/flow',
+        goals: '/flow/tasks',
         forms: '/flow/forms',
         events: '/flow/events',
         projects: '/projects',
       };
-      router.push(routes[newValue] || '/flow');
+      router.push(routes[newValue] || '/flow/tasks');
     } else if (appContext === 'connect') {
       const routes: Record<string, string> = {
         home: '/connect',

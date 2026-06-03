@@ -185,7 +185,7 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
               title = 'Synergize Your Tasks';
               description = 'You frequently update your tasks and flows. Review outstanding goals in the Productivity Center?';
               actionLabel = 'Open flows';
-              actionHref = '/flow';
+              actionHref = '/flow/tasks';
             } else if (app === 'vault') {
               title = 'Secure Password Manager';
               description = 'You frequently access credentials. Review and audit vault item sharing rules?';

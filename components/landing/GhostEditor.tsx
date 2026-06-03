@@ -806,7 +806,7 @@ export const GhostEditor = () => {
         const id = peekEphemeralClaimResume('ghost');
 
         const stripClaimQuery = () => {
-            router.replace('/note', { scroll: false });
+            router.replace('/note/notes', { scroll: false });
         };
 
         if (!id) {

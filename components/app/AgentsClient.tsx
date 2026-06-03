@@ -80,7 +80,7 @@ export function AgentsClient({ initialAgents }: { initialAgents?: AgentRow[] }) 
     }, [fetchAgents, user?.$id, initialAgents]);
 
     const handleBack = () => {
-        router.push('/flow');
+        router.push('/flow/tasks');
     };
 
     const handleSettings = () => {
