@@ -1,51 +1,87 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { 
-  Box, 
-  Container, 
-  Typography, 
-  Stack, 
-  Grid, 
-  AppBar, 
-  Toolbar, 
-  Link,
-  Avatar
-} from '@/lib/mui-tailwind/material';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { useAuth } from '@/context/auth/AuthContext';
-import {
-  Description as DescriptionIcon,
-  CloudUpload as CloudIcon,
-  VerifiedUser as ShieldCheckIcon,
-} from '@/lib/mui-tailwind/icons';
+  ShieldCheck, 
+  ChevronRight, 
+  ArrowRight,
+  Terminal,
+  Layers,
+  Fingerprint,
+  Cpu,
+  Zap,
+  Lock,
+  MessageSquare,
+  StickyNote,
+  Sparkles
+} from 'lucide-react';
+import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
-import Logo from '@/components/common/Logo';
 
-const features = [
-  {
-    icon: <DescriptionIcon style={{ height: 32, width: 32 }} />,
-    title: 'Secure Note Taking',
-    description:
-      "Capture your ideas with professional-grade note taking tools and comprehensive organizing features.",
-  },
-  {
-    icon: <CloudIcon style={{ height: 32, width: 32 }} />,
-    title: 'Secure Synchronization',
-    description:
-      'Securely store and share your notes with professional-grade encryption and private access control.',
-  },
-  {
-    icon: <ShieldCheckIcon style={{ height: 32, width: 32 }} />,
-    title: 'Smart Organization',
-    description:
-      'Organize your thoughts with tags, search, and secure cloud management.',
-  }];
+import { useAuth } from '@/context/auth/AuthContext';
+import { ECOSYSTEM_APPS, getEcosystemUrl } from '@/lib/ecosystem';
+import { Logo } from '@/components/Logo';
+
+const getAppIcon = (id: string) => {
+  switch (id) {
+    case 'note': return StickyNote;
+    case 'vault': return Lock;
+    case 'flow': return Zap;
+    case 'connect': return MessageSquare;
+    case 'accounts': return Fingerprint;
+    default: return StickyNote;
+  }
+};
+
+const ProductCard = ({ app }: { app: any }) => {
+  const Icon = getAppIcon(app.id);
+
+  return (
+    <motion.div 
+      whileHover={{ y: -8 }} 
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      className="h-full"
+    >
+      <a 
+        href={getEcosystemUrl(app.subdomain)}
+        className="p-8 rounded-3xl border border-white/5 bg-[#141211] flex flex-col gap-6 h-full transition duration-300 hover:bg-[#1C1917]"
+        style={{ '--hover-border-color': `${app.color}66` } as React.CSSProperties}
+      >
+        <div 
+          className="w-16 h-16 rounded-2xl flex items-center justify-center border"
+          style={{ 
+            backgroundColor: `${app.color}0d`, 
+            borderColor: `${app.color}1f` 
+          }}
+        >
+          <Logo app={app.id as any} size={36} variant="icon" />
+        </div>
+        
+        <div className="flex-1">
+          <h4 className="text-xl font-extrabold font-clash text-white mb-2">{app.label}</h4>
+          <p className="text-sm text-white/50 leading-relaxed font-satoshi">{app.description}</p>
+        </div>
+
+        <div className="pt-4 mt-auto">
+          <span 
+            className="inline-flex items-center gap-1 text-xs font-black uppercase tracking-wider"
+            style={{ color: app.color }}
+          >
+            <span>Initialize {app.label}</span>
+            <ChevronRight size={14} />
+          </span>
+        </div>
+      </a>
+    </motion.div>
+  );
+};
 
 export default function LandingPage() {
   const { openIDMWindow, isAuthenticated, user, isAuthenticating } = useAuth();
   const router = useRouter();
+  const { scrollYProgress } = useScroll();
+  const opacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -58,7 +94,6 @@ export default function LandingPage() {
     }
   }, [isAuthenticated, router]);
 
-  // Generate user initials from name or email
   const getUserInitials = (user: any): string => {
     if (user?.name) {
       return user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
@@ -70,294 +105,241 @@ export default function LandingPage() {
   };
 
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      minHeight: '100vh', 
-      bgcolor: '#0A0908', 
-      color: 'rgba(255, 255, 255, 0.9)',
-      backgroundImage: 'radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.1) 0%, transparent 70%)'
-    }}>
-      <AppBar 
-        position="sticky" 
-        sx={{ 
-          bgcolor: 'rgba(10, 9, 8, 0.8)', 
-          backdropFilter: 'none', 
-          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-          boxShadow: 'none',
-          backgroundImage: 'none'
-        }}
-      >
-        <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 5 }, height: 80 }}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Logo 
-              app="note" 
-              size={36} 
-              variant="full" 
-              href="/note"
-              component="a"
-              sx={{ '&:hover': { opacity: 0.8 } }}
-            />
-          </Stack>
-          
-          <Stack direction="row" spacing={4} sx={{ display: { xs: 'none', md: 'flex' }, flex: 1, justifyContent: 'center' }}>
+    <div className="min-h-screen bg-[#0A0908] text-white/90 flex flex-col font-satoshi relative overflow-hidden">
+      {/* Top Header */}
+      <header className="sticky top-0 z-[100] bg-[#0A0908]/80 backdrop-blur border-b border-white/5 h-20 flex items-center px-6 md:px-12">
+        <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+          <Logo 
+            app="note" 
+            size={36} 
+            variant="full" 
+            href="/note"
+            component="a"
+            className="hover:opacity-80 transition"
+          />
+
+          <nav className="hidden md:flex items-center gap-8">
             {['Product', 'Solutions', 'Resources', 'Pricing'].map((item) => (
-              <Link
+              <a
                 key={item}
                 href="#"
-                underline="none"
-                sx={{ 
-                  fontSize: '0.75rem', 
-                  fontWeight: 700, 
-                  color: 'rgba(255, 255, 255, 0.5)',
-                  fontFamily: '"Space Grotesk", sans-serif',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  transition: 'all 0.2s',
-                  '&:hover': { color: '#6366F1' }
-                }}
+                className="text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-[#6366F1] transition font-clash"
               >
                 {item}
-              </Link>
+              </a>
             ))}
-          </Stack>
+          </nav>
 
-          <Box>
+          <div>
             {isAuthenticated ? (
-              <Avatar sx={{ 
-                bgcolor: '#6366F1', 
-                color: '#000', 
-                width: 36, 
-                height: 36, 
-                fontSize: '0.875rem', 
-                fontWeight: 900,
-                fontFamily: '"Space Grotesk", sans-serif'
-              }}>
+              <div className="w-9 h-9 rounded-full bg-[#6366F1] text-black flex items-center justify-center text-sm font-black font-clash">
                 {getUserInitials(user)}
-              </Avatar>
+              </div>
             ) : (
-              <Button 
-                variant="text" 
+              <button 
                 onClick={() => openIDMWindow()}
-                isLoading={isAuthenticating}
-                sx={{ 
-                  color: '#6366F1',
-                  fontWeight: 900,
-                  fontFamily: '"Space Grotesk", sans-serif',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em'
-                }}
+                disabled={isAuthenticating}
+                className="text-[10px] font-black uppercase tracking-widest text-[#6366F1] hover:text-[#5254E8] transition font-clash disabled:opacity-50"
               >
                 Login
-              </Button>
+              </button>
             )}
-          </Box>
-        </Toolbar>
-      </AppBar>
+          </div>
+        </div>
+      </header>
 
-      <Box component="main" sx={{ flex: 1 }}>
-        <Box sx={{ py: { xs: 12, md: 20 }, textAlign: 'center', position: 'relative' }}>
-          <Container maxWidth="md">
-            <Typography 
-              variant="h1" 
-              sx={{ 
-                mb: 3, 
-                fontSize: { xs: '3rem', md: '5.5rem' }, 
-                fontWeight: 900, 
-                lineHeight: 0.9,
-                fontFamily: 'var(--font-clash), "Space Grotesk", sans-serif',
-                textTransform: 'uppercase',
-                letterSpacing: '-0.02em',
-                background: 'linear-gradient(to bottom, #FFF 0%, rgba(255,255,255,0.7) 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              Your notes, <br />
-              <Box component="span" sx={{ color: '#6366F1', WebkitTextFillColor: '#6366F1' }}>Secured</Box>
-            </Typography>
-            <Typography 
-              variant="body1" 
-              sx={{ 
-                mb: 8, 
-                color: 'rgba(255, 255, 255, 0.5)', 
-                fontSize: { xs: '1.125rem', md: '1.25rem' }, 
-                maxWidth: '650px', 
-                mx: 'auto',
-                fontFamily: 'var(--font-satoshi), sans-serif',
-                lineHeight: 1.6
-              }}
-            >
-              Transform your ideas with professional note taking and secure your notes. 
-              Capture comprehensive content instantly, collaborate seamlessly, and own your data forever.
-            </Typography>
+      {/* Main Body */}
+      <main className="flex-1 relative z-10">
+        
+        {/* Hero Section */}
+        <section className="py-20 md:py-32 text-center px-6">
+          <Container maxW="3xl">
+            <motion.div style={{ opacity }}>
+              <div className="flex flex-col items-center gap-6">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border border-cyan-500/30 bg-cyan-500/5 text-cyan-400">
+                  <Sparkles size={12} />
+                  <span>AI-POWERED ORCHESTRATION IS HERE</span>
+                </span>
+                
+                <h1 className="text-4xl md:text-8xl font-black font-clash leading-none tracking-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
+                  Redefining the <br />
+                  <span className="text-[#6366F1]">Ecosystem</span> of Tools.
+                </h1>
+                
+                <p className="text-base md:text-xl text-white/50 max-w-2xl mx-auto leading-relaxed mt-4">
+                  Kylrix is a unified suite of ultra-secure applications designed for the modern creator.
+                  Experience zero-knowledge privacy and seamless AI intelligence across your entire workflow.
+                </p>
 
-            <Stack direction="column" alignItems="center" spacing={2} sx={{ mb: 10 }}>
-              <Button 
-                size="large" 
-                sx={{ 
-                  px: 8, 
-                  py: 2.5, 
-                  fontSize: '1.125rem', 
-                  fontWeight: 900,
-                  fontFamily: '"Space Grotesk", sans-serif',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  bgcolor: '#6366F1',
-                  color: '#000',
-                  borderRadius: '100px',
-                  boxShadow: '0 0 30px rgba(99, 102, 241, 0.3)',
-                  '&:hover': {
-                    bgcolor: '#00D1D9',
-                    boxShadow: '0 0 40px rgba(99, 102, 241, 0.5)',
-                  }
-                }}
-                onClick={() => openIDMWindow()}
-                isLoading={isAuthenticating}
-              >
-                Get Started Free
-              </Button>
-            </Stack>
+                <div className="flex flex-col sm:flex-row gap-4 mt-8 justify-center w-full max-w-md">
+                  <button 
+                    onClick={() => openIDMWindow()}
+                    disabled={isAuthenticating}
+                    className="px-8 py-3.5 bg-[#6366F1] hover:bg-[#5254E8] text-black font-black text-sm uppercase tracking-wider rounded-xl transition shadow-[0_0_30px_rgba(99,102,241,0.25)] active:scale-[0.98] disabled:opacity-50"
+                  >
+                    Get Started Free
+                  </button>
+                  <a 
+                    href="/docs"
+                    className="px-8 py-3.5 border border-white/10 hover:border-white/20 hover:bg-white/5 text-white font-black text-sm uppercase tracking-wider rounded-xl transition text-center active:scale-[0.98]"
+                  >
+                    Documentation
+                  </a>
+                </div>
+              </div>
+            </motion.div>
           </Container>
-        </Box>
+        </section>
 
-        <Box sx={{ py: { xs: 12, md: 20 }, bgcolor: '#0A0908' }}>
-          <Container>
-            <Box sx={{ textAlign: 'center', mb: 12, maxWidth: '800px', mx: 'auto' }}>
-              <Typography 
-                variant="h2" 
-                sx={{ 
-                  mb: 3, 
-                  fontWeight: 900, 
-                  fontFamily: 'var(--font-clash), "Space Grotesk", sans-serif',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  fontSize: { xs: '2rem', md: '3.5rem' }
-                }}
-              >
-                Secure notes <br />
-                <Box component="span" sx={{ color: '#6366F1' }}>for the future</Box>
-              </Typography>
-              <Typography 
-                variant="body1" 
-                sx={{ 
-                  color: 'rgba(255, 255, 255, 0.4)',
-                  fontFamily: 'var(--font-satoshi), sans-serif',
-                  fontSize: '1.1rem'
-                }}
-              >
-                Experience next-generation note-taking with intelligent organization, 
-                private cloud storage, and advanced security built-in.
-              </Typography>
-            </Box>
+        {/* Flagships Grid */}
+        <section className="py-20 md:py-32 border-t border-white/5 bg-white/[0.01] px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16 flex flex-col gap-3">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#6366F1] font-clash">THE FLAGSHIPS</span>
+              <h2 className="text-3xl md:text-5xl font-black font-clash text-white">Engineered for Excellence.</h2>
+            </div>
 
-            <Grid container spacing={4}>
-              {features.map((feature, index) => (
-                <Grid size={{ xs: 12, md: 4 }} key={index}>
-                  <Card sx={{ 
-                    height: '100%', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    gap: 3,
-                    bgcolor: '#161412',
-                    backdropFilter: 'none',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    boxShadow: '0 20px 40px -15px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5)',
-                    borderRadius: '32px',
-                    p: 2,
-                    transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-                    '&:hover': {
-                      transform: 'translateY(-8px) scale(1.01)',
-                      borderColor: 'rgba(99, 102, 241, 0.3)',
-                      boxShadow: '0 40px 80px -20px rgba(0,0,0,0.9), 0 0 20px rgba(99, 102, 241, 0.1), inset 0 1px 1px rgba(255,255,255,0.08)',
-                    }
-                  }}>
-                    <CardHeader>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        height: 64, 
-                        width: 64, 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        borderRadius: '20px', 
-                        bgcolor: 'rgba(99, 102, 241, 0.1)', 
-                        color: '#6366F1',
-                        border: '1px solid rgba(99, 102, 241, 0.2)'
-                      }}>
-                        {feature.icon}
-                      </Box>
-                    </CardHeader>
-                    <CardContent>
-                      <CardTitle sx={{ 
-                        mb: 2, 
-                        fontWeight: 900, 
-                        fontFamily: '"Space Grotesk", sans-serif',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        fontSize: '1.25rem'
-                      }}>
-                        {feature.title}
-                      </CardTitle>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          color: 'rgba(255, 255, 255, 0.5)',
-                          fontFamily: 'var(--font-satoshi), sans-serif',
-                          lineHeight: 1.6,
-                          fontSize: '0.95rem'
-                        }}
-                      >
-                        {feature.description}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {ECOSYSTEM_APPS.filter(app => app.type === 'app').map((app) => (
+                <div key={app.id}>
+                  <ProductCard app={app} />
+                </div>
               ))}
-            </Grid>
-          </Container>
-        </Box>
-      </Box>
+            </div>
+          </div>
+        </section>
 
-      <Box component="footer" sx={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', py: 10, bgcolor: '#0A0908' }}>
-        <Container>
-          <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems="center" spacing={6}>
-            <Stack direction="row" spacing={4} flexWrap="wrap" justifyContent="center">
-              {['About', 'Contact', 'Privacy Policy', 'Terms of Service'].map((item) => (
-                <Link
-                  key={item}
-                  href="#"
-                  underline="none"
-                  sx={{ 
-                    fontSize: '0.75rem', 
-                    fontWeight: 700,
-                    fontFamily: '"Space Grotesk", sans-serif',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    color: 'rgba(255, 255, 255, 0.4)',
-                    transition: 'color 0.2s',
-                    '&:hover': { color: '#6366F1' }
-                  }}
+        {/* Infrastructure Section */}
+        <section className="py-20 md:py-32 px-6 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+            
+            {/* Left side text info */}
+            <div className="flex flex-col gap-10">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#6366F1] font-clash block mb-3">INFRASTRUCTURE</span>
+                <h2 className="text-3xl md:text-5xl font-black font-clash text-white leading-tight mb-4">
+                  Secure by Design. <br />Private by Default.
+                </h2>
+                <p className="text-lg text-white/50 leading-relaxed font-satoshi">
+                  Every Kylrix application is built on our own secure infrastructure, so your data stays yours.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-6">
+                {[
+                  { icon: Fingerprint, title: 'Private', desc: 'Local encryption means only you can see your data.', color: '#EF4444' },
+                  { icon: Layers, title: 'Extensible', desc: 'Built for developers to build on top of.', color: '#6366F1' },
+                  { icon: Cpu, title: 'Local AI', desc: 'Fast, private AI that runs on your device.', color: '#10B981' }
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4 items-start">
+                    <div className="pt-1" style={{ color: item.color }}>
+                      <item.icon size={28} strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-white mb-1 font-clash">{item.title}</h4>
+                      <p className="text-sm text-white/40 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right side interactive console mock */}
+            <div className="bg-black/60 border border-white/10 rounded-3xl p-8 md:p-12 min-h-[400px] flex flex-col justify-between relative overflow-hidden shadow-2xl backdrop-blur">
+              <div className="flex flex-col gap-6">
+                <div className="text-white/20">
+                  <Terminal size={48} strokeWidth={1} />
+                </div>
+                <div className="font-mono text-lg md:text-2xl text-white/90 leading-relaxed">
+                  <span className="text-[#6366F1]">$</span> kylrix initialize <br />
+                  <div className="text-white/30 text-sm md:text-base mt-2 flex flex-col gap-1">
+                    <span>&gt; Secure Connection Established.</span>
+                    <span>&gt; Connection Successful.</span>
+                    <span>&gt; Syncing your data...</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-8 border-t border-white/10 mt-8">
+                <a 
+                  href="/developers"
+                  className="inline-flex items-center gap-2 px-6 py-3 border border-white/10 hover:border-white/20 hover:bg-white/5 text-white font-black text-sm uppercase tracking-wider rounded-xl transition"
                 >
-                  {item}
-                </Link>
-              ))}
-            </Stack>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: 'rgba(255, 255, 255, 0.2)',
-                fontFamily: '"Space Grotesk", sans-serif',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                fontSize: '0.7rem'
-              }}
-            >
-              © 2025 Kylrix Note. All rights reserved.
-            </Typography>
-          </Stack>
-        </Container>
-      </Box>
-    </Box>
+                  <span>Developer Portal</span>
+                  <ArrowRight size={16} />
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        {/* Action Promo Banner */}
+        <section className="px-6 max-w-7xl mx-auto pb-16">
+          <div className="p-8 md:p-12 rounded-[32px] bg-[#161412] border border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 shadow-2xl">
+            <div className="flex-1">
+              <h3 className="text-2xl md:text-3xl font-black font-clash text-white mb-2">
+                Premium enough to lead with, quiet enough to live in.
+              </h3>
+              <p className="text-sm text-white/50 leading-relaxed max-w-3xl">
+                Kylrix is built to look like a serious system: crisp typography, true app marks, a black canvas,
+                and one shell that routes you to the right product without modal noise.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row md:flex-col gap-3 w-full md:w-auto">
+              <button
+                onClick={() => openIDMWindow()}
+                disabled={isAuthenticating}
+                className="px-6 py-3 bg-[#6366F1] hover:bg-[#5254E8] text-black font-black text-xs uppercase tracking-wider rounded-xl transition text-center whitespace-nowrap active:scale-[0.98] disabled:opacity-50"
+              >
+                Open Accounts
+              </button>
+              <a
+                href="/pricing"
+                className="px-6 py-3 border border-white/10 hover:border-white/20 hover:bg-white/5 text-white font-black text-xs uppercase tracking-wider rounded-xl transition text-center whitespace-nowrap active:scale-[0.98]"
+              >
+                View Pricing
+              </a>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5 py-12 bg-[#0A0908] px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <span className="text-[10px] font-black tracking-widest uppercase text-white/40 block">KYLRIX.SPACE</span>
+            <p className="text-xs text-white/30 mt-1 max-w-md font-satoshi">
+              One system, one session, one premium surface for the entire ecosystem.
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-6">
+            <a href="/docs" className="text-xs font-black text-white hover:text-[#6366F1] transition font-clash uppercase tracking-wider">Docs</a>
+            <a href="/downloads" className="text-xs font-black text-white hover:text-[#6366F1] transition font-clash uppercase tracking-wider">Downloads</a>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-white/[0.03] text-center">
+          <span className="text-[10px] text-white/20 font-black tracking-widest uppercase font-clash block">
+            © 2026 Kylrix Ecosystem. All rights reserved.
+          </span>
+        </div>
+      </footer>
+    </div>
   );
 }
+
+// Inline Container helper for clean layout
+const Container = ({ children, maxW = '7xl' }: { children: React.ReactNode; maxW?: string }) => {
+  const widthClasses: Record<string, string> = {
+    '3xl': 'max-w-3xl',
+    '7xl': 'max-w-7xl',
+  };
+  return (
+    <div className={`mx-auto w-full ${widthClasses[maxW] || 'max-w-7xl'}`}>
+      {children}
+    </div>
+  );
+};
