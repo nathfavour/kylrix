@@ -189,9 +189,9 @@ function DashboardPageContent() {
   }
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen pb-10 bg-[#0A0908] pt-4 md:pt-8 relative">
       <div 
-        className="flex flex-col min-h-screen pb-10 bg-[#0A0908] transition-[filter] duration-300 pt-4 md:pt-8"
+        className="flex-1 flex flex-col transition-[filter,opacity] duration-300"
         style={{
           filter: showMasterPassDrawer ? 'blur(8px)' : 'none',
           pointerEvents: showMasterPassDrawer ? 'none' : 'auto',
@@ -312,7 +312,7 @@ function DashboardPageContent() {
           onCancel={() => { }}
         />
       )}
-    </>
+    </div>
   );
 }
 
