@@ -197,6 +197,13 @@ export default function SudoModal({
     // Check if user has passkey set up
     useEffect(() => {
         if (isOpen && user?.$id) {
+            // Instant bypass if already unlocked
+            if (masterPassCrypto.isVaultUnlocked()) {
+                console.log("[Kylrix] Vault already unlocked, bypassing Sudo prompt.");
+                handleSuccessWithSync();
+                return;
+            }
+
             // Check for passkey keychain entry
             AppwriteService.listKeychainEntries(user.$id).then((entries: any[]) => {
                 const passkeyPresent = entries.some((e: any) => e.type === 'passkey');
