@@ -4,6 +4,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useMemo,
   ReactNode,
   useRef,
 } from 'react';
@@ -376,29 +377,31 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
     setNeedsMasterPassword(true);
   };
 
-  const isVaultUnlocked = () => {
+  const isVaultUnlocked = useCallback(() => {
     const unlocked = masterPassCrypto.isVaultUnlocked();
     if (verbose) logDebug("[auth] vault unlock status", { unlocked });
     return unlocked;
-  };
+  }, [verbose]);
+
+  const contextValue = useMemo(() => ({
+    user,
+    loading,
+    isAuthenticating,
+    isAuthenticated: !!user,
+    isAuthReady,
+    isVaultUnlocked,
+    needsMasterPassword,
+    logout,
+    resetMasterpass,
+    refresh,
+    openIDMWindow,
+    closeIDMWindow,
+    idmWindowOpen,
+  }), [user, loading, isAuthenticating, isAuthReady, isVaultUnlocked, needsMasterPassword, logout, resetMasterpass, refresh, openIDMWindow, closeIDMWindow, idmWindowOpen]);
 
   return (
     <AppwriteContext.Provider
-      value={{
-        user,
-        loading,
-        isAuthenticating,
-        isAuthenticated: !!user,
-        isAuthReady,
-        isVaultUnlocked,
-        needsMasterPassword,
-        logout,
-        resetMasterpass,
-        refresh,
-        openIDMWindow,
-        closeIDMWindow,
-        idmWindowOpen,
-      }}
+      value={contextValue}
     >
       {children}
     </AppwriteContext.Provider>
