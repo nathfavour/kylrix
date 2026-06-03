@@ -21,9 +21,10 @@ import toast from 'react-hot-toast';
 interface EventCardProps {
   event: Event;
   onClick: () => void;
+  onDelete?: () => void;
 }
 
-export default function EventCard({ event, onClick }: EventCardProps) {
+export default function EventCard({ event, onClick, onDelete }: EventCardProps) {
   const pattern = generatePattern(event.id);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
@@ -67,7 +68,11 @@ export default function EventCard({ event, onClick }: EventCardProps) {
     try {
       await eventApi.delete(event.id);
       toast.success('Event successfully deleted');
-      window.location.reload();
+      if (onDelete) {
+        onDelete();
+      } else {
+        window.location.reload();
+      }
     } catch (err) {
       console.error('Failed to delete event:', err);
       toast.error('Failed to delete event');

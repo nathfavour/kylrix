@@ -155,9 +155,16 @@ export default function EventList() {
       <MultiSectionContainer panels={['note', 'huddles', 'goals']} contextId="event">
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4 p-1">
           <div>
-            <h1 className="text-3xl font-black font-clash text-white tracking-tight mb-1">
-              Events
-            </h1>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-3xl font-black font-clash text-white tracking-tight">
+                Events
+              </h1>
+              {events.length > 0 && (
+                <span className="px-2.5 py-0.5 rounded-full bg-[#6366F1]/10 border border-[#6366F1]/20 text-[#6366F1] text-[10px] font-black uppercase tracking-wider mt-1">
+                  {events.length} {events.length === 1 ? 'Event' : 'Events'}
+                </span>
+              )}
+            </div>
             <p className="text-[#8E8A86] font-semibold font-satoshi text-sm tracking-wide">
               Discover and manage your schedule
             </p>
@@ -207,6 +214,10 @@ export default function EventList() {
             <div key={event.id}>
               <EventCard 
                 event={event} 
+                onDelete={() => {
+                  setEvents(prev => prev.filter(e => e.id !== event.id));
+                  setActiveDetail(null);
+                }}
                 onClick={() => setActiveDetail({ type: 'event', id: event.id, data: event })} 
               />
             </div>
