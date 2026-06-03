@@ -30,6 +30,7 @@ import { TelegramDrawer } from '@/components/overlays/TelegramDrawer';
 import { checkTelegramConnection } from '@/lib/actions/telegram';
 import { MultiSectionContainer } from '@/context/SectionContext';
 import { CdrConfirmDrawer } from '@/src/features/story-cdr/CdrConfirmDrawer';
+import { useAppwriteVault } from '@/context/appwrite-context';
 
 // Inline Custom Telegram Icon SVG for lucide alignment
 function TelegramIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -61,6 +62,7 @@ function Switch({ checked, onChange }: { checked: boolean; onChange: () => void 
 
 export default function SettingsPage() {
     const { user, refreshUser } = useAuth();
+    const { usePasskeysByDefault, setUsePasskeysByDefault } = useAppwriteVault();
     const router = useRouter();
     const { requestSudo } = useSudo();
     const { open: openDrawer } = useUnifiedDrawer();
@@ -599,6 +601,20 @@ export default function SettingsPage() {
                                         <Switch 
                                             checked={cdrEnabled}
                                             onChange={handleCdrToggle}
+                                        />
+                                    </div>
+
+                                    <div className="h-[1px] bg-white/5 w-full" />
+
+                                    {/* Passkeys Default Switch */}
+                                    <div className="flex items-center justify-between gap-4 select-none">
+                                        <div>
+                                            <span className="block text-white font-extrabold text-xs">Use Passkeys by Default</span>
+                                            <span className="block text-white/40 text-[10px] font-semibold font-sans mt-0.5">Prioritize biometrics over master password for unlocking</span>
+                                        </div>
+                                        <Switch 
+                                            checked={usePasskeysByDefault}
+                                            onChange={() => setUsePasskeysByDefault(!usePasskeysByDefault)}
                                         />
                                     </div>
 

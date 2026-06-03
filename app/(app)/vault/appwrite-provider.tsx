@@ -39,6 +39,7 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [needsMasterPassword, setNeedsMasterPassword] = useState(false);
   const [isVaultBlurEnabled, setIsVaultBlurEnabled] = useState(false);
+  const [usePasskeysByDefault, setUsePasskeysByDefaultState] = useState(true);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [idmWindowOpen, setIDMWindowOpen] = useState(false);
   const verbose = process.env.NODE_ENV === "development";
@@ -66,9 +67,14 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
         // Update user state first
         setUser(account);
 
-        // Load blur preference
+        // Load preferences
         if (account.prefs?.vault_blur_enabled !== undefined) {
             setIsVaultBlurEnabled(!!account.prefs.vault_blur_enabled);
+        }
+        if (account.prefs?.use_passkeys_by_default !== undefined) {
+            setUsePasskeysByDefaultState(!!account.prefs.use_passkeys_by_default);
+        } else {
+            setUsePasskeysByDefaultState(true); // Default to true
         }
 
         // Clear the auth=success param from URL if it exists
@@ -399,6 +405,19 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const setUsePasskeysByDefault = async (enabled: boolean) => {
+    setUsePasskeysByDefaultState(enabled);
+    if (user?.$id) {
+        try {
+            const { account } = await import('@/lib/appwrite/client');
+            const currentPrefs = user.prefs || {};
+            await account.updatePrefs({ ...currentPrefs, use_passkeys_by_default: enabled });
+        } catch (err) {
+            console.error("[Vault] Failed to persist passkey default preference", err);
+        }
+    }
+  };
+
   const contextValue = useMemo(() => ({
     user,
     loading,
@@ -415,7 +434,9 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
     idmWindowOpen,
     isVaultBlurEnabled,
     setVaultBlurEnabled,
-  }), [user, loading, isAuthenticating, isAuthReady, isVaultUnlocked, needsMasterPassword, logout, resetMasterpass, refresh, openIDMWindow, closeIDMWindow, idmWindowOpen, isVaultBlurEnabled]);
+    usePasskeysByDefault,
+    setUsePasskeysByDefault,
+  }), [user, loading, isAuthenticating, isAuthReady, isVaultUnlocked, needsMasterPassword, logout, resetMasterpass, refresh, openIDMWindow, closeIDMWindow, idmWindowOpen, isVaultBlurEnabled, usePasskeysByDefault]);
 
   return (
     <AppwriteContext.Provider

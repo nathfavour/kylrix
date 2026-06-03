@@ -36,6 +36,7 @@ import toast from "react-hot-toast";
 import { getAppTone, type KylrixApp } from "@/lib/sdk/design";
 import { masterPassCrypto } from "@/lib/masterpass-crypto";
 import { useDrawerState } from "@/components/ui/DrawerStateContext";
+import { useAppwriteVault } from "@/context/appwrite-context";
 
 interface SudoModalProps {
     isOpen?: boolean;
@@ -58,6 +59,7 @@ export default function SudoModal({
 }: SudoModalProps) {
     const router = useRouter();
     const { setIsDrawerOpen } = useDrawerState();
+    const { usePasskeysByDefault } = useAppwriteVault();
     const isOpen = _isOpen ?? open ?? false;
 
     useEffect(() => {
@@ -254,7 +256,12 @@ export default function SudoModal({
                     return;
                 }
 
-                setMode(passkeyAllowed ? "passkey" : "password");
+                // RESPECT PREFERENCE: Default to passkey only if allowed AND user prefers it
+                if (passkeyAllowed && usePasskeysByDefault) {
+                    setMode("passkey");
+                } else {
+                    setMode("password");
+                }
                 setIsDetecting(false);
             }).catch(() => {
                 // Fail safe: if keychain lookup fails, force setup flow instead of prompting
@@ -273,7 +280,7 @@ export default function SudoModal({
             setPasskeyLoading(false);
             setIsDetecting(true);
         }
-    }, [isOpen, user?.$id, intent, handleRedirectToVaultSetup, isKylrixDomain, router]);
+    }, [isOpen, user?.$id, intent, handleRedirectToVaultSetup, isKylrixDomain, router, usePasskeysByDefault]);
 
     useEffect(() => {
         if (!isOpen) {

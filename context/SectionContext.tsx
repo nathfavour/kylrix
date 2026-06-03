@@ -225,7 +225,7 @@ export function SectionProvider({ children }: { children: React.ReactNode }) {
     };
 
     return finalConfig;
-    }, [overrides, screenWidth, isAuthenticated]);
+    }, [overrides, screenWidth, isAuthenticated, analyzeAndPartitionRoute]);
 
   const contextValue = useMemo<SectionContextType>(() => ({
     getLayoutForRoute,

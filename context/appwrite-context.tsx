@@ -19,6 +19,8 @@ export interface AppwriteContextType {
   idmWindowOpen: boolean;
   isVaultBlurEnabled: boolean;
   setVaultBlurEnabled: (enabled: boolean) => Promise<void>;
+  usePasskeysByDefault: boolean;
+  setUsePasskeysByDefault: (enabled: boolean) => Promise<void>;
 }
 
 export const AppwriteContext = createContext<AppwriteContextType | undefined>(
