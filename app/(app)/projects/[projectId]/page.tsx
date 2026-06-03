@@ -694,7 +694,7 @@ export default function ProjectDetailPage() {
                 </Box>
             </Stack>
 
-            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+            <Stack direction="row" spacing={0} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'flex-start', md: 'flex-end' }, gap: 1.5, flexWrap: 'wrap' }}>
                 {/* Active Collaborators HUD */}
                 {projectId && resourcePresence[projectId as string]?.length > 0 && (
                     <Stack direction="row" spacing={-1.5} sx={{ mr: 2, display: { xs: 'none', sm: 'flex' } }}>
@@ -812,7 +812,7 @@ export default function ProjectDetailPage() {
 
         <Grid container spacing={4}>
             {/* Left Content Column */}
-            <Grid size={{ xs: 12, lg: 8.5 }}>
+            <Grid size={{ xs: 12, xl: 8 }}>
                 <Box 
                     sx={{ 
                         mb: 3, 
@@ -1277,7 +1277,7 @@ export default function ProjectDetailPage() {
             </Grid>
 
             {/* Right Sidebar Column */}
-            <Grid size={{ xs: 12, lg: 3.5 }}>
+            <Grid size={{ xs: 12, xl: 4 }}>
                 <Stack spacing={4}>
                     {/* Participants */}
                     <Paper
@@ -1806,7 +1806,14 @@ function ResourceItem({
                     }
                 }}
             >
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 0, width: '100%' }}>
+                <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 2, 
+                    minWidth: 0, 
+                    flex: 1,
+                    width: { xs: '100%', sm: 'auto' }
+                }}>
                     <Box sx={{ 
                         width: 44, 
                         height: 44, 
@@ -1821,8 +1828,8 @@ function ResourceItem({
                     }}>
                         {icon}
                     </Box>
-                    <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography 
                                 sx={{ 
                                     color: '#fff', 
@@ -1844,35 +1851,37 @@ function ResourceItem({
                                 </Tooltip>
                             )}
                         </Box>
-                        <Typography 
-                            variant="caption" 
-                            sx={{ 
-                                color: 'rgba(255,255,255,0.4)', 
-                                fontWeight: 800, 
-                                textTransform: 'uppercase', 
-                                letterSpacing: '0.08em',
-                                fontSize: '0.68rem',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                bgcolor: 'rgba(255,255,255,0.03)',
-                                px: 1,
-                                py: 0.25,
-                                borderRadius: '6px',
-                                border: '1px solid rgba(255,255,255,0.04)'
-                            }}
-                        >
-                            {metadata || kind}
-                        </Typography>
+                        <Box>
+                            <Typography 
+                                variant="caption" 
+                                sx={{ 
+                                    color: 'rgba(255,255,255,0.4)', 
+                                    fontWeight: 800, 
+                                    textTransform: 'uppercase', 
+                                    letterSpacing: '0.08em',
+                                    fontSize: '0.68rem',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    bgcolor: 'rgba(255,255,255,0.03)',
+                                    px: 1,
+                                    py: 0.25,
+                                    borderRadius: '6px',
+                                    border: '1px solid rgba(255,255,255,0.04)'
+                                }}
+                            >
+                                {metadata || kind}
+                            </Typography>
+                        </Box>
                     </Box>
-                </Stack>
+                </Box>
 
-                <Stack 
-                    direction="row" 
-                    spacing={1.5} 
-                    alignItems="center" 
-                    justifyContent={{ xs: 'flex-end', sm: 'flex-start' }}
+                <Box 
                     sx={{ 
+                        display: 'flex',
+                        alignItems: 'center', 
+                        gap: 1.5,
                         width: { xs: '100%', sm: 'auto' },
+                        justifyContent: { xs: 'flex-end', sm: 'flex-start' },
                         flexShrink: 0,
                         borderTop: { xs: '1px solid rgba(255,255,255,0.04)', sm: 'none' },
                         pt: { xs: 1.5, sm: 0 },
@@ -1944,7 +1953,7 @@ function ResourceItem({
                     >
                         <Trash2 size={15} />
                     </IconButton>
-                </Stack>
+                </Box>
             </Paper>
 
             {menuAnchor && (

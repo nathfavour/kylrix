@@ -520,7 +520,7 @@ export function MultiSectionContainer({ children, panels, contextId }: MultiSect
 
   if (layout.columnsCount === 1) {
     return (
-      <Box sx={{ width: '100%' }}>
+      <Box sx={{ width: '100%', px: { xs: 2, lg: 4, xl: 6 }, boxSizing: 'border-box' }}>
         {children}
         <MobileDetailDrawer activeDetail={activeDetail} onClose={() => setActiveDetail(null)} />
       </Box>

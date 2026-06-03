@@ -388,7 +388,22 @@ export const Toolbar = React.forwardRef(({ children, className, sx, ...props }: 
 ));
 Toolbar.displayName = 'Toolbar';
 
-export const Tabs = React.forwardRef(({ children, className, sx, value, onChange, variant, ...props }: any, ref) => {
+export const Tabs = React.forwardRef(({
+  children,
+  className,
+  sx,
+  value,
+  onChange,
+  variant,
+  scrollButtons,
+  allowScrollButtonsMobile,
+  indicatorColor,
+  textColor,
+  orientation,
+  visibleScrollbar,
+  centered,
+  ...props
+}: any, ref) => {
   const { root, nested } = splitSx(sx);
   const tabRootSx = cleanSx(nested['& .MuiTab-root'] || {});
   const tabSelectedSx = cleanSx((nested['& .MuiTab-root'] || {})['&.Mui-selected'] || {});
@@ -421,7 +436,22 @@ export const Tabs = React.forwardRef(({ children, className, sx, value, onChange
 });
 Tabs.displayName = 'Tabs';
 
-export const Tab = React.forwardRef(({ label, children, className, sx, icon, iconPosition = 'start', selected, fullWidth, __tabRootSx, __tabSelectedSx, __tabHoverSx, ...props }: any, ref) => (
+export const Tab = React.forwardRef(({
+  label,
+  children,
+  className,
+  sx,
+  icon,
+  iconPosition = 'start',
+  selected,
+  fullWidth,
+  __tabRootSx,
+  __tabSelectedSx,
+  __tabHoverSx,
+  value,
+  textColor,
+  ...props
+}: any, ref) => (
   <button
     ref={ref}
     className={`rounded-xl px-4 py-2 text-sm font-medium ${selected ? 'text-white bg-[#1E1B19]' : 'text-stone-300 hover:bg-[#1E1B19]'} ${fullWidth ? 'flex-1 min-w-0' : ''} ${className || ''}`}
@@ -478,7 +508,17 @@ export const List = ({ children, className, ...props }: any) => (
   <div className={`flex flex-col ${className || ''}`} {...props}>{children}</div>
 );
 
-export const ListItem = ({ children, className, ...props }: any) => (
+export const ListItem = ({
+  children,
+  className,
+  alignItems,
+  dense,
+  disableGutters,
+  disablePadding,
+  divider,
+  secondaryAction,
+  ...props
+}: any) => (
   <div className={`flex items-center gap-3 rounded-xl px-3 py-2 ${className || ''}`} {...props}>{children}</div>
 );
 
@@ -486,11 +526,31 @@ export const ListItemAvatar = ({ children, className, ...props }: any) => (
   <div className={`shrink-0 ${className || ''}`} {...props}>{children}</div>
 );
 
-export const ListItemButton = ({ children, className, ...props }: any) => (
+export const ListItemButton = ({
+  children,
+  className,
+  selected,
+  dense,
+  disableGutters,
+  divider,
+  alignItems,
+  autoFocus,
+  ...props
+}: any) => (
   <button className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-[#1E1B19] ${className || ''}`} {...props}>{children}</button>
 );
 
-export const ListItemText = ({ primary, secondary, children, className, slotProps, sx, ...props }: any) => {
+export const ListItemText = ({
+  primary,
+  secondary,
+  children,
+  className,
+  slotProps,
+  sx,
+  disableTypography,
+  inset,
+  ...props
+}: any) => {
   const primarySx = cleanSx(slotProps?.primary?.sx || sx || {});
   return (
     <div className={`flex min-w-0 flex-1 flex-col ${className || ''}`} {...props}>
@@ -580,8 +640,83 @@ export const Typography = React.forwardRef(({ children, className, sx, variant =
 });
 Typography.displayName = 'Typography';
 
+const COL_SPANS: Record<number, string> = {
+  1: 'col-span-1',
+  2: 'col-span-2',
+  3: 'col-span-3',
+  4: 'col-span-4',
+  5: 'col-span-5',
+  6: 'col-span-6',
+  7: 'col-span-7',
+  8: 'col-span-8',
+  9: 'col-span-9',
+  10: 'col-span-10',
+  11: 'col-span-11',
+  12: 'col-span-12',
+};
+
+const SM_COL_SPANS: Record<number, string> = {
+  1: 'sm:col-span-1',
+  2: 'sm:col-span-2',
+  3: 'sm:col-span-3',
+  4: 'sm:col-span-4',
+  5: 'sm:col-span-5',
+  6: 'sm:col-span-6',
+  7: 'sm:col-span-7',
+  8: 'sm:col-span-8',
+  9: 'sm:col-span-9',
+  10: 'sm:col-span-10',
+  11: 'sm:col-span-11',
+  12: 'sm:col-span-12',
+};
+
+const MD_COL_SPANS: Record<number, string> = {
+  1: 'md:col-span-1',
+  2: 'md:col-span-2',
+  3: 'md:col-span-3',
+  4: 'md:col-span-4',
+  5: 'md:col-span-5',
+  6: 'md:col-span-6',
+  7: 'md:col-span-7',
+  8: 'md:col-span-8',
+  9: 'md:col-span-9',
+  10: 'md:col-span-10',
+  11: 'md:col-span-11',
+  12: 'md:col-span-12',
+};
+
+const LG_COL_SPANS: Record<number, string> = {
+  1: 'lg:col-span-1',
+  2: 'lg:col-span-2',
+  3: 'lg:col-span-3',
+  4: 'lg:col-span-4',
+  5: 'lg:col-span-5',
+  6: 'lg:col-span-6',
+  7: 'lg:col-span-7',
+  8: 'lg:col-span-8',
+  9: 'lg:col-span-9',
+  10: 'lg:col-span-10',
+  11: 'lg:col-span-11',
+  12: 'lg:col-span-12',
+};
+
+const XL_COL_SPANS: Record<number, string> = {
+  1: 'xl:col-span-1',
+  2: 'xl:col-span-2',
+  3: 'xl:col-span-3',
+  4: 'xl:col-span-4',
+  5: 'xl:col-span-5',
+  6: 'xl:col-span-6',
+  7: 'xl:col-span-7',
+  8: 'xl:col-span-8',
+  9: 'xl:col-span-9',
+  10: 'xl:col-span-10',
+  11: 'xl:col-span-11',
+  12: 'xl:col-span-12',
+};
+
 // 8. Grid Component
-export const Grid = React.forwardRef(({ children, container, item, size, xs, sm, md, lg, spacing, className, sx, ...props }: any, ref) => {
+export const Grid = React.forwardRef(({ children, container, item, size, xs, sm, md, lg, xl, spacing, className, sx, ...props }: any, ref) => {
   let classes = className || '';
   const style: any = { ...cleanSx(sx) };
   if (container) {
@@ -590,11 +725,66 @@ export const Grid = React.forwardRef(({ children, container, item, size, xs, sm,
   }
   
   const computedSize = typeof size === 'object' ? size : undefined;
-  if (item || computedSize || xs || sm || md || lg) {
-    const span = (computedSize?.lg ?? lg) ?? (computedSize?.md ?? md) ?? (computedSize?.sm ?? sm) ?? (computedSize?.xs ?? xs);
-    if (span && span !== true && span !== 'auto') {
-      style.gridColumn = `span ${span} / span ${span}`;
+  if (item || computedSize || xs || sm || md || lg || xl) {
+    const xsVal = computedSize?.xs ?? xs;
+    const smVal = computedSize?.sm ?? sm;
+    const mdVal = computedSize?.md ?? md;
+    const lgVal = computedSize?.lg ?? lg;
+    const xlVal = computedSize?.xl ?? xl;
+
+    let colClasses = [];
+    
+    // Default fallback if no size is specified
+    if (xsVal === undefined && smVal === undefined && mdVal === undefined && lgVal === undefined && xlVal === undefined) {
+      colClasses.push('col-span-12');
     }
+
+    if (xsVal !== undefined) {
+      if (xsVal === true) colClasses.push('col-span-12');
+      else if (xsVal === 'auto') colClasses.push('col-auto');
+      else {
+        const rounded = Math.round(Number(xsVal));
+        if (COL_SPANS[rounded]) colClasses.push(COL_SPANS[rounded]);
+      }
+    }
+    
+    if (smVal !== undefined) {
+      if (smVal === true) colClasses.push('sm:col-span-12');
+      else if (smVal === 'auto') colClasses.push('sm:col-auto');
+      else {
+        const rounded = Math.round(Number(smVal));
+        if (SM_COL_SPANS[rounded]) colClasses.push(SM_COL_SPANS[rounded]);
+      }
+    }
+
+    if (mdVal !== undefined) {
+      if (mdVal === true) colClasses.push('md:col-span-12');
+      else if (mdVal === 'auto') colClasses.push('md:col-auto');
+      else {
+        const rounded = Math.round(Number(mdVal));
+        if (MD_COL_SPANS[rounded]) colClasses.push(MD_COL_SPANS[rounded]);
+      }
+    }
+
+    if (lgVal !== undefined) {
+      if (lgVal === true) colClasses.push('lg:col-span-12');
+      else if (lgVal === 'auto') colClasses.push('lg:col-auto');
+      else {
+        const rounded = Math.round(Number(lgVal));
+        if (LG_COL_SPANS[rounded]) colClasses.push(LG_COL_SPANS[rounded]);
+      }
+    }
+
+    if (xlVal !== undefined) {
+      if (xlVal === true) colClasses.push('xl:col-span-12');
+      else if (xlVal === 'auto') colClasses.push('xl:col-auto');
+      else {
+        const rounded = Math.round(Number(xlVal));
+        if (XL_COL_SPANS[rounded]) colClasses.push(XL_COL_SPANS[rounded]);
+      }
+    }
+
+    classes += ' ' + colClasses.filter(Boolean).join(' ');
   }
   
   return (
@@ -699,7 +889,21 @@ export const TextField = React.forwardRef(({
 TextField.displayName = 'TextField';
 
 // 11. Dialog Component
-export const Dialog = React.forwardRef(({ open, onClose, children, maxWidth = 'sm', fullWidth, sx, className, ...props }: any, ref) => {
+export const Dialog = React.forwardRef(({
+  open,
+  onClose,
+  children,
+  maxWidth = 'sm',
+  fullWidth,
+  sx,
+  className,
+  scroll,
+  TransitionComponent,
+  transitionDuration,
+  TransitionProps,
+  keepMounted,
+  ...props
+}: any, ref) => {
   if (!open) return null;
   
   let maxWClass = "max-w-md";
@@ -782,7 +986,7 @@ export const CircularProgress = ({ size = 24, className, ...props }: any) => (
 );
 
 // 14. Avatar Component
-export const Avatar = ({ src, alt, children, className, sx, ...props }: any) => {
+export const Avatar = ({ src, alt, children, className, sx, variant, ...props }: any) => {
   return (
     <div
       className={`flex items-center justify-center rounded-full bg-stone-800 border border-[#23211F] text-stone-200 font-bold overflow-hidden w-10 h-10 ${className || ''}`}
@@ -834,7 +1038,19 @@ export const Tooltip = ({ title, children, ...props }: any) => (
 );
 
 // 19. Chip Component
-export const Chip = ({ label, className, color, variant, ...props }: any) => {
+export const Chip = ({
+  label,
+  className,
+  color,
+  variant,
+  onDelete,
+  icon,
+  avatar,
+  clickable,
+  size,
+  disabled,
+  ...props
+}: any) => {
   let variantClass = "bg-[#1E1B19] text-stone-300";
   if (color === 'primary') {
     variantClass = "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30";
@@ -849,7 +1065,17 @@ export const Chip = ({ label, className, color, variant, ...props }: any) => {
 };
 
 // 20. Badge Component
-export const Badge = ({ children, badgeContent, color, ...props }: any) => (
+export const Badge = ({
+  children,
+  badgeContent,
+  color,
+  variant,
+  invisible,
+  overlap,
+  max,
+  showZero,
+  ...props
+}: any) => (
   <div className="relative inline-block">
     {children}
     {badgeContent !== undefined && badgeContent !== null && (
@@ -861,7 +1087,17 @@ export const Badge = ({ children, badgeContent, color, ...props }: any) => (
 );
 
 // 21. Alert Component
-export const Alert = ({ children, severity = 'info', className, ...props }: any) => {
+export const Alert = ({
+  children,
+  severity = 'info',
+  className,
+  variant,
+  action,
+  color,
+  icon,
+  onClose,
+  ...props
+}: any) => {
   let bg = "bg-blue-950/40 text-blue-300 border-blue-900/50";
   if (severity === 'error') bg = "bg-red-950/40 text-red-300 border-red-900/50";
   if (severity === 'warning') bg = "bg-amber-950/40 text-amber-300 border-amber-900/50";
@@ -1680,7 +1916,7 @@ export const SpeedDial = React.forwardRef(
 );
 SpeedDial.displayName = 'SpeedDial';
 
-export const SpeedDialIcon = React.forwardRef(({ icon, openIcon, open }: any, ref) => {
+export const SpeedDialIcon = React.forwardRef<HTMLSpanElement, any>(({ icon, openIcon, open }: any, ref) => {
   return (
     <span ref={ref} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
       {open ? openIcon : icon}

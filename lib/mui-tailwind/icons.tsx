@@ -334,3 +334,5 @@ export const UploadFile = createIcon((Lucide as any).UploadFile || Lucide.HelpCi
 export const VerifiedUser = createIcon((Lucide as any).VerifiedUser || Lucide.HelpCircle);
 export const VideoCall = createIcon((Lucide as any).VideoCall || Lucide.HelpCircle);
 export const Zoom = createIcon((Lucide as any).Zoom || Lucide.HelpCircle);
+export const Telegram = createIcon(Lucide.Send);
+

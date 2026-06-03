@@ -13,7 +13,7 @@ import {
   Drawer,
   IconButton,
 } from '@/lib/mui-tailwind/material';
-import DeleteIcon from '@/lib/mui-tailwind/icons';
+import { Delete as DeleteIcon } from '@/lib/mui-tailwind/icons';
 import { Models } from 'appwrite';
 
 type Identity = Models.Identity;
