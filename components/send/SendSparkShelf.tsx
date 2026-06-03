@@ -1,28 +1,25 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  alpha,
-  Box,
-  Card,
-  CardContent,
-  IconButton,
-  Menu,
-  MenuItem,
-  Stack,
-  Typography,
-  ListItemIcon,
-  ListItemText,
-} from '@/lib/mui-tailwind/material';
-import { Clock, Copy, ExternalLink, Import, MoreVertical, Trash2, FileText, KeyRound, ListTodo, Shield, Upload, MessageSquare, Sparkles } from 'lucide-react';
-
+import { 
+  Clock, 
+  Copy, 
+  ExternalLink, 
+  Import, 
+  MoreVertical, 
+  Trash2, 
+  FileText, 
+  KeyRound, 
+  ListTodo, 
+  Shield, 
+  Upload, 
+  MessageSquare, 
+  Sparkles 
+} from 'lucide-react';
 import type { SendSparkRef, SendKind } from '@/lib/send/types';
 import toast from 'react-hot-toast';
 import { burnEphemeralNoteWithProof } from '@/lib/ephemeral/burn-note';
 
-const BG_PAGE = '#0A0908';
-const SURFACE_HOVER = '#1C1A18';
-const RIM = '1px solid #34322F';
 const PRIMARY = '#6366F1';
 
 const KIND_COLORS: Record<SendKind, string> = {
@@ -59,7 +56,7 @@ function SendSparkClock({ createdAt, expiresAt, color = PRIMARY }: { createdAt: 
   const offset = circum - (pct / 100) * circum;
 
   return (
-    <Box sx={{ display: 'inline-flex', ml: 0.75 }}>
+    <div className="inline-flex ml-2">
       <svg width={size} height={size}>
         <circle stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} fill="transparent" r={r} cx={c} cy={c} />
         <circle
@@ -75,7 +72,7 @@ function SendSparkClock({ createdAt, expiresAt, color = PRIMARY }: { createdAt: 
           transform={`rotate(-90 ${c} ${c})`}
         />
       </svg>
-    </Box>
+    </div>
   );
 }
 
@@ -86,7 +83,7 @@ interface Props {
 }
 
 export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
-  const [menu, setMenu] = useState<{ mouseX: number; mouseY: number; id: string } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string } | null>(null);
   const [nowTs, setNowTs] = useState(0);
 
   useEffect(() => {
@@ -100,6 +97,7 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
     if (!nowTs) return sparks;
     return sparks.filter((s) => new Date(s.expiresAt).getTime() > nowTs);
   }, [sparks, nowTs]);
+
   const stale = useMemo(() => {
     if (!nowTs) return [];
     return sparks.filter((s) => new Date(s.expiresAt).getTime() <= nowTs);
@@ -112,7 +110,7 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
 
   const openMenu = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
-    setMenu({ mouseX: e.clientX + 2, mouseY: e.clientY - 6, id });
+    setMenu({ x: e.clientX, y: e.clientY, id });
   };
 
   const closeMenu = () => setMenu(null);
@@ -162,157 +160,123 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
     })();
 
     return (
-      <Card
+      <div
         key={spark.id}
         onContextMenu={(e) => openMenu(e, spark.id)}
-        sx={{
-          bgcolor: staleRow ? '#0A0908' : '#161412',
-          borderRadius: '24px',
-          border: '1px solid #34322F',
-          boxShadow: '0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px rgba(37,35,33,0.9)',
-          opacity: staleRow ? 0.72 : 1,
-          transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-          '&:hover': {
-            borderColor: staleRow ? '#34322F' : sparkColor,
-            bgcolor: staleRow ? '#0A0908' : '#1C1A18',
-            opacity: 1,
-            boxShadow: '0 8px 10px -8px rgba(0,0,0,1), 0 6px 8px -6px rgba(37,35,33,1.0)',
-            transform: 'translateY(-2px)',
-          },
+        style={{
+          borderColor: '#34322F',
         }}
+        className={`p-5 rounded-[24px] border bg-[#161412] hover:bg-[#1C1A18] transition-all duration-300 shadow-2xl ${
+          staleRow ? 'opacity-50' : 'opacity-100 hover:-translate-y-0.5'
+        }`}
       >
-        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-            <Stack direction="row" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
-              <Box sx={{ color: sparkColor, mt: 0.5 }}>
-                <Icon size={20} />
-              </Box>
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: '0.9rem',
-                    letterSpacing: '-0.02em',
-                    fontFamily: 'var(--font-satoshi)',
-                  }}
-                  noWrap
-                >
-                  {spark.title}
-                </Typography>
-                <Typography variant="caption" sx={{ display: 'block', opacity: 0.45, mt: 0.35 }}>
-                  {spark.kind.toUpperCase()} · {new Date(spark.createdAt).toLocaleDateString()}
-                </Typography>
-                {staleRow && (
-                  <Typography variant="caption" sx={{ display: 'block', color: alpha('#fff', 0.55), mt: 0.75, fontWeight: 700 }}>
-                    Expired — delete still works if the item is still on the server.
-                  </Typography>
-                )}
-              </Box>
-            </Stack>
-            <Stack direction="row" spacing={0.25} alignItems="center">
-              <SendSparkClock createdAt={spark.createdAt} expiresAt={spark.expiresAt} color={sparkColor} />
-              <IconButton size="small" onClick={(e) => openMenu(e, spark.id)} sx={{ color: alpha('#fff', 0.35) }}>
-                <MoreVertical size={14} />
-              </IconButton>
-            </Stack>
-          </Stack>
-          <Stack direction="row" spacing={0.5} sx={{ mt: 1.25 }} justifyContent="flex-end">
-            <IconButton size="small" aria-label="Copy link" onClick={() => void copyUrl(spark.url)} sx={{ color: sparkColor }}>
-              <Copy size={16} />
-            </IconButton>
-            <IconButton size="small" aria-label="Open" onClick={() => window.open(spark.url, '_blank')} sx={{ color: sparkColor }}>
-              <ExternalLink size={16} />
-            </IconButton>
-          </Stack>
-        </CardContent>
-      </Card>
+        <div className="flex justify-between items-start gap-3">
+          <div className="flex gap-3 min-w-0 flex-1">
+            <div style={{ color: sparkColor }} className="mt-0.5 flex-shrink-0">
+              <Icon size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h4 className="font-extrabold text-sm text-white truncate">
+                {spark.title}
+              </h4>
+              <span className="block text-white/40 text-[10px] font-bold uppercase tracking-wider font-mono mt-1">
+                {spark.kind.toUpperCase()} · {new Date(spark.createdAt).toLocaleDateString()}
+              </span>
+              {staleRow && (
+                <span className="block text-white/30 text-[10px] font-semibold font-sans mt-2">
+                  Expired — delete still works if the item is still on the server.
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <SendSparkClock createdAt={spark.createdAt} expiresAt={spark.expiresAt} color={sparkColor} />
+            <button 
+              onClick={(e) => openMenu(e, spark.id)} 
+              className="p-1 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-all"
+            >
+              <MoreVertical size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-end mt-4">
+          <button
+            onClick={() => void copyUrl(spark.url)}
+            style={{ color: sparkColor }}
+            className="p-2 rounded-lg bg-white/2 hover:bg-white/5 border border-white/5 transition-all"
+            aria-label="Copy link"
+          >
+            <Copy size={16} />
+          </button>
+          <button
+            onClick={() => window.open(spark.url, '_blank')}
+            style={{ color: sparkColor }}
+            className="p-2 rounded-lg bg-white/2 hover:bg-white/5 border border-white/5 transition-all"
+            aria-label="Open"
+          >
+            <ExternalLink size={16} />
+          </button>
+        </div>
+      </div>
     );
   };
 
   return (
-    <Stack spacing={2}>
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Clock size={16} color="#6366F1" />
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-clash)',
-            fontWeight: 700,
-            fontSize: '1rem',
-            letterSpacing: '-0.02em',
-          }}
-        >
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2 select-none">
+        <Clock size={16} className="text-[#6366F1]" />
+        <h3 className="font-black text-[#F5F3F0] text-base font-mono">
           Stash
-        </Typography>
-      </Stack>
+        </h3>
+      </div>
 
       {active.length > 0 && (
-        <Stack spacing={1.25}>{active.map((s) => renderCard(s, false))}</Stack>
-      )}
-      {stale.length > 0 && (
-        <Box>
-          <Typography variant="caption" sx={{ fontWeight: 800, opacity: 0.5, letterSpacing: '0.08em', display: 'block', mb: 1 }}>
-            EXPIRED
-          </Typography>
-          <Stack spacing={1.25}>{stale.map((s) => renderCard(s, true))}</Stack>
-        </Box>
+        <div className="flex flex-col gap-3">
+          {active.map((s) => renderCard(s, false))}
+        </div>
       )}
 
-      <Menu
-        open={menu !== null}
-        onClose={closeMenu}
-        anchorReference="anchorPosition"
-        anchorPosition={menu !== null ? { top: menu.mouseY, left: menu.mouseX } : undefined}
-        slotProps={{
-          paper: {
-            sx: {
-              minWidth: 200,
-              bgcolor: '#161412',
-              border: '1px solid #34322F',
-              borderRadius: '12px',
-              py: 0.5,
-              boxShadow: '0 16px 32px rgba(0,0,0,0.8)',
-            },
-          },
-        }}
-      >
-        {onClaim && ctxNote ? (
-          <MenuItem
-            onClick={() => {
-              closeMenu();
-              onClaim(ctxNote);
-            }}
-            sx={{
-              gap: 1.25,
-              color: PRIMARY,
-              '&:hover': { bgcolor: '#1C1A18' },
-            }}
+      {stale.length > 0 && (
+        <div className="flex flex-col gap-3 mt-4">
+          <span className="text-[10px] font-black tracking-widest uppercase text-white/30 font-mono block">
+            EXPIRED
+          </span>
+          {stale.map((s) => renderCard(s, true))}
+        </div>
+      )}
+
+      {/* Floating Context Menu */}
+      {menu && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={closeMenu} />
+          <div 
+            style={{ top: menu.y, left: menu.x }}
+            className="fixed z-50 min-w-[200px] bg-[#161412] border border-white/5 rounded-xl py-1 shadow-2xl animate-in fade-in duration-100 select-none"
           >
-            <ListItemIcon sx={{ minWidth: 'auto', color: 'inherit' }}>
-              <Import size={16} />
-            </ListItemIcon>
-            <ListItemText
-              primary="Claim to account"
-              slotProps={{ primary: { sx: { fontSize: '0.82rem', fontWeight: 700, fontFamily: 'var(--font-satoshi)' } } }}
-            />
-          </MenuItem>
-        ) : null}
-        <MenuItem
-          onClick={() => void handleRemoveOrBurn()}
-          sx={{
-            gap: 1.25,
-            color: '#FF453A',
-            '&:hover': { bgcolor: '#1C1A18' },
-          }}
-        >
-          <ListItemIcon sx={{ minWidth: 'auto', color: 'inherit' }}>
-            <Trash2 size={16} />
-          </ListItemIcon>
-          <ListItemText
-            primary={ctxNote?.deletionSecret ? 'Delete link' : 'Remove from this device'}
-            slotProps={{ primary: { sx: { fontSize: '0.82rem', fontWeight: 700, fontFamily: 'var(--font-satoshi)' } } }}
-          />
-        </MenuItem>
-      </Menu>
-    </Stack>
+            {onClaim && ctxNote && (
+              <button
+                onClick={() => {
+                  closeMenu();
+                  onClaim(ctxNote);
+                }}
+                className="w-full px-4 py-2.5 text-xs font-bold text-[#6366F1] hover:bg-white/5 flex items-center gap-2.5 text-left transition-colors"
+              >
+                <Import size={16} />
+                <span>Claim to account</span>
+              </button>
+            )}
+            <button
+              onClick={() => void handleRemoveOrBurn()}
+              className="w-full px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-white/5 flex items-center gap-2.5 text-left transition-colors"
+            >
+              <Trash2 size={16} />
+              <span>{ctxNote?.deletionSecret ? 'Delete link' : 'Remove from this device'}</span>
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

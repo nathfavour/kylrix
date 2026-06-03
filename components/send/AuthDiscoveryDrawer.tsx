@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, Button, Drawer, Typography, Stack, alpha, useTheme, useMediaQuery } from '@/lib/mui-tailwind/material';
 import { Sparkles, ArrowRight, X } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
 
@@ -23,8 +22,6 @@ function getPathTitle(path: string): string {
 export function AuthDiscoveryDrawer() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   
   const [open, setOpen] = useState(false);
   const [targetPath, setTargetPath] = useState<string | null>(null);
@@ -73,102 +70,52 @@ export function AuthDiscoveryDrawer() {
   if (!open || !targetPath) return null;
 
   return (
-    <Drawer
-      anchor={isDesktop ? 'right' : 'bottom'}
-      open={open}
-      variant="persistent"
-      PaperProps={{
-        sx: {
-          bgcolor: 'transparent',
-          boxShadow: 'none',
-          pointerEvents: 'none',
-          pb: { xs: 2, sm: 4 },
-          px: { xs: 2, sm: 4 },
-          pt: { xs: 0, md: 4 },
-          display: 'flex',
-          alignItems: isDesktop ? 'flex-end' : 'center',
-          justifyContent: isDesktop ? 'flex-end' : 'center',
-        }
-      }}
-    >
-      <Box
-        sx={{
-          bgcolor: '#161412',
-          border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
-          borderRadius: '24px',
-          p: { xs: 2.5, sm: 3 },
-          pointerEvents: 'auto',
-          maxWidth: 500,
-          width: '100%',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-      >
-        <Box 
-          sx={{ 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            height: '3px', 
-            bgcolor: PRIMARY, 
+    <div className="fixed bottom-6 right-6 left-6 md:left-auto z-50 max-w-md w-full animate-in slide-in-from-bottom duration-300 select-none">
+      <div className="bg-[#161412] border border-white/8 shadow-[0_20px_40px_rgba(0,0,0,0.6)] rounded-[24px] p-6 relative overflow-hidden">
+        
+        {/* Countdown Progress Bar */}
+        <div 
+          style={{ 
             width: `${(countdown / 5) * 100}%`,
             transition: 'width 1s linear'
           }} 
+          className="absolute top-0 left-0 h-[3px] bg-[#6366F1]"
         />
         
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between">
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-            <Box sx={{ 
-                p: 1.5, 
-                borderRadius: '12px', 
-                bgcolor: alpha(PRIMARY, 0.1), 
-                color: PRIMARY 
-            }}>
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="p-2.5 rounded-xl bg-[#6366F1]/10 text-[#6366F1] flex-shrink-0 flex items-center justify-center">
               <Sparkles size={24} />
-            </Box>
-            <Box>
-              <Typography sx={{ fontWeight: 800, fontSize: '1rem', fontFamily: 'var(--font-clash)', color: '#fff' }}>
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm text-white font-mono leading-tight">
                 Authenticated account detected
-              </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', mt: 0.5 }}>
+              </h4>
+              <p className="text-white/60 text-xs font-semibold mt-1">
                 Returning to {getPathTitle(targetPath)} in {countdown}...
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
           
-          <Stack direction="row" spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-            <Button
+          <div className="flex gap-2 w-full sm:w-auto justify-end">
+            <button
               onClick={handleCancel}
-              sx={{
-                minWidth: 0,
-                px: 2,
-                color: 'rgba(255,255,255,0.5)',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', color: '#fff' }
-              }}
+              className="p-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center"
+              aria-label="Close"
             >
               <X size={18} />
-            </Button>
-            <Button
-              variant="contained"
+            </button>
+            <button
               onClick={handleReturn}
-              endIcon={<ArrowRight size={16} />}
-              sx={{
-                flex: { xs: 1, sm: 'none' },
-                bgcolor: PRIMARY,
-                color: '#000',
-                fontWeight: 800,
-                textTransform: 'none',
-                borderRadius: '12px',
-                px: 3,
-                '&:hover': { bgcolor: alpha(PRIMARY, 0.8) }
-              }}
+              className="h-10 px-4 rounded-xl bg-[#6366F1] hover:bg-[#6366F1]/90 text-black font-extrabold text-xs flex items-center justify-center gap-1 transition-all flex-1 sm:flex-none whitespace-nowrap"
             >
-              Go Now
-            </Button>
-          </Stack>
-        </Stack>
-      </Box>
-    </Drawer>
+              <span>Go Now</span>
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
   );
 }

@@ -1,30 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import {
-  alpha,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Container,
-  IconButton,
-  InputLabel,
-  Paper,
-  Slider,
-  Stack,
-  TextField,
-  Tooltip,
-  Typography,
-  Switch,
-  FormControlLabel,
-  Drawer,
-  ListItemButton,
-  ListItemText,
-  ListItemIcon,
-} from '@/lib/mui-tailwind/material';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   Check,
@@ -44,16 +21,13 @@ import {
   Mic,
   Send as SendIcon,
   ChevronDown,
-  Calendar,
-  Flag,
   Clock,
+  ArrowRight
 } from 'lucide-react';
 
 import MuralPattern from '@/components/chat/MuralPattern';
 import { buildAutoTitleFromContent } from '@/constants/noteTitle';
 import { FastDraftInput, type FastDraftInputHandle } from '@/components/common/FastDraftInput';
-
-import { ID, Permission, Role } from 'appwrite';
 
 import { useAuth } from '@/context/auth/AuthContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
@@ -61,18 +35,14 @@ import { EphemeralClaimDrawer, type EphemeralClaimTarget } from '@/components/ep
 import { SendSparkShelf } from '@/components/send/SendSparkShelf';
 import { AuthDiscoveryDrawer } from '@/components/send/AuthDiscoveryDrawer';
 import UserSearch from '@/components/UserSearch';
-import Logo from '@/components/Logo';
 import { AppwriteService } from '@/lib/appwrite';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
-import { storage } from '@/lib/appwrite/client';
 import { secureUploadFile } from '@/lib/actions/client-ops';
 import { encryptGhostBinaryToBytes, encryptGhostData } from '@/lib/encryption/ghost-crypto';
 import { sha256HexUtf8 } from '@/lib/crypto/sha256-hex';
 import { clearEphemeralClaimResume, peekEphemeralClaimResume } from '@/lib/ephemeral/claim-session';
 import {
   SEND_EXPIRY_PRESETS,
-  SEND_MAX_FILE_BYTES_FREE,
-  SEND_MAX_FILE_BYTES_PRO,
   SEND_MAX_TTL_MS,
   SEND_SPARK_STORAGE_KEY,
   SEND_SPARKS_MAX,
@@ -81,32 +51,13 @@ import {
 import type {
   SendFilePayload,
   SendKind,
-  SendPasswordPayload,
   SendSparkRef,
+  SendPasswordPayload,
   SendTaskPayload,
   SendTotpPayload,
 } from '@/lib/send/types';
 import { hasPaidKylrixPlan } from '@/lib/utils';
 import toast from 'react-hot-toast';
-
-const BG = '#0A0908';
-const SURFACE = '#161412';
-const SURFACE_HOVER = '#1C1A18';
-const RIM = '1px solid #34322F';
-const PRIMARY = '#6366F1';
-
-const cardStyle = {
-  p: { xs: 2, sm: 2.5 },
-  borderRadius: '24px',
-  bgcolor: '#161412',
-  border: '1px solid #34322F',
-  boxShadow: '0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px rgba(37,35,33,0.9)',
-  transition: 'border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-  transform: 'translateZ(0)',
-  willChange: 'transform',
-  backfaceVisibility: 'hidden',
-  position: 'relative',
-} as const;
 
 const KINDS: { id: SendKind; label: string; blurb: string; Icon: typeof FileText }[] = [
   { id: 'note', label: 'Note', blurb: 'Text and context', Icon: FileText },
@@ -157,15 +108,10 @@ const NoteComposerCard = React.memo(function NoteComposerCard({
   draftInputRef,
   isTitleManuallyEdited,
   setIsTitleManuallyEdited,
-  handleCreateLink,
   renderHeaderActions,
-  draftValid,
-  isCreating,
   effectiveSecureMode,
-  themeColor,
   onBodyEmptyChange,
 }: NoteCardProps) {
-  // Track whether the input has content for title visibility, using a ref to avoid re-renders
   const [hasContent, setHasContent] = useState(false);
 
   const handleEmptyChange = useCallback((isEmpty: boolean) => {
@@ -174,70 +120,38 @@ const NoteComposerCard = React.memo(function NoteComposerCard({
   }, [onBodyEmptyChange]);
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        ...cardStyle,
-        p: 0,
-        overflow: 'hidden',
-        '&:focus-within': {
-            borderColor: alpha('#EC4899', 0.45),
-            boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#EC4899', 0.15)}`
-        }
-      }}
-    >
+    <div className="rounded-[24px] bg-[#161412] border border-[#34322F] shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] transition duration-200 focus-within:border-pink-500/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(236,72,153,0.15)] overflow-hidden">
       {/* Editor Header */}
-      <Box sx={{ 
-          px: 3, 
-          py: 2, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          borderBottom: '1px solid #34322F',
-          bgcolor: alpha('#fff', 0.01)
-      }}>
-        <Stack direction="row" spacing={1.5} alignItems="center">
+      <div className="px-6 py-4 flex items-center justify-between border-b border-[#34322F] bg-white/[0.01]">
+        <div className="flex items-center gap-3">
           {effectiveSecureMode && (
-            <Tooltip title="This content is encrypted before upload.">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#EC4899' }}>
-                    <Lock size={12} />
-                    <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase' }}>SECURE</Typography>
-                </Box>
-            </Tooltip>
+            <div className="flex items-center gap-1.5 text-[#EC4899]" title="This content is encrypted before upload.">
+              <Lock size={12} />
+              <span className="text-[10px] font-black uppercase tracking-wider font-satoshi">SECURE</span>
+            </div>
           )}
-        </Stack>
+        </div>
 
         {renderHeaderActions("Type a note to share")}
-      </Box>
+      </div>
 
       {/* Main Inputs */}
-      <Box sx={{ p: { xs: 3, sm: 5 }, pt: { xs: 2.5, sm: 3 } }}>
+      <div className="p-6 sm:p-10 pt-5 sm:pt-6">
         {(hasContent || noteTitle.trim().length > 0) && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             transition={{ duration: 0.2 }}
           >
-            <TextField
-              fullWidth
+            <input
+              type="text"
               placeholder="Note Title"
               value={noteTitle}
               onChange={(e) => {
                 setNoteTitle(e.target.value);
                 setIsTitleManuallyEdited(true);
               }}
-              variant="standard"
-              InputProps={{
-                disableUnderline: true,
-                sx: { 
-                  fontSize: '2.25rem', 
-                  fontWeight: 900, 
-                  fontFamily: 'var(--font-clash)',
-                  color: 'white', 
-                  mb: 1.5,
-                  '&::placeholder': { opacity: 0.2, color: '#ffffff' }
-                }
-              }}
+              className="w-full bg-transparent text-4xl font-black font-clash text-white mb-4 placeholder-white/20 focus:outline-none"
             />
           </motion.div>
         )}
@@ -248,8 +162,8 @@ const NoteComposerCard = React.memo(function NoteComposerCard({
           autoFocus
           onEmptyChange={handleEmptyChange}
         />
-      </Box>
-    </Paper>
+      </div>
+    </div>
   );
 });
 
@@ -272,14 +186,12 @@ const DiscussionComposerCard = React.memo(function DiscussionComposerCard({
   noteTitle,
   setNoteTitle,
   draftInputRef,
-  isTitleManuallyEdited,
   setIsTitleManuallyEdited,
   handleCreateLink,
   renderHeaderActions,
   draftValid,
   isCreating,
   user,
-  themeColor,
   onBodyEmptyChange,
 }: DiscussionCardProps) {
   const [hasContent, setHasContent] = useState(false);
@@ -290,133 +202,58 @@ const DiscussionComposerCard = React.memo(function DiscussionComposerCard({
   }, [onBodyEmptyChange]);
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        ...cardStyle,
-        p: 0,
-        overflow: 'hidden',
-        position: 'relative',
-        '&:focus-within': {
-            borderColor: alpha('#F59E0B', 0.45),
-            boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#F59E0B', 0.15)}`
-        }
-      }}
-    >
+    <div className="rounded-[24px] bg-[#161412] border border-[#34322F] shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] transition duration-200 focus-within:border-amber-500/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(245,158,11,0.15)] overflow-hidden relative">
       {/* Mural Pattern Background */}
       <MuralPattern />
       
       {/* Secure Chat Header */}
-      <Box sx={{ 
-          px: 3, 
-          py: 2, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          borderBottom: '1px solid #34322F',
-          bgcolor: alpha('#0A0908', 0.85),
-          backdropFilter: 'blur(8px)',
-          zIndex: 1,
-          position: 'relative',
-      }}>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Box sx={{ 
-              width: 8, 
-              height: 8, 
-              borderRadius: '50%', 
-              bgcolor: '#10B981', 
-              boxShadow: '0 0 8px #10B981',
-          }} />
-          <Typography
-              variant="caption"
-              sx={{
-                  color: '#ffffff',
-                  fontWeight: 900,
-                  fontFamily: 'var(--font-clash)',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-              }}
-          >
-              EPHEMERAL HUDDLE ROOM
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#F59E0B' }}>
+      <div className="px-6 py-4 flex items-center justify-between border-b border-[#34322F] bg-[#0A0908]/85 backdrop-blur-md z-10 relative">
+        <div className="flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-[#10B981] shadow-[0_0_8px_#10B981]" />
+          <span className="text-[10px] text-white font-black font-clash tracking-widest uppercase">
+            EPHEMERAL HUDDLE ROOM
+          </span>
+          <div className="flex items-center gap-1 text-[#F59E0B]">
             <Lock size={12} />
-            <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase' }}>LOCKED</Typography>
-          </Box>
-        </Stack>
+            <span className="text-[10px] font-black uppercase tracking-wider">LOCKED</span>
+          </div>
+        </div>
 
         {renderHeaderActions("Type a message to share")}
-      </Box>
+      </div>
 
       {/* Simulated Chat Feed */}
-      <Box 
-        sx={{ 
-          p: 3, 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: 2, 
-          minHeight: 220, 
-          justifyContent: 'flex-end', 
-          position: 'relative',
-          zIndex: 1,
-        }}
-      >
+      <div className="p-6 flex flex-col gap-4 min-h-[220px] justify-end relative z-10">
         {/* System Note */}
-        <Box sx={{ alignSelf: 'center', bgcolor: 'rgba(0,0,0,0.6)', border: RIM, borderRadius: '12px', px: 2, py: 1, maxWidth: '85%', textAlign: 'center' }}>
-          <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-satoshi)', display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+        <div className="self-center bg-black/60 border border-[#34322F] rounded-xl px-4 py-2 max-w-[85%] text-center">
+          <span className="text-xs text-white/50 font-satoshi flex items-center gap-2 justify-center">
             <Lock size={12} color="#F59E0B" />
             Messages are encrypted. Huddle automatically purges in 7 days.
-          </Typography>
-        </Box>
+          </span>
+        </div>
 
-        {/* Outgoing Bubble Preview — shows when input has content */}
+        {/* Outgoing Bubble Preview */}
         {hasContent && (
-          <Box sx={{ alignSelf: 'flex-end', maxWidth: '80%', display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-              <Box sx={{ 
-                bgcolor: '#F59E0B', 
-                color: '#0A0908', 
-                px: 2.5, 
-                py: 1.75, 
-                borderRadius: '20px 20px 4px 20px',
-                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)',
-              }}>
-                <Typography sx={{ fontSize: '0.95rem', fontFamily: 'var(--font-satoshi)', whiteSpace: 'pre-wrap', lineHeight: 1.5, fontWeight: 700 }}>
+          <div className="self-end max-w-[80%] flex gap-3 items-end">
+            <div className="flex flex-col items-end gap-1">
+              <div className="bg-[#F59E0B] text-[#0A0908] px-5 py-3.5 rounded-[20px_20px_4px_20px] shadow-[0_4px_12px_rgba(245,158,11,0.2)]">
+                <p className="text-sm font-satoshi font-bold whitespace-pre-wrap leading-normal">
                   Composing message…
-                </Typography>
-              </Box>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem' }}>
+                </p>
+              </div>
+              <span className="text-[10px] text-white/30 flex items-center gap-1">
                 <Lock size={10} color="#F59E0B" /> Encrypted
-              </Typography>
-            </Box>
-            <Box sx={{ 
-              width: 32, 
-              height: 32, 
-              borderRadius: '50%', 
-              bgcolor: '#34322F', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              fontSize: '0.8rem',
-              fontWeight: 900,
-              border: RIM,
-              color: '#ffffff'
-            }}>
+              </span>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-[#34322F] flex items-center justify-center text-sm font-black border border-[#34322F] text-white">
               {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Chat Composer Well */}
-      <Box sx={{ 
-        p: 3, 
-        borderTop: '1px solid #34322F', 
-        bgcolor: alpha('#0A0908', 0.95), 
-        backdropFilter: 'blur(8px)',
-        position: 'relative',
-        zIndex: 1,
-      }}>
+      <div className="p-6 border-t border-[#34322F] bg-[#0A0908]/95 backdrop-blur-md relative z-10">
         {/* Conditional Topic Field */}
         {(hasContent || noteTitle.trim().length > 0) && (
           <motion.div
@@ -424,42 +261,20 @@ const DiscussionComposerCard = React.memo(function DiscussionComposerCard({
             animate={{ opacity: 1, height: 'auto' }}
             transition={{ duration: 0.2 }}
           >
-            <Box
-              component={TextField}
-              fullWidth
+            <input
+              type="text"
               placeholder="Discussion Topic / Room Name"
               value={noteTitle}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              onChange={(e) => {
                 setNoteTitle(e.target.value);
                 setIsTitleManuallyEdited(true);
               }}
-              variant="standard"
-              InputProps={{
-                disableUnderline: true,
-                sx: { 
-                  fontSize: '1.25rem', 
-                  fontWeight: 800, 
-                  fontFamily: 'var(--font-clash)',
-                  color: 'white', 
-                  mb: 2,
-                  px: 1,
-                  '&::placeholder': { opacity: 0.3, color: '#ffffff' }
-                }
-              }}
+              className="w-full bg-transparent text-xl font-bold font-clash text-white mb-4 px-2 placeholder-white/30 focus:outline-none"
             />
           </motion.div>
         )}
 
-        <Box sx={{ 
-          bgcolor: '#000000', 
-          borderRadius: '16px', 
-          border: '1px solid #34322F',
-          '&:focus-within': { borderColor: '#F59E0B' },
-          p: 1.5,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1
-        }}>
+        <div className="bg-black rounded-2xl border border-[#34322F] focus-within:border-[#F59E0B] p-3 flex flex-col gap-3">
           <FastDraftInput
             ref={draftInputRef}
             placeholder="Open the huddle with a clear message…"
@@ -467,39 +282,35 @@ const DiscussionComposerCard = React.memo(function DiscussionComposerCard({
             autoFocus
             onEmptyChange={handleEmptyChange}
           />
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 1, borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-            <Stack direction="row" spacing={1}>
-              <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#ffffff' } }}>
+          <div className="flex items-center justify-between pt-2 border-t border-white/[0.03]">
+            <div className="flex items-center gap-2">
+              <button type="button" className="p-1.5 text-white/30 hover:text-white transition rounded">
                 <Paperclip size={16} />
-              </IconButton>
-              <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#ffffff' } }}>
+              </button>
+              <button type="button" className="p-1.5 text-white/30 hover:text-white transition rounded">
                 <Mic size={16} />
-              </IconButton>
-            </Stack>
-            <Button
-              size="small"
+              </button>
+            </div>
+            <button
               disabled={!draftValid || isCreating}
               onClick={() => void handleCreateLink()}
-              endIcon={isCreating ? <CircularProgress size={14} color="inherit" /> : <SendIcon size={14} />}
-              sx={{
-                bgcolor: draftValid ? '#F59E0B' : 'transparent',
-                color: draftValid ? '#0A0908' : 'rgba(255,255,255,0.2)',
-                textTransform: 'none',
-                fontWeight: 800,
-                borderRadius: '8px',
-                px: 2,
-                py: 0.75,
-                '&:hover': {
-                  bgcolor: draftValid ? '#D97706' : 'transparent',
-                }
-              }}
+              className={`flex items-center gap-1.5 text-xs font-black rounded-lg px-4 py-2 transition duration-200 ${
+                draftValid 
+                  ? 'bg-[#F59E0B] text-[#0A0908] hover:bg-[#D97706]' 
+                  : 'text-white/20 bg-transparent cursor-not-allowed'
+              }`}
             >
-              Share Huddle
-            </Button>
-          </Box>
-        </Box>
-      </Box>
-    </Paper>
+              <span>Share Huddle</span>
+              {isCreating ? (
+                <div className="animate-spin rounded-full h-3.5 w-3.5 border-t-2 border-b-2 border-current" />
+              ) : (
+                <SendIcon size={14} />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 });
 
@@ -512,14 +323,11 @@ export function SendComposer() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && searchParams.get('login') === '1') {
-      // Aggressively pop up the auth drawer if redirected here from a protected route
       openUnified('login');
-      // Clean up the URL to avoid popping it up again if they cancel
       router.replace('/send');
     }
   }, [isLoading, isAuthenticated, searchParams, openUnified, router]);
 
-  const isPro = useMemo(() => user ? hasPaidKylrixPlan(user) : false, [user]);
   const activeMaxBytes = 10 * 1024 * 1024; // Strict 10MB limit for Send
   const activeMaxLabel = '10 MB';
 
@@ -528,7 +336,6 @@ export function SendComposer() {
   const [expiryMs, setExpiryMs] = useState(SEND_EXPIRY_PRESETS[2].ms);
   const [isSecureMode, setIsSecureMode] = useState(false);
 
-  // Mandatory Secure Types: Credentials, Files, and Discussions
   const isMandatorySecure = useMemo(() => {
     return kind === 'password' || kind === 'totp' || kind === 'file' || kind === 'discussion';
   }, [kind]);
@@ -547,13 +354,12 @@ export function SendComposer() {
   const [expiryDrawerOpen, setExpiryDrawerOpen] = useState(false);
   const [discreteDrawerOpen, setDiscreteDrawerOpen] = useState(false);
 
-  // Load persistent security preferences per format
   useEffect(() => {
     const saved = localStorage.getItem(`send_sec_pref_${kind}`);
     if (saved !== null) {
       setIsSecureMode(saved === 'true');
     } else {
-      setIsSecureMode(false); // default is unencrypted
+      setIsSecureMode(false);
     }
   }, [kind]);
 
@@ -563,8 +369,6 @@ export function SendComposer() {
   };
 
   const [noteTitle, setNoteTitle] = useState('');
-  const [noteBody, setNoteBody] = useState('');
-  // Ref-based input for note/discussion body — zero re-renders on keystroke
   const noteBodyRef = useRef<FastDraftInputHandle | null>(null);
   const [noteBodyHasContent, setNoteBodyHasContent] = useState(false);
   const handleNoteBodyEmptyChange = useCallback((isEmpty: boolean) => {
@@ -576,13 +380,11 @@ export function SendComposer() {
   const [taskDetail, setTaskDetail] = useState('');
   const [totpIssuer, setTotpIssuer] = useState('');
   const [totpSecret, setTotpSecret] = useState('');
-  /** Optional TOTP seed bundled with password sends */
   const [passwordTotpBundle, setPasswordTotpBundle] = useState('');
   const [sendFile, setSendFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
-  // Discrete Sharing
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
 
   const [createdUrl, setCreatedUrl] = useState<string | null>(null);
@@ -591,13 +393,13 @@ export function SendComposer() {
   const [sendSparks, setSendSparks] = useState<SendSparkRef[]>([]);
   const [claimOpen, setClaimOpen] = useState(false);
   const [claimTarget, setClaimTarget] = useState<EphemeralClaimTarget | null>(null);
-  const [sendSparksHydrated, setSendSparksHydrated] = useState(false);
+  const [, setSendSparksHydrated] = useState(false);
 
   const saveSendSparks = useCallback((next: SendSparkRef[]) => {
     try {
       localStorage.setItem(SEND_SPARK_STORAGE_KEY, JSON.stringify(next));
     } catch {
-      /* ignore quota */
+      // Ignored
     }
     setSendSparks(next);
     window.dispatchEvent(new Event('storage'));
@@ -613,7 +415,7 @@ export function SendComposer() {
           setSendSparks(JSON.parse(raw));
         }
       } catch {
-        /* ignore */
+        // Ignored
       }
       setSendSparksHydrated(true);
     };
@@ -624,7 +426,6 @@ export function SendComposer() {
     };
     window.addEventListener('storage', handleStorage);
 
-    // Resume claim after auth if param is present
     if (searchParams.get('claimOpen') === '1') {
       const pendingId = peekEphemeralClaimResume('send');
       if (pendingId) {
@@ -676,18 +477,14 @@ export function SendComposer() {
     }
   };
 
-  // Reset title edit state on format change
   useEffect(() => {
     setIsTitleManuallyEdited(false);
   }, [kind]);
 
-  // Seamless auto-title logic — debounced to avoid cascading re-renders
-  // Only runs when the input transitions (via the noteBodyHasContent flag), not on every keystroke
   useEffect(() => {
     if (isTitleManuallyEdited) return;
     if (kind !== 'note' && kind !== 'discussion') return;
 
-    // Read the body from the ref imperatively (no React state involved)
     const raw = noteBodyRef.current?.getValue()?.trim() || '';
     if (raw) {
       const generatedTitle = buildAutoTitleFromContent(raw);
@@ -697,7 +494,6 @@ export function SendComposer() {
     } else {
       if (noteTitle) setNoteTitle('');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [noteBodyHasContent, isTitleManuallyEdited, kind]);
 
   const draftValid = useMemo(() => {
@@ -739,9 +535,6 @@ export function SendComposer() {
         sparkTitle = noteTitle.trim() || 'Note';
         const bodyText = noteBodyRef.current?.getValue()?.trim() || '';
         const { t, c } = await processData(sparkTitle, bodyText);
-        outTitle = t;
-        outContent = c;
-        format = 'markdown';
         outTitle = t;
         outContent = c;
         format = 'markdown';
@@ -809,7 +602,6 @@ export function SendComposer() {
         sparkTitle = f.name || 'File';
         const buf = await f.arrayBuffer();
         
-        // Files are ALWAYS encrypted for security, but metadata/title can be public for previews
         const t = await encryptGhostData(sparkTitle);
         noteKey = t.key;
         outTitle = t.encrypted;
@@ -854,7 +646,6 @@ export function SendComposer() {
         sendObject: sendObjectPayload,
       });
 
-      // Handle discrete sharing (collaborators)
       if (selectedUsers.length > 0) {
         const { createCollaborator } = await import('@/lib/appwrite/note');
         await Promise.all(selectedUsers.map(u => 
@@ -886,7 +677,7 @@ export function SendComposer() {
         try {
           localStorage.setItem(SEND_SPARK_STORAGE_KEY, JSON.stringify(next));
         } catch {
-          /* ignore */
+          // Ignored
         }
         window.dispatchEvent(new Event('storage'));
         return next;
@@ -927,14 +718,13 @@ export function SendComposer() {
       toast.success('Copied to clipboard');
       setTimeout(() => setCopied(false), 3000);
     } catch {
-      /* ignore */
+      // Ignored
     }
   }, [createdUrl]);
 
   const handleReset = useCallback(() => {
     setCreatedUrl(null);
     setNoteTitle('');
-    setNoteBody('');
     noteBodyRef.current?.clear();
     setNoteBodyHasContent(false);
     setUsername('');
@@ -977,165 +767,114 @@ export function SendComposer() {
     const isSharingCustomized = selectedUsers.length > 0;
     
     return (
-      <Stack direction="row" spacing={1.5} alignItems="center">
+      <div className="flex items-center gap-3">
         {/* Link Expiry Button */}
-        <Tooltip title={`Expiry Configuration (${formatRemaining(expiryMs)})`}>
-          <IconButton 
-            size="medium"
-            onClick={() => setExpiryDrawerOpen(true)}
-            sx={{ 
-              color: isExpiryCustomized ? themeColor : 'rgba(255,255,255,0.4)',
-              bgcolor: isExpiryCustomized ? alpha(themeColor, 0.08) : 'transparent',
-              border: isExpiryCustomized ? `1px solid ${alpha(themeColor, 0.2)}` : '1px solid transparent',
-              '&:hover': {
-                bgcolor: alpha(themeColor, 0.12),
-                color: themeColor,
-              },
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <Clock size={18} />
-          </IconButton>
-        </Tooltip>
+        <button 
+          type="button"
+          onClick={() => setExpiryDrawerOpen(true)}
+          className={`p-2.5 rounded-xl border transition duration-200 flex items-center justify-center ${
+            isExpiryCustomized 
+              ? 'text-white border-[#34322F] bg-white/5' 
+              : 'text-white/40 border-transparent hover:text-white hover:bg-white/5'
+          }`}
+          style={{ 
+            color: isExpiryCustomized ? themeColor : undefined,
+            backgroundColor: isExpiryCustomized ? `${themeColor}14` : undefined,
+            borderColor: isExpiryCustomized ? `${themeColor}33` : undefined,
+          }}
+          title={`Expiry Configuration (${formatRemaining(expiryMs)})`}
+        >
+          <Clock size={18} />
+        </button>
 
         {/* Discrete Sharing Button */}
-        <Tooltip title={isSharingCustomized ? `${selectedUsers.length} collaborator(s) added` : "Discrete Sharing (Optional)"}>
-          <IconButton 
-            size="medium"
-            onClick={() => setDiscreteDrawerOpen(true)}
-            sx={{ 
-              color: isSharingCustomized ? themeColor : 'rgba(255,255,255,0.4)',
-              bgcolor: isSharingCustomized ? alpha(themeColor, 0.08) : 'transparent',
-              border: isSharingCustomized ? `1px solid ${alpha(themeColor, 0.2)}` : '1px solid transparent',
-              '&:hover': {
-                bgcolor: alpha(themeColor, 0.12),
-                color: themeColor,
-              },
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <UsersIcon size={18} />
-          </IconButton>
-        </Tooltip>
+        <button 
+          type="button"
+          onClick={() => setDiscreteDrawerOpen(true)}
+          className={`p-2.5 rounded-xl border transition duration-200 flex items-center justify-center ${
+            isSharingCustomized 
+              ? 'text-white border-[#34322F] bg-white/5' 
+              : 'text-white/40 border-transparent hover:text-white hover:bg-white/5'
+          }`}
+          style={{ 
+            color: isSharingCustomized ? themeColor : undefined,
+            backgroundColor: isSharingCustomized ? `${themeColor}14` : undefined,
+            borderColor: isSharingCustomized ? `${themeColor}33` : undefined,
+          }}
+          title={isSharingCustomized ? `${selectedUsers.length} collaborator(s) added` : "Discrete Sharing (Optional)"}
+        >
+          <UsersIcon size={18} />
+        </button>
 
         {/* Main Share/Link Generation Button */}
-        <Tooltip title={!draftValid ? tooltipText : "Create & copy send link"}>
-          <span>
-            <IconButton 
-              size="medium"
-              disabled={!draftValid || isCreating}
-              onClick={() => void handleCreateLink()}
-              sx={{ 
-                color: !draftValid ? 'rgba(255,255,255,0.15)' : themeColor,
-                bgcolor: draftValid ? alpha(themeColor, 0.08) : 'transparent',
-                border: draftValid ? `1px solid ${alpha(themeColor, 0.35)}` : '1px solid transparent',
-                transform: draftValid ? 'scale(1.15)' : 'scale(1.0)',
-                '&:hover': {
-                  bgcolor: alpha(themeColor, 0.15),
-                  transform: draftValid ? 'scale(1.2)' : 'scale(1.0)',
-                },
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                p: 1.25,
-              }}
-            >
-              {isCreating ? <CircularProgress size={18} color="inherit" /> : <Share2 size={20} />}
-            </IconButton>
-          </span>
-        </Tooltip>
-      </Stack>
+        <button 
+          type="button"
+          disabled={!draftValid || isCreating}
+          onClick={() => void handleCreateLink()}
+          className={`p-3 rounded-xl border transition duration-300 flex items-center justify-center ${
+            draftValid 
+              ? 'scale-110 active:scale-95' 
+              : 'cursor-not-allowed opacity-40'
+          }`}
+          style={{ 
+            color: draftValid ? themeColor : 'rgba(255,255,255,0.15)',
+            backgroundColor: draftValid ? `${themeColor}14` : 'transparent',
+            borderColor: draftValid ? `${themeColor}59` : 'transparent',
+          }}
+          title={!draftValid ? tooltipText : "Create & copy send link"}
+        >
+          {isCreating ? (
+            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-current" />
+          ) : (
+            <Share2 size={20} />
+          )}
+        </button>
+      </div>
     );
   };
 
-  const fieldSx = {
-    '& .MuiOutlinedInput-root': { bgcolor: '#000000', borderRadius: '12px' },
-    '& .MuiInputLabel-root': { color: '#9B9691', fontFamily: 'var(--font-satoshi)' },
-    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#34322F' },
-    '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#4A4845' },
-    '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: PRIMARY },
-    '& .MuiInputBase-input': { color: '#ffffff', fontFamily: 'var(--font-satoshi)' },
-  } as const;
-
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        position: 'relative',
-        bgcolor: '#0A0908',
-        color: '#ffffff',
-        fontFamily: 'var(--font-satoshi)',
-        overflowX: 'hidden',
-      }}
-    >
-
-
-      <Box
-        sx={{
-          pointerEvents: 'none',
-          position: 'fixed',
-          inset: 0,
+    <div className="min-h-screen relative bg-[#0A0908] text-white font-satoshi overflow-x-hidden">
+      {/* Dynamic Aura background */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0 transition duration-500"
+        style={{
           background: effectiveSecureMode ?
             'radial-gradient(ellipse 78% 48% at 50% -18%, rgba(99, 102, 241, 0.22), transparent 56%), radial-gradient(ellipse 55% 38% at 100% 0%, rgba(236, 72, 153, 0.07), transparent 52%), radial-gradient(ellipse 48% 32% at 0% 100%, rgba(16, 185, 129, 0.06), transparent 46%)' :
-            'radial-gradient(ellipse 78% 48% at 50% -18%, rgba(16, 185, 129, 0.15), transparent 56%), radial-gradient(ellipse 55% 38% at 100% 0%, rgba(99, 102, 241, 0.05), transparent 52%)',
-          zIndex: 0,
+            'radial-gradient(ellipse 78% 48% at 50% -18%, rgba(16, 185, 129, 0.15), transparent 56%), radial-gradient(ellipse 55% 38% at 100% 0%, rgba(99, 102, 241, 0.05), transparent 52%)'
         }}
       />
 
-      <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1, py: { xs: 4, md: 12 }, pb: 10 }}>
-        {/* Conditional Banner */}
-        <Box
-          sx={{
-            mb: 5,
-            borderRadius: '24px',
-            overflow: 'hidden',
-            border: user ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)',
-            background: user
-              ? 'linear-gradient(90deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.03) 100%)'
-              : 'linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(239, 68, 68, 0.03) 100%)',
-            p: { xs: 2.5, sm: 3 },
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            alignItems: { xs: 'flex-start', md: 'center' },
-            justifyContent: 'space-between',
-            gap: 2.5,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          }}
-        >
-          <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontWeight: 900,
-                color: '#fff',
-                fontFamily: 'var(--font-clash)',
-                fontSize: '1.1rem',
-                letterSpacing: '-0.01em',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-              }}
-            >
+      <div className="relative z-10 max-w-4xl mx-auto px-4 md:px-0 py-8 md:py-16 pb-20">
+        {/* Workspace Banner */}
+        <div className={`mb-8 rounded-3xl overflow-hidden border p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] ${
+          user 
+            ? 'border-[#6366F1]/20 bg-gradient-to-r from-[#6366F1]/8 to-[#A855F7]/3'
+            : 'border-[#F59E0B]/20 bg-gradient-to-r from-[#F59E0B]/8 to-[#EF4444]/3'
+        }`}>
+          <div className="flex-1 min-w-0">
+            <h6 className="font-black text-white font-clash text-lg flex items-center gap-2 mb-1">
               {user ? (
                 <>
-                  <Sparkles size={18} color="#818CF8" />
-                  Active Session Detected
+                  <Sparkles size={18} className="text-[#818CF8]" />
+                  <span>Active Session Detected</span>
                 </>
               ) : (
                 <>
-                  <Lock size={18} color="#F59E0B" />
-                  Ecosystem Integration Available
+                  <Lock size={18} className="text-[#F59E0B]" />
+                  <span>Ecosystem Integration Available</span>
                 </>
               )}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.55)', lineHeight: 1.5, fontWeight: 500 }}>
+            </h6>
+            <p className="text-xs text-white/60 leading-relaxed">
               {user ? (
                 `You are currently signed in as ${user.name || user.email || 'Teammate'}. Head back to your workspace to manage your active execution containers, notes, and secure vaults.`
               ) : (
-                "You are sharing as a guest. Create a free account to permanetly save these ghost objects, unlock unlimited encrypted vaults, and collaborate in real-time with up to 8 teammates."
+                "You are sharing as a guest. Create a free account to permanently save these ghost objects, unlock unlimited encrypted vaults, and collaborate in real-time with up to 8 teammates."
               )}
-            </Typography>
-          </Stack>
-          <Button
-            variant="contained"
+            </p>
+          </div>
+          <button
             onClick={() => {
               if (user) {
                 router.push('/projects');
@@ -1143,116 +882,69 @@ export function SendComposer() {
                 openUnified('login');
               }
             }}
-            sx={{
-              flexShrink: 0,
-              borderRadius: '14px',
-              bgcolor: user ? '#6366F1' : '#F59E0B',
-              color: '#0A0908',
-              fontWeight: 900,
-              textTransform: 'none',
-              px: 3,
-              py: 1.25,
-              fontSize: '0.85rem',
-              '&:hover': {
-                bgcolor: user ? '#4F46E5' : '#D97706',
-                transform: 'translateY(-1px)',
-              },
-              transition: 'all 0.2s ease',
+            className="flex-shrink-0 rounded-2xl font-black text-xs px-6 py-3.5 transition duration-200 hover:-translate-y-0.5 active:translate-y-0 text-black"
+            style={{
+              backgroundColor: user ? '#6366F1' : '#F59E0B',
             }}
           >
             {user ? 'Go to Workspace' : 'Unlock Full Suite'}
-          </Button>
-        </Box>
+          </button>
+        </div>
+
         <motion.div
           initial={reduceMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         >
-          <Stack spacing={1} sx={{ mb: 4, textAlign: 'center' }}>
-            <Chip
-              icon={<Sparkles size={14} style={{ color: themeColor }} />}
-              label="Send by Kylrix"
-              sx={{
-                alignSelf: 'center',
-                px: 1,
-                bgcolor: alpha(themeColor, 0.12),
-                color: alpha('#fff', 0.9),
-                border: `1px solid ${alpha(themeColor, 0.35)}`,
-                fontWeight: 600,
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-                fontSize: '0.7rem',
-              }}
-            />
-            <Typography
-              variant="h3"
-              sx={{
-                fontFamily: 'var(--font-clash)',
-                fontWeight: 600,
-                letterSpacing: '-0.03em',
-                fontSize: { xs: '2rem', md: '2.75rem' },
+          <div className="flex flex-col gap-2 mb-8 text-center items-center">
+            <span 
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border text-white/90"
+              style={{
+                backgroundColor: `${themeColor}1f`,
+                borderColor: `${themeColor}59`,
               }}
             >
+              <Sparkles size={12} style={{ color: themeColor }} />
+              <span>Send by Kylrix</span>
+            </span>
+            <h3 className="font-clash font-black text-3xl md:text-4xl tracking-tight text-white mt-1">
               {effectiveSecureMode ? "Private Sharing" : "Public Preview"}
-            </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.62)', maxWidth: 520, mx: 'auto', lineHeight: 1.6 }}>
+            </h3>
+            <p className="text-white/60 max-w-[520px] mx-auto text-sm leading-relaxed mt-2">
               {effectiveSecureMode ? 
                 "End-to-end encrypted objects with one link. We never see your data. Keys stay on your device." :
                 "Fast, unencrypted previews for notes, tasks, and files. Perfect for discovery and public sharing."
               }
-            </Typography>
-            
-          </Stack>
+            </p>
+          </div>
         </motion.div>
 
         {!createdUrl ? (
-          <Stack spacing={3}>
-            {/* Unified Dropdown Controls */}
-            <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
-              <Button
+          <div className="flex flex-col gap-6">
+            {/* Format selection trigger buttons */}
+            <div className="flex gap-3 mb-4 flex-wrap">
+              <button
                 onClick={() => setKindDrawerOpen(true)}
-                endIcon={<ChevronDown size={16} />}
-                startIcon={React.createElement(KINDS.find(k => k.id === kind)?.Icon || FileText, { size: 18, color: KIND_COLORS[kind] })}
-                sx={{
-                  bgcolor: alpha('#fff', 0.02),
-                  border: RIM,
-                  borderColor: alpha(KIND_COLORS[kind], 0.25),
-                  borderRadius: '12px',
-                  px: 2.5,
-                  py: 1.5,
-                  color: '#ffffff',
-                  textTransform: 'none',
-                  fontWeight: 800,
-                  fontFamily: 'var(--font-clash)',
-                  '&:hover': { bgcolor: SURFACE_HOVER, borderColor: alpha(KIND_COLORS[kind], 0.55) },
-                }}
+                className="bg-white/[0.02] border rounded-xl px-5 py-3.5 text-white text-sm font-black font-clash flex items-center gap-2 hover:bg-[#1C1A18] transition duration-200"
+                style={{ borderColor: `${KIND_COLORS[kind]}40` }}
               >
-                {KINDS.find(k => k.id === kind)?.label || 'Note'}
-              </Button>
+                {React.createElement(KINDS.find(k => k.id === kind)?.Icon || FileText, { size: 18, color: KIND_COLORS[kind] })}
+                <span>{KINDS.find(k => k.id === kind)?.label || 'Note'}</span>
+                <ChevronDown size={14} className="opacity-60 ml-1" />
+              </button>
 
               {(!isMandatorySecure) && (
-                <Button
+                <button
                   onClick={() => setSecurityDrawerOpen(true)}
-                  endIcon={<ChevronDown size={16} />}
-                  startIcon={effectiveSecureMode ? <Lock size={16} color={KIND_COLORS[kind]} /> : <Unlock size={16} color="#10B981" />}
-                  sx={{
-                    bgcolor: alpha('#fff', 0.02),
-                    border: RIM,
-                    borderColor: alpha(KIND_COLORS[kind], 0.25),
-                    borderRadius: '12px',
-                    px: 2.5,
-                    py: 1.5,
-                    color: '#ffffff',
-                    textTransform: 'none',
-                    fontWeight: 800,
-                    fontFamily: 'var(--font-clash)',
-                    '&:hover': { bgcolor: SURFACE_HOVER, borderColor: alpha(KIND_COLORS[kind], 0.55) },
-                  }}
+                  className="bg-white/[0.02] border rounded-xl px-5 py-3.5 text-white text-sm font-black font-clash flex items-center gap-2 hover:bg-[#1C1A18] transition duration-200"
+                  style={{ borderColor: `${KIND_COLORS[kind]}40` }}
                 >
-                  {effectiveSecureMode ? 'Private Sharing' : 'Public Preview'}
-                </Button>
+                  {effectiveSecureMode ? <Lock size={16} style={{ color: KIND_COLORS[kind] }} /> : <Unlock size={16} className="text-[#10B981]" />}
+                  <span>{effectiveSecureMode ? 'Private Sharing' : 'Public Preview'}</span>
+                  <ChevronDown size={14} className="opacity-60 ml-1" />
+                </button>
               )}
-            </Box>
+            </div>
 
             {kind === 'note' && (
               <NoteComposerCard
@@ -1289,1037 +981,559 @@ export function SendComposer() {
             )}
 
             {kind === 'password' && (
-              <Paper
-                elevation={0}
-                sx={{
-                  ...cardStyle,
-                  '&:focus-within': {
-                      borderColor: alpha('#10B981', 0.45),
-                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#10B981', 0.15)}`
-                  }
-                }}
-              >
+              <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] focus-within:border-[#10B981]/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(16,185,129,0.15)] transition duration-200">
                 {/* Vault Header */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Box sx={{ 
-                      width: 32, 
-                      height: 32, 
-                      borderRadius: '8px', 
-                      bgcolor: alpha('#10B981', 0.1),
-                      border: `1px solid ${alpha('#10B981', 0.3)}`,
-                      color: '#10B981',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] flex items-center justify-center">
                       <KeyRound size={16} />
-                    </Box>
-                    <Box>
-                      <Typography sx={{ fontWeight: 800, fontSize: '1rem', fontFamily: 'var(--font-clash)', color: '#ffffff' }}>
-                        Hardware Credential Vault
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-satoshi)' }}>
-                        Locked on this device
-                      </Typography>
-                    </Box>
-                  </Stack>
-                  
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    {/* Glowing state indicator */}
-                    <Tooltip title="Secure link active">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: alpha('#10B981', 0.08), border: `1px solid ${alpha('#10B981', 0.2)}`, px: 1, py: 0.5, borderRadius: '6px' }}>
-                        <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10B981', boxShadow: '0 0 6px #10B981' }} />
-                        <Typography sx={{ fontSize: '0.6rem', fontWeight: 900, color: '#10B981', letterSpacing: '0.05em' }}>LOCKED</Typography>
-                      </Box>
-                    </Tooltip>
-                    
+                    </div>
+                    <div>
+                      <p className="font-bold text-base font-clash text-white">Hardware Credential Vault</p>
+                      <span className="text-[10px] text-white/40 font-satoshi">Locked on this device</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 bg-[#10B981]/10 border border-[#10B981]/20 px-2.5 py-1 rounded-lg">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981]" />
+                      <span className="text-[10px] font-black text-[#10B981] tracking-wider">LOCKED</span>
+                    </div>
                     {renderHeaderActions("Enter a password to share")}
-                  </Stack>
-                </Box>
+                  </div>
+                </div>
 
-                {/* Interactive Card/Token Geometry Mock */}
-                <Box sx={{ 
-                  p: 3, 
-                  borderRadius: '16px', 
-                  bgcolor: '#000000', 
-                  border: RIM, 
-                  mb: 3,
-                  position: 'relative',
-                  overflow: 'hidden',
-                  background: 'radial-gradient(circle at top right, rgba(16, 185, 129, 0.08) 0%, transparent 60%)',
-                }}>
-                  {/* Interactive SIM/Chip Geometry */}
-                  <Box sx={{ 
-                    width: 40, 
-                    height: 32, 
-                    borderRadius: '6px', 
-                    background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', 
-                    border: '1px solid #B45309',
-                    position: 'absolute',
-                    top: 20,
-                    right: 20,
-                    opacity: 0.8,
-                    '&::after': {
-                      content: '""',
-                      position: 'absolute',
-                      inset: 4,
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: '2px',
-                    }
-                  }} />
+                {/* Interactive Card/SIM representation */}
+                <div className="p-6 rounded-2xl bg-black border border-[#34322F] mb-3 relative overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.08)_0%,_transparent_60%)]">
+                  <div className="w-10 h-8 rounded-md bg-gradient-to-br from-[#F59E0B] to-[#D97706] border border-[#B45309] absolute top-5 right-5 opacity-80 after:content-[''] after:absolute after:inset-1 after:border after:border-white/20 after:rounded-sm" />
 
-                  <Stack spacing={2} sx={{ position: 'relative', zIndex: 1, maxWidth: '80%' }}>
-                    <Box>
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.5 }}>
-                        Vault Identity
-                      </Typography>
-                      <TextField
+                  <div className="flex flex-col gap-4 max-w-[80%] relative z-10">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Vault Identity</label>
+                      <input
+                        type="text"
                         placeholder="Username, Email, or Client ID"
-                        fullWidth
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        variant="standard"
-                        InputProps={{
-                          disableUnderline: true,
-                          sx: { 
-                            fontSize: '1rem', 
-                            fontFamily: 'var(--font-jetbrains-mono)',
-                            color: '#ffffff',
-                            py: 0.5,
-                            borderBottom: '1px dashed #34322F',
-                            '&::placeholder': { opacity: 0.2 }
-                          }
-                        }}
+                        className="w-full bg-transparent text-sm font-mono text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#10B981] focus:outline-none placeholder-white/20"
                       />
-                    </Box>
+                    </div>
 
-                    <Box>
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.5 }}>
-                        Credential Key
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: '1px dashed #34322F' }}>
-                        <TextField
-                          placeholder="Secret Password or Key Phrase"
-                          fullWidth
-                          required
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Credential Key</label>
+                      <div className="flex items-center border-b border-dashed border-[#34322F] focus-within:border-[#10B981]">
+                        <input
                           type={showPassword ? "text" : "password"}
+                          placeholder="Secret Password or Key Phrase"
+                          required
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          variant="standard"
-                          InputProps={{
-                            disableUnderline: true,
-                            sx: { 
-                              fontSize: '1rem', 
-                              fontFamily: 'var(--font-jetbrains-mono)',
-                              color: '#ffffff',
-                              py: 0.5,
-                              '&::placeholder': { opacity: 0.2 }
-                            }
-                          }}
+                          className="w-full bg-transparent text-sm font-mono text-white py-1 focus:outline-none placeholder-white/20"
                         />
-                        <IconButton size="small" onClick={() => setShowPassword(!showPassword)} sx={{ color: 'rgba(255,255,255,0.4)', p: 0.5 }}>
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-white/40 hover:text-white p-1">
                           {showPassword ? <Unlock size={16} /> : <Lock size={16} />}
-                        </IconButton>
-                      </Box>
-                    </Box>
+                        </button>
+                      </div>
+                    </div>
 
-                    <Box>
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.5 }}>
-                        Bundled TOTP Secret (Optional)
-                      </Typography>
-                      <TextField
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Bundled TOTP Secret (Optional)</label>
+                      <input
+                        type="text"
                         placeholder="JBSWY3DPEHPK3PXP"
-                        fullWidth
                         value={passwordTotpBundle}
                         onChange={(e) => setPasswordTotpBundle(e.target.value)}
-                        variant="standard"
-                        InputProps={{
-                          disableUnderline: true,
-                          sx: { 
-                            fontSize: '1rem', 
-                            fontFamily: 'var(--font-jetbrains-mono)',
-                            color: '#ffffff',
-                            py: 0.5,
-                            borderBottom: '1px dashed #34322F',
-                            '&::placeholder': { opacity: 0.2 }
-                          }
-                        }}
+                        className="w-full bg-transparent text-sm font-mono text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#10B981] focus:outline-none placeholder-white/20"
                       />
-                    </Box>
-                  </Stack>
-                </Box>
-              </Paper>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {kind === 'totp' && (
-              <Paper
-                elevation={0}
-                sx={{
-                  ...cardStyle,
-                  '&:focus-within': {
-                      borderColor: alpha('#10B981', 0.45),
-                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#10B981', 0.15)}`
-                  }
-                }}
-              >
+              <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] focus-within:border-[#10B981]/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(16,185,129,0.15)] transition duration-200">
                 {/* Authenticator Header */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Box sx={{ 
-                      width: 32, 
-                      height: 32, 
-                      borderRadius: '8px', 
-                      bgcolor: alpha('#10B981', 0.1),
-                      border: `1px solid ${alpha('#10B981', 0.3)}`,
-                      color: '#10B981',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] flex items-center justify-center">
                       <Shield size={16} />
-                    </Box>
-                    <Box>
-                      <Typography sx={{ fontWeight: 800, fontSize: '1rem', fontFamily: 'var(--font-clash)', color: '#ffffff' }}>
-                        Authenticator Generator
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-satoshi)' }}>
-                        Secure 2FA token seeds
-                      </Typography>
-                    </Box>
-                  </Stack>
-                  
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    {/* Glowing LED countdown simulation indicator */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', px: 1, py: 0.5, borderRadius: '6px' }}>
-                      <Box sx={{ 
-                        width: 6, 
-                        height: 6, 
-                        borderRadius: '50%', 
-                        bgcolor: '#10B981', 
-                        boxShadow: '0 0 6px #10B981',
-                      }} />
-                      <Typography sx={{ fontSize: '0.6rem', fontWeight: 900, color: '#10B981', letterSpacing: '0.05em' }}>ACTIVE</Typography>
-                    </Box>
-
+                    </div>
+                    <div>
+                      <p className="font-bold text-base font-clash text-white">Authenticator Generator</p>
+                      <span className="text-[10px] text-white/40 font-satoshi">Secure 2FA token seeds</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 bg-[#10B981]/10 border border-[#10B981]/20 px-2.5 py-1 rounded-lg">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981]" />
+                      <span className="text-[10px] font-black text-[#10B981] tracking-wider">ACTIVE</span>
+                    </div>
                     {renderHeaderActions("Enter a secret key to share")}
-                  </Stack>
-                </Box>
+                  </div>
+                </div>
 
                 {/* Digital LCD screen representation */}
-                <Box sx={{ 
-                  p: 3, 
-                  borderRadius: '16px', 
-                  bgcolor: '#000000', 
-                  border: RIM, 
-                  mb: 3,
-                  position: 'relative',
-                  overflow: 'hidden',
-                  background: 'radial-gradient(circle at top left, rgba(16, 185, 129, 0.05) 0%, transparent 60%)',
-                }}>
-                  {/* Mock Token Monospace Screen display */}
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    border: '1px solid #1C1A18',
-                    bgcolor: '#0A0908',
-                    borderRadius: '12px',
-                    p: 2.5,
-                    mb: 3.5
-                  }}>
-                    <Box>
-                      <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                <div className="p-6 rounded-2xl bg-black border border-[#34322F] mb-3 relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.05)_0%,_transparent_60%)]">
+                  <div className="flex justify-between items-center border border-[#1C1A18] bg-[#0A0908] rounded-xl p-4 mb-6">
+                    <div>
+                      <span className="text-[10px] text-white/30 font-black tracking-wider uppercase block">
                         {totpIssuer.trim() ? totpIssuer.trim() : 'DEFAULT TOKEN'}
-                      </Typography>
-                      <Typography sx={{ fontSize: '2rem', fontFamily: 'var(--font-jetbrains-mono)', fontWeight: 900, color: '#10B981', letterSpacing: '0.05em', mt: 0.5 }}>
+                      </span>
+                      <span className="text-3xl font-mono font-black text-[#10B981] tracking-wider mt-1 block">
                         {totpSecret.trim() ? '••• •••' : '000 000'}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', fontWeight: 800 }}>TIME REMAINING</Typography>
-                      <Typography sx={{ fontSize: '1.25rem', fontFamily: 'var(--font-jetbrains-mono)', fontWeight: 900, color: 'rgba(255,255,255,0.7)', mt: 0.5 }}>
-                        30s
-                      </Typography>
-                    </Box>
-                  </Box>
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[9px] text-white/30 font-black">TIME REMAINING</span>
+                      <span className="text-lg font-mono font-black text-white/70 mt-1 block">30s</span>
+                    </div>
+                  </div>
 
-                  <Stack spacing={2}>
-                    <Box>
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.5 }}>
-                        Token Issuer (e.g. Google, AWS, GitHub)
-                      </Typography>
-                      <TextField
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Token Issuer (e.g. Google, AWS, GitHub)</label>
+                      <input
+                        type="text"
                         placeholder="Google, AWS, GitHub"
-                        fullWidth
                         value={totpIssuer}
                         onChange={(e) => setTotpIssuer(e.target.value)}
-                        variant="standard"
-                        InputProps={{
-                          disableUnderline: true,
-                          sx: { 
-                            fontSize: '1rem', 
-                            fontFamily: 'var(--font-satoshi)',
-                            color: '#ffffff',
-                            py: 0.5,
-                            borderBottom: '1px dashed #34322F',
-                            '&::placeholder': { opacity: 0.2 }
-                          }
-                        }}
+                        className="w-full bg-transparent text-sm text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#10B981] focus:outline-none placeholder-white/20"
                       />
-                    </Box>
+                    </div>
 
-                    <Box>
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.5 }}>
-                        Secret Authenticator Key
-                      </Typography>
-                      <TextField
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Secret Authenticator Key</label>
+                      <input
+                        type="text"
                         placeholder="JBSWY3DPEHPK3PXP"
-                        fullWidth
                         required
                         value={totpSecret}
                         onChange={(e) => setTotpSecret(e.target.value)}
-                        variant="standard"
-                        InputProps={{
-                          disableUnderline: true,
-                          sx: { 
-                            fontSize: '1rem', 
-                            fontFamily: 'var(--font-jetbrains-mono)',
-                            color: '#ffffff',
-                            py: 0.5,
-                            borderBottom: '1px dashed #34322F',
-                            '&::placeholder': { opacity: 0.2 }
-                          }
-                        }}
+                        className="w-full bg-transparent text-sm font-mono text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#10B981] focus:outline-none placeholder-white/20"
                       />
-                    </Box>
-                  </Stack>
-                </Box>
-              </Paper>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {kind === 'task' && (
-              <Paper
-                elevation={0}
-                sx={{
-                  ...cardStyle,
-                  '&:focus-within': {
-                      borderColor: alpha('#A855F7', 0.45),
-                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#A855F7', 0.15)}`
-                  }
-                }}
-              >
+              <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] focus-within:border-[#A855F7]/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(168,85,247,0.15)] transition duration-200">
                 {/* Task Header */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Box sx={{ 
-                      width: 32, 
-                      height: 32, 
-                      borderRadius: '8px', 
-                      bgcolor: alpha('#A855F7', 0.1),
-                      border: '1px solid rgba(168, 85, 247, 0.3)',
-                      color: '#A855F7',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#A855F7]/10 border border-[#A855F7]/30 text-[#A855F7] flex items-center justify-center">
                       <ListTodo size={16} />
-                    </Box>
-                    <Box>
-                      <Typography sx={{ fontWeight: 800, fontSize: '1rem', fontFamily: 'var(--font-clash)', color: '#ffffff' }}>
-                        Execution Goal Planner
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-satoshi)' }}>
-                        Action items & milestones
-                      </Typography>
-                    </Box>
-                  </Stack>
-                  
+                    </div>
+                    <div>
+                      <p className="font-bold text-base font-clash text-white">Execution Goal Planner</p>
+                      <span className="text-[10px] text-white/40 font-satoshi">Action items & milestones</span>
+                    </div>
+                  </div>
                   {renderHeaderActions("Enter a goal title to share")}
-                </Box>
+                </div>
 
                 {/* Goals Metadata Schema board */}
-                <Box sx={{ 
-                  p: 3, 
-                  borderRadius: '16px', 
-                  bgcolor: '#000000', 
-                  border: RIM, 
-                  mb: 3,
-                  background: 'radial-gradient(circle at center, rgba(16, 185, 129, 0.03) 0%, transparent 80%)',
-                }}>
-                  <Stack spacing={3.5}>
-                    {/* Goal Title & Detail */}
-                    <Stack spacing={2}>
-                      <Box>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.5 }}>
-                          Goal / Objective
-                        </Typography>
-                        <TextField
+                <div className="p-6 rounded-2xl bg-black border border-[#34322F] mb-3 relative overflow-hidden bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.03)_0%,_transparent_80%)]">
+                  <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Goal / Objective</label>
+                        <input
+                          type="text"
                           placeholder="What needs to be achieved?"
-                          fullWidth
                           required
                           value={taskTitle}
                           onChange={(e) => setTaskTitle(e.target.value)}
-                          variant="standard"
-                          InputProps={{
-                            disableUnderline: true,
-                            sx: { 
-                              fontSize: '1.25rem', 
-                              fontWeight: 800,
-                              fontFamily: 'var(--font-clash)',
-                              color: '#ffffff',
-                              py: 0.5,
-                              borderBottom: '1px dashed #34322F',
-                              '&::placeholder': { opacity: 0.2 }
-                            }
-                          }}
+                          className="w-full bg-transparent text-lg font-bold font-clash text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#A855F7] focus:outline-none placeholder-white/20"
                         />
-                      </Box>
+                      </div>
 
-                      <Box>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.5 }}>
-                          Execution Details / Sub-steps
-                        </Typography>
-                        <TextField
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Execution Details / Sub-steps</label>
+                        <textarea
                           placeholder="Add context, specifications, or step-by-step checklist..."
-                          fullWidth
-                          multiline
-                          minRows={3}
+                          rows={3}
                           value={taskDetail}
                           onChange={(e) => setTaskDetail(e.target.value)}
-                          variant="standard"
-                          InputProps={{
-                            disableUnderline: true,
-                            sx: { 
-                              fontSize: '0.95rem', 
-                              fontFamily: 'var(--font-satoshi)',
-                              color: 'rgba(255,255,255,0.8)',
-                              py: 0.5,
-                              lineHeight: 1.5,
-                              '&::placeholder': { opacity: 0.2 }
-                            }
-                          }}
+                          className="w-full bg-transparent text-sm text-white/80 py-1 leading-normal border-b border-dashed border-[#34322F] focus:border-[#A855F7] focus:outline-none placeholder-white/20 resize-y"
                         />
-                      </Box>
-                    </Stack>
+                      </div>
+                    </div>
 
                     {/* Goal Priority Selector */}
-                    <Box>
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 1.5 }}>
-                        Goal Priority
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <div>
+                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase block mb-2">Goal Priority</label>
+                      <div className="flex flex-wrap gap-2">
                         {(['low', 'medium', 'high', 'urgent'] as const).map((p) => {
                           const isSelected = taskPriority === p;
                           const color = p === 'low' ? '#A1A1AA' : p === 'medium' ? '#A855F7' : p === 'high' ? '#F59E0B' : '#EF4444';
                           return (
-                            <Button
+                            <button
                               key={p}
-                              size="small"
+                              type="button"
                               onClick={() => setTaskPriority(p)}
-                              sx={{
-                                textTransform: 'uppercase',
-                                fontSize: '0.7rem',
-                                fontWeight: 900,
-                                px: 2,
-                                py: 0.75,
-                                borderRadius: '8px',
-                                border: isSelected ? `1px solid ${color}` : '1px solid #34322F',
-                                bgcolor: isSelected ? alpha(color, 0.15) : 'transparent',
+                              className="text-[10px] font-black uppercase px-4 py-2 rounded-lg border transition duration-200"
+                              style={{
+                                borderColor: isSelected ? color : '#34322F',
+                                backgroundColor: isSelected ? `${color}26` : 'transparent',
                                 color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.4)',
-                                '&:hover': {
-                                  bgcolor: isSelected ? alpha(color, 0.25) : 'rgba(255,255,255,0.02)',
-                                  borderColor: isSelected ? color : '#4A4845',
-                                },
-                                transition: 'all 0.25s ease',
                               }}
                             >
                               {p}
-                            </Button>
+                            </button>
                           );
                         })}
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
 
                     {/* Goal Deadline Selector */}
-                    <Box>
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 1.5 }}>
-                        Goal Target Deadline
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <div>
+                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase block mb-2">Goal Target Deadline</label>
+                      <div className="flex flex-wrap gap-2">
                         {(['none', 'today', 'tomorrow', 'week'] as const).map((preset) => {
                           const isSelected = taskDuePreset === preset;
                           const label = preset === 'none' ? 'No Due Date' : preset === 'today' ? 'Today' : preset === 'tomorrow' ? 'Tomorrow' : '1 Week';
                           return (
-                            <Button
+                            <button
                               key={preset}
-                              size="small"
+                              type="button"
                               onClick={() => setTaskDuePreset(preset)}
-                              sx={{
-                                textTransform: 'none',
-                                fontSize: '0.75rem',
-                                fontWeight: 800,
-                                px: 2,
-                                py: 0.75,
-                                borderRadius: '8px',
-                                border: isSelected ? `1px solid #A855F7` : '1px solid #34322F',
-                                bgcolor: isSelected ? alpha('#A855F7', 0.15) : 'transparent',
+                              className="text-xs font-bold px-4 py-2 rounded-lg border transition duration-200"
+                              style={{
+                                borderColor: isSelected ? '#A855F7' : '#34322F',
+                                backgroundColor: isSelected ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
                                 color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.4)',
-                                '&:hover': {
-                                  bgcolor: isSelected ? alpha('#A855F7', 0.25) : 'rgba(255,255,255,0.02)',
-                                  borderColor: isSelected ? '#A855F7' : '#4A4845',
-                                },
-                                transition: 'all 0.25s ease',
                               }}
                             >
                               {label}
-                            </Button>
+                            </button>
                           );
                         })}
-                      </Box>
-                    </Box>
-                  </Stack>
-                </Box>
-              </Paper>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {kind === 'file' && (
-              <Paper
-                elevation={0}
-                sx={{
-                  ...cardStyle,
-                  '&:focus-within': {
-                      borderColor: alpha('#6366F1', 0.45),
-                      boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 15px ${alpha('#6366F1', 0.15)}`
-                  }
-                }}
-              >
+              <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] focus-within:border-[#6366F1]/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(99,102,241,0.15)] transition duration-200">
                 {/* File Header */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Box sx={{ 
-                      width: 32, 
-                      height: 32, 
-                      borderRadius: '8px', 
-                      bgcolor: alpha('#6366F1', 0.1),
-                      border: '1px solid rgba(99, 102, 241, 0.3)',
-                      color: '#6366F1',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#6366F1]/10 border border-[#6366F1]/30 text-[#6366F1] flex items-center justify-center">
                       <Upload size={16} />
-                    </Box>
-                    <Box>
-                      <Typography sx={{ fontWeight: 800, fontSize: '1rem', fontFamily: 'var(--font-clash)', color: '#ffffff' }}>
-                        Secure File Drop
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-satoshi)' }}>
-                        Vanishing secure file storage
-                      </Typography>
-                    </Box>
-                  </Stack>
-                  
+                    </div>
+                    <div>
+                      <p className="font-bold text-base font-clash text-white">Secure File Drop</p>
+                      <span className="text-[10px] text-white/40 font-satoshi">Vanishing secure file storage</span>
+                    </div>
+                  </div>
                   {renderHeaderActions("Choose a file to share")}
-                </Box>
+                </div>
 
-                <Box
+                <div
                   onDragEnter={handleDrag}
                   onDragLeave={handleDrag}
                   onDragOver={handleDrag}
                   onDrop={handleDrop}
-                  sx={{
-                    border: `2px dashed ${dragActive ? alpha(PRIMARY, 0.45) : '#34322F'}`,
-                    borderRadius: 3,
-                    p: 4,
-                    textAlign: 'center',
-                    bgcolor: dragActive ? alpha(PRIMARY, 0.04) : 'rgba(255,255,255,0.01)',
-                    transition: 'all 0.2s ease',
-                  }}
+                  className={`border-2 border-dashed rounded-xl p-8 text-center transition duration-200 ${
+                    dragActive ? 'border-[#6366F1] bg-[#6366F1]/5' : 'border-[#34322F] bg-white/[0.01]'
+                  }`}
                 >
                   <input
                     type="file"
                     id="send-file-input"
                     onChange={handleFileChange}
-                    style={{ display: 'none' }}
+                    className="hidden"
                   />
-                  <label htmlFor="send-file-input" style={{ cursor: 'pointer' }}>
-                    <Stack spacing={1.5} alignItems="center">
-                      <Box
-                        sx={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: '50%',
-                          bgcolor: '#161412',
-                          border: '1px solid #34322F',
-                          color: '#6366F1',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
+                  <label htmlFor="send-file-input" className="cursor-pointer block">
+                    <div className="flex flex-col gap-4 items-center">
+                      <div className="w-12 h-12 rounded-full bg-[#161412] border border-[#34322F] text-[#6366F1] flex items-center justify-center">
                         <Upload size={24} />
-                      </Box>
-                      <Box>
-                        <Typography sx={{ fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-satoshi)' }}>
-                          {fileName || 'Click or drag file to share'}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#9B9691', fontFamily: 'var(--font-satoshi)', display: 'block', mt: 0.5 }}>
-                          Max {activeMaxLabel} · Securely encrypted
-                        </Typography>
-                      </Box>
+                      </div>
+                      <div>
+                        <p className="font-bold text-white font-satoshi">{fileName || 'Click or drag file to share'}</p>
+                        <span className="text-xs text-white/40 block mt-1">Max {activeMaxLabel} · Securely encrypted</span>
+                      </div>
                       {fileName && (
-                        <Button
-                          size="small"
+                        <button
+                          type="button"
                           onClick={(e) => {
                             e.preventDefault();
                             setSendFile(null);
                             setFileName(null);
                           }}
-                          sx={{ color: '#FF453A', textTransform: 'none', fontWeight: 700, fontFamily: 'var(--font-satoshi)' }}
+                          className="text-[#FF453A] font-bold text-xs hover:underline mt-2"
                         >
-                          Remove
-                        </Button>
+                          Remove File
+                        </button>
                       )}
-                    </Stack>
+                    </div>
                   </label>
-                </Box>
-              </Paper>
+                </div>
+              </div>
             )}
 
-
-
-            <Button
-              variant="contained"
-              size="large"
+            <button
               disabled={!draftValid || isCreating}
               onClick={() => void handleCreateLink()}
-              sx={{
-                py: 2,
-                borderRadius: '16px',
-                textTransform: 'none',
-                fontWeight: 900,
-                fontSize: '1.05rem',
-                bgcolor: themeColor,
-                fontFamily: 'var(--font-clash)',
-                boxShadow: `0 12px 40px ${alpha(themeColor, 0.35)}`,
-                '&:hover': { bgcolor: themeColor, filter: 'brightness(1.15)' },
-                transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                '&.Mui-disabled': {
-                  bgcolor: 'rgba(255, 255, 255, 0.05)',
-                  color: 'rgba(255, 255, 255, 0.15)',
-                }
+              className="w-full py-4 rounded-2xl font-black text-sm text-black transition duration-300 hover:brightness-110 active:scale-[0.99] flex items-center justify-center gap-2 font-clash disabled:bg-white/5 disabled:text-white/15 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: draftValid && !isCreating ? themeColor : undefined,
+                boxShadow: draftValid && !isCreating ? `0 12px 40px ${themeColor}33` : undefined,
               }}
             >
-              {isCreating ? <CircularProgress size={26} color="inherit" /> : `Create ${effectiveSecureMode ? 'Secure' : 'Send'} Link`}
-            </Button>
+              {isCreating ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-current" />
+              ) : (
+                <span>Create {effectiveSecureMode ? 'Secure' : 'Send'} Link</span>
+              )}
+            </button>
 
-            <Typography sx={{ textAlign: 'center', fontSize: '0.8rem', color: '#9B9691', px: 2, lineHeight: 1.6, fontFamily: 'var(--font-satoshi)' }}>
+            <p className="text-center text-xs text-[#9B9691] px-4 leading-relaxed">
               {effectiveSecureMode ? 'Encrypted' : 'Unencrypted'} rows stored for this link — they clear automatically after 7 days.
               {effectiveSecureMode && ' The key stays in the link fragment only.'}
-            </Typography>
-          </Stack>
+            </p>
+          </div>
         ) : (
-          <Paper
-            elevation={0}
-            sx={{
-              p: { xs: 4, sm: 6 },
-              borderRadius: '40px',
-              bgcolor: SURFACE,
-              border: RIM,
-              textAlign: 'center',
-              boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
-            }}
-          >
-            <Box
-              sx={{
-                width: 72,
-                height: 72,
-                borderRadius: '50%',
-                bgcolor: alpha(themeColor, 0.1),
-                color: themeColor,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mx: 'auto',
-                mb: 3,
-              }}
+          <div className="p-8 md:p-12 rounded-[40px] bg-[#161412] border border-[#34322F] text-center shadow-[0_32px_80px_rgba(0,0,0,0.6)]">
+            <div 
+              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-black"
+              style={{ backgroundColor: `${themeColor}1a`, color: themeColor }}
             >
-              <Check size={36} strokeWidth={3} />
-            </Box>
-            <Typography variant="h4" sx={{ fontWeight: 900, mb: 1.5, fontFamily: 'var(--font-clash)', color: '#ffffff' }}>
+              <Check size={32} strokeWidth={3} />
+            </div>
+            <h4 className="text-2xl font-black font-clash text-white mb-3">
               Link Created
-            </Typography>
-            <Typography sx={{ color: '#9B9691', mb: 4, maxWidth: 360, mx: 'auto', fontFamily: 'var(--font-satoshi)' }}>
+            </h4>
+            <p className="text-sm text-white/50 mb-8 max-w-[360px] mx-auto">
               Anyone with this link can {effectiveSecureMode ? 'decrypt' : 'view'} the payload. It will vanish automatically in {formatRemaining(expiryMs)}.
-            </Typography>
+            </p>
 
-            <Box
-              sx={{
-                p: 2.5,
-                borderRadius: '16px',
-                bgcolor: '#000000',
-                border: RIM,
-                mb: 4,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-              }}
-            >
-              <Typography
-                noWrap
-                sx={{
-                  flex: 1,
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.85rem',
-                  color: alpha('#fff', 0.7),
-                  textAlign: 'left',
-                }}
-              >
+            <div className="p-4 rounded-2xl bg-black border border-[#34322F] mb-8 flex items-center gap-3">
+              <span className="flex-1 font-mono text-xs text-white/70 text-left truncate">
                 {createdUrl}
-              </Typography>
-              <IconButton onClick={handleCopy} size="small" sx={{ color: themeColor }}>
-                <Copy size={20} />
-              </IconButton>
-            </Box>
-
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-              <Button
-                variant="contained"
-                onClick={handleCopy}
-                startIcon={copied ? <Check size={20} /> : <Copy size={20} />}
-                sx={{
-                  px: 5,
-                  py: 1.75,
-                  borderRadius: '14px',
-                  textTransform: 'none',
-                  fontWeight: 900,
-                  fontSize: '1rem',
-                  bgcolor: themeColor,
-                  fontFamily: 'var(--font-clash)',
-                  '&:hover': { bgcolor: themeColor, filter: 'brightness(1.15)' },
-                }}
+              </span>
+              <button 
+                onClick={handleCopy} 
+                className="p-2 rounded-xl transition hover:bg-white/5"
+                style={{ color: themeColor }}
               >
-                {copied ? 'Copied!' : 'Copy Link'}
-              </Button>
-              <Button
-                variant="outlined"
+                <Copy size={20} />
+              </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={handleCopy}
+                className="px-8 py-3.5 rounded-2xl text-black font-black flex items-center justify-center gap-2 font-clash transition duration-200 hover:brightness-110"
+                style={{ backgroundColor: themeColor }}
+              >
+                {copied ? <Check size={18} /> : <Copy size={18} />}
+                <span>{copied ? 'Copied!' : 'Copy Link'}</span>
+              </button>
+              <button
                 onClick={handleReset}
-                sx={{
-                  px: 4,
-                  py: 1.75,
-                  borderRadius: '14px',
-                  textTransform: 'none',
-                  fontWeight: 900,
-                  fontSize: '1rem',
-                  borderColor: '#34322F',
-                  color: '#ffffff',
-                  fontFamily: 'var(--font-clash)',
-                  '&:hover': { borderColor: '#4A4845', bgcolor: 'rgba(255,255,255,0.02)' },
-                }}
+                className="px-6 py-3.5 rounded-2xl border border-[#34322F] text-white font-black font-clash transition duration-200 hover:border-[#4A4845] hover:bg-white/5"
               >
                 Create Another
-              </Button>
-            </Stack>
-          </Paper>
+              </button>
+            </div>
+          </div>
         )}
 
-        {/* Stash (sends on this device) rendered as the last element above signature */}
+        {/* Spark shelf / history shelf */}
         {sendSparks.length > 0 && (
-          <Box sx={{ mt: 6 }}>
-            <Paper
-              elevation={0}
-              sx={cardStyle}
-            >
+          <div className="mt-8">
+            <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)]">
               <SendSparkShelf sparks={sendSparks} onSaveSparks={saveSendSparks} onClaim={handleClaimSendSpark} />
-            </Paper>
-          </Box>
+            </div>
+          </div>
         )}
 
-        <Box sx={{ mt: 10, borderTop: RIM, pt: 5, textAlign: 'center' }}>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', fontWeight: 900, textTransform: 'uppercase', fontFamily: 'var(--font-clash)' }}>
+        <div className="mt-16 border-t border-[#34322F] pt-8 text-center">
+          <span className="text-[10px] text-white/20 font-black tracking-widest uppercase font-clash">
             Secure Send · Powered by Kylrix
-          </Typography>
-        </Box>
-      </Container>
+          </span>
+        </div>
+      </div>
 
-      {/* Conditional Overlays strictly unmounted when closed */}
+      {/* Sharing Format Selection Sheet */}
       {kindDrawerOpen && (
-        <Drawer
-          anchor="bottom"
-          open={kindDrawerOpen}
-          onClose={() => setKindDrawerOpen(false)}
-          keepMounted={false}
-          disablePortal={true}
-          PaperProps={{
-            sx: {
-              bgcolor: '#161412',
-              borderTop: '1px solid #34322F',
-              borderTopLeftRadius: '24px',
-              borderTopRightRadius: '24px',
-              p: 3,
-              color: '#ffffff',
-              fontFamily: 'var(--font-satoshi)',
-              maxWidth: 'md',
-              mx: 'auto',
-              maxHeight: '60vh',
-              overflowY: 'auto',
-            }
-          }}
-        >
-          <Typography variant="h6" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 800, mb: 2 }}>
-            Select Sharing Format
-          </Typography>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: 1.5,
-            }}
-          >
-            {KINDS.map(({ id, label, blurb, Icon }) => {
-              const selected = kind === id;
-              const itemColor = KIND_COLORS[id];
-              return (
-                <ListItemButton
-                  key={id}
-                  onClick={() => {
-                    setKind(id);
-                    setKindDrawerOpen(false);
-                    if (id !== 'file') {
-                      setSendFile(null);
-                      setFileName(null);
-                    }
-                  }}
-                  sx={{
-                    p: 2,
-                    borderRadius: '12px',
-                    border: selected ? `1px solid ${itemColor}` : '1px solid #34322F',
-                    bgcolor: selected ? alpha(itemColor, 0.08) : 'transparent',
-                    '&:hover': { bgcolor: alpha(itemColor, 0.12) },
-                    display: 'flex',
-                    gap: 2,
-                    alignItems: 'center',
-                    textAlign: 'left',
-                  }}
-                >
-                  <ListItemIcon sx={{ minWidth: 0, color: itemColor }}>
-                    <Icon size={24} style={{ color: itemColor }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: selected ? '#ffffff' : 'rgba(255,255,255,0.8)' }}>{label}</Typography>}
-                    secondary={<Typography sx={{ fontSize: '0.75rem', color: selected ? alpha(itemColor, 0.7) : 'rgba(255,255,255,0.4)' }}>{blurb}</Typography>}
-                  />
-                </ListItemButton>
-              );
-            })}
-          </Box>
-        </Drawer>
+        <div className="fixed inset-0 z-[1500] flex items-end justify-center">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setKindDrawerOpen(false)} />
+          <div className="relative w-full max-w-2xl bg-[#161412] border-t border-[#34322F] rounded-t-3xl p-6 text-white max-h-[80vh] overflow-y-auto z-10 shadow-[0_-8px_32px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center justify-between mb-6">
+              <h6 className="text-xl font-bold font-clash">Select Sharing Format</h6>
+              <button onClick={() => setKindDrawerOpen(false)} className="text-white/40 hover:text-white text-sm">Close</button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {KINDS.map(({ id, label, blurb, Icon }) => {
+                const selected = kind === id;
+                const itemColor = KIND_COLORS[id];
+                return (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      setKind(id);
+                      setKindDrawerOpen(false);
+                      if (id !== 'file') {
+                        setSendFile(null);
+                        setFileName(null);
+                      }
+                    }}
+                    className="p-4 rounded-xl border text-left flex items-center gap-4 transition duration-200 w-full"
+                    style={{
+                      borderColor: selected ? itemColor : '#34322F',
+                      backgroundColor: selected ? `${itemColor}14` : 'transparent',
+                    }}
+                  >
+                    <div style={{ color: itemColor }}>
+                      <Icon size={24} />
+                    </div>
+                    <div>
+                      <p className={`font-bold font-satoshi ${selected ? 'text-white' : 'text-white/80'}`}>{label}</p>
+                      <span className={`text-xs block mt-0.5 ${selected ? 'text-white/70' : 'text-white/40'}`}>{blurb}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
+      {/* Security Selector Sheet */}
       {securityDrawerOpen && (
-        <Drawer
-          anchor="bottom"
-          open={securityDrawerOpen}
-          onClose={() => setSecurityDrawerOpen(false)}
-          keepMounted={false}
-          disablePortal={true}
-          PaperProps={{
-            sx: {
-              bgcolor: '#161412',
-              borderTop: '1px solid #34322F',
-              borderTopLeftRadius: '24px',
-              borderTopRightRadius: '24px',
-              p: 3,
-              color: '#ffffff',
-              fontFamily: 'var(--font-satoshi)',
-              maxWidth: 'md',
-              mx: 'auto',
-              maxHeight: '60vh',
-              overflowY: 'auto',
-            }
-          }}
-        >
-          <Typography variant="h6" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 800, mb: 2 }}>
-            Sharing Security
-          </Typography>
-          <Stack spacing={1.5}>
-            <ListItemButton
-              onClick={() => {
-                handleSelectSecureMode(true);
-                setSecurityDrawerOpen(false);
-              }}
-              sx={{
-                p: 2,
-                borderRadius: '12px',
-                border: isSecureMode ? `1px solid ${themeColor}` : '1px solid #34322F',
-                bgcolor: isSecureMode ? alpha(themeColor, 0.08) : 'transparent',
-                '&:hover': { bgcolor: alpha(themeColor, 0.12) },
-              }}
-            >
-              <ListItemIcon sx={{ color: themeColor }}>
-                <Lock size={20} />
-              </ListItemIcon>
-              <ListItemText
-                primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: isSecureMode ? '#ffffff' : 'rgba(255,255,255,0.8)' }}>Private Sharing</Typography>}
-                secondary={<Typography sx={{ fontSize: '0.75rem', color: isSecureMode ? alpha(themeColor, 0.7) : 'rgba(255,255,255,0.4)', mt: 0.5 }}>Encrypted before upload. Only people with the link can open it.</Typography>}
-              />
-            </ListItemButton>
-
-            <ListItemButton
-              onClick={() => {
-                handleSelectSecureMode(false);
-                setSecurityDrawerOpen(false);
-              }}
-              sx={{
-                p: 2,
-                borderRadius: '12px',
-                border: !isSecureMode ? '1px solid #10B981' : '1px solid #34322F',
-                bgcolor: !isSecureMode ? 'rgba(16, 185, 129, 0.08)' : 'transparent',
-                '&:hover': { bgcolor: 'rgba(16, 185, 129, 0.12)' },
-              }}
-            >
-              <ListItemIcon sx={{ color: '#10B981' }}>
-                <Unlock size={20} />
-              </ListItemIcon>
-              <ListItemText
-                primary={<Typography sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: !isSecureMode ? '#ffffff' : 'rgba(255,255,255,0.8)' }}>Public Preview</Typography>}
-                secondary={<Typography sx={{ fontSize: '0.75rem', color: !isSecureMode ? alpha('#10B981', 0.7) : 'rgba(255,255,255,0.4)', mt: 0.5 }}>Fast previews for links that do not need protection.</Typography>}
-              />
-            </ListItemButton>
-          </Stack>
-        </Drawer>
-      )}
-
-      {/* Expiry Drawer */}
-      {expiryDrawerOpen && (
-        <Drawer
-          anchor="bottom"
-          open={expiryDrawerOpen}
-          onClose={() => setExpiryDrawerOpen(false)}
-          keepMounted={false}
-          disablePortal={true}
-          PaperProps={{
-            sx: {
-              bgcolor: '#161412',
-              borderTop: '1px solid #34322F',
-              borderTopLeftRadius: '24px',
-              borderTopRightRadius: '24px',
-              p: 4,
-              color: '#ffffff',
-              fontFamily: 'var(--font-satoshi)',
-              maxWidth: 'md',
-              mx: 'auto',
-              maxHeight: '60vh',
-              overflowY: 'auto',
-            }
-          }}
-        >
-          <Typography variant="h6" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 800, mb: 1 }}>
-            Link Expiry
-          </Typography>
-          <Typography sx={{ fontSize: '0.8rem', color: '#9B9691', mb: 3, fontFamily: 'var(--font-satoshi)' }}>
-            Choose when this link should expire and be removed from the server.
-          </Typography>
-          
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-            <Typography sx={{ color: '#ffffff', fontSize: '0.9rem', fontWeight: 700, fontFamily: 'var(--font-satoshi)' }}>
-              Selected Duration
-            </Typography>
-            <Typography sx={{ fontSize: '0.95rem', fontWeight: 900, color: themeColor, fontFamily: 'var(--font-mono)' }}>
-              {formatRemaining(expiryMs)}
-            </Typography>
-          </Stack>
-          <Slider
-            value={expiryMs}
-            min={SEND_EXPIRY_PRESETS[0].ms}
-            max={SEND_MAX_TTL_MS}
-            step={60000}
-            onChange={(_, v) => setExpiryMs(v as number)}
-            sx={{
-              color: themeColor,
-              mb: 3,
-              '& .MuiSlider-rail': { bgcolor: '#34322F', opacity: 1 },
-              '& .MuiSlider-thumb': {
-                width: 16,
-                height: 16,
-                bgcolor: '#ffffff',
-                boxShadow: `0 0 0 4px ${alpha(themeColor, 0.2)}`,
-                '&:hover, &.Mui-focusVisible': { boxShadow: `0 0 0 8px ${alpha(themeColor, 0.3)}` },
-              },
-            }}
-          />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-            {SEND_EXPIRY_PRESETS.map((p) => (
-              <Button
-                key={p.id}
-                size="small"
-                onClick={() => setExpiryMs(p.ms)}
-                sx={{
-                  flex: 1,
-                  minWidth: '60px',
-                  py: 1,
-                  fontSize: '0.75rem',
-                  borderRadius: '8px',
-                  border: expiryMs === p.ms ? `1px solid ${themeColor}` : '1px solid #34322F',
-                  bgcolor: expiryMs === p.ms ? alpha(themeColor, 0.08) : 'transparent',
-                  color: expiryMs === p.ms ? '#ffffff' : 'rgba(255,255,255,0.4)',
-                  fontWeight: expiryMs === p.ms ? 900 : 600,
-                  fontFamily: 'var(--font-satoshi)',
-                  '&:hover': {
-                    bgcolor: expiryMs === p.ms ? alpha(themeColor, 0.12) : 'rgba(255,255,255,0.02)',
-                    borderColor: expiryMs === p.ms ? themeColor : '#4A4845',
-                  }
+        <div className="fixed inset-0 z-[1500] flex items-end justify-center">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setSecurityDrawerOpen(false)} />
+          <div className="relative w-full max-w-xl bg-[#161412] border-t border-[#34322F] rounded-t-3xl p-6 text-white max-h-[80vh] overflow-y-auto z-10 shadow-[0_-8px_32px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center justify-between mb-6">
+              <h6 className="text-xl font-bold font-clash">Sharing Security</h6>
+              <button onClick={() => setSecurityDrawerOpen(false)} className="text-white/40 hover:text-white text-sm">Close</button>
+            </div>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  handleSelectSecureMode(true);
+                  setSecurityDrawerOpen(false);
+                }}
+                className="p-4 rounded-xl border text-left flex items-start gap-4 transition w-full"
+                style={{
+                  borderColor: isSecureMode ? themeColor : '#34322F',
+                  backgroundColor: isSecureMode ? `${themeColor}14` : 'transparent',
                 }}
               >
-                {p.label}
-              </Button>
-            ))}
-          </Box>
-        </Drawer>
+                <div style={{ color: themeColor }} className="mt-0.5">
+                  <Lock size={20} />
+                </div>
+                <div>
+                  <p className={`font-bold font-satoshi ${isSecureMode ? 'text-white' : 'text-white/80'}`}>Private Sharing</p>
+                  <span className="text-xs text-white/40 mt-1 block leading-normal">Encrypted before upload. Only people with the link can open it.</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  handleSelectSecureMode(false);
+                  setSecurityDrawerOpen(false);
+                }}
+                className="p-4 rounded-xl border text-left flex items-start gap-4 transition w-full"
+                style={{
+                  borderColor: !isSecureMode ? '#10B981' : '#34322F',
+                  backgroundColor: !isSecureMode ? 'rgba(16, 185, 129, 0.08)' : 'transparent',
+                }}
+              >
+                <div className="text-[#10B981] mt-0.5">
+                  <Unlock size={20} />
+                </div>
+                <div>
+                  <p className={`font-bold font-satoshi ${!isSecureMode ? 'text-white' : 'text-white/80'}`}>Public Preview</p>
+                  <span className="text-xs text-white/40 mt-1 block leading-normal">Fast previews for links that do not need protection.</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Discrete Sharing Drawer */}
-      {discreteDrawerOpen && (
-        <Drawer
-          anchor="bottom"
-          open={discreteDrawerOpen}
-          onClose={() => setDiscreteDrawerOpen(false)}
-          keepMounted={false}
-          disablePortal={true}
-          PaperProps={{
-            sx: {
-              bgcolor: '#161412',
-              borderTop: '1px solid #34322F',
-              borderTopLeftRadius: '24px',
-              borderTopRightRadius: '24px',
-              p: 4,
-              color: '#ffffff',
-              fontFamily: 'var(--font-satoshi)',
-              maxWidth: 'md',
-              mx: 'auto',
-              maxHeight: '60vh',
-              overflowY: 'auto',
-            }
-          }}
-        >
-          <Typography variant="h6" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 800, mb: 1 }}>
-            Discrete Sharing
-          </Typography>
-          <Typography sx={{ fontSize: '0.8rem', color: '#9B9691', mb: 3, fontFamily: 'var(--font-satoshi)', lineHeight: 1.5 }}>
-            Send directly to specific users in the ecosystem. They will be added as collaborators with read permissions.
-          </Typography>
-          
-          <Box sx={{ minHeight: 200 }}>
-            <UserSearch
-              label=""
-              placeholder="Search for users to share with..."
-              selectedUsers={selectedUsers}
-              onSelect={(u) => setSelectedUsers([...selectedUsers, u])}
-              onRemove={(id) => setSelectedUsers(selectedUsers.filter(u => u.id !== id))}
+      {/* Expiry Customization Sheet */}
+      {expiryDrawerOpen && (
+        <div className="fixed inset-0 z-[1500] flex items-end justify-center">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setExpiryDrawerOpen(false)} />
+          <div className="relative w-full max-w-xl bg-[#161412] border-t border-[#34322F] rounded-t-3xl p-6 text-white max-h-[80vh] overflow-y-auto z-10 shadow-[0_-8px_32px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center justify-between mb-4">
+              <h6 className="text-xl font-bold font-clash">Link Expiry</h6>
+              <button onClick={() => setExpiryDrawerOpen(false)} className="text-white/40 hover:text-white text-sm">Close</button>
+            </div>
+            <p className="text-xs text-white/50 mb-6 font-satoshi leading-relaxed">
+              Choose when this link should expire and be removed from the server.
+            </p>
+
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm text-white/80 font-bold">Selected Duration</span>
+              <span className="text-sm font-black font-mono" style={{ color: themeColor }}>
+                {formatRemaining(expiryMs)}
+              </span>
+            </div>
+
+            <input
+              type="range"
+              value={expiryMs}
+              min={SEND_EXPIRY_PRESETS[0].ms}
+              max={SEND_MAX_TTL_MS}
+              step={60000}
+              onChange={(e) => setExpiryMs(Number(e.target.value))}
+              className="w-full h-1 bg-[#34322F] rounded-lg appearance-none cursor-pointer mb-6"
+              style={{ accentColor: themeColor }}
             />
-          </Box>
-        </Drawer>
+
+            <div className="flex justify-between gap-2 flex-wrap mb-4">
+              {SEND_EXPIRY_PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setExpiryMs(p.ms)}
+                  className="flex-1 min-w-[70px] py-2 text-xs rounded-lg border transition duration-200 font-bold"
+                  style={{
+                    borderColor: expiryMs === p.ms ? themeColor : '#34322F',
+                    backgroundColor: expiryMs === p.ms ? `${themeColor}14` : 'transparent',
+                    color: expiryMs === p.ms ? '#ffffff' : 'rgba(255,255,255,0.4)',
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Discrete Sharing / Collaborator Search Sheet */}
+      {discreteDrawerOpen && (
+        <div className="fixed inset-0 z-[1500] flex items-end justify-center">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setDiscreteDrawerOpen(false)} />
+          <div className="relative w-full max-w-2xl bg-[#161412] border-t border-[#34322F] rounded-t-3xl p-6 text-white max-h-[80vh] overflow-y-auto z-10 shadow-[0_-8px_32px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center justify-between mb-2">
+              <h6 className="text-xl font-bold font-clash">Discrete Sharing</h6>
+              <button onClick={() => setDiscreteDrawerOpen(false)} className="text-white/40 hover:text-white text-sm">Close</button>
+            </div>
+            <p className="text-xs text-white/50 mb-6 font-satoshi leading-relaxed">
+              Send directly to specific users in the ecosystem. They will be added as collaborators with read permissions.
+            </p>
+            
+            <div className="min-h-[220px]">
+              <UserSearch
+                label=""
+                placeholder="Search for users to share with..."
+                selectedUsers={selectedUsers}
+                onSelect={(u) => setSelectedUsers([...selectedUsers, u])}
+                onRemove={(id) => setSelectedUsers(selectedUsers.filter(u => u.id !== id))}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       <EphemeralClaimDrawer
@@ -2329,6 +1543,6 @@ export function SendComposer() {
         onConsumed={handleSparkConsumed}
       />
       <AuthDiscoveryDrawer />
-    </Box>
+    </div>
   );
 }

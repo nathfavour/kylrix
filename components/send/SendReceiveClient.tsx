@@ -1,68 +1,37 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { formatNoteCreatedDate, formatNoteUpdatedDate } from '@/lib/date-utils';
+import React, { useState, useCallback, useEffect } from 'react';
 import type { Notes } from '@/types/appwrite';
-import { 
-  AccessTime as ClockIcon, 
-  Visibility as EyeIcon, 
-  ArrowBack as ArrowBackIcon,
-  Check as CheckIcon,
-  ContentCopy as CopyIcon,
-  Refresh as RefreshIcon,
-  ArrowForward as ArrowRightIcon
-} from '@/lib/mui-tailwind/icons';
 import { 
   Shield,
   KeyRound,
   ListTodo,
   FileText,
   Upload,
-  MessageSquare,
-  Sparkles,
   Eye,
   EyeOff,
   Lock,
   Unlock,
-  Waves
+  Clock,
+  ArrowLeft,
+  Check,
+  Copy,
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
 import { NoteContentRenderer } from '@/components/NoteContentRenderer';
 import { 
   realtime,
-  APPWRITE_DATABASE_ID,
-  isNoteEditableByAnyone
+  APPWRITE_DATABASE_ID
 } from '@/lib/appwrite';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { useToast } from '@/components/ui/Toast';
-import {
-  Box,
-  Chip,
-  Typography,
-  Button,
-  Container,
-  Paper,
-  IconButton,
-  CircularProgress,
-  AppBar,
-  Toolbar,
-  Stack,
-  Tooltip,
-  alpha,
-  Link as MuiLink,
-  keyframes,
-  LinearProgress,
-  TextField,
-  Avatar
-} from '@/lib/mui-tailwind/material';
 import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
 import CommentsSection from '@/app/(app)/note/(app)/notes/Comments';
 import NoteReactions from '@/app/(app)/note/(app)/notes/NoteReactions';
-import MuralPattern from '@/components/chat/MuralPattern';
 import { HuddleChatWindow } from '@/components/chat/HuddleChatWindow';
 
-import Logo from '@/components/common/Logo';
 import { getEcosystemUrl } from '@/constants/ecosystem';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { decryptGhostData, decryptGhostBinaryFromBytes } from '@/lib/encryption/ghost-crypto';
@@ -74,13 +43,7 @@ import { generateTOTP } from '@/lib/totp-util';
 import { getEffectiveDisplayName } from '@/lib/utils';
 import { fetchProfilePreview, getCachedProfilePreview } from '@/lib/profile-preview';
 
-const spin = keyframes`
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-`;
-
 const PRIMARY = '#6366F1';
-const RIM = '1px solid #34322F';
 
 const KIND_COLORS: Record<string, string> = {
   note: '#EC4899',       // Pink
@@ -90,13 +53,6 @@ const KIND_COLORS: Record<string, string> = {
   discussion: '#F59E0B', // Amber
   file: '#6366F1',       // Indigo
 };
-
-const readOnlyFieldSx = {
-  '& .MuiOutlinedInput-root': { bgcolor: '#000000', borderRadius: '12px' },
-  '& .MuiInputLabel-root': { color: '#9B9691', fontFamily: 'var(--font-satoshi)' },
-  '& .MuiOutlinedInput-notchedOutline': { borderColor: '#34322F' },
-  '& .MuiInputBase-input': { color: '#ffffff', fontFamily: 'var(--font-mono)', fontSize: '0.95rem' },
-} as const;
 
 interface Props {
   noteId: string;
@@ -111,10 +67,9 @@ export function SendReceiveClient({ noteId, keyParam, initialNote }: Props) {
   const [authorAvatarUrl, setAuthorAvatarUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingNote, setIsLoadingNote] = useState(!initialNote);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const [isCopied, setIsCopied] = React.useState(false);
-  const { showSuccess, showError } = useToast();
+  const { user } = useAuth();
+  const [isCopied, setIsCopied] = useState(false);
+  const { showSuccess } = useToast();
   
   // Send Specific State
   const [kind, setKind] = useState<SendKind | null>(null);
@@ -125,12 +80,11 @@ export function SendReceiveClient({ noteId, keyParam, initialNote }: Props) {
   const [taskPayload, setTaskPayload] = useState<SendTaskPayload | null>(null);
   const [fileManifest, setFileManifest] = useState<SendFilePayload | null>(null);
   const [fileBlobUrl, setFileBlobUrl] = useState<string | null>(null);
-  const [textPreview, setTextPreview] = useState<string | null>(null);
+  const [, setTextPreview] = useState<string | null>(null);
 
   const themeColor = KIND_COLORS[kind || 'note'] || PRIMARY;
   const [totpLive, setTotpLive] = useState('');
   const [showPw, setShowPw] = useState(false);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const hasKey = Boolean(keyParam?.trim());
 
@@ -327,15 +281,6 @@ export function SendReceiveClient({ noteId, keyParam, initialNote }: Props) {
     return () => { mounted = false; };
   }, [authorProfile]);
 
-  const handleManualRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      await fetchNote(true);
-    } finally {
-      setTimeout(() => setIsRefreshing(false), 600);
-    }
-  }, [fetchNote]);
-
   // Realtime
   useEffect(() => {
     if (!noteId) return;
@@ -362,11 +307,9 @@ export function SendReceiveClient({ noteId, keyParam, initialNote }: Props) {
   const copy = async (label: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedField(label);
       showSuccess('Copied to clipboard');
-      window.setTimeout(() => setCopiedField(null), 1800);
     } catch {
-      setCopiedField(null);
+      // Ignored
     }
   };
 
@@ -378,299 +321,273 @@ export function SendReceiveClient({ noteId, keyParam, initialNote }: Props) {
 
   if (!verifiedNote) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: '#0A0908', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
-        <Box sx={{ maxWidth: 400, width: '100%', textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 900, mb: 2, fontFamily: 'var(--font-clash)', color: 'white' }}>
+      <div className="min-h-screen bg-[#0A0908] flex items-center justify-center p-4">
+        <div className="max-w-[400px] w-full text-center">
+          <h5 className="text-xl font-black mb-2 font-clash text-white">
             {isLoadingNote ? 'Opening Send Link' : 'Cannot open link'}
-          </Typography>
+          </h5>
           {error ? (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 3 }}>{error}</Typography>
-              <Button
-                variant="contained"
+            <div className="mt-4">
+              <p className="text-xs text-white/50 mb-6">{error}</p>
+              <button
                 onClick={() => fetchNote(true)}
-                sx={{ borderRadius: '12px', bgcolor: PRIMARY, fontWeight: 700 }}
+                className="rounded-xl px-6 py-2.5 font-bold text-black transition hover:opacity-90 active:scale-[0.98]"
+                style={{ backgroundColor: themeColor }}
               >
                 Retry
-              </Button>
-            </Box>
+              </button>
+            </div>
           ) : (
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 3 }}>Fetching the payload. Please wait.</Typography>
+            <p className="text-xs text-white/50 mb-6">Fetching the payload. Please wait.</p>
           )}
           {isLoadingNote && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-              <CircularProgress size={32} sx={{ color: themeColor }} />
-            </Box>
+            <div className="flex justify-center mt-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2" style={{ borderColor: themeColor }}></div>
+            </div>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
     );
   }
 
   const meta = parseMeta(verifiedNote);
   const isEncrypted = verifiedNote.isEncrypted === true || (meta as any).isEncrypted;
 
-
-
   const NoteContent = () => {
     return (
-      <Paper 
-        elevation={0}
-        sx={{ 
-          borderRadius: '32px', 
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          bgcolor: '#161412',
-          overflow: 'hidden',
-          color: 'white',
-          boxShadow: '0 20px 40px -15px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.05)'
-        }}
-      >
-        <Box sx={{ p: { xs: 4, md: 6 }, borderBottom: '1px solid rgba(255, 255, 255, 0.03)' }}>
-          <Stack spacing={3}>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 3 }}>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                   <Box sx={{ 
-                       width: 48, height: 48, borderRadius: 2, display: 'grid', placeItems: 'center',
-                       bgcolor: alpha(isEncrypted ? themeColor : '#10B981', 0.1),
-                       border: `1px solid ${alpha(isEncrypted ? themeColor : '#10B981', 0.3)}`,
-                       color: isEncrypted ? themeColor : '#10B981'
-                   }}>
-                      {kind === 'password' ? <KeyRound /> : kind === 'totp' ? <Shield /> : kind === 'file' ? <Upload /> : kind === 'task' ? <ListTodo /> : <FileText />}
-                   </Box>
-                   <Box>
-                      <Typography 
-                        variant="h4" 
-                        sx={{ 
-                          fontWeight: 900, 
-                          fontFamily: 'var(--font-clash)', 
-                          lineHeight: 1.1,
-                          background: 'linear-gradient(to bottom, #FFF 0%, rgba(255,255,255,0.7) 100%)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent'
-                        }}
-                      >
-                        {kind === 'file' ? fileManifest?.originalName || plainTitle || 'File' : plainTitle || 'Untitled'}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                          {kind} · {isEncrypted ? 'Private' : 'Preview'}
-                      </Typography>
-                   </Box>
-              </Stack>
+      <div className="rounded-[32px] border border-white/5 bg-[#161412] overflow-hidden text-white shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8),_inset_0_1px_1px_rgba(255,255,255,0.05)]">
+        <div className="p-8 md:p-12 border-b border-white/[0.03] flex flex-col gap-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+            <div className="flex items-center gap-4">
+              <div 
+                className="w-12 h-12 rounded-lg grid place-items-center border"
+                style={{
+                  backgroundColor: `${isEncrypted ? themeColor : '#10B981'}1a`,
+                  borderColor: `${isEncrypted ? themeColor : '#10B981'}4d`,
+                  color: isEncrypted ? themeColor : '#10B981'
+                }}
+              >
+                {kind === 'password' ? <KeyRound size={20} /> : kind === 'totp' ? <Shield size={20} /> : kind === 'file' ? <Upload size={20} /> : kind === 'task' ? <ListTodo size={20} /> : <FileText size={20} />}
+              </div>
+              <div>
+                <h4 className="text-2xl font-black font-clash leading-tight bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
+                  {kind === 'file' ? fileManifest?.originalName || plainTitle || 'File' : plainTitle || 'Untitled'}
+                </h4>
+                <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider block mt-1">
+                  {kind} · {isEncrypted ? 'Private' : 'Preview'}
+                </span>
+              </div>
+            </div>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Chip 
-                    icon={isEncrypted ? <Lock size={14} /> : <Unlock size={14} />}
-                    label={isEncrypted ? "Secure" : "Open"}
-                    size="small"
-                    sx={{ 
-                        borderRadius: '8px', 
-                        bgcolor: alpha(isEncrypted ? themeColor : '#10B981', 0.1),
-                        color: isEncrypted ? themeColor : '#10B981',
-                        fontWeight: 800,
-                        border: `1px solid ${alpha(isEncrypted ? themeColor : '#10B981', 0.2)}`,
-                    }} 
+            <div className="flex items-center gap-1.5">
+              <span 
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg font-bold border"
+                style={{
+                  backgroundColor: `${isEncrypted ? themeColor : '#10B981'}1a`,
+                  color: isEncrypted ? themeColor : '#10B981',
+                  borderColor: `${isEncrypted ? themeColor : '#10B981'}33`,
+                }}
+              >
+                {isEncrypted ? <Lock size={12} /> : <Unlock size={12} />}
+                <span>{isEncrypted ? "Secure" : "Open"}</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-6 mt-2">
+            <div className="flex items-center gap-2 text-white/40">
+              <Clock size={14} />
+              <span className="text-xs font-bold font-satoshi">
+                Vanish {new Date(meta.expiresAt || 0).toLocaleString()}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-white/40">
+              <Eye size={14} />
+              <span className="text-xs font-bold font-satoshi">Link Active</span>
+            </div>
+
+            {authorProfile && (
+              <a 
+                href={authorProfile.username ? `${getEcosystemUrl('connect')}/u/${authorProfile.username}` : '#'} 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-[#1C1A18] py-1 px-3 rounded-xl border border-white/5 transition duration-300 hover:bg-[#252220] hover:translate-y-[-1px]"
+              >
+                {authorAvatarUrl ? (
+                  <img 
+                    src={authorAvatarUrl} 
+                    alt={getEffectiveDisplayName(authorProfile)}
+                    className="w-5 h-5 rounded-full object-cover" 
                   />
-              </Box>
-            </Box>
-
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'rgba(255, 255, 255, 0.4)' }}>
-                <ClockIcon sx={{ fontSize: 16 }} />
-                <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: 'var(--font-satoshi)' }}>
-                  Vanish {new Date(meta.expiresAt || 0).toLocaleString()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'rgba(255, 255, 255, 0.4)' }}>
-                <EyeIcon sx={{ fontSize: 16 }} />
-                <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: 'var(--font-satoshi)' }}>Link Active</Typography>
-              </Box>
-              {authorProfile && (
-                <MuiLink 
-                  component={NextLink}
-                  href={authorProfile.username ? `${getEcosystemUrl('connect')}/u/${authorProfile.username}` : '#'} 
-                  target="_blank"
-                  sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1.5, 
-                    textDecoration: 'none',
-                    bgcolor: '#1C1A18',
-                    py: 0.5,
-                    px: 1.5,
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                    '&:hover': {
-                      bgcolor: '#252220',
-                      borderColor: alpha(themeColor, 0.3),
-                      transform: 'translateY(-1px)'
-                    }
-                  }}
-                >
-                  <Avatar 
-                    src={authorAvatarUrl || undefined}
-                    sx={{ width: 20, height: 20, fontSize: '0.65rem', fontWeight: 900, bgcolor: themeColor, color: '#000' }}
+                ) : (
+                  <div 
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-black"
+                    style={{ backgroundColor: themeColor }}
                   >
                     {getEffectiveDisplayName(authorProfile)[0].toUpperCase()}
-                  </Avatar>
-                  <Typography variant="caption" sx={{ fontWeight: 800, color: themeColor, fontFamily: 'var(--font-satoshi)' }}>
-                    {authorProfile.username ? `@${authorProfile.username}` : getEffectiveDisplayName(authorProfile)}
-                  </Typography>
-                </MuiLink>
-              )}
-            </Box>
-          </Stack>
-        </Box>
+                  </div>
+                )}
+                <span className="text-xs font-black font-satoshi" style={{ color: themeColor }}>
+                  {authorProfile.username ? `@${authorProfile.username}` : getEffectiveDisplayName(authorProfile)}
+                </span>
+              </a>
+            )}
+          </div>
+        </div>
 
-        <Box sx={{ position: 'relative', p: { xs: 4, md: 6 }, bgcolor: 'rgba(0, 0, 0, 0.1)' }}>
-          {/* Polymorphic Body */}
+        <div className="relative p-8 md:p-12 bg-black/10">
           {kind === 'password' && passwordPayload && (
-              <Stack spacing={3}>
-                  <TextField label="Username / URL" value={passwordPayload.username || '—'} fullWidth InputProps={{ readOnly: true }} sx={readOnlyFieldSx} />
-                  <TextField 
-                      label="Password" 
-                      type={showPw ? 'text' : 'password'} 
-                      value={passwordPayload.password} 
-                      fullWidth 
-                      InputProps={{
-                          readOnly: true,
-                          endAdornment: (
-                              <IconButton onClick={() => setShowPw(!showPw)} edge="end" sx={{ color: 'rgba(255,255,255,0.55)' }}>
-                                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
-                              </IconButton>
-                          ),
-                      }} 
-                      sx={readOnlyFieldSx} 
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-[#9B9691] font-satoshi font-bold">Username / URL</label>
+                <input 
+                  type="text" 
+                  value={passwordPayload.username || '—'} 
+                  readOnly 
+                  className="w-full bg-black border border-[#34322F] rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-[#9B9691] font-satoshi font-bold">Password</label>
+                <div className="relative">
+                  <input 
+                    type={showPw ? 'text' : 'password'} 
+                    value={passwordPayload.password} 
+                    readOnly 
+                    className="w-full bg-black border border-[#34322F] rounded-xl px-4 py-3 pr-12 text-white font-mono text-sm focus:outline-none"
                   />
-                  <Button variant="contained" onClick={() => copy('pw', passwordPayload.password)} fullWidth sx={{ py: 1.5, textTransform: 'none', fontWeight: 800, bgcolor: themeColor, borderRadius: '14px' }}>
-                      Copy Password
-                  </Button>
-                  {passwordPayload.totpSecret && (
-                      <Paper sx={{ p: 3, borderRadius: '16px', bgcolor: '#000000', border: '1px solid #34322F', textAlign: 'center' }}>
-                          <Typography sx={{ fontSize: '0.75rem', color: '#9B9691', mb: 1, fontWeight: 700 }}>AUTHENTICATOR CODE</Typography>
-                          <Typography sx={{ fontFamily: 'var(--font-mono)', fontSize: '2.5rem', fontWeight: 900, letterSpacing: '0.2em', color: '#ffffff' }}>{totpLive}</Typography>
-                      </Paper>
-                  )}
-              </Stack>
+                  <button 
+                    type="button"
+                    onClick={() => setShowPw(!showPw)} 
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
+                  >
+                    {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+              <button 
+                onClick={() => copy('pw', passwordPayload.password)} 
+                className="w-full py-3.5 rounded-[14px] font-bold text-black transition hover:opacity-90 active:scale-[0.98]"
+                style={{ backgroundColor: themeColor }}
+              >
+                Copy Password
+              </button>
+              {passwordPayload.totpSecret && (
+                <div className="p-6 rounded-2xl bg-black border border-[#34322F] text-center">
+                  <span className="text-[10px] text-[#9B9691] font-bold tracking-wider block mb-1">AUTHENTICATOR CODE</span>
+                  <span className="font-mono text-4xl font-black tracking-widest text-white">{totpLive}</span>
+                </div>
+              )}
+            </div>
           )}
 
           {kind === 'totp' && totpPayload && (
-              <Stack spacing={3}>
-                  <Paper sx={{ p: 4, borderRadius: '16px', bgcolor: '#000000', border: '1px solid #34322F', textAlign: 'center' }}>
-                      <Typography sx={{ fontSize: '0.75rem', color: '#9B9691', mb: 1, fontWeight: 700 }}>CURRENT CODE</Typography>
-                      <Typography sx={{ fontFamily: 'var(--font-mono)', fontSize: '3rem', fontWeight: 900, letterSpacing: '0.25em', color: '#ffffff' }}>{totpLive}</Typography>
-                      <Typography sx={{ mt: 2, color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>{totpPayload.issuer || 'Unknown Issuer'}</Typography>
-                  </Paper>
-                  <Button variant="outlined" onClick={() => copy('secret', totpPayload.secret)} fullWidth sx={{ py: 1.5, textTransform: 'none', fontWeight: 800, borderColor: '#34322F', color: 'white', borderRadius: '14px' }}>
-                      Copy Secret Key
-                  </Button>
-              </Stack>
+            <div className="flex flex-col gap-6">
+              <div className="p-8 rounded-2xl bg-black border border-[#34322F] text-center">
+                <span className="text-[10px] text-[#9B9691] font-bold tracking-wider block mb-1">CURRENT CODE</span>
+                <span className="font-mono text-5xl font-black tracking-[0.2em] text-white block pl-[0.2em]">{totpLive}</span>
+                <span className="mt-4 text-sm text-white/40 block">{totpPayload.issuer || 'Unknown Issuer'}</span>
+              </div>
+              <button 
+                onClick={() => copy('secret', totpPayload.secret)} 
+                className="w-full py-3.5 rounded-[14px] font-bold border border-[#34322F] text-white hover:bg-white/5 active:scale-[0.98] transition"
+              >
+                Copy Secret Key
+              </button>
+            </div>
           )}
 
           {kind === 'task' && taskPayload && (
-              <Stack spacing={2}>
-                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{taskPayload.title}</Typography>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.7)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{taskPayload.detail || 'No description provided.'}</Typography>
-                  {taskPayload.dueAt && (
-                      <Chip label={`Due: ${new Date(taskPayload.dueAt).toLocaleString()}`} sx={{ alignSelf: 'flex-start', bgcolor: alpha('#fff', 0.05), fontWeight: 700 }} />
-                  )}
-              </Stack>
+            <div className="flex flex-col gap-4">
+              <h5 className="text-xl font-bold text-white">{taskPayload.title}</h5>
+              <p className="text-white/70 whitespace-pre-wrap leading-relaxed">{taskPayload.detail || 'No description provided.'}</p>
+              {taskPayload.dueAt && (
+                <span className="self-start px-2.5 py-1 text-xs rounded-lg font-bold bg-white/5 text-white/70 border border-white/5">
+                  Due: {new Date(taskPayload.dueAt).toLocaleString()}
+                </span>
+              )}
+            </div>
           )}
 
           {kind === 'file' && fileManifest && fileBlobUrl && (
-              <Stack spacing={3}>
-                  <Paper sx={{ p: 3, borderRadius: '16px', bgcolor: '#000', border: RIM, display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Upload color={themeColor} />
-                      <Box>
-                          <Typography sx={{ fontWeight: 800 }}>{fileManifest.originalName}</Typography>
-                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
-                               {fileManifest.size >= 1024 * 1024 ? `${(fileManifest.size / (1024 * 1024)).toFixed(2)} MB` : `${(fileManifest.size / 1024).toFixed(1)} KB`} · {fileManifest.mimeType}
-                          </Typography>
-                      </Box>
-                  </Paper>
-                  <Button variant="contained" component="a" href={fileBlobUrl} download={fileManifest.originalName} fullWidth sx={{ py: 2, textTransform: 'none', fontWeight: 800, bgcolor: themeColor, borderRadius: '14px' }}>
-                      Download Decrypted File
-                  </Button>
-                  {fileManifest.mimeType?.startsWith('image/') && (
-                      <Box component="img" src={fileBlobUrl} sx={{ maxWidth: '100%', borderRadius: '16px', border: RIM }} />
-                  )}
-              </Stack>
+            <div className="flex flex-col gap-6">
+              <div className="p-6 rounded-2xl bg-black border border-[#34322F] flex items-center gap-4">
+                <Upload size={24} style={{ color: themeColor }} />
+                <div>
+                  <p className="font-bold text-white">{fileManifest.originalName}</p>
+                  <span className="text-xs text-white/40">
+                    {fileManifest.size >= 1024 * 1024 ? `${(fileManifest.size / (1024 * 1024)).toFixed(2)} MB` : `${(fileManifest.size / 1024).toFixed(1)} KB`} · {fileManifest.mimeType}
+                  </span>
+                </div>
+              </div>
+              <a 
+                href={fileBlobUrl} 
+                download={fileManifest.originalName} 
+                className="w-full py-4 text-center rounded-[14px] font-bold text-black block transition hover:opacity-90 active:scale-[0.98]"
+                style={{ backgroundColor: themeColor }}
+              >
+                Download Decrypted File
+              </a>
+              {fileManifest.mimeType?.startsWith('image/') && (
+                <img src={fileBlobUrl} alt="Decrypted view" className="max-w-full rounded-2xl border border-[#34322F]" />
+              )}
+            </div>
           )}
 
           {kind === 'note' && (
-              <Box sx={{ position: 'relative' }}>
-                  <IconButton
-                      onClick={handleCopyContent}
-                      sx={{
-                          position: 'absolute',
-                          top: -12,
-                          right: -12,
-                          bgcolor: isCopied ? alpha(themeColor, 0.1) : '#1C1A18',
-                          border: '1px solid',
-                          borderColor: isCopied ? themeColor : 'rgba(255, 255, 255, 0.05)',
-                          borderRadius: '12px',
-                          color: isCopied ? themeColor : 'rgba(255, 255, 255, 0.4)',
-                          transition: 'all 0.2s',
-                          zIndex: 2,
-                          '&:hover': { bgcolor: '#252220', color: 'white' }
-                      }}
-                  >
-                      {isCopied ? <CheckIcon /> : <CopyIcon />}
-                  </IconButton>
-                  <NoteContentRenderer
-                      content={plainContent}
-                      format={(verifiedNote.format as 'text' | 'doodle') || 'text'}
-                      emptyFallback={<Typography sx={{ color: 'rgba(255, 255, 255, 0.2)', fontStyle: 'italic' }}>This payload is empty.</Typography>}
-                  />
-              </Box>
+            <div className="relative">
+              <button
+                onClick={handleCopyContent}
+                className="absolute -top-3 -right-3 w-10 h-10 flex items-center justify-center border rounded-xl transition duration-200 z-10 hover:bg-[#252220] hover:text-white"
+                style={{
+                  backgroundColor: isCopied ? `${themeColor}1a` : '#1C1A18',
+                  borderColor: isCopied ? themeColor : 'rgba(255, 255, 255, 0.05)',
+                  color: isCopied ? themeColor : 'rgba(255, 255, 255, 0.4)'
+                }}
+              >
+                {isCopied ? <Check size={16} /> : <Copy size={16} />}
+              </button>
+              <NoteContentRenderer
+                content={plainContent}
+                format={(verifiedNote.format as 'text' | 'doodle') || 'text'}
+                emptyFallback={<span className="text-white/20 italic text-sm">This payload is empty.</span>}
+              />
+            </div>
           )}
-        </Box>
+        </div>
 
-        <Box sx={{ p: 3, bgcolor: '#161412', borderTop: '1px solid rgba(255, 255, 255, 0.03)' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.3)', fontFamily: 'var(--font-jetbrains-mono)', fontWeight: 700 }}>
+        <div className="p-6 bg-[#161412] border-t border-white/[0.03]">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-white/30 font-mono font-bold">
               LINK ID: {verifiedNote.$id.toUpperCase()}
-            </Typography>
-            <Typography variant="caption" sx={{ color: themeColor, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--font-clash)' }}>
+            </span>
+            <span className="text-[10px] font-black tracking-wider uppercase font-clash" style={{ color: themeColor }}>
               SECURE LINK · KYLRIX
-            </Typography>
-          </Box>
-        </Box>
-      </Paper>
+            </span>
+          </div>
+        </div>
+      </div>
     );
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#0A0908', color: 'white' }}>
-      <Box sx={{ 
-        bgcolor: '#0E0C0A', 
-        borderBottom: '1px solid #1C1A18', 
-        height: '88px', 
-        boxSizing: 'border-box',
-        display: 'flex',
-        alignItems: 'center',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1300
-      }}>
-        <Container maxWidth="md">
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-            <Typography variant="body2" sx={{ color: alpha('#FFFFFF', 0.5), fontWeight: 600 }}>
-              {isEncrypted ? 'This link is protected by encryption.' : 'You are viewing a public preview of a shared item.'}
-            </Typography>
-            <Button 
-              component={NextLink}
-              href="/send" 
-              startIcon={<ArrowBackIcon />}
-              sx={{ fontWeight: 800, color: themeColor, textTransform: 'none' }}
-            >
-              Back to Send
-            </Button>
-          </Box>
-        </Container>
-      </Box>
+    <div className="min-h-screen bg-[#0A0908] text-white">
+      {/* Top Header */}
+      <header className="bg-[#0E0C0A] border-b border-[#1C1A18] h-[88px] flex items-center fixed top-0 left-0 right-0 z-[100] px-4 md:px-0">
+        <div className="max-w-4xl mx-auto w-full flex items-center justify-between gap-4">
+          <p className="text-sm text-white/50 font-semibold">
+            {isEncrypted ? 'This link is protected by encryption.' : 'You are viewing a public preview of a shared item.'}
+          </p>
+          <NextLink 
+            href="/send" 
+            className="font-bold flex items-center gap-2 transition hover:opacity-85 text-sm"
+            style={{ color: themeColor }}
+          >
+            <ArrowLeft size={16} />
+            <span>Back to Send</span>
+          </NextLink>
+        </div>
+      </header>
 
       {kind === 'discussion' ? (
         <HuddleChatWindow
@@ -683,56 +600,40 @@ export function SendReceiveClient({ noteId, keyParam, initialNote }: Props) {
           shareLink={typeof window !== 'undefined' ? window.location.href : ''}
         />
       ) : (
-        <Container maxWidth="md" sx={{ pt: '108px', pb: 8 }}>
+        <main className="max-w-4xl mx-auto px-4 md:px-0 pt-[128px] pb-16">
           <NoteContent />
 
-          <Box sx={{ mt: 4 }}>
+          <div className="mt-8">
             <NoteReactions targetId={noteId} />
-          </Box>
+          </div>
 
-          <Box sx={{ mt: 4 }}>
+          <div className="mt-8">
             <CommentsSection noteId={noteId} decryptionKey={keyParam} />
-          </Box>
+          </div>
 
-          <Box sx={{ mt: 8, textAlign: 'center' }}>
-            <Paper
-              sx={{
-                p: 6,
-                borderRadius: '32px',
-                bgcolor: '#161412',
-                border: '1px solid rgba(99, 102, 241, 0.1)',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.02)'
-              }}
-            >
-              <Typography variant="h4" sx={{ fontWeight: 900, mb: 2, fontFamily: 'var(--font-clash)', color: 'white' }}>
+          <div className="mt-16 text-center">
+            <div className="p-12 rounded-[32px] bg-[#161412] border border-[#6366F1]/10 shadow-[0_20px_40px_rgba(0,0,0,0.4),_inset_0_1px_0_rgba(255,255,255,0.02)]">
+              <h4 className="text-3xl font-black mb-4 font-clash text-white">
                 Create Your Own Notes
-              </Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.6)', mb: 4, maxWidth: 500, mx: 'auto' }}>
+              </h4>
+              <p className="text-white/60 mb-8 max-w-[500px] mx-auto">
                 Join thousands of users who trust Kylrix Note to capture, organize, and share their thoughts.
-              </Typography>
-              <Button
-                component={MuiLink}
+              </p>
+              <NextLink
                 href="/"
-                variant="contained"
-                size="large"
-                endIcon={<ArrowRightIcon />}
-                sx={{ 
-                  borderRadius: '16px', 
-                  px: 4, 
-                  py: 1.5,
-                  bgcolor: themeColor,
-                  color: '#000',
-                  fontWeight: 800,
-                  boxShadow: `0 8px 24px ${alpha(themeColor, 0.2)}`,
-                  '&:hover': { bgcolor: alpha(themeColor, 0.8) }
+                className="inline-flex items-center gap-2 rounded-2xl px-8 py-3.5 text-black font-black transition hover:opacity-90 hover:-translate-y-0.5 active:scale-[0.98]"
+                style={{ 
+                  backgroundColor: themeColor,
+                  boxShadow: `0 8px 24px ${themeColor}33`,
                 }}
               >
-                Start Writing for Free
-              </Button>
-            </Paper>
-          </Box>
-        </Container>
+                <span>Start Writing for Free</span>
+                <ArrowRight size={18} />
+              </NextLink>
+            </div>
+          </div>
+        </main>
       )}
-    </Box>
+    </div>
   );
 }
