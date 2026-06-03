@@ -1,21 +1,10 @@
 'use client';
 
 import React from 'react';
-import {
-  Drawer,
-  Box,
-  Typography,
-  Button,
-  Stack,
-  alpha,
-  useTheme,
-  useMediaQuery,
-} from '@/lib/mui-tailwind/material';
-import { Wallet, Zap } from 'lucide-react';
+import { Wallet, Zap, X } from 'lucide-react';
 import Logo from './Logo';
 
 interface PaymentMethodDrawerProps {
-  open: boolean;
   onClose: () => void;
   months: number;
   totalPrice: number;
@@ -23,119 +12,70 @@ interface PaymentMethodDrawerProps {
 }
 
 const PaymentMethodDrawer: React.FC<PaymentMethodDrawerProps> = ({
-  open,
   onClose,
   months,
   totalPrice,
   onPaymentMethodSelect,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const planDuration = months === 1 ? '1 Month' : `${months} Months`;
 
-  const drawerContent = (
-    <Box
-      sx={{
-        p: { xs: 3, md: 4 },
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-      }}
-    >
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography
-          sx={{
-            fontWeight: 900,
-            fontSize: '1.25rem',
-            mb: 0.5,
-            color: 'white',
-          }}
-        >
-          Payment Method
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.875rem',
-            opacity: 0.5,
-            mb: 2,
-          }}
-        >
-          {planDuration} Pro • ${totalPrice.toFixed(2)}
-        </Typography>
-      </Box>
+  return (
+    <>
+      {/* Backdrop with Blur */}
+      <div 
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity duration-300 ease-in-out cursor-default"
+        onClick={onClose}
+      />
+      
+      {/* Slide-up Container */}
+      <div className="fixed bottom-0 left-0 right-0 max-h-[85vh] md:max-h-[70vh] bg-gradient-to-b from-[#1F1D1B] to-[#161412] border-t border-white/8 rounded-t-[28px] z-[100] text-white p-6 md:p-8 flex flex-col gap-6 animate-slide-up overflow-y-auto">
+        <div className="w-10 h-1 bg-white/12 rounded-[2px] mx-auto mb-2 flex-shrink-0" />
 
-      {/* Content */}
-      <Box sx={{ flex: 1, overflowY: 'auto' }}>
-        <Stack spacing={2}>
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-white text-lg font-black tracking-tight leading-tight">
+              Payment Method
+            </h3>
+            <p className="text-white/40 text-[11px] font-bold mt-1 uppercase tracking-wider font-mono">
+              {planDuration} Pro • ${totalPrice.toFixed(2)}
+            </p>
+          </div>
+          <button 
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white bg-white/2 hover:bg-white/5 transition-all"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-col gap-4">
           {/* Kylrix Wallet */}
-          <Button
+          <button
             onClick={() => {
               onPaymentMethodSelect('kylrix');
               onClose();
             }}
-            fullWidth
-            sx={{
-              p: 2.5,
-              borderRadius: '16px',
-              border: '2px solid rgba(99, 102, 241, 0.3)',
-              background: alpha('#6366F1', 0.06),
-              textAlign: 'left',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2.5,
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                borderColor: '#6366F1',
-                background: alpha('#6366F1', 0.12),
-                transform: 'translateY(-1px)',
-              },
-            }}
+            className="w-full p-5 rounded-[20px] border-2 border-[#6366F1]/30 hover:border-[#6366F1] bg-[#6366F1]/6 hover:bg-[#6366F1]/12 text-left flex items-center gap-4 transition-all duration-300 group"
           >
             {/* Logo with wallet icon */}
-            <Box sx={{ position: 'relative', width: 40, height: 40, flexShrink: 0 }}>
-              <Logo size={40} variant="icon" />
-              <Box
-                sx={{
-                  position: 'absolute',
-                  bottom: -6,
-                  right: -6,
-                  width: 24,
-                  height: 24,
-                  borderRadius: '6px',
-                  background: '#6366F1',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid #000000',
-                  boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
-                }}
-              >
-                <Wallet size={12} color="white" />
-              </Box>
-            </Box>
+            <div className="relative w-11 h-11 flex-shrink-0">
+              <Logo size={44} variant="icon" />
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-[#6366F1] flex items-center justify-center border-2 border-black shadow-[0_2px_8px_rgba(99,102,241,0.3)]">
+                <Wallet size={12} className="text-white" />
+              </div>
+            </div>
 
             {/* Text */}
-            <Box sx={{ flex: 1 }}>
-              <Typography
-                sx={{
-                  fontSize: '0.95rem',
-                  fontWeight: 900,
-                  color: 'white',
-                  mb: 0.25,
-                }}
-              >
+            <div className="flex-1 min-w-0">
+              <span className="block text-white font-black text-sm md:text-base leading-snug">
                 Kylrix Wallet
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '0.75rem',
-                  opacity: 0.5,
-                }}
-              >
+              </span>
+              <span className="block text-white/40 text-[11px] font-bold mt-0.5">
                 Ecosystem wallet
-              </Typography>
-            </Box>
+              </span>
+            </div>
 
             {/* Arrow */}
             <svg
@@ -147,73 +87,34 @@ const PaymentMethodDrawer: React.FC<PaymentMethodDrawerProps> = ({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ color: '#6366F1', flexShrink: 0 }}
+              className="text-[#6366F1] flex-shrink-0 transition-transform group-hover:translate-x-1"
             >
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
-          </Button>
+          </button>
 
           {/* External Wallet */}
-          <Button
+          <button
             onClick={() => {
               onPaymentMethodSelect('external');
               onClose();
             }}
-            fullWidth
-            sx={{
-              p: 2.5,
-              borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              background: alpha('#FFFFFF', 0.02),
-              textAlign: 'left',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2.5,
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-                background: alpha('#FFFFFF', 0.05),
-                transform: 'translateY(-1px)',
-              },
-            }}
+            className="w-full p-5 rounded-[20px] border border-white/12 hover:border-white/25 bg-white/2 hover:bg-white/5 text-left flex items-center gap-4 transition-all duration-300 group"
           >
             {/* Icon */}
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: '10px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Zap size={20} color="rgba(255, 255, 255, 0.4)" />
-            </Box>
+            <div className="w-11 h-11 rounded-[14px] bg-white/8 flex items-center justify-center flex-shrink-0">
+              <Zap size={20} className="text-white/40" />
+            </div>
 
             {/* Text */}
-            <Box sx={{ flex: 1 }}>
-              <Typography
-                sx={{
-                  fontSize: '0.95rem',
-                  fontWeight: 900,
-                  color: 'white',
-                  mb: 0.25,
-                }}
-              >
+            <div className="flex-1 min-w-0">
+              <span className="block text-white font-black text-sm md:text-base leading-snug">
                 External Wallet
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '0.75rem',
-                  opacity: 0.4,
-                }}
-              >
+              </span>
+              <span className="block text-white/30 text-[11px] font-bold mt-0.5">
                 MetaMask, Trust Wallet, etc.
-              </Typography>
-            </Box>
+              </span>
+            </div>
 
             {/* Arrow */}
             <svg
@@ -225,55 +126,21 @@ const PaymentMethodDrawer: React.FC<PaymentMethodDrawerProps> = ({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ opacity: 0.5, flexShrink: 0 }}
+              className="text-white/30 flex-shrink-0 transition-transform group-hover:translate-x-1"
             >
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
-          </Button>
-        </Stack>
-      </Box>
+          </button>
+        </div>
 
-      {/* Footer */}
-      <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-        <Typography
-          sx={{
-            fontSize: '0.75rem',
-            opacity: 0.3,
-            textAlign: 'center',
-          }}
-        >
-          Your payment is encrypted and secure
-        </Typography>
-      </Box>
-    </Box>
-  );
-
-  return (
-    <Drawer
-      anchor="bottom"
-      open={open}
-      onClose={onClose}
-      slotProps={{
-        backdrop: {
-          sx: {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(4px)',
-          },
-        },
-      }}
-      PaperProps={{
-        sx: {
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
-          background: 'linear-gradient(180deg, #1F1D1B 0%, #161412 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          width: '100%',
-          maxHeight: isMobile ? '65vh' : '70vh',
-        },
-      }}
-    >
-      {drawerContent}
-    </Drawer>
+        {/* Footer */}
+        <div className="mt-4 pt-4 border-t border-white/8 text-center">
+          <span className="text-[10px] text-white/30 font-black uppercase tracking-wider block">
+            🔒 Your payment is encrypted and secure
+          </span>
+        </div>
+      </div>
+    </>
   );
 };
 

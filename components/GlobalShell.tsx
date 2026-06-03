@@ -81,6 +81,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
   const isNoteFullPageDetail = useMemo(() => Boolean(pathname?.match(/^\/note\/notes\/[^/]+$/)), [pathname]);
   const isConnectCallDetail = useMemo(() => Boolean(pathname?.match(/^\/connect\/call\/[^/]+$/)), [pathname]);
   const isConnectChatPage = useMemo(() => Boolean(pathname?.startsWith('/connect/chats') || pathname?.match(/^\/connect\/chat\/[^/]+$/)), [pathname]);
+  const isProjectDetailPage = useMemo(() => Boolean(pathname?.match(/^\/projects\/[^/]+$/)), [pathname]);
 
   const showLeftSidebar = useMemo(() => Boolean(
     isAppRoute &&
@@ -172,8 +173,8 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
           zIndex: 1,
           pt: '88px', // Exact Topbar height
           pb: isLandingPage ? 0 : { xs: 12, md: 4 },
-          px: { xs: 2, sm: 2, md: 4 },
-          pl: { xs: 2, sm: 2, md: showLeftSidebar ? 'calc(80px + 32px)' : 4 }, // Dynamic desktop offset padding
+          px: isProjectDetailPage ? { xs: 1, sm: 1, md: 2 } : { xs: 2, sm: 2, md: 4 },
+          pl: isProjectDetailPage ? { xs: 1, sm: 1, md: 2 } : { xs: 2, sm: 2, md: showLeftSidebar ? 'calc(80px + 32px)' : 4 }, // Dynamic desktop offset padding
           maxWidth: 1600,
           mx: 'auto',
           minHeight: '100vh',
