@@ -94,7 +94,7 @@ import { TargetType } from '@/types/appwrite';
 import { client } from '@/lib/appwrite/client';
 import { ChatService } from '@/lib/services/chat';
 import { createMessageAction } from '@/lib/actions/chat';
-import { Send, Clock, Mic, Square, Tag, ShieldCheck, Camera, PhoneCall, FileSpreadsheet, X, Copy, ChevronLeft, Info } from 'lucide-react';
+import { Send, Clock, Mic, Square, Tag, ShieldCheck, Camera, PhoneCall, FileSpreadsheet, X, Copy, ChevronLeft, Info, ChevronDown } from 'lucide-react';
 import MuralPattern from '@/components/chat/MuralPattern';
 import { VoiceMessage } from '@/components/chat/VoiceMessage';
 import { StorageService } from '@/lib/services/storage';
@@ -110,6 +110,15 @@ import { CallActionModal } from '@/components/call/CallActionModal';
 import NewTotpDialog from '@/components/app/totp/new';
 import { searchGlobalUsers } from '@/lib/ecosystem/identity';
 
+const TABS_CONFIG = [
+  { label: 'Integrated Notes', icon: <FileText size={18} /> },
+  { label: 'Execution Goals', icon: <CheckSquare size={18} /> },
+  { label: 'Vault Assets', icon: <Lock size={18} /> },
+  { label: 'Sub-Projects', icon: <FolderKanban size={18} /> },
+  { label: 'Events & Calls', icon: <Calendar size={18} /> },
+  { label: 'Interconnected Flow', icon: <Workflow size={18} /> },
+];
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -121,9 +130,9 @@ function CustomTabPanel(props: TabPanelProps) {
   return (
     <div role="tabpanel" hidden={value !== index} {...other}>
       {value === index && (
-        <Box sx={{ py: 3 }}>
+        <div className="py-6">
           {children}
-        </Box>
+        </div>
       )}
     </div>
   );
@@ -626,400 +635,266 @@ export default function ProjectDetailPage() {
 
   if (!loading && !project) {
     return (
-      <Box sx={{ textAlign: 'center', py: 10 }}>
-        <Typography variant="h5" sx={{ color: '#fff', fontWeight: 900 }}>
+      <div className="text-center py-20 bg-[#0A0908] min-h-screen text-white flex flex-col items-center justify-center gap-4">
+        <h3 className="text-white text-xl font-black">
           Project not found
-        </Typography>
-        <Button onClick={() => router.push('/projects')} sx={{ mt: 2, color: '#6366F1' }}>
+        </h3>
+        <button 
+          onClick={() => router.push('/projects')} 
+          className="text-[#6366F1] hover:text-[#818CF8] font-bold text-sm"
+        >
           Back to projects
-        </Button>
-      </Box>
+        </button>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#0A0908', color: '#fff', pt: { xs: 2, md: 6 }, pb: 10 }}>
+    <div className="min-h-screen bg-[#0A0908] text-white pt-2 md:pt-6 pb-20">
       <MultiSectionContainer panels={['note', 'huddles', 'goals']} contextId={projectId as string}>
-        <Box sx={{ width: '100%' }}>
+        <div className="w-full">
         
         {/* Modern Breadcrumb / Top Bar */}
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 3, md: 0 }} alignItems={{ xs: 'flex-start', md: 'center' }} justifyContent="space-between" sx={{ mb: 6 }}>
-            <Stack direction="row" alignItems="center" spacing={2.5} sx={{ width: { xs: '100%', md: 'auto' } }}>
-                <IconButton
+        <div className="flex flex-col md:flex-row gap-4 md:gap-0 items-start md:items-center justify-between mb-8 select-none">
+            <div className="flex items-center gap-3.5 w-full md:w-auto min-w-0">
+                <button
                     onClick={() => router.push('/projects')}
-                    sx={{
-                        width: 44,
-                        height: 44,
-                        bgcolor: '#161412',
-                        color: '#fff',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        '&:hover': { bgcolor: '#1C1A18', transform: 'translateX(-2px)' },
-                        transition: 'all 0.2s ease'
-                    }}
+                    className="w-11 h-11 bg-[#161412] text-white border border-white/6 rounded-[14px] flex items-center justify-center hover:bg-[#1C1A18] hover:-translate-x-0.5 transition-all flex-shrink-0"
                 >
                     <ArrowLeft size={20} />
-                </IconButton>
-                <Box sx={{ minWidth: 0 }}>
-                    <Stack direction="row" spacing={1.5} alignItems="center">
+                </button>
+                <div className="min-w-0 flex-1 flex flex-col">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
                         {loading ? (
-                          <></>
+                          <div className="h-7 w-32 bg-white/5 animate-pulse rounded-lg" />
                         ) : (
                           <>
-                            <Typography component="span" noWrap sx={{ color: '#fff', fontWeight: 900, fontSize: { xs: '1.25rem', md: '1.8rem' }, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em' }}>
+                            <h2 className="text-white font-black text-xl md:text-2xl tracking-tight leading-tight truncate">
                                 {project.title}
-                            </Typography>
-                            <Chip 
-                                label={project.status} 
-                                size="small" 
-                                sx={{ 
-                                    bgcolor: alpha(project.status === 'active' ? '#10B981' : '#F59E0B', 0.1), 
-                                    color: project.status === 'active' ? '#10B981' : '#F59E0B', 
-                                    fontWeight: 900, 
-                                    fontSize: '0.65rem', 
-                                    textTransform: 'uppercase',
-                                    height: 22,
-                                    border: `1px solid ${alpha(project.status === 'active' ? '#10B981' : '#F59E0B', 0.2)}`
-                                }} 
-                            />
+                            </h2>
+                            <span 
+                                style={{
+                                    backgroundColor: project.status === 'active' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                                    color: project.status === 'active' ? '#10B981' : '#F59E0B',
+                                    borderColor: project.status === 'active' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'
+                                }}
+                                className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border flex-shrink-0" 
+                            >
+                                {project.status}
+                            </span>
                           </>
                         )}
-                    </Stack>
+                    </div>
                     {loading ? (
-                      <></>
+                      <div className="h-4 w-48 bg-white/5 animate-pulse rounded mt-1.5" />
                     ) : (
-                      <Typography component="span" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', fontWeight: 600 }}>
+                      <span className="text-xs text-white/40 font-bold block mt-1">
                           {projectObjects.length} linked ecosystem objects • {collaborators.length + 1} participants
-                      </Typography>
+                      </span>
                     )}
-                </Box>
-            </Stack>
+                </div>
+            </div>
 
-            <Stack direction="row" spacing={0} alignItems="center" sx={{ width: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'flex-start', md: 'flex-end' }, gap: 1.5, flexWrap: 'wrap' }}>
+            <div className="flex items-center gap-3 w-full md:w-auto justify-start md:justify-end flex-wrap">
                 {/* Active Collaborators HUD */}
                 {projectId && resourcePresence[projectId as string]?.length > 0 && (
-                    <Stack direction="row" spacing={-1.5} sx={{ mr: 2, display: { xs: 'none', sm: 'flex' } }}>
+                    <div className="flex -space-x-2 mr-2 hidden sm:flex">
                         {resourcePresence[projectId as string].map((p, idx) => (
-                            <IdentityAvatar 
-                                key={p.userId}
-                                size={32}
-                                status={p.state}
-                                sx={{ border: '3px solid #0A0908', zIndex: 10 - idx }}
-                            />
+                            <div key={p.userId} className="relative transition-transform hover:z-20" style={{ zIndex: 10 - idx }}>
+                                <IdentityAvatar 
+                                    size={32}
+                                    status={p.state}
+                                    sx={{ border: '3px solid #0A0908' }}
+                                />
+                            </div>
                         ))}
-                    </Stack>
+                    </div>
                 )}
 
                 {/* Instant Discussion Huddle Spin-up Button */}
-                <IconButton
+                <button
                     onClick={handleDiscussionClick}
                     disabled={initializingHuddle}
-                    sx={{
-                        width: 44,
-                        height: 44,
-                        bgcolor: metadata.discussionNoteId ? alpha('#818CF8', 0.15) : '#161412',
+                    style={{
+                        backgroundColor: metadata.discussionNoteId ? 'rgba(129,140,248,0.15)' : '#161412',
                         color: metadata.discussionNoteId ? '#818CF8' : 'rgba(255,255,255,0.6)',
-                        border: `1px solid ${metadata.discussionNoteId ? alpha('#818CF8', 0.3) : 'rgba(255,255,255,0.06)'}`,
-                        borderRadius: '14px',
-                        '&:hover': { 
-                            bgcolor: metadata.discussionNoteId ? alpha('#818CF8', 0.25) : '#1C1A18',
-                            color: '#fff',
-                            borderColor: '#818CF8'
-                        },
-                        transition: 'all 0.2s ease',
-                        position: 'relative'
+                        borderColor: metadata.discussionNoteId ? 'rgba(129,140,248,0.3)' : 'rgba(255,255,255,0.06)'
                     }}
+                    className="w-11 h-11 rounded-[14px] flex items-center justify-center border hover:bg-white/5 transition-all relative flex-shrink-0"
                 >
-                    {initializingHuddle ? <CircularProgress size={20} color="inherit" /> : <MessageSquare size={20} />}
-                    {metadata.discussionNoteId && (
-                        <Box sx={{
-                            position: 'absolute',
-                            top: -2,
-                            right: -2,
-                            width: 10,
-                            height: 10,
-                            borderRadius: '50%',
-                            bgcolor: '#818CF8',
-                            border: '2px solid #0A0908'
-                        }} />
+                    {initializingHuddle ? (
+                        <div className="w-5 h-5 border border-white/40 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                        <MessageSquare size={20} />
                     )}
-                </IconButton>
+                    {metadata.discussionNoteId && (
+                        <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#818CF8] border-2 border-[#0A0908]" />
+                    )}
+                </button>
 
-                <Button
-                    variant="outlined"
+                <button
                     onClick={() => setIsSettingsOpen(true)}
-                    sx={{
-                        borderRadius: '14px',
-                        borderColor: 'rgba(255,255,255,0.06)',
-                        color: 'rgba(255,255,255,0.6)',
-                        fontWeight: 800,
-                        textTransform: 'none',
-                        px: { xs: 1.5, sm: 2.5 },
-                        minWidth: { xs: '44px', sm: 'auto' },
-                        height: 44,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        '&:hover': { borderColor: 'rgba(255,255,255,0.2)', bgcolor: alpha('#fff', 0.02) }
-                    }}
+                    className="h-11 rounded-[14px] border border-white/6 hover:border-white/20 text-white/60 hover:text-white px-4 font-black text-xs inline-flex items-center justify-center gap-1.5 transition-all bg-white/2 hover:bg-white/4"
                 >
-                    <SettingsIcon size={18} />
-                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 1 }}>
-                        Settings
-                    </Box>
-                </Button>
-                <Button
-                    variant="outlined"
+                    <SettingsIcon size={16} />
+                    <span className="hidden sm:inline">Settings</span>
+                </button>
+                <button
                     onClick={handleAddCollaborator}
-                    sx={{
-                        borderRadius: '14px',
-                        borderColor: 'rgba(255,255,255,0.06)',
-                        color: 'rgba(255,255,255,0.6)',
-                        fontWeight: 800,
-                        textTransform: 'none',
-                        px: { xs: 1.5, sm: 2.5 },
-                        minWidth: { xs: '44px', sm: 'auto' },
-                        height: 44,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        '&:hover': { borderColor: 'rgba(255,255,255,0.2)', bgcolor: alpha('#fff', 0.02) }
-                    }}
+                    className="h-11 rounded-[14px] border border-white/6 hover:border-white/20 text-white/60 hover:text-white px-4 font-black text-xs inline-flex items-center justify-center gap-1.5 transition-all bg-white/2 hover:bg-white/4"
                 >
-                    <Users size={18} />
-                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 1 }}>
-                        Collaborator
-                    </Box>
-                </Button>
-                <Button
-                    variant="contained"
-                    startIcon={<PlusCircle size={18} />}
+                    <Users size={16} />
+                    <span className="hidden sm:inline">Collaborator</span>
+                </button>
+                <button
                     onClick={() => setIsAddModalOpen(true)}
-                    sx={{
-                        borderRadius: '14px',
-                        bgcolor: '#6366F1',
-                        color: '#000',
-                        fontWeight: 900,
-                        textTransform: 'none',
-                        px: { xs: 2, md: 3 },
-                        boxShadow: '0 12px 24px rgba(99, 102, 241, 0.2)',
-                        '&:hover': { bgcolor: alpha('#6366F1', 0.9) }
-                    }}
+                    className="h-11 rounded-[14px] bg-[#6366F1] hover:bg-[#6366F1]/90 text-black px-5 font-black text-xs inline-flex items-center justify-center gap-1.5 transition-all shadow-[0_8px_20px_rgba(99,102,241,0.2)]"
                 >
-                    Integrate
-                </Button>
-            </Stack>
-        </Stack>
+                    <PlusCircle size={16} />
+                    <span>Integrate</span>
+                </button>
+            </div>
+        </div>
 
-        <Grid container spacing={4}>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
             {/* Left Content Column */}
-            <Grid size={{ xs: 12, xl: 8 }}>
-                <div className="mb-4 flex items-center gap-3 p-4 rounded-[20px] bg-[#161412] border border-white/6 hover:border-white/10 transition-all select-none">
+            <div className="xl:col-span-2 flex flex-col gap-6">
+                <div className="mb-2 flex items-center gap-3 p-4 rounded-[20px] bg-[#161412] border border-white/6 hover:border-white/10 transition-all select-none">
                     <Info size={18} className="text-[#6366F1] flex-shrink-0" />
                     <p className="text-white/60 text-xs font-medium leading-relaxed">
                         All integrated internal objects inherit project member&apos;s permission level, except on object level permission override.
                     </p>
                 </div>
-                <Paper
-                    elevation={0}
-                    sx={{
-                        bgcolor: '#161412',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        borderRadius: '32px',
-                        overflow: 'hidden',
-                        backgroundImage: 'none',
-                        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
-                        p: 0
-                    }}
-                >
-                    <Box sx={{ borderBottom: 1, borderColor: 'rgba(255,255,255,0.06)', px: 3, pt: 1, bgcolor: alpha('#fff', 0.01) }}>
-                        <Tabs 
-                            value={tabValue} 
-                            onChange={(_, v) => setTabValue(v)}
-                            variant="scrollable"
-                            scrollButtons="auto"
-                            allowScrollButtonsMobile
-                            sx={{
-                                '& .MuiTab-root': {
-                                    color: 'rgba(255, 255, 255, 0.4)',
-                                    fontWeight: 900,
-                                    textTransform: 'none',
-                                    minHeight: 72,
-                                    fontSize: '0.95rem',
-                                    letterSpacing: '0.01em',
-                                    mr: { xs: 1.5, md: 3 },
-                                    px: { xs: 1, md: 2 },
-                                    '&.Mui-selected': { color: '#6366F1' }
-                                },
-                                '& .MuiTabs-indicator': { bgcolor: '#6366F1', height: 3, borderRadius: '3px 3px 0 0' }
-                            }}
-                        >
-                             <Tab 
-                                label="Integrated Notes" 
-                                icon={<FileText size={18} />} 
-                                iconPosition="start" 
-                                onContextMenu={(e) => handleTabContextMenu(e, 0)}
-                                onTouchStart={(e) => handleTabTouchStart(e, 0)}
-                                onTouchMove={handleTabTouchMove}
-                                onTouchEnd={handleTabTouchEnd}
-                             />
-                             <Tab 
-                                label="Execution Goals" 
-                                icon={<CheckSquare size={18} />} 
-                                iconPosition="start" 
-                                onContextMenu={(e) => handleTabContextMenu(e, 1)}
-                                onTouchStart={(e) => handleTabTouchStart(e, 1)}
-                                onTouchMove={handleTabTouchMove}
-                                onTouchEnd={handleTabTouchEnd}
-                             />
-                             <Tab 
-                                label="Vault Assets" 
-                                icon={<Lock size={18} />} 
-                                iconPosition="start" 
-                                onContextMenu={(e) => handleTabContextMenu(e, 2)}
-                                onTouchStart={(e) => handleTabTouchStart(e, 2)}
-                                onTouchMove={handleTabTouchMove}
-                                onTouchEnd={handleTabTouchEnd}
-                             />
-                             <Tab 
-                                label="Sub-Projects" 
-                                icon={<FolderKanban size={18} />} 
-                                iconPosition="start" 
-                                onContextMenu={(e) => handleTabContextMenu(e, 3)}
-                                onTouchStart={(e) => handleTabTouchStart(e, 3)}
-                                onTouchMove={handleTabTouchMove}
-                                onTouchEnd={handleTabTouchEnd}
-                             />
-                             <Tab 
-                                label="Events & Calls" 
-                                icon={<Calendar size={18} />} 
-                                iconPosition="start" 
-                                onContextMenu={(e) => handleTabContextMenu(e, 4)}
-                                onTouchStart={(e) => handleTabTouchStart(e, 4)}
-                                onTouchMove={handleTabTouchMove}
-                                onTouchEnd={handleTabTouchEnd}
-                             />
-                             <Tab 
-                                label="Interconnected Flow" 
-                                icon={<Workflow size={18} />} 
-                                iconPosition="start" 
-                                onContextMenu={(e) => handleTabContextMenu(e, 5)}
-                                onTouchStart={(e) => handleTabTouchStart(e, 5)}
-                                onTouchMove={handleTabTouchMove}
-                                onTouchEnd={handleTabTouchEnd}
-                             />
-                        </Tabs>
-                    </Box>
 
-                    <Box sx={{ p: { xs: 2, md: 4 } }}>
+                <div className="bg-[#161412] border border-white/6 rounded-[32px] overflow-hidden shadow-2xl">
+                    <div className="border-b border-white/6 px-6 bg-white/[0.01] overflow-x-auto scrollbar-none flex gap-6">
+                        {TABS_CONFIG.map((tab, index) => {
+                            const isActive = tabValue === index;
+                            return (
+                                <button
+                                    key={index}
+                                    onClick={() => setTabValue(index)}
+                                    onContextMenu={(e) => handleTabContextMenu(e, index)}
+                                    onTouchStart={(e) => handleTabTouchStart(e, index)}
+                                    onTouchMove={handleTabTouchMove}
+                                    onTouchEnd={handleTabTouchEnd}
+                                    className={`flex items-center gap-2 py-5 font-black text-sm border-b-2 transition-all duration-200 whitespace-nowrap outline-none ${
+                                        isActive 
+                                            ? 'border-[#6366F1] text-[#6366F1]' 
+                                            : 'border-transparent text-white/40 hover:text-white'
+                                    }`}
+                                >
+                                    {tab.icon}
+                                    <span>{tab.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="p-4 md:p-8">
                         {/* Integrated Notes */}
                         <CustomTabPanel value={tabValue} index={0}>
-                            {loading ? <></> : resolving ? <LoadingPlaceholder /> : notes.length === 0 ? <EmptyState kind="note" /> : (
-                                <Grid container spacing={2}>
+                            {loading ? null : resolving ? <LoadingPlaceholder /> : notes.length === 0 ? <EmptyState kind="note" /> : (
+                                <div className="flex flex-col gap-4">
                                     {notes.map(note => (
-                                        <Grid size={{ xs: 12 }} key={note.$id}>
-                                            <ResourceItem 
-                                                title={note.title || 'Untitled Note'} 
-                                                kind="note"
-                                                metadata={note.tags?.slice(0, 3).join(' • ') || 'No tags'}
-                                                onOpen={() => openSidebar(
-                                                  <NoteDetailSidebar 
-                                                    note={note} 
-                                                    onUpdate={fetchProjectData} 
-                                                    onDelete={fetchProjectData} 
-                                                  />, 
-                                                  'note-detail'
-                                                )}
-                                                onUnlink={() => handleRemoveObject(note.$id)}
-                                                onExtractGoals={() => {
-                                                    setExtractGoalsNote(note);
-                                                    setIsExtractModalOpen(true);
-                                                }}
-                                                keepPermission={note.keepPermission}
-                                                onToggleKeepPermission={(checked) => handleToggleKeepPermission(note.$id, 'note', checked)}
-                                            />
-                                        </Grid>
+                                        <ResourceItem 
+                                            key={note.$id}
+                                            title={note.title || 'Untitled Note'} 
+                                            kind="note"
+                                            metadata={note.tags?.slice(0, 3).join(' • ') || 'No tags'}
+                                            onOpen={() => openSidebar(
+                                              <NoteDetailSidebar 
+                                                note={note} 
+                                                onUpdate={fetchProjectData} 
+                                                onDelete={fetchProjectData} 
+                                              />, 
+                                              'note-detail'
+                                            )}
+                                            onUnlink={() => handleRemoveObject(note.$id)}
+                                            onExtractGoals={() => {
+                                                setExtractGoalsNote(note);
+                                                setIsExtractModalOpen(true);
+                                            }}
+                                            keepPermission={note.keepPermission}
+                                            onToggleKeepPermission={(checked) => handleToggleKeepPermission(note.$id, 'note', checked)}
+                                        />
                                     ))}
-                                </Grid>
+                                </div>
                             )}
                         </CustomTabPanel>
                         
                         {/* Execution Goals */}
                         <CustomTabPanel value={tabValue} index={1}>
-                            {loading ? <></> : resolving ? <LoadingPlaceholder /> : tasks.length === 0 ? <EmptyState kind="goal" /> : (
-                                <Grid container spacing={2}>
+                            {loading ? null : resolving ? <LoadingPlaceholder /> : tasks.length === 0 ? <EmptyState kind="goal" /> : (
+                                <div className="flex flex-col gap-4">
                                     {tasks.map(task => (
-                                        <Grid size={{ xs: 12 }} key={task.$id}>
-                                            <ResourceItem 
-                                                title={task.title} 
-                                                kind="goal"
-                                                metadata={`${task.status.replace('-', ' ')} • ${task.priority}`}
-                                                onOpen={() => openSecondarySidebar('task', task.$id)}
-                                                onUnlink={() => handleRemoveObject(task.$id)}
-                                                keepPermission={task.keepPermission}
-                                                onToggleKeepPermission={(checked) => handleToggleKeepPermission(task.$id, 'goal', checked)}
-                                            />
-                                        </Grid>
+                                        <ResourceItem 
+                                            key={task.$id}
+                                            title={task.title} 
+                                            kind="goal"
+                                            metadata={`${task.status.replace('-', ' ')} • ${task.priority}`}
+                                            onOpen={() => openSecondarySidebar('task', task.$id)}
+                                            onUnlink={() => handleRemoveObject(task.$id)}
+                                            keepPermission={task.keepPermission}
+                                            onToggleKeepPermission={(checked) => handleToggleKeepPermission(task.$id, 'goal', checked)}
+                                        />
                                     ))}
-                                </Grid>
+                                </div>
                             )}
                         </CustomTabPanel>
 
                         {/* Vault Assets */}
                         <CustomTabPanel value={tabValue} index={2}>
-                            {loading ? <></> : resolving ? <LoadingPlaceholder /> : (credentials.length === 0 && totps.length === 0) ? <EmptyState kind="password" /> : (
-                                <Grid container spacing={2}>
+                            {loading ? null : resolving ? <LoadingPlaceholder /> : (credentials.length === 0 && totps.length === 0) ? <EmptyState kind="password" /> : (
+                                <div className="flex flex-col gap-4">
                                     {credentials.map(cred => (
-                                        <Grid size={{ xs: 12 }} key={cred.$id}>
-                                            <ResourceItem 
-                                                title={cred.name} 
-                                                kind="password"
-                                                metadata={cred.username || 'Shared secret'}
-                                                onOpen={() => openOverlay(
-                                                  <CredentialDialog 
-                                                    open={true} 
-                                                    onClose={closeOverlay} 
-                                                    initial={cred} 
-                                                    onSaved={fetchProjectData} 
-                                                  />
-                                                )}
-                                                onUnlink={() => handleRemoveObject(cred.$id)}
-                                                keepPermission={cred.keepPermission}
-                                                onToggleKeepPermission={(checked) => handleToggleKeepPermission(cred.$id, 'password', checked)}
-                                            />
-                                        </Grid>
+                                        <ResourceItem 
+                                            key={cred.$id}
+                                            title={cred.name} 
+                                            kind="password"
+                                            metadata={cred.username || 'Shared secret'}
+                                            onOpen={() => openOverlay(
+                                              <CredentialDialog 
+                                                open={true} 
+                                                onClose={closeOverlay} 
+                                                initial={cred} 
+                                                onSaved={fetchProjectData} 
+                                              />
+                                            )}
+                                            onUnlink={() => handleRemoveObject(cred.$id)}
+                                            keepPermission={cred.keepPermission}
+                                            onToggleKeepPermission={(checked) => handleToggleKeepPermission(cred.$id, 'password', checked)}
+                                        />
                                     ))}
                                     {totps.map(totp => (
-                                        <Grid size={{ xs: 12 }} key={totp.$id}>
-                                            <ResourceItem 
-                                                title={totp.issuer || totp.name || 'Smart Code'} 
-                                                kind="totp"
-                                                metadata={totp.accountName || 'TOTP secret'}
-                                                onOpen={() => openOverlay(
-                                                  <NewTotpDialog 
-                                                    open={true} 
-                                                    onClose={() => {
-                                                      closeOverlay();
-                                                      fetchProjectData();
-                                                    }} 
-                                                    initialData={totp} 
-                                                  />
-                                                )}
-                                                onUnlink={() => handleRemoveObject(totp.$id)}
-                                                keepPermission={totp.keepPermission}
-                                                onToggleKeepPermission={(checked) => handleToggleKeepPermission(totp.$id, 'totp', checked)}
-                                            />
-                                        </Grid>
+                                        <ResourceItem 
+                                            key={totp.$id}
+                                            title={totp.issuer || totp.name || 'Smart Code'} 
+                                            kind="totp"
+                                            metadata={totp.accountName || 'TOTP secret'}
+                                            onOpen={() => openOverlay(
+                                              <NewTotpDialog 
+                                                open={true} 
+                                                onClose={() => {
+                                                  closeOverlay();
+                                                  fetchProjectData();
+                                                }} 
+                                                initialData={totp} 
+                                              />
+                                            )}
+                                            onUnlink={() => handleRemoveObject(totp.$id)}
+                                            keepPermission={totp.keepPermission}
+                                            onToggleKeepPermission={(checked) => handleToggleKeepPermission(totp.$id, 'totp', checked)}
+                                        />
                                     ))}
-                                </Grid>
+                                </div>
                             )}
                         </CustomTabPanel>
 
                         {/* Sub-Projects */}
                         <CustomTabPanel value={tabValue} index={3}>
-                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-                                <Button
-                                    variant="outlined"
-                                    startIcon={<Plus size={16} />}
+                            <div className="flex justify-end mb-4">
+                                <button
                                     onClick={() => {
                                         if (!hasPaidKylrixPlan(user)) {
                                             openUnified('pro-upgrade', {});
@@ -1027,169 +902,140 @@ export default function ProjectDetailPage() {
                                             setIsAddSubProjectModalOpen(true);
                                         }
                                     }}
-                                    sx={{
-                                        borderRadius: '12px',
-                                        borderColor: 'rgba(255,255,255,0.08)',
-                                        color: '#fff',
-                                        fontWeight: 800,
-                                        textTransform: 'none',
-                                        fontSize: '0.8rem',
-                                        '&:hover': {
-                                            borderColor: '#6366F1',
-                                            bgcolor: 'rgba(99, 102, 241, 0.05)'
-                                        }
-                                    }}
+                                    className="inline-flex items-center gap-1.5 text-white bg-white/2 hover:bg-[#6366F1]/10 border border-white/8 hover:border-[#6366F1]/30 font-extrabold text-xs px-3.5 py-1.5 rounded-[12px] transition-all"
                                 >
-                                    Integrate Sub-Project
-                                </Button>
-                            </Box>
-                            {loading ? <></> : resolving ? <LoadingPlaceholder /> : subProjects.length === 0 ? <EmptyState kind="sub-project" /> : (
-                                <Grid container spacing={2}>
+                                    <Plus size={14} />
+                                    <span>Integrate Sub-Project</span>
+                                </button>
+                            </div>
+                            {loading ? null : resolving ? <LoadingPlaceholder /> : subProjects.length === 0 ? <EmptyState kind="sub-project" /> : (
+                                <div className="flex flex-col gap-4">
                                     {subProjects.map(sub => (
-                                        <Grid size={{ xs: 12 }} key={sub.$id}>
-                                            <ResourceItem 
-                                                title={sub.title || 'Untitled Project'}
- 
-                                                kind="project"
-                                                metadata={sub.summary || 'Private Container'}
-                                                onOpen={() => router.push(`/projects/${sub.$id}`)}
-                                                onUnlink={() => handleRemoveObject(sub.$id)}
-                                            />
-                                        </Grid>
+                                        <ResourceItem 
+                                            key={sub.$id}
+                                            title={sub.title || 'Untitled Project'}
+                                            kind="project"
+                                            metadata={sub.summary || 'Private Container'}
+                                            onOpen={() => router.push(`/projects/${sub.$id}`)}
+                                            onUnlink={() => handleRemoveObject(sub.$id)}
+                                        />
                                     ))}
-                                </Grid>
+                                </div>
                             )}
                         </CustomTabPanel>
 
                         {/* Events & Calls */}
                         <CustomTabPanel value={tabValue} index={4}>
-                            {loading ? <></> : resolving ? <LoadingPlaceholder /> : (events.length === 0 && calls.length === 0) ? <EmptyState kind="event" /> : (
-                                <Grid container spacing={2}>
+                            {loading ? null : resolving ? <LoadingPlaceholder /> : (events.length === 0 && calls.length === 0) ? <EmptyState kind="event" /> : (
+                                <div className="flex flex-col gap-4">
                                     {events.map(event => (
-                                        <Grid size={{ xs: 12 }} key={event.$id}>
-                                            <ResourceItem 
-                                                title={event.title} 
-                                                kind="event"
-                                                metadata={`${event.location || 'No location'} • ${new Date(event.startTime).toLocaleString()}`}
-                                                onOpen={() => openSecondarySidebar('event', event.$id, event)}
-                                                onUnlink={() => handleRemoveObject(event.$id)}
-                                                keepPermission={event.keepPermission}
-                                                onToggleKeepPermission={(checked) => handleToggleKeepPermission(event.$id, 'event', checked)}
-                                            />
-                                        </Grid>
+                                        <ResourceItem 
+                                            key={event.$id}
+                                            title={event.title} 
+                                            kind="event"
+                                            metadata={`${event.location || 'No location'} • ${new Date(event.startTime).toLocaleString()}`}
+                                            onOpen={() => openSecondarySidebar('event', event.$id, event)}
+                                            onUnlink={() => handleRemoveObject(event.$id)}
+                                            keepPermission={event.keepPermission}
+                                            onToggleKeepPermission={(checked) => handleToggleKeepPermission(event.$id, 'event', checked)}
+                                        />
                                     ))}
                                     {calls.map(call => (
-                                        <Grid size={{ xs: 12 }} key={call.$id}>
-                                            <ResourceItem 
-                                                title={call.title || 'Call Link'} 
-                                                kind="call"
-                                                metadata={`Scheduled Type: ${call.type || 'video'}`}
-                                                onOpen={() => openOverlay(
-                                                  <CallActionModal 
-                                                    open={true} 
-                                                    onClose={() => {
-                                                      closeOverlay();
-                                                      fetchProjectData();
-                                                    }} 
-                                                  />
-                                                )}
-                                                onUnlink={() => handleRemoveObject(call.$id)}
-                                            />
-                                        </Grid>
+                                        <ResourceItem 
+                                            key={call.$id}
+                                            title={call.title || 'Call Link'} 
+                                            kind="call"
+                                            metadata={`Scheduled Type: ${call.type || 'video'}`}
+                                            onOpen={() => openOverlay(
+                                              <CallActionModal 
+                                                open={true} 
+                                                onClose={() => {
+                                                  closeOverlay();
+                                                  fetchProjectData();
+                                                }} 
+                                              />
+                                            )}
+                                            onUnlink={() => handleRemoveObject(call.$id)}
+                                        />
                                     ))}
-                                </Grid>
+                                </div>
                             )}
                         </CustomTabPanel>
 
                         {/* Interconnected Flow: Forms, Tags, Moments */}
                         <CustomTabPanel value={tabValue} index={5}>
-                            {loading ? <></> : resolving ? <LoadingPlaceholder /> : (forms.length === 0 && tags.length === 0 && moments.length === 0) ? <EmptyState kind="flow" /> : (
-                                <Grid container spacing={2}>
+                            {loading ? null : resolving ? <LoadingPlaceholder /> : (forms.length === 0 && tags.length === 0 && moments.length === 0) ? <EmptyState kind="flow" /> : (
+                                <div className="flex flex-col gap-4">
                                     {forms.map(form => (
-                                        <Grid size={{ xs: 12 }} key={form.$id}>
-                                            <ResourceItem 
-                                                title={form.title || 'Untitled Form'} 
-                                                kind="form"
-                                                metadata={form.description || 'Interactive Flow Schema'}
-                                                onOpen={() => openOverlay(
-                                                  <FormDialog 
-                                                    open={true} 
-                                                    onClose={closeOverlay} 
-                                                    form={form} 
-                                                    onSaved={fetchProjectData} 
-                                                  />
-                                                )}
-                                                onUnlink={() => handleRemoveObject(form.$id)}
-                                            />
-                                        </Grid>
+                                        <ResourceItem 
+                                            key={form.$id}
+                                            title={form.title || 'Untitled Form'} 
+                                            kind="form"
+                                            metadata={form.description || 'Interactive Flow Schema'}
+                                            onOpen={() => openOverlay(
+                                              <FormDialog 
+                                                open={true} 
+                                                onClose={closeOverlay} 
+                                                form={form} 
+                                                onSaved={fetchProjectData} 
+                                              />
+                                            )}
+                                            onUnlink={() => handleRemoveObject(form.$id)}
+                                        />
                                     ))}
                                     {tags.map(tag => (
-                                        <Grid size={{ xs: 12 }} key={tag.$id}>
-                                            <ResourceItem 
-                                                title={`# ${tag.name}`} 
-                                                kind="tag"
-                                                metadata={`Color accent: ${tag.color || 'default'}`}
-                                                onOpen={() => openUnified('new-tag', { tag, onSuccess: fetchProjectData })}
-                                                onUnlink={() => handleRemoveObject(tag.$id)}
-                                            />
-                                        </Grid>
+                                        <ResourceItem 
+                                            key={tag.$id}
+                                            title={`# ${tag.name}`} 
+                                            kind="tag"
+                                            metadata={`Color accent: ${tag.color || 'default'}`}
+                                            onOpen={() => openUnified('new-tag', { tag, onSuccess: fetchProjectData })}
+                                            onUnlink={() => handleRemoveObject(tag.$id)}
+                                        />
                                     ))}
                                     {moments.map(moment => (
-                                        <Grid size={{ xs: 12 }} key={moment.$id}>
-                                            <ResourceItem 
-                                                title={moment.caption || 'Integrated Moment'} 
-                                                kind="moment"
-                                                metadata={`Published: ${new Date(moment.$createdAt || moment.createdAt).toLocaleDateString()}`}
-                                                onOpen={() => router.push(`/connect/post/${moment.$id}`)}
-                                                onUnlink={() => handleRemoveObject(moment.$id)}
-                                            />
-                                        </Grid>
+                                        <ResourceItem 
+                                            key={moment.$id}
+                                            title={moment.caption || 'Integrated Moment'} 
+                                            kind="moment"
+                                            metadata={`Published: ${new Date(moment.$createdAt || moment.createdAt).toLocaleDateString()}`}
+                                            onOpen={() => router.push(`/connect/post/${moment.$id}`)}
+                                            onUnlink={() => handleRemoveObject(moment.$id)}
+                                        />
                                     ))}
-                                </Grid>
+                                </div>
                             )}
                         </CustomTabPanel>
-                    </Box>
-                </Paper>
+                    </div>
+                </div>
 
                 {/* External Objects Card */}
-                <Paper
-                    elevation={0}
-                    sx={{
-                        bgcolor: '#161412',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        borderRadius: '32px',
-                        overflow: 'hidden',
-                        backgroundImage: 'none',
-                        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
-                        mt: 4,
-                        p: 0
-                    }}
-                >
-                    <Box sx={{ borderBottom: 1, borderColor: 'rgba(255,255,255,0.06)', px: 3, py: 2.5, bgcolor: alpha('#fff', 0.01), display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <div className="bg-[#161412] border border-white/6 rounded-[32px] overflow-hidden shadow-2xl mt-8">
+                    <div className="border-b border-white/6 px-6 py-5 bg-white/[0.01] flex items-center gap-3">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
                             <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
                         </svg>
-                        <Typography component="span" sx={{ color: '#fff', fontWeight: 900, fontFamily: 'var(--font-clash)', fontSize: '1.05rem', letterSpacing: '-0.01em', display: 'block' }}>
+                        <span className="text-white font-black text-base tracking-tight leading-none block">
                             GitHub Repositories
-                        </Typography>
-                    </Box>
+                        </span>
+                    </div>
 
-                    <Box sx={{ p: { xs: 2, md: 4 } }}>
+                    <div className="p-4 md:p-8">
                         <GitHubExternalObjectsTab 
                             projectId={projectId as string}
                             projectObjects={projectObjects}
                             fetchProjectData={fetchProjectData}
                             tasks={tasks}
                         />
-                    </Box>
-                </Paper>
+                    </div>
+                </div>
 
                 {/* Suggested Workflows Section */}
                 <div className="mt-8 select-none">
                     <span className="text-[10px] text-white/30 font-black uppercase tracking-wider block mb-4">
                         Suggested Workflows
                     </span>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
                         {[
                             { title: 'Project Documentation', icon: FileText, color: '#EC4899', desc: 'Create a new note specific to this project.' },
                             { title: 'Sprint Planning', icon: CheckSquare, color: '#A855F7', desc: 'Initialize a goal to track execution.' },
@@ -1217,7 +1063,7 @@ export default function ProjectDetailPage() {
                     <span className="text-[10px] text-white/30 font-black uppercase tracking-wider block mb-4">
                         Integrations
                     </span>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
                         <div 
                             onClick={() => openUnified('github-integration', { context: 'project', projectId: projectId as string, tasks: tasks, onSaved: fetchProjectData })}
                             className="relative flex flex-col justify-between gap-4 p-5 rounded-[24px] bg-[#161412] border border-white/6 hover:border-[#6366F1]/30 hover:bg-[#1C1A18] transition-all duration-300 ease-out cursor-pointer overflow-hidden group"
@@ -1246,137 +1092,135 @@ export default function ProjectDetailPage() {
                         </div>
                     </div>
                 </div>
-            </Grid>
+            </div>
 
             {/* Right Sidebar Column */}
-            <Grid size={{ xs: 12, xl: 4 }}>
-                <Stack spacing={4}>
-                    {/* Participants */}
-                    {/* Participants */}
-                    <div className="relative flex flex-col gap-4 p-6 w-full rounded-[28px] bg-[#161412] border border-white/6 hover:border-white/12 transition-all duration-300 ease-out select-none">
-                        <div className="flex items-center justify-between gap-4 pb-2.5 border-b border-white/4">
-                            <h3 className="text-white text-base font-black tracking-tight leading-tight">
-                                Project Members
-                            </h3>
-                            <div className="flex items-center gap-1.5">
-                                <button 
-                                    onClick={handleCopyInviteLink}
-                                    title="Copy Invite Link"
-                                    className="p-1.5 rounded-lg text-white/40 hover:text-white bg-white/2 hover:bg-white/5 border border-white/4 transition-all duration-200"
-                                >
-                                    <Copy size={14} />
-                                </button>
-                                <button 
-                                    onClick={handleAddCollaborator}
-                                    title="Add Collaborator"
-                                    className="p-1.5 rounded-lg text-[#6366F1] bg-[#6366F1]/10 hover:bg-[#6366F1]/20 border border-[#6366F1]/20 transition-all duration-200"
-                                >
-                                    <Plus size={16} />
-                                </button>
-                            </div>
+            <div className="flex flex-col gap-6">
+                {/* Participants */}
+                <div className="relative flex flex-col gap-4 p-6 w-full rounded-[28px] bg-[#161412] border border-white/6 hover:border-white/12 transition-all duration-300 ease-out select-none">
+                    <div className="flex items-center justify-between gap-4 pb-2.5 border-b border-white/4">
+                        <h3 className="text-white text-base font-black tracking-tight leading-tight">
+                            Project Members
+                        </h3>
+                        <div className="flex items-center gap-1.5">
+                            <button 
+                                onClick={handleCopyInviteLink}
+                                title="Copy Invite Link"
+                                className="p-1.5 rounded-lg text-white/40 hover:text-white bg-white/2 hover:bg-white/5 border border-white/4 transition-all duration-200"
+                            >
+                                <Copy size={14} />
+                            </button>
+                            <button 
+                                onClick={handleAddCollaborator}
+                                title="Add Collaborator"
+                                className="p-1.5 rounded-lg text-[#6366F1] bg-[#6366F1]/10 hover:bg-[#6366F1]/20 border border-[#6366F1]/20 transition-all duration-200"
+                            >
+                                <Plus size={16} />
+                            </button>
                         </div>
-                        
-                        <div className="flex flex-col gap-2">
-                            {/* Project Owner Section */}
-                            <div className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 hover:border-white/8 transition-colors flex items-center gap-3">
+                    </div>
+                    
+                    <div className="flex flex-col gap-2">
+                        {/* Project Owner Section */}
+                        <div className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 hover:border-white/8 transition-colors flex items-center gap-3">
+                            <div className="flex-shrink-0">
+                                <IdentityAvatar 
+                                    size={34} 
+                                    fileId={ownerProfile?.profilePicId || ownerProfile?.avatar || null} 
+                                    alt={ownerProfile?.displayName || ownerProfile?.name || 'Owner'} 
+                                    fallback={(ownerProfile?.displayName || ownerProfile?.name || 'O').charAt(0).toUpperCase()} 
+                                    verified={ownerProfile?.verified ?? true} 
+                                    isAvatar={ownerProfile?.isAvatar ?? true}
+                                />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <span className="text-white text-sm font-black tracking-tight block truncate">
+                                    {ownerProfile?.displayName || ownerProfile?.name || ownerProfile?.username || ownerProfile?.email || 'Project Owner'}
+                                </span>
+                                <span className="text-[10px] text-white/40 font-semibold block truncate">
+                                    {ownerProfile?.displayName || ownerProfile?.name ? (ownerProfile?.username ? `@${ownerProfile.username}` : 'Project Owner') : 'Project Owner'}
+                                </span>
+                            </div>
+                            <span className="flex-shrink-0 bg-[#6366F1]/12 text-[#6366F1] text-[9px] font-black px-2 py-0.5 rounded border border-[#6366F1]/20">
+                                OWNER
+                            </span>
+                        </div>
+
+                        {/* Collaborators Section (Active and Pending) */}
+                        {collaborators.map(user => (
+                            <div 
+                                key={user.$id || user.userId} 
+                                onClick={() => {
+                                    openUnified('share-note', {
+                                        resourceId: projectId as string,
+                                        resourceType: 'project',
+                                        resourceTitle: project?.title || 'Project',
+                                        initialCollaborator: user,
+                                        onShared: () => fetchProjectData()
+                                    });
+                                }}
+                                className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 hover:border-white/10 hover:bg-white/2 cursor-pointer transition-all flex items-center gap-3"
+                            >
                                 <div className="flex-shrink-0">
                                     <IdentityAvatar 
                                         size={34} 
-                                        fileId={ownerProfile?.profilePicId || ownerProfile?.avatar || null} 
-                                        alt={ownerProfile?.displayName || ownerProfile?.name || 'Owner'} 
-                                        fallback={(ownerProfile?.displayName || ownerProfile?.name || 'O').charAt(0).toUpperCase()} 
-                                        verified={ownerProfile?.verified ?? true} 
-                                        isAvatar={ownerProfile?.isAvatar ?? true}
+                                        fileId={user.avatar || user.profilePicId} 
+                                        alt={user.displayName || user.name || 'Collaborator'} 
+                                        fallback={(user.displayName || user.name || 'C').charAt(0).toUpperCase()} 
+                                        verified={user.verified} 
+                                        isAvatar={user.isAvatar ?? true}
                                     />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <span className="text-white text-sm font-black tracking-tight block truncate">
-                                        {ownerProfile?.displayName || ownerProfile?.name || ownerProfile?.username || ownerProfile?.email || 'Project Owner'}
+                                        {user.displayName || user.name || user.email}
                                     </span>
-                                    <span className="text-[10px] text-white/40 font-semibold block truncate">
-                                        {ownerProfile?.displayName || ownerProfile?.name ? (ownerProfile?.username ? `@${ownerProfile.username}` : 'Project Owner') : 'Project Owner'}
+                                    <span className="text-[10px] text-white/40 font-semibold block truncate capitalize">
+                                        {user.permissionLevel || 'Viewer'}
                                     </span>
                                 </div>
-                                <span className="flex-shrink-0 bg-[#6366F1]/12 text-[#6366F1] text-[9px] font-black px-2 py-0.5 rounded border border-[#6366F1]/20">
-                                    OWNER
-                                </span>
+                                
+                                {user.status === 'pending' && (
+                                    <span className="flex-shrink-0 bg-[#F59E0B]/10 text-[#F59E0B] text-[9px] font-black px-2 py-0.5 rounded border border-[#F59E0B]/20">
+                                        PENDING
+                                    </span>
+                                )}
                             </div>
-
-                            {/* Collaborators Section (Active and Pending) */}
-                            {collaborators.map(user => (
-                                <div 
-                                    key={user.$id || user.userId} 
-                                    onClick={() => {
-                                        openUnified('share-note', {
-                                            resourceId: projectId as string,
-                                            resourceType: 'project',
-                                            resourceTitle: project?.title || 'Project',
-                                            initialCollaborator: user,
-                                            onShared: () => fetchProjectData()
-                                        });
-                                    }}
-                                    className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 hover:border-white/10 hover:bg-white/2 cursor-pointer transition-all flex items-center gap-3"
-                                >
-                                    <div className="flex-shrink-0">
-                                        <IdentityAvatar 
-                                            size={34} 
-                                            fileId={user.avatar || user.profilePicId} 
-                                            alt={user.displayName || user.name || 'Collaborator'} 
-                                            fallback={(user.displayName || user.name || 'C').charAt(0).toUpperCase()} 
-                                            verified={user.verified} 
-                                            isAvatar={user.isAvatar ?? true}
-                                        />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <span className="text-white text-sm font-black tracking-tight block truncate">
-                                            {user.displayName || user.name || user.email}
-                                        </span>
-                                        <span className="text-[10px] text-white/40 font-semibold block truncate capitalize">
-                                            {user.permissionLevel || 'Viewer'}
-                                        </span>
-                                    </div>
-                                    
-                                    {user.status === 'pending' && (
-                                        <span className="flex-shrink-0 bg-[#F59E0B]/10 text-[#F59E0B] text-[9px] font-black px-2 py-0.5 rounded border border-[#F59E0B]/20">
-                                            PENDING
-                                        </span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                        ))}
                     </div>
+                </div>
 
-                    <div className="relative flex flex-col gap-4 p-6 w-full rounded-[28px] bg-[#161412] border border-white/6 hover:border-white/12 transition-all duration-300 ease-out select-none">
-                        <div className="border-b border-white/4 pb-2.5">
-                            <h3 className="text-white text-base font-black tracking-tight leading-tight">
-                                Project Insights
-                            </h3>
-                        </div>
-                        <p className="text-sm text-white/50 font-medium leading-relaxed">
-                            {project.summary || 'This project is used to group and coordinate your work.'}
-                        </p>
-                        
-                        <div className="flex flex-col gap-3">
-                            <div className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 flex flex-col gap-1.5">
-                                <span className="text-[9px] text-white/30 font-black uppercase tracking-wider">Visibility</span>
-                                <div className="flex items-center gap-2 text-[#6366F1]">
-                                    <Globe size={14} />
-                                    <span className="text-sm font-black capitalize">{project.visibility}</span>
-                                </div>
+                {/* Project Insights */}
+                <div className="relative flex flex-col gap-4 p-6 w-full rounded-[28px] bg-[#161412] border border-white/6 hover:border-white/12 transition-all duration-300 ease-out select-none">
+                    <div className="border-b border-white/4 pb-2.5">
+                        <h3 className="text-white text-base font-black tracking-tight leading-tight">
+                            Project Insights
+                        </h3>
+                    </div>
+                    <p className="text-sm text-white/50 font-medium leading-relaxed">
+                        {project.summary || 'This project is used to group and coordinate your work.'}
+                    </p>
+                    
+                    <div className="flex flex-col gap-3">
+                        <div className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 flex flex-col gap-1.5">
+                            <span className="text-[9px] text-white/30 font-black uppercase tracking-wider">Visibility</span>
+                            <div className="flex items-center gap-2 text-[#6366F1]">
+                                <Globe size={14} />
+                                <span className="text-sm font-black capitalize">{project.visibility}</span>
                             </div>
-                            <div className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 flex flex-col gap-1.5">
-                                <span className="text-[9px] text-white/30 font-black uppercase tracking-wider">Last Update</span>
-                                <div className="flex items-center gap-2 text-white/60">
-                                    <History size={14} />
-                                    <span className="text-sm font-black">{new Date(project.updatedAt || '').toLocaleDateString()}</span>
-                                </div>
+                        </div>
+                        <div className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 flex flex-col gap-1.5">
+                            <span className="text-[9px] text-white/30 font-black uppercase tracking-wider">Last Update</span>
+                            <div className="flex items-center gap-2 text-white/60">
+                                <History size={14} />
+                                <span className="text-sm font-black">{new Date(project.updatedAt || '').toLocaleDateString()}</span>
                             </div>
                         </div>
                     </div>
-                </Stack>
-            </Grid>
-        </Grid>
-        </Box>
+                </div>
+            </div>
+        </div>
+        </div>
       </MultiSectionContainer>
 
       {isAddModalOpen && (
@@ -1403,12 +1247,14 @@ export default function ProjectDetailPage() {
       )}
 
       {/* Project Settings Bottom Drawer */}
-      <ProjectSettingsDrawer
-        open={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        project={project}
-        onSave={handleSaveSettings}
-      />
+      {isSettingsOpen && (
+        <ProjectSettingsDrawer
+          open={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          project={project}
+          onSave={handleSaveSettings}
+        />
+      )}
 
       {isAddSubProjectModalOpen && (
         <ProjectAddSubProjectModal
@@ -1419,190 +1265,171 @@ export default function ProjectDetailPage() {
         />
       )}
 
-
-
       {/* Custom Tabs Context Menu */}
-      <Menu
-        open={Boolean(tabMenuAnchorEl)}
-        onClose={() => { setTabMenuAnchorEl(null); setActiveTabMenuIndex(null); }}
-        anchorReference="anchorPosition"
-        anchorPosition={
-          tabMenuAnchorEl ? { top: tabMenuAnchorEl.y, left: tabMenuAnchorEl.x } : undefined
-        }
-        PaperProps={{
-          sx: {
-            bgcolor: '#13110F',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '16px',
-            p: 1,
-            color: '#fff',
-            backgroundImage: 'none',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
-            minWidth: 180
-          }
-        }}
-      >
-        {activeTabMenuIndex === 0 && (
-          <MenuItem 
-            onClick={() => {
-              setTabMenuAnchorEl(null);
-              setIsAddModalOpen(true);
-            }}
-            sx={{ fontWeight: 700, borderRadius: '8px', color: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)', color: '#fff' } }}
+      {tabMenuAnchorEl && activeTabMenuIndex !== null && (
+        <>
+          <div className="fixed inset-0 z-50 cursor-default" onClick={() => { setTabMenuAnchorEl(null); setActiveTabMenuIndex(null); }} />
+          <div 
+            className="fixed z-[100] bg-[#13110F] border border-white/8 rounded-[16px] p-2 text-white shadow-2xl min-w-[180px] flex flex-col gap-0.5 select-none cursor-default"
+            style={{ top: tabMenuAnchorEl.y, left: tabMenuAnchorEl.x }}
           >
-            <FileText size={16} style={{ marginRight: 10 }} /> Integrate Note
-          </MenuItem>
-        )}
-        {activeTabMenuIndex === 1 && (
-          <MenuItem 
-            onClick={() => {
-              setTabMenuAnchorEl(null);
-              setIsAddModalOpen(true);
-            }}
-            sx={{ fontWeight: 700, borderRadius: '8px', color: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)', color: '#fff' } }}
-          >
-            <CheckSquare size={16} style={{ marginRight: 10 }} /> Integrate Goal
-          </MenuItem>
-        )}
-        {activeTabMenuIndex === 2 && (
-          <MenuItem 
-            onClick={() => {
-              setTabMenuAnchorEl(null);
-              setIsAddModalOpen(true);
-            }}
-            sx={{ fontWeight: 700, borderRadius: '8px', color: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)', color: '#fff' } }}
-          >
-            <Lock size={16} style={{ marginRight: 10 }} /> Integrate Asset
-          </MenuItem>
-        )}
-        {activeTabMenuIndex === 3 && (
-          <MenuItem 
-            onClick={() => {
-              setTabMenuAnchorEl(null);
-              if (!hasPaidKylrixPlan(user)) {
-                openUnified('pro-upgrade', {});
-              } else {
-                setIsAddSubProjectModalOpen(true);
-              }
-            }}
-            sx={{ fontWeight: 700, borderRadius: '8px', color: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)', color: '#fff' } }}
-          >
-            <FolderKanban size={16} style={{ marginRight: 10 }} /> Add Sub-Project
-          </MenuItem>
-        )}
-        {activeTabMenuIndex === 4 && (
-          <MenuItem 
-            onClick={() => {
-              setTabMenuAnchorEl(null);
-              setIsAddModalOpen(true);
-            }}
-            sx={{ fontWeight: 700, borderRadius: '8px', color: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)', color: '#fff' } }}
-          >
-            <Calendar size={16} style={{ marginRight: 10 }} /> Integrate Event/Call
-          </MenuItem>
-        )}
-        {activeTabMenuIndex === 5 && (
-          <MenuItem 
-            onClick={() => {
-              setTabMenuAnchorEl(null);
-              showSuccess('Interconnected flow nodes re-synchronized');
-            }}
-            sx={{ fontWeight: 700, borderRadius: '8px', color: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)', color: '#fff' } }}
-          >
-            <Workflow size={16} style={{ marginRight: 10 }} /> Re-sync Flow Nodes
-          </MenuItem>
-        )}
-        {activeTabMenuIndex === 6 && (
-          <MenuItem 
-            disabled={!metadata.discussionNoteId}
-            onClick={async () => {
-              setTabMenuAnchorEl(null);
-              if (metadata.discussionNoteId) {
-                if (window.confirm("Are you sure you want to wipe this entire discussion? All messages and replies will be permanently deleted.")) {
-                  setInitializingHuddle(true);
-                  try {
-                    // Fetch all comment rows for this discussion note's table representation
-                    const commentsRes = await databases.listRows(
-                      APPWRITE_CONFIG.DATABASES.NOTE,
-                      'comments',
-                      [Query.equal('noteId', metadata.discussionNoteId), Query.limit(1000)]
-                    );
-                    
-                    const commentIds = (commentsRes.rows as any[]).map((c) => c.$id).filter(Boolean);
-                    if (commentIds.length > 0) {
-                      // Delete reactions associated with comment rows
+            {activeTabMenuIndex === 0 && (
+              <button
+                onClick={() => {
+                  setTabMenuAnchorEl(null);
+                  setIsAddModalOpen(true);
+                }}
+                className="w-full text-left font-bold rounded-lg text-white/80 hover:text-white hover:bg-white/4 px-3 py-2 text-sm flex items-center gap-2.5 transition-colors"
+              >
+                <FileText size={16} />
+                <span>Integrate Note</span>
+              </button>
+            )}
+            {activeTabMenuIndex === 1 && (
+              <button
+                onClick={() => {
+                  setTabMenuAnchorEl(null);
+                  setIsAddModalOpen(true);
+                }}
+                className="w-full text-left font-bold rounded-lg text-white/80 hover:text-white hover:bg-white/4 px-3 py-2 text-sm flex items-center gap-2.5 transition-colors"
+              >
+                <CheckSquare size={16} />
+                <span>Integrate Goal</span>
+              </button>
+            )}
+            {activeTabMenuIndex === 2 && (
+              <button
+                onClick={() => {
+                  setTabMenuAnchorEl(null);
+                  setIsAddModalOpen(true);
+                }}
+                className="w-full text-left font-bold rounded-lg text-white/80 hover:text-white hover:bg-white/4 px-3 py-2 text-sm flex items-center gap-2.5 transition-colors"
+              >
+                <Lock size={16} />
+                <span>Integrate Asset</span>
+              </button>
+            )}
+            {activeTabMenuIndex === 3 && (
+              <button
+                onClick={() => {
+                  setTabMenuAnchorEl(null);
+                  if (!hasPaidKylrixPlan(user)) {
+                    openUnified('pro-upgrade', {});
+                  } else {
+                    setIsAddSubProjectModalOpen(true);
+                  }
+                }}
+                className="w-full text-left font-bold rounded-lg text-white/80 hover:text-white hover:bg-white/4 px-3 py-2 text-sm flex items-center gap-2.5 transition-colors"
+              >
+                <FolderKanban size={16} />
+                <span>Add Sub-Project</span>
+              </button>
+            )}
+            {activeTabMenuIndex === 4 && (
+              <button
+                onClick={() => {
+                  setTabMenuAnchorEl(null);
+                  setIsAddModalOpen(true);
+                }}
+                className="w-full text-left font-bold rounded-lg text-white/80 hover:text-white hover:bg-white/4 px-3 py-2 text-sm flex items-center gap-2.5 transition-colors"
+              >
+                <Calendar size={16} />
+                <span>Integrate Event/Call</span>
+              </button>
+            )}
+            {activeTabMenuIndex === 5 && (
+              <button
+                onClick={() => {
+                  setTabMenuAnchorEl(null);
+                  showSuccess('Interconnected flow nodes re-synchronized');
+                }}
+                className="w-full text-left font-bold rounded-lg text-white/80 hover:text-white hover:bg-white/4 px-3 py-2 text-sm flex items-center gap-2.5 transition-colors"
+              >
+                <Workflow size={16} />
+                <span>Re-sync Flow Nodes</span>
+              </button>
+            )}
+            {activeTabMenuIndex === 6 && (
+              <button
+                disabled={!metadata.discussionNoteId}
+                onClick={async () => {
+                  setTabMenuAnchorEl(null);
+                  if (metadata.discussionNoteId) {
+                    if (window.confirm("Are you sure you want to wipe this entire discussion? All messages and replies will be permanently deleted.")) {
+                      setInitializingHuddle(true);
                       try {
-                        await deleteReactionsForTarget(TargetType.COMMENT, commentIds);
-                      } catch (e) {
-                        console.warn('Failed to delete reactions during discussion wipe:', e);
-                      }
-                      
-                      // Delete associated voice note storage files recursively from storage bucket
-                      await Promise.all(
-                        commentsRes.rows.map(async (comment: any) => {
-                          let voiceFileId = null;
-                          const rawContent = comment.content;
-                          if (rawContent?.startsWith('{') && rawContent?.endsWith('}')) {
-                            try {
-                              const json = JSON.parse(rawContent);
-                              voiceFileId = json.voiceFileId || null;
-                            } catch {}
-                          } else if (rawContent?.startsWith('__voice_note__:')) {
-                            voiceFileId = rawContent.substring('__voice_note__:'.length);
+                        const commentsRes = await databases.listRows(
+                          APPWRITE_CONFIG.DATABASES.NOTE,
+                          'comments',
+                          [Query.equal('noteId', metadata.discussionNoteId), Query.limit(1000)]
+                        );
+                        
+                        const commentIds = (commentsRes.rows as any[]).map((c) => c.$id).filter(Boolean);
+                        if (commentIds.length > 0) {
+                          try {
+                            await deleteReactionsForTarget(TargetType.COMMENT, commentIds);
+                          } catch (e) {
+                            console.warn('Failed to delete reactions during discussion wipe:', e);
                           }
                           
-                          if (voiceFileId) {
-                            try {
-                              await storage.deleteFile('voice', voiceFileId);
-                            } catch (err) {
-                              console.warn(`Failed to delete voice note file ${voiceFileId}:`, err);
-                            }
-                          }
-                        })
-                      );
-                      
-                      // Delete comment rows from comments table
-                      await Promise.all(
-                        commentIds.map((id) => databases.deleteRow(APPWRITE_CONFIG.DATABASES.NOTE, 'comments', id))
-                      );
+                          await Promise.all(
+                            commentsRes.rows.map(async (comment: any) => {
+                              let voiceFileId = null;
+                              const rawContent = comment.content;
+                              if (rawContent?.startsWith('{') && rawContent?.endsWith('}')) {
+                                try {
+                                  const json = JSON.parse(rawContent);
+                                  voiceFileId = json.voiceFileId || null;
+                                } catch {}
+                              } else if (rawContent?.startsWith('__voice_note__:')) {
+                                voiceFileId = rawContent.substring('__voice_note__:'.length);
+                              }
+                              
+                              if (voiceFileId) {
+                                try {
+                                  await storage.deleteFile('voice', voiceFileId);
+                                } catch (err) {
+                                  console.warn(`Failed to delete voice note file ${voiceFileId}:`, err);
+                                }
+                              }
+                            })
+                          );
+                          
+                          await Promise.all(
+                            commentIds.map((id) => databases.deleteRow(APPWRITE_CONFIG.DATABASES.NOTE, 'comments', id))
+                          );
+                        }
+                        
+                        await deleteGhostNoteForProject(metadata.discussionNoteId);
+                        await fetchProjectData();
+                        showSuccess('Discussion thread wiped successfully');
+                      } catch (err: any) {
+                        console.error('Failed to wipe discussion:', err);
+                        showError('Failed to wipe discussion', err.message);
+                      } finally {
+                        setInitializingHuddle(false);
+                      }
                     }
-                    
-                    // Delete actual note row (the discussion note / ghost note itself!) from notes table
-                    await deleteGhostNoteForProject(metadata.discussionNoteId);
-                    
-                    // Reload project data to uninitialize discussion thread
-                    await fetchProjectData();
-                    showSuccess('Discussion thread wiped successfully');
-                  } catch (err: any) {
-                    console.error('Failed to wipe discussion:', err);
-                    showError('Failed to wipe discussion', err.message);
-                  } finally {
-                    setInitializingHuddle(false);
                   }
-                }
-              }
-            }}
-            sx={{ 
-              fontWeight: 700, 
-              borderRadius: '8px', 
-              color: '#FF4D4D', 
-              '&:hover': { bgcolor: alpha('#FF4D4D', 0.08) },
-              '&.Mui-disabled': { color: 'rgba(255,255,255,0.2)' }
-            }}
-          >
-            <Trash2 size={16} style={{ marginRight: 10 }} /> Wipe Thread
-          </MenuItem>
-        )}
-      </Menu>
-    </Box>
+                }}
+                className="w-full text-left font-bold rounded-lg text-[#FF4D4D] hover:bg-[#FF4D4D]/8 disabled:opacity-30 disabled:pointer-events-none px-3 py-2 text-sm flex items-center gap-2.5 transition-all"
+              >
+                <Trash2 size={16} />
+                <span>Wipe Thread</span>
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
 function LoadingPlaceholder() {
     return (
-        <Box sx={{ display: 'grid', placeItems: 'center', py: 8 }}>
-            <CircularProgress size={24} sx={{ color: '#6366F1' }} />
-        </Box>
+        <div className="grid place-items-center py-8">
+            <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
     );
 }
 
@@ -1611,10 +1438,10 @@ function ResourceGridSkeleton() { return null; }
 function EmptyState({ kind }: { kind: string }) {
     const icon = kind === 'note' ? <FileText size={32} /> : kind === 'goal' ? <CheckSquare size={32} /> : kind === 'sub-project' ? <FolderKanban size={32} /> : <Lock size={32} />;
     return (
-        <Box sx={{ textAlign: 'center', py: 6, opacity: 0.4 }}>
-            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>{icon}</Box>
-            <Typography variant="body2" sx={{ fontWeight: 700 }}>No {kind}s linked to this project yet.</Typography>
-        </Box>
+        <div className="text-center py-6 opacity-40">
+            <div className="mb-2 flex justify-center">{icon}</div>
+            <p className="text-sm font-bold text-white">No {kind}s linked to this project yet.</p>
+        </div>
     );
 }
 
@@ -1680,7 +1507,6 @@ function ResourceItem({
         }
     };
 
-    // Elegant mapping for all 9 types (Notes, Goals, Secrets/Credentials, Forms, Events, Tags, TOTPs, Moments, Calls)
     const getKindAssets = (k: string) => {
         const lower = k?.toLowerCase() || '';
         switch (lower) {
@@ -1713,245 +1539,112 @@ function ResourceItem({
 
     return (
         <>
-            <Paper
-                elevation={0}
+            <div
                 onContextMenu={handleContextMenu}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                sx={{
-                    bgcolor: '#13110F',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '24px',
-                    p: { xs: 2, sm: 2.5 },
-                    display: 'flex',
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    alignItems: { xs: 'flex-start', sm: 'center' },
-                    justifyContent: 'space-between',
-                    gap: { xs: 2, sm: 3 },
-                    backgroundImage: 'none',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    cursor: onToggleKeepPermission ? 'context-menu' : 'default',
-                    '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '4px',
-                        height: '100%',
-                        bgcolor: accent,
-                        opacity: 0.6,
-                        transition: 'all 0.2s ease',
-                    },
-                    '&:hover': { 
-                        bgcolor: '#181613', 
-                        borderColor: alpha(accent, 0.25),
-                        transform: 'translateY(-1.5px)',
-                        boxShadow: `0 8px 24px ${alpha(accent, 0.05)}`,
-                        '&::before': {
-                            opacity: 1,
-                            height: '100%'
-                        }
-                    }
+                className="relative flex flex-col md:flex-row items-start md:items-center justify-between p-5 md:py-6 md:px-7 gap-4 rounded-[24px] bg-[#13110F] border border-white/6 hover:border-white/12 hover:bg-[#181613] transition-all duration-300 ease-out select-none max-w-full overflow-hidden group"
+                style={{
+                    cursor: onToggleKeepPermission ? 'context-menu' : 'default'
                 }}
             >
-                <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 2, 
-                    minWidth: 0, 
-                    flex: 1,
-                    width: { xs: '100%', sm: 'auto' }
-                }}>
-                    <Box sx={{ 
-                        width: 44, 
-                        height: 44, 
-                        borderRadius: '14px', 
-                        bgcolor: alpha(accent, 0.08), 
-                        color: accent, 
-                        display: 'grid', 
-                        placeItems: 'center',
-                        border: `1px solid ${alpha(accent, 0.15)}`,
-                        flexShrink: 0,
-                        transition: 'all 0.2s ease',
-                    }}>
-                        {icon}
-                    </Box>
-                    <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography 
-                                component="span"
-                                sx={{ 
-                                    color: '#fff', 
-                                    fontWeight: 800, 
-                                    fontSize: '0.95rem',
-                                    lineHeight: 1.3,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                }}
-                            >
-                                {title}
-                            </Typography>
-                            {keepPermission && (
-                                <Tooltip title="Keeps original permissions (override active)" arrow>
-                                    <Box component="span" sx={{ display: 'inline-flex', color: '#10B981', flexShrink: 0 }}>
-                                        <ShieldCheck size={16} />
-                                    </Box>
-                                </Tooltip>
-                            )}
-                        </Box>
-                        <Box>
-                            <Typography 
-                                variant="caption" 
-                                sx={{ 
-                                    color: 'rgba(255,255,255,0.4)', 
-                                    fontWeight: 800, 
-                                    textTransform: 'uppercase', 
-                                    letterSpacing: '0.08em',
-                                    fontSize: '0.68rem',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    bgcolor: 'rgba(255,255,255,0.03)',
-                                    px: 1,
-                                    py: 0.25,
-                                    borderRadius: '6px',
-                                    border: '1px solid rgba(255,255,255,0.04)'
-                                }}
-                            >
-                                {metadata || kind}
-                            </Typography>
-                        </Box>
-                    </Box>
-                </Box>
+                {/* Accent border left */}
+                <div 
+                    className="absolute top-0 left-0 w-1 h-full opacity-60 group-hover:opacity-100 transition-opacity" 
+                    style={{ backgroundColor: accent }} 
+                />
 
-                <Box 
-                    sx={{ 
-                        display: 'flex',
-                        alignItems: 'center', 
-                        gap: 1.5,
-                        width: { xs: '100%', sm: 'auto' },
-                        justifyContent: { xs: 'flex-end', sm: 'flex-start' },
-                        flexShrink: 0,
-                        borderTop: { xs: '1px solid rgba(255,255,255,0.04)', sm: 'none' },
-                        pt: { xs: 1.5, sm: 0 },
-                    }}
-                >
+                <div className="flex items-center gap-4 min-w-0 flex-1 w-full sm:w-auto">
+                    <div 
+                        className="w-11 h-11 rounded-[14px] flex items-center justify-center border transition-all duration-300 flex-shrink-0"
+                        style={{ 
+                            backgroundColor: `${accent}14`,
+                            color: accent,
+                            borderColor: `${accent}26`
+                        }}
+                    >
+                        {icon}
+                    </div>
+                    <div className="min-w-0 flex-1 flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                            <span className="text-white font-extrabold text-sm md:text-base leading-snug truncate">
+                                {title}
+                            </span>
+                            {keepPermission && (
+                                <span className="inline-flex text-[#10B981] flex-shrink-0" title="Keeps original permissions (override active)">
+                                    <ShieldCheck size={16} />
+                                </span>
+                            )}
+                        </div>
+                        <div>
+                            <span className="text-[10px] text-white/40 font-black uppercase tracking-wider bg-white/3 px-2 py-0.5 rounded border border-white/5 inline-flex items-center">
+                                {metadata || kind}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full md:w-auto justify-end flex-shrink-0 border-t border-white/4 md:border-t-0 pt-3 md:pt-0">
                     {onExtractGoals && (
-                        <Button
-                            size="small"
-                            startIcon={<Sparkles size={14} />}
+                        <button
                             onClick={onExtractGoals}
-                            sx={{ 
-                                color: '#818CF8', 
-                                fontWeight: 800, 
-                                textTransform: 'none', 
-                                fontSize: '0.8rem',
-                                px: 1.5,
-                                py: 0.5,
-                                borderRadius: '10px',
-                                bgcolor: alpha('#818CF8', 0.05),
-                                border: `1px solid ${alpha('#818CF8', 0.15)}`,
-                                '&:hover': { 
-                                    color: '#A5B4FC', 
-                                    bgcolor: alpha('#818CF8', 0.1),
-                                    borderColor: '#818CF8'
-                                } 
-                            }}
+                            className="inline-flex items-center gap-1 text-[#818CF8] bg-[#818CF8]/10 hover:bg-[#818CF8]/15 border border-[#818CF8]/20 hover:border-[#818CF8]/30 font-extrabold text-xs px-3.5 py-1.5 rounded-[10px] transition-all"
                         >
-                            Extract Goals
-                        </Button>
+                            <Sparkles size={12} />
+                            <span>Extract Goals</span>
+                        </button>
                     )}
-                    <Button
-                        size="small"
-                        startIcon={<ExternalLink size={14} />}
+                    <button
                         onClick={onOpen}
-                        sx={{ 
-                            color: 'rgba(255,255,255,0.6)', 
-                            fontWeight: 800, 
-                            textTransform: 'none', 
-                            fontSize: '0.8rem',
-                            px: 1.5,
-                            py: 0.5,
-                            borderRadius: '10px',
-                            bgcolor: 'rgba(255,255,255,0.02)',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            '&:hover': { 
-                                color: '#fff',
-                                bgcolor: 'rgba(255,255,255,0.05)',
-                                borderColor: 'rgba(255,255,255,0.2)'
-                            } 
-                        }}
+                        className="inline-flex items-center gap-1 text-white/70 hover:text-white bg-white/2 hover:bg-white/5 border border-white/6 hover:border-white/12 font-extrabold text-xs px-3.5 py-1.5 rounded-[10px] transition-all"
                     >
-                        View
-                    </Button>
-                    <IconButton 
-                        size="small" 
-                        onClick={onUnlink} 
-                        sx={{ 
-                            color: 'rgba(255,255,255,0.2)', 
-                            width: 32,
-                            height: 32,
-                            borderRadius: '10px',
-                            border: '1px solid rgba(255,255,255,0.04)',
-                            '&:hover': { 
-                                color: '#FF453A', 
-                                bgcolor: alpha('#FF453A', 0.08),
-                                borderColor: alpha('#FF453A', 0.2)
-                            } 
-                        }}
+                        <ExternalLink size={12} />
+                        <span>View</span>
+                    </button>
+                    <button
+                        onClick={onUnlink}
+                        className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white/30 hover:text-[#FF453A] bg-white/2 hover:bg-[#FF453A]/10 border border-white/6 hover:border-[#FF453A]/20 transition-all"
                     >
-                        <Trash2 size={15} />
-                    </IconButton>
-                </Box>
-            </Paper>
+                        <Trash2 size={14} />
+                    </button>
+                </div>
+            </div>
 
             {menuAnchor && (
-                <Menu
-                    open={Boolean(menuAnchor)}
-                    onClose={() => setMenuAnchor(null)}
-                    anchorReference="anchorPosition"
-                    anchorPosition={{ top: menuAnchor.y, left: menuAnchor.x }}
-                    disablePortal={true}
-                    keepMounted={false}
-                    PaperProps={{
-                        sx: {
-                            bgcolor: '#161412',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            borderRadius: '16px',
-                            minWidth: 240,
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                            py: 1.5,
-                        }
-                    }}
-                >
-                    <Box sx={{ px: 2, py: 0.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        <FormControlLabel
-                            control={
-                                <Switch 
-                                    checked={!!keepPermission} 
-                                    onChange={(e) => {
-                                        onToggleKeepPermission?.(e.target.checked);
-                                        setMenuAnchor(null);
-                                    }}
-                                    color="primary"
-                                    size="small"
+                <>
+                    <div className="fixed inset-0 z-50 cursor-default" onClick={() => setMenuAnchor(null)} />
+                    <div 
+                        className="fixed z-[100] bg-[#161412] border border-white/8 rounded-[16px] min-w-[240px] shadow-2xl p-4 flex flex-col gap-2 cursor-default select-none"
+                        style={{ top: menuAnchor.y, left: menuAnchor.x }}
+                    >
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-white text-xs font-black">
+                                Keep Original Permissions
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onToggleKeepPermission?.(!keepPermission);
+                                    setMenuAnchor(null);
+                                }}
+                                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                    keepPermission ? 'bg-[#6366F1]' : 'bg-white/10'
+                                }`}
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                        keepPermission ? 'translate-x-4' : 'translate-x-0'
+                                    }`}
                                 />
-                            }
-                            label={
-                                <Typography sx={{ color: '#fff', fontSize: '0.85rem', fontWeight: 800 }}>
-                                    Keep Original Permissions
-                                </Typography>
-                            }
-                            sx={{ m: 0, width: '100%', justifyContent: 'space-between', flexDirection: 'row-reverse' }}
-                        />
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.72rem', mt: 0.5, lineHeight: 1.3 }}>
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-white/40 leading-relaxed mt-1">
                             When enabled, this object uses its own permissions instead of inheriting the project&apos;s.
-                        </Typography>
-                    </Box>
-                </Menu>
+                        </p>
+                    </div>
+                </>
             )}
         </>
     );
@@ -2039,16 +1732,16 @@ interface ProjectSettingsDrawerProps {
 function ProjectSettingsDrawer({ open, onClose, project, onSave }: ProjectSettingsDrawerProps) {
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
-  const [status, setStatus] = useState<'active' | 'completed' | 'paused' | 'on_hold'>('active');
+  const [status, setStatus] = useState<'active' | 'completed' | 'archived' | 'paused' | 'on_hold'>('active');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open && project) {
+    if (project) {
       setTitle(project.title || '');
       setSummary(project.summary || '');
       setStatus((project.status || 'active') as any);
     }
-  }, [open, project]);
+  }, [project]);
 
   const handleSave = async () => {
     if (!title.trim() || saving) return;
@@ -2064,194 +1757,105 @@ function ProjectSettingsDrawer({ open, onClose, project, onSave }: ProjectSettin
   };
 
   return (
-    <Drawer
-      anchor="bottom"
-      open={open}
-      onClose={onClose}
-      keepMounted={false}
-      disablePortal={true}
-      PaperProps={{
-        sx: {
-          bgcolor: '#161412', // Deep Ash
-          borderTop: '1px solid #1C1A18', // Rim/Border Ash
-          borderTopLeftRadius: '28px',
-          borderTopRightRadius: '28px',
-          maxHeight: '60vh',
-          height: 'auto',
-          color: '#fff',
-          backgroundImage: 'none',
-          p: { xs: 3, sm: 4 },
-        }
-      }}
-    >
-      <Box sx={{ width: 40, height: 4, bgcolor: 'rgba(255,255,255,0.12)', borderRadius: '2px', mx: 'auto', mb: 3 }} />
-      
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', mb: 0.5 }}>
-            Project Settings
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, fontFamily: 'var(--font-satoshi)' }}>
-            Configure and synchronize details for this workspace
-          </Typography>
-        </Box>
-        <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
-          <X size={20} />
-        </IconButton>
-      </Stack>
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/60 z-50 transition-opacity duration-300 ease-in-out cursor-default"
+        onClick={onClose}
+      />
+      {/* Slide-up Container */}
+      <div className="fixed bottom-0 left-0 right-0 max-h-[85vh] md:max-h-[60vh] bg-[#161412] border-t border-white/8 rounded-t-[28px] z-[100] text-white p-6 md:p-8 flex flex-col gap-6 animate-slide-up overflow-y-auto">
+        <div className="w-10 h-1 bg-white/12 rounded-[2px] mx-auto mb-2 flex-shrink-0" />
+        
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-white text-lg font-black tracking-tight leading-tight">
+              Project Settings
+            </h3>
+            <p className="text-white/40 text-[11px] font-bold mt-1">
+              Configure and synchronize details for this workspace
+            </p>
+          </div>
+          <button 
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white bg-white/2 hover:bg-white/5 transition-all"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>
-          <Stack spacing={3}>
-            <Box>
-              <Typography variant="caption" sx={{ display: 'block', fontSize: '0.72rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', mb: 1, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-satoshi)' }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-black text-white/40 uppercase tracking-wider">
                 Project Title
-              </Typography>
-              <TextField
-                fullWidth
+              </span>
+              <input
+                type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                variant="outlined"
                 placeholder="Give your project a title"
-                InputProps={{
-                  sx: {
-                    bgcolor: '#0A0908', // Inset Ash/Pitch Black
-                    borderRadius: '16px',
-                    color: 'white',
-                    fontFamily: 'var(--font-satoshi)',
-                    fontWeight: 700,
-                    border: '1px solid #1C1A18',
-                    transition: 'all 0.2s',
-                    '&:hover': { borderColor: 'rgba(255,255,255,0.15)' },
-                    '&.Mui-focused': { borderColor: '#6366F1' },
-                    '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                  }
-                }}
+                className="w-full bg-[#0A0908] border border-white/6 hover:border-white/15 focus:border-[#6366F1] rounded-[16px] px-4 py-3 text-white text-sm font-bold placeholder:text-white/20 transition-all outline-none"
               />
-            </Box>
+            </div>
 
-            <Box>
-              <Typography variant="caption" sx={{ display: 'block', fontSize: '0.72rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', mb: 1, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-satoshi)' }}>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-black text-white/40 uppercase tracking-wider">
                 Description / Summary
-              </Typography>
-              <TextField
-                fullWidth
+              </span>
+              <textarea
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
-                multiline
-                rows={4}
-                variant="outlined"
                 placeholder="Explain the scope and goals of this project..."
-                InputProps={{
-                  sx: {
-                    bgcolor: '#0A0908', // Inset Ash/Pitch Black
-                    borderRadius: '16px',
-                    color: 'white',
-                    fontFamily: 'var(--font-satoshi)',
-                    fontWeight: 500,
-                    lineHeight: 1.6,
-                    border: '1px solid #1C1A18',
-                    transition: 'all 0.2s',
-                    '&:hover': { borderColor: 'rgba(255,255,255,0.15)' },
-                    '&.Mui-focused': { borderColor: '#6366F1' },
-                    '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                  }
-                }}
+                rows={4}
+                className="w-full bg-[#0A0908] border border-white/6 hover:border-white/15 focus:border-[#6366F1] rounded-[16px] px-4 py-3 text-white text-sm font-semibold placeholder:text-white/20 transition-all outline-none resize-none leading-relaxed"
               />
-            </Box>
-          </Stack>
-        </Grid>
+            </div>
+          </div>
 
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Stack spacing={3} sx={{ height: '100%', justifyContent: 'space-between' }}>
-            <Box>
-              <Typography variant="caption" sx={{ display: 'block', fontSize: '0.72rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', mb: 1, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-satoshi)' }}>
+          <div className="flex flex-col justify-between gap-6">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-black text-white/40 uppercase tracking-wider">
                 Project Status
-              </Typography>
-              <FormControl fullWidth>
-                <Select
+              </span>
+              <div className="relative">
+                <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as any)}
-                  sx={{
-                    bgcolor: '#0A0908',
-                    borderRadius: '16px',
-                    color: 'white',
-                    fontFamily: 'var(--font-satoshi)',
-                    fontWeight: 700,
-                    border: '1px solid #1C1A18',
-                    '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                    '&:hover': { borderColor: 'rgba(255,255,255,0.15)' },
-                    '&.Mui-focused': { borderColor: '#6366F1' }
-                  }}
-                  MenuProps={{
-                    PaperProps: {
-                      sx: {
-                        bgcolor: '#161412',
-                        border: '1px solid #1C1A18',
-                        borderRadius: '16px',
-                        color: 'white',
-                        mt: 1,
-                        '& .MuiMenuItem-root': {
-                          fontSize: '0.85rem',
-                          fontWeight: 700,
-                          py: 1.25,
-                          fontFamily: 'var(--font-satoshi)',
-                          '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
-                          '&.Mui-selected': { bgcolor: 'rgba(99, 102, 241, 0.15)', color: '#6366F1' }
-                        }
-                      }
-                    }
-                  }}
+                  className="w-full appearance-none bg-[#0A0908] border border-white/6 hover:border-white/15 focus:border-[#6366F1] rounded-[16px] px-4 py-3 text-white text-sm font-bold outline-none transition-all cursor-pointer pr-10"
                 >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="completed">Completed</MenuItem>
-                  <MenuItem value="paused">Paused</MenuItem>
-                  <MenuItem value="on_hold">On Hold</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                  <option value="paused">Paused</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/40">
+                  <ChevronDown size={16} />
+                </div>
+              </div>
+            </div>
 
-            <Stack direction="row" spacing={2} sx={{ mt: 'auto', pt: 2 }}>
-              <Button
-                variant="outlined"
+            <div className="flex items-center gap-3 justify-end mt-4">
+              <button
                 onClick={onClose}
-                sx={{
-                  flex: 1,
-                  borderRadius: '14px',
-                  borderColor: '#1C1A18',
-                  color: 'rgba(255,255,255,0.6)',
-                  fontWeight: 800,
-                  fontFamily: 'var(--font-satoshi)',
-                  textTransform: 'none',
-                  py: 1.6,
-                  '&:hover': { borderColor: 'rgba(255,255,255,0.15)', bgcolor: alpha('#fff', 0.01) }
-                }}
+                className="flex-1 md:flex-initial text-center text-white/60 hover:text-white font-black text-sm px-6 py-3 rounded-[16px] hover:bg-white/3 border border-white/5 transition-all"
               >
                 Cancel
-              </Button>
-              <Button
-                variant="contained"
-                disabled={saving || !title.trim()}
+              </button>
+              <button
+                disabled={!title.trim() || saving}
                 onClick={handleSave}
-                sx={{
-                  flex: 1,
-                  borderRadius: '14px',
-                  bgcolor: '#6366F1',
-                  color: '#000',
-                  fontWeight: 900,
-                  fontFamily: 'var(--font-satoshi)',
-                  textTransform: 'none',
-                  py: 1.6,
-                  '&:hover': { bgcolor: alpha('#6366F1', 0.9) }
-                }}
+                className="flex-1 md:flex-initial text-center text-black bg-[#6366F1] disabled:opacity-40 hover:bg-[#6366F1]/90 font-black text-sm px-6 py-3 rounded-[16px] transition-all shadow-[0_8px_20px_rgba(99,102,241,0.2)]"
               >
-                {saving ? <CircularProgress size={20} color="inherit" /> : 'Save Changes'}
-              </Button>
-            </Stack>
-          </Stack>
-        </Grid>
-      </Grid>
-    </Drawer>
+                {saving ? 'Saving...' : 'Save Settings'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
   );
 }
 
