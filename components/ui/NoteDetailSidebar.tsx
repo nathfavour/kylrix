@@ -644,9 +644,9 @@ export function NoteDetailSidebar({
 
   // --- RENDER ---
   return (
-    <Box className="note-detail-sidebar-root" sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#0A0908', overflow: 'hidden' }}>
+    <Box className="note-detail-sidebar-root" sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#161412', overflow: 'hidden' }}>
       {/* Header (Dual-Row Layout - Fixed at top) */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: { xs: 2, md: 2.5 }, pb: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: { xs: 2, md: 2.5 }, pb: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.05)', bgcolor: '#161412' }}>
         {/* Row 1: Title & Close Button */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
@@ -700,7 +700,6 @@ export function NoteDetailSidebar({
             )}
           </Box>
 
-          {/* Close button for desktop DynamicSidebar (only shown if not in onBack mode) */}
           {!onBack && (
             <Tooltip title="Close">
               <IconButton
@@ -717,7 +716,6 @@ export function NoteDetailSidebar({
           )}
         </Box>
 
-        {/* Row 2: Action Toolbar (Centralized) */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }}>
           <Tooltip title={isPublic ? 'Make Private' : 'Make Public'}>
             <IconButton
@@ -763,14 +761,6 @@ export function NoteDetailSidebar({
             </IconButton>
           </Tooltip>
 
-          {isT4EncryptedPublicNote && (
-            <Tooltip title="Rotate link">
-              <IconButton onClick={rotateNoteLink} sx={{ color: theme.palette.text.secondary }}>
-                <RefreshIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-
           {showHeaderDeleteButton && (
             <Tooltip title="Delete">
               <IconButton 
@@ -790,158 +780,125 @@ export function NoteDetailSidebar({
         </Box>
       </Box>
 
-      {/* Scrollable Content Area */}
       <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 2.5 }, pt: 3, display: 'flex', flexDirection: 'column', gap: 4 }}>
-
-      {/* Content Card */}
-      <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#161412', border: '1px solid #1C1A18', minHeight: { xs: 340, md: 460 }, height: { xs: 'clamp(340px, 46vh, 460px)', md: 'clamp(460px, 58vh, 760px)' }, boxShadow: '0 12px 32px rgba(0,0,0,0.4)', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', overflow: 'hidden', '&:focus-within': { borderColor: theme.palette.primary.main, transform: 'translateY(-2px)' } }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
-          <Typography variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Content</Typography>
-          {isEditingContent && (
-            <Stack direction="row" spacing={1} alignItems="center">
-              {format === 'text' && (
-                <IconButton 
-                  onClick={toggleRecording} 
-                  size="small"
-                  sx={{ 
-                    color: isRecording ? '#EF4444' : 'rgba(255, 255, 255, 0.7)',
-                    bgcolor: isRecording ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${isRecording ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255, 255, 255, 0.08)'}`,
-                    animation: isRecording ? 'pulseGlow 1.2s infinite alternate' : 'none',
-                    p: 0.5,
-                    '&:hover': {
-                      bgcolor: isRecording ? 'rgba(239, 68, 68, 0.25)' : 'rgba(255,255,255,0.08)'
-                    }
-                  }}
-                  title={isRecording ? `Recording (${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}) - Click to Stop & Insert` : "Record Voice Note"}
-                >
-                  {isRecording ? <Square size={14} fill="#EF4444" /> : <Mic size={14} />}
-                </IconButton>
-              )}
-              <ToggleButtonGroup value={format} exclusive onChange={(_, v) => v && setFormat(v)} size="small" sx={{ height: 28, bgcolor: alpha('#fff', 0.04), borderRadius: '10px' }}>
-                <ToggleButton value="text" sx={{ px: 2, py: 0, fontSize: '0.7rem', fontWeight: 800 }}>Text</ToggleButton>
-                <ToggleButton value="doodle" sx={{ px: 2, py: 0, fontSize: '0.7rem', fontWeight: 800 }}>Doodle</ToggleButton>
-              </ToggleButtonGroup>
-
-              <style>{`
-                @keyframes pulseGlow {
-                  0% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.2); }
-                  100% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.6); }
-                }
-              `}</style>
-            </Stack>
-          )}
-        </Box>
-        <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 1 }}>
-          {isEditingContent ? (
-            format === 'text' ? (
-              <TextField fullWidth multiline rows={14} variant="standard" value={content} onChange={(e) => setContent(e.target.value)} onBlur={() => setIsEditingContent(false)} autoFocus inputRef={contentTextareaRef} InputProps={{ disableUnderline: true, sx: { color: 'rgba(255,255,255,0.85)', fontSize: '1rem', lineHeight: 1.8 } }} />
-            ) : (
-              <Box onClick={() => setShowDoodleEditor(true)} sx={{ height: 200, border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '18px', display: 'grid', placeItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: alpha('#fff', 0.02) } }}><Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>Open Sketchpad</Typography></Box>
-            )
-          ) : (
-            <Box onClick={activateContentEditing} sx={{ cursor: shouldMaskEncrypted ? 'pointer' : 'text', minHeight: '100%' }}>
-               <NoteContentRenderer
-                 content={displayContent}
-                 format={displayFormat}
-                 emptyFallback={
-                   <Typography variant="body2" sx={{ fontStyle: 'normal', fontWeight: 700, color: '#9B9691' }}>
-                     Secure content hidden. Unlock your secure space to view this note.
-                   </Typography>
-                 }
-                 onEditDoodle={displayFormat === 'doodle' ? activateContentEditing : undefined}
-               />
-            </Box>
-          )}
-        </Box>
-      </Box>
-
-      {/* Tags Section */}
-      <Box sx={{ px: 1 }}>
-        <Typography variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Tags</Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {displayTags.length > 0 ? displayTags.map((tag: string) => (
-            <Chip key={tag} label={tag} size="small" sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 800, borderRadius: '8px', border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}` }} />
-          )) : <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>No tags assigned</Typography>}
-        </Box>
-      </Box>
-
-      {/* Attachments Section */}
-      <Box sx={{ px: 1 }}>
-        <Typography variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Attachments</Typography>
-        {currentAttachments.length > 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                {currentAttachments.map((file: any) => (
-                    <Box key={file.id} sx={{ p: 1.75, borderRadius: '18px', bgcolor: alpha('#fff', 0.03), border: `1px solid ${alpha('#fff', 0.06)}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <PaperClipIcon sx={{ color: theme.palette.text.secondary, fontSize: 18 }} />
-                            <Box>
-                                <Typography variant="body2" sx={{ fontWeight: 800 }}>{file.name}</Typography>
-                                <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>{formatFileSize(file.size)}</Typography>
-                            </Box>
-                        </Box>
-                        <IconButton size="small" onClick={() => window.open(`/api/notes/${liveNote.$id}/attachments/${file.id}`, '_blank')} sx={{ color: theme.palette.primary.main }}><OpenIcon fontSize="small" /></IconButton>
-                    </Box>
-                ))}
-            </Box>
-        ) : (
-            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontStyle: 'italic' }}>No attachments</Typography>
-        )}
-      </Box>
-
-      {/* Linked Ecosystem Content */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, px: 1 }}>
-        {[
-          { label: 'Goals', items: linkedTasks, loading: isLoadingTasks, icon: <TaskIcon sx={{ fontSize: 18 }} />, color: '#10B981', link: (id: string) => `/flow?taskId=${id}` },
-          { label: 'Events', items: linkedEvents, loading: isLoadingEvents, icon: <EventIcon sx={{ fontSize: 18 }} />, color: '#6366F1', link: (id: string) => `/flow/events?eventId=${id}` },
-          { label: 'Secrets', items: linkedSecrets, loading: isLoadingSecrets, icon: <KeyIcon sx={{ fontSize: 18 }} />, color: '#F59E0B', link: (id: string) => `/vault?id=${id}` }].map(section => (
-          <Box key={section.label}>
-            <Typography variant="caption" sx={{ color: section.color, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Linked {section.label}</Typography>
-            {section.loading ? (
-                <CircularProgress size={20} sx={{ color: section.color, ml: 1 }} />
-            ) : section.items.length > 0 ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                {section.items.map((item: any) => (
-                    <Box key={item.$id} sx={{ p: 1.75, borderRadius: '18px', bgcolor: alpha(section.color, 0.04), border: `1px solid ${alpha(section.color, 0.12)}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { bgcolor: alpha(section.color, 0.08) } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>{section.icon}<Typography variant="body2" sx={{ fontWeight: 800 }}>{item.title || item.name}</Typography></Box>
-                    <IconButton size="small" onClick={() => window.open(section.link(item.$id), '_blank')} sx={{ color: section.color }}><OpenIcon fontSize="small" /></IconButton>
-                    </Box>
-                ))}
-                </Box>
-            ) : (
-                <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontStyle: 'italic' }}>No linked {section.label.toLowerCase()}</Typography>
+        <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#0A0908', border: '1px solid #1C1A18', minHeight: { xs: 340, md: 460 }, height: { xs: 'clamp(340px, 46vh, 460px)', md: 'clamp(460px, 58vh, 760px)' }, boxShadow: '0 12px 32px rgba(0,0,0,0.4)', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', overflow: 'hidden', '&:focus-within': { borderColor: theme.palette.primary.main, transform: 'translateY(-2px)' } }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+            <Typography variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Content</Typography>
+            {isEditingContent && (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <ToggleButtonGroup value={format} exclusive onChange={(_, v) => v && setFormat(v)} size="small" sx={{ height: 28, bgcolor: alpha('#fff', 0.04), borderRadius: '10px' }}>
+                  <ToggleButton value="text" sx={{ px: 2, py: 0, fontSize: '0.7rem', fontWeight: 800 }}>Text</ToggleButton>
+                  <ToggleButton value="doodle" sx={{ px: 2, py: 0, fontSize: '0.7rem', fontWeight: 800 }}>Doodle</ToggleButton>
+                </ToggleButtonGroup>
+              </Stack>
             )}
           </Box>
-        ))}
-
-        {/* Collaborators */}
-        <Box>
-            <Typography variant="caption" sx={{ color: theme.palette.secondary.main, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Collaborators</Typography>
-            {isLoadingCollaborators ? (
-                <CircularProgress size={20} sx={{ color: theme.palette.secondary.main, ml: 1 }} />
-            ) : collaboratorProfiles.length > 0 ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                {collaboratorProfiles.map((p: any) => (
-                    <Box key={p.$id || p.userId} sx={{ p: 1.5, borderRadius: '18px', bgcolor: alpha('#fff', 0.03), border: `1px solid ${alpha('#fff', 0.06)}`, display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', transition: 'all 0.2s ease', '&:hover': { bgcolor: alpha('#fff', 0.05) } }} onClick={() => openUnified('share-note', { noteId: liveNote.$id, noteTitle: liveNote.title, initialCollaborator: p })}>
-                    <IdentityAvatar fileId={p.avatar} alt={p.username} fallback={p.username?.[0]?.toUpperCase()} size={34} verified={p.tier === 'admin' || p.verified} />
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="body2" noWrap sx={{ fontWeight: 800 }}>{p.displayName || p.username}</Typography>
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', display: 'block' }}>@{p.username}</Typography>
-                    </Box>
-                    <Typography variant="caption" sx={{ px: 1, py: 0.25, borderRadius: '6px', bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 900, fontSize: '10px' }}>{p.permissionLevel || 'Viewer'}</Typography>
-                    </Box>
-                ))}
-                </Box>
+          <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 1 }}>
+            {isEditingContent ? (
+              format === 'text' ? (
+                <TextField fullWidth multiline rows={14} variant="standard" value={content} onChange={(e) => setContent(e.target.value)} onBlur={() => setIsEditingContent(false)} autoFocus inputRef={contentTextareaRef} InputProps={{ disableUnderline: true, sx: { color: 'rgba(255,255,255,0.85)', fontSize: '1rem', lineHeight: 1.8 } }} />
+              ) : (
+                <Box onClick={() => setShowDoodleEditor(true)} sx={{ height: 200, border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '18px', display: 'grid', placeItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: alpha('#fff', 0.02) } }}><Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>Open Sketchpad</Typography></Box>
+              )
             ) : (
-                <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontStyle: 'italic' }}>No collaborators found</Typography>
+              <Box onClick={activateContentEditing} sx={{ cursor: shouldMaskEncrypted ? 'pointer' : 'text', minHeight: '100%' }}>
+                 <NoteContentRenderer
+                   content={displayContent}
+                   format={displayFormat}
+                   emptyFallback={
+                     <Typography variant="body2" sx={{ fontStyle: 'normal', fontWeight: 700, color: '#9B9691' }}>
+                       Secure content hidden. Unlock your secure space to view this note.
+                     </Typography>
+                   }
+                   onEditDoodle={displayFormat === 'doodle' ? activateContentEditing : undefined}
+                 />
+              </Box>
             )}
+          </Box>
         </Box>
-      </Box>
 
-      {/* Metadata */}
-      <Box sx={{ mt: 4, pt: 3, borderTop: `1px solid ${alpha('#fff', 0.05)}` }}>
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Created {formatNoteCreatedDate(liveNote)}</Typography>
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Updated {formatNoteUpdatedDate(liveNote)}</Typography>
+        <Box sx={{ px: 1 }}>
+          <Typography variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Tags</Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {displayTags.length > 0 ? displayTags.map((tag: string) => (
+              <Chip key={tag} label={tag} size="small" sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 800, borderRadius: '8px', border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}` }} />
+            )) : <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>No tags assigned</Typography>}
+          </Box>
+        </Box>
+
+        <Box sx={{ px: 1 }}>
+          <Typography variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Attachments</Typography>
+          {currentAttachments.length > 0 ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                  {currentAttachments.map((file: any) => (
+                      <Box key={file.id} sx={{ p: 1.75, borderRadius: '18px', bgcolor: '#0A0908', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              <PaperClipIcon sx={{ color: theme.palette.text.secondary, fontSize: 18 }} />
+                              <Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 800 }}>{file.name}</Typography>
+                                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>{formatFileSize(file.size)}</Typography>
+                              </Box>
+                          </Box>
+                          <IconButton size="small" onClick={() => window.open(`/api/notes/${liveNote.$id}/attachments/${file.id}`, '_blank')} sx={{ color: theme.palette.primary.main }}><OpenIcon fontSize="small" /></IconButton>
+                      </Box>
+                  ))}
+              </Box>
+          ) : (
+              <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontStyle: 'italic' }}>No attachments</Typography>
+          )}
+        </Box>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, px: 1 }}>
+          {[
+            { label: 'Goals', items: linkedTasks, loading: isLoadingTasks, icon: <TaskIcon sx={{ fontSize: 18 }} />, color: '#10B981', link: (id: string) => `/flow?taskId=${id}` },
+            { label: 'Events', items: linkedEvents, loading: isLoadingEvents, icon: <EventIcon sx={{ fontSize: 18 }} />, color: '#6366F1', link: (id: string) => `/flow/events?eventId=${id}` },
+            { label: 'Secrets', items: linkedSecrets, loading: isLoadingSecrets, icon: <KeyIcon sx={{ fontSize: 18 }} />, color: '#F59E0B', link: (id: string) => `/vault?id=${id}` }].map(section => (
+            <Box key={section.label}>
+              <Typography variant="caption" sx={{ color: section.color, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Linked {section.label}</Typography>
+              {section.loading ? (
+                  <CircularProgress size={20} sx={{ color: section.color, ml: 1 }} />
+              ) : section.items.length > 0 ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                  {section.items.map((item: any) => (
+                      <Box key={item.$id} sx={{ p: 1.75, borderRadius: '18px', bgcolor: '#0A0908', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { bgcolor: alpha(section.color, 0.04) } }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>{section.icon}<Typography variant="body2" sx={{ fontWeight: 800 }}>{item.title || item.name}</Typography></Box>
+                      <IconButton size="small" onClick={() => window.open(section.link(item.$id), '_blank')} sx={{ color: section.color }}><OpenIcon fontSize="small" /></IconButton>
+                      </Box>
+                  ))}
+                  </Box>
+              ) : (
+                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontStyle: 'italic' }}>No linked {section.label.toLowerCase()}</Typography>
+              )}
+            </Box>
+          ))}
+
+          <Box>
+              <Typography variant="caption" sx={{ color: theme.palette.secondary.main, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Collaborators</Typography>
+              {isLoadingCollaborators ? (
+                  <CircularProgress size={20} sx={{ color: theme.palette.secondary.main, ml: 1 }} />
+              ) : collaboratorProfiles.length > 0 ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                  {collaboratorProfiles.map((p: any) => (
+                      <Box key={p.$id || p.userId} sx={{ p: 1.5, borderRadius: '18px', bgcolor: '#0A0908', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', transition: 'all 0.2s ease', '&:hover': { bgcolor: alpha('#fff', 0.02) } }} onClick={() => openUnified('share-note', { noteId: liveNote.$id, noteTitle: liveNote.title, initialCollaborator: p })}>
+                      <IdentityAvatar fileId={p.avatar} alt={p.username} fallback={p.username?.[0]?.toUpperCase()} size={34} verified={p.tier === 'admin' || p.verified} />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body2" noWrap sx={{ fontWeight: 800 }}>{p.displayName || p.username}</Typography>
+                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', display: 'block' }}>@{p.username}</Typography>
+                      </Box>
+                      <Typography variant="caption" sx={{ px: 1, py: 0.25, borderRadius: '6px', bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 900, fontSize: '10px' }}>{p.permissionLevel || 'Viewer'}</Typography>
+                      </Box>
+                  ))}
+                  </Box>
+              ) : (
+                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontStyle: 'italic' }}>No collaborators found</Typography>
+              )}
+          </Box>
+        </Box>
+
+        <Box sx={{ mt: 4, pt: 3, borderTop: `1px solid ${alpha('#fff', 0.05)}` }}>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Created {formatNoteCreatedDate(liveNote)}</Typography>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Updated {formatNoteUpdatedDate(liveNote)}</Typography>
+        </Box>
       </Box>
 
       <Drawer anchor="top" open={showActionHub} onClose={() => setShowActionHub(false)} PaperProps={{ sx: { borderBottomLeftRadius: '32px', borderBottomRightRadius: '32px', bgcolor: '#161412', border: '1px solid #1C1A18', backgroundImage: 'none', p: 3.5 } }}>
@@ -1000,7 +957,6 @@ export function NoteDetailSidebar({
       </Dialog>
 
       {showDoodleEditor && <DoodleCanvas initialData={format === 'doodle' ? content : ''} onSave={handleDoodleSave} onClose={() => setShowDoodleEditor(false)} />}
-    </Box>
     </Box>
   );
 }

@@ -12,9 +12,8 @@ export function DynamicSidebar() {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const { isOpen, content, closeSidebar, options } = useDynamicSidebar();
-  const panelBg = theme.palette.background.paper;
-  const iconHoverBg =
-    theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.06)' : theme.palette.action.hover;
+  const panelBg = '#161412';
+  const iconHoverBg = 'rgba(255, 255, 255, 0.06)';
 
   // Bulletproof fallback: check if content is NoteDetailSidebar to hide generic header
   const isNoteDetail = content && React.isValidElement(content) && (
@@ -51,6 +50,7 @@ export function DynamicSidebar() {
           backgroundImage: 'none',
           display: 'flex',
           flexDirection: 'column',
+          zIndex: 1400, // Ensure it's above topbar (from previous fix)
         },
       }}
     >
