@@ -42,7 +42,6 @@ export default function UniversalFAB() {
     (pathname.startsWith('/connect') && pathname !== '/connect' && !pathname.includes('/invite/') && !pathname.startsWith('/connect/chat/'))
   );
 
-  if (isDesktop) return null;
   if (isDrawerOpen) return null;
   if (!config.isVisible && !isAppRoute) return null;
 
@@ -53,7 +52,7 @@ export default function UniversalFAB() {
 
   const anchorSx = {
     position: 'fixed' as const,
-    bottom: isLandingPage ? FAB_BOTTOM.landing : FAB_BOTTOM.app,
+    bottom: isLandingPage ? FAB_BOTTOM.landing : (isDesktop ? 32 : FAB_BOTTOM.app),
     right: { xs: 16, md: 32 },
     zIndex: 1310,
     display: 'flex',
@@ -61,8 +60,9 @@ export default function UniversalFAB() {
     alignItems: 'flex-end',
     gap: 1.5,
     pointerEvents: 'none' as const,
-    '& > *': { pointerEvents: 'auto' as const },
   };
+
+  const childPointerEvents = { pointerEvents: 'auto' as const };
 
   if (onMainClick) {
     return (
@@ -71,6 +71,7 @@ export default function UniversalFAB() {
           <Fab
             onClick={onMainClick}
             sx={{
+              ...childPointerEvents,
               width: 64,
               height: 64,
               bgcolor: mainColor,
@@ -133,6 +134,7 @@ export default function UniversalFAB() {
               }}
               aria-label={action.label}
               sx={{
+                ...childPointerEvents,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1.25,
@@ -201,6 +203,7 @@ export default function UniversalFAB() {
           onClick={() => setIsExpanded((open) => !open)}
           aria-label={isExpanded ? 'Close actions' : 'Open actions'}
           sx={{
+            ...childPointerEvents,
             width: 64,
             height: 64,
             bgcolor: isExpanded ? 'rgba(255, 255, 255, 0.08)' : mainColor,

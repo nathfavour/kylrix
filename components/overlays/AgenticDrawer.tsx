@@ -2,20 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  alpha,
-  Box,
-  Button,
-  CircularProgress,
-  Drawer,
-  IconButton,
-  Paper,
-  Stack,
-  TextField,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@/lib/mui-tailwind/material';
-import {
   Bot,
   Play,
   Plug,
@@ -35,7 +21,6 @@ import { useAgenticDrawer } from '@/context/AgenticDrawerContext';
 import { useAuth } from '@/context/auth/AuthContext';
 import { AgenticService } from '@/lib/services/agentic';
 import { runMyAgent } from '@/lib/actions/agentic';
-import { TOPBAR_DRAWER_BACKDROP_SLOT } from '@/lib/ui/topbar-drawer-slot';
 import { useProUpgrade } from '@/context/ProUpgradeContext';
 import { hasPaidKylrixPlan } from '@/lib/utils';
 
@@ -59,27 +44,6 @@ const frameworks: Array<{ id: AgentFramework; title: string; comingSoon?: boolea
   { id: 'hermes', title: 'Hermes', comingSoon: true }
 ];
 
-const fontUi = 'var(--font-satoshi)';
-const fontDisplay = 'var(--font-clash)';
-
-// 1. Opaque solids only — see `design.md` + `.agents/skills/kylrix-muted-v3-design`.
-const SURFACE_ASH = '#161412';
-const VOID = '#0A0908';
-const HOVER = '#1C1A18';
-const LIFTED = '#1F1D1B';
-const BORDER_HAIRLINE = '#34322F';
-const TEXT_MUTED = '#9B9691';
-const SYSTEM_PRIMARY = '#6366F1';
-const SYSTEM_HOVER = '#575CF0';
-const SYSTEM_SUCCESS = '#10B981';
-const SYSTEM_WARNING = '#F59E0B';
-
-const BORDER = `1px solid ${BORDER_HAIRLINE}`;
-const BRAND_TRANSITION = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
-const RADIUS_LARGE = '24px';
-const RADIUS_MEDIUM = '16px';
-const RADIUS_SMALL = '12px';
-
 function formatUpdatedAgo(value?: string): string {
   if (!value) return 'Just now';
   const ts = new Date(value).getTime();
@@ -94,15 +58,71 @@ function formatUpdatedAgo(value?: string): string {
   return `updated ${days}d ago`;
 }
 
+interface DrawerShellProps {
+  isOpen: boolean;
+  onClose: () => void;
+  isDesktop: boolean;
+  isExpanded?: boolean;
+  setIsExpanded?: (val: boolean) => void;
+  zIndexClass: string;
+  children: React.ReactNode;
+  showDragHandle?: boolean;
+}
+
+function DrawerShell({
+  isOpen,
+  onClose,
+  isDesktop,
+  isExpanded = false,
+  setIsExpanded,
+  zIndexClass,
+  children,
+  showDragHandle = true
+}: DrawerShellProps) {
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${zIndexClass}`}
+        onClick={onClose}
+      />
+      {/* Drawer Body */}
+      <div
+        className={`fixed bg-[#161412] border-[#34322F] shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ${zIndexClass} ${
+          isDesktop
+            ? 'top-[88px] right-0 h-[calc(100vh-88px)] w-[460px] border-l border-t rounded-tl-[24px]'
+            : `bottom-0 left-0 right-0 border-t rounded-t-[24px] ${
+                isExpanded ? 'h-[100dvh]' : 'h-[75dvh]'
+              }`
+        }`}
+      >
+        {/* Mobile Drag Handle */}
+        {!isDesktop && showDragHandle && (
+          <div
+            className="flex justify-center py-3 cursor-pointer select-none"
+            onClick={onClose}
+          >
+            <div className="w-10 h-1 rounded bg-[#3D3A36]" />
+          </div>
+        )}
+        <div className="flex-1 flex flex-col min-h-0">
+          {children}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function AgenticDrawer() {
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const { isOpen, closeAgenticDrawer } = useAgenticDrawer();
   const { user } = useAuth();
   const { openProUpgrade } = useProUpgrade();
   const isPro = hasPaidKylrixPlan(user);
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   // Nested Overlay State Controllers
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -117,6 +137,15 @@ export function AgenticDrawer() {
   const [saving, setSaving] = useState(false);
   const [updatingAgentId, setUpdatingAgentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -251,845 +280,435 @@ export function AgenticDrawer() {
     };
   }, [parsedAgents]);
 
-  const sheetBodySx = {
-    fontFamily: fontUi,
-    '& .MuiButton-root': { fontFamily: fontUi },
-  } as const;
-
-  const subDrawerPaperSx = {
-    ...(isDesktop
-      ? {
-          top: '88px',
-          right: 0,
-          height: 'calc(100vh - 88px)',
-          width: 'min(460px, 94vw)',
-          maxWidth: 'min(460px, 94vw)',
-          borderTopLeftRadius: RADIUS_LARGE,
-          borderTopRightRadius: 0,
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-          borderLeft: BORDER,
-          borderTop: BORDER,
-          borderBottom: 0,
-          borderRight: 0,
-        }
-      : {
-          height: isExpanded ? '100dvh' : '75dvh',
-          borderTopLeftRadius: isExpanded ? 0 : RADIUS_LARGE,
-          borderTopRightRadius: isExpanded ? 0 : RADIUS_LARGE,
-          border: BORDER,
-          borderBottom: 0,
-          transition: 'height 0.3s ease-in-out, border-radius 0.3s ease-in-out',
-        }),
-    bgcolor: SURFACE_ASH,
-    boxShadow: '0 -8px 24px rgba(0,0,0,0.5)',
-    backgroundImage: 'none',
-    overflow: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
-  };
-
   return (
     <>
-      <Drawer
-        anchor={isDesktop ? 'right' : 'bottom'}
-        open={isOpen}
+      <DrawerShell
+        isOpen={isOpen}
         onClose={closeAgenticDrawer}
-        ModalProps={{ keepMounted: false, disableScrollLock: false, disablePortal: true }}
-        slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
-        sx={{
-          zIndex: 1300,
-          '& .MuiDrawer-paper': {
-            ...(isDesktop
-              ? {
-                  top: '88px',
-                  right: 0,
-                  height: 'calc(100vh - 88px)',
-                  width: 'min(460px, 94vw)',
-                  maxWidth: 'min(460px, 94vw)',
-                  borderTopLeftRadius: RADIUS_LARGE,
-                  borderTopRightRadius: 0,
-                  borderBottomLeftRadius: 0,
-                  borderBottomRightRadius: 0,
-                  borderLeft: BORDER,
-                  borderTop: BORDER,
-                  borderBottom: 0,
-                  borderRight: 0,
-                }
-              : {
-                  height: isExpanded ? '100dvh' : '75dvh',
-                  borderTopLeftRadius: isExpanded ? 0 : RADIUS_LARGE,
-                  borderTopRightRadius: isExpanded ? 0 : RADIUS_LARGE,
-                  border: BORDER,
-                  borderBottom: 0,
-                  transition: 'height 0.3s ease-in-out, border-radius 0.3s ease-in-out',
-                }),
-            bgcolor: SURFACE_ASH,
-            boxShadow: '0 -8px 24px rgba(0,0,0,0.5)',
-            backgroundImage: 'none',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-          },
-        }}
+        isDesktop={isDesktop}
+        isExpanded={isExpanded}
+        setIsExpanded={setIsExpanded}
+        zIndexClass="z-[1300]"
       >
-        {!isDesktop && (
-          <Box 
-              sx={{ display: 'flex', justifyContent: 'center', py: 1.5, cursor: 'pointer' }}
-              onClick={closeAgenticDrawer}
-          >
-            <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: '#3D3A36' }} aria-hidden />
-          </Box>
-        )}
-
-        <Box
-          sx={{
-            px: { xs: 2.25, sm: 2.75 },
-            pb: 'max(20px, env(safe-area-inset-bottom))',
-            pt: { xs: 1, md: 3 },
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            minHeight: 0,
-            ...sheetBodySx,
-          }}
-        >
-          {/* Main Header */}
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2.5, flexShrink: 0 }}>
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <Box
-                sx={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: RADIUS_SMALL,
-                  display: 'grid',
-                  placeItems: 'center',
-                  bgcolor: VOID,
-                  border: BORDER,
-                }}
-              >
-                <Bot size={20} color={SYSTEM_PRIMARY} strokeWidth={2} />
-              </Box>
-              <Stack spacing={0.25}>
-                <Typography
-                  sx={{
-                    color: '#fff',
-                    fontWeight: 900,
-                    fontSize: '1rem',
-                    fontFamily: fontDisplay,
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1,
-                  }}
-                >
+        <div className="px-5 md:px-7 pb-6 pt-3 md:pt-6 flex-1 flex flex-col min-h-0 font-satoshi">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6 flex-shrink-0">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#0A0908] border border-[#34322F]">
+                <Bot size={20} className="text-[#6366F1]" strokeWidth={2} />
+              </div>
+              <div className="flex flex-col">
+                <h2 className="text-white font-extrabold text-base font-clash tracking-tight leading-none">
                   Smart Systems
-                </Typography>
-                <Typography sx={{ color: TEXT_MUTED, fontSize: '0.74rem', fontWeight: 600 }}>
+                </h2>
+                <span className="text-[#9B9691] text-xs font-semibold mt-1">
                   Automate work with secure AI assistants
-                </Typography>
-              </Stack>
-            </Stack>
-            <Stack direction="row" spacing={0.5} alignItems="center">
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
               {!isDesktop && (
-                <IconButton
+                <button
+                  type="button"
                   onClick={() => setIsExpanded(!isExpanded)}
                   aria-label={isExpanded ? 'Scale down' : 'Scale up'}
-                  sx={{
-                    color: '#E8E6E3',
-                    bgcolor: VOID,
-                    border: BORDER,
-                    '&:hover': { bgcolor: HOVER },
-                  }}
+                  className="p-1.5 text-[#E8E6E3] bg-[#0A0908] border border-[#34322F] rounded-lg hover:bg-[#1C1A18] transition"
                 >
                   {isExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                </IconButton>
+                </button>
               )}
-              <IconButton
+              <button
+                type="button"
                 onClick={closeAgenticDrawer}
                 aria-label="Close"
-                sx={{
-                  color: '#E8E6E3',
-                  bgcolor: VOID,
-                  border: BORDER,
-                  '&:hover': { bgcolor: HOVER },
-                }}
+                className="p-1.5 text-[#E8E6E3] bg-[#0A0908] border border-[#34322F] rounded-lg hover:bg-[#1C1A18] transition"
               >
                 <X size={16} />
-              </IconButton>
-            </Stack>
-          </Stack>
+              </button>
+            </div>
+          </div>
 
           {/* Stats Bar */}
-          <Paper
-            elevation={0}
-            sx={{
-              mb: 2,
-              p: 1.5,
-              borderRadius: RADIUS_MEDIUM,
-              bgcolor: VOID,
-              border: BORDER,
-              flexShrink: 0,
-            }}
-          >
-            <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
-              <Stack direction="row" spacing={0.8} alignItems="center">
-                <Box sx={{ width: 8, height: 8, borderRadius: '999px', bgcolor: runSummary.working > 0 ? SYSTEM_WARNING : SYSTEM_SUCCESS }} />
-                <Typography sx={{ color: '#fff', fontSize: '0.8rem', fontWeight: 800 }}>
+          <div className="mb-4 p-4 rounded-2xl bg-[#0A0908] border border-[#34322F] flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${runSummary.working > 0 ? 'bg-[#F59E0B]' : 'bg-[#10B981]'}`} />
+                <span className="text-white text-xs font-black">
                   {runSummary.total} Active Systems
-                </Typography>
-              </Stack>
-              <Typography sx={{ color: TEXT_MUTED, fontSize: '0.74rem', fontWeight: 700 }}>
+                </span>
+              </div>
+              <span className="text-[#9B9691] text-[11px] font-bold">
                 {runSummary.working} Active · {runSummary.idle} Inactive
-              </Typography>
-            </Stack>
-          </Paper>
+              </span>
+            </div>
+          </div>
 
-          {/* Main List Box */}
-          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {error ? <Typography sx={{ color: '#FCA5A5', fontSize: '0.8rem' }}>{error}</Typography> : null}
+          {/* Main List */}
+          <div className="flex-1 min-h-0 flex flex-col gap-4">
+            {error && <span className="text-[#FCA5A5] text-xs px-1">{error}</span>}
 
-            <Stack
-              spacing={1}
-              sx={{
-                overflowY: 'auto',
-                pr: 0.25,
-                flex: 1,
-              }}
-            >
+            <div className="overflow-y-auto pr-1 flex-1 flex flex-col gap-2.5">
               {loading ? (
-                <Box sx={{ py: 6, display: 'grid', placeItems: 'center' }}>
-                  <CircularProgress size={24} />
-                </Box>
+                <div className="py-12 flex items-center justify-center">
+                  <RefreshCw className="w-6 h-6 text-[#6366F1] animate-spin" />
+                </div>
               ) : parsedAgents.length === 0 ? (
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 3,
-                    borderRadius: RADIUS_MEDIUM,
-                    bgcolor: VOID,
-                    border: BORDER,
-                    textAlign: 'center',
-                  }}
-                >
-                  <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.9rem', mb: 0.5 }}>
+                <div className="p-6 rounded-2xl bg-[#0A0908] border border-[#34322F] text-center">
+                  <h3 className="text-white font-extrabold text-sm mb-1">
                     No Smart Systems
-                  </Typography>
-                  <Typography sx={{ color: TEXT_MUTED, fontSize: '0.8rem', lineHeight: 1.5 }}>
+                  </h3>
+                  <p className="text-[#9B9691] text-xs leading-relaxed">
                     Initialize your first background assistant to automate routine operations.
-                  </Typography>
-                </Paper>
+                  </p>
+                </div>
               ) : (
                 parsedAgents.map((agent) => {
                   const isWorking = agent.status === 'working';
                   return (
-                    <Paper
+                    <div
                       key={agent.$id}
-                      elevation={0}
                       onClick={() => setSelectedAgentId(agent.$id)}
-                      sx={{
-                        p: 2,
-                        borderRadius: RADIUS_MEDIUM,
-                        bgcolor: VOID,
-                        border: BORDER,
-                        cursor: 'pointer',
-                        transition: BRAND_TRANSITION,
-                        '&:hover': {
-                          bgcolor: HOVER,
-                          transform: 'translateY(-2px)',
-                          boxShadow: '0 8px 10px -8px rgba(0,0,0,1)',
-                        }
-                      }}
+                      className="p-4 rounded-2xl bg-[#0A0908] border border-[#34322F] cursor-pointer transition hover:bg-[#1C1A18] hover:-translate-y-0.5 hover:shadow-[0_8px_10px_-8px_rgba(0,0,0,1)]"
                     >
-                      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-                        <Stack spacing={0.5} sx={{ minWidth: 0 }}>
-                          <Typography noWrap sx={{ color: '#fff', fontWeight: 800, fontSize: '0.9rem', fontFamily: fontDisplay }}>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0 flex-1 flex flex-col gap-1">
+                          <h4 className="text-white font-extrabold text-[13px] font-clash truncate">
                             {agent.name}
-                          </Typography>
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <Typography sx={{ color: TEXT_MUTED, fontSize: '0.75rem', fontWeight: 600 }}>
+                          </h4>
+                          <div className="flex items-center gap-1.5 text-xs text-[#9B9691] font-semibold">
+                            <span>
                               {agent.framework === 'kylrix' ? 'Kylrix Internal' : agent.framework}
-                            </Typography>
-                            <Box sx={{ width: 3, height: 3, borderRadius: '99px', bgcolor: '#5D5A56' }} />
-                            <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem' }}>
+                            </span>
+                            <span className="w-1 h-1 rounded-full bg-[#5D5A56]" />
+                            <span className="text-[10px] font-normal text-white/35">
                               {formatUpdatedAgo(agent.$updatedAt)}
-                            </Typography>
-                          </Stack>
-                        </Stack>
+                            </span>
+                          </div>
+                        </div>
 
-                        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flexShrink: 0 }}>
-                          <Box
-                            sx={{
-                              px: 1.2,
-                              py: 0.4,
-                              borderRadius: '999px',
-                              bgcolor: isWorking ? alpha(SYSTEM_PRIMARY, 0.15) : alpha(SYSTEM_SUCCESS, 0.15),
-                              border: `1px solid ${isWorking ? alpha(SYSTEM_PRIMARY, 0.3) : alpha(SYSTEM_SUCCESS, 0.3)}`,
-                              color: isWorking ? SYSTEM_PRIMARY : SYSTEM_SUCCESS,
-                              fontSize: '0.68rem',
-                              fontWeight: 900,
-                              letterSpacing: '0.05em',
-                              textTransform: 'uppercase',
-                            }}
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <span
+                            className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border ${
+                              isWorking
+                                ? 'bg-[#6366F1]/15 border-[#6366F1]/30 text-[#6366F1]'
+                                : 'bg-[#10B981]/15 border-[#10B981]/30 text-[#10B981]'
+                            }`}
                           >
                             {agent.status}
-                          </Box>
-                          <ChevronRight size={16} color={TEXT_MUTED} />
-                        </Stack>
-                      </Stack>
-                    </Paper>
+                          </span>
+                          <ChevronRight size={16} className="text-[#9B9691]" />
+                        </div>
+                      </div>
+                    </div>
                   );
                 })
               )}
-            </Stack>
+            </div>
 
             {/* Bottom Initialize Action Button */}
-            <Box sx={{ mt: 'auto', pt: 2, flexShrink: 0 }}>
-              <Button
-                fullWidth
-                variant="contained"
-                disableElevation
-                startIcon={<Plus size={18} />}
+            <div className="mt-auto pt-4 flex-shrink-0">
+              <button
+                type="button"
                 onClick={() => setIsCreateOpen(true)}
-                sx={{
-                  py: 1.3,
-                  borderRadius: RADIUS_SMALL,
-                  textTransform: 'none',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  bgcolor: SYSTEM_PRIMARY,
-                  color: '#FFFFFF',
-                  boxShadow: 'none',
-                  transition: BRAND_TRANSITION,
-                  '&:hover': { bgcolor: SYSTEM_HOVER },
-                }}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-extrabold text-sm bg-[#6366F1] text-white hover:bg-[#575CF0] transition shadow-none cursor-pointer"
               >
-                Initialize Smart System
-              </Button>
-            </Box>
-          </Box>
-        </Box>
-      </Drawer>
+                <Plus size={18} />
+                <span>Initialize Smart System</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </DrawerShell>
 
       {/* NESTED OVERLAY 1: Initialize/Create Assistant Drawer */}
       {isCreateOpen && (
-        <Drawer
-          anchor={isDesktop ? 'right' : 'bottom'}
-          open={isCreateOpen}
+        <DrawerShell
+          isOpen={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
-          ModalProps={{ keepMounted: false, disableScrollLock: true, disablePortal: true }}
-          slotProps={{ backdrop: { style: { backgroundColor: 'transparent' } } }}
-          sx={{
-            zIndex: 1400,
-            '& .MuiDrawer-paper': subDrawerPaperSx,
-          }}
+          isDesktop={isDesktop}
+          isExpanded={isExpanded}
+          setIsExpanded={setIsExpanded}
+          zIndexClass="z-[1400]"
         >
-          {!isDesktop && (
-            <Box 
-              sx={{ display: 'flex', justifyContent: 'center', py: 1.5, cursor: 'pointer' }}
-              onClick={() => setIsCreateOpen(false)}
-            >
-              <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: '#3D3A36' }} aria-hidden />
-            </Box>
-          )}
-
-          <Box
-            sx={{
-              px: { xs: 2.25, sm: 2.75 },
-              pb: 'max(20px, env(safe-area-inset-bottom))',
-              pt: 1,
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              minHeight: 0,
-              ...sheetBodySx,
-            }}
-          >
+          <div className="px-5 md:px-7 pb-6 pt-3 md:pt-6 flex-1 flex flex-col min-h-0 font-satoshi">
             {/* Header */}
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2.5, flexShrink: 0 }}>
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <IconButton
+            <div className="flex items-center justify-between mb-6 flex-shrink-0">
+              <div className="flex items-center gap-3.5">
+                <button
+                  type="button"
                   onClick={() => setIsCreateOpen(false)}
                   aria-label="Back"
-                  sx={{
-                    color: '#E8E6E3',
-                    bgcolor: VOID,
-                    border: BORDER,
-                    '&:hover': { bgcolor: HOVER },
-                  }}
+                  className="p-1.5 text-[#E8E6E3] bg-[#0A0908] border border-[#34322F] rounded-lg hover:bg-[#1C1A18] transition"
                 >
                   <ArrowLeft size={16} />
-                </IconButton>
-                <Typography
-                  sx={{
-                    color: '#fff',
-                    fontWeight: 800,
-                    fontSize: '1rem',
-                    fontFamily: fontDisplay,
-                    letterSpacing: '-0.02em',
-                  }}
-                >
+                </button>
+                <h3 className="text-white font-extrabold text-base font-clash tracking-tight">
                   Initialize System
-                </Typography>
-              </Stack>
+                </h3>
+              </div>
               {!isDesktop && (
-                <IconButton
+                <button
+                  type="button"
                   onClick={() => setIsExpanded(!isExpanded)}
                   aria-label={isExpanded ? 'Scale down' : 'Scale up'}
-                  sx={{
-                    color: '#E8E6E3',
-                    bgcolor: VOID,
-                    border: BORDER,
-                    '&:hover': { bgcolor: HOVER },
-                  }}
+                  className="p-1.5 text-[#E8E6E3] bg-[#0A0908] border border-[#34322F] rounded-lg hover:bg-[#1C1A18] transition"
                 >
                   {isExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                </IconButton>
+                </button>
               )}
-            </Stack>
+            </div>
 
             {/* Main Form Scroll Area */}
-            <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.25, display: 'flex', flexDirection: 'column', gap: 2.5, minHeight: 0 }}>
-              <Stack spacing={2.5}>
-                <TextField
+            <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-5 min-h-0">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-[#9B9691] tracking-wider uppercase font-clash">
+                  System Name
+                </label>
+                <input
+                  type="text"
                   value={agentName}
                   onChange={(event) => setAgentName(event.target.value)}
-                  label="System Name"
                   placeholder="e.g., Workflow Manager"
-                  fullWidth
-                  size="medium"
-                  sx={{
-                    '& .MuiOutlinedInput-root': { 
-                      bgcolor: VOID, 
-                      borderRadius: RADIUS_SMALL,
-                      border: BORDER,
-                      '& fieldset': { border: 'none' },
-                      '&:hover': { bgcolor: HOVER },
-                      '&.Mui-focused': { bgcolor: HOVER, border: `1px solid ${SYSTEM_PRIMARY}` }
-                    },
-                    '& .MuiInputBase-input': { color: '#fff', fontSize: '0.9rem', fontWeight: 600 },
-                    '& .MuiInputLabel-root': { color: TEXT_MUTED, fontSize: '0.85rem' },
-                  }}
+                  className="w-full px-4 py-3 rounded-xl bg-[#0A0908] border border-[#34322F] text-sm text-white font-semibold placeholder:text-[#9B9691]/40 focus:outline-none focus:border-[#6366F1] transition"
                 />
+              </div>
 
-                <TextField
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-[#9B9691] tracking-wider uppercase font-clash">
+                  Goal / Instructions
+                </label>
+                <textarea
                   value={agentGoal}
                   onChange={(event) => setAgentGoal(event.target.value)}
-                  label="Goal / Instructions"
                   placeholder="e.g., Triage overdue tasks and notify team members..."
-                  fullWidth
-                  multiline
-                  minRows={4}
-                  size="medium"
-                  sx={{
-                    '& .MuiOutlinedInput-root': { 
-                      bgcolor: VOID, 
-                      borderRadius: RADIUS_SMALL,
-                      border: BORDER,
-                      '& fieldset': { border: 'none' },
-                      '&:hover': { bgcolor: HOVER },
-                      '&.Mui-focused': { bgcolor: HOVER, border: `1px solid ${SYSTEM_PRIMARY}` }
-                    },
-                    '& .MuiInputBase-input': { color: '#fff', fontSize: '0.9rem', lineHeight: 1.5 },
-                    '& .MuiInputLabel-root': { color: TEXT_MUTED, fontSize: '0.85rem' },
-                  }}
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-xl bg-[#0A0908] border border-[#34322F] text-sm text-white font-semibold placeholder:text-[#9B9691]/40 focus:outline-none focus:border-[#6366F1] transition resize-none leading-relaxed"
                 />
+              </div>
 
-                {/* Framework Selector Trigger */}
-                <Paper
-                  elevation={0}
-                  onClick={() => setIsFrameworkOpen(true)}
-                  sx={{
-                    p: 2,
-                    borderRadius: RADIUS_SMALL,
-                    bgcolor: VOID,
-                    border: BORDER,
-                    cursor: 'pointer',
-                    transition: BRAND_TRANSITION,
-                    '&:hover': { bgcolor: HOVER }
-                  }}
-                >
-                  <Stack direction="row" alignItems="center" justifyContent="space-between">
-                    <Stack direction="row" alignItems="center" spacing={1.5}>
-                      <Plug size={18} color={SYSTEM_PRIMARY} />
-                      <Stack spacing={0.25}>
-                        <Typography sx={{ color: TEXT_MUTED, fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          Runtime Environment
-                        </Typography>
-                        <Typography sx={{ color: '#fff', fontSize: '0.88rem', fontWeight: 800 }}>
-                          {framework === 'kylrix' ? 'Kylrix Internal' : framework}
-                        </Typography>
-                      </Stack>
-                    </Stack>
-                    <ChevronRight size={16} color={TEXT_MUTED} />
-                  </Stack>
-                </Paper>
+              {/* Framework Selector Trigger */}
+              <div
+                onClick={() => setIsFrameworkOpen(true)}
+                className="p-4 rounded-xl bg-[#0A0908] border border-[#34322F] cursor-pointer hover:bg-[#1C1A18] transition"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Plug size={18} className="text-[#6366F1]" />
+                    <div className="flex flex-col">
+                      <span className="text-[#9B9691] text-[10px] font-bold uppercase tracking-wider">
+                        Runtime Environment
+                      </span>
+                      <span className="text-white text-sm font-extrabold mt-0.5">
+                        {framework === 'kylrix' ? 'Kylrix Internal' : framework}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} className="text-[#9B9691]" />
+                </div>
+              </div>
 
-                <Typography sx={{ color: TEXT_MUTED, fontSize: '0.74rem', lineHeight: 1.5, px: 0.5 }}>
-                  Smart systems run locally using in-process tasks. They cannot connect to arbitrary external websites or leak internal files.
-                </Typography>
-              </Stack>
-            </Box>
+              <p className="text-[#9B9691] text-[11px] leading-relaxed px-1">
+                Smart systems run locally using in-process tasks. They cannot connect to arbitrary external websites or leak internal files.
+              </p>
+            </div>
 
             {/* Action Footer */}
-            <Box sx={{ mt: 'auto', pt: 2, flexShrink: 0 }}>
-              <Button
-                fullWidth
-                variant="contained"
-                disableElevation
+            <div className="mt-auto pt-4 flex-shrink-0">
+              <button
+                type="button"
                 onClick={async () => {
                   await createAgent();
                 }}
                 disabled={saving || !agentName.trim() || !user?.$id}
-                sx={{
-                  py: 1.3,
-                  borderRadius: RADIUS_SMALL,
-                  textTransform: 'none',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  bgcolor: SYSTEM_PRIMARY,
-                  color: '#FFFFFF',
-                  boxShadow: 'none',
-                  transition: BRAND_TRANSITION,
-                  '&:hover': { bgcolor: SYSTEM_HOVER },
-                }}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-extrabold text-sm bg-[#6366F1] hover:bg-[#575CF0] text-white disabled:bg-white/5 disabled:text-[#9B9691] transition cursor-pointer"
               >
-                {saving ? <CircularProgress size={18} color="inherit" /> : 'Ready'}
-              </Button>
-            </Box>
-          </Box>
-        </Drawer>
+                {saving ? (
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                ) : (
+                  'Ready'
+                )}
+              </button>
+            </div>
+          </div>
+        </DrawerShell>
       )}
 
       {/* NESTED OVERLAY 2: Select Runtime Framework Drawer */}
       {isFrameworkOpen && (
-        <Drawer
-          anchor={isDesktop ? 'right' : 'bottom'}
-          open={isFrameworkOpen}
+        <DrawerShell
+          isOpen={isFrameworkOpen}
           onClose={() => setIsFrameworkOpen(false)}
-          ModalProps={{ keepMounted: false, disableScrollLock: true, disablePortal: true }}
-          slotProps={{ backdrop: { style: { backgroundColor: 'transparent' } } }}
-          sx={{
-            zIndex: 1500,
-            '& .MuiDrawer-paper': subDrawerPaperSx,
-          }}
+          isDesktop={isDesktop}
+          isExpanded={isExpanded}
+          setIsExpanded={setIsExpanded}
+          zIndexClass="z-[1500]"
         >
-          {!isDesktop && (
-            <Box 
-              sx={{ display: 'flex', justifyContent: 'center', py: 1.5, cursor: 'pointer' }}
-              onClick={() => setIsFrameworkOpen(false)}
-            >
-              <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: '#3D3A36' }} aria-hidden />
-            </Box>
-          )}
-
-          <Box
-            sx={{
-              px: { xs: 2.25, sm: 2.75 },
-              pb: 'max(20px, env(safe-area-inset-bottom))',
-              pt: 1,
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              minHeight: 0,
-              ...sheetBodySx,
-            }}
-          >
+          <div className="px-5 md:px-7 pb-6 pt-3 md:pt-6 flex-1 flex flex-col min-h-0 font-satoshi">
             {/* Header */}
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2.5, flexShrink: 0 }}>
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <IconButton
-                  onClick={() => setIsFrameworkOpen(false)}
-                  aria-label="Back"
-                  sx={{
-                    color: '#E8E6E3',
-                    bgcolor: VOID,
-                    border: BORDER,
-                    '&:hover': { bgcolor: HOVER },
-                  }}
-                >
-                  <ArrowLeft size={16} />
-                </IconButton>
-                <Typography
-                  sx={{
-                    color: '#fff',
-                    fontWeight: 800,
-                    fontSize: '1rem',
-                    fontFamily: fontDisplay,
-                    letterSpacing: '-0.02em',
-                  }}
-                >
-                  Select Runtime
-                </Typography>
-              </Stack>
-            </Stack>
+            <div className="flex items-center gap-3.5 mb-6 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsFrameworkOpen(false)}
+                aria-label="Back"
+                className="p-1.5 text-[#E8E6E3] bg-[#0A0908] border border-[#34322F] rounded-lg hover:bg-[#1C1A18] transition"
+              >
+                <ArrowLeft size={16} />
+              </button>
+              <h3 className="text-white font-extrabold text-base font-clash tracking-tight">
+                Select Runtime
+              </h3>
+            </div>
 
             {/* Main List */}
-            <Stack spacing={1.25} sx={{ flex: 1, overflowY: 'auto', pr: 0.25 }}>
+            <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-3">
               {frameworks.map((item) => {
                 const selected = item.id === framework;
                 const disabled = Boolean(item.comingSoon);
                 return (
-                  <Paper
+                  <div
                     key={item.id}
-                    elevation={0}
                     onClick={() => {
                       if (!disabled) {
                         setFramework(item.id);
                         setIsFrameworkOpen(false);
                       }
                     }}
-                    sx={{
-                      p: 2,
-                      borderRadius: RADIUS_MEDIUM,
-                      bgcolor: VOID,
-                      border: selected ? `2px solid ${SYSTEM_PRIMARY}` : BORDER,
-                      cursor: disabled ? 'default' : 'pointer',
-                      opacity: disabled ? 0.5 : 1,
-                      transition: BRAND_TRANSITION,
-                      '&:hover': disabled
-                        ? undefined
-                        : {
-                            bgcolor: HOVER,
-                          },
-                    }}
+                    className={`p-4 rounded-2xl bg-[#0A0908] border transition ${
+                      selected ? 'border-[#6366F1]' : 'border-[#34322F]'
+                    } ${disabled ? 'opacity-50 cursor-default' : 'cursor-pointer hover:bg-[#1C1A18]'}`}
                   >
-                    <Stack direction="row" alignItems="center" justifyContent="space-between">
-                      <Typography
-                        sx={{
-                          color: disabled ? TEXT_MUTED : '#fff',
-                          fontWeight: 800,
-                          fontSize: '0.875rem',
-                          fontFamily: fontDisplay,
-                          letterSpacing: '-0.02em',
-                        }}
-                      >
+                    <div className="flex items-center justify-between">
+                      <span className={`font-clash font-extrabold text-sm ${disabled ? 'text-[#9B9691]' : 'text-white'}`}>
                         {item.title}{item.comingSoon ? ' (Coming soon)' : ''}
-                      </Typography>
-                      {selected && <Check size={16} color={SYSTEM_PRIMARY} />}
-                    </Stack>
-                  </Paper>
+                      </span>
+                      {selected && <Check size={16} className="text-[#6366F1]" />}
+                    </div>
+                  </div>
                 );
               })}
-            </Stack>
-          </Box>
-        </Drawer>
+            </div>
+          </div>
+        </DrawerShell>
       )}
 
       {/* NESTED OVERLAY 3: Agent Details System Panel Drawer */}
       {selectedAgent && (
-        <Drawer
-          anchor={isDesktop ? 'right' : 'bottom'}
-          open={Boolean(selectedAgent)}
+        <DrawerShell
+          isOpen={Boolean(selectedAgent)}
           onClose={() => setSelectedAgentId(null)}
-          ModalProps={{ keepMounted: false, disableScrollLock: true, disablePortal: true }}
-          slotProps={{ backdrop: { style: { backgroundColor: 'transparent' } } }}
-          sx={{
-            zIndex: 1400,
-            '& .MuiDrawer-paper': subDrawerPaperSx,
-          }}
+          isDesktop={isDesktop}
+          isExpanded={isExpanded}
+          setIsExpanded={setIsExpanded}
+          zIndexClass="z-[1400]"
         >
-          {!isDesktop && (
-            <Box 
-              sx={{ display: 'flex', justifyContent: 'center', py: 1.5, cursor: 'pointer' }}
-              onClick={() => setSelectedAgentId(null)}
-            >
-              <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: '#3D3A36' }} aria-hidden />
-            </Box>
-          )}
-
-          <Box
-            sx={{
-              px: { xs: 2.25, sm: 2.75 },
-              pb: 'max(20px, env(safe-area-inset-bottom))',
-              pt: 1,
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              minHeight: 0,
-              ...sheetBodySx,
-            }}
-          >
+          <div className="px-5 md:px-7 pb-6 pt-3 md:pt-6 flex-1 flex flex-col min-h-0 font-satoshi">
             {/* Header */}
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2.5, flexShrink: 0 }}>
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <IconButton
-                  onClick={() => setSelectedAgentId(null)}
-                  aria-label="Back"
-                  sx={{
-                    color: '#E8E6E3',
-                    bgcolor: VOID,
-                    border: BORDER,
-                    '&:hover': { bgcolor: HOVER },
-                  }}
-                >
-                  <ArrowLeft size={16} />
-                </IconButton>
-                <Typography
-                  sx={{
-                    color: '#fff',
-                    fontWeight: 800,
-                    fontSize: '1rem',
-                    fontFamily: fontDisplay,
-                    letterSpacing: '-0.02em',
-                  }}
-                >
-                  System Panel
-                </Typography>
-              </Stack>
-            </Stack>
+            <div className="flex items-center gap-3.5 mb-6 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedAgentId(null)}
+                aria-label="Back"
+                className="p-1.5 text-[#E8E6E3] bg-[#0A0908] border border-[#34322F] rounded-lg hover:bg-[#1C1A18] transition"
+              >
+                <ArrowLeft size={16} />
+              </button>
+              <h3 className="text-white font-extrabold text-base font-clash tracking-tight">
+                System Panel
+              </h3>
+            </div>
 
             {/* Main Details Panel */}
-            <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.25, display: 'flex', flexDirection: 'column', gap: 2.5, minHeight: 0 }}>
+            <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-6 min-h-0">
               {/* Name and State Card */}
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: RADIUS_MEDIUM,
-                  bgcolor: VOID,
-                  border: BORDER,
-                }}
-              >
-                <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem', fontFamily: fontDisplay, mb: 1 }}>
+              <div className="p-4 rounded-2xl bg-[#0A0908] border border-[#34322F]">
+                <h4 className="text-white font-black text-lg font-clash mb-3 leading-snug">
                   {selectedAgent.name}
-                </Typography>
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box
-                    sx={{
-                      px: 1.2,
-                      py: 0.4,
-                      borderRadius: '999px',
-                      bgcolor: selectedAgent.status === 'working' ? alpha(SYSTEM_PRIMARY, 0.15) : alpha(SYSTEM_SUCCESS, 0.15),
-                      border: `1px solid ${selectedAgent.status === 'working' ? alpha(SYSTEM_PRIMARY, 0.3) : alpha(SYSTEM_SUCCESS, 0.3)}`,
-                      color: selectedAgent.status === 'working' ? SYSTEM_PRIMARY : SYSTEM_SUCCESS,
-                      fontSize: '0.68rem',
-                      fontWeight: 900,
-                      letterSpacing: '0.05em',
-                      textTransform: 'uppercase',
-                    }}
+                </h4>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border ${
+                      selectedAgent.status === 'working'
+                        ? 'bg-[#6366F1]/15 border-[#6366F1]/30 text-[#6366F1]'
+                        : 'bg-[#10B981]/15 border-[#10B981]/30 text-[#10B981]'
+                    }`}
                   >
                     {selectedAgent.status}
-                  </Box>
-                  <Typography sx={{ color: TEXT_MUTED, fontSize: '0.8rem', fontWeight: 600 }}>
+                  </span>
+                  <span className="text-[#9B9691] text-xs font-semibold">
                     {selectedAgent.framework === 'kylrix' ? 'Kylrix Internal' : selectedAgent.framework}
-                  </Typography>
-                </Stack>
-              </Paper>
+                  </span>
+                </div>
+              </div>
 
               {/* Goal Description Card */}
-              <Stack spacing={1}>
-                <Typography sx={{ color: TEXT_MUTED, fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', px: 0.5 }}>
+              <div className="flex flex-col gap-1.5">
+                <h5 className="text-[#9B9691] text-[10px] font-bold uppercase tracking-wider px-1">
                   Objective Goal
-                </Typography>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2,
-                    borderRadius: RADIUS_SMALL,
-                    bgcolor: VOID,
-                    border: BORDER,
-                  }}
-                >
-                  <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                </h5>
+                <div className="p-4 rounded-xl bg-[#0A0908] border border-[#34322F]">
+                  <p className="text-white/85 text-xs leading-relaxed">
                     {selectedAgent.goal}
-                  </Typography>
-                </Paper>
-              </Stack>
+                  </p>
+                </div>
+              </div>
 
               {/* Logs & Run Summaries Card */}
               {(selectedAgent.lastSummary || selectedAgent.lastError) && (
-                <Stack spacing={1}>
-                  <Typography sx={{ color: TEXT_MUTED, fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', px: 0.5 }}>
+                <div className="flex flex-col gap-1.5">
+                  <h5 className="text-[#9B9691] text-[10px] font-bold uppercase tracking-wider px-1">
                     System Logs / Activity
-                  </Typography>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 2,
-                      borderRadius: RADIUS_SMALL,
-                      bgcolor: VOID,
-                      border: BORDER,
-                    }}
-                  >
+                  </h5>
+                  <div className="p-4 rounded-xl bg-[#0A0908] border border-[#34322F]">
                     {selectedAgent.lastError ? (
-                      <Stack direction="row" spacing={1} alignItems="flex-start">
-                        <Box sx={{ mt: 0.25, flexShrink: 0, display: 'flex' }}>
-                            <AlertCircle size={16} color="#EF4444" />
-                        </Box>
-                        <Typography sx={{ color: '#FCA5A5', fontSize: '0.8rem', fontFamily: 'monospace', lineHeight: 1.45 }}>
+                      <div className="flex gap-2.5 items-start">
+                        <AlertCircle size={16} className="text-[#EF4444] mt-0.5 flex-shrink-0" />
+                        <span className="text-[#FCA5A5] text-[11px] font-mono leading-relaxed break-all">
                           Error: {selectedAgent.lastError}
-                        </Typography>
-                      </Stack>
+                        </span>
+                      </div>
                     ) : (
-                      <Stack direction="row" spacing={1} alignItems="flex-start">
-                        <Box sx={{ mt: 0.25, flexShrink: 0, display: 'flex' }}>
-                            <RefreshCw size={16} color={SYSTEM_SUCCESS} />
-                        </Box>
-                        <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontFamily: 'monospace', lineHeight: 1.45 }}>
+                      <div className="flex gap-2.5 items-start">
+                        <RefreshCw size={16} className="text-[#10B981] mt-0.5 flex-shrink-0" />
+                        <span className="text-white/70 text-[11px] font-mono leading-relaxed">
                           {selectedAgent.lastSummary}
-                        </Typography>
-                      </Stack>
+                        </span>
+                      </div>
                     )}
-                  </Paper>
-                </Stack>
+                  </div>
+                </div>
               )}
-            </Box>
+            </div>
 
             {/* Action Footer */}
-            <Box sx={{ mt: 'auto', pt: 2, flexShrink: 0 }}>
+            <div className="mt-auto pt-4 flex-shrink-0">
               {selectedAgent.status === 'working' ? (
-                <Button
-                  fullWidth
-                  variant="contained"
-                  disableElevation
-                  startIcon={<Power size={16} />}
+                <button
+                  type="button"
                   disabled={updatingAgentId === selectedAgent.$id}
                   onClick={async () => {
                     await setAgentStatus(selectedAgent, 'idle');
                   }}
-                  sx={{
-                    py: 1.3,
-                    borderRadius: RADIUS_SMALL,
-                    textTransform: 'none',
-                    fontWeight: 800,
-                    fontSize: '0.85rem',
-                    bgcolor: '#EF4444',
-                    color: '#FFFFFF',
-                    boxShadow: 'none',
-                    transition: BRAND_TRANSITION,
-                    '&:hover': { bgcolor: '#DC2626' },
-                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-extrabold text-sm bg-[#EF4444] hover:bg-[#DC2626] text-white disabled:opacity-50 transition cursor-pointer"
                 >
-                  Deactivate / Set Idle
-                </Button>
+                  <Power size={16} />
+                  <span>Deactivate / Set Idle</span>
+                </button>
               ) : (
-                <Button
-                  fullWidth
-                  variant="contained"
-                  disableElevation
-                  startIcon={<Play size={16} />}
+                <button
+                  type="button"
                   disabled={updatingAgentId === selectedAgent.$id}
                   onClick={async () => {
                     await runAgentNow(selectedAgent);
                   }}
-                  sx={{
-                    py: 1.3,
-                    borderRadius: RADIUS_SMALL,
-                    textTransform: 'none',
-                    fontWeight: 800,
-                    fontSize: '0.85rem',
-                    bgcolor: SYSTEM_SUCCESS,
-                    color: '#FFFFFF',
-                    boxShadow: 'none',
-                    transition: BRAND_TRANSITION,
-                    '&:hover': { bgcolor: '#059669' },
-                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-extrabold text-sm bg-[#10B981] hover:bg-[#059669] text-white disabled:opacity-50 transition cursor-pointer"
                 >
-                  Run Agent Now
-                </Button>
+                  <Play size={16} />
+                  <span>Run Agent Now</span>
+                </button>
               )}
-            </Box>
-          </Box>
-        </Drawer>
+            </div>
+          </div>
+        </DrawerShell>
       )}
     </>
   );

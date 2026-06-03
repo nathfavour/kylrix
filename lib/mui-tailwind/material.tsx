@@ -927,7 +927,7 @@ export const Dialog = React.forwardRef(({
   if (maxWidth === 'xl') maxWClass = "max-w-xl";
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-[1400] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
       <div className="fixed inset-0" onClick={onClose} />
       <div
         ref={ref}
@@ -974,7 +974,7 @@ export const Drawer = React.forwardRef(({ open, onClose, anchor = 'right', child
   const paperStyle = cleanSx(paperSx);
   
   return (
-    <div className={`fixed inset-0 z-50 flex ${justifyClass} bg-black/70 backdrop-blur-sm`} style={cleanSx(drawerRootSx)}>
+    <div className={`fixed inset-0 z-[1400] flex ${justifyClass} bg-black/70 backdrop-blur-sm`} style={cleanSx(drawerRootSx)}>
       <div className="fixed inset-0" onClick={onClose} />
       <div
         ref={ref}
