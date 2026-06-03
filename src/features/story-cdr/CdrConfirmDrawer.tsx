@@ -1,17 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Stack,
-  Button,
-  CircularProgress,
-  IconButton,
-  Drawer,
-  useTheme,
-  useMediaQuery,
-} from '@/lib/mui-tailwind/material';
 import { Shield, X } from 'lucide-react';
 import { account, invalidateCurrentUserCache } from '@/lib/appwrite';
 import { toast } from 'react-hot-toast';
@@ -24,8 +13,6 @@ interface CdrConfirmDrawerProps {
 
 export function CdrConfirmDrawer({ open, onClose, onSuccess }: CdrConfirmDrawerProps) {
   const [loading, setLoading] = useState(false);
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
   const handleConfirm = async () => {
     setLoading(true);
@@ -44,109 +31,82 @@ export function CdrConfirmDrawer({ open, onClose, onSuccess }: CdrConfirmDrawerP
     }
   };
 
+  if (!open) return null;
+
   return (
-    <Drawer
-      anchor={isDesktop ? 'right' : 'bottom'}
-      open={open}
-      onClose={onClose}
-      ModalProps={{ keepMounted: false, disablePortal: true }}
-      PaperProps={{
-        sx: {
-          bgcolor: '#000000',
-          borderLeft: isDesktop ? '1px solid #1f1f1f' : 'none',
-          borderTop: !isDesktop ? '1px solid #1f1f1f' : 'none',
-          borderRadius: !isDesktop ? '32px 32px 0 0' : '0',
-          height: isDesktop ? '100%' : 'auto',
-          maxHeight: isDesktop ? '100%' : '90dvh',
-          maxWidth: 480,
-          width: '100%',
-          overflow: 'hidden',
-        },
-      }}
-    >
-      <Box sx={{ p: { xs: 3, md: 4 }, color: '#fff', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-        <Box>
+    <div className="fixed inset-0 z-[1500] flex items-end md:items-stretch md:justify-end">
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+        onClick={onClose}
+      />
+      
+      {/* Drawer Content Container */}
+      <div 
+        className="relative w-full md:max-w-[480px] bg-black border-t md:border-t-0 md:border-l border-[#1f1f1f] rounded-t-[32px] md:rounded-t-none p-6 md:p-8 text-white z-10 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] flex flex-col justify-between max-h-[90vh] md:max-h-screen overflow-y-auto transition-transform duration-300"
+      >
+        <div className="flex-1">
           {/* Header */}
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: 'rgba(99, 102, 241, 0.1)', color: '#6366F1' }}>
+          <div className="flex justify-between items-center mb-8 flex-shrink-0">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-[#6366F1]/10 text-[#6366F1]">
                 <Shield size={24} />
-              </Box>
-              <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-mono)', lineHeight: 1.2 }}>
+              </div>
+              <h3 className="text-lg font-black font-mono leading-tight">
                 Story CDR Beta
-              </Typography>
-            </Stack>
-            <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#fff' } }}>
+              </h3>
+            </div>
+            <button 
+              onClick={onClose} 
+              className="p-1 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-all"
+            >
               <X size={20} />
-            </IconButton>
-          </Stack>
+            </button>
+          </div>
 
           {/* Body */}
-          <Box sx={{ mb: 4 }}>
-            <Typography sx={{ color: '#ffffff', fontWeight: 900, fontSize: '1.25rem', mb: 2, fontFamily: 'var(--font-mono)', tracking: '-0.02em', lineHeight: 1.3 }}>
+          <div className="mb-8">
+            <h4 className="text-white font-black text-xl mb-3 font-mono tracking-tight leading-snug">
               Activate Sovereign On-Chain Data Rails?
-            </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', lineHeight: 1.6, fontFamily: 'var(--font-sans)' }}>
+            </h4>
+            <p className="text-white/60 text-sm leading-relaxed font-sans">
               This routes your sensitive data credentials and TOTP seeds through hardware-isolated TEE enclaves on the Story Aeneid Testnet. Access permissions are regulated strictly via decentralized smart contracts tied to your internal EVM wallet identity.
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {/* Additional info badge */}
-          <Box sx={{ p: 2.5, bgcolor: '#161412', border: '1px solid #1f1f1f', borderRadius: '16px', mb: 4 }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1, display: 'block', fontFamily: 'var(--font-mono)' }}>
+          <div className="p-5 bg-[#161412] border border-[#1f1f1f] rounded-2xl mb-8">
+            <span className="text-[10px] text-white/40 font-black uppercase tracking-wider block mb-1.5 font-mono">
               Aeneid Testnet Deployment
-            </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.8rem', lineHeight: 1.4 }}>
+            </span>
+            <p className="text-white/80 text-xs leading-normal">
               Vault operations will intercept standard flows and securely upload data rails using threshold cryptography and the pre-deployed OwnerWriteCondition.
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
 
         {/* Footer Actions */}
-        <Stack spacing={2} sx={{ mt: 'auto' }}>
-          <Button
-            fullWidth
-            variant="contained"
+        <div className="flex flex-col gap-3 mt-auto flex-shrink-0">
+          <button
             onClick={handleConfirm}
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={18} color="inherit" /> : null}
-            sx={{
-              py: 2,
-              borderRadius: '16px',
-              fontWeight: 900,
-              textTransform: 'none',
-              fontSize: '0.95rem',
-              bgcolor: '#6366F1',
-              color: '#fff',
-              fontFamily: 'var(--font-mono)',
-              '&:hover': { bgcolor: '#5458E8', transform: 'translateY(-1px)' },
-              '&:disabled': { bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' },
-              transition: 'all 0.2s ease-in-out',
-              boxShadow: 'none',
-            }}
+            className="w-full py-4 rounded-2xl bg-[#6366F1] hover:bg-[#5458E8] text-white font-black text-sm flex items-center justify-center gap-2 font-mono transition duration-200 disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed select-none"
           >
-            {loading ? 'Activating...' : 'Activate Data Rails'}
-          </Button>
+            {loading && (
+              <div className="animate-spin rounded-full h-4.5 w-4.5 border-t-2 border-b-2 border-current" />
+            )}
+            <span>{loading ? 'Activating...' : 'Activate Data Rails'}</span>
+          </button>
 
-          <Button
-            fullWidth
-            variant="text"
+          <button
             onClick={onClose}
             disabled={loading}
-            sx={{
-              py: 1.5,
-              borderRadius: '12px',
-              fontWeight: 800,
-              textTransform: 'none',
-              color: 'rgba(255,255,255,0.4)',
-              fontFamily: 'var(--font-mono)',
-              '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.04)' },
-            }}
+            className="w-full py-3 rounded-xl text-white/40 hover:text-white hover:bg-white/5 font-extrabold text-sm font-mono transition duration-200 disabled:opacity-50 select-none"
           >
             Cancel
-          </Button>
-        </Stack>
-      </Box>
-    </Drawer>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
