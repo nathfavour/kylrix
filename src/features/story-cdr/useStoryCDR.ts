@@ -5,6 +5,12 @@ import { InMemoryStorageProvider } from './client';
 // Core encrypt/decrypt business logic that can be imported anywhere (even server-side or non-React modules)
 export async function encryptStoryCDR(plaintext: string, userId: string, resourceId: string): Promise<{ type: 'cdr'; uuid: number | string; cid: string; data?: string }> {
   try {
+    const { account } = await import('@/lib/appwrite');
+    const prefs = await account.getPrefs().catch(() => ({}));
+    if ((prefs as any)?.demo_mode) {
+      throw new Error('DEMO_MODE_ACTIVE');
+    }
+
     const { client } = await getStorySignerAndClient(userId);
     const contentBytes = new TextEncoder().encode(plaintext);
     const globalPubKey = await client.observer.getGlobalPubKey();
@@ -55,6 +61,12 @@ export async function decryptStoryCDR(cdrMetadata: { uuid: string | number; cid:
       return await decryptField(cdrMetadata.data);
     }
     
+    const { account } = await import('@/lib/appwrite');
+    const prefs = await account.getPrefs().catch(() => ({}));
+    if ((prefs as any)?.demo_mode) {
+      throw new Error('DEMO_MODE_ACTIVE');
+    }
+
     const { client } = await getStorySignerAndClient(userId);
     
     const downloadRes = await client.consumer.downloadFile({

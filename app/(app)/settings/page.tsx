@@ -82,10 +82,19 @@ export default function SettingsPage() {
     const [statusEnabled, setStatusEnabled] = useState(true);
     const [cdrEnabled, setCdrEnabled] = useState(false);
     const [cdrDrawerOpen, setCdrDrawerOpen] = useState(false);
+    const [isLocalhost, setIsLocalhost] = useState(false);
+    const [demoModeEnabled, setDemoModeEnabled] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setIsLocalhost(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        }
+    }, []);
 
     useEffect(() => {
         if (user?.prefs) {
             setCdrEnabled(!!user.prefs.cdr_enabled);
+            setDemoModeEnabled(!!user.prefs.demo_mode);
         }
     }, [user]);
 
@@ -114,6 +123,21 @@ export default function SettingsPage() {
         await refreshUser(true);
         setCdrEnabled(true);
         setCdrDrawerOpen(false);
+    };
+
+    const handleDemoModeToggle = async () => {
+        const nextVal = !demoModeEnabled;
+        try {
+            const { account, invalidateCurrentUserCache } = await import('@/lib/appwrite');
+            const currentPrefs = await account.getPrefs();
+            await account.updatePrefs({ ...currentPrefs, demo_mode: nextVal });
+            invalidateCurrentUserCache();
+            await refreshUser(true);
+            setDemoModeEnabled(nextVal);
+            toast.success(`Demo Mode ${nextVal ? "activated" : "deactivated"}`);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update Demo Mode");
+        }
     };
 
     const FEATURE_FORM_ID = '6a19dc99002634bd33ae';
@@ -577,6 +601,23 @@ export default function SettingsPage() {
                                             onChange={handleCdrToggle}
                                         />
                                     </div>
+
+                                    {isLocalhost && (
+                                        <>
+                                            <div className="h-[1px] bg-white/5 w-full" />
+                                            {/* Demo Mode (Beta) Switch */}
+                                            <div className="flex items-center justify-between gap-4 select-none">
+                                                <div>
+                                                    <span className="block text-white font-extrabold text-xs">Demo Mode (Beta)</span>
+                                                    <span className="block text-white/40 text-[10px] font-semibold font-sans mt-0.5">Enable simulated environments and assets for presentations</span>
+                                                </div>
+                                                <Switch 
+                                                    checked={demoModeEnabled}
+                                                    onChange={handleDemoModeToggle}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 

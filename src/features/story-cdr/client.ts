@@ -1,4 +1,5 @@
-import { CDRClient, type StorageProvider } from '@piplabs/cdr-sdk';
+import { CDRClient } from '@piplabs/cdr-sdk/dist/client.js';
+import type { StorageProvider } from '@piplabs/cdr-sdk/dist/storage/types.js';
 import { initWasm } from '@piplabs/cdr-crypto';
 import { createPublicClient, createWalletClient, http, defineChain } from 'viem';
 
