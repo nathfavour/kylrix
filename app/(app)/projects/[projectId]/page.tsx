@@ -813,23 +813,12 @@ export default function ProjectDetailPage() {
         <Grid container spacing={4}>
             {/* Left Content Column */}
             <Grid size={{ xs: 12, xl: 8 }}>
-                <Box 
-                    sx={{ 
-                        mb: 3, 
-                        p: 2.5, 
-                        borderRadius: '24px', 
-                        bgcolor: 'rgba(255, 255, 255, 0.02)', 
-                        border: '1px solid rgba(255, 255, 255, 0.05)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2
-                    }}
-                >
-                    <Info size={18} style={{ color: '#6366F1', flexShrink: 0 }} />
-                    <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 700, fontSize: '0.85rem', lineHeight: 1.4 }}>
+                <div className="mb-4 flex items-center gap-3 p-4 rounded-[20px] bg-[#161412] border border-white/6 hover:border-white/10 transition-all select-none">
+                    <Info size={18} className="text-[#6366F1] flex-shrink-0" />
+                    <p className="text-white/60 text-xs font-medium leading-relaxed">
                         All integrated internal objects inherit project member&apos;s permission level, except on object level permission override.
-                    </Typography>
-                </Box>
+                    </p>
+                </div>
                 <Paper
                     elevation={0}
                     sx={{
@@ -1196,149 +1185,126 @@ export default function ProjectDetailPage() {
                 </Paper>
 
                 {/* Suggested Workflows Section */}
-                <Box sx={{ mt: 6 }}>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', mb: 3, display: 'block' }}>
+                <div className="mt-8 select-none">
+                    <span className="text-[10px] text-white/30 font-black uppercase tracking-wider block mb-4">
                         Suggested Workflows
-                    </Typography>
-                    <Grid container spacing={2}>
+                    </span>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
                         {[
                             { title: 'Project Documentation', icon: FileText, color: '#EC4899', desc: 'Create a new note specific to this project.' },
                             { title: 'Sprint Planning', icon: CheckSquare, color: '#A855F7', desc: 'Initialize a goal to track execution.' },
                             { title: 'Access Hardening', icon: Lock, color: '#10B981', desc: 'Store new secrets for the team.' }
                         ].map(wf => (
-                            <Grid size={{ xs: 12, md: 4 }} key={wf.title}>
-                                <Paper elevation={0} sx={{ p: 2.5, borderRadius: '24px', bgcolor: '#161412', border: '1px solid rgba(255,255,255,0.06)', transition: 'all 0.2s ease', cursor: 'pointer', '&:hover': { borderColor: alpha(wf.color, 0.3), transform: 'translateY(-2px)' } }}>
-                                    <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1.5 }}>
-                                        <Box sx={{ color: wf.color }}><wf.icon size={18} /></Box>
-                                        <Typography variant="body2" component="span" sx={{ fontWeight: 800 }}>{wf.title}</Typography>
-                                    </Stack>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>{wf.desc}</Typography>
-                                </Paper>
-                            </Grid>
-                        ))}
-                    </Grid>
-                </Box>
-
-                {/* Integrations Section */}
-                <Box sx={{ mt: 6 }}>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', mb: 3, display: 'block' }}>
-                        Integrations
-                    </Typography>
-                    <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <Paper 
-                                elevation={0} 
-                                onClick={() => openUnified('github-integration', { context: 'project', projectId: projectId as string, tasks: tasks, onSaved: fetchProjectData })}
-                                sx={{ 
-                                    p: 2.5, 
-                                    borderRadius: '24px', 
-                                    bgcolor: '#161412', 
-                                    border: '1px solid rgba(255,255,255,0.06)', 
-                                    transition: 'all 0.2s ease', 
-                                    cursor: 'pointer', 
-                                    position: 'relative',
-                                    '&:hover': { 
-                                        borderColor: alpha('#6366F1', 0.3), 
-                                        transform: 'translateY(-2px)' 
-                                    } 
+                            <div 
+                                key={wf.title} 
+                                className="relative flex flex-col justify-between gap-4 p-5 rounded-[24px] bg-[#161412] border border-white/6 hover:border-white/12 hover:bg-[#1C1A18] transition-all duration-300 ease-out cursor-pointer overflow-hidden group"
+                                style={{
+                                    borderLeft: `3px solid ${wf.color}`
                                 }}
                             >
-                                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1.5 }}>
-                                    <Box sx={{ color: '#6366F1', display: 'flex', alignItems: 'center' }}>
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
-                                        </svg>
-                                    </Box>
-                                    <Typography variant="body2" component="span" sx={{ fontWeight: 800 }}>GitHub</Typography>
-                                    {gitIntegration?.enabled && (
-                                        <Box 
-                                            sx={{ 
-                                                ml: 'auto', 
-                                                px: 1, 
-                                                py: 0.2, 
-                                                borderRadius: '6px', 
-                                                bgcolor: 'rgba(16, 185, 129, 0.1)', 
-                                                color: '#10B981', 
-                                                fontSize: '0.65rem', 
-                                                fontWeight: 900 
-                                            }}
-                                        >
-                                            CONNECTED
-                                        </Box>
-                                    )}
-                                </Stack>
-                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.4, display: 'block', minHeight: '38px' }}>
-                                    {gitIntegration?.enabled 
-                                        ? `Connected to ${gitIntegration.ownerName}/${gitIntegration.repoName}` 
-                                        : 'Link your GitHub repository to sync tasks, issues, and pull requests.'}
-                                </Typography>
-                            </Paper>
-                        </Grid>
-                    </Grid>
-                </Box>
+                                <div className="flex items-center gap-3">
+                                    <div style={{ color: wf.color }} className="flex-shrink-0"><wf.icon size={18} /></div>
+                                    <h4 className="text-white text-sm font-black tracking-tight leading-tight">{wf.title}</h4>
+                                </div>
+                                <p className="text-xs text-white/40 font-medium leading-relaxed">{wf.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Integrations Section */}
+                <div className="mt-8 select-none">
+                    <span className="text-[10px] text-white/30 font-black uppercase tracking-wider block mb-4">
+                        Integrations
+                    </span>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                        <div 
+                            onClick={() => openUnified('github-integration', { context: 'project', projectId: projectId as string, tasks: tasks, onSaved: fetchProjectData })}
+                            className="relative flex flex-col justify-between gap-4 p-5 rounded-[24px] bg-[#161412] border border-white/6 hover:border-[#6366F1]/30 hover:bg-[#1C1A18] transition-all duration-300 ease-out cursor-pointer overflow-hidden group"
+                            style={{
+                                borderLeft: '3px solid #6366F1'
+                            }}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="text-[#6366F1] flex-shrink-0">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+                                    </svg>
+                                </div>
+                                <h4 className="text-white text-sm font-black tracking-tight leading-tight">GitHub</h4>
+                                {gitIntegration?.enabled && (
+                                    <span className="ml-auto bg-[#10B981]/15 text-[#10B981] text-[9px] font-black tracking-wider px-2 py-0.5 rounded border border-[#10B981]/20">
+                                        CONNECTED
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-xs text-white/40 font-medium leading-relaxed min-h-[36px]">
+                                {gitIntegration?.enabled 
+                                    ? `Connected to ${gitIntegration.ownerName}/${gitIntegration.repoName}` 
+                                    : 'Link your GitHub repository to sync tasks, issues, and pull requests.'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </Grid>
 
             {/* Right Sidebar Column */}
             <Grid size={{ xs: 12, xl: 4 }}>
                 <Stack spacing={4}>
                     {/* Participants */}
-                    <Paper
-                        elevation={0}
-                        sx={{
-                            bgcolor: '#161412', // Deep Ash
-                            border: '1px solid #1C1A18', // Rim/Border Ash
-                            borderRadius: '28px',
-                            p: 3,
-                            backgroundImage: 'none',
-                        }}
-                    >
-                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
-                            <Typography component="span" sx={{ color: '#fff', fontWeight: 900, fontFamily: 'var(--font-clash)', fontSize: '1.1rem', letterSpacing: '-0.01em', display: 'block' }}>Project Members</Typography>
-                            <Stack direction="row" spacing={1}>
-                                <IconButton 
-                                    size="small" 
+                    {/* Participants */}
+                    <div className="relative flex flex-col gap-4 p-6 w-full rounded-[28px] bg-[#161412] border border-white/6 hover:border-white/12 transition-all duration-300 ease-out select-none">
+                        <div className="flex items-center justify-between gap-4 pb-2.5 border-b border-white/4">
+                            <h3 className="text-white text-base font-black tracking-tight leading-tight">
+                                Project Members
+                            </h3>
+                            <div className="flex items-center gap-1.5">
+                                <button 
                                     onClick={handleCopyInviteLink}
                                     title="Copy Invite Link"
-                                    sx={{ bgcolor: 'rgba(255, 255, 255, 0.04)', color: 'rgba(255, 255, 255, 0.6)', '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)', color: '#fff' } }}
+                                    className="p-1.5 rounded-lg text-white/40 hover:text-white bg-white/2 hover:bg-white/5 border border-white/4 transition-all duration-200"
                                 >
-                                    <Copy size={15} />
-                                </IconButton>
-                                <IconButton 
-                                    size="small" 
+                                    <Copy size={14} />
+                                </button>
+                                <button 
                                     onClick={handleAddCollaborator}
                                     title="Add Collaborator"
-                                    sx={{ bgcolor: alpha('#6366F1', 0.1), color: '#6366F1', '&:hover': { bgcolor: alpha('#6366F1', 0.2) } }}
+                                    className="p-1.5 rounded-lg text-[#6366F1] bg-[#6366F1]/10 hover:bg-[#6366F1]/20 border border-[#6366F1]/20 transition-all duration-200"
                                 >
-                                    <Plus size={18} />
-                                </IconButton>
-                            </Stack>
-                        </Stack>
+                                    <Plus size={16} />
+                                </button>
+                            </div>
+                        </div>
                         
-                        <Stack spacing={1.5}>
+                        <div className="flex flex-col gap-2">
                             {/* Project Owner Section */}
-                            <Box sx={{ p: 1.5, borderRadius: '16px', bgcolor: '#0A0908', border: '1px solid #1C1A18', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                <IdentityAvatar 
-                                    size={34} 
-                                    fileId={ownerProfile?.profilePicId || ownerProfile?.avatar || null} 
-                                    alt={ownerProfile?.displayName || ownerProfile?.name || 'Owner'} 
-                                    fallback={(ownerProfile?.displayName || ownerProfile?.name || 'O').charAt(0).toUpperCase()} 
-                                    verified={ownerProfile?.verified ?? true} 
-                                    isAvatar={ownerProfile?.isAvatar ?? true}
-                                />
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Typography component="span" noWrap variant="body2" sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: 'white', display: 'block', mb: 0.25 }}>
+                            <div className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 hover:border-white/8 transition-colors flex items-center gap-3">
+                                <div className="flex-shrink-0">
+                                    <IdentityAvatar 
+                                        size={34} 
+                                        fileId={ownerProfile?.profilePicId || ownerProfile?.avatar || null} 
+                                        alt={ownerProfile?.displayName || ownerProfile?.name || 'Owner'} 
+                                        fallback={(ownerProfile?.displayName || ownerProfile?.name || 'O').charAt(0).toUpperCase()} 
+                                        verified={ownerProfile?.verified ?? true} 
+                                        isAvatar={ownerProfile?.isAvatar ?? true}
+                                    />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <span className="text-white text-sm font-black tracking-tight block truncate">
                                         {ownerProfile?.displayName || ownerProfile?.name || ownerProfile?.username || ownerProfile?.email || 'Project Owner'}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}>
+                                    </span>
+                                    <span className="text-[10px] text-white/40 font-semibold block truncate">
                                         {ownerProfile?.displayName || ownerProfile?.name ? (ownerProfile?.username ? `@${ownerProfile.username}` : 'Project Owner') : 'Project Owner'}
-                                    </Typography>
-                                </Box>
-                                <Chip label="OWNER" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 900, fontFamily: 'var(--font-satoshi)', bgcolor: 'rgba(99, 102, 241, 0.12)', color: '#6366F1' }} />
-                            </Box>
+                                    </span>
+                                </div>
+                                <span className="flex-shrink-0 bg-[#6366F1]/12 text-[#6366F1] text-[9px] font-black px-2 py-0.5 rounded border border-[#6366F1]/20">
+                                    OWNER
+                                </span>
+                            </div>
 
                             {/* Collaborators Section (Active and Pending) */}
                             {collaborators.map(user => (
-                                <Box 
+                                <div 
                                     key={user.$id || user.userId} 
                                     onClick={() => {
                                         openUnified('share-note', {
@@ -1349,81 +1315,64 @@ export default function ProjectDetailPage() {
                                             onShared: () => fetchProjectData()
                                         });
                                     }}
-                                    sx={{ 
-                                        p: 1.5, 
-                                        borderRadius: '16px', 
-                                        bgcolor: '#0A0908', 
-                                        border: '1px solid #1C1A18', 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
-                                        gap: 1.5,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        '&:hover': {
-                                            borderColor: 'rgba(255,255,255,0.15)',
-                                            bgcolor: 'rgba(255,255,255,0.02)'
-                                        }
-                                    }}
+                                    className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 hover:border-white/10 hover:bg-white/2 cursor-pointer transition-all flex items-center gap-3"
                                 >
-                                    <IdentityAvatar 
-                                        size={34} 
-                                        fileId={user.avatar || user.profilePicId} 
-                                        alt={user.displayName || user.name || 'Collaborator'} 
-                                        fallback={(user.displayName || user.name || 'C').charAt(0).toUpperCase()} 
-                                        verified={user.verified} 
-                                        isAvatar={user.isAvatar ?? true}
-                                    />
-                                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                                        <Typography component="span" noWrap variant="body2" sx={{ fontWeight: 800, fontFamily: 'var(--font-satoshi)', color: 'white', display: 'block', mb: 0.25 }}>
+                                    <div className="flex-shrink-0">
+                                        <IdentityAvatar 
+                                            size={34} 
+                                            fileId={user.avatar || user.profilePicId} 
+                                            alt={user.displayName || user.name || 'Collaborator'} 
+                                            fallback={(user.displayName || user.name || 'C').charAt(0).toUpperCase()} 
+                                            verified={user.verified} 
+                                            isAvatar={user.isAvatar ?? true}
+                                        />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <span className="text-white text-sm font-black tracking-tight block truncate">
                                             {user.displayName || user.name || user.email}
-                                        </Typography>
-                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', fontFamily: 'var(--font-satoshi)', fontWeight: 600, textTransform: 'capitalize' }}>
+                                        </span>
+                                        <span className="text-[10px] text-white/40 font-semibold block truncate capitalize">
                                             {user.permissionLevel || 'Viewer'}
-                                        </Typography>
-                                    </Box>
+                                        </span>
+                                    </div>
                                     
-                                    <Stack direction="row" spacing={1} alignItems="center">
-                                        {user.status === 'pending' && (
-                                            <Chip label="PENDING" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 900, fontFamily: 'var(--font-satoshi)', bgcolor: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B' }} />
-                                        )}
-                                    </Stack>
-                                </Box>
+                                    {user.status === 'pending' && (
+                                        <span className="flex-shrink-0 bg-[#F59E0B]/10 text-[#F59E0B] text-[9px] font-black px-2 py-0.5 rounded border border-[#F59E0B]/20">
+                                            PENDING
+                                        </span>
+                                    )}
+                                </div>
                             ))}
-                        </Stack>
-                    </Paper>
+                        </div>
+                    </div>
 
-                    <Paper
-                        elevation={0}
-                        sx={{
-                            bgcolor: '#161412',
-                            border: '1px solid rgba(255,255,255,0.06)',
-                            borderRadius: '32px',
-                            p: 3.5,
-                            backgroundImage: 'none',
-                        }}
-                    >
-                        <Typography component="span" sx={{ color: '#fff', fontWeight: 900, mb: 1.5, fontSize: '1.1rem', display: 'block' }}>Project Insights</Typography>
-                        <Typography component="span" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', lineHeight: 1.6, mb: 3, display: 'block' }}>
+                    <div className="relative flex flex-col gap-4 p-6 w-full rounded-[28px] bg-[#161412] border border-white/6 hover:border-white/12 transition-all duration-300 ease-out select-none">
+                        <div className="border-b border-white/4 pb-2.5">
+                            <h3 className="text-white text-base font-black tracking-tight leading-tight">
+                                Project Insights
+                            </h3>
+                        </div>
+                        <p className="text-sm text-white/50 font-medium leading-relaxed">
                             {project.summary || 'This project is used to group and coordinate your work.'}
-                        </Typography>
+                        </p>
                         
-                        <Stack spacing={2}>
-                            <Box sx={{ p: 2, borderRadius: '16px', bgcolor: alpha('#fff', 0.01), border: '1px solid rgba(255,255,255,0.03)' }}>
-                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, textTransform: 'uppercase', display: 'block', mb: 1 }}>Visibility</Typography>
-                                <Stack direction="row" spacing={1} alignItems="center" sx={{ color: '#6366F1' }}>
+                        <div className="flex flex-col gap-3">
+                            <div className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 flex flex-col gap-1.5">
+                                <span className="text-[9px] text-white/30 font-black uppercase tracking-wider">Visibility</span>
+                                <div className="flex items-center gap-2 text-[#6366F1]">
                                     <Globe size={14} />
-                                    <Typography variant="body2" component="span" sx={{ fontWeight: 900, textTransform: 'capitalize' }}>{project.visibility}</Typography>
-                                </Stack>
-                            </Box>
-                            <Box sx={{ p: 2, borderRadius: '16px', bgcolor: alpha('#fff', 0.01), border: '1px solid rgba(255,255,255,0.03)' }}>
-                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, textTransform: 'uppercase', display: 'block', mb: 1 }}>Last Update</Typography>
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                    <History size={14} color="rgba(255,255,255,0.4)" />
-                                    <Typography variant="body2" component="span" sx={{ fontWeight: 900 }}>{new Date(project.updatedAt || '').toLocaleDateString()}</Typography>
-                                </Stack>
-                            </Box>
-                        </Stack>
-                    </Paper>
+                                    <span className="text-sm font-black capitalize">{project.visibility}</span>
+                                </div>
+                            </div>
+                            <div className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 flex flex-col gap-1.5">
+                                <span className="text-[9px] text-white/30 font-black uppercase tracking-wider">Last Update</span>
+                                <div className="flex items-center gap-2 text-white/60">
+                                    <History size={14} />
+                                    <span className="text-sm font-black">{new Date(project.updatedAt || '').toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </Stack>
             </Grid>
         </Grid>

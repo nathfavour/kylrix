@@ -42,9 +42,13 @@ import {
   ChevronDown,
   ChevronUp,
   Users,
+  Pin,
+  Trash2,
+  Lock,
+  Globe,
+  LayoutGrid,
 } from 'lucide-react';
 import { useFAB } from '@/context/FABContext';
-import ProjectCard from '@/components/projects/ProjectCard';
 import { ProjectsService } from '@/lib/appwrite/projects';
 import { useToast } from '@/components/ui/Toast';
 import { Projects } from '@/types/appwrite';
@@ -153,149 +157,188 @@ function TemplateCard({ template, onSelect }: { template: typeof projectTemplate
     const [expanded, setExpanded] = useState(false);
 
     return (
-        <Card
+        <div
             onClick={() => onSelect(template)}
-            sx={{
-                width: '100%',
-                minHeight: 196,
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                cursor: 'pointer',
-                overflow: 'hidden',
-                bgcolor: NAV_SURFACE,
-                border: '1px solid',
-                borderColor: '#34322F',
-                borderRadius: '28px',
-                boxShadow: 'none',
-                transition: 'border-color 0.2s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                '&:hover': {
-                    bgcolor: '#1C1A18',
-                    borderColor: alpha(template.color, 0.3),
-                    transform: 'translateY(-4px)',
-                    boxShadow: `0 20px 40px -10px rgba(0,0,0,0.5), 0 0 20px ${alpha(template.color, 0.1)}`,
-                },
+            className="relative flex flex-col justify-between gap-5 p-6 w-full min-h-[196px] rounded-[28px] bg-[#161412] border border-white/6 hover:border-white/15 hover:bg-[#1C1A18] transition-all duration-300 ease-out cursor-pointer overflow-hidden group select-none max-w-full"
+            style={{
+              borderColor: expanded ? `${template.color}4D` : undefined
             }}
         >
-            <CardHeader
-                sx={{ pb: 0.5, p: 2.5 }}
-                title={
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.75 }}>
-                        <Box
-                            sx={{
-                                width: 44,
-                                height: 44,
-                                borderRadius: '12px',
-                                bgcolor: alpha(template.color, 0.1),
-                                color: template.color,
-                                display: 'grid',
-                                placeItems: 'center',
-                                flexShrink: 0,
-                            }}
-                        >
-                            <template.icon size={20} strokeWidth={2.5} />
-                        </Box>
-                        <Box sx={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
-                            <Typography
-                                component="span"
-                                variant="body1"
-                                sx={{
-                                    fontWeight: 900,
-                                    color: '#fff',
-                                    fontSize: '1rem',
-                                    letterSpacing: '-0.01em',
-                                    lineHeight: 1.3,
-                                    display: 'block',
-                                    flex: 1,
-                                    minWidth: 0,
+            <div className="flex items-start gap-4 flex-1 min-w-0 w-full">
+                {/* Left Icon */}
+                <div 
+                    className="flex-shrink-0 w-11 h-11 rounded-xl grid place-items-center transition-all duration-300"
+                    style={{
+                        backgroundColor: `${template.color}1A`,
+                        color: template.color
+                    }}
+                >
+                    <template.icon size={20} strokeWidth={2.5} />
+                </div>
+
+                {/* Grouped Copy Column */}
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    {/* Header Row */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-white text-base font-black tracking-tight leading-tight">
+                            {template.title}
+                        </h3>
+                        {template.isPro && (
+                            <span 
+                                className="flex-shrink-0 text-[10px] font-black font-mono px-2 py-0.5 rounded border"
+                                style={{
+                                    backgroundColor: `${template.color}1A`,
+                                    color: template.color,
+                                    borderColor: `${template.color}33`
                                 }}
                             >
-                                {template.title}
-                            </Typography>
-                            {template.isPro && (
-                                <Chip
-                                    label="PRO"
-                                    size="small"
-                                    sx={{
-                                        flexShrink: 0,
-                                        bgcolor: alpha(template.color, 0.1),
-                                        color: template.color,
-                                        fontWeight: 900,
-                                        fontSize: '0.6rem',
-                                        height: 20,
-                                        fontFamily: 'var(--font-mono)',
-                                        border: `1px solid ${alpha(template.color, 0.2)}`,
-                                    }}
-                                />
-                            )}
-                        </Box>
-                    </Box>
-                }
-            />
+                                PRO
+                            </span>
+                        )}
+                    </div>
 
-            <CardContent
-                sx={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    minHeight: 0,
-                    p: 2.5,
-                    pt: 0,
-                }}
-            >
-                <Typography
-                    component="span"
-                    variant="body2"
-                    sx={{
-                        color: 'rgba(255,255,255,0.62)',
-                        fontFamily: 'var(--font-satoshi)',
-                        fontSize: '0.85rem',
-                        lineHeight: 1.6,
-                        fontWeight: 500,
-                        display: '-webkit-box',
-                        overflow: 'hidden',
-                        WebkitLineClamp: expanded ? 'unset' : 3,
-                        WebkitBoxOrient: 'vertical',
-                    }}
-                >
-                    {expanded ? template.description : template.summary}
-                </Typography>
+                    {/* Description Content */}
+                    <p className={`text-sm text-white/45 font-medium leading-relaxed break-words mt-1 ${expanded ? '' : 'line-clamp-3'}`}>
+                        {expanded ? template.description : template.summary}
+                    </p>
+                </div>
+            </div>
 
-                <Box
-                    sx={{
-                        mt: 1.5,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                    }}
+            {/* Action Bar */}
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/4">
+                <button
+                    onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+                    className="text-white/40 hover:text-white text-xs font-extrabold transition-colors duration-200"
                 >
-                    <Button
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-                        sx={{
-                            p: 0,
-                            minWidth: 0,
-                            color: 'rgba(255,255,255,0.42)',
-                            textTransform: 'none',
-                            fontSize: '0.75rem',
-                            fontWeight: 800,
-                            lineHeight: 1.3,
-                            '&:hover': { color: '#fff', bgcolor: 'transparent' },
-                        }}
-                    >
-                        {expanded ? 'Show Less' : 'Learn More'}
-                    </Button>
-                    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: template.color }}>
-                        <Typography component="span" variant="caption" sx={{ fontWeight: 900, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.2 }}>
-                            Activate
-                        </Typography>
-                        <Plus size={11} strokeWidth={4} />
-                    </Stack>
-                </Box>
-            </CardContent>
-        </Card>
+                    {expanded ? 'Show Less' : 'Learn More'}
+                </button>
+
+                <div 
+                    className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider"
+                    style={{ color: template.color }}
+                >
+                    <span>Activate</span>
+                    <Plus size={11} strokeWidth={4} />
+                </div>
+            </div>
+        </div>
     );
+}
+
+function LocalProjectCard({ project, onClick, onDelete, onTogglePin }: {
+  project: Projects;
+  onClick: (projectId: string) => void;
+  onDelete: (projectId: string) => void;
+  onTogglePin?: (projectId: string) => void;
+}) {
+  const getVisibilityIcon = () => {
+    switch (project.visibility) {
+      case 'public': return <Globe size={13} />;
+      case 'shared': return <Users size={13} />;
+      default: return <Lock size={13} />;
+    }
+  };
+
+  const getStatusColor = () => {
+    if ((project as any).isPending) return '#F59E0B';
+    switch (project.status) {
+      case 'active': return '#10B981';
+      case 'paused': return '#F59E0B';
+      case 'archived': return '#EF4444';
+      default: return '#6366F1';
+    }
+  };
+
+  const statusColor = getStatusColor();
+
+  return (
+    <div
+      onClick={() => onClick(project.$id)}
+      className="relative flex flex-col justify-between gap-5 p-6 w-full min-h-[196px] rounded-[28px] bg-[#161412] border border-[#34322F] hover:border-[#6366F1]/40 hover:bg-[#1C1A18] transition-all duration-300 ease-out cursor-pointer overflow-hidden group select-none max-w-full"
+    >
+      <div className="flex items-start gap-4 flex-1 min-w-0 w-full">
+        {/* Left Icon */}
+        <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-white/3 text-white/60 grid place-items-center border border-white/8 group-hover:scale-105 group-hover:text-[#6366F1] group-hover:bg-[#6366F1]/10 group-hover:border-[#6366F1]/20 transition-all duration-300">
+          <LayoutGrid size={20} strokeWidth={1.5} />
+        </div>
+
+        {/* Grouped Copy Column */}
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
+          {/* Header Row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {(project as any).isPinned && (
+              <Pin size={14} className="text-[#F59E0B] fill-[#F59E0B] rotate-45 flex-shrink-0" />
+            )}
+            <h3 className="text-white text-base font-black tracking-tight leading-tight truncate flex-1 min-w-0">
+              {project.title}
+            </h3>
+            <span className="flex-shrink-0 bg-white/5 text-white/40 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-white/8 flex items-center gap-1">
+              {getVisibilityIcon()}
+              {project.visibility}
+            </span>
+          </div>
+
+          {/* Summary / Description Content */}
+          <p className="text-sm text-white/50 font-medium leading-relaxed line-clamp-2 break-words mt-1">
+            {project.summary || 'Unified ecosystem project for coordinating cross-app resources and workflows.'}
+          </p>
+        </div>
+
+        {/* Top-Right Inline Actions (Pin, Delete) */}
+        {!(project as any).isPending ? (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePin?.(project.$id);
+              }}
+              className="p-1.5 rounded-lg text-white/20 hover:text-[#F59E0B] hover:bg-[#F59E0B]/5 transition-all duration-200"
+            >
+              <Pin size={16} className={(project as any).isPinned ? 'fill-[#F59E0B]' : ''} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(project.$id);
+              }}
+              className="p-1.5 rounded-lg text-white/20 hover:text-[#FF453A] hover:bg-[#FF453A]/5 transition-all duration-200"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ) : (
+          <span className="flex-shrink-0 bg-[#6366F1]/10 text-[#818CF8] text-[9px] font-black font-mono px-2 py-0.5 rounded border border-[#6366F1]/20">
+            INVITED
+          </span>
+        )}
+      </div>
+
+      {/* Action Bar */}
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/4">
+        {/* Updated Date */}
+        <div className="flex items-center gap-1 text-xs text-white/30 font-medium">
+          <Calendar size={13} />
+          <span>
+            {project.updatedAt
+              ? new Date(project.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+              : 'Active'}
+          </span>
+        </div>
+
+        {/* Status Badge */}
+        <span
+          className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border"
+          style={{
+            backgroundColor: `${statusColor}1A`,
+            color: statusColor,
+            borderColor: `${statusColor}33`,
+          }}
+        >
+          {(project as any).isPending ? 'invite pending' : project.status}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export default function ProjectsPage() {
@@ -510,7 +553,7 @@ export default function ProjectsPage() {
           <Grid container spacing={3}>
             {[1, 2, 3, 4, 5, 6].map((idx) => (
               <Grid size={{ xs: 12, md: 6 }} key={idx} sx={{ display: 'flex', minWidth: 0 }}>
-                <ProjectCard 
+                <LocalProjectCard 
                   project={{
                     $id: `skeleton-${idx}`,
                     title: 'Loading...',
@@ -549,7 +592,7 @@ export default function ProjectsPage() {
             <Grid container spacing={3}>
                 {sortedProjects.map(project => (
                     <Grid size={{ xs: 12, md: 6 }} key={project.$id} sx={{ display: 'flex', minWidth: 0 }}>
-                        <ProjectCard 
+                        <LocalProjectCard 
                             project={project} 
                             onClick={handleProjectClick}
                             onDelete={() => handleDeleteProject(project)}
