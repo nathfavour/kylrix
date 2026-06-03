@@ -436,7 +436,7 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
     setVaultBlurEnabled,
     usePasskeysByDefault,
     setUsePasskeysByDefault,
-  }), [user, loading, isAuthenticating, isAuthReady, isVaultUnlocked, needsMasterPassword, logout, resetMasterpass, refresh, openIDMWindow, closeIDMWindow, idmWindowOpen, isVaultBlurEnabled, usePasskeysByDefault]);
+  }), [user, loading, isAuthenticating, isAuthReady, isVaultUnlocked, needsMasterPassword, logout, resetMasterpass, refresh, openIDMWindow, closeIDMWindow, idmWindowOpen, isVaultBlurEnabled, setVaultBlurEnabled, usePasskeysByDefault, setUsePasskeysByDefault]);
 
   return (
     <AppwriteContext.Provider
