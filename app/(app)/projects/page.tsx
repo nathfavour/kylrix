@@ -353,6 +353,16 @@ export default function ProjectsPage() {
   const { user } = useAuth();
   const { openProUpgrade } = useProUpgrade();
   
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const media = window.matchMedia('(min-width: 768px)');
+    const listener = () => setIsDesktop(media.matches);
+    listener();
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, []);
+
   const [projects, setProjects] = useState<Projects[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllTemplates, setShowAllTemplates] = useState(false);
@@ -393,7 +403,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     setConfiguration({
-      isVisible: true,
+      isVisible: !isDesktop,
       mainColor: '#6366F1',
       actions: [
         { id: 'create-project', label: 'CREATE PROJECT', icon: <Plus size={20} />, onClick: () => openCreateDrawerRef.current() },
@@ -413,7 +423,7 @@ export default function ProjectsPage() {
         { id: 'insights', label: 'AI INSIGHTS', icon: <Sparkles size={20} />, onClick: () => router.push('/note/notes') }]
     });
     return () => resetConfiguration();
-  }, [setConfiguration, resetConfiguration, router, user, open, showSuccess]);
+  }, [setConfiguration, resetConfiguration, router, user, open, showSuccess, isDesktop]);
 
   useEffect(() => {
     fetchProjects();
@@ -480,7 +490,7 @@ export default function ProjectsPage() {
   const displayedTemplates = showAllTemplates ? projectTemplates : projectTemplates.slice(0, 3);
 
   const templatesElement = (
-    <Box>
+    <Box sx={{ display: { xs: 'block', md: 'none' } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block' }}>
           Quick Activate
@@ -643,7 +653,23 @@ export default function ProjectsPage() {
               </Box>
 
               <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-                  {/* Empty box to maintain layout if needed, but FAB handles creation now */}
+                <Button
+                  onClick={() => openCreateDrawer()}
+                  variant="contained"
+                  sx={{
+                    bgcolor: '#6366F1',
+                    color: '#fff',
+                    borderRadius: '14px',
+                    px: 4,
+                    py: 1.5,
+                    fontWeight: 800,
+                    textTransform: 'none',
+                    '&:hover': { bgcolor: '#4F46E5' }
+                  }}
+                  startIcon={<Plus size={18} />}
+                >
+                  Create Project
+                </Button>
               </Box>
           </Stack>
 

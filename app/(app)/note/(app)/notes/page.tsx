@@ -234,7 +234,7 @@ export default function NotesPage() {
   }, [handleNoteCreated, openOverlay]);
 
   useEffect(() => {
-    if (isDynamicSidebarOpen) {
+    if (isDynamicSidebarOpen || isDesktop) {
       setConfiguration({ isVisible: false });
     } else {
       setConfiguration({
@@ -248,7 +248,7 @@ export default function NotesPage() {
       });
     }
     return () => resetConfiguration();
-  }, [setConfiguration, resetConfiguration, openComposer, router, isDynamicSidebarOpen]);
+  }, [setConfiguration, resetConfiguration, openComposer, router, isDynamicSidebarOpen, isDesktop]);
 
   const handleManualRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -617,7 +617,7 @@ export default function NotesPage() {
     <NotesErrorBoundary>
       <div className="flex-1 min-h-screen pointer-events-auto">
         {isDesktop ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] lg:grid-cols-[1fr_400px] gap-8 items-start">
             
             {/* Left Pane: Main Notes Content */}
             <div className="min-w-0">

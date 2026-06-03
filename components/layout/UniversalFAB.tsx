@@ -42,7 +42,7 @@ export default function UniversalFAB() {
     (pathname.startsWith('/connect') && pathname !== '/connect' && !pathname.includes('/invite/') && !pathname.startsWith('/connect/chat/'))
   );
 
-  if (isDrawerOpen) return null;
+  if (isDrawerOpen || isDesktop) return null;
   if (!config.isVisible && !isAppRoute) return null;
 
   const actions = config.actions || [];

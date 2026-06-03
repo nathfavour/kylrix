@@ -1088,78 +1088,59 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
             ];
 
             return (
-              <Box key={panel} sx={{
-                bgcolor: '#161412',
-                borderRadius: '24px',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-                p: 2.5,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                transition: 'flex 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                flex: isOpen ? '1 1 auto' : '0 0 68px',
-              }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: isOpen ? 2 : 0 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff', display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Bot size={18} style={{ color: '#10B981', marginRight: '6px' }} /> Execution Templates
-                  </Typography>
-                  <IconButton onClick={() => togglePanel(panel)} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: 'white' } }}>
+              <div 
+                key={panel} 
+                className={`bg-[#161412] rounded-[24px] border border-white/5 p-5 flex flex-col overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  isOpen ? 'flex-[1_1_auto]' : 'flex-[0_0_68px] h-[68px]'
+                }`}
+              >
+                <div className={`flex justify-between items-center ${isOpen ? 'mb-2' : ''}`}>
+                  <h3 className="text-white text-base font-black tracking-tight leading-tight flex items-center gap-1.5 font-mono select-none">
+                    <Bot size={18} className="text-[#10B981]" /> Execution Templates
+                  </h3>
+                  <button 
+                    onClick={() => togglePanel(panel)} 
+                    className="p-1 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-all"
+                  >
                     {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </IconButton>
-                </Box>
+                  </button>
+                </div>
 
                 {isOpen && (
-                  <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.5, mt: 1 }}>
-                    <Stack spacing={1.5}>
-                      {projectTemplates.map((t) => (
-                        <Box
-                          key={t.id}
-                          onClick={() => {
-                            openUnified('new-project', { template: t });
-                          }}
-                          sx={{
-                            display: 'flex',
-                            gap: 1.5,
-                            p: 2,
-                            borderRadius: '16px',
-                            bgcolor: 'rgba(255,255,255,0.02)',
-                            border: '1px solid rgba(255,255,255,0.03)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                              bgcolor: 'rgba(255,255,255,0.04)',
-                              borderColor: alpha(t.color, 0.3),
-                              transform: 'translateX(3px)',
-                            }
+                  <div className="flex-1 overflow-y-auto pr-0.5 mt-2 space-y-3">
+                    {projectTemplates.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          openUnified('new-project', { template: t });
+                        }}
+                        className="w-full text-left flex gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.03] hover:bg-white/[0.04] transition-all duration-200 hover:translate-x-1 group"
+                        style={{
+                          borderColor: `${t.color}15`
+                        }}
+                      >
+                        <div 
+                          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105"
+                          style={{
+                            backgroundColor: `${t.color}1A`,
+                            color: t.color,
                           }}
                         >
-                          <Box sx={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: '10px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            bgcolor: alpha(t.color, 0.1),
-                            color: t.color,
-                            flexShrink: 0,
-                          }}>
-                            <FolderKanban size={17} />
-                          </Box>
-                          <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.4, pr: 0.25 }}>
-                            <Typography component="span" sx={{ fontWeight: 800, color: '#fff', display: 'block', fontSize: '0.82rem', lineHeight: 1.3 }}>
-                              {t.title}
-                            </Typography>
-                            <Typography component="span" sx={{ color: 'rgba(255,255,255,0.58)', fontSize: '0.74rem', lineHeight: 1.45, fontWeight: 500 }}>
-                              {t.summary}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      ))}
-                    </Stack>
-                  </Box>
+                          <FolderKanban size={17} />
+                        </div>
+                        <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                          <span className="font-extrabold text-white text-[13px] leading-tight group-hover:text-white transition-colors">
+                            {t.title}
+                          </span>
+                          <span className="text-white/50 text-[11px] font-medium leading-tight">
+                            {t.summary}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 )}
-              </Box>
+              </div>
             );
           }
 
@@ -1173,81 +1154,71 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
             }, {});
 
             return (
-              <Box key={panel} sx={{
-                bgcolor: '#161412',
-                borderRadius: '24px',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-                p: 2.5,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                transition: 'flex 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                flex: isOpen ? '1 1 auto' : '0 0 68px',
-              }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: isOpen ? 2 : 0 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff', display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Activity size={18} style={{ color: '#6366F1', marginRight: '6px' }} /> Workspace Stats
-                  </Typography>
-                  <IconButton onClick={() => togglePanel(panel)} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: 'white' } }}>
+              <div 
+                key={panel} 
+                className={`bg-[#161412] rounded-[24px] border border-white/5 p-5 flex flex-col overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  isOpen ? 'flex-[1_1_auto]' : 'flex-[0_0_68px] h-[68px]'
+                }`}
+              >
+                <div className={`flex justify-between items-center ${isOpen ? 'mb-2' : ''}`}>
+                  <h3 className="text-white text-base font-black tracking-tight leading-tight flex items-center gap-1.5 font-mono select-none">
+                    <Activity size={18} className="text-[#6366F1]" /> Workspace Stats
+                  </h3>
+                  <button 
+                    onClick={() => togglePanel(panel)} 
+                    className="p-1 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-all"
+                  >
                     {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </IconButton>
-                </Box>
+                  </button>
+                </div>
 
                 {isOpen && (
-                  <Stack spacing={2} sx={{ mt: 1.5 }}>
-                    <Stack direction="row" spacing={2}>
-                      <Box sx={{ flex: 1, p: 2, borderRadius: '16px', bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 0.5 }}>
+                  <div className="space-y-4 mt-3">
+                    <div className="flex gap-3">
+                      <div className="flex-1 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                        <span className="text-[9px] text-white/40 font-black uppercase tracking-wider block mb-1">
                           Total
-                        </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: 900, color: 'white', fontFamily: 'var(--font-clash)' }}>
+                        </span>
+                        <span className="text-2xl font-black text-white font-mono">
                           {totalProjects}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ flex: 1, p: 2, borderRadius: '16px', bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 0.5 }}>
+                        </span>
+                      </div>
+                      <div className="flex-1 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                        <span className="text-[9px] text-white/40 font-black uppercase tracking-wider block mb-1">
                           Pinned
-                        </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: 900, color: '#F59E0B', fontFamily: 'var(--font-clash)' }}>
+                        </span>
+                        <span className="text-2xl font-black text-[#F59E0B] font-mono">
                           {pinnedProjects}
-                        </Typography>
-                      </Box>
-                    </Stack>
+                        </span>
+                      </div>
+                    </div>
 
-                    <Box sx={{ p: 2, borderRadius: '16px', bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1.5 }}>
+                    <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                      <span className="text-[9px] text-white/40 font-black uppercase tracking-wider block mb-3">
                         Status Distribution
-                      </Typography>
-                      <Stack spacing={1}>
+                      </span>
+                      <div className="space-y-2">
                         {Object.entries(statusSpreads).length === 0 ? (
-                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
+                          <span className="text-[11px] text-white/40 italic">
                             No status data available.
-                          </Typography>
+                          </span>
                         ) : (
                           Object.entries(statusSpreads).map(([status, count]: [string, any]) => (
-                            <Stack key={status} direction="row" justifyContent="space-between" alignItems="center">
-                              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'capitalize', fontWeight: 650 }}>
+                            <div key={status} className="flex justify-between items-center">
+                              <span className="text-xs text-white/70 capitalize font-bold">
                                 {status}
-                              </Typography>
-                              <Chip 
-                                label={count} 
-                                size="small" 
-                                sx={{ 
-                                  bgcolor: 'rgba(99, 102, 241, 0.1)', 
-                                  color: '#6366F1', 
-                                  fontWeight: 900, 
-                                  fontSize: '0.7rem',
-                                  height: 20
-                                }} 
-                              />
-                            </Stack>
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-[#6366F1]/10 text-[#6366F1] font-black font-mono text-[10px]">
+                                {count}
+                              </span>
+                            </div>
                           ))
                         )}
-                      </Stack>
-                    </Box>
-                  </Stack>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </Box>
+              </div>
             );
           }
 

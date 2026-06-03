@@ -177,18 +177,18 @@ export function SectionProvider({ children }: { children: React.ReactNode }) {
     let columnsCount = 2;
     let sections: SectionConfig['sections'] = [];
 
-    if (screenWidth < 1024) {
-      // Mobile & Tablet: Standard single-column flow
+    if (screenWidth < 768) {
+      // Mobile: Standard single-column flow
       columnsCount = 1;
       sections = [{ id: 'original', type: 'original', width: '1fr' }];
-    } else if (screenWidth >= 1024 && screenWidth < 1600) {
+    } else if (screenWidth >= 768 && screenWidth < 1440) {
       // Laptop: Standard 2-column sidebar layout
       columnsCount = 2;
       sections = [
         { id: 'original', type: 'original', width: '1fr' },
-        { id: 'sidebar-1', type: 'panel', width: '400px', panels: routePanels },
+        { id: 'sidebar-1', type: 'panel', width: '350px', panels: routePanels },
       ];
-    } else if (screenWidth >= 1600 && screenWidth < 2000) {
+    } else if (screenWidth >= 1440 && screenWidth < 1920) {
       // Ultra-Wide Desktop: 3-column screen partition
       columnsCount = 3;
       // Extract the first panel into its own column, keep rest in column 3
@@ -197,8 +197,8 @@ export function SectionProvider({ children }: { children: React.ReactNode }) {
       
       sections = [
         { id: 'original', type: 'original', width: '1fr' },
-        { id: 'column-first', type: 'panel', width: '380px', panels: firstPanel },
-        { id: 'column-rest', type: 'panel', width: '380px', panels: remainingPanels },
+        { id: 'column-first', type: 'panel', width: '340px', panels: firstPanel },
+        { id: 'column-rest', type: 'panel', width: '340px', panels: remainingPanels },
       ];
     } else {
       // Double Ultra-Wide: 4-column display setup
@@ -210,7 +210,7 @@ export function SectionProvider({ children }: { children: React.ReactNode }) {
         sections.push({
           id: `column-dedicated-${index}`,
           type: 'panel',
-          width: '360px',
+          width: '320px',
           panels: [panel]
         });
       });
