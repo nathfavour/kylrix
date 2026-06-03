@@ -6,35 +6,15 @@ import { UsersService } from '@/lib/services/users';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { 
-    Box, 
-    Typography, 
-    List, 
-    ListItem, 
-    ListItemAvatar, 
-    Avatar, 
-    ListItemText,
-    IconButton,
-    Paper,
-    Chip,
-    Fab,
-    Tooltip,
-    Stack,
-    Divider,
-    Badge,
-    
-    useTheme,
-    useMediaQuery
-} from '@/lib/mui-tailwind/material';
-import CallIcon from '@/lib/mui-tailwind/icons';
-import VideocamIcon from '@/lib/mui-tailwind/icons';
-import _CallMissedIcon from '@/lib/mui-tailwind/icons';
-import CallReceivedIcon from '@/lib/mui-tailwind/icons';
-import CallMadeIcon from '@/lib/mui-tailwind/icons';
-import AddIcCallIcon from '@/lib/mui-tailwind/icons';
-import DeleteIcon from '@/lib/mui-tailwind/icons';
-import StopIcon from '@/lib/mui-tailwind/icons';
-import RefreshIcon from '@/lib/mui-tailwind/icons';
-import HistoryIcon from '@/lib/mui-tailwind/icons';
+    Phone, 
+    Video, 
+    PhoneIncoming, 
+    PhoneOutgoing, 
+    PhoneCall, 
+    Trash2, 
+    RefreshCw, 
+    History 
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { seedIdentityCache } from '@/lib/identity-cache';
 import { useSection } from '@/context/SectionContext';
@@ -45,15 +25,22 @@ export const CallHistory = ({ onNewCall }: { onNewCall?: () => void }) => {
     const [activeCalls, setActiveCalls] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
-    const theme = useTheme();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+    
+    const [isDesktop, setIsDesktop] = useState(false);
+    useEffect(() => {
+        const media = window.matchMedia('(min-width: 1024px)');
+        setIsDesktop(media.matches);
+        const listener = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+        media.addEventListener('change', listener);
+        return () => media.removeEventListener('change', listener);
+    }, []);
+    
     const { setActiveDetail } = useSection();
 
     const loadCalls = React.useCallback(async () => {
         if (!user) return;
         setLoading(true);
         try {
-
             const [history, ongoing] = await Promise.all([
                 CallService.getCallHistory(user.$id),
                 CallService.getActiveCalls(user.$id)
@@ -139,181 +126,139 @@ export const CallHistory = ({ onNewCall }: { onNewCall?: () => void }) => {
 
     if (loading) {
         return (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div className="flex flex-col gap-4">
                 {[1, 2, 3].map((i) => (
-                    <Paper key={i} sx={{ p: 2, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }} elevation={0}>
-                        <Stack direction="row" spacing={2} alignItems="center">
-                            <></>
-                            <Box sx={{ flex: 1 }}>
-                                <></>
-                                <></>
-                            </Box>
-                        </Stack>
-                    </Paper>
+                    <div key={i} className="p-4 rounded-2xl bg-white/2 border border-white/5 animate-pulse flex items-center gap-4">
+                        <div className="w-10 h-10 bg-white/5 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-white/10 rounded w-1/3" />
+                            <div className="h-3 bg-white/5 rounded w-1/2" />
+                        </div>
+                    </div>
                 ))}
-            </Box>
+            </div>
         );
     }
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, position: 'relative', minHeight: '50vh' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">
+        <div className="flex flex-col gap-4 relative min-h-[50vh] w-full">
+            <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-[#9B9691] uppercase tracking-wider font-mono">
                     {activeCalls.length > 0 ? `Ongoing Sessions (${activeCalls.length})` : 'No active sessions'}
-                </Typography>
-                <IconButton size="small" onClick={loadCalls} sx={{ opacity: 0.6 }}>
-                    <RefreshIcon fontSize="small" />
-                </IconButton>
-            </Box>
+                </span>
+                <button 
+                    onClick={loadCalls} 
+                    className="p-1 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all"
+                >
+                    <RefreshCw size={16} />
+                </button>
+            </div>
 
             {activeCalls.length > 0 && (
-                <List sx={{ mb: 2 }}>
+                <div className="space-y-3 mb-4">
                     {activeCalls.map((call) => (
-                        <Paper 
+                        <div 
                             key={call.$id} 
-                            sx={{ 
-                                mb: 1.5, 
-                                borderRadius: 3, 
-                                border: '1px solid #6366F1',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                '&:hover': {
-                                    bgcolor: 'rgba(99, 102, 241, 0.05)',
-                                    transform: 'translateY(-2px)'
-                                }
-                            }} 
-                            elevation={0} 
-                            variant="outlined"
                             onClick={() => startCall(call)}
+                            className="p-4 rounded-2xl border border-[#6366F1] bg-[#161412] hover:bg-[#6366F1]/5 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex items-center justify-between"
                         >
-                            <ListItem
-                                secondaryAction={
-                                    <Stack direction="row" spacing={1}>
-                                        <Tooltip title="Delete Permanently">
-                                            <IconButton edge="end" onClick={(e) => { e.stopPropagation(); handleDeleteCall(call.$id); }} color="error">
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </Tooltip>
-                                    </Stack>
-                                }
-                            >
-                                <ListItemAvatar>
-                                    <Badge
-                                        overlap="circular"
-                                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                        variant="dot"
-                                        sx={{ '& .MuiBadge-badge': { bgcolor: '#10B981', boxShadow: '0 0 0 2px #161412' } }}
-                                    >
-                                        <Avatar sx={{ bgcolor: 'primary.main', color: 'white' }}>
-                                            {call.type === 'video' ? <VideocamIcon /> : <CallIcon />}
-                                        </Avatar>
-                                    </Badge>
-                                </ListItemAvatar>
-                                <ListItemText
-                                    primary={
-                                        <Typography fontWeight="bold" sx={{ color: '#6366F1' }}>
-                                            {call.otherUser.displayName || call.otherUser.username}
-                                        </Typography>
-                                    }
-                                    secondary={
-                                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                                            Started {new Date(call.startedAt).toLocaleTimeString()}
-                                        </Typography>
-                                    }
-                                />
-                            </ListItem>
-                        </Paper>
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <div className="w-10 h-10 rounded-full bg-[#6366F1] text-white flex items-center justify-center">
+                                        {call.type === 'video' ? <Video size={18} /> : <Phone size={18} />}
+                                    </div>
+                                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#10B981] border border-[#161412] rounded-full" />
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="font-bold text-[#6366F1] text-sm">
+                                        {call.otherUser.displayName || call.otherUser.username}
+                                    </span>
+                                    <span className="text-xs text-[#9B9691]">
+                                        Started {new Date(call.startedAt).toLocaleTimeString()}
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteCall(call.$id); }} 
+                                    className="p-1.5 rounded-lg text-[#EF4444] hover:bg-[#EF4444]/10 transition-all"
+                                    title="Delete Permanently"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        </div>
                     ))}
-                </List>
+                </div>
             )}
 
-            <Divider sx={{ opacity: 0.1, mb: 1 }} />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">Recent History</Typography>
-                <Tooltip title="Call logs are cleared every 7 days">
-                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ opacity: 0.5, cursor: 'help' }}>
-                        <HistoryIcon sx={{ fontSize: 14 }} />
-                        <Typography variant="caption" fontWeight="bold">7D Retention</Typography>
-                    </Stack>
-                </Tooltip>
-            </Box>
+            <div className="border-t border-white/5 my-2" />
+            
+            <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-bold text-[#9B9691] uppercase tracking-wider font-mono">Recent History</span>
+                <div className="flex items-center gap-1 text-white/50 cursor-help" title="Call logs are cleared every 7 days">
+                    <History size={14} />
+                    <span className="text-[10px] font-black tracking-wider uppercase font-mono">7D Retention</span>
+                </div>
+            </div>
 
             {calls.filter(c => c.status !== 'ongoing').length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 5, color: 'text.secondary' }}>
-                    <CallIcon sx={{ fontSize: 60, mb: 2, opacity: 0.5 }} />
-                    <Typography>No recent calls</Typography>
-                </Box>
+                <div className="text-center py-12 text-[#9B9691] flex flex-col items-center gap-2">
+                    <Phone size={48} className="opacity-40" />
+                    <span className="text-sm font-medium">No recent calls</span>
+                </div>
             ) : (
-                <List>
+                <div className="space-y-3">
                     {calls.filter(c => c.status !== 'ongoing').map((call) => (
-                        <Paper 
+                        <div 
                             key={call.$id} 
-                            sx={{ 
-                                mb: 1.5, 
-                                borderRadius: 3,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                '&:hover': {
-                                    bgcolor: 'rgba(255, 255, 255, 0.02)',
-                                    transform: 'translateY(-2px)'
-                                }
-                            }} 
-                            elevation={0} 
-                            variant="outlined"
                             onClick={() => startCall(call)}
+                            className="p-4 rounded-2xl border border-white/5 bg-[#161412] hover:bg-white/2 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex items-center justify-between"
                         >
-                            <ListItem
-                                secondaryAction={
-                                    <Stack direction="row" spacing={1}>
-                                        <IconButton edge="end" onClick={(e) => { e.stopPropagation(); handleDeleteCall(call.$id); }} size="small" sx={{ opacity: 0.3 }}>
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
-                                    </Stack>
-                                }
-                            >
-                                <ListItemAvatar>
-                                    <Avatar sx={{ bgcolor: call.status === 'missed' ? 'error.light' : 'primary.light', color: call.status === 'missed' ? 'error.main' : 'primary.main' }}>
-                                        {call.type === 'video' ? <VideocamIcon /> : <CallIcon />}
-                                    </Avatar>
-                                </ListItemAvatar>
-                                <ListItemText
-                                    primary={
-                                        <Typography fontWeight="bold">
-                                            {call.otherUser.displayName || call.otherUser.username}
-                                        </Typography>
-                                    }
-                                    secondary={
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                                            {call.direction === 'outgoing' ? <CallMadeIcon fontSize="small" /> : <CallReceivedIcon fontSize="small" />}
-                                            <Typography variant="caption" color="text.secondary">
-                                                {new Date(call.startedAt).toLocaleDateString()}
-                                            </Typography>
-                                            {call.status === 'missed' && (
-                                                <Chip label="Missed" size="small" color="error" variant="outlined" sx={{ height: 20, fontSize: '0.65rem' }} />
-                                            )}
-                                        </Box>
-                                    }
-                                />
-                            </ListItem>
-                        </Paper>
+                            <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                    call.status === 'missed' ? 'bg-[#EF4444]/10 text-[#EF4444]' : 'bg-[#6366F1]/10 text-[#6366F1]'
+                                }`}>
+                                    {call.type === 'video' ? <Video size={18} /> : <Phone size={18} />}
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="font-bold text-white text-sm">
+                                        {call.otherUser.displayName || call.otherUser.username}
+                                    </span>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        {call.direction === 'outgoing' ? <PhoneOutgoing size={12} className="text-[#9B9691]" /> : <PhoneIncoming size={12} className="text-[#9B9691]" />}
+                                        <span className="text-xs text-[#9B9691]">
+                                            {new Date(call.startedAt).toLocaleDateString()}
+                                        </span>
+                                        {call.status === 'missed' && (
+                                            <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#EF4444] border border-[#EF4444]/20 rounded-md bg-[#EF4444]/5">
+                                                Missed
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteCall(call.$id); }} 
+                                    className="p-1.5 rounded-lg text-white/30 hover:text-white/80 hover:bg-white/5 transition-all"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        </div>
                     ))}
-                </List>
+                </div>
             )}
             
-            <Fab 
-                color="primary" 
-                aria-label="add call" 
-                sx={{ 
-                    position: 'fixed', 
-                    bottom: 80, 
-                    right: 24,
-                    bgcolor: '#6366F1',
-                    '&:hover': { bgcolor: '#4F46E5' }
-                }}
+            {/* Floating Action Button */}
+            <button 
                 onClick={() => onNewCall ? onNewCall() : router.push('/chats')}
+                className="fixed bottom-20 right-6 w-14 h-14 rounded-full bg-[#6366F1] hover:bg-[#4F46E5] text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all z-20"
+                aria-label="add call"
             >
-                <AddIcCallIcon />
-            </Fab>
-        </Box>
+                <PhoneCall size={24} />
+            </button>
+        </div>
     );
 };

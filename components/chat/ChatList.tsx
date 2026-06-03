@@ -9,47 +9,29 @@ import { UsersService } from '@/lib/services/users';
 import { tablesDB, realtime  } from '@/lib/appwrite/client';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { usePresence } from '../providers/PresenceProvider';
-import {
-    List,
-    ListItem,
-    ListItemButton,
-    Avatar,
-    ListItemText,
-    Typography,
-    Box,
-    CircularProgress,
-    
-    alpha,
-    IconButton,
-    Badge,
-    ListItemAvatar,
-    Divider,
-    Stack,
-    Tabs,
-    Tab,
-    Button,
-    Drawer,
-    useTheme,
-    useMediaQuery,
-} from '@/lib/mui-tailwind/material';
 import { useSection } from '@/context/SectionContext';
-import ShieldCheckIcon from '@/lib/mui-tailwind/icons';
 import { showIslandNotification } from '@/lib/island-notification';
 import { createGhostNoteChat, listGhostNoteChats, deleteGhostThread } from '@/lib/actions/client-ops';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
-import { Trash2 } from 'lucide-react';
-import GroupIcon from '@/lib/mui-tailwind/icons';
-import PersonIcon from '@/lib/mui-tailwind/icons';
-import BookmarkIcon from '@/lib/mui-tailwind/icons';
-import SearchIcon from '@/lib/mui-tailwind/icons';
-import LockIcon from '@/lib/mui-tailwind/icons';
-import ArrowLeftIcon from '@/lib/mui-tailwind/icons';
-import ProjectIcon from '@/lib/mui-tailwind/icons';
-import TaskIcon from '@/lib/mui-tailwind/icons';
-import EventIcon from '@/lib/mui-tailwind/icons';
-import FormIcon from '@/lib/mui-tailwind/icons';
-import TagIcon from '@/lib/mui-tailwind/icons';
-import NoteIcon from '@/lib/mui-tailwind/icons';
+import { 
+    Trash2, 
+    ShieldCheck, 
+    Users, 
+    User, 
+    Bookmark, 
+    Search, 
+    Lock, 
+    ArrowLeft, 
+    Folder, 
+    CheckSquare, 
+    Calendar, 
+    ClipboardList, 
+    Tag, 
+    StickyNote, 
+    ExternalLink, 
+    Link as LinkIcon, 
+    Sliders 
+} from 'lucide-react';
 import { fetchProfilePreview } from '@/lib/profile-preview';
 import { IdentityAvatar } from '../IdentityBadge';
 import { seedIdentityCache, getCachedIdentityById  } from '@/lib/identity-cache';
@@ -60,9 +42,17 @@ import { getConversationReadAt } from '@/lib/chat-read-state';
 import { useChatNotifications } from '../providers/ChatNotificationProvider';
 import ConversationActionsSheet from './ConversationActionsSheet';
 import { useContextMenu } from '@/components/ui/ContextMenuContext';
-import LaunchIcon from '@/lib/mui-tailwind/icons';
-import LinkIcon from '@/lib/mui-tailwind/icons';
-import TuneIcon from '@/lib/mui-tailwind/icons';
+
+const alpha = (hexColor: string, opacity: number) => {
+    let hex = hexColor.replace('#', '');
+    if (hex.length === 3) {
+        hex = hex.split('').map(char => char + char).join('');
+    }
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
 
 const GlobalSearchAvatar = ({ u }: { u: any }) => {
     const userId = u.userId || u.$id;
@@ -96,8 +86,14 @@ export const ChatList = ({
     const { requestSudo } = useSudo();
     const { openMenu } = useContextMenu();
     const { open: openUnified } = useUnifiedDrawer();
-    const theme = useTheme();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+    const [isDesktop, setIsDesktop] = useState(false);
+    useEffect(() => {
+        const media = window.matchMedia('(min-width: 1024px)');
+        setIsDesktop(media.matches);
+        const listener = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+        media.addEventListener('change', listener);
+        return () => media.removeEventListener('change', listener);
+    }, []);
     const { setActiveDetail } = useSection();
     const [conversations, setConversations] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -158,12 +154,12 @@ export const ChatList = ({
             items: [
                 {
                     label: 'Open Secure Chat',
-                    icon: <LaunchIcon sx={{ fontSize: 18 }} />,
+                    icon: <ExternalLink size={18} />,
                     onClick: () => router.push(`/connect/chat/${conv.$id}`)
                 },
                 {
                     label: 'Copy Connection Link',
-                    icon: <LinkIcon sx={{ fontSize: 18 }} />,
+                    icon: <LinkIcon size={18} />,
                     onClick: () => {
                         const link = `${window.location.origin}/connect/chat/${conv.$id}`;
                         navigator.clipboard.writeText(link);
@@ -172,7 +168,7 @@ export const ChatList = ({
                 },
                 {
                     label: 'Manage Discussion',
-                    icon: <TuneIcon sx={{ fontSize: 18 }} />,
+                    icon: <Sliders size={18} />,
                     onClick: () => setSelectedConversation(conv)
                 },
                 {
@@ -213,12 +209,12 @@ export const ChatList = ({
             items: [
                 {
                     label: 'Open Discussion Thread',
-                    icon: <LaunchIcon sx={{ fontSize: 18 }} />,
+                    icon: <ExternalLink size={18} />,
                     onClick: () => router.push(`/connect/chat/${conv.$id}`)
                 },
                 {
                     label: 'Copy Thread ID',
-                    icon: <LinkIcon sx={{ fontSize: 18 }} />,
+                    icon: <LinkIcon size={18} />,
                     onClick: () => {
                         navigator.clipboard.writeText(conv.$id);
                         toast.success('Thread ID copied');
@@ -226,7 +222,7 @@ export const ChatList = ({
                 },
                 {
                     label: 'Copy Discussion Link',
-                    icon: <LinkIcon sx={{ fontSize: 18 }} />,
+                    icon: <LinkIcon size={18} />,
                     onClick: () => {
                         const link = `${window.location.origin}/connect/chat/${conv.$id}`;
                         navigator.clipboard.writeText(link);
@@ -1037,19 +1033,17 @@ export const ChatList = ({
     }, [user, activeTab, loadConversations, loadGhostConversations, formatPreviewFromMessage, startTransition]);
 
     if (loading) return (
-        <Box sx={{ p: 2 }}>
-            <Stack spacing={1.5}>
-                {[1, 2, 3, 4, 5].map((i) => (
-                    <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1 }}>
-                        <></>
-                        <Box sx={{ flex: 1 }}>
-                            <></>
-                            <></>
-                        </Box>
-                    </Box>
-                ))}
-            </Stack>
-        </Box>
+        <div className="p-4 space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-2 animate-pulse">
+                    <div className="w-11 h-11 bg-white/5 rounded-full flex-shrink-0" />
+                    <div className="flex-1 min-w-0 space-y-2">
+                        <div className="h-4 bg-white/10 rounded w-1/3" />
+                        <div className="h-3 bg-white/5 rounded w-2/3" />
+                    </div>
+                </div>
+            ))}
+        </div>
     );
 
     const filteredConversations = conversations.filter(c =>
@@ -1063,59 +1057,40 @@ export const ChatList = ({
     const showGlobalResults = searchQuery.length >= 2 && searchResults.length > 0;
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <div className="flex flex-col relative w-full">
             {/* Elegant Pill Tab Switcher */}
             {!hideTabs && (
-                <Box sx={{ 
-                    bgcolor: '#161412',
-                    borderRadius: '16px', 
-                    p: 0.5,
-                    width: 'fit-content',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    mb: 4
-                }}>
-                    <Tabs 
-                        value={activeTab} 
-                        onChange={(_, v) => setActiveTab(v)}
-                        aria-label="chat type tabs"
-                        sx={{
-                            minHeight: 40,
-                            '& .MuiTabs-indicator': {
-                                display: 'none',
-                            },
-                            '& .MuiTab-root': {
-                                minHeight: 40,
-                                borderRadius: '12px',
-                                textTransform: 'none',
-                                fontWeight: 700,
-                                fontSize: '0.85rem',
-                                color: 'rgba(255, 255, 255, 0.5)',
-                                px: 3,
-                                transition: 'all 0.2s ease',
-                                '&.Mui-selected': {
-                                    color: 'white',
-                                    bgcolor: 'rgba(255, 255, 255, 0.08)',
-                                },
-                                '&:hover': {
-                                    color: 'white',
-                                    bgcolor: 'rgba(255, 255, 255, 0.04)',
-                                }
-                            }
-                        }}
+                <div className="bg-[#161412] rounded-2xl p-1 w-fit border border-white/5 mb-8 flex gap-1">
+                    <button
+                        onClick={() => setActiveTab('secure')}
+                        className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
+                            activeTab === 'secure'
+                                ? 'bg-white/8 text-white'
+                                : 'text-white/50 hover:text-white hover:bg-white/4'
+                        }`}
                     >
-                        <Tab value="secure" label="Secure Chat (E2EE)" />
-                        <Tab value="public" label="Threads" />
-                    </Tabs>
-                </Box>
+                        Secure Chat (E2EE)
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('public')}
+                        className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
+                            activeTab === 'public'
+                                ? 'bg-white/8 text-white'
+                                : 'text-white/50 hover:text-white hover:bg-white/4'
+                        }`}
+                    >
+                        Threads
+                    </button>
+                </div>
             )}
 
-            <Box sx={{ flex: 1 }}>
+            <div className="flex-1">
                 {showGlobalResults && (
-                    <Box sx={{ mb: 4 }}>
-                        <Typography sx={{ px: 1, mb: 2, display: 'block', fontWeight: 900, color: '#9B9691', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.7rem', fontFamily: 'var(--font-mono)' }}>
+                    <div className="mb-8">
+                        <span className="px-2 mb-4 block font-black text-[#9B9691] uppercase tracking-widest text-[10px] font-mono">
                             Global Directory
-                        </Typography>
-                        <List sx={{ pt: 0 }}>
+                        </span>
+                        <div className="space-y-2">
                             {searchResults.map((u) => {
                                 const targetId = u.userId || u.$id;
                                 const hasChat = activeTab === 'secure' 
@@ -1127,92 +1102,67 @@ export const ChatList = ({
                                         return participants.includes(targetId);
                                     });
                                 return (
-                                    <ListItem key={u.$id} disablePadding sx={{ mb: 1 }}>
-                                        <ListItemButton
+                                    <div key={u.$id} className="w-full">
+                                        <button
                                             onClick={() => startChat(u)}
-                                            sx={{
-                                                borderRadius: '16px',
-                                                py: 1.5,
-                                                bgcolor: '#161412',
-                                                border: '1px solid #1C1A18',
-                                                '&:hover': {
-                                                    bgcolor: '#1F1D1B',
-                                                    borderColor: '#F59E0B',
-                                                }
-                                            }}
+                                            className="w-full flex items-center gap-4 p-3 rounded-2xl bg-[#161412] border border-[#1C1A18] hover:bg-[#1F1D1B] hover:border-[#F59E0B] transition-all text-left"
                                         >
-                                            <ListItemAvatar sx={{ minWidth: 60 }}>
+                                            <div className="flex-shrink-0">
                                                 <GlobalSearchAvatar u={u} />
-                                            </ListItemAvatar>
-                                            <ListItemText
-                                                primary={u.displayName || u.username}
-                                                secondary={`@${String(u.username).replace(/^@/, '')}`}
-                                                primaryTypographyProps={{ fontWeight: 800, fontSize: '0.95rem', color: '#fff' }}
-                                                secondaryTypographyProps={{ fontSize: '0.8rem', sx: { color: '#9B9691', mt: 0.2 } }}
-                                            />
+                                            </div>
+                                            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                                <span className="font-bold text-base text-white truncate">
+                                                    {u.displayName || u.username}
+                                                </span>
+                                                <span className="text-xs text-[#9B9691] truncate">
+                                                    {`@${String(u.username).replace(/^@/, '')}`}
+                                                </span>
+                                            </div>
                                             {!hasChat && (
-                                                <Box sx={{ 
-                                                    px: 1.5, 
-                                                    py: 0.5, 
-                                                    borderRadius: '8px', 
-                                                    bgcolor: '#F59E0B', 
-                                                    color: '#000'
-                                                }}>
-                                                    <Typography sx={{ fontSize: '10px', fontWeight: 900 }}>NEW</Typography>
-                                                </Box>
+                                                <div className="px-3 py-1 rounded bg-[#F59E0B] text-black">
+                                                    <span className="text-[10px] font-black tracking-wider">NEW</span>
+                                                </div>
                                             )}
-                                        </ListItemButton>
-                                    </ListItem>
+                                        </button>
+                                    </div>
                                 );
                             })}
-                        </List>
-                        <Divider sx={{ my: 3, borderColor: '#34322F' }} />
-                    </Box>
+                        </div>
+                        <div className="my-6 border-t border-[#34322F]" />
+                    </div>
                 )}
 
                 {activeTab === 'secure' ? (
                     !isUnlocked ? (
-                        <Box sx={{ minHeight: '50vh', display: 'grid', placeItems: 'center', px: 3, py: 4 }}>
-                            <Stack spacing={3} alignItems="center" sx={{ maxWidth: 420, textAlign: 'center' }}>
-                                <Box sx={{ p: 2, borderRadius: '24px', bgcolor: '#161412', color: '#F59E0B', border: '1px solid #1C1A18', mb: 1 }}>
-                                    <ShieldCheckIcon sx={{ fontSize: 48 }} />
-                                </Box>
-                                <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: '#fff' }}>Vault Secured</Typography>
-                                <Typography sx={{ color: '#9B9691', fontWeight: 500, lineHeight: 1.6, fontSize: '0.9rem' }}>
+                        <div className="min-h-[50vh] grid place-items-center px-6 py-8">
+                            <div className="flex flex-col items-center gap-6 max-w-sm text-center">
+                                <div className="p-4 rounded-3xl bg-[#161412] text-[#F59E0B] border border-[#1C1A18] mb-1">
+                                    <ShieldCheck size={48} />
+                                </div>
+                                <h5 className="text-xl font-black font-clash text-white">Vault Secured</h5>
+                                <p className="text-[#9B9691] font-medium leading-relaxed text-sm">
                                     Unlock your decentralized node to initialize secure communication channels and identity resolution.
-                                </Typography>
-                                <Button 
-                                    variant="contained" 
+                                </p>
+                                <button 
                                     onClick={() => requestSudo({ onSuccess: () => setIsUnlocked(true) })}
-                                    sx={{ 
-                                        borderRadius: '16px', 
-                                        px: 4, 
-                                        py: 1.8, 
-                                        fontWeight: 900,
-                                        bgcolor: '#F59E0B',
-                                        color: '#000',
-                                        textTransform: 'none',
-                                        fontSize: '0.95rem',
-                                        boxShadow: '0 12px 24px rgba(245, 158, 11, 0.15)',
-                                        '&:hover': { bgcolor: '#eab308', transform: 'translateY(-2px)' },
-                                        transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-                                    }}
+                                    className="px-8 py-3.5 rounded-2xl font-black bg-[#F59E0B] text-black text-sm shadow-[0_12px_24px_rgba(245,158,11,0.15)] hover:bg-[#eab308] hover:-translate-y-0.5 transition-all duration-300 ease-out"
                                 >
                                     Unlock Node
-                                </Button>
-                            </Stack>
-                        </Box>
+                                </button>
+                            </div>
+                        </div>
                     ) : filteredConversations.length === 0 && !showGlobalResults ? (
-                        <Box sx={{ p: 6, textAlign: 'center' }}>
-                            <Typography sx={{ fontWeight: 900, color: '#fff', fontSize: '1.1rem', mb: 1, fontFamily: 'var(--font-clash)' }}>Quiet Frequency</Typography>
-                            <Typography variant="body2" sx={{ color: '#9B9691', fontWeight: 500 }}>No encrypted channels found matching your query.</Typography>
-                        </Box>
+                        <div className="p-12 text-center">
+                            <span className="font-black text-white text-lg mb-1 font-clash block">Quiet Frequency</span>
+                            <span className="text-sm text-[#9B9691] font-medium block">No encrypted channels found matching your query.</span>
+                        </div>
                     ) : (
-                        <List sx={{ pt: 0 }}>
+                        <div className="space-y-3">
                             {filteredConversations.map((conv) => (
-                                <ListItem key={conv.$id} disablePadding sx={{ mb: 1 }}>
-                                    <ListItemButton
-                                        {...(!isDesktop ? { component: Link, href: `/connect/chat/${conv.$id}` } : {})}
+                                <div key={conv.$id} className="w-full">
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
                                         onClick={(e: React.MouseEvent) => {
                                             if (isDesktop) {
                                                 e.preventDefault();
@@ -1220,85 +1170,78 @@ export const ChatList = ({
                                                 return;
                                             }
                                             handleItemClick(e);
-                                        }}
-                                        onContextMenu={(e) => handleConversationRightClick(e, conv)}
-                                    sx={{
-                                            borderRadius: '24px',
-                                            py: 2.5,
-                                            mb: 1.5,
-                                            transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                                            bgcolor: '#161412',
-                                            border: '1px solid #1C1A18',
-                                            boxShadow: `0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px ${alpha('#252321', 0.9)}`,
-                                            ...(activePreviewConversationId === conv.$id ? {
-                                                borderColor: '#F59E0B',
-                                                transform: 'translateY(-2px)',
-                                                boxShadow: `0 8px 10px -8px rgba(0,0,0,1), 0 6px 8px -6px ${alpha('#252321', 1.0)}`,
-                                            } : {}),
-                                            '&:hover': {
-                                                bgcolor: '#1C1A18',
-                                                borderColor: alpha('#F59E0B', 0.2),
-                                                transform: 'translateY(-2px)',
-                                                boxShadow: `0 8px 10px -8px rgba(0,0,0,1), 0 6px 8px -6px ${alpha('#252321', 1.0)}`,
+                                            if (!isInitializing) {
+                                                router.push(`/connect/chat/${conv.$id}`);
                                             }
                                         }}
+                                        onContextMenu={(e) => handleConversationRightClick(e, conv)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                if (isDesktop) {
+                                                    setActiveDetail({ type: 'chat', id: conv.$id, data: conv });
+                                                } else if (!isInitializing) {
+                                                    router.push(`/connect/chat/${conv.$id}`);
+                                                }
+                                            }
+                                        }}
+                                        className={`w-full flex items-center gap-4 px-5 py-4 rounded-3xl bg-[#161412] border border-[#1C1A18] hover:bg-[#1C1A18] hover:border-[#F59E0B]/20 hover:-translate-y-0.5 transition-all duration-300 ease-out text-left cursor-pointer ${
+                                            activePreviewConversationId === conv.$id ? 'border-[#F59E0B] -translate-y-0.5 shadow-[0_8px_10px_-8px_rgba(0,0,0,1)]' : 'shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9)]'
+                                        }`}
                                     >
-                                            <Box
-                                                component="span"
-                                                role="button"
-                                                tabIndex={0}
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    event.stopPropagation();
-                                                    if (isInitializing) {
-                                                        showIslandNotification({
-                                                            type: 'warning',
-                                                            title: 'Initializing Encryption',
-                                                            message: 'Securing connection channels...',
-                                                            app: 'connect',
-                                                            majestic: false,
-                                                            duration: 4000
-                                                        });
-                                                        return;
-                                                    }
-                                                    setSelectedConversation(conv);
-                                                }}
-                                                onKeyDown={(event) => {
-                                                    if (event.key !== 'Enter' && event.key !== ' ') return;
-                                                    event.preventDefault();
-                                                    event.stopPropagation();
-                                                    if (isInitializing) {
-                                                        showIslandNotification({
-                                                            type: 'warning',
-                                                            title: 'Initializing Encryption',
-                                                            message: 'Securing connection channels...',
-                                                            app: 'connect',
-                                                            majestic: false,
-                                                            duration: 4000
-                                                        });
-                                                        return;
-                                                    }
-                                                    setSelectedConversation(conv);
-                                                }}
-                                                sx={{
-                                                    mr: 2,
-                                                    display: 'inline-flex',
-                                                    cursor: 'pointer',
-                                                }}
-                                            >
-                                                <IdentityAvatar
-                                                    src={conv.avatarUrl || conv.avatar || null}
-                                                    alt={conv.name}
-                                                    fallback={conv.name?.replace(/^@/, '').charAt(0).toUpperCase() || 'U'}
-                                                    size={48}
-                                                    pro={conv.isSelf}
-                                                    status={conv.type === 'direct' && conv.otherUserId ? globalPresence?.[conv.otherUserId]?.state : undefined}
-                                                />
-                                            </Box>
-                                        <ListItemText
-                                            primary={conv.name || (conv.type === 'direct' ? conv.otherUserId : 'Group Chat')}
-                                            secondary={
-                                                (() => {
+                                        <div
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                if (isInitializing) {
+                                                    showIslandNotification({
+                                                        type: 'warning',
+                                                        title: 'Initializing Encryption',
+                                                        message: 'Securing connection channels...',
+                                                        app: 'connect',
+                                                        majestic: false,
+                                                        duration: 4000
+                                                    });
+                                                    return;
+                                                }
+                                                setSelectedConversation(conv);
+                                            }}
+                                            onKeyDown={(event) => {
+                                                if (event.key !== 'Enter' && event.key !== ' ') return;
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                if (isInitializing) {
+                                                    showIslandNotification({
+                                                        type: 'warning',
+                                                        title: 'Initializing Encryption',
+                                                        message: 'Securing connection channels...',
+                                                        app: 'connect',
+                                                        majestic: false,
+                                                        duration: 4000
+                                                    });
+                                                    return;
+                                                }
+                                                setSelectedConversation(conv);
+                                            }}
+                                            className="flex-shrink-0 mr-1"
+                                        >
+                                            <IdentityAvatar
+                                                src={conv.avatarUrl || conv.avatar || null}
+                                                alt={conv.name}
+                                                fallback={conv.name?.replace(/^@/, '').charAt(0).toUpperCase() || 'U'}
+                                                size={48}
+                                                pro={conv.isSelf}
+                                                status={conv.type === 'direct' && conv.otherUserId ? globalPresence?.[conv.otherUserId]?.state : undefined}
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                            <span className={`font-black text-base font-clash tracking-tight truncate ${conv.isSelf ? 'text-[#F59E0B]' : 'text-white'}`}>
+                                                {conv.name || (conv.type === 'direct' ? conv.otherUserId : 'Group Chat')}
+                                            </span>
+                                            <span className="text-[#9B9691] font-medium text-sm truncate flex items-center gap-1.5">
+                                                {(() => {
                                                     const memoryPreview = ChatService.getConversationPreviewSnapshot(conv.$id);
                                                     const memoryAt = memoryPreview?.lastMessageAt ? new Date(memoryPreview.lastMessageAt).getTime() : -1;
                                                     const rowAt = conv.lastMessageAt ? new Date(conv.lastMessageAt).getTime() : -1;
@@ -1308,31 +1251,21 @@ export const ChatList = ({
                                                     const resolvedPreview = livePreviewByConversation[conv.$id]?.lastMessageText || memoryText || conv.lastMessageText || 'No messages yet';
 
                                                     return (conv.isEncrypted && !isUnlocked && isLikelyEncrypted(resolvedPreview)) ? (
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                        <LockIcon sx={{ fontSize: 12, color: '#9B9691' }} />
-                                                        <span>Secured Payload</span>
-                                                    </Box>
-                                                    ) : resolvedPreview;
-                                                })()
-                                            }
-                                            primaryTypographyProps={{
-                                                fontWeight: 800,
-                                                fontSize: '1rem',
-                                                color: conv.isSelf ? '#F59E0B' : '#fff',
-                                                fontFamily: 'var(--font-clash)',
-                                                letterSpacing: '-0.01em'
-                                            }}
-                                            secondaryTypographyProps={{
-                                                noWrap: true,
-                                                fontSize: '0.85rem',
-                                                sx: { color: '#9B9691', mt: 0.5, fontWeight: 500 }
-                                            }}
-                                        />
-                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1.5, ml: 1 }}>
+                                                        <span className="flex items-center gap-1">
+                                                            <Lock size={12} className="text-[#9B9691]" />
+                                                            <span>Secured Payload</span>
+                                                        </span>
+                                                    ) : (
+                                                        <span>{resolvedPreview}</span>
+                                                    );
+                                                })()}
+                                            </span>
+                                        </div>
+                                        <div className="flex-shrink-0 flex flex-col items-end gap-1.5 ml-2">
                                             {conv.lastMessageAt && (
-                                                <Typography variant="caption" sx={{ fontSize: '0.7rem', color: '#9B9691', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                                                <span className="text-[11px] text-[#9B9691] font-black font-mono">
                                                     {new Date(conv.lastMessageAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                                                </Typography>
+                                                </span>
                                             )}
                                             {conv.lastMessageAt && conv.lastMessageId && !conv.isSelf && (() => {
                                                 const readAt = getConversationReadAt(user?.$id, conv.$id);
@@ -1341,52 +1274,40 @@ export const ChatList = ({
                                                     new Date(conv.lastMessageAt).getTime() > readAt
                                                 );
                                                 return isUnread ? (
-                                                    <Badge 
-                                                        variant="dot" 
-                                                        sx={{ 
-                                                            '& .MuiBadge-badge': { 
-                                                                bgcolor: '#F59E0B',
-                                                                boxShadow: '0 0 12px rgba(245, 158, 11, 0.4)',
-                                                                width: 10,
-                                                                height: 10,
-                                                                borderRadius: '50%'
-                                                            } 
-                                                        }} 
-                                                    />
+                                                    <span className="w-2.5 h-2.5 bg-[#F59E0B] rounded-full shadow-[0_0_12px_rgba(245,158,11,0.4)]" />
                                                 ) : null;
                                             })()}
-                                        </Box>
-                                    </ListItemButton>
-                                </ListItem>
+                                        </div>
+                                    </div>
+                                </div>
                             ))}
-                        </List>
+                        </div>
                     )
                 ) : (
                     loadingGhost && filteredGhostConversations.length === 0 ? (
-                        <Box sx={{ p: 2 }}>
-                            <Stack spacing={1.5}>
-                                {[1, 2, 3].map((i) => (
-                                    <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1 }}>
-                                        <></>
-                                        <Box sx={{ flex: 1 }}>
-                                            <></>
-                                            <></>
-                                        </Box>
-                                    </Box>
-                                ))}
-                            </Stack>
-                        </Box>
+                        <div className="p-4 space-y-3 animate-pulse">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex items-center gap-4 p-2">
+                                    <div className="w-11 h-11 bg-white/5 rounded-full flex-shrink-0" />
+                                    <div className="flex-1 space-y-2">
+                                        <div className="h-4 bg-white/10 rounded w-1/3" />
+                                        <div className="h-3 bg-white/5 rounded w-2/3" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     ) : filteredGhostConversations.length === 0 && !showGlobalResults ? (
-                        <Box sx={{ p: 6, textAlign: 'center' }}>
-                            <Typography sx={{ fontWeight: 900, color: '#fff', fontSize: '1.1rem', mb: 1, fontFamily: 'var(--font-clash)' }}>Quiet Airwaves</Typography>
-                            <Typography variant="body2" sx={{ color: '#9B9691', fontWeight: 500 }}>No huddle threads active matching your query.</Typography>
-                        </Box>
+                        <div className="p-12 text-center">
+                            <span className="font-black text-white text-lg mb-1 font-clash block">Quiet Airwaves</span>
+                            <span className="text-sm text-[#9B9691] font-medium block">No huddle threads active matching your query.</span>
+                        </div>
                     ) : (
-                        <List sx={{ pt: 0 }}>
+                        <div className="space-y-3">
                             {filteredGhostConversations.map((conv) => (
-                                <ListItem key={conv.$id} disablePadding sx={{ mb: 1 }}>
-                                    <ListItemButton
-                                        {...(!isDesktop ? { component: Link, href: `/connect/chat/${conv.$id}` } : {})}
+                                <div key={conv.$id} className="w-full">
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
                                         onClick={(e: React.MouseEvent) => {
                                             if (isDesktop) {
                                                 e.preventDefault();
@@ -1394,63 +1315,59 @@ export const ChatList = ({
                                                 return;
                                             }
                                             handleItemClick(e);
-                                        }}
-                                        onContextMenu={(e) => handleGhostConversationRightClick(e, conv)}
-                                        sx={{
-                                            borderRadius: '24px',
-                                            py: 2.5,
-                                            mb: 1.5,
-                                            transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                                            bgcolor: '#161412',
-                                            border: '1px solid #1C1A18',
-                                            boxShadow: `0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px ${alpha('#252321', 0.9)}`,
-                                            '&:hover': {
-                                                bgcolor: '#1C1A18',
-                                                borderColor: alpha('#F59E0B', 0.2),
-                                                transform: 'translateY(-2px)',
-                                                boxShadow: `0 8px 10px -8px rgba(0,0,0,1), 0 6px 8px -6px ${alpha('#252321', 1.0)}`,
+                                            if (!isInitializing) {
+                                                router.push(`/connect/chat/${conv.$id}`);
                                             }
                                         }}
+                                        onContextMenu={(e) => handleGhostConversationRightClick(e, conv)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                if (isDesktop) {
+                                                    setActiveDetail({ type: 'chat', id: conv.$id, data: conv });
+                                                } else if (!isInitializing) {
+                                                    router.push(`/connect/chat/${conv.$id}`);
+                                                }
+                                            }
+                                        }}
+                                        className="w-full flex items-center gap-4 px-5 py-4 rounded-3xl bg-[#161412] border border-[#1C1A18] hover:bg-[#1C1A18] hover:border-[#F59E0B]/20 hover:-translate-y-0.5 transition-all duration-300 ease-out text-left cursor-pointer shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9)]"
                                     >
-                                        <Box sx={{ mr: 2, display: 'inline-flex' }}>
+                                        <div className="flex-shrink-0">
                                             {conv.linkedResourceType ? (
-                                                <Box sx={{
-                                                    width: 48,
-                                                    height: 48,
-                                                    borderRadius: '16px',
-                                                    display: 'grid',
-                                                    placeItems: 'center',
-                                                    bgcolor: alpha(
-                                                        conv.linkedResourceType === 'project' ? '#6366F1' :
-                                                        conv.linkedResourceType === 'task' ? '#10B981' :
-                                                        conv.linkedResourceType === 'event' ? '#EC4899' :
-                                                        conv.linkedResourceType === 'form' ? '#8B5CF6' :
-                                                        conv.linkedResourceType === 'tag' ? '#EF4444' : '#F59E0B',
-                                                        0.1
-                                                    ),
-                                                    color: 
-                                                        conv.linkedResourceType === 'project' ? '#818CF8' :
-                                                        conv.linkedResourceType === 'task' ? '#34D399' :
-                                                        conv.linkedResourceType === 'event' ? '#F472B6' :
-                                                        conv.linkedResourceType === 'form' ? '#A78BFA' :
-                                                        conv.linkedResourceType === 'tag' ? '#F87171' : '#FBBF24',
-                                                    border: '1px solid',
-                                                    borderColor: alpha(
-                                                        conv.linkedResourceType === 'project' ? '#818CF8' :
-                                                        conv.linkedResourceType === 'task' ? '#34D399' :
-                                                        conv.linkedResourceType === 'event' ? '#F472B6' :
-                                                        conv.linkedResourceType === 'form' ? '#A78BFA' :
-                                                        conv.linkedResourceType === 'tag' ? '#F87171' : '#FBBF24',
-                                                        0.15
-                                                    )
-                                                }}>
-                                                    {conv.linkedResourceType === 'project' && <ProjectIcon sx={{ fontSize: 24 }} />}
-                                                    {conv.linkedResourceType === 'task' && <TaskIcon sx={{ fontSize: 24 }} />}
-                                                    {conv.linkedResourceType === 'event' && <EventIcon sx={{ fontSize: 24 }} />}
-                                                    {conv.linkedResourceType === 'form' && <FormIcon sx={{ fontSize: 24 }} />}
-                                                    {conv.linkedResourceType === 'tag' && <TagIcon sx={{ fontSize: 24 }} />}
-                                                    {!['project', 'task', 'event', 'form', 'tag'].includes(conv.linkedResourceType) && <NoteIcon sx={{ fontSize: 24 }} />}
-                                                </Box>
+                                                <div 
+                                                    className="w-11 h-11 rounded-2xl flex items-center justify-center border"
+                                                    style={{
+                                                        backgroundColor: alpha(
+                                                            conv.linkedResourceType === 'project' ? '#6366F1' :
+                                                            conv.linkedResourceType === 'task' ? '#10B981' :
+                                                            conv.linkedResourceType === 'event' ? '#EC4899' :
+                                                            conv.linkedResourceType === 'form' ? '#8B5CF6' :
+                                                            conv.linkedResourceType === 'tag' ? '#EF4444' : '#F59E0B',
+                                                            0.1
+                                                        ),
+                                                        color: 
+                                                            conv.linkedResourceType === 'project' ? '#818CF8' :
+                                                            conv.linkedResourceType === 'task' ? '#34D399' :
+                                                            conv.linkedResourceType === 'event' ? '#F472B6' :
+                                                            conv.linkedResourceType === 'form' ? '#A78BFA' :
+                                                            conv.linkedResourceType === 'tag' ? '#F87171' : '#FBBF24',
+                                                        borderColor: alpha(
+                                                            conv.linkedResourceType === 'project' ? '#818CF8' :
+                                                            conv.linkedResourceType === 'task' ? '#34D399' :
+                                                            conv.linkedResourceType === 'event' ? '#F472B6' :
+                                                            conv.linkedResourceType === 'form' ? '#A78BFA' :
+                                                            conv.linkedResourceType === 'tag' ? '#F87171' : '#FBBF24',
+                                                            0.15
+                                                        )
+                                                    }}
+                                                >
+                                                    {conv.linkedResourceType === 'project' && <Folder size={20} />}
+                                                    {conv.linkedResourceType === 'task' && <CheckSquare size={20} />}
+                                                    {conv.linkedResourceType === 'event' && <Calendar size={20} />}
+                                                    {conv.linkedResourceType === 'form' && <ClipboardList size={20} />}
+                                                    {conv.linkedResourceType === 'tag' && <Tag size={20} />}
+                                                    {!['project', 'task', 'event', 'form', 'tag'].includes(conv.linkedResourceType) && <StickyNote size={20} />}
+                                                </div>
                                             ) : (
                                                 <IdentityAvatar
                                                     src={conv.avatarUrl}
@@ -1460,25 +1377,17 @@ export const ChatList = ({
                                                     status={conv.otherUserId ? globalPresence?.[conv.otherUserId]?.state : undefined}
                                                 />
                                             )}
-                                        </Box>
-                                        <ListItemText
-                                            primary={
-                                                <Stack direction="row" alignItems="center" spacing={1}>
-                                                    <Typography sx={{
-                                                        fontWeight: 800,
-                                                        fontSize: '1rem',
-                                                        color: '#fff',
-                                                        fontFamily: 'var(--font-clash)',
-                                                        letterSpacing: '-0.01em'
-                                                    }}>
-                                                        {conv.name}
-                                                    </Typography>
-                                                    {conv.linkedResourceType && (
-                                                        <Box sx={{
-                                                            px: 1,
-                                                            py: 0.25,
-                                                            borderRadius: '6px',
-                                                            bgcolor: alpha(
+                                        </div>
+                                        <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-black text-base font-clash tracking-tight text-white truncate">
+                                                    {conv.name}
+                                                </span>
+                                                {conv.linkedResourceType && (
+                                                    <div 
+                                                        className="px-2 py-0.5 rounded border flex-shrink-0"
+                                                        style={{
+                                                            backgroundColor: alpha(
                                                                 conv.linkedResourceType === 'project' ? '#6366F1' :
                                                                 conv.linkedResourceType === 'task' ? '#10B981' :
                                                                 conv.linkedResourceType === 'event' ? '#EC4899' :
@@ -1486,7 +1395,6 @@ export const ChatList = ({
                                                                 conv.linkedResourceType === 'tag' ? '#EF4444' : '#F59E0B',
                                                                 0.1
                                                             ),
-                                                            border: '1px solid',
                                                             borderColor: alpha(
                                                                 conv.linkedResourceType === 'project' ? '#818CF8' :
                                                                 conv.linkedResourceType === 'task' ? '#34D399' :
@@ -1495,48 +1403,42 @@ export const ChatList = ({
                                                                 conv.linkedResourceType === 'tag' ? '#F87171' : '#FBBF24',
                                                                 0.2
                                                             )
-                                                        }}>
-                                                            <Typography sx={{
-                                                                fontSize: '9px',
-                                                                fontWeight: 900,
-                                                                fontFamily: 'var(--font-mono)',
+                                                        }}
+                                                    >
+                                                        <span 
+                                                            className="text-[9px] font-black font-mono uppercase tracking-wider"
+                                                            style={{
                                                                 color: 
                                                                     conv.linkedResourceType === 'project' ? '#818CF8' :
                                                                     conv.linkedResourceType === 'task' ? '#34D399' :
                                                                     conv.linkedResourceType === 'event' ? '#F472B6' :
                                                                     conv.linkedResourceType === 'form' ? '#A78BFA' :
                                                                     conv.linkedResourceType === 'tag' ? '#F87171' : '#FBBF24',
-                                                                textTransform: 'uppercase',
-                                                                letterSpacing: '0.05em'
-                                                            }}>
-                                                                {conv.linkedResourceType}
-                                                            </Typography>
-                                                        </Box>
-                                                    )}
-                                                </Stack>
-                                            }
-                                            secondary={conv.lastMessageText}
-                                            primaryTypographyProps={{ component: 'div' }}
-                                            secondaryTypographyProps={{
-                                                noWrap: true,
-                                                fontSize: '0.85rem',
-                                                sx: { color: '#9B9691', mt: 0.5, fontWeight: 500 }
-                                            }}
-                                        />
-                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1.5, ml: 1 }}>
+                                                            }}
+                                                        >
+                                                            {conv.linkedResourceType}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <span className="text-[#9B9691] font-medium text-sm truncate">
+                                                {conv.lastMessageText}
+                                            </span>
+                                        </div>
+                                        <div className="flex-shrink-0 flex flex-col items-end gap-1.5 ml-2">
                                             {conv.lastMessageAt && (
-                                                <Typography variant="caption" sx={{ fontSize: '0.7rem', color: '#9B9691', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                                                <span className="text-[11px] text-[#9B9691] font-black font-mono">
                                                     {new Date(conv.lastMessageAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                                                </Typography>
+                                                </span>
                                             )}
-                                        </Box>
-                                    </ListItemButton>
-                                </ListItem>
+                                        </div>
+                                    </div>
+                                </div>
                             ))}
-                        </List>
+                        </div>
                     )
                 )}
-            </Box>
+            </div>
 
             <ConversationActionsSheet
                 conversation={selectedConversation}
@@ -1552,8 +1454,7 @@ export const ChatList = ({
                     callbackUrl="/connect/chats"
                 />
             )}
-
-        </Box>
+        </div>
     );
 };
 
@@ -1587,64 +1488,44 @@ const SetupCountdownDrawer = ({
     }, [secondsLeft, isCancelled, router, callbackUrl]);
 
     return (
-        <Drawer
-            anchor="bottom"
-            open={true}
-            onClose={() => {
-                setIsCancelled(true);
-                onCancel();
-            }}
-            PaperProps={{
-                sx: {
-                    bgcolor: '#161412',
-                    borderTop: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '24px 24px 0 0',
-                    maxWidth: 600,
-                    mx: 'auto',
-                    width: '100%',
-                }
-            }}
-            ModalProps={{
-                keepMounted: false,
-                disablePortal: true
-            }}
-        >
-            <Box sx={{ p: 4, textAlign: 'center', color: '#fff' }}>
-                <Stack spacing={3} alignItems="center">
-                    <Box sx={{ p: 2, borderRadius: '50%', bgcolor: alpha('#F59E0B', 0.1), color: '#F59E0B' }}>
-                        <ShieldCheckIcon sx={{ fontSize: 36 }} />
-                    </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)' }}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+            {/* Backdrop */}
+            <div 
+                className="absolute inset-0 bg-black/60 transition-opacity duration-300"
+                onClick={() => {
+                    setIsCancelled(true);
+                    onCancel();
+                }}
+            />
+            {/* Content panel */}
+            <div className="relative w-full max-w-[600px] bg-[#161412] border-t border-white/8 rounded-t-3xl p-6 text-center text-white shadow-2xl transition-transform duration-300 transform translate-y-0 z-10">
+                {/* Drag handle line */}
+                <div className="mx-auto w-12 h-1 bg-white/10 rounded-full mb-6 animate-pulse" />
+                
+                <div className="flex flex-col items-center gap-6">
+                    <div className="p-4 rounded-full bg-[#F59E0B]/10 text-[#F59E0B]">
+                        <ShieldCheck size={36} />
+                    </div>
+                    <h6 className="text-lg font-black font-clash">
                         Secure Chat Requires Setup
-                    </Typography>
-                    <Typography sx={{ color: '#9B9691', fontSize: '0.9rem', maxWidth: 400, lineHeight: 1.5 }}>
+                    </h6>
+                    <p className="text-[#9B9691] text-sm max-w-sm leading-relaxed">
                         End-to-End Encryption requires setting up an Ecosystem MasterPass to secure your local cryptographic keys.
-                    </Typography>
-                    <Typography variant="h5" sx={{ fontWeight: 900, color: '#F59E0B', fontFamily: 'var(--font-mono)' }}>
+                    </p>
+                    <span className="text-xl font-black text-[#F59E0B] font-mono">
                         Navigating to setup in {secondsLeft}...
-                    </Typography>
-                    <Button
-                        variant="outlined"
+                    </span>
+                    <button
                         onClick={() => {
                             setIsCancelled(true);
                             onCancel();
                         }}
-                        sx={{
-                            borderRadius: '12px',
-                            borderColor: 'rgba(255, 255, 255, 0.1)',
-                            color: '#fff',
-                            textTransform: 'none',
-                            px: 4,
-                            '&:hover': {
-                                bgcolor: 'rgba(255, 255, 255, 0.05)',
-                                borderColor: 'rgba(255, 255, 255, 0.2)'
-                            }
-                        }}
+                        className="px-8 py-3 rounded-xl border border-white/10 text-white font-bold text-sm hover:bg-white/5 hover:border-white/20 transition-all duration-200"
                     >
                         Cancel Redirect
-                    </Button>
-                </Stack>
-            </Box>
-        </Drawer>
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 };

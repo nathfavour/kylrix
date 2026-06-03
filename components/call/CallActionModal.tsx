@@ -2,30 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Drawer,
-    DialogTitle,
-    DialogContent,
-    List,
-    ListItem,
-    ListItemAvatar,
-    ListItemText,
-    ListItemButton,
-    Avatar,
-    Typography,
-    Box,
-    IconButton,
-    Divider,
-    Button,
-    Stack,
-    Paper,
-    alpha,
-    useTheme,
-    useMediaQuery,
-    CircularProgress,
-    TextField,
-    MenuItem
-} from '@/lib/mui-tailwind/material';
-import {
     Video,
     Phone,
     Plus,
@@ -41,7 +17,7 @@ import {
     Copy,
     ExternalLink,
     Mic,
-    VideoIcon,
+    Video as VideoIcon,
     Settings,
     ShieldCheck
 } from 'lucide-react';
@@ -52,10 +28,6 @@ import { CallService } from '@/lib/services/call';
 import { createChatCallAction } from '@/lib/actions/call';
 import { UsersService } from '@/lib/services/users';
 import toast from 'react-hot-toast';
-import { 
-    FormControlLabel, 
-    Switch 
-} from '@/lib/mui-tailwind/material';
 import type { CallLaunchContext } from '@/context/CallLauncherContext';
 import { updateNote } from '@/lib/actions/client-ops';
 import { tasks as taskApi } from '@/lib/kylrixflow';
@@ -92,14 +64,21 @@ export const CallActionModal = ({
 }) => {
     const { user } = useAuth();
     const router = useRouter();
-    const theme = useTheme();
     const { setIsDrawerOpen } = useDrawerState();
 
     useEffect(() => {
         setIsDrawerOpen(open);
     }, [open, setIsDrawerOpen]);
 
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const media = window.matchMedia('(max-width: 768px)');
+        setIsMobile(media.matches);
+        const listener = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+        media.addEventListener('change', listener);
+        return () => media.removeEventListener('change', listener);
+    }, []);
+
     const [conversations, setConversations] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [showScheduleForm, setShowScheduleForm] = useState(false);
@@ -405,369 +384,270 @@ export const CallActionModal = ({
 
     const liveCallUrl = liveCallState ? `/connect/call/${liveCallState.callId}` : '';
 
-    const inputStyles = {
-        '& .MuiOutlinedInput-root': {
-            bgcolor: 'rgba(255,255,255,0.02)',
-            borderRadius: '12px',
-            border: `1px solid ${COLORS.rim}`,
-            transition: 'all 0.2s ease',
-            '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.04)',
-                borderColor: 'rgba(255,255,255,0.1)',
-            },
-            '&.Mui-focused': {
-                bgcolor: 'rgba(255,255,255,0.05)',
-                borderColor: COLORS.secondary,
-            }
-        },
-        '& .MuiInputLabel-root': {
-            color: 'rgba(255,255,255,0.4)',
-            '&.Mui-focused': { color: COLORS.secondary }
-        },
-        '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
-    };
-
     if (!open) return null;
 
     return (
-        <Drawer 
-            open={open} 
-            onClose={onClose}
-            anchor={isMobile ? 'bottom' : 'right'}
-            ModalProps={{
-                keepMounted: false,
-                disablePortal: true
-            }}
-            PaperProps={{
-                sx: {
-                    bgcolor: COLORS.surface,
-                    backgroundImage: 'none',
-                    borderRadius: isMobile ? '24px 24px 0 0' : '28px 0 0 28px',
-                    border: `1px solid ${COLORS.rim}`,
-                    maxWidth: '480px',
-                    width: '100%',
-                    height: isMobile ? '60dvh' : '100%',
-                    maxHeight: isMobile ? '60dvh' : '100vh',
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-                    overflow: 'hidden'
-                }
-            }}
-        >
-            <DialogTitle sx={{ 
-                p: 3, 
-                pb: 2, 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                borderBottom: `1px solid ${COLORS.rim}`
-            }}>
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                    {(showScheduleForm || showJoinWithId) && (
-                        <IconButton 
-                            onClick={() => { setShowScheduleForm(false); setShowJoinWithId(false); }} 
-                            size="small"
-                            sx={{ color: 'rgba(255,255,255,0.5)', ml: -1 }}
-                        >
-                            <ArrowLeft size={20} />
-                        </IconButton>
-                    )}
-                <Typography variant="h6" sx={{
-                        fontWeight: 900, 
-                        fontFamily: 'var(--font-clash)',
-                        letterSpacing: '-0.02em',
-                        color: 'white'
-                    }}>
-                        {showScheduleForm ? 'Schedule Session' : showJoinWithId ? 'Join with ID' : (isScopedLaunch || isNoteLaunch || isTaskLaunch) ? 'Start Call Here' : 'New Session'}
-                    </Typography>
-                </Stack>
-                <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: 'white', bgcolor: COLORS.hover } }}>
-                    <X size={20} />
-                </IconButton>
-            </DialogTitle>
-
-            <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {!showJoinWithId && (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                        <TextField
-                            select
-                            fullWidth
-                            label="Call Duration"
-                            value={duration}
-                            onChange={(e) => setDuration(Number(e.target.value))}
-                            sx={inputStyles}
-                            InputProps={{
-                                startAdornment: <Timer size={18} style={{ marginRight: '12px', color: COLORS.secondary }} />,
-                            }}
-                        >
-                            <MenuItem value={15}>15 Minutes</MenuItem>
-                            <MenuItem value={30}>30 Minutes</MenuItem>
-                            <MenuItem value={60}>1 Hour</MenuItem>
-                            <MenuItem value={120}>2 Hours (Free Max)</MenuItem>
-                        </TextField>
-
-                        {!showScheduleForm && (
-                            <TextField
-                                fullWidth
-                                label="Meeting Title (Optional)"
-                                placeholder={launchContext?.conversationName ? `e.g. ${launchContext.conversationName}` : "e.g. Quick Sync"}
-                                value={instantTitle}
-                                onChange={(e) => setInstantTitle(e.target.value)}
-                                sx={inputStyles}
-                                InputProps={{
-                                    startAdornment: <Type size={18} style={{ marginRight: '12px', color: COLORS.primary }} />,
-                                }}
-                            />
-                        )}
-
-                        <Paper sx={{ 
-                            p: 2, 
-                            borderRadius: '16px', 
-                            bgcolor: 'rgba(255,255,255,0.02)', 
-                            border: `1px solid ${COLORS.rim}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between'
-                        }}>
-                            <Stack direction="row" spacing={1.5} alignItems="center">
-                                <Box sx={{ 
-                                    width: 36, 
-                                    height: 36, 
-                                    borderRadius: '10px', 
-                                    bgcolor: alpha(allowGuests ? COLORS.secondary : '#6B7280', 0.1),
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: allowGuests ? COLORS.secondary : '#6B7280'
-                                }}>
-                                    {allowGuests ? <Users size={18} /> : <ShieldCheck size={18} />}
-                                </Box>
-                                <Box>
-                                    <Typography variant="body2" fontWeight={800} color="white">
-                                        Allow Guest Access
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>
-                                        {allowGuests ? 'Anyone with the link can join' : 'Only logged-in users can join'}
-                                    </Typography>
-                                </Box>
-                            </Stack>
-                            <Switch 
-                                checked={allowGuests}
-                                onChange={(e) => setAllowGuests(e.target.checked)}
-                                sx={{
-                                    '& .MuiSwitch-switchBase.Mui-checked': {
-                                        color: COLORS.secondary,
-                                        '&:hover': {
-                                            backgroundColor: alpha(COLORS.secondary, theme.palette.action.hoverOpacity),
-                                        },
-                                    },
-                                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                        backgroundColor: COLORS.secondary,
-                                    },
-                                }}
-                            />
-                        </Paper>
-
-                        <Paper sx={{ 
-                            p: 2, 
-                            borderRadius: '16px', 
-                            bgcolor: 'rgba(255,255,255,0.02)', 
-                            border: `1px solid ${COLORS.rim}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between'
-                        }}>
-                            <Stack direction="row" spacing={1.5} alignItems="center">
-                                <Box sx={{ 
-                                    width: 36, 
-                                    height: 36, 
-                                    borderRadius: '10px', 
-                                    bgcolor: alpha(approveParticipants ? COLORS.primary : '#6B7280', 0.1),
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: approveParticipants ? COLORS.primary : '#6B7280'
-                                }}>
-                                    <ShieldCheck size={18} />
-                                </Box>
-                                <Box>
-                                    <Typography variant="body2" fontWeight={800} color="white">
-                                        Admit Participants
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>
-                                        {approveParticipants ? 'Host must manually approve guests' : 'Guests can join automatically'}
-                                    </Typography>
-                                </Box>
-                            </Stack>
-                            <Switch 
-                                checked={approveParticipants}
-                                onChange={(e) => setApproveParticipants(e.target.checked)}
-                                sx={{
-                                    '& .MuiSwitch-switchBase.Mui-checked': {
-                                        color: COLORS.primary,
-                                        '&:hover': {
-                                            backgroundColor: alpha(COLORS.primary, theme.palette.action.hoverOpacity),
-                                        },
-                                    },
-                                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                        backgroundColor: COLORS.primary,
-                                    },
-                                }}
-                            />
-                        </Paper>
-                    </Box>
-                )}
-
-                {liveCallState ? (
-                    <Stack spacing={2}>
-                        <Paper sx={{ p: 2, borderRadius: '16px', bgcolor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.rim}` }}>
-                            <Typography sx={{ color: 'white', fontWeight: 900, fontFamily: 'var(--font-clash)' }}>
-                                {liveCallState.title}
-                            </Typography>
-                            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.82rem', mt: 0.5 }}>
-                                Live now in this drawer
-                            </Typography>
-                            <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: 'wrap' }}>
-                                {liveCallState.participantIds.slice(0, 6).map((id, idx) => (
-                                    <Avatar key={id} sx={{ width: 32, height: 32, bgcolor: idx === 0 ? COLORS.primary : '#2A2724', fontSize: '0.72rem', fontWeight: 800 }}>
-                                        {idx === 0 ? 'You' : (id.slice(0, 2).toUpperCase())}
-                                    </Avatar>
-                                ))}
-                            </Stack>
-                            <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-                                <IconButton sx={{ bgcolor: 'rgba(255,255,255,0.05)', color: 'white' }}>
-                                    <Mic size={16} />
-                                </IconButton>
-                                <IconButton sx={{ bgcolor: 'rgba(255,255,255,0.05)', color: 'white' }}>
-                                    <VideoIcon size={16} />
-                                </IconButton>
-                                <Button
-                                    variant="outlined"
-                                    startIcon={<Copy size={14} />}
-                                    onClick={async () => {
-                                        await navigator.clipboard.writeText(typeof window !== 'undefined' ? `${window.location.origin}${liveCallUrl}` : liveCallUrl);
-                                        toast.success('Invite link copied');
-                                    }}
-                                    sx={{ ml: 'auto', borderColor: COLORS.rim, color: 'white', textTransform: 'none', fontWeight: 800 }}
-                                >
-                                    Copy Invite
-                                </Button>
-                            </Stack>
-                        </Paper>
-                        <Button
-                            fullWidth
-                            variant="contained"
-                            startIcon={<ExternalLink size={16} />}
-                            onClick={() => router.push(`${liveCallUrl}?caller=true&view=dock`)}
-                            sx={{ bgcolor: COLORS.primary, textTransform: 'none', fontWeight: 900, borderRadius: '14px', py: 1.4 }}
-                        >
-                            Expand to Full Call UI
-                        </Button>
-                    </Stack>
-                ) : !showScheduleForm && !showJoinWithId ? (
-                    <>
-                        <Stack direction="row" spacing={2}>
-                            <Button
-                                fullWidth
-                                variant="contained"
-                                onClick={handleStartPublicCall}
-                                disabled={creating}
-                                startIcon={creating ? <CircularProgress size={18} color="inherit" /> : <Plus size={18} />}
-                                sx={{ 
-                                    bgcolor: COLORS.primary, 
-                                    py: 2, 
-                                    borderRadius: '16px', 
-                                    fontWeight: 900,
-                                    textTransform: 'none',
-                                    fontFamily: 'var(--font-satoshi)',
-                                    boxShadow: `0 8px 20px -6px ${alpha(COLORS.primary, 0.4)}`,
-                                    '&:hover': { 
-                                        bgcolor: alpha(COLORS.primary, 0.9),
-                                        boxShadow: `0 12px 24px -6px ${alpha(COLORS.primary, 0.5)}`,
-                                    }
-                                }}
+        <div className="fixed inset-0 z-50 flex justify-end md:items-stretch items-end">
+            {/* Backdrop */}
+            <div 
+                className="absolute inset-0 bg-black/60 transition-opacity duration-300"
+                onClick={onClose}
+            />
+            {/* Drawer Container Panel */}
+            <div className={`relative bg-[#161412] border-white/5 flex flex-col text-white shadow-2xl transition-transform duration-300 transform translate-x-0 z-10 w-full max-w-[480px] overflow-hidden ${
+                isMobile 
+                    ? 'h-[60dvh] max-h-[60dvh] rounded-t-3xl border-t' 
+                    : 'h-screen max-h-screen rounded-l-3xl border-l'
+            }`}>
+                {/* Header (MUI DialogTitle) */}
+                <div className="p-6 pb-4 flex items-center justify-between border-b border-white/5 flex-shrink-0">
+                    <div className="flex items-center gap-3">
+                        {(showScheduleForm || showJoinWithId) && (
+                            <button 
+                                onClick={() => { setShowScheduleForm(false); setShowJoinWithId(false); }} 
+                                className="p-1 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-all -ml-2"
                             >
-                                {isScopedLaunch ? 'Start in This Chat' : isNoteLaunch ? 'Start Note Huddle' : isTaskLaunch ? 'Start Task Huddle' : 'Start Now'}
-                            </Button>
-                            {!isScopedLaunch && !isNoteLaunch && !isTaskLaunch && (
-                                <Button
-                                    fullWidth
-                                    variant="outlined"
-                                    onClick={() => setShowScheduleForm(true)}
-                                    startIcon={<Calendar size={18} />}
-                                    sx={{
-                                        borderColor: COLORS.rim,
-                                        color: 'white',
-                                        py: 2,
-                                        borderRadius: '16px',
-                                        fontWeight: 900,
-                                        textTransform: 'none',
-                                        fontFamily: 'var(--font-satoshi)',
-                                        bgcolor: 'rgba(255,255,255,0.01)',
-                                        '&:hover': {
-                                            borderColor: 'rgba(255,255,255,0.1)',
-                                            bgcolor: COLORS.hover
-                                        }
-                                    }}
-                                >
-                                    Schedule
-                                </Button>
+                                <ArrowLeft size={20} />
+                            </button>
+                        )}
+                        <h6 className="text-lg font-black font-clash tracking-tight text-white">
+                            {showScheduleForm ? 'Schedule Session' : showJoinWithId ? 'Join with ID' : (isScopedLaunch || isNoteLaunch || isTaskLaunch) ? 'Start Call Here' : 'New Session'}
+                        </h6>
+                    </div>
+                    <button 
+                        onClick={onClose} 
+                        className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-all"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {/* Content (MUI DialogContent) */}
+                <div className="p-6 flex-1 overflow-y-auto flex flex-col gap-6">
+                    {!showJoinWithId && (
+                        <div className="flex flex-col gap-6">
+                            {/* Selector for Duration */}
+                            <div className="relative flex flex-col gap-1.5 w-full">
+                                <label className="text-[11px] font-black text-white/40 uppercase tracking-wider font-mono">Call Duration</label>
+                                <div className="relative flex items-center bg-[#161412] border border-white/5 hover:bg-white/4 hover:border-white/10 rounded-xl transition-all">
+                                    <span className="absolute left-3 text-[#F59E0B]">
+                                        <Timer size={18} />
+                                    </span>
+                                    <select
+                                        value={duration}
+                                        onChange={(e) => setDuration(Number(e.target.value))}
+                                        className="w-full bg-transparent text-white pl-10 pr-10 py-3.5 rounded-xl appearance-none focus:outline-none font-medium text-sm cursor-pointer"
+                                        style={{ colorScheme: 'dark' }}
+                                    >
+                                        <option value={15} className="bg-[#161412] text-white">15 Minutes</option>
+                                        <option value={30} className="bg-[#161412] text-white">30 Minutes</option>
+                                        <option value={60} className="bg-[#161412] text-white">1 Hour</option>
+                                        <option value={120} className="bg-[#161412] text-white">2 Hours (Free Max)</option>
+                                    </select>
+                                    <span className="absolute right-3 pointer-events-none text-white/40">
+                                        ▼
+                                    </span>
+                                </div>
+                            </div>
+
+                            {!showScheduleForm && (
+                                <div className="relative flex flex-col gap-1.5 w-full">
+                                    <label className="text-[11px] font-black text-white/40 uppercase tracking-wider font-mono">Meeting Title (Optional)</label>
+                                    <div className="relative flex items-center bg-[#161412] border border-white/5 hover:bg-white/4 hover:border-white/10 rounded-xl transition-all">
+                                        <span className="absolute left-3 text-[#6366F1]">
+                                            <Type size={18} />
+                                        </span>
+                                        <input
+                                            type="text"
+                                            placeholder={launchContext?.conversationName ? `e.g. ${launchContext.conversationName}` : "e.g. Quick Sync"}
+                                            value={instantTitle}
+                                            onChange={(e) => setInstantTitle(e.target.value)}
+                                            className="w-full bg-transparent text-white pl-10 pr-4 py-3.5 rounded-xl focus:outline-none font-medium text-sm"
+                                        />
+                                    </div>
+                                </div>
                             )}
-                        </Stack>
-                    </>
-                ) : (
-                    <Stack spacing={3}>
-                        <TextField
-                            fullWidth
-                            label="Meeting Title"
-                            placeholder="e.g. Weekly Sync"
-                            value={scheduleTitle}
-                            onChange={(e) => setScheduleTitle(e.target.value)}
-                            sx={inputStyles}
-                            InputProps={{
-                                startAdornment: <Type size={18} style={{ marginRight: '12px', color: COLORS.primary }} />,
-                            }}
-                        />
-                        <TextField
-                            fullWidth
-                            label="Start Time"
-                            type="datetime-local"
-                            value={scheduleTime}
-                            onChange={(e) => setScheduleTime(e.target.value)}
-                            sx={inputStyles}
-                            InputLabelProps={{ shrink: true }}
-                            InputProps={{
-                                startAdornment: <Clock size={18} style={{ marginRight: '12px', color: COLORS.secondary }} />,
-                            }}
-                        />
-                        <Button
-                            fullWidth
-                            variant="contained"
-                            onClick={handleScheduleCall}
-                            disabled={creating}
-                            sx={{ 
-                                py: 2, 
-                                borderRadius: '16px', 
-                                fontWeight: 900, 
-                                textTransform: 'none', 
-                                bgcolor: COLORS.secondary,
-                                color: COLORS.background,
-                                fontFamily: 'var(--font-satoshi)',
-                                boxShadow: `0 8px 20px -6px ${alpha(COLORS.secondary, 0.4)}`,
-                                '&:hover': { 
-                                    bgcolor: alpha(COLORS.secondary, 0.9),
-                                    boxShadow: `0 12px 24px -6px ${alpha(COLORS.secondary, 0.5)}`,
-                                },
-                                '&.Mui-disabled': {
-                                    bgcolor: alpha(COLORS.secondary, 0.3),
-                                    color: alpha(COLORS.background, 0.5)
-                                }
-                            }}
-                        >
-                            {creating ? <CircularProgress size={22} color="inherit" /> : 'Schedule Session'}
-                        </Button>
-                    </Stack>
-                )}
-            </DialogContent>
-        </Drawer>
+
+                            <div className="p-4 rounded-2xl bg-white/2 border border-white/5 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                                        allowGuests ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'bg-[#6B7280]/10 text-[#6B7280]'
+                                    }`}>
+                                        {allowGuests ? <Users size={18} /> : <ShieldCheck size={18} />}
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-white">Allow Guest Access</span>
+                                        <span className="text-xs text-white/40">
+                                            {allowGuests ? 'Anyone with the link can join' : 'Only logged-in users can join'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setAllowGuests(!allowGuests)}
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                        allowGuests ? 'bg-[#F59E0B]' : 'bg-[#2A2724]'
+                                    }`}
+                                >
+                                    <span
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                            allowGuests ? 'translate-x-5' : 'translate-x-0'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
+
+                            <div className="p-4 rounded-2xl bg-white/2 border border-white/5 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                                        approveParticipants ? 'bg-[#6366F1]/10 text-[#6366F1]' : 'bg-[#6B7280]/10 text-[#6B7280]'
+                                    }`}>
+                                        <ShieldCheck size={18} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-white">Admit Participants</span>
+                                        <span className="text-xs text-white/40">
+                                            {approveParticipants ? 'Host must manually approve guests' : 'Guests can join automatically'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setApproveParticipants(!approveParticipants)}
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                        approveParticipants ? 'bg-[#6366F1]' : 'bg-[#2A2724]'
+                                    }`}
+                                >
+                                    <span
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                            approveParticipants ? 'translate-x-5' : 'translate-x-0'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {liveCallState ? (
+                        <div className="flex flex-col gap-4">
+                            <div className="p-4 rounded-2xl bg-white/3 border border-white/5">
+                                <span className="text-white font-black font-clash block">
+                                    {liveCallState.title}
+                                </span>
+                                <span className="text-white/60 text-xs mt-1 block">
+                                    Live now in this drawer
+                                </span>
+                                <div className="flex flex-wrap gap-2 mt-4">
+                                    {liveCallState.participantIds.slice(0, 6).map((id, idx) => (
+                                        <div key={id} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                                            idx === 0 ? 'bg-[#6366F1] text-white' : 'bg-[#2A2724] text-white'
+                                        }`}>
+                                            {idx === 0 ? 'You' : (id.slice(0, 2).toUpperCase())}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex items-center gap-2 mt-6">
+                                    <button className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all">
+                                        <Mic size={16} />
+                                    </button>
+                                    <button className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all">
+                                        <VideoIcon size={16} />
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            await navigator.clipboard.writeText(typeof window !== 'undefined' ? `${window.location.origin}${liveCallUrl}` : liveCallUrl);
+                                            toast.success('Invite link copied');
+                                        }}
+                                        className="ml-auto border border-white/5 hover:border-white/10 bg-white/2 hover:bg-white/5 px-4 py-2 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 transition-all"
+                                    >
+                                        <Copy size={14} />
+                                        <span>Copy Invite</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => router.push(`${liveCallUrl}?caller=true&view=dock`)}
+                                className="w-full bg-[#6366F1] hover:bg-[#4F46E5] text-white font-black py-4 rounded-2xl text-sm flex items-center justify-center gap-2 transition-all shadow-[0_8px_20px_-6px_rgba(99,102,241,0.4)]"
+                            >
+                                <ExternalLink size={16} />
+                                <span>Expand to Full Call UI</span>
+                            </button>
+                        </div>
+                    ) : !showScheduleForm && !showJoinWithId ? (
+                        <div className="flex flex-col gap-4">
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={handleStartPublicCall}
+                                    disabled={creating}
+                                    className="flex-1 bg-[#6366F1] hover:bg-[#4F46E5] disabled:bg-[#6366F1]/50 text-white py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-[0_8px_20px_-6px_rgba(99,102,241,0.4)]"
+                                >
+                                    {creating ? (
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <Plus size={18} />
+                                    )}
+                                    <span>{isScopedLaunch ? 'Start in This Chat' : isNoteLaunch ? 'Start Note Huddle' : isTaskLaunch ? 'Start Task Huddle' : 'Start Now'}</span>
+                                </button>
+                                {!isScopedLaunch && !isNoteLaunch && !isTaskLaunch && (
+                                    <button
+                                        onClick={() => setShowScheduleForm(true)}
+                                        className="flex-1 border border-white/5 hover:border-white/10 hover:bg-white/5 bg-white/2 text-white py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all"
+                                    >
+                                        <Calendar size={18} />
+                                        <span>Schedule</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-6">
+                            <div className="relative flex flex-col gap-1.5 w-full">
+                                <label className="text-[11px] font-black text-white/40 uppercase tracking-wider font-mono">Meeting Title</label>
+                                <div className="relative flex items-center bg-[#161412] border border-white/5 hover:bg-white/4 hover:border-white/10 rounded-xl transition-all">
+                                    <span className="absolute left-3 text-[#6366F1]">
+                                        <Type size={18} />
+                                    </span>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Weekly Sync"
+                                        value={scheduleTitle}
+                                        onChange={(e) => setScheduleTitle(e.target.value)}
+                                        className="w-full bg-transparent text-white pl-10 pr-4 py-3.5 rounded-xl focus:outline-none font-medium text-sm"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="relative flex flex-col gap-1.5 w-full">
+                                <label className="text-[11px] font-black text-white/40 uppercase tracking-wider font-mono">Start Time</label>
+                                <div className="relative flex items-center bg-[#161412] border border-white/5 hover:bg-white/4 hover:border-white/10 rounded-xl transition-all">
+                                    <span className="absolute left-3 text-[#F59E0B]">
+                                        <Clock size={18} />
+                                    </span>
+                                    <input
+                                        type="datetime-local"
+                                        value={scheduleTime}
+                                        onChange={(e) => setScheduleTime(e.target.value)}
+                                        className="w-full bg-transparent text-white pl-10 pr-4 py-3.5 rounded-xl focus:outline-none font-medium text-sm"
+                                        style={{ colorScheme: 'dark' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleScheduleCall}
+                                disabled={creating}
+                                className="w-full py-4 rounded-2xl font-black text-sm text-black bg-[#F59E0B] hover:bg-[#eab308] disabled:bg-[#F59E0B]/50 flex items-center justify-center gap-2 transition-all shadow-[0_8px_20px_-6px_rgba(245,158,11,0.4)]"
+                            >
+                                {creating ? (
+                                    <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                ) : (
+                                    <span>Schedule Session</span>
+                                )}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 };

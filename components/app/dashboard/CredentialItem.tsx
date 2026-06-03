@@ -1,30 +1,6 @@
 import { useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  IconButton, 
-  Paper, 
-  Tooltip,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Chip,
-  useTheme,
-  useMediaQuery,
-  alpha
-} from '@/lib/mui-tailwind/material';
-import {
-  ContentCopy as ContentCopyIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  MoreVert as MoreVertIcon,
-  Person as PersonIcon,
-  Lock as LockIcon,
-  PushPin as PinIcon,
-} from '@/lib/mui-tailwind/icons';
 import type { Credentials } from '@/lib/appwrite/types';
-import { Shield, ExternalLink } from 'lucide-react';
+import { Shield, ExternalLink, Copy, Edit2, Trash2, MoreVertical, User, Lock, Pin } from 'lucide-react';
 
 export default function CredentialItem({
   credential,
@@ -45,14 +21,12 @@ export default function CredentialItem({
   onTogglePin?: () => void;
   isBlurEnabled?: boolean;
 }) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [copyAnchorEl, setCopyAnchorEl] = useState<null | HTMLElement>(null);
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [showCopyMenu, setShowCopyMenu] = useState(false);
 
   const handleCopy = (value: string) => {
     onCopy(value);
-    setCopyAnchorEl(null);
+    setShowCopyMenu(false);
   };
 
   const getFaviconUrl = (url: string | null | undefined) => {
@@ -68,201 +42,160 @@ export default function CredentialItem({
   const faviconUrl = getFaviconUrl(credential.url);
 
   return (
-    <Paper
-      elevation={0}
+    <div
       onClick={onClick}
-      sx={{
-        px: 2.25,
-        py: 1.75,
-        mb: 1.5,
-        borderRadius: '24px',
-        bgcolor: '#161412',
-        border: '1px solid #34322F',
-        cursor: 'pointer',
-        transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
-        backgroundImage: 'none',
-        // Extreme concentration: pinpoint lift shadow
-        boxShadow: `0 4px 4px -4px rgba(0,0,0,0.9), 0 2px 3px -3px ${alpha('#252321', 0.9)}`,
-        '&:hover': {
-          bgcolor: '#1C1A18',
-          borderColor: alpha('#10B981', 0.2),
-          transform: 'translateY(-2px)',
-          // Tight hover shadow
-          boxShadow: `0 8px 10px -8px rgba(0,0,0,1), 0 6px 8px -6px ${alpha('#252321', 1.0)}`,
-          '& .fav-box': { borderColor: alpha('#10B981', 0.2), bgcolor: alpha('#10B981', 0.05) }
-        }
-      }}
+      className="group px-[18px] py-[14px] mb-3 rounded-[24px] bg-[#161412] border border-[#34322F] cursor-pointer transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center gap-[12px] shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),0_2px_3px_-3px_rgba(37,35,33,0.9)] hover:bg-[#1C1A18] hover:border-[#10B981]/20 hover:-translate-y-0.5 hover:shadow-[0_8px_10px_-8px_rgba(0,0,0,1),0_6px_8px_-6px_rgba(37,35,33,1.0)]"
     >
       {/* Icon */}
-      <Box 
-        className="fav-box"
-        sx={{ 
-            width: 52, 
-            height: 52, 
-            borderRadius: '16px', 
-            bgcolor: 'rgba(255, 255, 255, 0.02)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            flexShrink: 0,
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            overflow: 'hidden',
-            transition: 'all 0.3s ease'
-        }}
+      <div 
+        className="w-[52px] h-[52px] rounded-[16px] bg-white/[0.02] flex items-center justify-center shrink-0 border border-white/[0.05] overflow-hidden transition-all duration-300 group-hover:border-[#10B981]/20 group-hover:bg-[#10B981]/5"
       >
         {faviconUrl ? (
-          <Box component="img" src={faviconUrl} sx={{ width: 32, height: 32 }} />
+          <img src={faviconUrl} className="w-8 h-8 object-contain" alt="" />
         ) : (
-          <Typography sx={{ fontWeight: 900, color: '#10B981', fontSize: '1.3rem', fontFamily: 'var(--font-clash)' }}>
+          <span className="font-black text-[#10B981] text-[1.3rem] font-clash">
             {credential.name?.charAt(0)?.toUpperCase() || "?"}
-          </Typography>
+          </span>
         )}
-      </Box>
+      </div>
 
       {/* Info */}
-      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.35, pr: 0.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
-          {credential.isPinned && <PinIcon sx={{ fontSize: 14, color: '#F59E0B', flexShrink: 0 }} />}
-          <Typography
-            component="span"
-            noWrap
-            sx={{ fontWeight: 900, color: '#fff', lineHeight: 1.25, fontFamily: 'var(--font-clash)', fontSize: '1rem' }}
-          >
+      <div className="flex-1 min-w-0 flex flex-col gap-[3px] pr-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {credential.isPinned && <Pin className="w-3.5 h-3.5 text-[#F59E0B] shrink-0 fill-[#F59E0B]" />}
+          <span className="font-black text-white leading-tight font-clash text-base truncate">
             {credential.name}
-          </Typography>
-        </Box>
-        <Typography
-          component="span"
-          noWrap
-          sx={{
-            color: '#9B9691',
-            fontWeight: 500,
-            fontSize: '0.85rem',
-            lineHeight: 1.35,
-            fontFamily: 'var(--font-satoshi)',
-            filter: isBlurEnabled ? 'blur(4px)' : 'none',
-            transition: 'filter 0.3s ease',
-          }}
+          </span>
+        </div>
+        <span 
+          className="text-[#9B9691] font-medium text-[0.85rem] leading-[1.35] font-satoshi truncate transition-[filter] duration-300"
+          style={{ filter: isBlurEnabled ? 'blur(4.5px)' : 'none' }}
         >
           {credential.username}
-        </Typography>
+        </span>
         {(credential as any).sharedFrom && (
-          <Chip
-            size="small"
-            label={`Received from ${(credential as any).sharedFrom}`}
-            sx={{
-              mt: 1,
-              height: 20,
-              fontSize: '0.62rem',
-              fontWeight: 900,
-              bgcolor: alpha('#10B981', 0.08),
-              color: '#10B981',
-              borderRadius: '6px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.02em'
-            }}
-          />
+          <div className="mt-1 h-5 text-[0.62rem] font-black bg-[#10B981]/10 text-[#10B981] rounded-[6px] px-2 py-0.5 uppercase tracking-[0.02em] inline-flex items-center w-fit">
+            Received from {(credential as any).sharedFrom}
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Actions */}
-      <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
-        {!isMobile ? (
+      <div className="relative flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+        {/* Desktop Actions */}
+        <div className="hidden sm:flex items-center gap-1">
+          <button 
+            onClick={() => handleCopy(credential.username || '')}
+            title="Copy Username"
+            className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <User className="w-[18px] h-[18px]" />
+          </button>
+
+          <button 
+            onClick={() => handleCopy(credential.password || '')}
+            title="Copy Secret"
+            className="p-1.5 rounded-lg text-[#10B981] hover:bg-[#10B981]/10 transition-colors"
+          >
+            <Lock className="w-[18px] h-[18px]" />
+          </button>
+
+          <button 
+            onClick={onEdit}
+            title="Edit Record"
+            className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <Edit2 className="w-[18px] h-[18px]" />
+          </button>
+
+          <button 
+            onClick={onDelete}
+            title="Destroy"
+            className="p-1.5 rounded-lg text-white/15 hover:text-[#FF453A] hover:bg-[#FF453A]/5 transition-colors"
+          >
+            <Trash2 className="w-[18px] h-[18px]" />
+          </button>
+        </div>
+
+        {/* Mobile Actions */}
+        <div className="flex sm:hidden items-center gap-1">
+          <button 
+            onClick={() => setShowCopyMenu(!showCopyMenu)}
+            className="p-1.5 rounded-lg text-[#10B981] hover:bg-[#10B981]/10 transition-colors"
+          >
+            <Copy className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => setShowActionMenu(!showActionMenu)}
+            className="p-1.5 rounded-lg text-[#9B9691] hover:bg-white/5 transition-colors"
+          >
+            <MoreVertical className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Copy Dropdown Menu */}
+        {showCopyMenu && (
           <>
-            <Tooltip title="Copy Email">
-              <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleCopy(credential.username || ''); }} sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
-                <PersonIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Copy Secret">
-              <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleCopy(credential.password || ''); }} sx={{ color: '#10B981', '&:hover': { bgcolor: alpha('#10B981', 0.1) } }}>
-                <LockIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Edit Record">
-              <IconButton size="small" onClick={(e) => { e.stopPropagation(); onEdit(); }} sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
-                <EditIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Destroy">
-              <IconButton size="small" onClick={(e) => { e.stopPropagation(); onDelete(); }} sx={{ color: 'rgba(255,255,255,0.15)', '&:hover': { color: '#FF453A', bgcolor: alpha('#FF453A', 0.05) } }}>
-                <DeleteIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
-          </>
-        ) : (
-          <>
-            <IconButton size="small" onClick={(e) => { e.stopPropagation(); setCopyAnchorEl(e.currentTarget); }} sx={{ color: '#10B981' }}>
-              <ContentCopyIcon sx={{ fontSize: 20 }} />
-            </IconButton>
-            <IconButton size="small" onClick={(e) => { e.stopPropagation(); setAnchorEl(e.currentTarget); }} sx={{ color: 'text.secondary' }}>
-              <MoreVertIcon sx={{ fontSize: 20 }} />
-            </IconButton>
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setShowCopyMenu(false)} 
+            />
+            <div 
+              className="absolute right-0 top-8 z-50 min-w-[200px] py-1 bg-[#161412] border border-[#34322F] rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-1 duration-150"
+            >
+              <button 
+                onClick={() => { handleCopy(credential.username || ''); }} 
+                className="w-full text-left py-2.5 px-5 flex items-center gap-3 hover:bg-white/5 transition-colors text-white font-semibold text-xs"
+              >
+                <User className="w-4.5 h-4.5 text-[#9B9691]" />
+                <span>Copy Username</span>
+              </button>
+              <button 
+                onClick={() => { handleCopy(credential.password || ''); }} 
+                className="w-full text-left py-2.5 px-5 flex items-center gap-3 hover:bg-white/5 transition-colors text-[#10B981] font-semibold text-xs"
+              >
+                <Lock className="w-4.5 h-4.5 text-[#10B981]" />
+                <span>Copy Secret</span>
+              </button>
+            </div>
           </>
         )}
-      </Box>
 
-      <Menu
-        anchorEl={copyAnchorEl}
-        open={Boolean(copyAnchorEl)}
-        onClose={() => setCopyAnchorEl(null)}
-        slotProps={{
-          paper: {
-            sx: {
-              borderRadius: '16px',
-              bgcolor: '#161412',
-              border: '1px solid #34322F',
-              backgroundImage: 'none',
-              minWidth: 200,
-              py: 1,
-            },
-          },
-        }}
-      >
-        <MenuItem onClick={() => handleCopy(credential.username || '')} sx={{ py: 1.25, px: 2.5, gap: 1.5 }}>
-          <ListItemIcon sx={{ minWidth: 'auto' }}><PersonIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Copy Username" slotProps={{ primary: { sx: { fontWeight: 800, fontSize: '0.85rem', lineHeight: 1.3 } } }} />
-        </MenuItem>
-        <MenuItem onClick={() => handleCopy(credential.password || '')} sx={{ py: 1.25, px: 2.5, gap: 1.5 }}>
-          <ListItemIcon sx={{ minWidth: 'auto' }}><LockIcon sx={{ fontSize: 18, color: '#10B981' }} /></ListItemIcon>
-          <ListItemText primary="Copy Secret" slotProps={{ primary: { sx: { fontWeight: 800, fontSize: '0.85rem', lineHeight: 1.3, color: '#10B981' } } }} />
-        </MenuItem>
-      </Menu>
-
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{
-          paper: {
-            sx: {
-              borderRadius: '16px',
-              bgcolor: '#161412',
-              border: '1px solid #34322F',
-              backgroundImage: 'none',
-              minWidth: 180,
-              py: 1,
-            },
-          },
-        }}
-      >
-        <MenuItem onClick={() => { onEdit(); setAnchorEl(null); }} sx={{ py: 1.25, px: 2.5, gap: 1.5 }}>
-          <ListItemIcon sx={{ minWidth: 'auto' }}><EditIcon sx={{ fontSize: 18 }} /></ListItemIcon>
-          <ListItemText primary="Edit Record" slotProps={{ primary: { sx: { fontWeight: 800, fontSize: '0.85rem', lineHeight: 1.3 } } }} />
-        </MenuItem>
-        <MenuItem onClick={() => { onTogglePin?.(); setAnchorEl(null); }} sx={{ py: 1.25, px: 2.5, gap: 1.5 }}>
-          <ListItemIcon sx={{ minWidth: 'auto' }}><PinIcon sx={{ fontSize: 18, color: credential.isPinned ? '#F59E0B' : 'inherit' }} /></ListItemIcon>
-          <ListItemText primary={credential.isPinned ? 'Unpin Secret' : 'Pin Secret'} slotProps={{ primary: { sx: { fontWeight: 800, fontSize: '0.85rem', lineHeight: 1.3 } } }} />
-        </MenuItem>
-        <MenuItem onClick={() => { onDelete(); setAnchorEl(null); }} sx={{ py: 1.25, px: 2.5, gap: 1.5, color: '#FF453A' }}>
-          <ListItemIcon sx={{ minWidth: 'auto' }}><DeleteIcon sx={{ fontSize: 18, color: '#FF453A' }} /></ListItemIcon>
-          <ListItemText primary="Destroy" slotProps={{ primary: { sx: { fontWeight: 900, fontSize: '0.85rem', lineHeight: 1.3 } } }} />
-        </MenuItem>
-      </Menu>
-    </Paper>
+        {/* Action Dropdown Menu */}
+        {showActionMenu && (
+          <>
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setShowActionMenu(false)} 
+            />
+            <div 
+              className="absolute right-0 top-8 z-50 min-w-[180px] py-1 bg-[#161412] border border-[#34322F] rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-1 duration-150"
+            >
+              <button 
+                onClick={() => { onEdit(); setShowActionMenu(false); }} 
+                className="w-full text-left py-2.5 px-5 flex items-center gap-3 hover:bg-white/5 transition-colors text-white font-semibold text-xs"
+              >
+                <Edit2 className="w-4.5 h-4.5 text-[#9B9691]" />
+                <span>Edit Record</span>
+              </button>
+              <button 
+                onClick={() => { onTogglePin?.(); setShowActionMenu(false); }} 
+                className="w-full text-left py-2.5 px-5 flex items-center gap-3 hover:bg-white/5 transition-colors text-white font-semibold text-xs"
+              >
+                <Pin className={`w-4.5 h-4.5 ${credential.isPinned ? 'text-[#F59E0B]' : 'text-[#9B9691]'}`} />
+                <span>{credential.isPinned ? 'Unpin Secret' : 'Pin Secret'}</span>
+              </button>
+              <button 
+                onClick={() => { onDelete(); setShowActionMenu(false); }} 
+                className="w-full text-left py-2.5 px-5 flex items-center gap-3 hover:bg-[#FF453A]/10 transition-colors text-[#FF453A] font-semibold text-xs"
+              >
+                <Trash2 className="w-4.5 h-4.5 text-[#FF453A]" />
+                <span>Destroy</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

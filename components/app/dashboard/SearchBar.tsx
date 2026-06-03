@@ -1,17 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import SearchIcon from '@/lib/mui-tailwind/icons';
-import CloseIcon from '@/lib/mui-tailwind/icons';
-import AutoAwesomeIcon from '@/lib/mui-tailwind/icons';
 import { useAI } from '@/context/AIContext';
-import { 
-  Box, 
-  TextField, 
-  InputAdornment, 
-  IconButton, 
-  Button,
-  alpha,
-  useTheme
-} from '@/lib/mui-tailwind/material';
+import { Search, X, Sparkles } from 'lucide-react';
 
 export default function SearchBar({
   onSearch,
@@ -22,7 +11,6 @@ export default function SearchBar({
   delay?: number;
   onSmartOrganize?: () => void;
 }) {
-  const theme = useTheme();
   const [value, setValue] = useState("");
   const timer = useRef<number | null>(null);
   const { isLoading } = useAI();
@@ -45,69 +33,40 @@ export default function SearchBar({
   };
 
   return (
-    <Box sx={{ display: 'flex', gap: 1.5, width: '100%' }}>
-      <TextField
-        fullWidth
-        placeholder="Search passwords, usernames..."
-        value={value}
-        onChange={(e) => handleChange(e.target.value)}
-        variant="filled"
-        InputProps={{
-          disableUnderline: true,
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
-            </InputAdornment>
-          ),
-          endAdornment: value && (
-            <InputAdornment position="end">
-              <IconButton onClick={handleClear} size="small">
-                <CloseIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </InputAdornment>
-          ),
-          sx: {
-            height: 48,
-            borderRadius: '24px',
-            bgcolor: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            px: 1,
-            '&:hover': {
-              bgcolor: 'rgba(255, 255, 255, 0.05)',
-              borderColor: 'rgba(255, 255, 255, 0.15)'
-            },
-            '&.Mui-focused': {
-              bgcolor: 'rgba(255, 255, 255, 0.05)',
-              borderColor: 'primary.main',
-              boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`
-            }
-          }
-        }}
-      />
+    <div className="flex gap-3.5 w-full">
+      <div className="relative flex-1">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#10B981]">
+          <Search className="w-5 h-5" />
+        </div>
+        <input
+          type="text"
+          placeholder="Search passwords, usernames..."
+          value={value}
+          onChange={(e) => handleChange(e.target.value)}
+          className="w-full h-12 bg-white/[0.03] text-white placeholder-white/40 border border-white/[0.08] rounded-[24px] pl-11 pr-10 text-sm focus:outline-none focus:border-[#10B981] focus:bg-white/[0.05] focus:ring-2 focus:ring-[#10B981]/20 hover:bg-white/[0.05] hover:border-white/[0.15] transition-all"
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full text-white/40 hover:text-white transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
       
       {onSmartOrganize && (
-        <Button
-          variant="outlined"
+        <button
+          type="button"
           onClick={onSmartOrganize}
           disabled={isLoading}
-          startIcon={<AutoAwesomeIcon sx={{ fontSize: 18 }} />}
-          sx={{
-            height: 48,
-            borderRadius: '24px',
-            px: 3,
-            display: { xs: 'none', md: 'flex' },
-            whiteSpace: 'nowrap',
-            fontWeight: 700,
-            borderColor: 'rgba(255, 255, 255, 0.1)',
-            '&:hover': {
-              borderColor: 'primary.main',
-              bgcolor: alpha(theme.palette.primary.main, 0.05)
-            }
-          }}
+          className="hidden md:flex items-center gap-2 h-12 border border-white/10 hover:border-[#10B981] hover:bg-[#10B981]/5 disabled:opacity-50 disabled:pointer-events-none text-white rounded-[24px] px-6 text-sm font-bold transition-all shrink-0"
         >
-          Organize
-        </Button>
+          <Sparkles className="w-[18px] h-[18px] text-[#10B981]" />
+          <span>Organize</span>
+        </button>
       )}
-    </Box>
+    </div>
   );
 }

@@ -1,35 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Box, 
-  Typography, 
-  IconButton, 
-  Button, 
-  Drawer, 
-  Divider, 
-  alpha, 
-  useTheme,
-  Chip,
-  Paper,
-  Stack
-} from '@/lib/mui-tailwind/material';
-import {
-  ContentCopy as ContentCopyIcon,
-  Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon,
-  ArrowBack as ArrowBackIcon,
-  Close as CloseIcon,
-  Public as LanguageIcon,
-  CalendarIcon as CalendarTodayIcon,
-  ShieldAlert as GppMaybeIcon,
-  ShieldCheck as GppGoodIcon,
-  OpenInNew as OpenInNewIcon,
-  Folder as FolderIcon,
-} from '@/lib/mui-tailwind/icons';
 import ProjectLinker from '@/components/projects/ProjectLinker';
 import type { Credentials } from '@/lib/appwrite/types';
 import { storage } from '@/lib/appwrite';
 import { useAI } from '@/context/AIContext';
 import { useSudo } from '@/context/SudoContext';
+import { 
+  ArrowLeft, 
+  X, 
+  Copy, 
+  Eye, 
+  EyeOff, 
+  Globe, 
+  Calendar, 
+  ShieldCheck, 
+  ShieldAlert, 
+  ExternalLink, 
+  Folder 
+} from 'lucide-react';
 
 export default function CredentialDetail({
   credential,
@@ -42,7 +29,6 @@ export default function CredentialDetail({
   isMobile: boolean;
   inline?: boolean;
 }) {
-  const theme = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [showProjectLinker, setShowProjectLinker] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
@@ -127,77 +113,50 @@ export default function CredentialDetail({
   const faviconUrl = getFaviconUrl(credential.url || "");
 
   const FieldLabel = ({ label, onCopy, fieldId }: { label: string, onCopy?: () => void, fieldId?: string }) => (
-    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-      <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+    <div className="flex items-center justify-between mb-1.5">
+      <span className="text-[0.75rem] font-bold text-white/50 tracking-wider uppercase">
         {label}
-      </Typography>
+      </span>
       {onCopy && (
-        <Button 
-          size="small" 
+        <button 
           onClick={onCopy} 
-          startIcon={<ContentCopyIcon sx={{ fontSize: 12 }} />}
-          sx={{ 
-            height: 24, 
-            fontSize: '0.7rem', 
-            borderRadius: '6px',
-            color: copied === fieldId ? 'success.main' : 'primary.main'
-          }}
+          className="h-6 text-[0.7rem] font-bold px-2 rounded-md hover:bg-white/5 flex items-center gap-1.5 transition-colors text-[#10B981]"
         >
-          {copied === fieldId ? "Copied!" : "Copy"}
-        </Button>
+          <Copy className="w-3 h-3" />
+          <span>{copied === fieldId ? "Copied!" : "Copy"}</span>
+        </button>
       )}
-    </Box>
+    </div>
   );
 
-  const FieldValue = ({ children, sx = {} }: { children: React.ReactNode, sx?: any }) => (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 2,
-        borderRadius: '12px',
-        bgcolor: 'rgba(255, 255, 255, 0.03)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        fontFamily: 'var(--font-satoshi-mono), monospace',
-        fontSize: '0.9rem',
-        wordBreak: 'break-all',
-        ...sx
-      }}
+  const FieldValue = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
+    <div
+      className={`p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] font-mono text-sm text-white/95 break-all ${className}`}
     >
       {children}
-    </Paper>
+    </div>
   );
 
   const content = (
-    <Box sx={{ 
-      height: '100%', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      bgcolor: inline ? 'transparent' : 'rgba(10, 10, 10, 0.95)',
-      width: '100%',
-      minHeight: 0
-    }}>
+    <div className={`h-full flex flex-col ${inline ? 'bg-transparent' : 'bg-[#0A0A0A]'} w-full min-h-0`}>
       {/* Header */}
-      <Box sx={{ 
-        p: 3, 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: 2,
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
-      }}>
-        <IconButton onClick={onClose} sx={{ color: 'text.secondary' }}>
-          {isMobile ? <ArrowBackIcon sx={{ fontSize: 20 }} /> : <CloseIcon sx={{ fontSize: 20 }} />}
-        </IconButton>
-        <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: '"Space Grotesk", sans-serif', flexGrow: 1 }}>
-          Credential Details
-        </Typography>
-        <IconButton 
-          size="small" 
-          onClick={() => setShowProjectLinker(true)} 
-          sx={{ color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.05), border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.2) }}
+      <div className="p-6 flex items-center gap-4 border-b border-white/[0.08] shrink-0">
+        <button 
+          onClick={onClose} 
+          className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
         >
-          <FolderIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </Box>
+          {isMobile ? <ArrowLeft className="w-5 h-5" /> : <X className="w-5 h-5" />}
+        </button>
+        <h3 className="text-lg font-black text-white flex-1 font-space-grotesk">
+          Credential Details
+        </h3>
+        <button 
+          onClick={() => setShowProjectLinker(true)} 
+          className="p-2 rounded-lg text-[#10B981] bg-[#10B981]/5 border border-[#10B981]/20 hover:bg-[#10B981]/15 transition-all"
+        >
+          <Folder className="w-[18px] h-[18px]" />
+        </button>
+      </div>
 
       <ProjectLinker 
         open={showProjectLinker} 
@@ -207,85 +166,65 @@ export default function CredentialDetail({
       />
 
       {/* Content */}
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 3 }}>
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         {/* Main Info Card */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mb: 4 }}>
-          <Box sx={{ 
-            width: 64, 
-            height: 64, 
-            borderRadius: '18px', 
-            bgcolor: 'rgba(255, 255, 255, 0.03)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            overflow: 'hidden'
-          }}>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-16 h-16 rounded-[18px] bg-white/[0.03] flex items-center justify-center border border-white/[0.08] overflow-hidden shrink-0">
             {faviconUrl ? (
-              <Box component="img" src={faviconUrl} sx={{ width: 36, height: 36 }} />
+              <img src={faviconUrl} className="w-9 h-9 object-contain" alt="" />
             ) : (
-              <Typography variant="h4" sx={{ fontWeight: 900, color: 'primary.main' }}>
+              <span className="text-3xl font-black text-[#10B981] font-clash">
                 {credential.name?.charAt(0)?.toUpperCase() || "?"}
-              </Typography>
+              </span>
             )}
-          </Box>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 900, mb: 0.5 }}>
+          </div>
+          <div className="min-w-0 flex-1">
+            <h4 className="text-xl font-black text-white truncate font-clash">
               {credential.name}
-            </Typography>
+            </h4>
             {credential.url && (
-              <Stack direction="column" spacing={1} alignItems="flex-start">
-                <Button 
+              <div className="flex flex-col gap-1.5 items-start mt-1">
+                <a 
                   href={credential.url} 
                   target="_blank" 
-                  size="small"
-                  startIcon={<LanguageIcon sx={{ fontSize: 14 }} />}
-                  endIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />}
-                  sx={{ 
-                    p: 0, 
-                    minWidth: 0, 
-                    color: 'primary.main', 
-                    fontWeight: 700,
-                    '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' }
-                  }}
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-sm font-bold text-[#10B981] hover:underline"
                 >
-                  {new URL(credential.url).hostname}
-                </Button>
+                  <Globe className="w-3.5 h-3.5" />
+                  <span className="truncate">{new URL(credential.url).hostname}</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
                 {urlSafety && (
-                  <Chip
-                    icon={urlSafety.safe ? <GppGoodIcon sx={{ fontSize: 14 }} /> : <GppMaybeIcon sx={{ fontSize: 14 }} />}
-                    label={`${urlSafety.riskLevel} Risk: ${urlSafety.reason}`}
-                    size="small"
-                    sx={{ 
-                      bgcolor: urlSafety.safe ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1),
-                      color: urlSafety.safe ? 'success.main' : 'error.main',
-                      border: `1px solid ${alpha(urlSafety.safe ? theme.palette.success.main : theme.palette.error.main, 0.2)}`,
-                      fontWeight: 700,
-                      fontSize: '0.65rem',
-                      textTransform: 'uppercase'
-                    }}
-                  />
+                  <div
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.65rem] font-bold uppercase tracking-wider border ${
+                      urlSafety.safe 
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                        : 'bg-red-500/10 text-red-400 border-red-500/20'
+                    }`}
+                  >
+                    {urlSafety.safe ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldAlert className="w-3.5 h-3.5" />}
+                    <span>{urlSafety.riskLevel} Risk: {urlSafety.reason}</span>
+                  </div>
                 )}
-              </Stack>
+              </div>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
-        <Stack spacing={3.5}>
-          <Box>
+        <div className="flex flex-col gap-6">
+          <div>
             <FieldLabel label="Username / Email" onCopy={() => handleCopy(credential.username || '', "username")} fieldId="username" />
             <FieldValue>{credential.username || "N/A"}</FieldValue>
-          </Box>
+          </div>
 
           {/* Secret */}
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div className="flex flex-col">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[0.75rem] font-bold text-white/50 tracking-wider uppercase">
                 Secret Value
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button 
-                  size="small" 
+              </span>
+              <div className="flex gap-2">
+                <button 
                   onClick={() => {
                     if (!showPassword) {
                       requestSudo({ onSuccess: () => setShowPassword(true) });
@@ -293,86 +232,76 @@ export default function CredentialDetail({
                       setShowPassword(false);
                     }
                   }}
-                  startIcon={showPassword ? <VisibilityOffIcon sx={{ fontSize: 12 }} /> : <VisibilityIcon sx={{ fontSize: 12 }} />}
-                  sx={{ height: 24, fontSize: '0.7rem', borderRadius: '6px' }}
+                  className="h-6 text-[0.7rem] font-bold px-2 rounded-md hover:bg-white/5 flex items-center gap-1.5 transition-colors text-[#10B981]"
                 >
-                  {showPassword ? "Hide" : "Show"}
-                </Button>
-                <Button 
-                  size="small" 
+                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  <span>{showPassword ? "Hide" : "Show"}</span>
+                </button>
+                <button 
                   onClick={() => requestSudo({ onSuccess: () => handleCopy(credential.password || '', "password") })}
-                  startIcon={<ContentCopyIcon sx={{ fontSize: 12 }} />}
-                  sx={{ 
-                    height: 24, 
-                    fontSize: '0.7rem', 
-                    borderRadius: '6px',
-                    color: copied === "password" ? 'success.main' : 'primary.main'
-                  }}
+                  className="h-6 text-[0.7rem] font-bold px-2 rounded-md hover:bg-white/5 flex items-center gap-1.5 transition-colors text-[#10B981]"
                 >
-                  {copied === "password" ? "Copied!" : "Copy"}
-                </Button>
-              </Box>
-            </Box>
-            <FieldValue sx={{ color: showPassword ? 'text.primary' : 'text.secondary', letterSpacing: showPassword ? 'normal' : '0.3em' }}>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>{copied === "password" ? "Copied!" : "Copy"}</span>
+                </button>
+              </div>
+            </div>
+            <FieldValue className={showPassword ? 'text-white' : 'text-white/40 tracking-[0.3em]'}>
               {credential.password ? (showPassword ? credential.password : "••••••••••••••••") : "N/A"}
             </FieldValue>
-          </Box>
+          </div>
 
           {/* Notes */}
           {credential.notes && (
-            <Box>
+            <div>
               <FieldLabel label="Notes" onCopy={() => handleCopy(credential.notes || "", "notes")} fieldId="notes" />
-              <FieldValue sx={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+              <FieldValue className="whitespace-pre-wrap font-sans">
                 {credential.notes}
               </FieldValue>
-            </Box>
+            </div>
           )}
 
           {/* Tags */}
           {credential.tags && credential.tags.length > 0 && (
-            <Box>
+            <div>
               <FieldLabel label="Tags" />
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <div className="flex flex-wrap gap-2 mt-1">
                 {credential.tags.map((tag: string, index: number) => (
-                  <Chip 
+                  <span 
                     key={index} 
-                    label={tag} 
-                    size="small" 
-                    sx={{ 
-                      bgcolor: 'rgba(255, 255, 255, 0.05)', 
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      fontWeight: 600
-                    }} 
-                  />
+                    className="text-xs font-semibold px-2.5 py-1 rounded bg-white/5 border border-white/10 text-white"
+                  >
+                    {tag}
+                  </span>
                 ))}
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
           {/* Custom Fields */}
           {customFields.length > 0 && (
-            <Box>
+            <div className="flex flex-col gap-4">
               <FieldLabel label="Custom Fields" />
-              <Stack spacing={2}>
+              <div className="flex flex-col gap-4">
                 {customFields.map((field: { id?: string; label?: string; value?: string }, index: number) => (
-                  <Box key={field.id || index}>
+                  <div key={field.id || index} className="flex flex-col">
                     <FieldLabel 
                       label={field.label || `Field ${index + 1}`} 
                       onCopy={() => handleCopy(field.value || "", `custom-${index}`)} 
                       fieldId={`custom-${index}`} 
                     />
                     <FieldValue>{field.value || "Empty"}</FieldValue>
-                  </Box>
+                  </div>
                 ))}
-              </Stack>
-            </Box>
+              </div>
+            </div>
           )}
 
           {/* Secure Attachments */}
           {attachments.length > 0 && (
-            <Box>
+            <div className="flex flex-col gap-3">
               <FieldLabel label="Secure Attachments" />
-              <Stack spacing={2.5}>
+              <div className="flex flex-col gap-3">
                 {attachments.map((att: any, index: number) => {
                   let fileUrl = "";
                   try {
@@ -383,54 +312,54 @@ export default function CredentialDetail({
                   }
 
                   return (
-                    <Box key={att.id || index} sx={{ p: 2, borderRadius: 3, border: '1px solid rgba(255, 255, 255, 0.06)', bgcolor: 'rgba(255, 255, 255, 0.02)' }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'white', wordBreak: 'break-all' }}>
+                    <div key={att.id || index} className="p-4 rounded-xl border border-white/10 bg-white/5">
+                      <div className="flex justify-between items-start gap-2 mb-1.5">
+                        <p className="text-sm font-bold text-white break-all">
                           {att.name}
-                        </Typography>
-                        <IconButton 
-                          size="small" 
-                          component="a" 
+                        </p>
+                        <a 
                           href={fileUrl} 
                           target="_blank"
-                          sx={{ color: 'primary.main', p: 0.5, mt: -0.5 }}
+                          rel="noreferrer"
+                          className="p-1 rounded-md text-[#10B981] hover:bg-white/5 transition-colors shrink-0"
                         >
-                          <OpenInNewIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Box>
-                      <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.4)', display: 'block' }}>
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </div>
+                      <p className="text-xs text-white/40">
                         {(att.size / 1024).toFixed(1)} KB • {att.mime || 'application/octet-stream'}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   );
                 })}
-              </Stack>
-            </Box>
+              </div>
+            </div>
           )}
 
-          <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
+          <div className="h-px bg-white/[0.08]" />
 
           {/* Metadata */}
-          <Box>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CalendarTodayIcon sx={{ fontSize: 14 }} /> Information
-            </Typography>
-            <Stack spacing={1} sx={{ mt: 1 }}>
+          <div>
+            <span className="text-[0.75rem] font-bold text-white/50 tracking-wider uppercase mb-3 flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span>Information</span>
+            </span>
+            <div className="flex flex-col gap-2 mt-2">
               {credential.createdAt && (
-                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                  Created: <Box component="span" sx={{ color: 'text.primary' }}>{formatDate(credential.createdAt)}</Box>
-                </Typography>
+                <p className="text-xs text-white/40">
+                  Created: <span className="text-white/80">{formatDate(credential.createdAt)}</span>
+                </p>
               )}
               {credential.updatedAt && (
-                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                  Updated: <Box component="span" sx={{ color: 'text.primary' }}>{formatDate(credential.updatedAt)}</Box>
-                </Typography>
+                <p className="text-xs text-white/40">
+                  Updated: <span className="text-white/80">{formatDate(credential.updatedAt)}</span>
+                </p>
               )}
-            </Stack>
-          </Box>
-        </Stack>
-      </Box>
-    </Box>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 
   if (inline) {
@@ -438,25 +367,19 @@ export default function CredentialDetail({
   }
 
   return (
-    <Drawer
-      anchor="right"
-      open={true}
-      onClose={onClose}
-      variant={isMobile ? "temporary" : "persistent"}
-      PaperProps={{
-        sx: {
-          width: { xs: '100%', sm: 440 },
-          bgcolor: 'rgba(10, 10, 10, 0.95)',
-          backdropFilter: 'blur(25px) saturate(180%)',
-          borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
-          backgroundImage: 'none',
-          boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          flexDirection: 'column'
-        }
-      }}
-    >
-      {content}
-    </Drawer>
+    <div className="fixed inset-0 z-50 flex justify-end overflow-hidden">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
+        onClick={onClose}
+      />
+      
+      {/* Drawer sheet */}
+      <div 
+        className="relative z-10 w-full sm:w-[440px] h-full bg-[#0A0A0Ad9] backdrop-blur-[25px] border-l border-white/10 flex flex-col shadow-2xl animate-in slide-in-from-right duration-300"
+      >
+        {content}
+      </div>
+    </div>
   );
 }

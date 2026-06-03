@@ -256,58 +256,62 @@ function DashboardPageContent() {
                 )}
               </div>
             </div>
-
-            <CredentialDialog
-              open={showDialog}
-              onClose={() => {
-                setShowDialog(false);
-                setDialogPrefill(undefined);
-              }}
-              initial={editCredential}
-              prefill={dialogPrefill}
-              defaultType={dialogType}
-              onSaved={refreshCredentials}
-            />
-
-            {/* Custom Tailwind Delete Modal */}
-            {isDeleteModalOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                <div className="w-full max-w-md p-6 rounded-[32px] bg-[#161412] border border-[#1C1A18] shadow-[0_40px_80px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in-95 duration-200">
-                  <h3 className="text-2xl font-black font-clash text-[#FF453A] mb-4">
-                    Delete Secret
-                  </h3>
-                  <div className="mb-6">
-                    <p className="text-[#9B9691] font-medium leading-relaxed">
-                      Deleting <strong>{credentialToDelete?.name}</strong> will permanently remove this secret from your vault. This action is irreversible.
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <button 
-                      onClick={() => requestSudo({ onSuccess: () => handleDelete() })}
-                      className="w-full py-3.5 px-6 font-black rounded-2xl bg-[#FF453A] text-black hover:bg-[#FF453A]/90 transition-colors"
-                    >
-                      Confirm Deletion
-                    </button>
-                    <button 
-                      onClick={() => setIsDeleteModalOpen(false)}
-                      className="w-full py-3 px-6 font-semibold rounded-2xl text-white/60 hover:text-white transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <SudoModal
-              isOpen={showMasterPassDrawer}
-              app="vault"
-              onSuccess={handleMasterPassSuccess}
-              onCancel={() => { }}
-            />
           </div>
         </MultiSectionContainer>
       </div>
+
+      {showDialog && (
+        <CredentialDialog
+          open={showDialog}
+          onClose={() => {
+            setShowDialog(false);
+            setDialogPrefill(undefined);
+          }}
+          initial={editCredential}
+          prefill={dialogPrefill}
+          defaultType={dialogType}
+          onSaved={refreshCredentials}
+        />
+      )}
+
+      {/* Custom Tailwind Delete Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md p-6 rounded-[32px] bg-[#161412] border border-[#1C1A18] shadow-[0_40px_80px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-black font-clash text-[#FF453A] mb-4">
+              Delete Secret
+            </h3>
+            <div className="mb-6">
+              <p className="text-[#9B9691] font-medium leading-relaxed">
+                Deleting <strong>{credentialToDelete?.name}</strong> will permanently remove this secret from your vault. This action is irreversible.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => requestSudo({ onSuccess: () => handleDelete() })}
+                className="w-full py-3.5 px-6 font-black rounded-2xl bg-[#FF453A] text-black hover:bg-[#FF453A]/90 transition-colors"
+              >
+                Confirm Deletion
+              </button>
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="w-full py-3 px-6 font-semibold rounded-2xl text-white/60 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMasterPassDrawer && (
+        <SudoModal
+          isOpen={showMasterPassDrawer}
+          app="vault"
+          onSuccess={handleMasterPassSuccess}
+          onCancel={() => { }}
+        />
+      )}
     </>
   );
 }

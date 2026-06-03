@@ -1,42 +1,31 @@
 import { useState, useEffect } from 'react';
-import {
-  Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon,
-  Refresh as AutorenewIcon,
-  Add as AddIcon,
-  Close as CloseIcon,
-  Save as SaveIcon,
-  CloudUpload as CloudUploadIcon,
-  Delete as DeleteIcon,
-  Globe as LanguageIcon,
-  LocalOffer as LocalOfferIcon,
-  Description as DescriptionIcon,
-  Person as PersonIcon,
-  Lock as LockIcon,
-  CreditCard as CreditCardIcon,
-} from '@/lib/mui-tailwind/icons';
 import { 
-  Drawer,
-  Button, 
-  TextField, 
-  IconButton, 
-  InputAdornment, 
-  Box, 
-  Typography, 
-  Grid,
-  alpha,
-  useTheme,
-  useMediaQuery,
-  Stack,
-  Divider,
-  CircularProgress
-} from '@/lib/mui-tailwind/material';
-import { createCredential, updateCredential } from '@/lib/appwrite';
+  createCredential, 
+  updateCredential 
+} from '@/lib/appwrite';
 import type { Credentials, CredentialsCreate } from '@/lib/appwrite/types';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { generateRandomPassword } from '@/utils/password';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
-import { ArrowUpRight, ChevronUp, ChevronDown } from 'lucide-react';
+import { 
+  ArrowUpRight, 
+  ChevronUp, 
+  ChevronDown, 
+  Eye, 
+  EyeOff, 
+  RotateCw, 
+  Plus, 
+  X, 
+  Save, 
+  UploadCloud, 
+  Trash2, 
+  Globe, 
+  Tag, 
+  FileText, 
+  User, 
+  Lock, 
+  CreditCard 
+} from 'lucide-react';
 import { useSection } from '@/context/SectionContext';
 
 const VAULT_PRIMARY = "#10B981"; // Emerald
@@ -58,8 +47,16 @@ export default function CredentialDialog({
   prefill?: { name?: string; url?: string; username?: string };
   defaultType?: string;
 }) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const { user } = useAppwriteVault();
   const { setIsDrawerOpen } = useDrawerState();
   const { setActiveDetail } = useSection();
@@ -396,550 +393,409 @@ export default function CredentialDialog({
 
   const currentType = initial?.itemType || defaultType;
 
-  return (
-    <Drawer
-      anchor={isMobile ? 'bottom' : 'right'}
-      open={open}
-      onClose={handleClose}
-      ModalProps={{ keepMounted: false }}
-      PaperProps={{
-        sx: {
-          width: isMobile ? '100%' : 'min(100vw, 600px)',
-          maxWidth: '100%',
-          height: isMobile ? (isExpanded ? '100dvh' : '60dvh') : '100%',
-          maxHeight: '100dvh',
-          bgcolor: BG_COLOR,
-          backdropFilter: 'blur(32px) saturate(200%)',
-          border: isMobile ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(255, 255, 255, 0.05)',
-          backgroundImage: 'none',
-          borderRadius: isMobile ? (isExpanded ? 0 : '24px 24px 0 0') : '0',
-          display: 'flex',
-          flexDirection: 'column',
-          transition: 'height 0.3s ease-in-out'
-        }
-      }}
-    >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        {/* Header */}
-        <Box sx={{ 
-          p: 3, 
-          pb: 2, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          fontFamily: 'var(--font-space-grotesk)',
-          fontWeight: 900,
-          fontSize: '1.4rem',
-          color: 'white',
-          letterSpacing: '-0.02em',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-          flexShrink: 0
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: VAULT_PRIMARY, boxShadow: `0 0 15px ${VAULT_PRIMARY}` }} />
-            {initial ? "Edit" : "New"} {currentType.charAt(0).toUpperCase() + currentType.slice(1)}
-          </Box>
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            {form.name.trim().length > 0 && (
-              <IconButton onClick={handleMorphToDetail} size="small" sx={{ color: '#F59E0B', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' } }} title="Go Full Detail">
-                <ArrowUpRight size={20} />
-              </IconButton>
-            )}
-            {isMobile && (
-              <IconButton onClick={() => setIsExpanded(!isExpanded)} size="small" sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' } }}>
-                {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-              </IconButton>
-            )}
-            <IconButton onClick={handleClose} size="small" sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' } }}>
-              <CloseIcon sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Stack>
-        </Box>
+  // Global Unmount Policy: conditionally render overlay content
+  if (!open) return null;
 
-        {/* Content */}
-        <Box sx={{ 
-          p: 3, 
-          pt: 2.5,
-          flex: 1,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          '&::-webkit-scrollbar': {
-            width: '6px'
-          },
-          '&::-webkit-scrollbar-track': {
-            bgcolor: 'transparent'
-          },
-          '&::-webkit-scrollbar-thumb': {
-            bgcolor: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '3px',
-            '&:hover': {
-              bgcolor: 'rgba(255, 255, 255, 0.2)'
-            }
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end items-end md:items-stretch overflow-hidden">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
+        onClick={handleClose}
+      />
+      
+      {/* Drawer sheet */}
+      <div 
+        className={`
+          relative z-10 bg-[#0A0908] border-t md:border-t-0 md:border-l border-white/[0.05] flex flex-col transition-all duration-300 ease-in-out
+          w-full md:w-[600px] md:max-w-full
+          ${isMobile 
+            ? (isExpanded ? 'h-[100dvh] rounded-none' : 'h-[60dvh] rounded-t-[24px]') 
+            : 'h-full'
           }
-        }}>
-          <Grid container spacing={2.5}>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Name"
+          animate-in
+          ${isMobile 
+            ? 'slide-in-from-bottom duration-300' 
+            : 'slide-in-from-right duration-300'
+          }
+        `}
+      >
+        <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-5 flex items-center justify-between border-b border-white/[0.05] shrink-0 font-space-grotesk">
+            <div className="flex items-center gap-3 text-lg font-bold text-white">
+              <div className="w-3 h-3 rounded-[3px] bg-[#10B981] shadow-[0_0_15px_#10B981]" />
+              <span>{initial ? "Edit" : "New"} {currentType.charAt(0).toUpperCase() + currentType.slice(1)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              {form.name.trim().length > 0 && (
+                <button 
+                  type="button"
+                  onClick={handleMorphToDetail} 
+                  className="p-1.5 rounded-lg text-[#F59E0B] hover:text-white hover:bg-white/5 transition-colors"
+                  title="Go Full Detail"
+                >
+                  <ArrowUpRight className="w-5 h-5" />
+                </button>
+              )}
+              {isMobile && (
+                <button 
+                  type="button"
+                  onClick={() => setIsExpanded(!isExpanded)} 
+                  className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+                </button>
+              )}
+              <button 
+                type="button"
+                onClick={handleClose} 
+                className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="px-6 py-5 flex-1 overflow-y-auto flex flex-col gap-5 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+            {/* Name field */}
+            <div className="flex flex-col gap-2 w-full">
+              <label className="text-[0.75rem] font-bold text-white/40 tracking-wide uppercase">
+                Name <span className="text-[#ef4444]">*</span>
+              </label>
+              <input
+                type="text"
                 placeholder="e.g., GitHub, Gmail"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
-                variant="filled"
-                InputProps={{
-                  disableUnderline: true,
-                  sx: { 
-                    borderRadius: '12px', 
-                    bgcolor: SURFACE_COLOR,
-                    border: '1px solid rgba(255,255,255,0.03)',
-                    transition: 'all 0.2s ease',
-                    '&.Mui-focused': {
-                      border: `1px solid ${alpha(VAULT_PRIMARY, 0.3)}`,
-                      bgcolor: 'rgba(255,255,255,0.01)'
-                    }
-                  }
-                }}
-                InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', '&.Mui-focused': { color: VAULT_PRIMARY } } }}
+                className="w-full bg-[#161412] text-white placeholder-white/20 border border-white/[0.03] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#10B981]/30 focus:bg-white/[0.01] transition-all"
               />
-            </Grid>
+            </div>
 
             {currentType === 'login' && (
               <>
-                <Grid size={{ xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="Username/Email"
-                    placeholder="john@example.com"
-                    value={form.username}
-                    onChange={(e) => setForm({ ...form, username: e.target.value })}
-                    required
-                    variant="filled"
-                    InputProps={{
-                      disableUnderline: true,
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PersonIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }} />
-                        </InputAdornment>
-                      ),
-                      sx: { 
-                        borderRadius: '12px', 
-                        bgcolor: SURFACE_COLOR,
-                        border: '1px solid rgba(255,255,255,0.03)',
-                        '&.Mui-focused': {
-                          border: `1px solid ${alpha(VAULT_PRIMARY, 0.3)}`,
-                        }
-                      }
-                    }}
-                    InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', '&.Mui-focused': { color: VAULT_PRIMARY } } }}
-                  />
-                </Grid>
-
-                <Grid size={{ xs: 12 }}>
-                  <Box sx={{ display: 'flex', gap: 1.5 }}>
-                    <TextField
-                      fullWidth
-                      label="Secret"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Secret"
-                      value={form.password}
-                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                {/* Username field */}
+                <div className="flex flex-col gap-2 w-full">
+                  <label className="text-[0.75rem] font-bold text-white/40 tracking-wide uppercase">
+                    Username/Email <span className="text-[#ef4444]">*</span>
+                  </label>
+                  <div className="relative w-full">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30">
+                      <User className="w-[18px] h-[18px]" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="john@example.com"
+                      value={form.username}
+                      onChange={(e) => setForm({ ...form, username: e.target.value })}
                       required
-                      variant="filled"
-                      InputProps={{
-                        disableUnderline: true,
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <LockIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }} />
-                          </InputAdornment>
-                        ),
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton onClick={() => setShowPassword(!showPassword)} size="small" sx={{ color: 'rgba(255,255,255,0.2)' }}>
-                              {showPassword ? <VisibilityOffIcon sx={{ fontSize: 18 }} /> : <VisibilityIcon sx={{ fontSize: 18 }} />}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                        sx: { 
-                          borderRadius: '12px', 
-                          bgcolor: SURFACE_COLOR,
-                          border: '1px solid rgba(255,255,255,0.03)',
-                          '&.Mui-focused': {
-                            border: `1px solid ${alpha(VAULT_PRIMARY, 0.3)}`,
-                          }
-                        }
-                      }}
-                      InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', '&.Mui-focused': { color: VAULT_PRIMARY } } }}
+                      className="w-full bg-[#161412] text-white placeholder-white/20 border border-white/[0.03] rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-[#10B981]/30 focus:bg-white/[0.01] transition-all"
                     />
-                    <IconButton 
-                      onClick={handleGeneratePassword}
-                      sx={{ 
-                        bgcolor: alpha(VAULT_PRIMARY, 0.1), 
-                        color: VAULT_PRIMARY,
-                        borderRadius: '12px',
-                        width: 56,
-                        height: 56,
-                        border: `1px solid ${alpha(VAULT_PRIMARY, 0.2)}`,
-                        '&:hover': { bgcolor: alpha(VAULT_PRIMARY, 0.2) },
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <AutorenewIcon sx={{ fontSize: 22 }} />
-                    </IconButton>
-                  </Box>
-                </Grid>
+                  </div>
+                </div>
 
-                <Grid size={{ xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="Website URL"
-                    type="url"
-                    placeholder="https://example.com"
-                    value={form.url}
-                    onChange={(e) => setForm({ ...form, url: e.target.value })}
-                    variant="filled"
-                    InputProps={{
-                      disableUnderline: true,
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LanguageIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }} />
-                        </InputAdornment>
-                      ),
-                      sx: { 
-                        borderRadius: '12px', 
-                        bgcolor: SURFACE_COLOR,
-                        border: '1px solid rgba(255,255,255,0.03)',
-                        '&.Mui-focused': {
-                          border: `1px solid ${alpha(VAULT_PRIMARY, 0.3)}`,
-                        }
-                      }
-                    }}
-                    InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', '&.Mui-focused': { color: VAULT_PRIMARY } } }}
-                  />
-                </Grid>
+                {/* Password / Secret field */}
+                <div className="flex flex-col gap-2 w-full">
+                  <label className="text-[0.75rem] font-bold text-white/40 tracking-wide uppercase">
+                    Secret <span className="text-[#ef4444]">*</span>
+                  </label>
+                  <div className="flex gap-3 items-center">
+                    <div className="relative flex-1">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30">
+                        <Lock className="w-[18px] h-[18px]" />
+                      </div>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Secret"
+                        value={form.password}
+                        onChange={(e) => setForm({ ...form, password: e.target.value })}
+                        required
+                        className="w-full bg-[#161412] text-white placeholder-white/20 border border-white/[0.03] rounded-xl pl-11 pr-11 py-3 text-sm focus:outline-none focus:border-[#10B981]/30 focus:bg-white/[0.01] transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleGeneratePassword}
+                      className="flex items-center justify-center bg-[#10B981]/10 hover:bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/20 rounded-xl w-12 h-12 transition-all shrink-0"
+                      title="Generate Password"
+                    >
+                      <RotateCw className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Website URL field */}
+                <div className="flex flex-col gap-2 w-full">
+                  <label className="text-[0.75rem] font-bold text-white/40 tracking-wide uppercase">
+                    Website URL
+                  </label>
+                  <div className="relative w-full">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30">
+                      <Globe className="w-[18px] h-[18px]" />
+                    </div>
+                    <input
+                      type="url"
+                      placeholder="https://example.com"
+                      value={form.url}
+                      onChange={(e) => setForm({ ...form, url: e.target.value })}
+                      className="w-full bg-[#161412] text-white placeholder-white/20 border border-white/[0.03] rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-[#10B981]/30 focus:bg-white/[0.01] transition-all"
+                    />
+                  </div>
+                </div>
               </>
             )}
 
             {currentType === 'card' && (
               <>
-                <Grid size={{ xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="Card Number"
-                    placeholder="•••• •••• •••• ••••"
-                    value={form.cardNumber}
-                    onChange={(e) => setForm({ ...form, cardNumber: e.target.value })}
-                    required
-                    variant="filled"
-                    InputProps={{
-                      disableUnderline: true,
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <CreditCardIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }} />
-                        </InputAdornment>
-                      ),
-                      sx: { borderRadius: '12px', bgcolor: SURFACE_COLOR, border: '1px solid rgba(255,255,255,0.03)' }
-                    }}
-                    InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', '&.Mui-focused': { color: VAULT_PRIMARY } } }}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="Cardholder Name"
+                {/* Card Number */}
+                <div className="flex flex-col gap-2 w-full">
+                  <label className="text-[0.75rem] font-bold text-white/40 tracking-wide uppercase">
+                    Card Number <span className="text-[#ef4444]">*</span>
+                  </label>
+                  <div className="relative w-full">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30">
+                      <CreditCard className="w-[18px] h-[18px]" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="•••• •••• •••• ••••"
+                      value={form.cardNumber}
+                      onChange={(e) => setForm({ ...form, cardNumber: e.target.value })}
+                      required
+                      className="w-full bg-[#161412] text-white placeholder-white/20 border border-white/[0.03] rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-[#10B981]/30 focus:bg-white/[0.01] transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Cardholder Name */}
+                <div className="flex flex-col gap-2 w-full">
+                  <label className="text-[0.75rem] font-bold text-white/40 tracking-wide uppercase">
+                    Cardholder Name <span className="text-[#ef4444]">*</span>
+                  </label>
+                  <input
+                    type="text"
                     placeholder="JOHN DOE"
                     value={form.cardholderName}
                     onChange={(e) => setForm({ ...form, cardholderName: e.target.value })}
                     required
-                    variant="filled"
-                    InputProps={{
-                      disableUnderline: true,
-                      sx: { borderRadius: '12px', bgcolor: SURFACE_COLOR, border: '1px solid rgba(255,255,255,0.03)' }
-                    }}
-                    InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', '&.Mui-focused': { color: VAULT_PRIMARY } } }}
+                    className="w-full bg-[#161412] text-white placeholder-white/20 border border-white/[0.03] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#10B981]/30 focus:bg-white/[0.01] transition-all"
                   />
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Expiry"
-                    placeholder="MM/YY"
-                    value={form.cardExpiry}
-                    onChange={(e) => setForm({ ...form, cardExpiry: e.target.value })}
-                    required
-                    variant="filled"
-                    InputProps={{
-                      disableUnderline: true,
-                      sx: { borderRadius: '12px', bgcolor: SURFACE_COLOR, border: '1px solid rgba(255,255,255,0.03)' }
-                    }}
-                    InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', '&.Mui-focused': { color: VAULT_PRIMARY } } }}
-                  />
-                </Grid>
-                <Grid size={{ xs: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="CVV"
-                    placeholder="•••"
-                    value={form.cardCVV}
-                    onChange={(e) => setForm({ ...form, cardCVV: e.target.value })}
-                    required
-                    variant="filled"
-                    InputProps={{
-                      disableUnderline: true,
-                      sx: { borderRadius: '12px', bgcolor: SURFACE_COLOR, border: '1px solid rgba(255,255,255,0.03)' }
-                    }}
-                    InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', '&.Mui-focused': { color: VAULT_PRIMARY } } }}
-                  />
-                </Grid>
+                </div>
+
+                {/* Expiry & CVV */}
+                <div className="flex gap-4">
+                  <div className="flex flex-col gap-2 flex-1">
+                    <label className="text-[0.75rem] font-bold text-white/40 tracking-wide uppercase">
+                      Expiry <span className="text-[#ef4444]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="MM/YY"
+                      value={form.cardExpiry}
+                      onChange={(e) => setForm({ ...form, cardExpiry: e.target.value })}
+                      required
+                      className="w-full bg-[#161412] text-white placeholder-white/20 border border-white/[0.03] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#10B981]/30 focus:bg-white/[0.01] transition-all"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 flex-1">
+                    <label className="text-[0.75rem] font-bold text-white/40 tracking-wide uppercase">
+                      CVV <span className="text-[#ef4444]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="•••"
+                      value={form.cardCVV}
+                      onChange={(e) => setForm({ ...form, cardCVV: e.target.value })}
+                      required
+                      className="w-full bg-[#161412] text-white placeholder-white/20 border border-white/[0.03] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#10B981]/30 focus:bg-white/[0.01] transition-all"
+                    />
+                  </div>
+                </div>
               </>
             )}
 
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label="Tags"
-                placeholder="work, email, private"
-                value={form.tags}
-                onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                variant="filled"
-                InputProps={{
-                  disableUnderline: true,
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LocalOfferIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }} />
-                    </InputAdornment>
-                  ),
-                  sx: { 
-                    borderRadius: '12px', 
-                    bgcolor: SURFACE_COLOR,
-                    border: '1px solid rgba(255,255,255,0.03)',
-                    '&.Mui-focused': {
-                      border: `1px solid ${alpha(VAULT_PRIMARY, 0.3)}`,
-                    }
-                  }
-                }}
-                InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', '&.Mui-focused': { color: VAULT_PRIMARY } } }}
-              />
-            </Grid>
+            {/* Tags */}
+            <div className="flex flex-col gap-2 w-full">
+              <label className="text-[0.75rem] font-bold text-white/40 tracking-wide uppercase">
+                Tags
+              </label>
+              <div className="relative w-full">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30">
+                  <Tag className="w-[18px] h-[18px]" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="work, email, private"
+                  value={form.tags}
+                  onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                  className="w-full bg-[#161412] text-white placeholder-white/20 border border-white/[0.03] rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-[#10B981]/30 focus:bg-white/[0.01] transition-all"
+                />
+              </div>
+            </div>
 
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                label={currentType === 'note' ? "Note Content" : "Notes"}
-                multiline
-                rows={currentType === 'note' ? 10 : 3}
-                placeholder={currentType === 'note' ? "Write your secure note here..." : "Secure notes..."}
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                variant="filled"
-                InputProps={{
-                  disableUnderline: true,
-                  startAdornment: (
-                    <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5 }}>
-                      <DescriptionIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }} />
-                    </InputAdornment>
-                  ),
-                  sx: { 
-                    borderRadius: '12px', 
-                    bgcolor: SURFACE_COLOR,
-                    border: '1px solid rgba(255,255,255,0.03)',
-                    '&.Mui-focused': {
-                      border: `1px solid ${alpha(VAULT_PRIMARY, 0.3)}`,
-                    }
-                  }
-                }}
-                InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', '&.Mui-focused': { color: VAULT_PRIMARY } } }}
-              />
-            </Grid>
+            {/* Notes */}
+            <div className="flex flex-col gap-2 w-full">
+              <label className="text-[0.75rem] font-bold text-white/40 tracking-wide uppercase">
+                {currentType === 'note' ? "Note Content" : "Notes"}
+              </label>
+              <div className="relative w-full">
+                <div className="absolute left-4 top-3 text-white/30">
+                  <FileText className="w-[18px] h-[18px]" />
+                </div>
+                <textarea
+                  rows={currentType === 'note' ? 10 : 3}
+                  placeholder={currentType === 'note' ? "Write your secure note here..." : "Secure notes..."}
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  className="w-full bg-[#161412] text-white placeholder-white/20 border border-white/[0.03] rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-[#10B981]/30 focus:bg-white/[0.01] transition-all resize-none"
+                />
+              </div>
+            </div>
 
             {/* Custom Fields */}
-            <Grid size={{ xs: 12 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, mt: 1 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-space-grotesk)', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.75rem' }}>
+            <div className="flex flex-col gap-3 w-full">
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-[0.75rem] font-bold text-white/40 tracking-wider uppercase">
                   Custom Fields
-                </Typography>
-                <Button
-                  size="small"
-                  startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+                </span>
+                <button
+                  type="button"
                   onClick={addCustomField}
-                  sx={{ 
-                    borderRadius: '8px', 
-                    color: VAULT_PRIMARY,
-                    fontWeight: 700,
-                    '&:hover': { bgcolor: alpha(VAULT_PRIMARY, 0.05) }
-                  }}
+                  className="flex items-center gap-1.5 text-xs text-[#10B981] font-bold hover:bg-[#10B981]/10 px-3 py-1.5 rounded-lg transition-colors"
                 >
-                  Add Field
-                </Button>
-              </Box>
+                  <Plus className="w-4 h-4" />
+                  <span>Add Field</span>
+                </button>
+              </div>
               
               {customFields.map((field) => (
-                <Box key={field.id} sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
-                  <TextField
-                    size="small"
+                <div key={field.id} className="flex gap-2 items-center">
+                  <input
+                    type="text"
                     placeholder="Label"
                     value={field.label}
                     onChange={(e) => updateCustomField(field.id, "label", e.target.value)}
-                    variant="filled"
-                    InputProps={{ disableUnderline: true, sx: { borderRadius: '10px', bgcolor: SURFACE_COLOR, border: '1px solid rgba(255,255,255,0.03)' } }}
+                    className="flex-1 bg-[#161412] text-white placeholder-white/20 border border-white/[0.03] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#10B981]/30 transition-all"
                   />
-                  <TextField
-                    size="small"
+                  <input
+                    type="text"
                     placeholder="Value"
                     value={field.value}
                     onChange={(e) => updateCustomField(field.id, "value", e.target.value)}
-                    variant="filled"
-                    InputProps={{ disableUnderline: true, sx: { borderRadius: '10px', bgcolor: SURFACE_COLOR, border: '1px solid rgba(255,255,255,0.03)' } }}
+                    className="flex-1 bg-[#161412] text-white placeholder-white/20 border border-white/[0.03] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#10B981]/30 transition-all"
                   />
-                  <IconButton onClick={() => removeCustomField(field.id)} size="small" sx={{ color: 'rgba(239, 68, 68, 0.4)', '&:hover': { color: '#ef4444', bgcolor: alpha('#ef4444', 0.1) } }}>
-                    <CloseIcon sx={{ fontSize: 18 }} />
-                  </IconButton>
-                </Box>
+                  <button
+                    type="button"
+                    onClick={() => removeCustomField(field.id)}
+                    className="p-2 text-red-500/60 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               ))}
-            </Grid>
-          </Grid>
+            </div>
 
-          {/* Secure Attachments Section */}
-          <Grid container spacing={2} sx={{ mt: 3 }}>
-            <Grid size={{ xs: 12 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.75rem' }}>
+            {/* Secure Attachments */}
+            <div className="flex flex-col gap-3 w-full mt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[0.75rem] font-bold text-white/40 tracking-wider uppercase">
                   Secure Attachments
-                </Typography>
+                </span>
                 
                 {initial && initial.$id && (
-                  <Button
-                    component="label"
-                    size="small"
-                    startIcon={uploadingAttachment ? <CircularProgress size={16} sx={{ color: VAULT_PRIMARY }} /> : <CloudUploadIcon sx={{ fontSize: 16 }} />}
-                    disabled={uploadingAttachment}
-                    sx={{ 
-                      borderRadius: '8px', 
-                      color: VAULT_PRIMARY,
-                      fontWeight: 700,
-                      '&:hover': { bgcolor: alpha(VAULT_PRIMARY, 0.05) }
-                    }}
+                  <label
+                    className={`flex items-center gap-1.5 text-xs text-[#10B981] font-bold hover:bg-[#10B981]/10 px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${uploadingAttachment ? 'opacity-50 pointer-events-none' : ''}`}
                   >
-                    {uploadingAttachment ? "Uploading..." : "Upload File"}
+                    {uploadingAttachment ? (
+                      <div className="w-4 h-4 border-2 border-[#10B981] border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <UploadCloud className="w-4 h-4" />
+                    )}
+                    <span>{uploadingAttachment ? "Uploading..." : "Upload File"}</span>
                     <input
                       type="file"
-                      hidden
+                      className="hidden"
                       onChange={handleUploadAttachment}
+                      disabled={uploadingAttachment}
                     />
-                  </Button>
+                  </label>
                 )}
-              </Box>
+              </div>
 
               {initial && initial.$id ? (
                 attachments.length === 0 ? (
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.35)', fontStyle: 'italic' }}>
+                  <p className="text-sm text-white/30 italic">
                     No attachments uploaded to this credential.
-                  </Typography>
+                  </p>
                 ) : (
-                  <Stack spacing={1.5}>
+                  <div className="flex flex-col gap-2">
                     {attachments.map((att: any, idx: number) => (
-                      <Box 
+                      <div 
                         key={att.id || idx}
-                        sx={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center', 
-                          p: 1.5, 
-                          borderRadius: '10px', 
-                          bgcolor: SURFACE_COLOR, 
-                          border: '1px solid rgba(255, 255, 255, 0.03)' 
-                        }}
+                        className="flex justify-between items-center p-3 rounded-xl bg-[#161412] border border-white/[0.03]"
                       >
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 700, color: 'white', wordBreak: 'break-all' }}>
+                        <div className="min-w-0 flex-1 pr-2">
+                          <p className="text-sm font-bold text-white truncate break-all">
                             {att.name}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.4)' }}>
+                          </p>
+                          <p className="text-xs text-white/40">
                             {(att.size / 1024).toFixed(1)} KB • {att.mime || 'application/octet-stream'}
-                          </Typography>
-                        </Box>
-                        <IconButton 
-                          onClick={() => handleDeleteAttachment(att.id)} 
-                          size="small" 
-                          sx={{ color: 'rgba(239, 68, 68, 0.6)', '&:hover': { color: '#ef4444', bgcolor: alpha('#ef4444', 0.1) } }}
+                          </p>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => handleDeleteAttachment(att.id)}
+                          className="p-2 text-red-500/60 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
                         >
-                          <DeleteIcon sx={{ fontSize: 18 }} />
-                        </IconButton>
-                      </Box>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     ))}
-                  </Stack>
+                  </div>
                 )
               ) : (
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.35)', fontStyle: 'italic' }}>
+                <p className="text-sm text-white/30 italic">
                   Save this credential first to enable secure file attachments.
-                </Typography>
+                </p>
               )}
-            </Grid>
-          </Grid>
+            </div>
 
-          {error && (
-            <Typography color="error" variant="caption" sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1, bgcolor: alpha('#ef4444', 0.05), p: 1.5, borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-              {error}
-            </Typography>
-          )}
-        </Box>
+            {error && (
+              <div className="mt-4 flex items-center gap-2 bg-red-500/5 text-red-500 p-3.5 rounded-lg border border-red-500/20 text-xs">
+                <span>{error}</span>
+              </div>
+            )}
+          </div>
 
-        {/* Footer with Actions */}
-        <Box sx={{ 
-          p: 3, 
-          pt: 2,
-          gap: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-          flexShrink: 0,
-          backgroundColor: BG_COLOR,
-          pb: isMobile ? 'max(1rem, env(safe-area-inset-bottom))' : 3
-        }}>
-          <Button 
-            onClick={onClose} 
-            fullWidth 
-            variant="text"
-            sx={{ 
-              borderRadius: '14px', 
-              py: 1.5, 
-              fontWeight: 700, 
-              color: 'rgba(255,255,255,0.4)',
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', color: 'white' }
-            }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            type="submit" 
-            fullWidth 
-            variant="contained" 
-            disabled={loading}
-            startIcon={!loading && <SaveIcon sx={{ fontSize: 18 }} />}
-            sx={{ 
-              borderRadius: '14px', 
-              py: 1.5, 
-              fontWeight: 900,
-              bgcolor: VAULT_PRIMARY,
-              color: '#000',
-              fontFamily: 'var(--font-space-grotesk)',
-              boxShadow: `0 8px 25px ${alpha(VAULT_PRIMARY, 0.3)}`,
-              '&:hover': { 
-                bgcolor: '#0fa976',
-                boxShadow: `0 12px 30px ${alpha(VAULT_PRIMARY, 0.4)}`,
-                transform: 'translateY(-2px)'
-              },
-              '&:disabled': {
-                bgcolor: 'rgba(255,255,255,0.05)',
-                color: 'rgba(255,255,255,0.2)'
-              },
-              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-          >
-            {loading ? "Saving..." : initial ? "Update" : "Add Credential"}
-          </Button>
-        </Box>
-      </form>
-    </Drawer>
+          {/* Footer */}
+          <div className="px-6 py-5 gap-3 flex flex-col border-t border-white/[0.05] shrink-0 bg-[#0A0908] pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+            <button 
+              type="button"
+              onClick={onClose} 
+              className="w-full py-3 rounded-xl font-bold text-white/40 hover:text-white hover:bg-white/5 transition-colors text-sm"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full py-3 rounded-xl font-bold bg-[#10B981] hover:bg-[#0fa976] text-black shadow-[0_8px_25px_rgba(16,185,129,0.3)] hover:shadow-[0_12px_30px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2 text-sm font-space-grotesk"
+            >
+              {!loading && <Save className="w-4.5 h-4.5" />}
+              <span>{loading ? "Saving..." : initial ? "Update" : "Add Credential"}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
