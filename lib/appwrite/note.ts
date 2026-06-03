@@ -991,8 +991,7 @@ export async function createTag(data: Partial<Tags>, jwt?: string) {
       metadata: JSON.stringify(metadata),
       isPublic: !!data.isPublic,
       isGuest: !!data.isGuest,
-      usageCount: 0,
-      createdAt: new Date().toISOString()
+      usageCount: 0
     };
 
     const doc = await createRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, payload);
@@ -1010,8 +1009,7 @@ export async function createTag(data: Partial<Tags>, jwt?: string) {
     metadata: JSON.stringify(metadata),
     isPublic: !!data.isPublic,
     isGuest: !!data.isGuest,
-    usageCount: 0,
-    createdAt: new Date().toISOString()
+    usageCount: 0
   };
 
   const doc = await createRowSecure(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, payload, undefined, jwt);
