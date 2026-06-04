@@ -381,6 +381,37 @@ export default function CreateNoteForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot, isHydrated, isDirty]);
 
+  const syncNoteInMemory = useCallback((nextTitle: string, nextContent: string, nextTags: string[], nextFormat: 'text' | 'doodle') => {
+    if (!resolvedNoteId) return;
+    const existing = (allNotes || []).find(n => n.$id === resolvedNoteId);
+    if (existing) {
+      upsertNote({
+        ...existing,
+        title: nextTitle.trim(),
+        content: nextContent.trim(),
+        tags: nextTags,
+        format: nextFormat,
+      });
+    }
+  }, [resolvedNoteId, allNotes, upsertNote]);
+
+  // Instant in-memory sync to note card while typing
+  useEffect(() => {
+    if (!resolvedNoteId) return;
+    
+    const existing = (allNotes || []).find(n => n.$id === resolvedNoteId);
+    if (!existing) return;
+    
+    const hasDiff = existing.title !== title.trim() ||
+                    existing.content !== content.trim() ||
+                    existing.format !== format ||
+                    JSON.stringify(existing.tags) !== JSON.stringify(tags);
+                    
+    if (hasDiff) {
+      syncNoteInMemory(title, content, tags, format);
+    }
+  }, [resolvedNoteId, title, content, format, tags, allNotes, syncNoteInMemory]);
+
   const appendTag = useCallback((tag: string) => {
     const next = tag.trim();
     if (!next) return;
@@ -697,8 +728,10 @@ export default function CreateNoteForm({
               type="text"
               value={title}
               onChange={(event) => {
-                setTitle(event.target.value);
+                const val = event.target.value;
+                setTitle(val);
                 setIsTitleManuallyEdited(true);
+                syncNoteInMemory(val, content, tags, format);
               }}
               placeholder="Title"
               className="w-full bg-white/[0.02] text-white placeholder-white/20 border border-white/5 focus:border-pink-500/30 rounded-xl px-3 py-2 text-xl font-black focus:outline-none transition-all font-space-grotesk shrink-0"
@@ -710,7 +743,11 @@ export default function CreateNoteForm({
               ref={contentRef}
               rows={isExpanded ? 12 : 6}
               value={content}
-              onChange={(event) => setContent(event.target.value)}
+              onChange={(event) => {
+                const val = event.target.value;
+                setContent(val);
+                syncNoteInMemory(title, val, tags, format);
+              }}
               placeholder="Write your note..."
               className="w-full flex-1 min-h-[160px] resize-none bg-white/[0.03] text-white placeholder-white/20 border border-white/[0.06] hover:border-white/10 focus:border-pink-500/30 rounded-xl px-3 py-2 text-lg focus:outline-none transition-all scrollbar-thin"
             />

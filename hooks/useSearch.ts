@@ -193,16 +193,22 @@ export function useSearch<T extends { $id: string; [key: string]: any }>({
   
   // Get paginated items for local search
   const paginatedItems = useMemo(() => {
+    if (!searchQuery.trim()) {
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      return data.slice(startIndex, endIndex);
+    }
     if (useLocalSearch) {
       const startIndex = (currentPage - 1) * pageSize;
       const endIndex = startIndex + pageSize;
       return backendData.slice(startIndex, endIndex);
     }
     return backendData;
-  }, [useLocalSearch, backendData, currentPage, pageSize]);
+  }, [useLocalSearch, backendData, data, searchQuery, currentPage, pageSize]);
   
   // Calculate pagination info
-  const totalPages = Math.ceil(totalCount / pageSize);
+  const activeTotalCount = searchQuery.trim() ? totalCount : data.length;
+  const totalPages = Math.ceil(activeTotalCount / pageSize);
   const hasNextPage = currentPage < totalPages;
   const hasPreviousPage = currentPage > 1;
   
@@ -268,7 +274,7 @@ export function useSearch<T extends { $id: string; [key: string]: any }>({
   return {
     // Data state
     items: paginatedItems,
-    totalCount,
+    totalCount: activeTotalCount,
     isSearching,
     error,
     

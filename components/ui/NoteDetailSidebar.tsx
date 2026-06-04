@@ -184,6 +184,16 @@ export function NoteDetailSidebar({
     }
   }, [liveNote, isEditing]);
 
+  const syncContent = useCallback((updatedTitle: string, updatedContent: string, updatedTags: string, updatedFormat: 'text' | 'doodle') => {
+    onUpdate({
+      ...liveNote,
+      title: updatedTitle,
+      content: updatedContent,
+      format: updatedFormat,
+      tags: updatedTags.split(',').map((t: string) => t.trim()).filter(Boolean),
+    });
+  }, [liveNote, onUpdate]);
+
   // Instant in-memory sync to note card while typing
   useEffect(() => {
     if (!isEditing) return;
@@ -194,15 +204,9 @@ export function NoteDetailSidebar({
                     liveNote.tags?.join(', ') !== tags;
                     
     if (hasDiff) {
-      onUpdate({
-        ...liveNote,
-        title,
-        content,
-        format,
-        tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-      });
+      syncContent(title, content, tags, format);
     }
-  }, [isEditing, title, content, format, tags, liveNote, onUpdate]);
+  }, [isEditing, title, content, format, tags, liveNote, syncContent]);
 
   // Automatically heal T4 encrypted state if vault is unlocked
   useEffect(() => {
@@ -669,7 +673,11 @@ export function NoteDetailSidebar({
               <input 
                 type="text"
                 value={title} 
-                onChange={(e) => setTitle(e.target.value)} 
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setTitle(val);
+                  syncContent(val, content, tags, format);
+                }} 
                 onBlur={() => setIsEditingTitle(false)} 
                 autoFocus 
                 className="w-full bg-transparent text-white font-black text-xl font-space-grotesk tracking-wide uppercase border-none focus:outline-none placeholder-white/20"
@@ -850,7 +858,11 @@ export function NoteDetailSidebar({
               format === 'text' ? (
                 <textarea 
                   value={content} 
-                  onChange={(e) => setContent(e.target.value)} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setContent(val);
+                    syncContent(title, val, tags, format);
+                  }} 
                   onBlur={(e) => {
                     const target = e.relatedTarget as HTMLElement;
                     if (target && (
