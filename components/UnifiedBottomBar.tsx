@@ -146,12 +146,14 @@ export function UnifiedBottomBar() {
   const isConnectCallDetail = Boolean(pathname?.match(/^\/connect\/call\/[^/]+$/));
   const isSpecificChatPage = Boolean(pathname?.match(/^\/connect\/chat\/[^/]+$/));
   const isSpecificProjectPage = Boolean(pathname?.match(/^\/projects\/[^/]+$/));
+  const isPublicFormPage = Boolean(pathname?.match(/^\/flow\/form\/[^/]+$/));
 
   if (pathname?.startsWith('/accounts')) return null;
 
   if (
     isSpecificChatPage ||
     isSpecificProjectPage ||
+    isPublicFormPage ||
     pathname?.includes('/settings') ||
     activeContent !== 'navbar' ||
     mode === 'compact' ||
