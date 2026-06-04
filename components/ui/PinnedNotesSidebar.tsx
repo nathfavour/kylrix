@@ -25,6 +25,10 @@ export function PinnedNotesSidebar() {
     });
   }, [allNotes, isPinned]);
 
+  const isHydrating = useMemo(() => {
+    return pinnedIds.some(id => !allNotes.some(n => n.$id === id));
+  }, [pinnedIds, allNotes]);
+
   const handleNoteUpdated = (updatedNote: Notes) => {
     upsertNote(updatedNote);
   };
@@ -34,9 +38,9 @@ export function PinnedNotesSidebar() {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#0A0908', overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#161412', overflow: 'hidden' }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: { xs: 2, md: 2.5 }, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: { xs: 2, md: 2.5 }, borderBottom: '1px solid rgba(255, 255, 255, 0.05)', bgcolor: '#161412' }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <Box 
             sx={{ 
@@ -61,7 +65,7 @@ export function PinnedNotesSidebar() {
               fontSize: '1.1rem'
             }}
           >
-            Pinned Notes ({pinnedNotes.length})
+            Pinned Notes ({pinnedIds.length})
           </Typography>
         </Stack>
         <Tooltip title="Close">
@@ -74,18 +78,32 @@ export function PinnedNotesSidebar() {
       {/* Content */}
       <Box sx={{ flex: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
         {pinnedNotes.length === 0 ? (
-          <Box sx={{ py: 8, textAlign: 'center', opacity: 0.5 }}>
-            <Typography variant="body2">No pinned notes</Typography>
-          </Box>
+          isHydrating ? (
+            <Box sx={{ py: 8, display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <CircularProgress size={24} sx={{ color: theme.palette.primary.main }} />
+              <Typography variant="body2" sx={{ ml: 2, color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>Hydrating secure pins...</Typography>
+            </Box>
+          ) : (
+            <Box sx={{ py: 8, textAlign: 'center', opacity: 0.5 }}>
+              <Typography variant="body2">No pinned notes</Typography>
+            </Box>
+          )
         ) : (
-          pinnedNotes.map((note: any) => (
-            <NoteCard
-              key={note.$id}
-              note={note}
-              onUpdate={handleNoteUpdated}
-              onDelete={handleNoteDeleted}
-            />
-          ))
+          <>
+            {pinnedNotes.map((note: any) => (
+              <NoteCard
+                key={note.$id}
+                note={note}
+                onUpdate={handleNoteUpdated}
+                onDelete={handleNoteDeleted}
+              />
+            ))}
+            {isHydrating && (
+              <Box sx={{ py: 2, display: 'flex', justifyContent: 'center' }}>
+                <CircularProgress size={16} sx={{ color: theme.palette.primary.main }} />
+              </Box>
+            )}
+          </>
         )}
       </Box>
     </Box>
