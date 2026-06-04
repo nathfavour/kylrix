@@ -184,6 +184,26 @@ export function NoteDetailSidebar({
     }
   }, [liveNote, isEditing]);
 
+  // Instant in-memory sync to note card while typing
+  useEffect(() => {
+    if (!isEditing) return;
+    
+    const hasDiff = liveNote.title !== title ||
+                    liveNote.content !== content ||
+                    liveNote.format !== format ||
+                    liveNote.tags?.join(', ') !== tags;
+                    
+    if (hasDiff) {
+      onUpdate({
+        ...liveNote,
+        title,
+        content,
+        format,
+        tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+      });
+    }
+  }, [isEditing, title, content, format, tags, liveNote, onUpdate]);
+
   // Automatically heal T4 encrypted state if vault is unlocked
   useEffect(() => {
     if (isEncryptedNote && vaultUnlocked) {
