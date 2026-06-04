@@ -1,20 +1,26 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Drawer,
   Box, 
-  Fade, 
-  useMediaQuery,
-  useTheme
+  Fade
 } from '@/lib/mui-tailwind/material';
 import { useOverlay } from './OverlayContext';
 
 const Overlay: React.FC = () => {
   const { isOpen, content, closeOverlay } = useOverlay();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [isMobile, setIsMobile] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const dragStartY = useRef(0);
   const startHeight = useRef(0);
 
@@ -51,10 +57,7 @@ const Overlay: React.FC = () => {
 
   const isFlapover = React.isValidElement(content) && (
     (content.props as any).note !== undefined ||
-    (content.type as any).name === 'NoteDetailSidebar' ||
-    (content.type as any).name === 'CreateNoteForm' ||
-    (content.props as any).onNoteCreated !== undefined ||
-    (content.props as any).noteKind !== undefined
+    (content.type as any).name === 'NoteDetailSidebar'
   );
 
   const drawerHeight = isMobile 

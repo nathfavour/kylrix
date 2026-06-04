@@ -16,6 +16,7 @@ import { useFAB } from '@/context/FABContext';
 import { usePathname } from 'next/navigation';
 import { useLocalContext } from '@/lib/context-engine';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
+import { useAgenticDrawer } from '@/context/AgenticDrawerContext';
 
 const FAB_BOTTOM = {
   landing: 32,
@@ -25,6 +26,7 @@ const FAB_BOTTOM = {
 export default function UniversalFAB() {
   const { config } = useFAB();
   const { isDrawerOpen } = useDrawerState();
+  const { isOpen: isAgenticDrawerOpen } = useAgenticDrawer();
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(false);
   const { isRecording, startRecording, stopRecording, currentWorkflow } = useLocalContext();
@@ -42,7 +44,7 @@ export default function UniversalFAB() {
     (pathname.startsWith('/connect') && pathname !== '/connect' && !pathname.includes('/invite/') && !pathname.startsWith('/connect/chat/'))
   );
 
-  if (isDrawerOpen || isDesktop) return null;
+  if (isDrawerOpen || isAgenticDrawerOpen || isDesktop) return null;
   if (!config.isVisible && !isAppRoute) return null;
 
   const actions = config.actions || [];
