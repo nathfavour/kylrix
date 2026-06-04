@@ -1069,32 +1069,28 @@ export default function ConnectTopbar({
                   </Box>
                 </Box>
 
-                <Box sx={{ borderRadius: '20px', border: '1px solid rgba(255,255,255,0.04)', bgcolor: 'rgba(255,255,255,0.01)', p: 2 }}>
-                    <Typography component="span" sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.75, display: 'block', lineHeight: 1.3 }}>
-                    Identity Key
-                  </Typography>
+                <div className="rounded-[20px] border border-white/[0.04] bg-white/[0.01] p-4">
+                  <span className="block text-white/45 text-[11px] font-extrabold uppercase tracking-wider mb-2 leading-none font-satoshi">
+                    userid
+                  </span>
                   
                   {/* UserId section with copy button */}
-                  <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
-                    <Typography component="span" sx={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 600, minWidth: 0, flex: 1, wordBreak: 'break-all', lineHeight: 1.45 }}>
+                  <div className="flex gap-2 items-center">
+                    <span className="text-white/85 font-mono text-xs font-semibold min-w-0 flex-1 break-all select-all leading-normal">
                       {shortenUserId(profileSeed.userId) || 'No ID'}
-                    </Typography>
-                    <IconButton
+                    </span>
+                    <button
+                      type="button"
                       onClick={handleCopyUserId}
-                      size="small"
                       title={copyState === 'copied-userid' ? 'Copied!' : 'Copy user ID'}
-                      sx={{
-                        flexShrink: 0,
-                        width: 26,
-                        height: 26,
-                        color: copyState === 'copied-userid' ? '#10B981' : 'rgba(255, 255, 255, 0.35)',
-                        '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.06)' }
-                      }}
+                      className={`flex-shrink-0 w-6.5 h-6.5 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                        copyState === 'copied-userid' ? 'text-[#10B981] bg-[#10B981]/10' : 'text-white/35 hover:text-white hover:bg-white/5'
+                      }`}
                     >
                       <CopyIcon size={12} />
-                    </IconButton>
-                  </Box>
-                </Box>
+                    </button>
+                  </div>
+                </div>
 
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                   <Button

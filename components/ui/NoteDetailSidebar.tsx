@@ -281,10 +281,8 @@ export function NoteDetailSidebar({
       if (!liveNote.$id) return;
       setIsLoadingCollaborators(true);
       try {
-        const { getResourceCollaboratorsSecure } = await import('@/lib/actions/secure-ops');
-        const { account } = await import('@/lib/appwrite');
-        const { jwt } = await account.createJWT();
-        const { collaborators } = await getResourceCollaboratorsSecure({ resourceId: liveNote.$id, resourceType: 'note', jwt });
+        const { getResourceCollaborators } = await import('@/lib/actions/client-ops');
+        const { collaborators } = await getResourceCollaborators({ resourceId: liveNote.$id, resourceType: 'note' });
         if (active) setCollaboratorProfiles(collaborators);
       } catch (err) {
         console.error('Failed to fetch collaborators:', err);

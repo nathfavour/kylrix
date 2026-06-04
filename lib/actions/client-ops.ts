@@ -326,6 +326,11 @@ export async function listGhostNoteChats() {
   return listGhostNoteChatsSecure(jwt);
 }
 
+export async function getResourceCollaborators(params: { resourceId: string; resourceType: string }) {
+  const jwt = await getJwt();
+  return getResourceCollaboratorsSecure({ ...params, jwt });
+}
+
 export async function getCrossSuggestions(params: { sourceApp: string; sourceType: string; sourceId: string | null }) {
   const jwt = await getJwt();
   return getCrossSuggestionsSecure(params, jwt);
