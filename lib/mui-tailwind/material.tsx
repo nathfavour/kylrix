@@ -1070,11 +1070,13 @@ export const Chip = ({
   color,
   variant,
   onDelete,
+  deleteIcon,
   icon,
   avatar,
   clickable,
   size,
   disabled,
+  sx,
   ...props
 }: any) => {
   let variantClass = "bg-[#1E1B19] text-stone-300";
@@ -1083,9 +1085,31 @@ export const Chip = ({
   } else if (color === 'secondary') {
     variantClass = "bg-pink-500/20 text-pink-300 border border-pink-500/30";
   }
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete && !disabled) {
+      onDelete(e);
+    }
+  };
+
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono ${variantClass} ${className || ''}`} {...props}>
+    <span 
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium font-mono ${variantClass} ${clickable ? 'cursor-pointer hover:brightness-110' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className || ''}`} 
+      style={cleanSx(sx)}
+      {...props}
+    >
+      {avatar && <span className="flex-shrink-0">{avatar}</span>}
+      {icon && <span className="flex-shrink-0">{icon}</span>}
       {label}
+      {onDelete && (
+        <span 
+          onClick={handleDelete}
+          className="flex items-center justify-center cursor-pointer hover:bg-white/10 rounded-full p-0.5 -mr-1"
+        >
+          {deleteIcon || <CloseIcon sx={{ fontSize: 14 }} />}
+        </span>
+      )}
     </span>
   );
 };

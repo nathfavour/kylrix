@@ -53,8 +53,17 @@ export default function TaskDialog() {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [estimatedTime, setEstimatedTime] = useState('');
-  const [selectedAssignees, setSelectedAssignees] = useState<User[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [ecosystemTags, setEcosystemTags] = useState<Tags[]>([]);
+
+  // Fetch ecosystem tags
+  useEffect(() => {
+    if (taskDialogOpen) {
+      listTags([], 100).then(res => {
+        setEcosystemTags(res.rows);
+      }).catch(err => console.error('Failed to fetch tags', err));
+    }
+  }, [taskDialogOpen]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -119,13 +128,11 @@ export default function TaskDialog() {
     if (isTitleManuallyEdited) return;
     const generated = buildAutoTitleFromContent(description);
     if (description.trim()) {
-      if (generated !== title) {
-        setTitle(generated);
-      }
+      setTitle(generated || 'Untitled Goal');
     } else {
       setTitle('');
     }
-  }, [description, isTitleManuallyEdited, title]);
+  }, [description, isTitleManuallyEdited]);
 
   const handleClose = () => {
     setTaskDialogOpen(false);
@@ -396,17 +403,17 @@ export default function TaskDialog() {
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-bold text-[#9B9691] tracking-wider uppercase font-clash">TAGS</label>
             <div className="flex flex-wrap gap-2 mb-2">
-              {selectedLabels.map((labelId) => {
-                const label = labels.find(l => l.id === labelId);
-                if (!label) return null;
+              {selectedLabels.map((tagName) => {
+                const tag = ecosystemTags.find(t => t.name === tagName);
+                const color = (tag as any)?.color || '#9B9691';
                 return (
                   <span
-                    key={labelId}
-                    onClick={() => setSelectedLabels(prev => prev.filter(id => id !== labelId))}
+                    key={tagName}
+                    onClick={() => setSelectedLabels(prev => prev.filter(name => name !== tagName))}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#1C1A18] text-[10px] font-extrabold font-mono rounded-lg border cursor-pointer hover:bg-[#2C2A28] transition-colors"
-                    style={{ color: label.color, borderColor: label.color }}
+                    style={{ color: color, borderColor: color }}
                   >
-                    {label.name.toUpperCase()}
+                    {tagName.toUpperCase()}
                     <X size={10} />
                   </span>
                 );
@@ -423,9 +430,9 @@ export default function TaskDialog() {
               className="w-full bg-[#161412] border border-[#1C1A18] rounded-xl px-3 py-2.5 text-sm text-[#9B9691] font-semibold focus:outline-none focus:border-[#A855F7] transition-colors cursor-pointer"
             >
               <option value="" disabled>Add tags...</option>
-              {labels.filter(l => !selectedLabels.includes(l.id)).map((label) => (
-                <option key={label.id} value={label.id}>
-                  {label.name}
+              {ecosystemTags.filter(t => !selectedLabels.includes(t.name)).map((tag) => (
+                <option key={tag.$id} value={tag.name}>
+                  {tag.name}
                 </option>
               ))}
             </select>
