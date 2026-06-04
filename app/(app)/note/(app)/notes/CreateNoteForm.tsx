@@ -689,7 +689,7 @@ export default function CreateNoteForm({
                 setIsTitleManuallyEdited(true);
               }}
               placeholder="Title"
-              className="w-full bg-white/[0.02] text-white placeholder-white/20 border border-white/5 focus:border-pink-500/30 rounded-xl px-3 py-2 text-lg font-black focus:outline-none transition-all font-space-grotesk shrink-0"
+              className="w-full bg-white/[0.02] text-white placeholder-white/20 border border-white/5 focus:border-pink-500/30 rounded-xl px-3 py-2 text-xl font-black focus:outline-none transition-all font-space-grotesk shrink-0"
             />
           )}
 
@@ -700,7 +700,7 @@ export default function CreateNoteForm({
               value={content}
               onChange={(event) => setContent(event.target.value)}
               placeholder="Write your note..."
-              className="w-full flex-1 min-h-[160px] resize-none bg-white/[0.03] text-white placeholder-white/20 border border-white/[0.06] hover:border-white/10 focus:border-pink-500/30 rounded-xl px-3 py-2 text-base focus:outline-none transition-all scrollbar-thin"
+              className="w-full flex-1 min-h-[160px] resize-none bg-white/[0.03] text-white placeholder-white/20 border border-white/[0.06] hover:border-white/10 focus:border-pink-500/30 rounded-xl px-3 py-2 text-lg focus:outline-none transition-all scrollbar-thin"
             />
           ) : (
             <div className="p-3.5 rounded-xl border border-white/10 bg-white/[0.03] flex flex-col gap-3.5">

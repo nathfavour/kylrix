@@ -654,12 +654,12 @@ export function NoteDetailSidebar({
                 onChange={(e) => setTitle(e.target.value)} 
                 onBlur={() => setIsEditingTitle(false)} 
                 autoFocus 
-                className="w-full bg-transparent text-white font-black text-lg font-space-grotesk tracking-wide uppercase border-none focus:outline-none placeholder-white/20"
+                className="w-full bg-transparent text-white font-black text-xl font-space-grotesk tracking-wide uppercase border-none focus:outline-none placeholder-white/20"
               />
             ) : (
               <h2 
                 onClick={activateTitleEditing}
-                className={`font-black font-space-grotesk text-[#6366F1] uppercase tracking-wide text-md truncate flex-1 ${isEncryptedNote && !vaultUnlocked ? 'cursor-pointer' : 'cursor-text'}`}
+                className={`font-black font-space-grotesk text-[#6366F1] uppercase tracking-wide text-xl truncate flex-1 ${isEncryptedNote && !vaultUnlocked ? 'cursor-pointer' : 'cursor-text'}`}
               >
                 {displayTitle}
               </h2>
@@ -854,7 +854,7 @@ export function NoteDetailSidebar({
                   }}
                   autoFocus 
                   ref={contentTextareaRef} 
-                  className="w-full min-h-[240px] bg-transparent text-white/90 text-sm leading-relaxed border-none focus:outline-none resize-none scrollbar-thin focus:ring-0 focus:ring-offset-0"
+                  className="w-full min-h-[240px] bg-transparent text-white/90 text-lg leading-relaxed border-none focus:outline-none resize-none scrollbar-thin focus:ring-0 focus:ring-offset-0"
                   placeholder="Write note contents..."
                 />
               ) : (
