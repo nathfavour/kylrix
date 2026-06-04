@@ -36,7 +36,6 @@ export function LoginDrawer() {
   }, [isOpen, setIsDrawerOpen]);
 
   useEffect(() => {
-...
     if (typeof window !== 'undefined') {
       setLastUsedMethod(localStorage.getItem('kylrix_last_auth_method'));
     }
