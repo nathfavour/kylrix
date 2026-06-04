@@ -103,6 +103,11 @@ export function NoteDetailSidebar({
     [allNotes, note, realtimeNote]
   );
 
+  const updateLocalAndParentNote = useCallback((updated: Notes) => {
+    onUpdate(updated);
+    setRealtimeNote(updated);
+  }, [onUpdate]);
+
   useEffect(() => {
     noteRef.current = note;
   }, [note]);
@@ -124,8 +129,7 @@ export function NoteDetailSidebar({
             const decrypted = await decryptPublicEncryptedNote(full);
             if (decrypted) resolved = decrypted;
           }
-          onUpdate(resolved);
-          setRealtimeNote(resolved);
+          updateLocalAndParentNote(resolved);
         }
       } catch (err) {
         console.error('Failed to fetch full note:', err);
@@ -133,7 +137,7 @@ export function NoteDetailSidebar({
     };
     fetchFullNote();
     return () => { active = false; };
-  }, [note.$id, onUpdate]);
+  }, [note.$id, updateLocalAndParentNote]);
   
   const noteMeta = useMemo(() => {
     try {
@@ -210,14 +214,14 @@ export function NoteDetailSidebar({
   }, [liveNote, isEditing]);
 
   const syncContent = useCallback((updatedTitle: string, updatedContent: string, updatedTags: string, updatedFormat: 'text' | 'doodle') => {
-    onUpdate({
+    updateLocalAndParentNote({
       ...liveNote,
       title: updatedTitle,
       content: updatedContent,
       format: updatedFormat,
       tags: updatedTags.split(',').map((t: string) => t.trim()).filter(Boolean),
     });
-  }, [liveNote, onUpdate]);
+  }, [liveNote, updateLocalAndParentNote]);
 
   // Instant in-memory sync to note card while typing
   useEffect(() => {
@@ -247,7 +251,7 @@ export function NoteDetailSidebar({
             setIsLocallyDecrypted(true);
             setIsEditingContent(false);
             setIsEditingTitle(false);
-            onUpdate(decrypted);
+            updateLocalAndParentNote(decrypted);
             showSuccess('Note decrypted', 'Content is now visible.');
           }
         } catch (err) {
@@ -256,7 +260,7 @@ export function NoteDetailSidebar({
       };
       void healDecryption();
     }
-  }, [isEncryptedNote, vaultUnlocked, liveNote, onUpdate, showSuccess]);
+  }, [isEncryptedNote, vaultUnlocked, liveNote, updateLocalAndParentNote, showSuccess]);
 
   // Sync drawer state
   useEffect(() => {
@@ -415,7 +419,7 @@ export function NoteDetailSidebar({
 
   const { isSaving: isAutosaving } = useAutosave(candidateNote, {
     onSave: (savedNote: Notes) => {
-      onUpdate(savedNote);
+      updateLocalAndParentNote(savedNote);
     },
     enabled: isEditing,
   });
@@ -440,7 +444,7 @@ export function NoteDetailSidebar({
     try {
       const updated = await toggleNoteVisibility(liveNote.$id);
       if (updated) {
-        onUpdate(updated);
+        updateLocalAndParentNote(updated);
         showSuccess(updated.isPublic ? 'Note is now Public' : 'Note is now Private');
       }
     } catch (err: any) {
@@ -452,7 +456,7 @@ export function NoteDetailSidebar({
         showError('Failed to update visibility');
       }
     }
-  }, [liveNote.$id, toggleNoteVisibility, onUpdate, showSuccess, showError, promptSudo]);
+  }, [liveNote.$id, toggleNoteVisibility, updateLocalAndParentNote, showSuccess, showError, promptSudo]);
 
   const rotateNoteLink = useCallback(() => setShowRotateConfirm(true), []);
 
@@ -463,7 +467,7 @@ export function NoteDetailSidebar({
       if (unlocked) {
         const updated = await rotatePublicNoteLink(liveNote.$id);
         if (updated) {
-          onUpdate(updated);
+          updateLocalAndParentNote(updated);
           if (updated.decryptionKey) {
             const shareUrl = getShareableUrl(liveNote.$id, updated.decryptionKey);
             navigator.clipboard.writeText(shareUrl);
@@ -477,7 +481,7 @@ export function NoteDetailSidebar({
     } finally {
       setIsRotating(false);
     }
-  }, [promptSudo, liveNote.$id, rotatePublicNoteLink, onUpdate, getShareableUrl, showSuccess, showError]);
+  }, [promptSudo, liveNote.$id, rotatePublicNoteLink, updateLocalAndParentNote, getShareableUrl, showSuccess, showError]);
 
   const handleCopyShareLink = useCallback(async () => {
     if (!isPublic) {
@@ -517,7 +521,7 @@ export function NoteDetailSidebar({
         tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
       };
       
-      onUpdate(updated);
+      updateLocalAndParentNote(updated);
       
       if (isEditing) {
         try {
@@ -539,14 +543,14 @@ export function NoteDetailSidebar({
     } else {
       closeSidebar();
     }
-  }, [onBack, closeSidebar, liveNote, title, content, format, tags, onUpdate, isEditing]);
+  }, [onBack, closeSidebar, liveNote, title, content, format, tags, updateLocalAndParentNote, isEditing]);
 
   const handleCreateTaskFromNote = useCallback(async () => {
     setIsCreatingTaskFromNote(true);
     try {
       const task = await createTaskFromNote(liveNote as any);
       if (task) {
-        onUpdate({ ...liveNote, linkedTaskId: task.$id } as any);
+        updateLocalAndParentNote({ ...liveNote, linkedTaskId: task.$id } as any);
         showSuccess('Goal created from note');
         setShowActionHub(false);
       }
@@ -555,7 +559,7 @@ export function NoteDetailSidebar({
     } finally {
       setIsCreatingTaskFromNote(false);
     }
-  }, [liveNote, onUpdate, showSuccess, showError, createTaskFromNote]);
+  }, [liveNote, updateLocalAndParentNote, showSuccess, showError, createTaskFromNote]);
 
   const handleStartNoteHuddle = useCallback(() => {
     const ownerId = liveNote.userId;
@@ -694,7 +698,7 @@ export function NoteDetailSidebar({
       setContent(nextContent);
       
       const updatedNote = { ...liveNote, content: nextContent };
-      onUpdate(updatedNote);
+      updateLocalAndParentNote(updatedNote);
 
       setTimeout(() => {
         textarea.focus();
@@ -704,7 +708,7 @@ export function NoteDetailSidebar({
       nextContent = content + text;
       setContent(nextContent);
       const updatedNote = { ...liveNote, content: nextContent };
-      onUpdate(updatedNote);
+      updateLocalAndParentNote(updatedNote);
     }
 
     try {
@@ -716,12 +720,12 @@ export function NoteDetailSidebar({
         tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
       });
       if (saved) {
-        onUpdate(saved as Notes);
+        updateLocalAndParentNote(saved as Notes);
       }
     } catch (err) {
       console.error('Failed to run immediate save on voice note insert:', err);
     }
-  }, [content, liveNote, onUpdate, title, format, tags]);
+  }, [content, liveNote, updateLocalAndParentNote, title, format, tags]);
 
   // --- RENDER ---
   return (
