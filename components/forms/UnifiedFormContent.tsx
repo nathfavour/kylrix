@@ -1,40 +1,20 @@
+'use client';
+
 import React, { useEffect, useState } from 'react';
 import { 
-    Box, 
-    Typography, 
-    TextField, 
-    Button, 
-    Paper, 
-    CircularProgress, 
-    Alert,
-    Fade,
-    Radio,
-    RadioGroup,
-    FormControlLabel,
-    Checkbox,
-    FormGroup,
-    Select,
-    MenuItem,
-    FormControl,
-    IconButton,
-    Stack,
-    alpha,
-    Drawer,
-    useTheme,
-    useMediaQuery
-} from '@/lib/mui-tailwind/material';
-import { 
-    Send as SendIcon, 
-    CheckCircleOutline as SuccessIcon,
-    Upload as UploadIcon
-} from '@/lib/mui-tailwind/icons';
-import { ArrowUpRight, ChevronUp, ChevronDown, X as XIcon } from 'lucide-react';
+    Send, 
+    CheckCircle2, 
+    Upload as UploadIcon, 
+    X as XIcon, 
+    ChevronDown, 
+    ChevronUp, 
+    ArrowUpRight 
+} from 'lucide-react';
 import { FormsService } from '@/lib/services/forms';
 import { Forms } from '@/generated/appwrite/types';
 import { useDataNexus } from '@/context/DataNexusContext';
 import { secureUploadFile } from '@/lib/actions/client-ops';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
-import { useAuth } from '@/context/auth/AuthContext';
 import { useSection } from '@/context/SectionContext';
 
 interface UnifiedFormContentProps {
@@ -43,24 +23,29 @@ interface UnifiedFormContentProps {
 }
 
 export function UnifiedFormContent({ formId, onClose }: UnifiedFormContentProps) {
-    const theme = useTheme();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
     const { setActiveDetail } = useSection();
     const [isExpanded, setIsExpanded] = useState(false);
     const { fetchOptimized } = useDataNexus();
-    const { user } = useAuth();
     const [form, setForm] = useState<Forms | null>(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [formData, setFormData] = useState<Record<string, any>>({});
+    const [isHydrated, setIsHydrated] = useState(false);
+    const [isDesktop, setIsDesktop] = useState(false);
+
+    useEffect(() => {
+        const checkSize = () => setIsDesktop(window.innerWidth >= 768);
+        checkSize();
+        window.addEventListener('resize', checkSize);
+        return () => window.removeEventListener('resize', checkSize);
+    }, []);
 
     const handleMorphToDetail = () => {
         setActiveDetail({ type: 'form', id: formId });
         onClose();
     };
-    const [submitted, setSubmitted] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [formData, setFormData] = useState<Record<string, any>>({});
-    const [isHydrated, setIsHydrated] = useState(false);
 
     // Load draft when form schema is loaded
     useEffect(() => {
@@ -144,145 +129,142 @@ export function UnifiedFormContent({ formId, onClose }: UnifiedFormContentProps)
         switch (field.type) {
             case 'select':
                 return (
-                    <FormControl fullWidth variant="filled">
-                        <Select
+                    <div className="relative">
+                        <select
                             value={formData[field.id] || ''}
                             onChange={(e) => handleFieldChange(field.id, e.target.value)}
                             required={field.required}
-                            disableUnderline
-                            sx={{ borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.03)' }}
+                            className="w-full px-4.5 py-3.5 rounded-xl bg-[#0B0A09] border border-[#34322F] text-white focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 hover:border-[#6366F1] transition-all cursor-pointer font-satoshi text-sm appearance-none"
                         >
+                            <option value="" disabled hidden>Select an option</option>
                             {(field.options || []).map((opt: string) => (
-                                <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                                <option key={opt} value={opt} className="bg-[#161412] text-white font-satoshi">{opt}</option>
                             ))}
-                        </Select>
-                    </FormControl>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-400">
+                            <ChevronDown size={16} />
+                        </div>
+                    </div>
                 );
             case 'radio':
                 return (
-                    <RadioGroup
-                        value={formData[field.id] || ''}
-                        onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                    >
+                    <div className="grid gap-2.5 pl-1">
                         {(field.options || []).map((opt: string) => (
-                            <FormControlLabel 
-                                key={opt} 
-                                value={opt} 
-                                control={<Radio size="small" />} 
-                                label={<Typography variant="body2">{opt}</Typography>} 
-                                sx={{ mb: 0.5 }}
-                            />
+                            <label key={opt} className="flex items-center gap-3 cursor-pointer group select-none">
+                                <input 
+                                    type="radio" 
+                                    name={field.id}
+                                    value={opt}
+                                    checked={formData[field.id] === opt}
+                                    onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                                    className="w-4.5 h-4.5 text-[#6366F1] bg-[#0B0A09] border border-[#34322F] checked:bg-[#6366F1] checked:border-[#6366F1] focus:ring-0 focus:ring-offset-0 focus:outline-none transition-all cursor-pointer"
+                                />
+                                <span className="text-sm font-satoshi text-zinc-300 group-hover:text-white transition-colors">{opt}</span>
+                            </label>
                         ))}
-                    </RadioGroup>
+                    </div>
                 );
             case 'checkbox':
                 return (
-                    <FormGroup>
+                    <div className="grid gap-2.5 pl-1">
                         {(field.options || []).map((opt: string) => (
-                            <FormControlLabel
-                                key={opt}
-                                control={
-                                    <Checkbox
-                                        size="small"
-                                        checked={(formData[field.id] || []).includes(opt)}
-                                        onChange={(e) => handleCheckboxChange(field.id, opt, e.target.checked)}
-                                    />
-                                }
-                                label={<Typography variant="body2">{opt}</Typography>}
-                                sx={{ mb: 0.5 }}
-                            />
+                            <label key={opt} className="flex items-center gap-3 cursor-pointer group select-none">
+                                <input 
+                                    type="checkbox"
+                                    checked={(formData[field.id] || []).includes(opt)}
+                                    onChange={(e) => handleCheckboxChange(field.id, opt, e.target.checked)}
+                                    className="w-4.5 h-4.5 text-[#6366F1] bg-[#0B0A09] border border-[#34322F] rounded checked:bg-[#6366F1] checked:border-[#6366F1] focus:ring-0 focus:ring-offset-0 focus:outline-none transition-all cursor-pointer"
+                                />
+                                <span className="text-sm font-satoshi text-zinc-300 group-hover:text-white transition-colors">{opt}</span>
+                            </label>
                         ))}
-                    </FormGroup>
+                    </div>
                 );
             case 'textarea':
                 return (
-                    <TextField
-                        fullWidth
-                        multiline
+                    <textarea
                         rows={4}
-                        variant="filled"
                         required={field.required}
                         value={formData[field.id] || ''}
                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                        InputProps={{ disableUnderline: true, sx: { borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.03)' } }}
+                        className="w-full px-4.5 py-3.5 rounded-xl bg-[#0B0A09] border border-[#34322F] text-white focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 hover:border-[#6366F1] transition-all resize-y font-satoshi leading-relaxed text-sm"
+                        placeholder="Type your response here..."
                     />
                 );
             case 'file':
                 const selectedFile = formData[field.id];
                 return (
-                    <Box>
+                    <div className="flex flex-col gap-2">
                         {selectedFile ? (
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.03)' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <SuccessIcon sx={{ color: '#10B981', fontSize: 20 }} />
-                                    <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
+                            <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#0B0A09] border border-[#34322F] transition-all">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400 shrink-0" />
+                                    <span className="text-sm font-semibold text-zinc-200 truncate max-w-[200px] font-satoshi">
                                         {selectedFile.originalName || 'File uploaded'}
-                                    </Typography>
-                                </Box>
-                                <IconButton size="small" onClick={() => handleFieldChange(field.id, null)} sx={{ color: '#FF453A' }}>
+                                    </span>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    onClick={() => handleFieldChange(field.id, null)} 
+                                    className="p-1 text-zinc-400 hover:text-rose-400 hover:bg-white/5 rounded-lg transition-colors"
+                                >
                                     <XIcon size={16} />
-                                </IconButton>
-                            </Box>
+                                </button>
+                            </div>
                         ) : (
-                            <Button
-                                component="label"
-                                variant="outlined"
-                                startIcon={submitting ? <CircularProgress size={16} /> : <UploadIcon sx={{ fontSize: 18 }} />}
-                                fullWidth
-                                disabled={submitting}
-                                sx={{
-                                    py: 1.5,
-                                    borderRadius: '12px',
-                                    borderColor: 'rgba(255,255,255,0.1)',
-                                    color: 'text.secondary',
-                                    textTransform: 'none',
-                                    bgcolor: 'rgba(255,255,255,0.02)',
-                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.2)' }
-                                }}
+                            <label
+                                className={`w-full py-3 px-4 rounded-xl border border-dashed border-[#34322F] bg-[#1C1A18] hover:bg-[#34322F]/20 hover:border-[#6366F1] transition-all cursor-pointer flex items-center justify-center gap-2 text-sm font-bold text-zinc-400 hover:text-white font-satoshi ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                {submitting ? 'Uploading...' : 'Choose File (Max 5MB)'}
-                                <input
-                                    type="file"
-                                    hidden
-                                    onChange={async (e) => {
-                                        const file = e.target.files?.[0];
-                                        if (!file) return;
-                                        if (file.size > 5 * 1024 * 1024) {
-                                            alert('File exceeds 5MB limit.');
-                                            return;
-                                        }
-                                        setSubmitting(true);
-                                        try {
-                                            const fData = new FormData();
-                                            fData.append('file', file);
-                                            fData.append('bucketId', APPWRITE_CONFIG.BUCKETS.FORM_ATTACHMENTS);
-                                            const uploaded = await secureUploadFile(fData);
-                                            handleFieldChange(field.id, {
-                                                fileId: uploaded.$id,
-                                                bucketId: APPWRITE_CONFIG.BUCKETS.FORM_ATTACHMENTS,
-                                                originalName: file.name
-                                            });
-                                        } catch (err: any) {
-                                            alert(err.message || 'Failed to upload file.');
-                                        } finally {
-                                            setSubmitting(false);
-                                        }
-                                    }}
-                                />
-                            </Button>
+                                {submitting ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
+                                ) : (
+                                    <UploadIcon size={18} />
+                                )}
+                                <span>{submitting ? 'Uploading...' : 'Choose File (Max 5MB)'}</span>
+                                {!submitting && (
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        required={field.required && !selectedFile}
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            if (file.size > 5 * 1024 * 1024) {
+                                                alert('File exceeds 5MB limit.');
+                                                return;
+                                            }
+                                            setSubmitting(true);
+                                            try {
+                                                const fData = new FormData();
+                                                fData.append('file', file);
+                                                fData.append('bucketId', APPWRITE_CONFIG.BUCKETS.FORM_ATTACHMENTS);
+                                                const uploaded = await secureUploadFile(fData);
+                                                handleFieldChange(field.id, {
+                                                    fileId: uploaded.$id,
+                                                    bucketId: APPWRITE_CONFIG.BUCKETS.FORM_ATTACHMENTS,
+                                                    originalName: file.name
+                                                });
+                                            } catch (err: any) {
+                                                alert(err.message || 'Failed to upload file.');
+                                            } finally {
+                                                setSubmitting(false);
+                                            }
+                                        }}
+                                    />
+                                )}
+                            </label>
                         )}
-                    </Box>
+                    </div>
                 );
             default:
                 return (
-                    <TextField
-                        fullWidth
+                    <input
                         type={field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : 'text'}
-                        variant="filled"
                         required={field.required}
                         value={formData[field.id] || ''}
                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                        InputProps={{ disableUnderline: true, sx: { borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.03)' } }}
+                        className="w-full px-4 py-3 rounded-xl bg-[#0B0A09] border border-[#34322F] text-white focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 hover:border-[#6366F1] transition-all font-satoshi text-sm"
+                        placeholder="Type response..."
                     />
                 );
         }
@@ -292,119 +274,126 @@ export function UnifiedFormContent({ formId, onClose }: UnifiedFormContentProps)
     try { schema = JSON.parse(form?.schema || '[]'); } catch (_e) {}
 
     return (
-        <Drawer
-            anchor={isDesktop ? 'right' : 'bottom'}
-            open={true}
-            onClose={onClose}
-            ModalProps={{ keepMounted: false, disablePortal: true }}
-            PaperProps={{
-                sx: {
-                    bgcolor: '#161412',
-                    ...(isDesktop ? {
-                        borderLeft: '1px solid rgba(255,255,255,0.08)',
-                        height: '100%',
-                        maxWidth: 480,
-                        width: '100%'
-                    } : {
-                        borderTop: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '32px 32px 0 0',
-                        height: isExpanded ? '100dvh' : '60dvh',
-                        transition: 'height 0.3s ease-in-out',
-                        maxHeight: '100dvh',
-                    }),
-                    overflow: 'hidden'
-                }
-            }}
-        >
-            <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column',
-                height: '100%',
-                bgcolor: '#050505',
-                backgroundImage: 'radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%)',
-                color: 'white',
-                overflow: 'hidden'
-            }}>
-                <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)' }}>
-                        {form?.title || 'Intelligence Portal'}
-                    </Typography>
-                    <Stack direction="row" spacing={0.5} alignItems="center">
-                        <IconButton onClick={handleMorphToDetail} size="small" sx={{ color: '#F59E0B' }} title="Go Full Detail">
-                            <ArrowUpRight size={20} />
-                        </IconButton>
-                        {!isDesktop && (
-                            <IconButton onClick={() => setIsExpanded(!isExpanded)} size="small" sx={{ color: 'rgba(255,255,255,0.3)' }}>
-                                {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-                            </IconButton>
-                        )}
-                        <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.3)' }}>
-                            <XIcon />
-                        </IconButton>
-                    </Stack>
-                </Box>
+        <>
+            {/* Backdrop */}
+            <div 
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1399] animate-in fade-in duration-200 cursor-pointer" 
+                onClick={onClose}
+            />
 
-                <Box sx={{ flex: 1, overflowY: 'auto', p: 4 }}>
-                    {loading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                            <CircularProgress />
-                        </Box>
-                    ) : submitted ? (
-                        <Fade in={true}>
-                            <Box sx={{ textAlign: 'center', py: 4 }}>
-                                <SuccessIcon sx={{ fontSize: 64, color: '#6366F1', mb: 2 }} />
-                                <Typography variant="h5" sx={{ fontWeight: 900, mb: 1 }}>Transmission Complete</Typography>
-                                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4 }}>
-                                    Your request has been securely injected into the Kylrix nexus.
-                                </Typography>
-                                <Button variant="outlined" onClick={onClose} sx={{ borderRadius: '12px', px: 4 }}>Done</Button>
-                            </Box>
-                        </Fade>
-                    ) : error ? (
-                        <Alert severity="error" sx={{ borderRadius: '16px' }}>{error}</Alert>
-                    ) : (
-                        <Box component="form" onSubmit={handleSubmit}>
-                            {form?.description && (
-                                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4, lineHeight: 1.6 }}>
-                                    {form.description}
-                                </Typography>
-                            )}
-
-                            <Stack spacing={4}>
-                                {schema.map((field) => (
-                                    <Box key={field.id}>
-                                        <Typography variant="caption" sx={{ display: 'block', fontWeight: 900, color: 'text.secondary', mb: 1.5, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                                            {field.label} {field.required && <Box component="span" sx={{ color: '#ef4444' }}>*</Box>}
-                                        </Typography>
-                                        {renderField(field)}
-                                    </Box>
-                                ))}
-                            </Stack>
-
-                            <Box sx={{ mt: 6, pb: 4 }}>
-                                <Button
-                                    type="submit"
-                                    variant="contained"
-                                    fullWidth
-                                    disabled={submitting}
-                                    startIcon={submitting ? <CircularProgress size={20} /> : <SendIcon />}
-                                    sx={{
-                                        py: 2,
-                                        borderRadius: '16px',
-                                        fontWeight: 900,
-                                        bgcolor: '#6366F1',
-                                        color: 'black',
-                                        boxShadow: '0 8px 32px rgba(99, 102, 241, 0.3)',
-                                        '&:hover': { bgcolor: alpha('#6366F1', 0.9) }
-                                    }}
+            {/* Side/Bottom Drawer */}
+            <div 
+                className={`fixed z-[1400] bg-[#050505] text-white overflow-hidden transition-all duration-300 ${
+                    isDesktop 
+                        ? 'right-0 top-0 bottom-0 h-full w-full max-w-[480px] border-l border-white/5 shadow-2xl animate-in slide-in-from-right duration-300' 
+                        : 'bottom-0 left-0 right-0 w-full rounded-t-[32px] border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-300'
+                }`}
+                style={!isDesktop ? { height: isExpanded ? '100dvh' : '60dvh' } : undefined}
+            >
+                <div 
+                    className="flex flex-col h-full bg-[#050505] overflow-hidden"
+                    style={{ backgroundImage: 'radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.08) 0%, transparent 60%)' }}
+                >
+                    {/* Header */}
+                    <div className="p-5 flex justify-between items-center border-b border-white/5">
+                        <h3 className="font-bold text-lg font-clash text-white tracking-wide truncate pr-2">
+                            {form?.title || 'Intelligence Portal'}
+                        </h3>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button 
+                                type="button"
+                                onClick={handleMorphToDetail} 
+                                className="p-1.5 text-amber-500 hover:text-amber-400 hover:bg-white/5 rounded-lg transition-colors"
+                                title="Go Full Detail"
+                            >
+                                <ArrowUpRight size={20} />
+                            </button>
+                            {!isDesktop && (
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsExpanded(!isExpanded)} 
+                                    className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                                 >
-                                    {submitting ? 'Transmitting...' : 'Submit Request'}
-                                </Button>
-                            </Box>
-                        </Box>
-                    )}
-                </Box>
-            </Box>
-        </Drawer>
+                                    {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+                                </button>
+                            )}
+                            <button 
+                                type="button"
+                                onClick={onClose} 
+                                className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                            >
+                                <XIcon size={20} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Scrollable Body */}
+                    <div className="flex-1 overflow-y-auto p-6 md:p-8 scrollbar-thin">
+                        {loading ? (
+                            <div className="flex justify-center items-center py-12">
+                                <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#6366F1] border-t-transparent" />
+                            </div>
+                        ) : submitted ? (
+                            <div className="text-center py-6 flex flex-col items-center animate-in fade-in duration-300">
+                                <div className="w-16 h-16 rounded-full bg-[#6366F1]/10 border border-[#6366F1]/20 flex items-center justify-center mb-6">
+                                    <CheckCircle2 className="w-8 h-8 text-[#6366F1]" />
+                                </div>
+                                <h4 className="text-xl md:text-2xl font-bold font-clash text-white mb-2">Transmission Complete</h4>
+                                <p className="text-zinc-400 font-satoshi text-sm mb-6 leading-relaxed">
+                                    Your request has been securely injected into the Kylrix nexus.
+                                </p>
+                                <button 
+                                    type="button" 
+                                    onClick={onClose}
+                                    className="px-6 py-2.5 rounded-xl border border-white/10 hover:border-[#6366F1] hover:bg-white/5 text-white font-bold transition-all font-satoshi text-sm"
+                                >
+                                    Done
+                                </button>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                                {form?.description && (
+                                    <p className="text-zinc-400 font-satoshi text-sm leading-relaxed mb-2">
+                                        {form.description}
+                                    </p>
+                                )}
+
+                                <div className="flex flex-col gap-6">
+                                    {schema.map((field) => (
+                                        <div key={field.id} className="flex flex-col gap-2.5">
+                                            <label className="text-xs font-bold text-zinc-300 font-satoshi tracking-wide">
+                                                {field.label} {field.required && <span className="text-rose-500 font-bold ml-0.5">*</span>}
+                                            </label>
+                                            {renderField(field)}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {error && (
+                                    <div className="p-4 bg-red-500/10 border border-red-500/20 text-[#ff1744] rounded-xl text-sm font-semibold font-satoshi leading-relaxed text-center mt-2">
+                                        {error}
+                                    </div>
+                                )}
+
+                                <div className="mt-8 pb-4">
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="w-full py-3.5 px-6 rounded-xl font-bold bg-[#6366F1] text-zinc-950 shadow-[0_8px_30px_rgb(99,102,241,0.2)] hover:bg-[#5254E8] hover:translate-y-[-1px] transition-all duration-200 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed font-clash text-base md:text-lg tracking-wide"
+                                    >
+                                        {submitting ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-zinc-950 border-t-transparent" />
+                                        ) : (
+                                            <Send size={18} />
+                                        )}
+                                        <span>{submitting ? 'Transmitting...' : 'Submit Request'}</span>
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </>
     );
 }

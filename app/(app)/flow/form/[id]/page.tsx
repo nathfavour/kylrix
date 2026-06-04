@@ -144,8 +144,8 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
 
     if (error && !form) {
         return (
-            <div className="max-w-md w-full mx-auto px-4 py-20">
-                <div className="p-4 bg-red-500/10 border border-red-500/20 text-[#ff1744] rounded-2xl font-semibold">
+            <div className="max-w-md w-full mx-auto px-4 py-20 font-satoshi">
+                <div className="p-4 bg-red-500/10 border border-red-500/20 text-[#ff1744] rounded-2xl font-semibold text-center leading-relaxed">
                     {error}
                 </div>
             </div>
@@ -164,48 +164,48 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                             value={formData[field.id] || ''}
                             onChange={(e) => handleFieldChange(field.id, e.target.value)}
                             required={field.required}
-                            className="w-full px-4 py-3 rounded-xl bg-black border border-[#34322F] text-white focus:outline-none focus:border-[#6366F1] hover:border-[#6366F1] transition-colors appearance-none cursor-pointer text-sm"
+                            className="w-full px-4.5 py-3.5 rounded-xl bg-[#0B0A09] border border-[#34322F] text-white focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 hover:border-[#6366F1] transition-all cursor-pointer font-satoshi text-sm md:text-base appearance-none"
                         >
                             <option value="" disabled hidden>Select an option</option>
                             {(field.options || []).map((opt: string) => (
-                                <option key={opt} value={opt} className="bg-black text-white">{opt}</option>
+                                <option key={opt} value={opt} className="bg-[#161412] text-white font-satoshi">{opt}</option>
                             ))}
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-400">
-                            <ChevronDown size={16} />
+                            <ChevronDown size={18} />
                         </div>
                     </div>
                 );
             case 'radio':
                 return (
-                    <div className="flex flex-col gap-2">
+                    <div className="grid gap-3 pl-1">
                         {(field.options || []).map((opt: string) => (
-                            <label key={opt} className="flex items-center gap-3 cursor-pointer group">
+                            <label key={opt} className="flex items-center gap-3 cursor-pointer group select-none">
                                 <input 
                                     type="radio" 
                                     name={field.id}
                                     value={opt}
                                     checked={formData[field.id] === opt}
                                     onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                                    className="w-4 h-4 text-[#6366F1] bg-black border border-[#34322F] focus:ring-[#6366F1] focus:ring-offset-0 focus:ring-0"
+                                    className="w-5 h-5 text-[#6366F1] bg-[#0B0A09] border border-[#34322F] focus:ring-0 focus:ring-offset-0 focus:outline-none checked:bg-[#6366F1] checked:border-[#6366F1] transition-all cursor-pointer"
                                 />
-                                <span className="text-sm text-white font-medium group-hover:text-zinc-200">{opt}</span>
+                                <span className="text-sm md:text-base font-satoshi text-zinc-300 group-hover:text-white transition-colors">{opt}</span>
                             </label>
                         ))}
                     </div>
                 );
             case 'checkbox':
                 return (
-                    <div className="flex flex-col gap-2">
+                    <div className="grid gap-3 pl-1">
                         {(field.options || []).map((opt: string) => (
-                            <label key={opt} className="flex items-center gap-3 cursor-pointer group">
+                            <label key={opt} className="flex items-center gap-3 cursor-pointer group select-none">
                                 <input 
                                     type="checkbox"
                                     checked={(formData[field.id] || []).includes(opt)}
                                     onChange={(e) => handleCheckboxChange(field.id, opt, e.target.checked)}
-                                    className="w-4 h-4 text-[#6366F1] bg-black border border-[#34322F] rounded focus:ring-[#6366F1] focus:ring-offset-0 focus:ring-0"
+                                    className="w-5 h-5 text-[#6366F1] bg-[#0B0A09] border border-[#34322F] rounded focus:ring-0 focus:ring-offset-0 focus:outline-none checked:bg-[#6366F1] checked:border-[#6366F1] transition-all cursor-pointer"
                                 />
-                                <span className="text-sm text-white font-medium group-hover:text-zinc-200">{opt}</span>
+                                <span className="text-sm md:text-base font-satoshi text-zinc-300 group-hover:text-white transition-colors">{opt}</span>
                             </label>
                         ))}
                     </div>
@@ -217,33 +217,33 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                         required={field.required}
                         value={formData[field.id] || ''}
                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-black border border-[#34322F] text-white focus:outline-none focus:border-[#6366F1] hover:border-[#6366F1] transition-colors resize-y font-sans leading-relaxed text-sm"
-                        placeholder="Enter your response..."
+                        className="w-full px-4.5 py-3.5 rounded-xl bg-[#0B0A09] border border-[#34322F] text-white focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 hover:border-[#6366F1] transition-all resize-y font-satoshi leading-relaxed text-sm md:text-base"
+                        placeholder="Type your response here..."
                     />
                 );
             case 'file':
                 const selectedFile = formData[field.id];
                 return (
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2.5">
                         {selectedFile ? (
-                            <div className="flex items-center justify-between p-3.5 rounded-xl bg-black border border-[#34322F]">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                                    <span className="text-sm font-semibold text-white truncate max-w-[200px]">
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-[#0B0A09] border border-[#34322F] transition-all">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                                    <span className="text-sm font-semibold text-zinc-200 truncate max-w-[280px] font-satoshi">
                                         {selectedFile.originalName || 'File uploaded'}
                                     </span>
                                 </div>
                                 <button 
                                     type="button" 
                                     onClick={() => handleFieldChange(field.id, null)} 
-                                    className="p-1 text-red-500 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors"
+                                    className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-white/5 rounded-lg transition-colors"
                                 >
-                                    <XIcon size={16} />
+                                    <XIcon size={18} />
                                 </button>
                             </div>
                         ) : (
                             <label
-                                className={`w-full py-3.5 px-4 rounded-xl border border-dashed border-[#34322F] bg-[#1C1A18] hover:bg-[#34322F]/20 hover:border-[#6366F1] transition-all cursor-pointer flex items-center justify-center gap-2 text-sm font-bold text-[#9B9691] hover:text-white ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                className={`w-full py-4 px-4.5 rounded-xl border border-dashed border-[#34322F] bg-[#1C1A18] hover:bg-[#34322F]/20 hover:border-[#6366F1] transition-all cursor-pointer flex items-center justify-center gap-2.5 text-sm font-bold text-zinc-400 hover:text-white font-satoshi ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 {submitting ? (
                                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
@@ -293,31 +293,34 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                         required={field.required}
                         value={formData[field.id] || ''}
                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-black border border-[#34322F] text-white focus:outline-none focus:border-[#6366F1] hover:border-[#6366F1] transition-colors font-sans text-sm"
-                        placeholder="Enter response..."
+                        className="w-full px-4 py-3.5 rounded-xl bg-[#0B0A09] border border-[#34322F] text-white focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/30 hover:border-[#6366F1] transition-all font-satoshi text-sm md:text-base"
+                        placeholder="Type response..."
                     />
                 );
         }
     };
 
     return (
-        <div className="min-h-screen bg-[#000000] text-white flex flex-col items-center">
+        <div 
+            className="min-h-screen bg-[#000000] text-white flex flex-col items-center"
+            style={{ backgroundImage: 'radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.08) 0%, transparent 60%)' }}
+        >
             <div className="max-w-xl w-full mx-auto px-4 py-12 md:py-24">
                 <div>
-                    <div className="mb-8 text-center">
-                        <h1 className="text-4xl md:text-5xl font-black mb-3 tracking-tight uppercase font-space-grotesk text-white">
+                    <div className="mb-10 text-center">
+                        <h1 className="text-4xl md:text-5xl font-extrabold font-clash text-white tracking-tight leading-tight">
                             {form?.title}
                         </h1>
                         {form?.description && (
-                            <p className="text-[#9B9691] max-w-lg mx-auto font-medium leading-relaxed font-sans text-sm md:text-base">
+                            <p className="text-zinc-400 font-satoshi font-normal leading-relaxed text-sm md:text-base mt-3 max-w-lg mx-auto">
                                 {form.description}
                             </p>
                         )}
 
-                        <div className="mt-4 flex justify-center">
-                            <div className="px-3 py-1 rounded-full bg-[#1C1A18] border border-[#34322F] flex items-center gap-2">
-                                <div className={`w-1.5 h-1.5 rounded-full ${currentUser ? 'bg-emerald-500' : 'bg-zinc-500'}`} />
-                                <span className="text-xs font-bold text-[#9B9691] uppercase tracking-wider font-mono">
+                        <div className="mt-6 flex justify-center">
+                            <div className="px-3.5 py-1.5 rounded-full bg-[#1C1A18] border border-[#34322F] flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${currentUser ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-500'}`} />
+                                <span className="text-xs font-bold text-zinc-300 font-mono tracking-wider">
                                     {currentUser ? `Filling as ${currentUser.name || currentUser.email}` : 'Filling anonymously'}
                                 </span>
                             </div>
@@ -325,18 +328,18 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                     </div>
 
                     {submitted ? (
-                        <div className="p-8 md:p-12 text-center rounded-[28px] bg-[#161412] border border-[#34322F] flex flex-col items-center">
+                        <div className="p-8 md:p-16 text-center rounded-[28px] bg-[#161412] border border-[#34322F] flex flex-col items-center">
                             <div className="w-16 h-16 rounded-full bg-[#6366F1]/10 border border-[#6366F1]/20 flex items-center justify-center mb-6">
                                 <CheckCircle2 className="w-8 h-8 text-[#6366F1]" />
                             </div>
-                            <h2 className="text-2xl md:text-3xl font-black font-space-grotesk uppercase tracking-wide text-white mb-2">Transmission Complete</h2>
-                            <p className="text-[#9B9691] mb-6 font-medium font-sans text-sm md:text-base">
+                            <h2 className="text-2xl md:text-3xl font-bold font-clash text-white mb-3">Transmission Complete</h2>
+                            <p className="text-[#9B9691] mb-8 font-medium font-satoshi text-sm md:text-base">
                                 Your data has been securely injected into the Kylrix Flow nexus.
                             </p>
                             <button 
                                 type="button" 
                                 onClick={() => window.location.reload()}
-                                className="px-6 py-3 rounded-xl border border-[#34322F] text-white font-bold hover:bg-[#1C1A18] hover:border-[#6366F1] transition-all font-sans text-sm"
+                                className="px-6 py-3 rounded-xl border border-[#34322F] text-white font-bold hover:bg-[#1C1A18] hover:border-[#6366F1] hover:text-white transition-all font-satoshi text-sm"
                             >
                                 Submit New Entry
                             </button>
@@ -346,17 +349,19 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                             onSubmit={handleSubmit}
                             className="p-6 md:p-10 rounded-[28px] bg-[#161412] border border-[#34322F] flex flex-col gap-6"
                         >
-                            {schema.map((field) => (
-                                <div key={field.id} className="flex flex-col gap-2">
-                                    <label className="text-xs font-bold text-white uppercase tracking-wider font-sans flex items-center gap-1">
-                                        {field.label} {field.required && <span className="text-red-500 font-bold">*</span>}
-                                    </label>
-                                    {renderField(field)}
-                                </div>
-                            ))}
+                            <div className="flex flex-col gap-8">
+                                {schema.map((field) => (
+                                    <div key={field.id} className="flex flex-col gap-2.5">
+                                        <label className="block text-sm font-bold text-zinc-200 font-satoshi tracking-wide">
+                                            {field.label} {field.required && <span className="text-rose-500 font-bold ml-0.5">*</span>}
+                                        </label>
+                                        {renderField(field)}
+                                    </div>
+                                ))}
+                            </div>
 
                             {error && (
-                                <div className="p-4 bg-red-500/10 border border-red-500/20 text-[#ff1744] rounded-xl text-sm font-semibold">
+                                <div className="p-4 bg-red-500/10 border border-red-500/20 text-[#ff1744] rounded-xl text-sm font-semibold font-satoshi leading-relaxed text-center mt-2">
                                     {error}
                                 </div>
                             )}
@@ -364,10 +369,10 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="mt-4 py-3.5 px-6 rounded-xl font-bold bg-[#6366F1] text-black hover:bg-[#575CF0] active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 hover:text-black text-base md:text-lg font-space-grotesk uppercase tracking-wide"
+                                className="mt-6 w-full py-4 px-6 rounded-xl font-bold bg-[#6366F1] text-zinc-950 hover:bg-[#5254E8] active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed text-base md:text-lg font-clash tracking-wide"
                             >
                                 {submitting ? (
-                                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-black border-t-transparent" />
+                                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-zinc-950 border-t-transparent" />
                                 ) : (
                                     <Send size={18} />
                                 )}
@@ -376,9 +381,9 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                         </form>
                     )}
 
-                    <div className="mt-8 text-center opacity-20">
+                    <div className="mt-10 text-center opacity-25">
                         <span className="text-[10px] md:text-xs font-mono font-bold tracking-[0.3em] text-[#9B9691]">
-                            SECURED BY KYLRIX NEURAL FLOW
+                            Secured by Kylrix Neural Flow
                         </span>
                     </div>
                 </div>
