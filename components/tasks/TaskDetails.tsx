@@ -556,46 +556,80 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
   };
 
   return (
-    <Box sx={{ 
-      height: '100%', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      bgcolor: 'transparent',
-      perspective: '1200px',
-    }}>
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          px: { xs: 2, md: 4 },
-          py: 3,
-          bgcolor: 'rgba(28, 26, 24, 0.95)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.2)',
-          zIndex: 1
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
-          {(isMobile || onBack) && (
-            <IconButton 
-              onClick={handleClose}
-              sx={{ color: 'text.secondary', mr: 1 }}
-            >
-              <BackIcon />
-            </IconButton>
+    <Box className="task-detail-root" sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#161412', overflow: 'hidden' }}>
+      {/* Header (Dual-Row Layout - Fixed at top) */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: { xs: 2, md: 2.5 }, pb: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.05)', bgcolor: '#161412' }}>
+        {/* Row 1: Title & Close Button */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
+            {onBack ? (
+              <IconButton onClick={onBack} sx={{ color: theme.palette.text.secondary, flexShrink: 0 }}>
+                <BackIcon />
+              </IconButton>
+            ) : (
+              <IconButton onClick={handleClose} sx={{ color: theme.palette.text.secondary, flexShrink: 0, display: { xs: 'inline-flex', sm: 'none' } }}>
+                <BackIcon />
+              </IconButton>
+            )}
+            {isEditing ? (
+              <TextField 
+                fullWidth 
+                variant="standard" 
+                value={editTitle} 
+                onChange={(e) => setEditTitle(e.target.value)} 
+                onBlur={() => handleSaveEdit()} 
+                autoFocus 
+                InputProps={{ 
+                  disableUnderline: true, 
+                  sx: { 
+                    fontSize: '1.25rem', 
+                    fontWeight: 900, 
+                    color: 'white', 
+                    fontFamily: '"Space Grotesk", sans-serif',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em' 
+                  } 
+                }} 
+              />
+            ) : (
+              <Typography 
+                variant="h6" 
+                onClick={handleStartEdit} 
+                noWrap
+                sx={{ 
+                  cursor: 'pointer', 
+                  fontWeight: 900, 
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  color: '#A855F7',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  fontSize: '1.1rem',
+                  flex: 1
+                }}
+              >
+                {task.title}
+              </Typography>
+            )}
+          </Box>
+
+          {!onBack && (
+            <Tooltip title="Close">
+              <IconButton
+                onClick={handleClose}
+                sx={{
+                  color: theme.palette.text.secondary,
+                  display: { xs: 'none', sm: 'inline-flex' },
+                  '&:hover': { color: 'white', bgcolor: alpha(theme.palette.text.primary, 0.08) }
+                }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           )}
-          <Checkbox
-            checked={task.status === 'done'}
-            onChange={() => completeTask(task.id)}
-            sx={{
-              p: 0,
-              color: 'rgba(255, 255, 255, 0.15)',
-              '&.Mui-checked': { color: '#A855F7' },
-              '&:hover': { bgcolor: alpha('#A855F7', 0.1) }
-            }}
-          />
+        </Box>
+
+        {/* Row 2: Action Toolbar */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }}>
           <Chip
             label={statusLabels[task.status]}
             size="small"
@@ -608,744 +642,164 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
               fontSize: '0.65rem',
               textTransform: 'uppercase',
               letterSpacing: '0.12em',
-              fontFamily: 'var(--font-clash-display)',
               borderRadius: '8px',
-              transition: 'all 0.2s ease',
-              '&:hover': { 
-                bgcolor: 'rgba(255, 255, 255, 0.08)',
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-                transform: 'translateY(-1px)'
-              }
             }}
           />
-        </Box>
 
-        {/* Collaborator HUD */}
-        {taskId && resourcePresence[taskId]?.length > 0 && (
-            <Stack direction="row" spacing={-1} sx={{ ml: 2, mr: 'auto' }}>
-                {resourcePresence[taskId].map((p, idx) => (
-                    <IdentityAvatar 
-                        key={p.userId}
-                        size={24}
-                        status={p.state}
-                        sx={{ border: '2px solid #161412' }}
-                    />
-                ))}
-            </Stack>
-        )}
+          <Box sx={{ flexGrow: 1 }} />
 
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton 
-            size="small" 
-            onClick={() => setShowProjectLinker(true)} 
-            sx={{ 
-              color: 'text.secondary', 
-              bgcolor: 'rgba(255, 255, 255, 0.02)',
-              borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-              transition: 'all 0.2s ease',
-              '&:hover': { color: '#6366F1', bgcolor: 'rgba(255, 255, 255, 0.08)', transform: 'translateY(-1px)' } 
-            }}
-          >
-            <FolderKanban size={18} />
-          </IconButton>
-          <IconButton 
-            size="small" 
-            onClick={handleStartEdit} 
-            sx={{ 
-              color: 'text.secondary', 
-              bgcolor: 'rgba(255, 255, 255, 0.02)',
-              borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-              transition: 'all 0.2s ease',
-              '&:hover': { color: '#F2F2F2', bgcolor: 'rgba(255, 255, 255, 0.08)', transform: 'translateY(-1px)' } 
-            }}
-          >
-            <EditIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-          <IconButton 
-            size="small" 
-            onClick={handleClose} 
-            sx={{ 
-              color: 'text.secondary', 
-              bgcolor: 'rgba(255, 255, 255, 0.02)',
-              borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-              transition: 'all 0.2s ease',
-              '&:hover': { color: '#F2F2F2', bgcolor: 'rgba(255, 255, 255, 0.08)', transform: 'translateY(-1px)' } 
-            }}
-          >
-            <CloseIcon sx={{ fontSize: 20 }} />
-          </IconButton>
+          <Tooltip title="Action hub">
+            <IconButton onClick={() => setShowProjectLinker(true)} sx={{ color: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
+              <ActionIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Edit task">
+            <IconButton onClick={handleStartEdit} sx={{ color: theme.palette.text.secondary }}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Delete task">
+            <IconButton 
+              onClick={() => {
+                openUnified('delete-confirm', {
+                  title: 'Delete Goal?',
+                  description: `"${task.title}"`,
+                  onConfirm: () => { /* implement delete logic if needed */ }
+                });
+              }} 
+              sx={{ color: theme.palette.text.secondary }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Box>
       </Box>
 
-      <ProjectLinker 
-        open={showProjectLinker} 
-        onClose={() => setShowProjectLinker(false)} 
-        entityId={taskId} 
-        entityKind="goal" 
-      />
-
-      {/* Scrollable Content */}
-      <Box sx={{ 
-        px: 4, 
-        py: 5, 
-        overflow: 'auto', 
-        flexGrow: 1,
-        '&::-webkit-scrollbar': { width: 0 },
-        scrollbarWidth: 'none'
-      }}>
-        {/* Title & Description */}
-        {isEditing ? (
-          <Box sx={{ 
-            mb: 6,
-            p: 3,
-            bgcolor: alpha('#161412', 0.4),
-            borderRadius: '24px',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
-          }}>
-            <TextField
-              fullWidth
-              variant="standard"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              placeholder="Task title"
-              autoFocus
-              sx={{ mb: 2.5 }}
-              InputProps={{ 
-                sx: { 
-                    fontSize: '1.75rem', 
-                    fontWeight: 900, 
-                    fontFamily: 'var(--font-clash-display)',
-                    letterSpacing: '-0.02em',
-                    '&:before, &:after': { display: 'none' } 
-                } 
-              }}
-            />
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              variant="standard"
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              placeholder="Add more context..."
-              InputProps={{
-                disableUnderline: true,
-                sx: { 
-                    bgcolor: 'rgba(255, 255, 255, 0.02)',
-                    p: 2,
-                    borderRadius: '16px',
-                    fontSize: '0.95rem',
-                    fontFamily: 'var(--font-satoshi)',
-                    lineHeight: 1.6
-                }
-              }}
-            />
-            <Box sx={{ display: 'flex', gap: 2, mt: 3.5 }}>
-              <Button 
-                variant="contained" 
-                onClick={handleSaveEdit}
-                sx={{ borderRadius: '12px', px: 3, fontWeight: 800 }}
-              >
-                Save
-              </Button>
-              <Button 
-                onClick={() => setIsEditing(false)} 
-                sx={{ color: 'text.secondary', fontWeight: 700 }}
-              >
-                Cancel
-              </Button>
-            </Box>
-          </Box>
-        ) : (
-          <Box sx={{ 
-            mb: 6,
-            transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-            '&:hover': { transform: 'translateZ(10px)' }
-          }}>
-            <Typography
-              variant="h3"
-              sx={{
-                mb: 2.5,
-                fontWeight: 900,
-                lineHeight: 1.1,
-                fontFamily: 'var(--font-clash-display)',
-                letterSpacing: '-0.03em',
-                textDecoration: task.status === 'done' ? 'line-through' : 'none',
-                color: task.status === 'done' ? 'text.disabled' : '#F2F2F2',
-                opacity: task.status === 'done' ? 0.6 : 1,
-              }}
-            >
-              {task.title}
-            </Typography>
-            {task.description && (
+      {/* Scrollable Content Area */}
+      <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 2.5 }, pt: 3, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        
+        {/* Content Card (Pitch Black Sub-Region) */}
+        <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#0A0908', border: '1px solid #1C1A18', minHeight: { xs: 200, md: 260 }, boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <Typography variant="caption" sx={{ color: '#A855F7', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', mb: 2 }}>Objective details</Typography>
+          <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            {isEditing ? (
+              <TextField 
+                fullWidth 
+                multiline 
+                rows={6} 
+                variant="standard" 
+                value={editDescription} 
+                onChange={(e) => setEditDescription(e.target.value)} 
+                onBlur={() => handleSaveEdit()}
+                InputProps={{ 
+                  disableUnderline: true, 
+                  sx: { color: 'rgba(255,255,255,0.85)', fontSize: '1rem', lineHeight: 1.8 } 
+                }} 
+              />
+            ) : (
               <Typography 
                 variant="body1" 
-                sx={{ 
-                  color: 'text.secondary', 
-                  fontSize: '1rem', 
-                  lineHeight: 1.8,
-                  fontFamily: 'var(--font-satoshi)',
-                  fontWeight: 500,
-                  opacity: 0.8
-                }}
+                onClick={handleStartEdit}
+                sx={{ color: 'text.secondary', fontSize: '1rem', lineHeight: 1.8, fontFamily: 'var(--font-satoshi)', cursor: 'text' }}
               >
-                {task.description}
+                {task.description || 'No detailed parameters provided.'}
               </Typography>
-            )}
-          </Box>
-        )}
-
-        {/* Actionable Meta Grid */}
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1fr', 
-          gap: 4, 
-          mb: 6,
-          p: 4,
-          bgcolor: alpha('#161412', 0.2),
-          borderRadius: '32px',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.02)'
-        }}>
-          {/* Project */}
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.5, fontSize: '0.65rem', opacity: 0.5 }}>Project Domain</Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                 <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: project?.color || '#6366F1', boxShadow: `0 0 10px ${alpha(project?.color || '#6366F1', 0.4)}` }} />
-                 <Typography variant="body2" fontWeight={800} sx={{ fontFamily: 'var(--font-clash-display)', letterSpacing: '0.02em' }}>{project?.name || 'Inbox'}</Typography>
-            </Box>
-          </Box>
-
-          {/* Priority */}
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.5, fontSize: '0.65rem', opacity: 0.5 }}>Urgency Level</Typography>
-            <Box 
-                onClick={(e) => setPriorityAnchor(e.currentTarget)}
-                sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1.5, 
-                    cursor: 'pointer',
-                    transition: 'opacity 0.2s',
-                    '&:hover': { opacity: 0.7 }
-                }}
-            >
-                 <FlagIcon sx={{ fontSize: 18, color: priorityColors[task.priority] }} />
-                 <Typography variant="body2" fontWeight={800} sx={{ color: priorityColors[task.priority], fontFamily: 'var(--font-clash-display)', letterSpacing: '0.05em' }}>
-                    {task.priority.toUpperCase()}
-                 </Typography>
-            </Box>
-          </Box>
-
-          {/* Due Date */}
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.5, fontSize: '0.65rem', opacity: 0.5 }}>Timeline Deadline</Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'text.secondary' }}>
-                 <CalendarIcon sx={{ fontSize: 18, opacity: 0.6 }} />
-                 <Typography variant="body2" fontWeight={700} sx={{ fontFamily: 'var(--font-satoshi)' }}>
-                    {task.dueDate ? formatTime(new Date(task.dueDate), { month: 'short', day: 'numeric', year: 'numeric' }) : 'Open Schedule'}
-                 </Typography>
-            </Box>
-          </Box>
-
-          {/* Labels */}
-          {taskLabels.length > 0 && (
-            <Box>
-                <Typography variant="subtitle2" sx={{ mb: 1.5, fontSize: '0.65rem', opacity: 0.5 }}>Meta Tags</Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {taskLabels.map((label) => (
-                    <Chip
-                        key={label.id}
-                        label={label.name}
-                        size="small"
-                        sx={{
-                            height: 22,
-                            fontSize: '0.65rem',
-                            bgcolor: alpha(label.color, 0.08),
-                            border: `1px solid ${alpha(label.color, 0.2)}`,
-                            color: label.color,
-                            fontWeight: 800,
-                            fontFamily: 'var(--font-clash-display)',
-                            letterSpacing: '0.05em',
-                            borderRadius: '6px'
-                        }}
-                    />
-                    ))}
-                </Box>
-            </Box>
-          )}
-
-          {task.linkedNotes && task.linkedNotes.length > 0 && (
-            <Box>
-                <Typography variant="subtitle2" sx={{ mb: 1.5, fontSize: '0.65rem', opacity: 0.5 }}>Linked Notes</Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {task.linkedNotes.map((noteId) => (
-                      <Chip
-                        key={noteId}
-                        label={linkedNoteTitles[noteId] || noteId}
-                        onDelete={() => handleDetachNote(noteId)}
-                        size="small"
-                        sx={{
-                          maxWidth: '100%',
-                          bgcolor: alpha('#6366F1', 0.08),
-                          border: `1px solid ${alpha('#6366F1', 0.15)}`,
-                          color: '#B8BDFB',
-                          fontWeight: 700,
-                          borderRadius: '6px',
-                          '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' },
-                        }}
-                      />
-                    ))}
-                </Box>
-            </Box>
-          )}
-
-          <Box sx={{ mt: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-              <Typography variant="subtitle2" sx={{ fontSize: '0.65rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Assignees</Typography>
-              <Button 
-                size="small"
-                onClick={() => openUnified('share-note', {
-                    resourceId: taskId,
-                    resourceType: 'goal',
-                    resourceTitle: task.title,
-                    actorName: user?.name || 'A Kylrix User',
-                    onShared: () => {
-                        // Invalidate or reload task data if necessary
-                    }
-                })}
-                sx={{ color: '#A855F7', fontWeight: 800, fontSize: '0.7rem', textTransform: 'none', p: 0, minWidth: 0, '&:hover': { textDecoration: 'underline' } }}
-              >
-                + Add Assignee
-              </Button>
-            </Box>
-            {isLoadingAssignees ? (
-            <CircularProgress size={16} sx={{ color: '#A855F7', ml: 1 }} />
-        ) : taskParticipantProfiles.length > 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {taskParticipantProfiles.map((profile) => (
-                    <Box 
-                        key={profile.userId} 
-                        onClick={() => openUnified('share-note', { 
-                            resourceId: taskId,
-                            resourceType: 'goal',
-                            resourceTitle: task.title,
-                            actorName: user?.name || 'A Kylrix User',
-                            initialCollaborator: profile
-                        })}
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1.5,
-                            p: 1.5,
-                            borderRadius: '16px',
-                            bgcolor: alpha('#fff', 0.03),
-                            border: '1px solid rgba(255,255,255,0.06)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                                bgcolor: alpha('#fff', 0.06),
-                                borderColor: alpha('#A855F7', 0.3)
-                            }
-                        }}
-                    >
-                        <IdentityAvatar
-                                fileId={profile.avatar || null}
-                                alt={profile.displayName || profile.username}
-                                fallback={(profile.displayName || profile.username || 'U').charAt(0).toUpperCase()}
-                                size={32}
-                                verified={profile.verified}
-                            />
-                            <Box sx={{ minWidth: 0, flex: 1 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                                    <Typography noWrap variant="body2" sx={{ fontWeight: 700, color: 'white' }}>
-                                        {profile.displayName || profile.username}
-                                    </Typography>
-                                    <Typography 
-                                        variant="caption" 
-                                        sx={{ 
-                                            px: 1, 
-                                            py: 0.25, 
-                                            borderRadius: '6px', 
-                                            bgcolor: alpha('#A855F7', 0.1),
-                                            color: '#A855F7',
-                                            fontWeight: 800,
-                                            fontSize: '9px',
-                                            textTransform: 'uppercase'
-                                        }}
-                                    >
-                                        {profile.permissionLevel || 'Viewer'}
-                                    </Typography>
-                                </Box>
-                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', display: 'block' }}>
-                                    @{profile.username}
-                                </Typography>
-                            </Box>
-                        </Box>
-                    ))}
-                </Box>
-            ) : (
-                <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.7, fontStyle: 'italic' }}>
-                  No assignees yet.
-                </Typography>
             )}
           </Box>
         </Box>
 
-        <Divider sx={{ my: 4, opacity: 0.05 }} />
-
-        {/* Subtasks Section */}
-        <Box sx={{ mb: 5 }}>
+        {/* Execution Track Section (Pitch Black Sub-Region) */}
+        <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#0A0908', border: '1px solid #1C1A18', boxShadow: '0 12px 32px rgba(0,0,0,0.4)' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="subtitle2">Execution Track</Typography>
-            {task.subtasks.length > 0 && (
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
-                {completedSubtasks} / {task.subtasks.length}
-              </Typography>
-            )}
+            <Typography variant="caption" sx={{ color: '#A855F7', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Execution Track</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>{completedSubtasks} / {task.subtasks.length}</Typography>
           </Box>
-
-          {task.subtasks.length > 0 && (
-            <Box sx={{ width: '100%', height: 4, bgcolor: 'rgba(255, 255, 255, 0.03)', borderRadius: 2, mb: 3, overflow: 'hidden' }}>
-                <Box 
-                    sx={{ 
-                        height: '100%', 
-                        width: `${subtaskProgress}%`, 
-                        bgcolor: '#A855F7', 
-                        boxShadow: '0 0 10px rgba(168, 85, 247, 0.4)',
-                        transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)' 
-                    }} 
-                />
-            </Box>
-          )}
-
-          <List sx={{ mb: 2 }}>
+          <Box sx={{ width: '100%', height: 4, bgcolor: 'rgba(255, 255, 255, 0.03)', borderRadius: 2, mb: 3, overflow: 'hidden' }}>
+            <Box sx={{ height: '100%', width: `${subtaskProgress}%`, bgcolor: '#A855F7', transition: 'width 0.4s' }} />
+          </Box>
+          <List disablePadding>
             {task.subtasks.map((subtask) => (
-              <ListItem
-                key={subtask.id}
-                disablePadding
-                sx={{
-                  borderRadius: 1.5,
-                  mb: 0.5,
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.02)',
-                  },
-                }}
-                secondaryAction={
-                  <IconButton
-                    edge="end"
-                    size="small"
-                    onClick={() => {
-                        openUnified('delete-confirm', {
-                            title: `Delete sub-task?`,
-                            description: `"${subtask.title}"`,
-                            resourceName: 'this sub-task',
-                            confirmLabel: 'Delete Sub-task',
-                            onConfirm: async () => {
-                                await deleteSubtask(task.id, subtask.id);
-                            }
-                        });
-                    }}
-                    sx={{ opacity: 0.2, '&:hover': { opacity: 1, color: 'error.main' } }}
-                  >
-                    <DeleteIcon sx={{ fontSize: 16 }} />
-                  </IconButton>
-                }
-              >
-                <ListItemIcon sx={{ minWidth: 36 }}>
-                  <Checkbox
-                    edge="start"
-                    checked={subtask.completed}
-                    onChange={() => toggleSubtask(task.id, subtask.id)}
-                    size="small"
-                    sx={{
-                        p: 0,
-                        color: 'rgba(255, 255, 255, 0.1)',
-                        '&.Mui-checked': { color: '#A855F7' }
-                    }}
-                  />
-                </ListItemIcon>
-                <ListItemText
-                  primary={subtask.title}
-                  primaryTypographyProps={{
-                    sx: {
-                      fontSize: '0.9rem',
-                      fontWeight: 500,
-                      textDecoration: subtask.completed ? 'line-through' : 'none',
-                      color: subtask.completed ? 'text.disabled' : 'text.primary',
-                    }
-                  }}
-                />
+              <ListItem key={subtask.id} disablePadding sx={{ mb: 0.5 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}><Checkbox size="small" checked={subtask.completed} onChange={() => toggleSubtask(task.id, subtask.id)} sx={{ color: 'rgba(255, 255, 255, 0.1)', '&.Mui-checked': { color: '#A855F7' } }} /></ListItemIcon>
+                <ListItemText primary={subtask.title} primaryTypographyProps={{ sx: { fontSize: '0.9rem', textDecoration: subtask.completed ? 'line-through' : 'none', color: subtask.completed ? 'text.disabled' : 'text.primary' } }} />
               </ListItem>
             ))}
           </List>
-
-          <Box sx={{ display: 'flex', gap: 1, bgcolor: 'rgba(255, 255, 255, 0.02)', p: 0.5, borderRadius: 2, border: '1px solid rgba(255, 255, 255, 0.04)' }}>
-            <TextField
-              size="small"
-              fullWidth
-              placeholder="Add sub-task..."
-              value={newSubtask}
-              variant="standard"
-              onChange={(e) => setNewSubtask(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
-              InputProps={{ 
-                disableUnderline: true,
-                sx: { px: 1.5, fontSize: '0.85rem' }
-              }}
-            />
-            <IconButton 
-                size="small" 
-                onClick={handleGenerateSubtasks} 
-                disabled={isGeneratingSubtasks}
-                sx={{ color: '#A855F7' }}
-            >
-                {isGeneratingSubtasks ? <CircularProgress size={16} color="inherit" /> : <AutoFixHighIcon sx={{ fontSize: 18 }} />}
-            </IconButton>
-            <IconButton size="small" onClick={handleAddSubtask} disabled={!newSubtask.trim()} sx={{ color: '#F2F2F2' }}>
-              <AddIcon sx={{ fontSize: 18 }} />
-            </IconButton>
+          <Box sx={{ display: 'flex', gap: 1, mt: 2, p: 0.5, bgcolor: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <TextField fullWidth size="small" placeholder="Add sub-task..." value={newSubtask} variant="standard" onChange={(e) => setNewSubtask(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()} InputProps={{ disableUnderline: true, sx: { px: 1.5, fontSize: '0.85rem' } }} />
+            <IconButton size="small" onClick={handleGenerateSubtasks} disabled={isGeneratingSubtasks} sx={{ color: '#A855F7' }}>{isGeneratingSubtasks ? <CircularProgress size={16} /> : <AutoFixHighIcon sx={{ fontSize: 18 }} />}</IconButton>
           </Box>
         </Box>
 
-        <Divider sx={{ my: 4, opacity: 0.05 }} />
-
-        {/* Ecosystem Integration */}
-        <Box sx={{ mb: 5 }}>
-          <Typography variant="subtitle2" sx={{ mb: 2 }}>Ecosystem Links</Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<NotesIcon sx={{ fontSize: 16 }} />}
-              sx={{ justifyContent: 'flex-start', border: '1px solid rgba(255, 255, 255, 0.05)', bgcolor: 'rgba(255, 255, 255, 0.01)', fontSize: '0.75rem' }}
-            >
-              Note
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<MeetingIcon sx={{ fontSize: 16 }} />}
-              sx={{ justifyContent: 'flex-start', border: '1px solid rgba(255, 255, 255, 0.05)', bgcolor: 'rgba(255, 255, 255, 0.01)', fontSize: '0.75rem' }}
-            >
-              Meet
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<CalendarIcon sx={{ fontSize: 16 }} />}
-              sx={{ justifyContent: 'flex-start', border: '1px solid rgba(255, 255, 255, 0.05)', bgcolor: 'rgba(255, 255, 255, 0.01)', fontSize: '0.75rem' }}
-            >
-              Cal
-            </Button>
+        {/* Actionable Meta Grid */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2.5, px: 1 }}>
+          <Box>
+            <Typography variant="caption" sx={{ color: '#A855F7', fontWeight: 900, textTransform: 'uppercase', mb: 1.5, display: 'block' }}>Project Domain</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: project?.color || '#6366F1' }} />
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>{project?.name || 'Inbox'}</Typography>
+            </Box>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ color: '#A855F7', fontWeight: 900, textTransform: 'uppercase', mb: 1.5, display: 'block' }}>Urgency Level</Typography>
+            <Box onClick={(e) => setPriorityAnchor(e.currentTarget)} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}>
+              <FlagIcon sx={{ fontSize: 18, color: priorityColors[task.priority] }} />
+              <Typography variant="body2" sx={{ fontWeight: 800, color: priorityColors[task.priority] }}>{task.priority.toUpperCase()}</Typography>
+            </Box>
           </Box>
         </Box>
 
-        <Divider sx={{ my: 4, opacity: 0.05 }} />
-
-        {/* Note Attachment */}
-        <Box sx={{ mb: 5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="subtitle2">Attach Notes</Typography>
-            {isSearchingNotes && <CircularProgress size={14} />}
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', bgcolor: 'rgba(255,255,255,0.02)', p: 1.5, borderRadius: 2, border: '1px solid rgba(255,255,255,0.05)', mb: 2 }}>
-            <TextField
-              size="small"
-              fullWidth
-              placeholder="Search notes by title..."
-              variant="standard"
-              value={noteQuery}
-              onChange={(e) => setNoteQuery(e.target.value)}
-              InputProps={{ disableUnderline: true, sx: { fontSize: '0.9rem' } }}
-            />
-          </Box>
-          {noteResults.length > 0 && (
-            <List disablePadding>
-              {noteResults.map((note: any) => (
-                <ListItem
-                  key={note.$id}
-                  secondaryAction={
-                    <Button size="small" onClick={() => handleAttachNote(note.$id)} sx={{ fontWeight: 800 }}>
-                      Attach
-                    </Button>
-                  }
-                  sx={{ px: 0, py: 0.5 }}
-                >
-                  <ListItemText
-                    primary={note.title || 'Untitled note'}
-                    secondary={note.content ? String(note.content).slice(0, 100) : note.$id}
-                    primaryTypographyProps={{ fontWeight: 700, fontSize: '0.9rem' }}
-                    secondaryTypographyProps={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          )}
-        </Box>
-
-        {/* Comments Section / Public Huddle Discussion */}
-        <Box sx={{ mb: 4, position: 'relative' }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-              Public Huddle Thread
-            </Typography>
-            {isHuddleInit && huddleTimeRemaining && (
-              <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: '#F59E0B' }}>
-                <Clock size={12} style={{ color: '#F59E0B' }} />
-                <Typography variant="caption" sx={{ fontWeight: 800 }}>{huddleTimeRemaining}</Typography>
-              </Stack>
-            )}
+        {/* Huddle Section (Pitch Black Sub-Region) */}
+        <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#0A0908', border: '1px solid #1C1A18', boxShadow: '0 12px 32px rgba(0,0,0,0.4)' }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ color: '#A855F7', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Public Huddle Thread</Typography>
+            {isHuddleInit && huddleTimeRemaining && <Typography variant="caption" sx={{ color: '#F59E0B', fontWeight: 800 }}>{huddleTimeRemaining}</Typography>}
           </Stack>
 
-          {huddleLoading && (
-            <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', bgcolor: 'rgba(10,9,8,0.7)', zIndex: 2, borderRadius: 2 }}>
-              <CircularProgress size={24} sx={{ color: '#A855F7' }} />
-            </Box>
-          )}
-
           {!isHuddleInit ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 3, textAlign: 'center', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 3, bgcolor: 'rgba(255,255,255,0.01)' }}>
-              <Globe size={24} style={{ color: '#A855F7', marginBottom: 12 }} />
-              <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', mb: 0.5 }}>Initialize Discussion Huddle</Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', maxWidth: 300, lineHeight: 1.4, mb: 2 }}>
-                Spin up a real-time huddle discussion thread for this task. Anyone with task access can read and post. Ephemeral chat purges automatically in 7 days.
-              </Typography>
-              <Button 
-                size="small"
-                onClick={handleInitHuddle}
-                sx={{ bgcolor: '#A855F7', color: '#fff', fontWeight: 800, py: 0.75, px: 2, borderRadius: '8px', textTransform: 'none', '&:hover': { bgcolor: '#9333EA' } }}
-              >
-                Start Huddle
-              </Button>
+            <Box sx={{ py: 3, textAlign: 'center' }}>
+              <Globe size={24} style={{ color: '#A855F7', margin: '0 auto 12px' }} />
+              <Button size="small" onClick={handleInitHuddle} sx={{ bgcolor: '#A855F7', color: '#fff', fontWeight: 800, textTransform: 'none', borderRadius: '8px' }}>Start Huddle</Button>
             </Box>
           ) : (
             <>
-              {/* Messages Viewport */}
-              <Box sx={{ maxHeight: 300, overflowY: 'auto', p: 1, mb: 2.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {huddleMessages.length === 0 ? (
-                  <Box sx={{ py: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.35 }}>
-                    <Typography variant="caption" sx={{ fontStyle: 'italic' }}>No messages yet. Start the huddle discussion!</Typography>
+              <Box sx={{ maxHeight: 240, overflowY: 'auto', mb: 2 }}>
+                {huddleMessages.map((msg) => (
+                  <Box key={msg.id} sx={{ mb: 1.5, textAlign: msg.senderId === user?.$id ? 'right' : 'left' }}>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, display: 'block', mb: 0.25 }}>{msg.senderName}</Typography>
+                    <Box sx={{ p: 1.25, borderRadius: '12px', display: 'inline-block', bgcolor: msg.senderId === user?.$id ? '#A855F7' : 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)', color: '#fff' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{msg.content}</Typography>
+                    </Box>
                   </Box>
-                ) : (
-                  huddleMessages.map((msg) => {
-                    const isSelf = msg.senderId === user?.$id;
-                    return (
-                      <Box key={msg.id} sx={{ alignSelf: isSelf ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, display: 'block', mb: 0.25, textAlign: isSelf ? 'right' : 'left' }}>
-                          {msg.senderName}
-                        </Typography>
-                        <Paper 
-                          elevation={0}
-                          sx={{
-                            p: 1.25,
-                            borderRadius: '12px',
-                            borderTopRightRadius: isSelf ? 0 : '12px',
-                            borderTopLeftRadius: isSelf ? '12px' : 0,
-                            bgcolor: isSelf ? '#A855F7' : 'rgba(255,255,255,0.03)',
-                            border: isSelf ? 'none' : '1px solid rgba(255,255,255,0.04)',
-                            color: '#fff',
-                            boxShadow: 'none',
-                            backgroundImage: 'none'
-                          }}
-                        >
-                          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem', lineHeight: 1.4, wordBreak: 'break-word' }}>
-                            {msg.content}
-                          </Typography>
-                        </Paper>
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.6rem', display: 'block', mt: 0.25, textAlign: isSelf ? 'right' : 'left' }}>
-                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Typography>
-                      </Box>
-                    );
-                  })
-                )}
+                ))}
                 <div ref={huddleMessageEndRef} />
               </Box>
-
-              {/* Message Input Panel */}
-              <Box component="form" onSubmit={handleSendHuddleMessage} sx={{ display: 'flex', gap: 1, alignItems: 'center', bgcolor: 'rgba(255,255,255,0.02)', p: 1.25, borderRadius: 2, border: '1px solid rgba(255,255,255,0.05)', mb: 2 }}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  placeholder="Type huddle message..."
-                  variant="standard"
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  disabled={huddleSending}
-                  InputProps={{ 
-                    disableUnderline: true,
-                    sx: { fontSize: '0.85rem', color: '#fff' }
-                  }}
-                />
-                <IconButton
-                  size="small"
-                  type="submit"
-                  disabled={!newComment.trim() || huddleSending}
-                  sx={{ color: '#A855F7', p: 0.5 }}
-                >
-                  <SendIcon sx={{ fontSize: 16 }} />
-                </IconButton>
+              <Box component="form" onSubmit={handleSendHuddleMessage} sx={{ display: 'flex', gap: 1, p: 1, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <TextField fullWidth size="small" placeholder="Message..." variant="standard" value={newComment} onChange={(e) => setNewComment(e.target.value)} InputProps={{ disableUnderline: true, sx: { px: 1, fontSize: '0.85rem' } }} />
+                <IconButton size="small" type="submit" sx={{ color: '#A855F7' }}><SendIcon sx={{ fontSize: 16 }} /></IconButton>
               </Box>
-
-              {/* Story Promotion Panel */}
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<FileText size={14} />}
-                onClick={handleSaveHuddleAsStory}
-                sx={{
-                  bgcolor: 'rgba(236, 72, 153, 0.1)', color: '#EC4899', fontWeight: 800, py: 1, borderRadius: '8px', textTransform: 'none',
-                  '&:hover': { bgcolor: 'rgba(236, 72, 153, 0.15)' }
-                }}
-              >
-                Promote Discussion to Story Note
-              </Button>
             </>
           )}
         </Box>
+
+        {/* Metadata */}
+        <Box sx={{ mt: 'auto', pt: 3, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Created {formatNoteCreatedDate(task as any)}</Typography>
+        </Box>
       </Box>
 
-      {/* Menus */}
-      <Menu
-        anchorEl={statusAnchor}
-        open={Boolean(statusAnchor)}
-        onClose={() => setStatusAnchor(null)}
-        PaperProps={{ sx: { minWidth: 160 } }}
-      >
+      {/* Select Menus */}
+      <Menu anchorEl={statusAnchor} open={Boolean(statusAnchor)} onClose={() => setStatusAnchor(null)} PaperProps={{ sx: { bgcolor: '#161412', border: '1px solid #1C1A18', borderRadius: '12px', backgroundImage: 'none' } }}>
         {Object.entries(statusLabels).map(([status, label]) => (
-          <MenuItem
-            key={status}
-            onClick={() => handleStatusChange(status as TaskStatus)}
-            selected={task.status === status}
-            sx={{ fontSize: '0.85rem' }}
-          >
-            {label}
-          </MenuItem>
+          <MenuItem key={status} onClick={() => handleStatusChange(status as TaskStatus)} selected={task.status === status} sx={{ fontSize: '0.85rem', color: '#fff' }}>{label}</MenuItem>
         ))}
       </Menu>
 
-      <Menu
-        anchorEl={priorityAnchor}
-        open={Boolean(priorityAnchor)}
-        onClose={() => setPriorityAnchor(null)}
-        PaperProps={{ sx: { minWidth: 160 } }}
-      >
-        {(['low', 'medium', 'high', 'urgent'] as Priority[]).map((priority) => (
-          <MenuItem
-            key={priority}
-            onClick={() => handlePriorityChange(priority)}
-            selected={task.priority === priority}
-            sx={{ fontSize: '0.85rem', gap: 1 }}
-          >
-            <FlagIcon sx={{ fontSize: 16, color: priorityColors[priority] }} />
-            {priority.toUpperCase()}
-          </MenuItem>
+      <Menu anchorEl={priorityAnchor} open={Boolean(priorityAnchor)} onClose={() => setPriorityAnchor(null)} PaperProps={{ sx: { bgcolor: '#161412', border: '1px solid #1C1A18', borderRadius: '12px', backgroundImage: 'none' } }}>
+        {(['low', 'medium', 'high', 'urgent'] as Priority[]).map((p) => (
+          <MenuItem key={p} onClick={() => handlePriorityChange(p)} selected={task.priority === p} sx={{ fontSize: '0.85rem', color: '#fff', gap: 1 }}><FlagIcon sx={{ fontSize: 16, color: priorityColors[p] }} />{p.toUpperCase()}</MenuItem>
         ))}
       </Menu>
     </Box>
