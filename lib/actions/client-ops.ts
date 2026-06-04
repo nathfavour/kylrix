@@ -48,7 +48,8 @@ import {
   untagResourceSecure,
   getResourceTagsSecure,
   createGhostNoteChatSecure,
-  listGhostNoteChatsSecure
+  listGhostNoteChatsSecure,
+  getCrossSuggestionsSecure
 } from './secure-ops';
 
 // Helper to fetch JWT securely from client-side SDK
@@ -323,6 +324,11 @@ export async function createGhostNoteChat(title: string, participants: string[])
 export async function listGhostNoteChats() {
   const jwt = await getJwt();
   return listGhostNoteChatsSecure(jwt);
+}
+
+export async function getCrossSuggestions(params: { sourceApp: string; sourceType: string; sourceId: string | null }) {
+  const jwt = await getJwt();
+  return getCrossSuggestionsSecure(params, jwt);
 }
 
 export async function claimSendObject(payload: { noteId: string; claimSecret: string; decryptedData?: any }) {

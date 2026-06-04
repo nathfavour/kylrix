@@ -345,8 +345,8 @@ export function NoteDetailSidebar({
       if (!liveNote.$id) return;
       setIsLoadingSuggestions(true);
       try {
-        const { getCrossSuggestionsSecure } = await import('@/lib/actions/secure-ops');
-        const data = await getCrossSuggestionsSecure({
+        const { getCrossSuggestions } = await import('@/lib/actions/client-ops');
+        const data = await getCrossSuggestions({
           sourceApp: 'note',
           sourceType: 'note',
           sourceId: liveNote.$id
@@ -775,14 +775,14 @@ export function NoteDetailSidebar({
         {/* Editor Box */}
         <div className="flex flex-col p-4 rounded-[20px] bg-[#0A0908] border border-white/[0.04] shadow-[0_8px_24px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/30 transition-all flex-shrink-0">
           <div className="flex justify-between items-center mb-3">
-            <span className="text-[10px] font-mono font-bold tracking-wider text-indigo-400 uppercase">Content</span>
+            <span className="text-xs font-mono font-bold tracking-wider text-indigo-400 uppercase">Content</span>
             
             <div className="flex items-center gap-2">
               {format === 'text' && (
                 <button
                   type="button"
                   onClick={toggleRecording}
-                  className={`h-7 px-2 rounded-lg flex items-center justify-center gap-1.5 font-mono text-[10px] font-bold transition-all border voice-recorder-btn ${
+                  className={`h-7 px-2 rounded-lg flex items-center justify-center gap-1.5 font-mono text-xs font-bold transition-all border voice-recorder-btn ${
                     isRecording 
                       ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' 
                       : 'bg-white/5 border-white/5 text-white/60 hover:text-white hover:bg-white/10'
@@ -795,7 +795,7 @@ export function NoteDetailSidebar({
               )}
 
               {isEditingContent && (
-                <div className="flex items-center bg-black/40 border border-white/5 rounded-xl p-0.5 font-mono text-[10px]">
+                <div className="flex items-center bg-black/40 border border-white/5 rounded-xl p-0.5 font-mono text-xs">
                   <button
                     type="button"
                     onClick={() => setFormat('text')}
@@ -881,10 +881,10 @@ export function NoteDetailSidebar({
 
         {/* Tags */}
         <div className="px-1.5 shrink-0">
-          <span className="text-[10px] font-mono font-bold tracking-wider text-indigo-400 uppercase block mb-2">Tags</span>
+          <span className="text-xs font-mono font-bold tracking-wider text-indigo-400 uppercase block mb-2">Tags</span>
           <div className="flex flex-wrap gap-1.5">
             {displayTags.length > 0 ? displayTags.map((tag: string) => (
-              <span key={tag} className="inline-flex px-2 py-0.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-[10px] font-bold">
+              <span key={tag} className="inline-flex px-2 py-0.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-xs font-bold">
                 {tag}
               </span>
             )) : (
@@ -895,7 +895,7 @@ export function NoteDetailSidebar({
 
         {/* Attachments */}
         <div className="px-1.5 shrink-0">
-          <span className="text-[10px] font-mono font-bold tracking-wider text-indigo-400 uppercase block mb-2">Attachments</span>
+          <span className="text-xs font-mono font-bold tracking-wider text-indigo-400 uppercase block mb-2">Attachments</span>
           {currentAttachments.length > 0 ? (
             <div className="flex flex-col gap-2">
               {currentAttachments.map((file: any) => (
@@ -904,7 +904,7 @@ export function NoteDetailSidebar({
                     <PaperClipIcon className="w-4 h-4 text-white/40" />
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-white/80">{file.name}</span>
-                      <span className="text-[9px] font-mono text-white/40">{formatFileSize(file.size)}</span>
+                      <span className="text-xs font-mono text-white/45">{formatFileSize(file.size)}</span>
                     </div>
                   </div>
                   <button type="button" onClick={() => window.open(`/api/notes/${liveNote.$id}/attachments/${file.id}`, '_blank')} className="p-1.5 text-indigo-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
@@ -926,7 +926,7 @@ export function NoteDetailSidebar({
             { label: 'Secrets', items: linkedSecrets, loading: isLoadingSecrets, icon: <KeyIcon className="w-4 h-4" />, color: 'text-amber-400', borderHover: 'hover:bg-amber-500/5', iconColor: '#F59E0B', link: (id: string) => `/vault?id=${id}` }
           ].map(section => (
             <div key={section.label} className="shrink-0">
-              <span className={`text-[10px] font-mono font-bold tracking-wider uppercase block mb-2 ${section.color}`}>
+              <span className={`text-xs font-mono font-bold tracking-wider uppercase block mb-2 ${section.color}`}>
                 Linked {section.label}
               </span>
               {section.loading ? (
@@ -956,10 +956,10 @@ export function NoteDetailSidebar({
 
           {/* Collaborators */}
           <div className="shrink-0">
-            <span className="text-[10px] font-mono font-bold tracking-wider text-pink-400 uppercase block mb-2">Collaborators</span>
+            <span className="text-xs font-mono font-bold tracking-wider text-pink-400 uppercase block mb-2">Collaborators</span>
             {isLoadingCollaborators ? (
               <div className="px-2 py-1 text-xs text-white/40 font-mono flex items-center gap-2">
-                <div className="w-3 h-3 border border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-3.5 h-3.5 border border-pink-500 border-t-transparent rounded-full animate-spin"></div>
                 <span>Loading...</span>
               </div>
             ) : collaboratorProfiles.length > 0 ? (
@@ -969,9 +969,9 @@ export function NoteDetailSidebar({
                     <IdentityAvatar fileId={p.avatar} alt={p.username} fallback={p.username?.[0]?.toUpperCase()} size={34} verified={p.tier === 'admin' || p.verified} />
                     <div className="flex-1 min-w-0">
                       <span className="text-xs font-bold text-white/80 block truncate">{p.displayName || p.username}</span>
-                      <span className="text-[9px] font-mono text-white/40 block truncate">@{p.username}</span>
+                      <span className="text-xs font-mono text-white/45 block truncate">@{p.username}</span>
                     </div>
-                    <span className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-pink-500/10 text-pink-400">
+                    <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-pink-500/10 text-pink-400">
                       {p.permissionLevel || 'Viewer'}
                     </span>
                   </div>
@@ -984,7 +984,7 @@ export function NoteDetailSidebar({
         </div>
 
         {/* Timestamps */}
-        <div className="mt-4 pt-3 border-t border-white/5 text-[9px] font-mono text-white/30 flex flex-col gap-0.5 shrink-0">
+        <div className="mt-4 pt-3 border-t border-white/5 text-xs font-mono text-white/30 flex flex-col gap-0.5 shrink-0">
           <span>Created {formatNoteCreatedDate(liveNote)}</span>
           <span>Updated {formatNoteUpdatedDate(liveNote)}</span>
         </div>
@@ -1040,7 +1040,7 @@ export function NoteDetailSidebar({
             </div>
 
             <div className="border-t border-white/5 pt-3">
-              <span className="text-[10px] font-mono font-bold tracking-wider text-white/45 uppercase block mb-2.5">Suggestions</span>
+              <span className="text-xs font-mono font-bold tracking-wider text-white/45 uppercase block mb-2.5">Suggestions</span>
               {isLoadingSuggestions ? (
                 <div className="px-2 py-1 text-xs text-white/40 font-mono flex items-center gap-2">
                   <div className="w-3.5 h-3.5 border border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1052,9 +1052,9 @@ export function NoteDetailSidebar({
                     <div key={s.id} className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl flex justify-between items-center">
                       <div>
                         <span className="text-xs font-bold text-white/85 block">{s.label}</span>
-                        <span className="text-[10px] font-sans text-white/40 block mt-0.5">{s.description}</span>
+                        <span className="text-xs font-sans text-white/40 block mt-0.5">{s.description}</span>
                       </div>
-                      <button type="button" onClick={() => window.open(`https://kylrix.space/integrations?action=${s.id}`, '_blank')} className="px-2.5 py-1 bg-indigo-500 hover:bg-indigo-400 text-black font-extrabold text-[10px] font-mono rounded-lg transition-colors">
+                      <button type="button" onClick={() => window.open(`https://kylrix.space/integrations?action=${s.id}`, '_blank')} className="px-2.5 py-1 bg-indigo-500 hover:bg-indigo-400 text-black font-extrabold text-xs font-mono rounded-lg transition-colors">
                         USE
                       </button>
                     </div>

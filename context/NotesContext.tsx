@@ -63,6 +63,9 @@ function normalizeVisibility(note: Notes): Notes {
 const PINNED_CACHE_KEY = 'pinned_note_ids';
 const INITIAL_NOTES_CACHE_KEY = 'initial_notes_page';
 
+// Outside component scope
+const sweepInFlightRef = { current: false };
+
 export function NotesProvider({ children }: { children: ReactNode }) {
   const [notes, setNotes] = useState<Notes[]>([]);
   const [totalNotes, setTotalNotes] = useState<number>(0);
