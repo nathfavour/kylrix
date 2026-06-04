@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import UserSearch from '@/components/UserSearch';
 import { useTask } from '@/context/TaskContext';
 import { Priority, TaskStatus } from '@/types';
-import { ArrowUpRight, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { ArrowUpRight, ChevronUp, ChevronDown, X, Type } from 'lucide-react';
 import { useSection } from '@/context/SectionContext';
+import { buildAutoTitleFromContent } from '@/constants/noteTitle';
 
 interface User {
   id: string;
@@ -44,6 +45,8 @@ export default function TaskDialog() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [isTitleManuallyEdited, setIsTitleManuallyEdited] = useState(false);
+  const [showTitleInput, setShowTitleInput] = useState(false);
   const [priority, setPriority] = useState<Priority>('medium');
   const [status, setStatus] = useState<TaskStatus>('todo');
   const [projectId, setProjectId] = useState(selectedProjectId || 'inbox');
@@ -74,6 +77,7 @@ export default function TaskDialog() {
         const draft = JSON.parse(raw);
         if (draft.title) setTitle(draft.title);
         if (draft.description) setDescription(draft.description);
+        if (draft.isTitleManuallyEdited) setIsTitleManuallyEdited(draft.isTitleManuallyEdited);
         if (draft.priority) setPriority(draft.priority);
         if (draft.status) setStatus(draft.status);
         if (draft.projectId) setProjectId(draft.projectId);
@@ -94,6 +98,7 @@ export default function TaskDialog() {
     const draft = {
       title,
       description,
+      isTitleManuallyEdited,
       priority,
       status,
       projectId,
@@ -107,7 +112,20 @@ export default function TaskDialog() {
     } else {
       localStorage.removeItem('kylrix:draft:task');
     }
-  }, [taskDialogOpen, isHydrated, title, description, priority, status, projectId, selectedLabels, dueDate, estimatedTime, selectedAssignees]);
+  }, [taskDialogOpen, isHydrated, title, description, isTitleManuallyEdited, priority, status, projectId, selectedLabels, dueDate, estimatedTime, selectedAssignees]);
+
+  // Auto-generate title from description
+  useEffect(() => {
+    if (isTitleManuallyEdited) return;
+    const generated = buildAutoTitleFromContent(description);
+    if (description.trim()) {
+      if (generated !== title) {
+        setTitle(generated);
+      }
+    } else {
+      setTitle('');
+    }
+  }, [description, isTitleManuallyEdited, title]);
 
   const handleClose = () => {
     setTaskDialogOpen(false);
@@ -119,6 +137,8 @@ export default function TaskDialog() {
   const resetForm = () => {
     setTitle('');
     setDescription('');
+    setIsTitleManuallyEdited(false);
+    setShowTitleInput(false);
     setPriority('medium');
     setStatus('todo');
     setProjectId(selectedProjectId || 'inbox');
@@ -129,10 +149,10 @@ export default function TaskDialog() {
   };
 
   const handleMorphToDetail = async () => {
-    if (!title.trim()) return;
+    const finalTitle = title.trim() || buildAutoTitleFromContent(description) || 'Untitled Goal';
 
     const newTask = await addTask({
-      title: title.trim(),
+      title: finalTitle,
       description: description.trim() || undefined,
       priority,
       status,
@@ -165,10 +185,10 @@ export default function TaskDialog() {
   };
 
   const handleSubmit = () => {
-    if (!title.trim()) return;
+    const finalTitle = title.trim() || buildAutoTitleFromContent(description) || 'Untitled Goal';
 
     addTask({
-      title: title.trim(),
+      title: finalTitle,
       description: description.trim() || undefined,
       priority,
       status,
@@ -209,13 +229,13 @@ export default function TaskDialog() {
     <>
       {/* 1. Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity duration-300 ease-in-out cursor-default"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1400] transition-opacity duration-300 ease-in-out cursor-default"
         onClick={handleClose}
       />
       
       {/* 2. Slide-up Panel Container */}
       <div 
-        className={`fixed bottom-0 md:bottom-auto md:top-0 right-0 z-[100] bg-[#161412] text-white p-6 md:p-8 flex flex-col gap-6 shadow-[0_24px_48px_rgba(0,0,0,0.9)] transition-all duration-300 overflow-y-auto w-full max-w-full md:w-[640px] md:h-full md:max-h-full md:border-l md:border-[#1C1A18] ${
+        className={`fixed bottom-0 md:bottom-auto md:top-0 right-0 z-[1410] bg-[#161412] text-white p-6 md:p-8 flex flex-col gap-6 shadow-[0_24px_48px_rgba(0,0,0,0.9)] transition-all duration-300 overflow-y-auto w-full max-w-full md:w-[640px] md:h-full md:max-h-full md:border-l md:border-[#1C1A18] ${
           isMobile 
             ? (isExpanded ? 'h-[100dvh] rounded-t-0' : 'h-[60dvh] rounded-t-[26px]') 
             : 'h-full'
@@ -233,7 +253,15 @@ export default function TaskDialog() {
             <p className="text-[#9B9691] text-[10px] font-bold mt-1 tracking-wider uppercase">INITIALIZE EXECUTION TRACK</p>
           </div>
           <div className="flex items-center gap-1.5">
-            {title.trim().length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowTitleInput(!showTitleInput)}
+              className={`p-1.5 rounded-lg transition-all ${showTitleInput ? 'text-[#A855F7] bg-[#A855F7]/10' : 'text-[#9B9691] hover:text-white hover:bg-white/5'}`}
+              title="Toggle Manual Title"
+            >
+              <Type size={20} />
+            </button>
+            {(title.trim().length > 0 || description.trim().length > 0) && (
               <button
                 type="button"
                 onClick={handleMorphToDetail}
@@ -264,27 +292,36 @@ export default function TaskDialog() {
 
         {/* Content Form */}
         <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-6" onKeyDown={handleKeyDown}>
-          {/* Title Input */}
-          <input
-            autoFocus
-            type="text"
-            placeholder="What's the primary objective?"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full bg-transparent text-2xl font-bold tracking-tight text-[#F5F2ED] placeholder:opacity-30 focus:outline-none"
-            required
-          />
+          {/* Title Input (Secondary/Optional) */}
+          {showTitleInput && (
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-bold text-[#9B9691] tracking-wider uppercase font-clash">GOAL TITLE</label>
+              <input
+                type="text"
+                placeholder="Explicit objective name..."
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setIsTitleManuallyEdited(true);
+                }}
+                className="w-full bg-transparent text-xl font-bold tracking-tight text-[#F5F2ED] placeholder:opacity-30 focus:outline-none border-b border-[#1C1A18] pb-2"
+              />
+            </div>
+          )}
+
+          {/* Description Input (Primary) */}
+          <div className="flex flex-col gap-2 flex-1">
+            <label className="text-[10px] font-bold text-[#9B9691] tracking-wider uppercase font-clash">OBJECTIVE DETAILS</label>
+            <textarea
+              autoFocus={!showTitleInput}
+              placeholder="What needs to be done? Establish the context and parameters..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full bg-transparent text-lg font-medium text-[#F5F2ED] placeholder:opacity-40 focus:outline-none resize-none leading-relaxed flex-1 min-h-[120px]"
+            />
+          </div>
 
           <hr className="border-[#1C1A18]" />
-
-          {/* Description Input */}
-          <textarea
-            placeholder="Detailed parameters and context..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="w-full bg-transparent text-sm text-[#9B9691] placeholder:opacity-40 focus:outline-none resize-none leading-relaxed"
-          />
 
           {/* Settings Container */}
           <div className="flex flex-col gap-5 p-5 rounded-[24px] bg-[#1C1A18] border border-[#2C2A28]">

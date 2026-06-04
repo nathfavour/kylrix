@@ -8,45 +8,28 @@ const DoodleCanvas = dynamic(() => import('@/components/DoodleCanvas'), { ssr: f
 const NoteContentRenderer = dynamic(() => import('@/components/NoteContentRenderer'), { ssr: false });
 
 import {
-  Box,
-  Typography,
-  Button,
-  IconButton,
-  TextField,
-  ToggleButtonGroup,
-  ToggleButton,
-  Chip,
-  Tooltip,
-  Drawer,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  CircularProgress,
-  
-  useTheme,
-  alpha,
-  Stack
-} from '@/lib/mui-tailwind/material';
-import {
-  Delete as TrashIcon,
-  AttachFile as PaperClipIcon,
-  OpenInNew as OpenIcon,
-  PushPin as PinIcon,
-  ArrowBack as BackIcon,
-  Link as LinkIcon,
+  Mic,
+  Square,
+  FolderKanban,
+  Trash2 as TrashIcon,
+  Paperclip as PaperClipIcon,
+  ExternalLink as OpenIcon,
+  Pin as PinIcon,
+  ArrowLeft as BackIcon,
+  Link2 as LinkIcon,
   Lock as LockIcon,
-  LockOpen as UnlockIcon,
-  Public as PublicIcon,
-  Refresh as RefreshIcon,
-  Close as CloseIcon,
-  AutoAwesome as ActionIcon,
-  VideoCall as VideoCallIcon,
-  PlaylistAddCheck as TaskIcon,
-  EventNote as EventIcon,
-  VpnKey as KeyIcon,
+  Unlock as UnlockIcon,
+  Globe as PublicIcon,
+  RefreshCw as RefreshIcon,
+  X as CloseIcon,
+  Sparkles as ActionIcon,
+  Video as VideoCallIcon,
+  CheckSquare as TaskIcon,
+  Calendar as EventIcon,
+  Key as KeyIcon,
   Check as CheckIcon,
-} from '@/lib/mui-tailwind/icons';
+} from 'lucide-react';
+
 import { useToast } from '@/components/ui/Toast';
 import { useSudo } from '@/context/SudoContext';
 import { useProUpgrade } from '@/context/ProUpgradeContext';
@@ -74,13 +57,11 @@ import {
 } from '@/lib/appwrite';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { formatFileSize } from '@/lib/utils';
-import { Mic, Square } from 'lucide-react';
 import { StorageService } from '@/lib/services/storage';
 import { useCallLauncher } from '@/context/CallLauncherContext';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { useAutosave } from '@/hooks/useAutosave';
 import ProjectLinker from '@/components/projects/ProjectLinker';
-import { FolderKanban } from 'lucide-react';
 
 export interface NoteDetailSidebarProps {
   note: Notes;
@@ -101,8 +82,7 @@ export function NoteDetailSidebar({
   showHeaderDeleteButton = true,
   isLoading = false,
 }: NoteDetailSidebarProps) {
-  const theme = useTheme();
-  const successColor = theme.palette?.success?.main || '#10B981';
+  const successColor = '#10B981';
   const { open: openUnified } = useUnifiedDrawer();
   const { promptSudo } = useSudo();
   const { setIsDrawerOpen } = useDrawerState();
@@ -528,7 +508,6 @@ export function NoteDetailSidebar({
     setIsEditingContent(true);
   }, [isEncryptedNote, vaultUnlocked, promptSudo]);
 
-  const titleInputRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const shouldMaskEncrypted = useMemo(() => isEncryptedNote && !vaultUnlocked, [isEncryptedNote, vaultUnlocked]);
@@ -642,235 +621,222 @@ export function NoteDetailSidebar({
     }
   }, [content, liveNote, onUpdate]);
 
-
   // --- RENDER ---
   return (
-    <Box className="note-detail-sidebar-root" sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#161412', overflow: 'hidden' }}>
-      {/* Header (Dual-Row Layout - Fixed at top) */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: { xs: 2, md: 2.5 }, pb: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.05)', bgcolor: '#161412' }}>
-        {/* Row 1: Title & Close Button */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
+    <div className="note-detail-sidebar-root flex flex-col h-full bg-[#161412] overflow-hidden text-white w-full">
+      {/* Header */}
+      <div className="flex flex-col gap-3 p-4 pb-3 border-b border-white/5 bg-[#161412] shrink-0">
+        {/* Row 1: Title and back buttons */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             {onBack ? (
-              <IconButton onClick={onBack} sx={{ color: theme.palette.text.secondary, flexShrink: 0 }}>
-                <BackIcon />
-              </IconButton>
+              <button 
+                type="button"
+                onClick={onBack} 
+                className="p-1.5 text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex-shrink-0"
+              >
+                <BackIcon className="w-5 h-5" />
+              </button>
             ) : (
-              <IconButton onClick={closeSidebar} sx={{ color: theme.palette.text.secondary, flexShrink: 0, display: { xs: 'inline-flex', sm: 'none' } }}>
-                <BackIcon />
-              </IconButton>
+              <button 
+                type="button"
+                onClick={closeSidebar} 
+                className="p-1.5 text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex-shrink-0 sm:hidden"
+              >
+                <BackIcon className="w-5 h-5" />
+              </button>
             )}
+            
             {isEditingTitle ? (
-              <TextField 
-                fullWidth 
-                variant="standard" 
+              <input 
+                type="text"
                 value={title} 
                 onChange={(e) => setTitle(e.target.value)} 
                 onBlur={() => setIsEditingTitle(false)} 
                 autoFocus 
-                InputProps={{ 
-                  disableUnderline: true, 
-                  sx: { 
-                    fontSize: '1.25rem', 
-                    fontWeight: 900, 
-                    color: 'white', 
-                    fontFamily: '"Space Grotesk", sans-serif',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em' 
-                  } 
-                }} 
+                className="w-full bg-transparent text-white font-black text-lg font-space-grotesk tracking-wide uppercase border-none focus:outline-none placeholder-white/20"
               />
             ) : (
-              <Typography 
-                variant="h6" 
-                onClick={activateTitleEditing} 
-                noWrap
-                sx={{ 
-                  cursor: isEncryptedNote && !vaultUnlocked ? 'pointer' : 'text', 
-                  fontWeight: 900, 
-                  fontFamily: '"Space Grotesk", sans-serif',
-                  color: '#6366F1',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  fontSize: '1.1rem',
-                  flex: 1
-                }}
+              <h2 
+                onClick={activateTitleEditing}
+                className={`font-black font-space-grotesk text-[#6366F1] uppercase tracking-wide text-md truncate flex-1 ${isEncryptedNote && !vaultUnlocked ? 'cursor-pointer' : 'cursor-text'}`}
               >
                 {displayTitle}
-              </Typography>
+              </h2>
             )}
-          </Box>
+          </div>
 
           {!onBack && (
-            <Tooltip title="Close">
-              <IconButton
-                onClick={closeSidebar}
-                sx={{
-                  color: theme.palette.text.secondary,
-                  display: { xs: 'none', sm: 'inline-flex' },
-                  '&:hover': { color: 'white', bgcolor: alpha(theme.palette.text.primary, 0.08) }
-                }}
-              >
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-          <Tooltip title={isPublic ? 'Make Private' : 'Make Public'}>
-            <IconButton
-              onClick={handleTogglePublic}
-              sx={{
-                color: isPublic ? successColor : theme.palette.text.secondary,
-                bgcolor: isPublic ? alpha(successColor, 0.12) : alpha(theme.palette.text.primary, 0.04),
-                '&:hover': { bgcolor: isPublic ? alpha(successColor, 0.18) : alpha(theme.palette.text.primary, 0.08) }
-              }}
+            <button
+              type="button"
+              onClick={closeSidebar}
+              className="p-1.5 text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors hidden sm:inline-flex shrink-0"
+              title="Close"
             >
-              {isPublic ? <PublicIcon fontSize="small" /> : <LockIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
-          
-          <Tooltip title="Action hub">
-            <IconButton onClick={() => setShowActionHub(true)} sx={{ color: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
-              <ActionIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+              <CloseIcon className="w-4 h-4" />
+            </button>
+          )}
+        </div>
 
-          <Tooltip title="Start huddle">
-            <IconButton onClick={handleStartNoteHuddle} sx={{ color: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
-              <VideoCallIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+        {/* Row 2: Action Buttons Row */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Public/Private visibility status toggle */}
+          <button
+            type="button"
+            onClick={handleTogglePublic}
+            className={`p-1.5 rounded-lg transition-colors flex items-center justify-center border ${
+              isPublic 
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' 
+                : 'bg-white/5 border-white/5 text-white/60 hover:text-white hover:bg-white/10'
+            }`}
+            title={isPublic ? 'Make Private' : 'Make Public'}
+          >
+            {isPublic ? <PublicIcon className="w-4 h-4" /> : <LockIcon className="w-4 h-4" />}
+          </button>
 
+          {/* Action Hub */}
+          <button 
+            type="button"
+            onClick={() => setShowActionHub(true)} 
+            className="p-1.5 rounded-lg bg-pink-500/15 border border-pink-500/25 text-pink-400 hover:bg-pink-500/25 transition-colors flex items-center justify-center"
+            title="Action Hub"
+          >
+            <ActionIcon className="w-4 h-4" />
+          </button>
+
+          {/* Start Huddle */}
+          <button 
+            type="button"
+            onClick={handleStartNoteHuddle} 
+            className="p-1.5 rounded-lg bg-indigo-500/15 border border-indigo-500/25 text-indigo-400 hover:bg-indigo-500/25 transition-colors flex items-center justify-center"
+            title="Start Huddle"
+          >
+            <VideoCallIcon className="w-4 h-4" />
+          </button>
+
+          {/* Voice recorder top fallback bar button */}
           {format === 'text' && (
-            <Tooltip title={isRecording ? `Stop (${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}) & Insert` : "Record Voice Note"}>
-              <IconButton 
-                onClick={toggleRecording} 
-                className={`voice-recorder-btn ${isRecording ? "animate-pulse" : ""}`}
-                sx={{ 
-                  color: isRecording ? '#EF4444' : theme.palette.text.secondary, 
-                  bgcolor: isRecording ? 'rgba(239, 68, 68, 0.15)' : alpha(theme.palette.text.primary, 0.04),
-                  '&:hover': { bgcolor: isRecording ? 'rgba(239, 68, 68, 0.25)' : alpha(theme.palette.text.primary, 0.08) }
-                }}
-              >
-                {isRecording ? <Square size={16} fill="#EF4444" style={{ color: '#EF4444' }} /> : <Mic size={16} />}
-              </IconButton>
-            </Tooltip>
+            <button 
+              type="button"
+              onClick={toggleRecording} 
+              className={`p-1.5 rounded-lg transition-all flex items-center justify-center border voice-recorder-btn ${
+                isRecording 
+                  ? 'bg-red-500/15 border-red-500/25 text-red-400 animate-pulse' 
+                  : 'bg-white/5 border-white/5 text-white/60 hover:text-white hover:bg-white/10'
+              }`}
+              title={isRecording ? `Stop (${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}) & Insert` : "Record Voice Note"}
+            >
+              {isRecording ? <Square className="w-4 h-4 fill-red-500 text-red-500" /> : <Mic className="w-4 h-4" />}
+            </button>
           )}
 
+          {/* Copy link */}
           {showExpandButton && isPublic && (
-            <Tooltip title="Copy share link">
-              <span>
-                <IconButton
-                  onClick={handleCopyShareLink}
-                  sx={{ color: theme.palette.text.secondary }}
-                >
-                  <LinkIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
+            <button
+              type="button"
+              onClick={handleCopyShareLink}
+              className="p-1.5 rounded-lg bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center"
+              title="Copy Share Link"
+            >
+              <LinkIcon className="w-4 h-4" />
+            </button>
           )}
 
-          <Tooltip title={isPinnedFunc(liveNote.$id) ? 'Unpin' : 'Pin'}>
-            <IconButton onClick={handlePinToggle} sx={{ color: isPinnedFunc(liveNote.$id) ? theme.palette.primary.main : theme.palette.text.secondary }}>
-              <PinIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {/* Pin */}
+          <button 
+            type="button"
+            onClick={handlePinToggle} 
+            className={`p-1.5 rounded-lg transition-colors flex items-center justify-center border ${
+              isPinnedFunc(liveNote.$id) 
+                ? 'bg-indigo-500/15 border-indigo-500/25 text-indigo-400 hover:bg-indigo-500/25' 
+                : 'bg-white/5 border-white/5 text-white/60 hover:text-white hover:bg-white/10'
+            }`}
+            title={isPinnedFunc(liveNote.$id) ? 'Unpin' : 'Pin'}
+          >
+            <PinIcon className="w-4 h-4" />
+          </button>
 
+          {/* Header Delete */}
           {showHeaderDeleteButton && (
-            <Tooltip title="Delete">
-              <IconButton 
-                onClick={() => setShowDeleteConfirm(true)} 
-                sx={{ 
-                  color: theme.palette.text.secondary, 
-                  '&:hover': { 
-                    color: theme.palette.error?.main || theme.palette.text.secondary, 
-                    bgcolor: alpha(theme.palette.error?.main || theme.palette.text.secondary, 0.1) 
-                  } 
-                }}
-              >
-                <TrashIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <button 
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)} 
+              className="p-1.5 rounded-lg bg-white/5 border border-white/5 text-white/60 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-colors flex items-center justify-center ml-auto"
+              title="Delete"
+            >
+              <TrashIcon className="w-4 h-4" />
+            </button>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 2.5 }, pt: 3, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#0A0908', border: '1px solid #1C1A18', minHeight: { xs: 340, md: 460 }, height: { xs: 'clamp(340px, 46vh, 460px)', md: 'clamp(460px, 58vh, 760px)' }, boxShadow: '0 12px 32px rgba(0,0,0,0.4)', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', overflow: 'hidden', '&:focus-within': { borderColor: theme.palette.primary.main, transform: 'translateY(-2px)' } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
-            <Typography variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Content</Typography>
-            <Stack direction="row" spacing={1.5} alignItems="center">
+      {/* Content Scroll Area */}
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scrollbar-thin">
+        {/* Editor Box */}
+        <div className="flex flex-col p-4 rounded-[20px] bg-[#0A0908] border border-white/[0.04] shadow-[0_8px_24px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/30 transition-all flex-shrink-0">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-[10px] font-mono font-bold tracking-wider text-indigo-400 uppercase">Content</span>
+            
+            <div className="flex items-center gap-2">
               {format === 'text' && (
-                <Tooltip title={isRecording ? `Stop (${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}) & Insert` : "Record Voice Note"}>
-                  <Button
-                    onClick={toggleRecording}
-                    variant="text"
-                    size="small"
-                    className={`voice-recorder-btn ${isRecording ? "animate-pulse" : ""}`}
-                    startIcon={isRecording ? <Square size={12} fill="#EF4444" style={{ color: '#EF4444' }} /> : <Mic size={12} />}
-                    sx={{
-                      height: 28,
-                      px: 1.5,
-                      borderRadius: '10px',
-                      fontSize: '0.7rem',
-                      fontWeight: 800,
-                      color: isRecording ? '#EF4444' : theme.palette.text.secondary,
-                      bgcolor: isRecording ? 'rgba(239, 68, 68, 0.12)' : alpha(theme.palette.text.primary, 0.04),
-                      '&:hover': {
-                        bgcolor: isRecording ? 'rgba(239, 68, 68, 0.18)' : alpha(theme.palette.text.primary, 0.08),
-                      },
-                      textTransform: 'none',
-                      fontFamily: 'monospace',
-                    }}
-                  >
-                    {isRecording ? `${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}` : "Record Voice"}
-                  </Button>
-                </Tooltip>
+                <button
+                  type="button"
+                  onClick={toggleRecording}
+                  className={`h-7 px-2 rounded-lg flex items-center justify-center gap-1.5 font-mono text-[10px] font-bold transition-all border voice-recorder-btn ${
+                    isRecording 
+                      ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' 
+                      : 'bg-white/5 border-white/5 text-white/60 hover:text-white hover:bg-white/10'
+                  }`}
+                  title={isRecording ? `Stop & Insert` : "Record Voice"}
+                >
+                  {isRecording ? <Square className="w-3 h-3 fill-red-500 text-red-500" /> : <Mic className="w-3 h-3" />}
+                  <span>{isRecording ? `${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}` : "Record Voice"}</span>
+                </button>
               )}
 
               {isEditingContent && (
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <ToggleButtonGroup value={format} exclusive onChange={(_, v) => v && setFormat(v)} size="small" sx={{ height: 28, bgcolor: alpha('#fff', 0.04), borderRadius: '10px' }}>
-                    <ToggleButton value="text" sx={{ px: 2, py: 0, fontSize: '0.7rem', fontWeight: 800 }}>Text</ToggleButton>
-                    <ToggleButton value="doodle" sx={{ px: 2, py: 0, fontSize: '0.7rem', fontWeight: 800 }}>Doodle</ToggleButton>
-                  </ToggleButtonGroup>
-                  <IconButton 
-                    size="small" 
-                    onClick={() => setIsEditingContent(false)}
-                    sx={{ 
-                      height: 28, 
-                      width: 28, 
-                      borderRadius: '10px',
-                      color: '#10B981', 
-                      bgcolor: 'rgba(16, 185, 129, 0.12)', 
-                      '&:hover': { bgcolor: 'rgba(16, 185, 129, 0.2)' } 
-                    }}
-                    className="editor-done-btn"
+                <div className="flex items-center bg-black/40 border border-white/5 rounded-xl p-0.5 font-mono text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setFormat('text')}
+                    className={`px-2 py-0.5 rounded-lg transition-colors font-bold ${format === 'text' ? 'bg-indigo-500/20 text-indigo-400 font-extrabold' : 'text-white/50 hover:text-white'}`}
                   >
-                    <CheckIcon fontSize="small" style={{ fontSize: 16 }} />
-                  </IconButton>
-                </Stack>
+                    Text
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormat('doodle');
+                      setShowDoodleEditor(true);
+                    }}
+                    className={`px-2 py-0.5 rounded-lg transition-colors font-bold ${format === 'doodle' ? 'bg-indigo-500/20 text-indigo-400 font-extrabold' : 'text-white/50 hover:text-white'}`}
+                  >
+                    Doodle
+                  </button>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setIsEditingContent(false)}
+                    className="p-1 rounded-lg text-emerald-400 hover:text-white hover:bg-white/5 ml-1 editor-done-btn"
+                    title="Done Editing"
+                  >
+                    <CheckIcon className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               )}
-            </Stack>
-          </Box>
-          <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 1 }}>
+            </div>
+          </div>
+
+          <div className="flex-1 min-h-[240px] overflow-y-auto pr-1">
             {isEditingContent ? (
               format === 'text' ? (
-                <TextField 
-                  fullWidth 
-                  multiline 
-                  rows={14} 
-                  variant="standard" 
+                <textarea 
                   value={content} 
                   onChange={(e) => setContent(e.target.value)} 
                   onBlur={(e) => {
                     const target = e.relatedTarget as HTMLElement;
                     if (target && (
                       target.closest('.voice-recorder-btn') || 
-                      target.closest('.MuiToggleButton-root') ||
-                      target.closest('.MuiToggleButtonGroup-root') ||
                       target.closest('.editor-done-btn')
                     )) {
                       return;
@@ -879,8 +845,6 @@ export function NoteDetailSidebar({
                       const activeEl = document.activeElement;
                       if (activeEl && (
                         activeEl.closest('.voice-recorder-btn') ||
-                        activeEl.closest('.MuiToggleButton-root') ||
-                        activeEl.closest('.MuiToggleButtonGroup-root') ||
                         activeEl.closest('.editor-done-btn')
                       )) {
                         return;
@@ -889,154 +853,259 @@ export function NoteDetailSidebar({
                     }, 150);
                   }}
                   autoFocus 
-                  inputRef={contentTextareaRef} 
-                  InputProps={{ 
-                    disableUnderline: true, 
-                    sx: { color: 'rgba(255,255,255,0.85)', fontSize: '1rem', lineHeight: 1.8 } 
-                  }} 
+                  ref={contentTextareaRef} 
+                  className="w-full min-h-[240px] bg-transparent text-white/90 text-sm leading-relaxed border-none focus:outline-none resize-none scrollbar-thin focus:ring-0 focus:ring-offset-0"
+                  placeholder="Write note contents..."
                 />
               ) : (
-                <Box onClick={() => setShowDoodleEditor(true)} sx={{ height: 200, border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '18px', display: 'grid', placeItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: alpha('#fff', 0.02) } }}><Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>Open Sketchpad</Typography></Box>
+                <div onClick={() => setShowDoodleEditor(true)} className="h-[200px] border border-dashed border-white/10 rounded-xl flex items-center justify-center cursor-pointer hover:bg-white/[0.02]">
+                  <span className="text-xs text-white/40 font-mono">Open Sketchpad</span>
+                </div>
               )
             ) : (
-              <Box onClick={activateContentEditing} sx={{ cursor: shouldMaskEncrypted ? 'pointer' : 'text', minHeight: '100%' }}>
+              <div onClick={activateContentEditing} className={`min-h-[200px] ${shouldMaskEncrypted ? 'cursor-pointer' : 'cursor-text'}`}>
                  <NoteContentRenderer
                    content={displayContent}
                    format={displayFormat}
                    emptyFallback={
-                     <Typography variant="body2" sx={{ fontStyle: 'normal', fontWeight: 700, color: '#9B9691' }}>
+                     <p className="text-xs italic font-bold text-white/40 leading-relaxed">
                        Secure content hidden. Unlock your secure space to view this note.
-                     </Typography>
+                     </p>
                    }
                    onEditDoodle={displayFormat === 'doodle' ? activateContentEditing : undefined}
                  />
-              </Box>
+              </div>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
-        <Box sx={{ px: 1 }}>
-          <Typography variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Tags</Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        {/* Tags */}
+        <div className="px-1.5 shrink-0">
+          <span className="text-[10px] font-mono font-bold tracking-wider text-indigo-400 uppercase block mb-2">Tags</span>
+          <div className="flex flex-wrap gap-1.5">
             {displayTags.length > 0 ? displayTags.map((tag: string) => (
-              <Chip key={tag} label={tag} size="small" sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 800, borderRadius: '8px', border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}` }} />
-            )) : <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>No tags assigned</Typography>}
-          </Box>
-        </Box>
+              <span key={tag} className="inline-flex px-2 py-0.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-[10px] font-bold">
+                {tag}
+              </span>
+            )) : (
+              <span className="text-xs font-mono text-white/30 italic">No tags assigned</span>
+            )}
+          </div>
+        </div>
 
-        <Box sx={{ px: 1 }}>
-          <Typography variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Attachments</Typography>
+        {/* Attachments */}
+        <div className="px-1.5 shrink-0">
+          <span className="text-[10px] font-mono font-bold tracking-wider text-indigo-400 uppercase block mb-2">Attachments</span>
           {currentAttachments.length > 0 ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                  {currentAttachments.map((file: any) => (
-                      <Box key={file.id} sx={{ p: 1.75, borderRadius: '18px', bgcolor: '#0A0908', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                              <PaperClipIcon sx={{ color: theme.palette.text.secondary, fontSize: 18 }} />
-                              <Box>
-                                  <Typography variant="body2" sx={{ fontWeight: 800 }}>{file.name}</Typography>
-                                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>{formatFileSize(file.size)}</Typography>
-                              </Box>
-                          </Box>
-                          <IconButton size="small" onClick={() => window.open(`/api/notes/${liveNote.$id}/attachments/${file.id}`, '_blank')} sx={{ color: theme.palette.primary.main }}><OpenIcon fontSize="small" /></IconButton>
-                      </Box>
-                  ))}
-              </Box>
+            <div className="flex flex-col gap-2">
+              {currentAttachments.map((file: any) => (
+                <div key={file.id} className="p-3 rounded-xl bg-[#0A0908] border border-white/[0.04] flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <PaperClipIcon className="w-4 h-4 text-white/40" />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-white/80">{file.name}</span>
+                      <span className="text-[9px] font-mono text-white/40">{formatFileSize(file.size)}</span>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => window.open(`/api/notes/${liveNote.$id}/attachments/${file.id}`, '_blank')} className="p-1.5 text-indigo-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                    <OpenIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
           ) : (
-              <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontStyle: 'italic' }}>No attachments</Typography>
+            <span className="text-xs font-mono text-white/30 italic">No attachments</span>
           )}
-        </Box>
+        </div>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, px: 1 }}>
+        {/* Linked sections */}
+        <div className="flex flex-col gap-4 px-1.5">
           {[
-            { label: 'Goals', items: linkedTasks, loading: isLoadingTasks, icon: <TaskIcon sx={{ fontSize: 18 }} />, color: '#10B981', link: (id: string) => `/flow?taskId=${id}` },
-            { label: 'Events', items: linkedEvents, loading: isLoadingEvents, icon: <EventIcon sx={{ fontSize: 18 }} />, color: '#6366F1', link: (id: string) => `/flow/events?eventId=${id}` },
-            { label: 'Secrets', items: linkedSecrets, loading: isLoadingSecrets, icon: <KeyIcon sx={{ fontSize: 18 }} />, color: '#F59E0B', link: (id: string) => `/vault?id=${id}` }].map(section => (
-            <Box key={section.label}>
-              <Typography variant="caption" sx={{ color: section.color, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Linked {section.label}</Typography>
+            { label: 'Goals', items: linkedTasks, loading: isLoadingTasks, icon: <TaskIcon className="w-4 h-4" />, color: 'text-emerald-400', borderHover: 'hover:bg-emerald-500/5', iconColor: '#10B981', link: (id: string) => `/flow?taskId=${id}` },
+            { label: 'Events', items: linkedEvents, loading: isLoadingEvents, icon: <EventIcon className="w-4 h-4" />, color: 'text-indigo-400', borderHover: 'hover:bg-indigo-500/5', iconColor: '#6366F1', link: (id: string) => `/flow/events?eventId=${id}` },
+            { label: 'Secrets', items: linkedSecrets, loading: isLoadingSecrets, icon: <KeyIcon className="w-4 h-4" />, color: 'text-amber-400', borderHover: 'hover:bg-amber-500/5', iconColor: '#F59E0B', link: (id: string) => `/vault?id=${id}` }
+          ].map(section => (
+            <div key={section.label} className="shrink-0">
+              <span className={`text-[10px] font-mono font-bold tracking-wider uppercase block mb-2 ${section.color}`}>
+                Linked {section.label}
+              </span>
               {section.loading ? (
-                  <CircularProgress size={20} sx={{ color: section.color, ml: 1 }} />
+                <div className="px-2 py-1 text-xs text-white/40 font-mono flex items-center gap-2">
+                  <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
+                  <span>Loading...</span>
+                </div>
               ) : section.items.length > 0 ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                <div className="flex flex-col gap-2">
                   {section.items.map((item: any) => (
-                      <Box key={item.$id} sx={{ p: 1.75, borderRadius: '18px', bgcolor: '#0A0908', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { bgcolor: alpha(section.color, 0.04) } }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>{section.icon}<Typography variant="body2" sx={{ fontWeight: 800 }}>{item.title || item.name}</Typography></Box>
-                      <IconButton size="small" onClick={() => window.open(section.link(item.$id), '_blank')} sx={{ color: section.color }}><OpenIcon fontSize="small" /></IconButton>
-                      </Box>
+                    <div key={item.$id} className={`p-3 rounded-xl bg-[#0A0908] border border-white/[0.04] flex justify-between items-center transition-colors ${section.borderHover}`}>
+                      <div className="flex items-center gap-3">
+                        <span style={{ color: section.iconColor }}>{section.icon}</span>
+                        <span className="text-xs font-bold text-white/80">{item.title || item.name}</span>
+                      </div>
+                      <button type="button" onClick={() => window.open(section.link(item.$id), '_blank')} className="p-1.5 hover:bg-white/5 rounded-lg transition-colors" style={{ color: section.iconColor }}>
+                        <OpenIcon className="w-4 h-4" />
+                      </button>
+                    </div>
                   ))}
-                  </Box>
+                </div>
               ) : (
-                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontStyle: 'italic' }}>No linked {section.label.toLowerCase()}</Typography>
+                <span className="text-xs font-mono text-white/30 italic">No linked {section.label.toLowerCase()}</span>
               )}
-            </Box>
+            </div>
           ))}
 
-          <Box>
-              <Typography variant="caption" sx={{ color: theme.palette.secondary.main, fontWeight: 900, textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.1em' }}>Collaborators</Typography>
-              {isLoadingCollaborators ? (
-                  <CircularProgress size={20} sx={{ color: theme.palette.secondary.main, ml: 1 }} />
-              ) : collaboratorProfiles.length > 0 ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                  {collaboratorProfiles.map((p: any) => (
-                      <Box key={p.$id || p.userId} sx={{ p: 1.5, borderRadius: '18px', bgcolor: '#0A0908', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer', transition: 'all 0.2s ease', '&:hover': { bgcolor: alpha('#fff', 0.02) } }} onClick={() => openUnified('share-note', { noteId: liveNote.$id, noteTitle: liveNote.title, initialCollaborator: p })}>
-                      <IdentityAvatar fileId={p.avatar} alt={p.username} fallback={p.username?.[0]?.toUpperCase()} size={34} verified={p.tier === 'admin' || p.verified} />
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography variant="body2" noWrap sx={{ fontWeight: 800 }}>{p.displayName || p.username}</Typography>
-                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', display: 'block' }}>@{p.username}</Typography>
-                      </Box>
-                      <Typography variant="caption" sx={{ px: 1, py: 0.25, borderRadius: '6px', bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, fontWeight: 900, fontSize: '10px' }}>{p.permissionLevel || 'Viewer'}</Typography>
-                      </Box>
-                  ))}
-                  </Box>
-              ) : (
-                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontStyle: 'italic' }}>No collaborators found</Typography>
-              )}
-          </Box>
-        </Box>
-
-        <Box sx={{ mt: 4, pt: 3, borderTop: `1px solid ${alpha('#fff', 0.05)}` }}>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Created {formatNoteCreatedDate(liveNote)}</Typography>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Updated {formatNoteUpdatedDate(liveNote)}</Typography>
-        </Box>
-      </Box>
-
-      <Drawer anchor="top" open={showActionHub} onClose={() => setShowActionHub(false)} PaperProps={{ sx: { borderBottomLeftRadius: '32px', borderBottomRightRadius: '32px', bgcolor: '#161412', border: '1px solid #1C1A18', backgroundImage: 'none', p: 3.5 } }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6" sx={{ fontWeight: 900, color: theme.palette.primary.main }}>Action Hub</Typography>
-            <IconButton onClick={() => setShowActionHub(false)} sx={{ color: 'rgba(255,255,255,0.6)' }}><CloseIcon /></IconButton>
-          </Box>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-            <Button
-              variant="outlined"
-              startIcon={isPublic ? <LockIcon /> : <UnlockIcon />}
-              onClick={() => { setShowActionHub(false); void handleTogglePublic(); }}
-              sx={{ borderRadius: '14px', fontWeight: 800, color: 'white', borderColor: 'rgba(255,255,255,0.1)' }}
-            >
-              {isPublic ? 'Make Private' : 'Make Public'}
-            </Button>
-            <Button variant="contained" startIcon={<TaskIcon />} onClick={handleCreateTaskFromNote} disabled={isCreatingTaskFromNote} sx={{ borderRadius: '14px', fontWeight: 900, bgcolor: theme.palette.primary.main }}>Create Goal</Button>
-            <Button variant="outlined" startIcon={<FolderKanban size={18} />} onClick={() => { setShowActionHub(false); setShowProjectLinker(true); }} sx={{ borderRadius: '14px', fontWeight: 800, color: 'white', borderColor: 'rgba(255,255,255,0.1)' }}>Add to Project</Button>
-            <Button variant="outlined" startIcon={<LockIcon />} onClick={() => { setShowActionHub(false); rotateNoteLink(); }} disabled={!isPublic} sx={{ borderRadius: '14px', fontWeight: 800, color: 'white', borderColor: 'rgba(255,255,255,0.1)' }}>Rotate Link</Button>
-          </Box>
-          <Box>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 900, textTransform: 'uppercase', mb: 2, display: 'block' }}>Suggestions</Typography>
-            {isLoadingSuggestions ? <CircularProgress size={16} /> : crossSuggestions.length > 0 ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {crossSuggestions.map(s => (
-                        <Box key={s.id} sx={{ p: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.05), borderRadius: '12px', mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Box><Typography variant="body2" sx={{ fontWeight: 800 }}>{s.label}</Typography><Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>{s.description}</Typography></Box>
-                            <Button size="small" onClick={() => window.open(`https://kylrix.space/integrations?action=${s.id}`, '_blank')}>USE</Button>
-                        </Box>
-                    ))}
-                </Box>
+          {/* Collaborators */}
+          <div className="shrink-0">
+            <span className="text-[10px] font-mono font-bold tracking-wider text-pink-400 uppercase block mb-2">Collaborators</span>
+            {isLoadingCollaborators ? (
+              <div className="px-2 py-1 text-xs text-white/40 font-mono flex items-center gap-2">
+                <div className="w-3 h-3 border border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                <span>Loading...</span>
+              </div>
+            ) : collaboratorProfiles.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {collaboratorProfiles.map((p: any) => (
+                  <div key={p.$id || p.userId} className="p-2.5 rounded-xl bg-[#0A0908] border border-white/[0.04] flex items-center gap-3 cursor-pointer hover:bg-white/[0.02] transition-colors" onClick={() => openUnified('share-note', { noteId: liveNote.$id, noteTitle: liveNote.title, initialCollaborator: p })}>
+                    <IdentityAvatar fileId={p.avatar} alt={p.username} fallback={p.username?.[0]?.toUpperCase()} size={34} verified={p.tier === 'admin' || p.verified} />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-bold text-white/80 block truncate">{p.displayName || p.username}</span>
+                      <span className="text-[9px] font-mono text-white/40 block truncate">@{p.username}</span>
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-pink-500/10 text-pink-400">
+                      {p.permissionLevel || 'Viewer'}
+                    </span>
+                  </div>
+                ))}
+              </div>
             ) : (
-                <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontStyle: 'italic' }}>No suggestions available</Typography>
+              <span className="text-xs font-mono text-white/30 italic">No collaborators found</span>
             )}
-          </Box>
-        </Box>
-      </Drawer>
+          </div>
+        </div>
 
-      <ConfirmationDialog open={showRotateConfirm} title="Rotate public link?" message="The previous link will become permanently invalid. Anyone with the old link will lose access." confirmLabel={isRotating ? "Rotating..." : "Rotate Link"} isDestructive={true} isLoading={isRotating} onClose={() => setShowRotateConfirm(false)} onConfirm={handleConfirmedRotate} />
+        {/* Timestamps */}
+        <div className="mt-4 pt-3 border-t border-white/5 text-[9px] font-mono text-white/30 flex flex-col gap-0.5 shrink-0">
+          <span>Created {formatNoteCreatedDate(liveNote)}</span>
+          <span>Updated {formatNoteUpdatedDate(liveNote)}</span>
+        </div>
+      </div>
+
+      {/* Action Hub overlay */}
+      {showActionHub && (
+        <div className="fixed inset-0 z-[1500] flex items-start justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowActionHub(false)}>
+          <div className="w-full max-w-lg rounded-b-[24px] bg-[#161412] border-b border-white/5 p-5 shadow-2xl flex flex-col gap-4 animate-in slide-in-from-top-1/3 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center">
+              <h3 className="font-extrabold font-space-grotesk text-indigo-400 text-sm uppercase tracking-wide">Action Hub</h3>
+              <button type="button" onClick={() => setShowActionHub(false)} className="p-1.5 text-white/60 hover:text-white rounded-lg hover:bg-white/5"><CloseIcon className="w-4 h-4" /></button>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => { setShowActionHub(false); void handleTogglePublic(); }}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 text-xs font-mono font-bold text-white hover:bg-white/5 hover:text-white transition-colors"
+              >
+                {isPublic ? <LockIcon className="w-4 h-4" /> : <UnlockIcon className="w-4 h-4" />}
+                <span>{isPublic ? 'Make Private' : 'Make Public'}</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={handleCreateTaskFromNote} 
+                disabled={isCreatingTaskFromNote} 
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 text-black font-extrabold text-xs font-mono uppercase transition-colors hover:bg-indigo-500 disabled:opacity-50"
+              >
+                <TaskIcon className="w-4 h-4 text-black" />
+                <span>Create Goal</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => { setShowActionHub(false); setShowProjectLinker(true); }} 
+                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 text-xs font-mono font-bold text-white hover:bg-white/5 hover:text-white transition-colors"
+              >
+                <FolderKanban className="w-4 h-4" />
+                <span>Add to Project</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => { setShowActionHub(false); rotateNoteLink(); }} 
+                disabled={!isPublic} 
+                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 text-xs font-mono font-bold text-white hover:bg-white/5 hover:text-white transition-colors disabled:opacity-40"
+              >
+                <LockIcon className="w-4 h-4" />
+                <span>Rotate Link</span>
+              </button>
+            </div>
+
+            <div className="border-t border-white/5 pt-3">
+              <span className="text-[10px] font-mono font-bold tracking-wider text-white/45 uppercase block mb-2.5">Suggestions</span>
+              {isLoadingSuggestions ? (
+                <div className="px-2 py-1 text-xs text-white/40 font-mono flex items-center gap-2">
+                  <div className="w-3.5 h-3.5 border border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span>Loading suggestions...</span>
+                </div>
+              ) : crossSuggestions.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {crossSuggestions.map(s => (
+                    <div key={s.id} className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl flex justify-between items-center">
+                      <div>
+                        <span className="text-xs font-bold text-white/85 block">{s.label}</span>
+                        <span className="text-[10px] font-sans text-white/40 block mt-0.5">{s.description}</span>
+                      </div>
+                      <button type="button" onClick={() => window.open(`https://kylrix.space/integrations?action=${s.id}`, '_blank')} className="px-2.5 py-1 bg-indigo-500 hover:bg-indigo-400 text-black font-extrabold text-[10px] font-mono rounded-lg transition-colors">
+                        USE
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-xs font-mono text-white/30 italic">No suggestions available</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-[24px] bg-[#161412] border border-white/5 p-5 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-200">
+            <h3 className="font-extrabold font-space-grotesk text-[#FF453A] text-lg uppercase tracking-wide">Delete Note</h3>
+            <p className="text-xs text-white/60 font-sans leading-relaxed">
+              Are you sure you want to delete this note? This action is permanent and cannot be undone.
+            </p>
+            <div className="flex flex-col gap-2 mt-2">
+              <button 
+                type="button"
+                onClick={handleDelete} 
+                className="w-full py-2.5 rounded-xl bg-[#FF453A] hover:bg-[#FF453A]/90 text-white font-extrabold text-xs font-mono uppercase transition-colors"
+              >
+                Delete Permanently
+              </button>
+              <button 
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)} 
+                className="w-full py-2.5 rounded-xl border border-white/10 text-white/80 hover:text-white hover:bg-white/5 font-extrabold text-xs font-mono uppercase transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmationDialog 
+        open={showRotateConfirm} 
+        title="Rotate public link?" 
+        message="The previous link will become permanently invalid. Anyone with the old link will lose access." 
+        confirmLabel={isRotating ? "Rotating..." : "Rotate Link"} 
+        isDestructive={true} 
+        isLoading={isRotating} 
+        onClose={() => setShowRotateConfirm(false)} 
+        onConfirm={handleConfirmedRotate} 
+      />
       
       <ProjectLinker 
         open={showProjectLinker} 
@@ -1045,16 +1114,7 @@ export function NoteDetailSidebar({
         entityKind="note" 
       />
 
-      <Dialog open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} PaperProps={{ sx: { borderRadius: '32px', bgcolor: '#161412', border: '1px solid #1C1A18', backgroundImage: 'none', p: 2 } }}>
-        <DialogTitle sx={{ fontWeight: 900, color: '#FF453A' }}>Delete Note</DialogTitle>
-        <DialogContent><Typography sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Are you sure you want to delete this note? This action is permanent.</Typography></DialogContent>
-        <DialogActions sx={{ p: 3, gap: 2, flexDirection: 'column' }}>
-          <Button variant="contained" fullWidth onClick={handleDelete} sx={{ borderRadius: '14px', bgcolor: '#FF453A' }}>Delete Permanently</Button>
-          <Button variant="outlined" fullWidth onClick={() => setShowDeleteConfirm(false)} sx={{ borderRadius: '14px', color: 'white' }}>Cancel</Button>
-        </DialogActions>
-      </Dialog>
-
       {showDoodleEditor && <DoodleCanvas initialData={format === 'doodle' ? content : ''} onSave={handleDoodleSave} onClose={() => setShowDoodleEditor(false)} />}
-    </Box>
+    </div>
   );
 }

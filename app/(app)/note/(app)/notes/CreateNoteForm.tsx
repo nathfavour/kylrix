@@ -428,7 +428,7 @@ export default function CreateNoteForm({
       };
 
       const hasMeaningfulContent = Boolean(payload.title || payload.content || (resolvedNoteId && payload.tags.length));
-      if (!resolvedNoteId && !hasMeaningualContent) {
+      if (!resolvedNoteId && !hasMeaningfulContent) {
         return null;
       }
 
@@ -603,22 +603,18 @@ export default function CreateNoteForm({
                   : (composerKind === 'project' ? 'New Project' : 'New Note')
                 }
               </span>
-              <div className="flex items-center gap-1 mt-0.5 select-none">
+              <div className="flex items-center gap-1.5 mt-0.5 select-none">
                 <span className={`w-1.5 h-1.5 rounded-full ${
-                  isSaving 
-                    ? 'bg-amber-500 animate-pulse' 
-                    : isDirty 
-                      ? 'bg-white/30' 
-                      : 'bg-emerald-500'
+                  (!isDirty && !isSaving) 
+                    ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' 
+                    : 'bg-white/20'
                 }`} />
                 <span className={`text-[9px] font-mono font-bold uppercase tracking-wider ${
-                  isSaving 
-                    ? 'text-amber-500/80' 
-                    : isDirty 
-                      ? 'text-white/45' 
-                      : 'text-emerald-400'
+                  (!isDirty && !isSaving) 
+                    ? 'text-emerald-400 font-extrabold' 
+                    : 'text-white/40'
                 }`}>
-                  {isSaving ? 'Saving' : isDirty ? 'Unsaved' : 'Autosaved'}
+                  Autosave
                 </span>
               </div>
             </div>
