@@ -93,6 +93,9 @@ export function NotesProvider({ children }: { children: ReactNode }) {
 
   const { fetchOptimized, setCachedData, invalidate, getCachedData, getCachedDataAsync } = useDataNexus();
 
+  const PINNED_CACHE_KEY = useMemo(() => user?.$id ? `pinned_ids_${user.$id}` : null, [user?.$id]);
+  const INITIAL_NOTES_CACHE_KEY = useMemo(() => user?.$id ? `initial_notes_${user.$id}` : null, [user?.$id]);
+
   // Load from cache on mount (Instant Cold-Start Hydration)
   useEffect(() => {
     if (!user?.$id || isCacheLoaded) return;
@@ -128,6 +131,41 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     
     void hydrateFromCache();
   }, [user?.$id, isCacheLoaded, getCachedDataAsync, PINNED_CACHE_KEY, INITIAL_NOTES_CACHE_KEY]);
+
+  // Ensure pinned notes are present in the 'notes' array (smart hydration)
+  useEffect(() => {
+    if (!isAuthenticated || !user?.$id || !pinnedIds.length) return;
+
+    const missingIds = pinnedIds.filter(id => !notes.some(n => n.$id === id));
+    if (missingIds.length === 0) return;
+
+    const hydratePinnedNotes = async () => {
+      try {
+        const res = await listNotesPaginated({
+          limit: missingIds.length,
+          queries: [Query.equal('$id', missingIds), Query.equal('userId', user.$id)],
+          hydrateTags: true
+        });
+
+        if (res?.rows?.length > 0) {
+          const newDocs = res.rows as unknown as Notes[];
+
+          setNotes(prev => {
+            const existingIds = new Set(prev.map(n => n.$id));
+            const distinctNew = newDocs.filter(n => !existingIds.has(n.$id));
+            return [...prev, ...distinctNew];
+          });
+          
+          // Cache them individualy
+          newDocs.forEach(doc => setCachedData(`note_${doc.$id}`, doc));
+        }
+      } catch (e) {
+        console.error('[NotesContext] Failed to hydrate missing pinned notes:', e);
+      }
+    };
+
+    void hydratePinnedNotes();
+  }, [pinnedIds, isAuthenticated, user?.$id, setCachedData, notes]);
 
   // Refs to avoid unnecessary re-creations / dependency loops
   const isFetchingRef = useRef(false);

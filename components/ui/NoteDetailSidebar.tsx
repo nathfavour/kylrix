@@ -684,12 +684,13 @@ export function NoteDetailSidebar({
     }
   }, [isRecording, showSuccess, showError]);
 
-  const insertTextAtCursor = useCallback((text: string) => {
+  const insertTextAtCursor = useCallback(async (text: string) => {
     const textarea = contentTextareaRef.current;
+    let nextContent = content;
     if (textarea) {
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
-      const nextContent = content.substring(0, start) + text + content.substring(end);
+      nextContent = content.substring(0, start) + text + content.substring(end);
       setContent(nextContent);
       
       const updatedNote = { ...liveNote, content: nextContent };
@@ -700,12 +701,27 @@ export function NoteDetailSidebar({
         textarea.setSelectionRange(start + text.length, start + text.length);
       }, 50);
     } else {
-      const nextContent = content + text;
+      nextContent = content + text;
       setContent(nextContent);
       const updatedNote = { ...liveNote, content: nextContent };
       onUpdate(updatedNote);
     }
-  }, [content, liveNote, onUpdate]);
+
+    try {
+      const { updateNote: apiUpdateNote } = await import('@/lib/actions/client-ops');
+      const saved = await apiUpdateNote(liveNote.$id, {
+        content: nextContent,
+        title: title.trim(),
+        format,
+        tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+      });
+      if (saved) {
+        onUpdate(saved as Notes);
+      }
+    } catch (err) {
+      console.error('Failed to run immediate save on voice note insert:', err);
+    }
+  }, [content, liveNote, onUpdate, title, format, tags]);
 
   // --- RENDER ---
   return (
@@ -931,7 +947,8 @@ export function NoteDetailSidebar({
                     const target = e.relatedTarget as HTMLElement;
                     if (target && (
                       target.closest('.voice-recorder-btn') || 
-                      target.closest('.editor-done-btn')
+                      target.closest('.editor-done-btn') ||
+                      target.closest('.voice-note-player-container')
                     )) {
                       return;
                     }
@@ -939,7 +956,8 @@ export function NoteDetailSidebar({
                       const activeEl = document.activeElement;
                       if (activeEl && (
                         activeEl.closest('.voice-recorder-btn') ||
-                        activeEl.closest('.editor-done-btn')
+                        activeEl.closest('.editor-done-btn') ||
+                        activeEl.closest('.voice-note-player-container')
                       )) {
                         return;
                       }
