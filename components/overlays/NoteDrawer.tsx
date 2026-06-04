@@ -67,8 +67,8 @@ export function NoteDrawer() {
         <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: '#3D3A36' }} aria-hidden />
       </Box>
 
-      <Box sx={{ p: 3, flex: 1, overflowY: 'auto', pointerEvents: 'auto' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ p: 1.5, flex: 1, overflowY: 'auto', pointerEvents: 'auto' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
           <Typography sx={{ fontWeight: 900, fontSize: '1.2rem', color: '#fff', fontFamily: 'var(--font-clash)' }}>
             {isExpanded ? 'Full Screen Note' : 'New Note'}
           </Typography>

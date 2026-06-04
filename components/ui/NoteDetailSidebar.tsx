@@ -45,6 +45,7 @@ import {
   PlaylistAddCheck as TaskIcon,
   EventNote as EventIcon,
   VpnKey as KeyIcon,
+  Check as CheckIcon,
 } from '@/lib/mui-tailwind/icons';
 import { useToast } from '@/components/ui/Toast';
 import { useSudo } from '@/context/SudoContext';
@@ -742,6 +743,22 @@ export function NoteDetailSidebar({
             </IconButton>
           </Tooltip>
 
+          {format === 'text' && (
+            <Tooltip title={isRecording ? `Stop (${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}) & Insert` : "Record Voice Note"}>
+              <IconButton 
+                onClick={toggleRecording} 
+                className={`voice-recorder-btn ${isRecording ? "animate-pulse" : ""}`}
+                sx={{ 
+                  color: isRecording ? '#EF4444' : theme.palette.text.secondary, 
+                  bgcolor: isRecording ? 'rgba(239, 68, 68, 0.15)' : alpha(theme.palette.text.primary, 0.04),
+                  '&:hover': { bgcolor: isRecording ? 'rgba(239, 68, 68, 0.25)' : alpha(theme.palette.text.primary, 0.08) }
+                }}
+              >
+                {isRecording ? <Square size={16} fill="#EF4444" style={{ color: '#EF4444' }} /> : <Mic size={16} />}
+              </IconButton>
+            </Tooltip>
+          )}
+
           {showExpandButton && isPublic && (
             <Tooltip title="Copy share link">
               <span>
@@ -784,19 +801,100 @@ export function NoteDetailSidebar({
         <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#0A0908', border: '1px solid #1C1A18', minHeight: { xs: 340, md: 460 }, height: { xs: 'clamp(340px, 46vh, 460px)', md: 'clamp(460px, 58vh, 760px)' }, boxShadow: '0 12px 32px rgba(0,0,0,0.4)', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', overflow: 'hidden', '&:focus-within': { borderColor: theme.palette.primary.main, transform: 'translateY(-2px)' } }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
             <Typography variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Content</Typography>
-            {isEditingContent && (
-              <Stack direction="row" spacing={1} alignItems="center">
-                <ToggleButtonGroup value={format} exclusive onChange={(_, v) => v && setFormat(v)} size="small" sx={{ height: 28, bgcolor: alpha('#fff', 0.04), borderRadius: '10px' }}>
-                  <ToggleButton value="text" sx={{ px: 2, py: 0, fontSize: '0.7rem', fontWeight: 800 }}>Text</ToggleButton>
-                  <ToggleButton value="doodle" sx={{ px: 2, py: 0, fontSize: '0.7rem', fontWeight: 800 }}>Doodle</ToggleButton>
-                </ToggleButtonGroup>
-              </Stack>
-            )}
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              {format === 'text' && (
+                <Tooltip title={isRecording ? `Stop (${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}) & Insert` : "Record Voice Note"}>
+                  <Button
+                    onClick={toggleRecording}
+                    variant="text"
+                    size="small"
+                    className={`voice-recorder-btn ${isRecording ? "animate-pulse" : ""}`}
+                    startIcon={isRecording ? <Square size={12} fill="#EF4444" style={{ color: '#EF4444' }} /> : <Mic size={12} />}
+                    sx={{
+                      height: 28,
+                      px: 1.5,
+                      borderRadius: '10px',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      color: isRecording ? '#EF4444' : theme.palette.text.secondary,
+                      bgcolor: isRecording ? 'rgba(239, 68, 68, 0.12)' : alpha(theme.palette.text.primary, 0.04),
+                      '&:hover': {
+                        bgcolor: isRecording ? 'rgba(239, 68, 68, 0.18)' : alpha(theme.palette.text.primary, 0.08),
+                      },
+                      textTransform: 'none',
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    {isRecording ? `${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}` : "Record Voice"}
+                  </Button>
+                </Tooltip>
+              )}
+
+              {isEditingContent && (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <ToggleButtonGroup value={format} exclusive onChange={(_, v) => v && setFormat(v)} size="small" sx={{ height: 28, bgcolor: alpha('#fff', 0.04), borderRadius: '10px' }}>
+                    <ToggleButton value="text" sx={{ px: 2, py: 0, fontSize: '0.7rem', fontWeight: 800 }}>Text</ToggleButton>
+                    <ToggleButton value="doodle" sx={{ px: 2, py: 0, fontSize: '0.7rem', fontWeight: 800 }}>Doodle</ToggleButton>
+                  </ToggleButtonGroup>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => setIsEditingContent(false)}
+                    sx={{ 
+                      height: 28, 
+                      width: 28, 
+                      borderRadius: '10px',
+                      color: '#10B981', 
+                      bgcolor: 'rgba(16, 185, 129, 0.12)', 
+                      '&:hover': { bgcolor: 'rgba(16, 185, 129, 0.2)' } 
+                    }}
+                    className="editor-done-btn"
+                  >
+                    <CheckIcon fontSize="small" style={{ fontSize: 16 }} />
+                  </IconButton>
+                </Stack>
+              )}
+            </Stack>
           </Box>
           <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 1 }}>
             {isEditingContent ? (
               format === 'text' ? (
-                <TextField fullWidth multiline rows={14} variant="standard" value={content} onChange={(e) => setContent(e.target.value)} onBlur={() => setIsEditingContent(false)} autoFocus inputRef={contentTextareaRef} InputProps={{ disableUnderline: true, sx: { color: 'rgba(255,255,255,0.85)', fontSize: '1rem', lineHeight: 1.8 } }} />
+                <TextField 
+                  fullWidth 
+                  multiline 
+                  rows={14} 
+                  variant="standard" 
+                  value={content} 
+                  onChange={(e) => setContent(e.target.value)} 
+                  onBlur={(e) => {
+                    const target = e.relatedTarget as HTMLElement;
+                    if (target && (
+                      target.closest('.voice-recorder-btn') || 
+                      target.closest('.MuiToggleButton-root') ||
+                      target.closest('.MuiToggleButtonGroup-root') ||
+                      target.closest('.editor-done-btn')
+                    )) {
+                      return;
+                    }
+                    setTimeout(() => {
+                      const activeEl = document.activeElement;
+                      if (activeEl && (
+                        activeEl.closest('.voice-recorder-btn') ||
+                        activeEl.closest('.MuiToggleButton-root') ||
+                        activeEl.closest('.MuiToggleButtonGroup-root') ||
+                        activeEl.closest('.editor-done-btn')
+                      )) {
+                        return;
+                      }
+                      setIsEditingContent(false);
+                    }, 150);
+                  }}
+                  autoFocus 
+                  inputRef={contentTextareaRef} 
+                  InputProps={{ 
+                    disableUnderline: true, 
+                    sx: { color: 'rgba(255,255,255,0.85)', fontSize: '1rem', lineHeight: 1.8 } 
+                  }} 
+                />
               ) : (
                 <Box onClick={() => setShowDoodleEditor(true)} sx={{ height: 200, border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '18px', display: 'grid', placeItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: alpha('#fff', 0.02) } }}><Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>Open Sketchpad</Typography></Box>
               )
