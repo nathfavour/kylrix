@@ -60,7 +60,7 @@ export default function CreateNoteForm({
   const { setActiveDetail } = useSection();
   const { closeOverlay } = useOverlay();
   const { showSuccess, showError } = useToast();
-  const { notes: allNotes } = useNotes();
+  const { notes: allNotes, upsertNote } = useNotes();
   const { fetchOptimized, getCachedData, setCachedData } = useDataNexus();
   const { promptSudo } = useSudo();
   const hasMasterKey = ecosystemSecurity.status.hasKey;
@@ -447,6 +447,7 @@ export default function CreateNoteForm({
             isPublic: persistedIsPublic,
             title: generatedTitle,
           })) as Notes;
+          upsertNote(saved);
         } else {
           saved = (await createNote({
             ...payload,
