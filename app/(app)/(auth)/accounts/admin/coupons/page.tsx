@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Alert, Box, Button, Chip, CircularProgress, Paper, Stack, TextField, Typography, alpha } from '@/lib/mui-tailwind/material';
 import { Copy, RefreshCw, Ticket } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { createCouponAction, listCouponsAction } from '../../actions/coupons';
@@ -109,164 +108,197 @@ export default function AdminCouponsPage() {
 
   return (
     <AdminLayout>
-      <Stack spacing={4}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-          <Box>
-            <Typography variant="h4" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 900, letterSpacing: '-0.02em' }}>
+      <div className="flex flex-col gap-6 text-white font-satoshi">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-black font-clash text-white tracking-tight leading-tight">
               Coupons
-            </Typography>
-            <Typography sx={{ color: alpha('#FFFFFF', 0.45), mt: 1 }}>
+            </h2>
+            <p className="text-sm text-white/45 mt-1">
               Create open or targeted coupons. Open coupons are first-claim wins, targeted coupons are restricted to named users.
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={1.5}>
-            <Button
-              variant="outlined"
-              onClick={loadCoupons}
-              startIcon={<RefreshCw size={16} />}
-              sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 800, color: '#fff', borderColor: 'rgba(255,255,255,0.08)' }}
-            >
-              Refresh
-            </Button>
-          </Stack>
-        </Box>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={loadCoupons}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-white/10 text-white font-bold text-xs hover:bg-white/5 hover:border-white/20 transition-all cursor-pointer self-start sm:self-auto"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
+        </div>
 
-        {error && <Alert severity="error">{error}</Alert>}
-        {success && <Alert severity="success">{success}</Alert>}
+        {error && (
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-semibold">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-semibold">
+            {success}
+          </div>
+        )}
 
-        <Paper sx={{ p: 3, borderRadius: 4, bgcolor: '#161412', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <Stack spacing={2.5}>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <TextField
-                fullWidth
-                label="Target user IDs"
-                helperText="Leave blank for an open coupon. Separate multiple IDs with commas."
+        {/* Coupon Creator Card */}
+        <div className="p-6 rounded-[28px] bg-[#161412] border border-white/5 flex flex-col gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Target User IDs</span>
+              <input
+                type="text"
+                placeholder="Comma separated IDs"
                 value={form.targetUserIds}
                 onChange={(event) => setForm((prev) => ({ ...prev, targetUserIds: event.target.value }))}
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
               />
-              <TextField
-                label="Discount %"
+              <span className="text-[10px] text-white/30 block">Leave blank for open claim</span>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Discount %</span>
+              <input
                 type="number"
                 value={form.discountPercent}
                 onChange={(event) => setForm((prev) => ({ ...prev, discountPercent: event.target.value }))}
-                sx={{ width: { xs: '100%', md: 180 } }}
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
               />
-              <TextField
-                label="Status"
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Status</span>
+              <input
+                type="text"
                 value={form.status}
                 onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value }))}
-                sx={{ width: { xs: '100%', md: 180 } }}
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
               />
-              <TextField
-                label="Max Redemptions"
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Max Redemptions</span>
+              <input
                 type="number"
                 value={form.redemptionLimit}
                 onChange={(event) => setForm((prev) => ({ ...prev, redemptionLimit: event.target.value }))}
-                sx={{ width: { xs: '100%', md: 180 } }}
-                helperText="Required for open links"
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
               />
-            </Stack>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <TextField
-                fullWidth
-                label="Title"
+              <span className="text-[10px] text-white/30 block">Required for open links</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Title</span>
+              <input
+                type="text"
                 value={form.title}
                 onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
               />
-              <TextField
-                fullWidth
-                label="Note"
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Note</span>
+              <input
+                type="text"
                 value={form.note}
                 onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))}
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
               />
-              <TextField
-                label="Expires at"
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Expires At</span>
+              <input
                 type="datetime-local"
                 value={form.expiresAt}
                 onChange={(event) => setForm((prev) => ({ ...prev, expiresAt: event.target.value }))}
-                sx={{ width: { xs: '100%', md: 260 } }}
-                InputLabelProps={{ shrink: true }}
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
               />
-            </Stack>
-            <Button
-              onClick={createCoupon}
-              disabled={saving}
-              variant="contained"
-              startIcon={<Ticket size={16} />}
-              sx={{ alignSelf: 'flex-start', borderRadius: 999, textTransform: 'none', fontWeight: 800, bgcolor: '#6366F1', '&:hover': { bgcolor: '#4F46E5' } }}
-            >
-              {saving ? 'Creating...' : 'Create coupon'}
-            </Button>
-          </Stack>
-        </Paper>
+            </div>
+          </div>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography sx={{ color: alpha('#FFFFFF', 0.5), fontSize: '0.9rem' }}>
-            {totalCoupons} coupons
-          </Typography>
-        </Box>
+          <button
+            type="button"
+            onClick={createCoupon}
+            disabled={saving}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-black font-black text-xs transition-all duration-200 cursor-pointer disabled:opacity-50 w-fit"
+          >
+            <Ticket size={16} />
+            <span>{saving ? 'Creating...' : 'Create Coupon'}</span>
+          </button>
+        </div>
 
-        <Stack spacing={2}>
+        <div className="flex items-center justify-between">
+          <span className="text-white/50 text-sm">{totalCoupons} coupons</span>
+        </div>
+
+        {/* Coupons List */}
+        <div className="space-y-4">
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress sx={{ color: '#6366F1' }} />
-            </Box>
+            <div className="flex justify-center items-center py-16">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6366F1]" />
+            </div>
           ) : coupons.length ? (
             coupons.map((coupon) => (
-              <Paper key={coupon.$id} sx={{ p: 3, borderRadius: 4, bgcolor: '#161412', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <Stack spacing={1.5}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
-                    <Box>
-                      <Typography sx={{ fontWeight: 900, fontSize: '1rem' }}>
-                        {parseMetadata(coupon.metadata)?.coupon?.title || coupon.$id}
-                      </Typography>
-                      <Typography sx={{ color: alpha('#FFFFFF', 0.5), fontSize: '0.8rem' }}>
-                        /accounts/coupon/{coupon.$id}
-                      </Typography>
-                    </Box>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent="flex-end">
-                      <Chip 
-                        label={`${(coupon as any).redemptionCount || 0} / ${(coupon as any).redemptionLimit || 1} uses`} 
-                        variant="outlined" 
-                        size="small" 
-                        sx={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                      />
-                      <Chip label={formatScope(coupon)} color={formatScope(coupon) === 'open' ? 'info' : 'default'} size="small" />
-                      <Chip label={`${coupon.discountPercent || parseMetadata(coupon.metadata)?.coupon?.discountPercent || 0}%`} color="primary" size="small" />
-                      <Chip label={String(coupon.status || 'active')} size="small" />
-                    </Stack>
-                  </Stack>
-                  <Typography sx={{ color: alpha('#FFFFFF', 0.65), fontSize: '0.9rem' }}>
-                    {parseMetadata(coupon.metadata)?.note || 'No note provided.'}
-                  </Typography>
-                  <Stack direction="row" spacing={1.5}>
-                    <Button
-                      variant="outlined"
-                      onClick={() => copyLink(coupon.$id)}
-                      startIcon={<Copy size={16} />}
-                      sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 800, color: '#fff', borderColor: 'rgba(255,255,255,0.08)' }}
-                    >
-                      Copy link
-                    </Button>
-                    <Button
-                      component={Link}
-                      href={`/accounts/coupon/${coupon.$id}`}
-                      variant="text"
-                      sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 800, color: '#6366F1' }}
-                    >
-                      Open coupon page
-                    </Button>
-                  </Stack>
-                </Stack>
-              </Paper>
+              <div key={coupon.$id} className="p-6 rounded-[28px] bg-[#161412] border border-white/5 flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h4 className="font-extrabold text-base text-white">
+                      {parseMetadata(coupon.metadata)?.coupon?.title || coupon.$id}
+                    </h4>
+                    <p className="text-xs text-white/40 mt-1 font-mono">
+                      /accounts/coupon/{coupon.$id}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border bg-white/5 border-white/10 text-white/60">
+                      {(coupon as any).redemptionCount || 0} / {(coupon as any).redemptionLimit || 1} uses
+                    </span>
+                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
+                      formatScope(coupon) === 'open' 
+                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' 
+                        : 'bg-white/5 border-white/10 text-white/40'
+                    }`}>
+                      {formatScope(coupon)}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border bg-indigo-500/10 border-indigo-500/20 text-indigo-400">
+                      {coupon.discountPercent || parseMetadata(coupon.metadata)?.coupon?.discountPercent || 0}% Off
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border bg-white/5 border-white/10 text-white/60">
+                      {String(coupon.status || 'active')}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-sm text-white/65 leading-relaxed">
+                  {parseMetadata(coupon.metadata)?.note || 'No note provided.'}
+                </p>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => copyLink(coupon.$id)}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-white/10 text-white font-bold text-xs hover:bg-white/5 hover:border-white/20 transition-all cursor-pointer"
+                  >
+                    <Copy size={14} />
+                    <span>Copy Link</span>
+                  </button>
+                  <Link href={`/accounts/coupon/${coupon.$id}`} passHref legacyBehavior>
+                    <a className="px-4 py-2.5 rounded-full text-xs font-black text-[#6366F1] hover:text-[#5254E8] transition-colors cursor-pointer">
+                      Open Coupon Page
+                    </a>
+                  </Link>
+                </div>
+              </div>
             ))
           ) : (
-            <Paper sx={{ p: 4, borderRadius: 4, bgcolor: '#161412', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <Typography sx={{ color: alpha('#FFFFFF', 0.55) }}>No coupons yet.</Typography>
-            </Paper>
+            <div className="p-8 rounded-[28px] bg-[#161412] border border-white/5 text-center text-sm text-white/55">
+              No coupons yet.
+            </div>
           )}
-        </Stack>
-      </Stack>
+        </div>
+      </div>
     </AdminLayout>
   );
 }

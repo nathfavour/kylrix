@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth/AuthContext';
-import { Box, CircularProgress } from '@/lib/mui-tailwind/material';
 import { isUserAdmin } from '@/lib/actions/admin/check-admin';
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
@@ -34,9 +33,9 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
   if (isLoading || isAdmin === null) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#0A0908' }}>
-        <CircularProgress sx={{ color: '#6366F1' }} />
-      </Box>
+      <div className="flex justify-center items-center min-h-screen bg-[#0A0908]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6366F1]" />
+      </div>
     );
   }
 

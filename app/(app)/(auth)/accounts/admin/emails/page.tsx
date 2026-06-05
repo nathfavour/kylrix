@@ -2,26 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Box, 
-  Grid, 
-  Paper, 
-  Typography, 
-  alpha, 
-  TextField, 
-  Button, 
-  Avatar,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Checkbox,
-  CircularProgress
-} from '@/lib/mui-tailwind/material';
-import { 
   Send, 
   Layout, 
   Users,
@@ -88,10 +68,9 @@ export default function EmailOrchestrator() {
         const merged = [...prev];
 
         for (const user of batch) {
-          if (!seen.has(user.id)) {
-            seen.add(user.id);
-            merged.push(user);
-          }
+          if (seen.has(user.id)) continue;
+          seen.add(user.id);
+          merged.push(user);
         }
 
         return merged;
@@ -163,275 +142,198 @@ export default function EmailOrchestrator() {
 
   return (
     <AdminLayout>
-      <Box sx={{ mb: 6 }}>
-        <Typography variant="h4" sx={{ 
-          fontFamily: 'var(--font-clash)', 
-          fontWeight: 900, 
-          letterSpacing: '-0.02em', 
-          mb: 1 
-        }}>
+      <div className="mb-8 font-satoshi">
+        <h2 className="text-2xl md:text-3xl font-black font-clash text-white tracking-tight leading-tight mb-1">
           Email Center
-        </Typography>
-        <Typography sx={{ color: alpha('#FFFFFF', 0.4), fontSize: '0.9rem' }}>
+        </h2>
+        <p className="text-sm text-white/40">
           Design and orchestrate branded ecosystem communications.
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      <Grid container spacing={4}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-satoshi text-white">
         {/* Recipient Selection */}
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Paper sx={{ 
-            borderRadius: '24px', 
-            bgcolor: '#161412', 
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-          }}>
-            <Box sx={{ p: 3, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Users size={20} color="#6366F1" />
-                Recipients
-              </Typography>
-              <TextField 
-                fullWidth
-                size="small"
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                sx={{ 
-                  '& .MuiOutlinedInput-root': { 
-                    borderRadius: '12px',
-                    bgcolor: 'rgba(255, 255, 255, 0.02)',
-                    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.05)' }
-                  } 
-                }}
-              />
-              <Button 
-                onClick={handleSelectAll}
-                sx={{ mt: 2, textTransform: 'none', fontWeight: 700, fontSize: '0.8rem', color: '#6366F1' }}
+        <div className="rounded-[24px] bg-[#161412] border border-white/5 flex flex-col overflow-hidden min-h-[500px] lg:h-[680px]">
+          <div className="p-4 border-b border-white/5 flex flex-col gap-3">
+            <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+              <Users size={18} className="text-[#6366F1]" />
+              Recipients
+            </h3>
+            <input 
+              type="text"
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-white/[0.02] px-4 py-2.5 rounded-xl border border-white/5 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all placeholder:text-white/30"
+            />
+            <button 
+              type="button"
+              onClick={handleSelectAll}
+              className="text-left text-xs font-bold text-[#6366F1] hover:text-[#5254E8] transition-colors cursor-pointer w-fit"
+            >
+              {selectedUsers.length === filteredUsers.length ? 'Deselect All' : `Select All (${filteredUsers.length})`}
+            </button>
+          </div>
+          
+          <div className="flex-grow overflow-y-auto divide-y divide-white/[0.02] max-h-[300px] lg:max-h-none">
+            {loadingUsers ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#6366F1]" />
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="p-8 text-center text-xs text-white/40 font-bold">
+                No users found.
+              </div>
+            ) : filteredUsers.map((user) => (
+              <div 
+                key={user.id} 
+                onClick={() => handleToggleUser(user.id)}
+                className="flex items-center justify-between p-4 hover:bg-white/[0.01] transition-colors cursor-pointer"
               >
-                {selectedUsers.length === filteredUsers.length ? 'Deselect All' : `Select All (${filteredUsers.length})`}
-              </Button>
-            </Box>
-            
-            <List sx={{ flex: 1, overflow: 'auto', p: 0 }}>
-              {loadingUsers ? (
-                <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress size={24} /></Box>
-              ) : filteredUsers.length === 0 ? (
-                <Box sx={{ p: 4, textAlign: 'center' }}>
-                  <Typography sx={{ color: alpha('#FFFFFF', 0.4), fontSize: '0.85rem' }}>
-                    No users found.
-                  </Typography>
-                </Box>
-              ) : filteredUsers.map((user) => (
-                <ListItem 
-                  key={user.id} 
-                  sx={{ 
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.02)',
-                    '&:hover': { bgcolor: alpha('#FFFFFF', 0.01) }
-                  }}
-                  secondaryAction={
-                    <Checkbox 
-                      edge="end" 
-                      checked={selectedUsers.includes(user.id)}
-                      onChange={() => handleToggleUser(user.id)}
-                      sx={{ color: alpha('#FFFFFF', 0.2), '&.Mui-checked': { color: '#6366F1' } }}
-                    />
-                  }
-                >
-                  <ListItemAvatar>
-                    <Avatar sx={{ width: 32, height: 32, fontSize: '0.75rem', bgcolor: alpha('#6366F1', 0.1), color: '#6366F1' }}>
-                      {user.name.charAt(0)}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText 
-                    primary={user.name} 
-                    secondary={user.email} 
-                    primaryTypographyProps={{ sx: { fontWeight: 700, fontSize: '0.875rem' } }}
-                    secondaryTypographyProps={{ sx: { fontSize: '0.75rem', color: alpha('#FFFFFF', 0.4) } }}
-                  />
-                </ListItem>
-              ))}
-            </List>
-            <Box sx={{ p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
-              {userLoadError ? (
-                <Typography sx={{ mb: 1, color: '#FCA5A5', fontSize: '0.8rem', fontWeight: 700 }}>
-                  {userLoadError}
-                </Typography>
-              ) : null}
-              <Button
-                fullWidth
-                variant="outlined"
-                onClick={handleLoadMoreUsers}
-                disabled={!hasMoreUsers || loadingMoreUsers || loadingUsers}
-                sx={{
-                  borderRadius: '12px',
-                  textTransform: 'none',
-                  fontWeight: 800,
-                  borderColor: 'rgba(255, 255, 255, 0.08)',
-                  color: hasMoreUsers ? '#6366F1' : alpha('#FFFFFF', 0.3),
-                  '&:hover': {
-                    borderColor: hasMoreUsers ? '#6366F1' : 'rgba(255, 255, 255, 0.08)',
-                    bgcolor: hasMoreUsers ? alpha('#6366F1', 0.06) : 'transparent',
-                  },
-                }}
-              >
-                {loadingMoreUsers ? (
-                  <CircularProgress size={18} sx={{ color: '#6366F1' }} />
-                ) : hasMoreUsers ? (
-                  `Load more verified users (${users.length})`
-                ) : (
-                  'All verified users loaded'
-                )}
-              </Button>
-            </Box>
-            
-            <Box sx={{ p: 2, bgcolor: alpha('#6366F1', 0.05), borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: '#6366F1', textAlign: 'center' }}>
-                {selectedUsers.length} Users Selected
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-[#6366F1]/10 text-[#6366F1] flex items-center justify-center font-black text-xs flex-shrink-0">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-bold text-white truncate">{user.name}</h4>
+                    <p className="text-xs text-white/45 truncate">{user.email}</p>
+                  </div>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={selectedUsers.includes(user.id)}
+                  onChange={() => {}} // toggled by row click
+                  className="rounded border-white/10 bg-[#0A0908] text-[#6366F1] focus:ring-[#6366F1]/20 cursor-pointer h-4 w-4"
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="p-3 border-t border-white/5">
+            {userLoadError && (
+              <p className="mb-2 text-red-400 text-xs font-bold">{userLoadError}</p>
+            )}
+            <button
+              type="button"
+              onClick={handleLoadMoreUsers}
+              disabled={!hasMoreUsers || loadingMoreUsers || loadingUsers}
+              className="w-full py-2.5 rounded-xl border border-white/10 text-xs font-extrabold text-white hover:bg-white/5 transition-all cursor-pointer disabled:opacity-30"
+            >
+              {loadingMoreUsers ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mx-auto" />
+              ) : hasMoreUsers ? (
+                `Load more verified users (${users.length})`
+              ) : (
+                'All verified users loaded'
+              )}
+            </button>
+          </div>
+          
+          <div className="p-3 bg-[#6366F1]/[0.03] border-t border-white/5 text-center">
+            <span className="text-xs font-extrabold text-[#6366F1]">
+              {selectedUsers.length} Users Selected
+            </span>
+          </div>
+        </div>
 
         {/* Email Designer */}
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <Paper sx={{ 
-            p: 4, 
-            borderRadius: '24px', 
-            bgcolor: '#161412', 
-            border: '1px solid rgba(255, 255, 255, 0.05)'
-          }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Layout size={20} color="#6366F1" />
-                Rich Orchestrator
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button variant="outlined" startIcon={<Eye size={18} />} sx={{ borderRadius: '12px', textTransform: 'none', borderColor: 'rgba(255, 255, 255, 0.1)', color: 'white' }}>
-                  Preview
-                </Button>
-                <Button 
-                  variant="contained" 
-                  startIcon={sending ? <CircularProgress size={18} color="inherit" /> : <Send size={18} />}
-                  onClick={handleSend}
-                  disabled={selectedUsers.length === 0 || sending}
-                  sx={{ 
-                    borderRadius: '12px', 
-                    bgcolor: '#6366F1', 
-                    fontWeight: 800, 
-                    textTransform: 'none',
-                    px: 3,
-                    '&:hover': { bgcolor: '#4F46E5' }
-                  }}
-                >
-                  Send Orchestration
-                </Button>
-              </Box>
-            </Box>
+        <div className="lg:col-span-2 p-6 md:p-8 rounded-[24px] bg-[#161412] border border-white/5 flex flex-col gap-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+              <Layout size={18} className="text-[#6366F1]" />
+              Rich Orchestrator
+            </h3>
+            <div className="flex gap-2">
+              <button 
+                type="button"
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-white/10 text-white font-bold text-xs hover:bg-white/5 hover:border-white/20 transition-all cursor-pointer"
+              >
+                <Eye size={16} />
+                <span>Preview</span>
+              </button>
+              <button 
+                type="button"
+                onClick={handleSend}
+                disabled={selectedUsers.length === 0 || sending}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-black font-black text-xs transition-all duration-200 cursor-pointer disabled:opacity-40 shadow-[0_8px_30px_rgba(99,102,241,0.2)]"
+              >
+                {sending ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                ) : (
+                  <Send size={16} />
+                )}
+                <span>Send Orchestration</span>
+              </button>
+            </div>
+          </div>
 
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <FormControl fullWidth>
-                  <InputLabel sx={{ color: alpha('#FFFFFF', 0.4) }}>Select Template</InputLabel>
-                  <Select
-                    value={template}
-                    label="Select Template"
-                    onChange={(e) => setTemplate(e.target.value)}
-                    sx={{ 
-                      borderRadius: '14px', 
-                      bgcolor: 'rgba(255, 255, 255, 0.02)',
-                      '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.05)' }
-                    }}
-                  >
-                    {EMAIL_TEMPLATES.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <FormControl fullWidth>
-                  <InputLabel sx={{ color: alpha('#FFFFFF', 0.4) }}>Logo Variation</InputLabel>
-                  <Select
-                    value={logoVar}
-                    label="Logo Variation"
-                    onChange={(e) => setLogoVar(e.target.value)}
-                    sx={{ 
-                      borderRadius: '14px', 
-                      bgcolor: 'rgba(255, 255, 255, 0.02)',
-                      '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.05)' }
-                    }}
-                  >
-                    {logoVariations.map(l => (
-                      <MenuItem key={l.id} value={l.id}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 12, height: 12, borderRadius: '2px', bgcolor: l.color }} />
-                          {l.name}
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Select Template</span>
+              <select
+                value={template}
+                onChange={(e) => setTemplate(e.target.value)}
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none cursor-pointer transition-all duration-200 animate-fadeIn"
+              >
+                {EMAIL_TEMPLATES.map(t => (
+                  <option key={t.id} value={t.id} className="bg-[#161412]">{t.name}</option>
+                ))}
+              </select>
+            </div>
 
-              <Grid size={{ xs: 12 }}>
-                <TextField 
-                  fullWidth
-                  label="Email Subject"
-                  placeholder="Enter custom subject or use template default"
-                  value={customSubject}
-                  onChange={(e) => setCustomSubject(e.target.value)}
-                  sx={{ 
-                    '& .MuiOutlinedInput-root': { 
-                      borderRadius: '14px',
-                      bgcolor: 'rgba(255, 255, 255, 0.02)',
-                      '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.05)' }
-                    } 
-                  }}
-                />
-              </Grid>
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Logo Variation</span>
+              <select
+                value={logoVar}
+                onChange={(e) => setLogoVar(e.target.value)}
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none cursor-pointer transition-all duration-200"
+              >
+                {logoVariations.map(l => (
+                  <option key={l.id} value={l.id} className="bg-[#161412]">{l.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-              <Grid size={{ xs: 12 }}>
-                <TextField 
-                  fullWidth
-                  multiline
-                  rows={10}
-                  label="Email Content"
-                  placeholder="The template will be used, but you can inject custom HTML or text here..."
-                  value={customBody}
-                  onChange={(e) => setCustomBody(e.target.value)}
-                  sx={{ 
-                    '& .MuiOutlinedInput-root': { 
-                      borderRadius: '18px',
-                      bgcolor: 'rgba(255, 255, 255, 0.02)',
-                      '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.05)' },
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '0.85rem'
-                    } 
-                  }}
-                />
-              </Grid>
+          <div className="space-y-1.5">
+            <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Email Subject</span>
+            <input 
+              type="text"
+              placeholder="Enter custom subject or use template default"
+              value={customSubject}
+              onChange={(e) => setCustomSubject(e.target.value)}
+              className="w-full bg-white/[0.02] px-4 py-3 rounded-xl border border-white/5 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all placeholder:text-white/30"
+            />
+          </div>
 
-              <Grid size={{ xs: 12 }}>
-                <Box sx={{ p: 2, borderRadius: '16px', bgcolor: alpha('#10B981', 0.05), border: '1px solid rgba(16, 185, 129, 0.1)', display: 'flex', gap: 2, alignItems: 'center' }}>
-                  <CheckCircle2 color="#10B981" size={20} />
-                  <Typography sx={{ fontSize: '0.8rem', color: alpha('#FFFFFF', 0.6) }}>
-                    This orchestration will be delivered with <strong>E2EE Signing</strong> and Kylrix branded metadata.
-                  </Typography>
-                </Box>
-              </Grid>
-              {sendResult && (
-                <Grid size={{ xs: 12 }}>
-                  <Box sx={{ p: 2, borderRadius: '16px', bgcolor: alpha('#6366F1', 0.08), border: '1px solid rgba(99, 102, 241, 0.18)' }}>
-                    <Typography sx={{ fontSize: '0.85rem', color: 'white', fontWeight: 700 }}>{sendResult}</Typography>
-                  </Box>
-                </Grid>
-              )}
-            </Grid>
-          </Paper>
-        </Grid>
-      </Grid>
+          <div className="space-y-1.5">
+            <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Email Content</span>
+            <textarea 
+              rows={8}
+              placeholder="The template will be used, but you can inject custom HTML or text here..."
+              value={customBody}
+              onChange={(e) => setCustomBody(e.target.value)}
+              className="w-full bg-white/[0.02] px-4 py-3.5 rounded-xl border border-white/5 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all placeholder:text-white/30 font-mono text-xs leading-relaxed"
+            />
+          </div>
+
+          <div className="p-4 rounded-2xl bg-emerald-500/[0.04] border border-emerald-500/10 flex gap-3 items-center">
+            <CheckCircle2 className="text-[#10B981] w-5 h-5 flex-shrink-0" />
+            <p className="text-xs text-white/60 leading-normal">
+              This orchestration will be delivered with <strong>E2EE Signing</strong> and Kylrix branded metadata.
+            </p>
+          </div>
+
+          {sendResult && (
+            <div className="p-4 rounded-2xl bg-[#6366F1]/10 border border-[#6366F1]/20">
+              <p className="text-xs font-bold text-white leading-normal">{sendResult}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </AdminLayout>
+  );
+}
     </AdminLayout>
   );
 }
