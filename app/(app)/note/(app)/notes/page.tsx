@@ -5,6 +5,8 @@ import { deleteNote } from '@/lib/actions/client-ops';
 import { useNotes } from '@/context/NotesContext';
 import { useOverlay } from '@/components/ui/OverlayContext';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense } from 'react';
+import { CircularProgress } from '@/lib/mui-tailwind/material';
 import type { Notes } from '@/types/appwrite';
 import NoteCard from '@/components/ui/NoteCard';
 import { Button } from '@/components/ui/Button';
