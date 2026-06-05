@@ -31,6 +31,7 @@ import { checkTelegramConnection } from '@/lib/actions/telegram';
 import { MultiSectionContainer } from '@/context/SectionContext';
 import { CdrConfirmDrawer } from '@/src/features/story-cdr/CdrConfirmDrawer';
 import { useAppwriteVault } from '@/context/appwrite-context';
+import { hasPaidKylrixPlan, getUserSubscriptionTier, getUserSubscriptionExpiresAt } from '@/lib/utils';
 
 // Inline Custom Telegram Icon SVG for lucide alignment
 function TelegramIcon({ className = "w-5 h-5" }: { className?: string }) {
