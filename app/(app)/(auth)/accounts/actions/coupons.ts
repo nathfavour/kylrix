@@ -6,9 +6,8 @@ import { createAdminClient, createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { requireAdmin } from '@/lib/services/internal/admin';
 
-const CHAT_DB_ID = APPWRITE_CONFIG.DATABASES.CHAT;
-const EVENTS_TABLE_ID = APPWRITE_CONFIG.TABLES.CHAT.ACCOUNT_EVENTS;
-const USERS_TABLE_ID = APPWRITE_CONFIG.TABLES.CHAT.USERS;
+const NOTE_DB_ID = APPWRITE_CONFIG.DATABASES.NOTE;
+const COUPONS_TABLE_ID = APPWRITE_CONFIG.TABLES.NOTE.COUPONS;
 
 export async function listCouponsAction(jwt?: string) {
   const user = await getActor(jwt);
@@ -17,8 +16,7 @@ export async function listCouponsAction(jwt?: string) {
   }
   requireAdmin(user);
   const { databases } = createAdminClient(user.email);
-  const result = await databases.listRows(CHAT_DB_ID, EVENTS_TABLE_ID, [
-    Query.equal('type', 'coupon'),
+  const result = await databases.listRows(NOTE_DB_ID, COUPONS_TABLE_ID, [
     Query.orderDesc('$createdAt'),
     Query.limit(100)
   ]);
@@ -31,7 +29,7 @@ export async function invalidateCouponAction(couponId: string, jwt?: string) {
   requireAdmin(user);
   
   const { databases } = createAdminClient(user.email);
-  await databases.updateDocument(CHAT_DB_ID, EVENTS_TABLE_ID, couponId, {
+  await databases.updateDocument(NOTE_DB_ID, COUPONS_TABLE_ID, couponId, {
     status: 'revoked'
   });
   return { success: true };
@@ -61,33 +59,23 @@ export async function createCouponAction(input: {
   
   for (const targetUserId of targets) {
     const row = await databases.createRow(
-      CHAT_DB_ID,
-      EVENTS_TABLE_ID,
+      NOTE_DB_ID,
+      COUPONS_TABLE_ID,
       ID.unique(),
       {
-        userId: targetUserId || user.$id,
-        type: 'coupon',
-        actorId: user.$id,
-        relatedUserId: targetUserId,
-        status: String(input.status || 'active').toLowerCase(),
         discountPercent: Number(input.discountPercent),
+        status: String(input.status || 'active').toLowerCase(),
         expiresAt: input.expiresAt || null,
         redemptionLimit: targetUserId ? 1 : Math.max(1, Number(input.redemptionLimit || 1)),
         redemptionCount: 0,
-        delta: null,
+        targetUserId: targetUserId || null,
+        createdBy: user.$id,
+        title: input.title || null,
+        note: input.note || null,
         metadata: JSON.stringify({
           ...(input.metadata || {}),
-          note: input.note || null,
-          title: input.title || null,
+          scope,
           source: 'admin.coupons.action',
-          coupon: {
-            userId: targetUserId,
-            title: input.title || null,
-            discountPercent: Number(input.discountPercent),
-            createdBy: user.$id,
-            scope,
-            targetUserId,
-          },
         }),
       },
       targetUserId ? [Permission.read(Role.user(targetUserId))] : [Permission.read(Role.user(user.$id))],
@@ -102,7 +90,7 @@ export async function createCouponAction(input: {
         if (targetAccount && targetAccount.email) {
           const { dispatchEmail } = await import('@/lib/services/internal/emailDispatch');
           await dispatchEmail({
-            eventType: 'feature_announcement', // Best fit for generic notifications/coupons
+            eventType: 'coupon_issued', 
             sourceApp: 'accounts',
             recipientEmails: [targetAccount.email],
             recipientIds: [targetUserId],

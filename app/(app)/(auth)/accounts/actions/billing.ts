@@ -18,6 +18,7 @@ billingManager.registerProvider(new CryptoPaymentProvider());
 
 const NOTE_DB_ID = APPWRITE_CONFIG.DATABASES.NOTE;
 const SUBSCRIPTIONS_TABLE_ID = APPWRITE_CONFIG.TABLES.NOTE.SUBSCRIPTIONS;
+const COUPONS_TABLE_ID = APPWRITE_CONFIG.TABLES.NOTE.COUPONS;
 const CHAT_DB_ID = APPWRITE_CONFIG.DATABASES.CHAT;
 const ACCOUNT_EVENTS_TABLE_ID = APPWRITE_CONFIG.TABLES.CHAT.ACCOUNT_EVENTS;
 
@@ -151,17 +152,22 @@ export async function createBillingCheckoutSessionAction(input: {
 
   if (couponId) {
     const { databases } = createSystemClient();
-    couponRow = await databases.getDocument(CHAT_DB_ID, ACCOUNT_EVENTS_TABLE_ID, String(couponId).trim()).catch(() => null);
-    if (!couponRow || String(couponRow.type || '').toLowerCase() !== 'coupon') throw new Error('Coupon not found');
+    couponRow = await databases.getDocument(NOTE_DB_ID, COUPONS_TABLE_ID, String(couponId).trim()).catch(() => null);
+    if (!couponRow) throw new Error('Coupon not found');
     const metadata = parseMetadata(couponRow.metadata);
-    const couponMeta = parseMetadata(metadata.coupon);
-    const claimedBy = couponMeta.claimedBy || metadata.claimedBy || null;
-    const targetUserId = couponMeta.targetUserId || couponRow.relatedUserId || null;
+    const claimedBy = metadata.claimedBy || null;
+    const targetUserId = couponRow.targetUserId || null;
     const status = String(couponRow.status || '').toLowerCase();
-    const discountPercentRaw = couponRow.discountPercent ?? couponMeta.discountPercent ?? metadata.discountPercent ?? 0;
-    couponDiscountPercent = Number(discountPercentRaw);
+    
+    couponDiscountPercent = Number(couponRow.discountPercent);
     if (!Number.isFinite(couponDiscountPercent) || couponDiscountPercent < 0 || couponDiscountPercent > 100) throw new Error('Invalid coupon discount');
-    if (status === 'revoked' || status === 'expired' || status === 'used') throw new Error('Coupon is no longer valid');
+    if (status === 'revoked' || status === 'expired' || status === 'depleted') throw new Error('Coupon is no longer valid');
+    
+    // Check redemption limit
+    const redemptionLimit = Number(couponRow.redemptionLimit || 1);
+    const redemptionCount = Number(couponRow.redemptionCount || 0);
+    if (redemptionCount >= redemptionLimit) throw new Error('Coupon redemption limit reached');
+    
     if (claimedBy && claimedBy !== user.$id) throw new Error('Coupon is reserved for another account');
     if (targetUserId && targetUserId !== user.$id) throw new Error('Coupon is not assigned to this account');
 
@@ -191,12 +197,18 @@ export async function createBillingCheckoutSessionAction(input: {
         [Permission.read(Role.user(user.$id))],
       );
 
-      await databases.updateDocument(CHAT_DB_ID, ACCOUNT_EVENTS_TABLE_ID, couponRow.$id, {
-        status: 'applied',
-        relatedUserId: user.$id,
+      const newRedemptionCount = redemptionCount + 1;
+      const isLastRedemption = newRedemptionCount >= redemptionLimit;
+
+      await databases.updateDocument(NOTE_DB_ID, COUPONS_TABLE_ID, couponRow.$id, {
+        status: isLastRedemption ? 'depleted' : 'active',
+        redemptionCount: newRedemptionCount,
         metadata: JSON.stringify({
           ...metadata,
-          coupon: { ...couponMeta, claimedBy: user.$id, appliedAt: new Date().toISOString(), subscriptionId: subscription.$id, claimState: 'applied' },
+          claimedBy: user.$id, 
+          appliedAt: new Date().toISOString(), 
+          subscriptionId: subscription.$id, 
+          claimState: 'applied'
         }),
       });
       try {
@@ -336,23 +348,24 @@ export async function claimCouponAction(couponIdInput?: string, jwtInput?: strin
   const { databases, users } = createSystemClient();
   const couponId = typeof couponIdInput === 'string' ? couponIdInput.trim() : '';
   let coupon: any = null;
+  
   if (couponId) {
-    coupon = await databases.getDocument(CHAT_DB_ID, ACCOUNT_EVENTS_TABLE_ID, couponId).catch(() => null);
-    if (!coupon || String(coupon.type || '').toLowerCase() !== 'coupon') throw new Error('Coupon not found');
+    coupon = await databases.getDocument(NOTE_DB_ID, COUPONS_TABLE_ID, couponId).catch(() => null);
+    if (!coupon) throw new Error('Coupon not found');
   } else {
-    const couponResult = await databases.listDocuments(CHAT_DB_ID, ACCOUNT_EVENTS_TABLE_ID, [
-      Query.equal('type', 'coupon'),
-      Query.or([Query.equal('userId', user.$id), Query.equal('relatedUserId', user.$id)]),
-      Query.or([Query.equal('status', 'active'), Query.equal('status', 'pending')]),
+    // If no explicit ID is provided, look for an active targeted coupon for this user
+    const couponResult = await databases.listDocuments(NOTE_DB_ID, COUPONS_TABLE_ID, [
+      Query.equal('targetUserId', user.$id),
+      Query.equal('status', 'active'),
       Query.orderDesc('$createdAt'),
-      Query.limit(1),
-      Query.select(['$id', 'userId', 'actorId', 'relatedUserId', 'status', 'metadata', 'discountPercent', 'expiresAt', '$createdAt'])]);
+      Query.limit(1)
+    ]);
     coupon = couponResult.rows[0];
     if (!coupon) return { ok: true, claimed: false, message: 'No active coupon found' };
   }
 
   const existingStatus = String(coupon.status || '').toLowerCase();
-  if (['used', 'revoked', 'expired'].includes(existingStatus)) throw new Error('Coupon is no longer valid');
+  if (['depleted', 'revoked', 'expired'].includes(existingStatus)) throw new Error('Coupon is no longer valid');
   
   const redemptionLimit = Number(coupon.redemptionLimit || 1);
   const redemptionCount = Number(coupon.redemptionCount || 0);
@@ -362,16 +375,14 @@ export async function claimCouponAction(couponIdInput?: string, jwtInput?: strin
   }
 
   const metadata = parseMetadata(coupon.metadata);
-  const couponMeta = parseMetadata(metadata.coupon);
-  const giftMeta = parseMetadata(metadata.gift);
-  const planId = String(giftMeta.planId || couponMeta.planId || 'PRO_MONTH');
-  const months = parsePositiveInteger(giftMeta.months || couponMeta.months || 1, 1);
-  const payerUserId = String(giftMeta.payerUserId || coupon.actorId || '');
-  const payerName = String(giftMeta.payerName || '');
-  const giftMessage = String(giftMeta.giftMessage || metadata.note || 'Your gift subscription has been claimed.');
-  const targetUserId = String(couponMeta.targetUserId || coupon.relatedUserId || '').trim();
-  const claimedBy = String(couponMeta.claimedBy || metadata.claimedBy || '').trim();
-  const discountPercent = Number(coupon.discountPercent ?? couponMeta.discountPercent ?? metadata.discountPercent ?? 0);
+  const planId = String(metadata.planId || 'PRO_MONTH');
+  const months = parsePositiveInteger(metadata.months || 1, 1);
+  const payerUserId = String(coupon.createdBy || '');
+  const payerName = String(metadata.payerName || '');
+  const giftMessage = String(metadata.giftMessage || coupon.note || 'Your gift subscription has been claimed.');
+  const targetUserId = String(coupon.targetUserId || '').trim();
+  const claimedBy = String(metadata.claimedBy || '').trim();
+  const discountPercent = Number(coupon.discountPercent);
   
   if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100) throw new Error('Invalid coupon discount');
   if (targetUserId && targetUserId !== user.$id) throw new Error('Coupon is reserved for another account');
@@ -382,28 +393,12 @@ export async function claimCouponAction(couponIdInput?: string, jwtInput?: strin
   const { currentPeriodStart, currentPeriodEnd } = await calculateStackedPeriod(databases, user.$id, planId, months);
   const nextMetadata = {
     ...metadata,
-    coupon: {
-      ...couponMeta,
-      ...giftMeta,
-      claimedBy: user.$id,
-      claimedAt: new Date().toISOString(),
-      discountPercent,
-      targetUserId: targetUserId || null,
-      redemptionIndex: newRedemptionCount,
-    },
+    claimedBy: user.$id,
+    claimedAt: new Date().toISOString(),
+    redemptionIndex: newRedemptionCount,
   };
 
-  // Update coupon state
-  await databases.updateDocument(CHAT_DB_ID, ACCOUNT_EVENTS_TABLE_ID, coupon.$id, {
-    status: discountPercent < 100 ? 'pending' : (isLastRedemption ? 'applied' : 'active'),
-    relatedUserId: user.$id,
-    redemptionCount: newRedemptionCount,
-    metadata: JSON.stringify({
-      ...nextMetadata,
-      coupon: { ...nextMetadata.coupon, claimState: discountPercent < 100 ? 'pending' : 'applied' },
-    }),
-  });
-
+  // Update coupon state (If < 100%, we don't mark as depleted/applied until successful checkout, we just leave it active unless we want to track pending states. We will leave active but maybe update metadata).
   if (discountPercent < 100) {
     return {
       ok: true,
@@ -435,12 +430,14 @@ export async function claimCouponAction(couponIdInput?: string, jwtInput?: strin
     [Permission.read(Role.user(user.$id))],
   );
 
-  await databases.updateDocument(CHAT_DB_ID, ACCOUNT_EVENTS_TABLE_ID, coupon.$id, {
-    status: 'applied',
-    relatedUserId: user.$id,
+  await databases.updateDocument(NOTE_DB_ID, COUPONS_TABLE_ID, coupon.$id, {
+    status: isLastRedemption ? 'depleted' : 'active',
+    redemptionCount: newRedemptionCount,
     metadata: JSON.stringify({
       ...nextMetadata,
-      coupon: { ...nextMetadata.coupon, appliedAt: new Date().toISOString(), subscriptionId: subscription.$id, claimState: 'applied' },
+      appliedAt: new Date().toISOString(), 
+      subscriptionId: subscription.$id, 
+      claimState: 'applied'
     }),
   });
 

@@ -41,6 +41,7 @@ export const APPWRITE_CONFIG = {
             ACTIVITY_LOG: 'activityLog',
             SETTINGS: 'settings',
             SUBSCRIPTIONS: 'subscriptions',
+            COUPONS: 'coupons',
             NOTE_TAGS: 'resource_tags',
             BLOGPOSTS: '67ff065a003e2bb950f7',
             WALLET_MAP: 'walletMap',
