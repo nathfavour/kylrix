@@ -19,11 +19,11 @@ import {
   Chip,
   IconButton,
 } from '@/lib/mui-tailwind/material';
-import DeleteIcon from '@/lib/mui-tailwind/icons';
-import RefreshIcon from '@/lib/mui-tailwind/icons';
-import LaptopIcon from '@/lib/mui-tailwind/icons';
-import PhoneIcon from '@/lib/mui-tailwind/icons';
-import TabletIcon from '@/lib/mui-tailwind/icons';
+import {
+  Delete as DeleteIcon,
+  PhoneIcon,
+} from '@/lib/mui-tailwind/icons';
+import { Laptop, Tablet, RefreshCw } from 'lucide-react';
 import { Models } from 'appwrite';
 
 interface Session extends Models.Session {
@@ -80,9 +80,9 @@ export default function SessionsManager({ onSessionsLoaded }: SessionsManagerPro
       case 'mobile':
         return <PhoneIcon sx={{ fontSize: 20 }} />;
       case 'tablet':
-        return <TabletIcon sx={{ fontSize: 20 }} />;
+        return <Tablet size={20} />;
       default:
-        return <LaptopIcon sx={{ fontSize: 20 }} />;
+        return <Laptop size={20} />;
     }
   };
 
@@ -181,7 +181,7 @@ export default function SessionsManager({ onSessionsLoaded }: SessionsManagerPro
               <Button
                 onClick={loadSessions}
                 disabled={loading}
-                startIcon={<RefreshIcon />}
+                startIcon={<RefreshCw size={20} />}
                 sx={{
                   color: 'white',
                   borderColor: 'rgba(255, 255, 255, 0.2)',

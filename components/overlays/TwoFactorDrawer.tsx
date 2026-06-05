@@ -1,25 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Divider,
-  Drawer,
-  IconButton,
-  Stack,
-  TextField,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@/lib/mui-tailwind/material';
-import CloseIcon from '@/lib/mui-tailwind/icons';
-import ContentCopyIcon from '@/lib/mui-tailwind/icons';
 import { AuthenticationFactor, AuthenticatorType } from 'appwrite';
 import { account, avatars } from '@/lib/appwrite';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import toast from 'react-hot-toast';
+import { X as CloseIcon, Copy as ContentCopyIcon } from 'lucide-react';
 
 type LoginMethod = 'email-otp' | 'oauth2' | 'password' | 'unknown';
 
@@ -46,9 +32,6 @@ export function TwoFactorDrawer({
   onEnabled,
   mode = 'setup',
 }: Props) {
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
-
   const [loading, setLoading] = useState(false);
   const [vaultUnlocked, setVaultUnlocked] = useState(ecosystemSecurity.status.isUnlocked);
   const [emailEnabled, setEmailEnabled] = useState(false);
@@ -328,236 +311,232 @@ export function TwoFactorDrawer({
     return () => window.clearInterval(interval);
   }, [open]);
 
+  if (!open) return null;
+
   const primaryActionLabel = isTwoFactorOn ? 'Turn off 2FA' : 'Enable 2FA';
 
   return (
-    <Drawer
-      anchor={isDesktop ? 'right' : 'bottom'}
-      open={open}
-      onClose={onClose}
-      PaperProps={{
-        sx: {
-          width: isDesktop ? 'min(480px, 90vw)' : '100%',
-          maxWidth: '100%',
-          borderTopLeftRadius: isDesktop ? 0 : '28px',
-          borderTopRightRadius: isDesktop ? 0 : '28px',
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-          backgroundColor: 'rgba(10, 10, 10, 0.98)',
-          backdropFilter: 'blur(28px) saturate(180%)',
-          borderTop: isDesktop ? 0 : '1px solid rgba(255, 255, 255, 0.08)',
-          borderLeft: isDesktop ? '1px solid rgba(255, 255, 255, 0.08)' : 0,
-          backgroundImage: 'none',
-          p: 0,
-        },
-      }}
-    >
-      <Box sx={{ width: '100%', maxWidth: 620, mx: 'auto', px: { xs: 2, md: 4 }, py: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
-          <Box>
-            <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '-0.03em' }}>
-              {mode === 'reminder' ? 'Set up 2FA' : '2FA'}
-            </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.9rem' }}>
-              Email first, then TOTP.
-            </Typography>
-          </Box>
-          <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.7)' }}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 z-[1399] bg-black/60 backdrop-blur-sm transition-all duration-300 animate-fadeIn"
+        onClick={onClose}
+      />
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mb: 3 }} />
+      {/* Drawer Container */}
+      <div 
+        className="fixed z-[1400] bg-[#0A0A0A]/98 backdrop-blur-[28px] border-white/5 shadow-2xl transition-all duration-300 flex flex-col overflow-y-auto right-0 top-0 bottom-0 w-full sm:w-[420px] border-l animate-slideInRight"
+      >
+        <div className="w-full px-6 py-8">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div>
+              <h3 className="text-white font-clash font-black text-xl tracking-tight leading-tight">
+                {mode === 'reminder' ? 'Set up 2FA' : '2FA'}
+              </h3>
+              <p className="text-xs text-white/50 font-semibold font-satoshi mt-1">
+                Email first, then TOTP.
+              </p>
+            </div>
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/[0.04] border border-white/5 hover:border-white/20 text-white/70 hover:text-white transition-all cursor-pointer"
+            >
+              <CloseIcon className="w-4 h-4" />
+            </button>
+          </div>
 
-        {step === 'summary' && (
-          <Stack spacing={2.5}>
-            {error && (
-              <Box sx={{ p: 2, borderRadius: '16px', bgcolor: '#161514', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
-                <Typography sx={{ color: '#f87171' }}>{error}</Typography>
-              </Box>
-            )}
+          <div className="h-px bg-white/10 w-full mb-6" />
 
-            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-              <Button
-                variant="contained"
+          {step === 'summary' && (
+            <div className="space-y-6 animate-fadeIn">
+              {error && (
+                <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-semibold font-satoshi">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="button"
                 onClick={isTwoFactorOn ? disableTwoFactor : startTwoFactorSetup}
                 disabled={loading || (!isTwoFactorOn && !canUseEmailFactor)}
-                sx={{ bgcolor: '#6366F1', color: 'white', fontWeight: 800, textTransform: 'none' }}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-black font-black text-sm transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? <CircularProgress size={18} sx={{ color: 'white', mr: 1 }} /> : null}
-                {primaryActionLabel}
-              </Button>
-            </Box>
-          </Stack>
-        )}
+                {loading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />}
+                <span>{primaryActionLabel}</span>
+              </button>
+            </div>
+          )}
 
-        {step === 'email-init' && (
-          <Stack spacing={2.5}>
-            <Box sx={{ p: 2.5, borderRadius: '20px', bgcolor: '#161514', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <Typography sx={{ color: 'white', fontWeight: 700, mb: 1 }}>1. Send email code</Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.92rem', mb: 2, lineHeight: 1.6 }}>
-                We need to send a verification code to your email before TOTP can be set up.
-              </Typography>
-              <Button
-                variant="contained"
-                onClick={sendEmailCode}
-                disabled={loading || !canUseEmailFactor}
-                sx={{ bgcolor: '#6366F1', color: 'white', fontWeight: 800, textTransform: 'none' }}
-              >
-                {loading ? <CircularProgress size={18} sx={{ color: 'white', mr: 1 }} /> : null}
-                Send email code
-              </Button>
-            </Box>
-
-            {error && (
-              <Box sx={{ p: 2, borderRadius: '16px', bgcolor: '#161514', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
-                <Typography sx={{ color: '#f87171' }}>{error}</Typography>
-              </Box>
-            )}
-          </Stack>
-        )}
-
-        {step === 'email-verify' && (
-          <Stack spacing={2.5}>
-            <Box sx={{ p: 2.5, borderRadius: '20px', bgcolor: '#161514', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <Typography sx={{ color: 'white', fontWeight: 700, mb: 1 }}>1. Verify email</Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.92rem', mb: 2, lineHeight: 1.6 }}>
-                Confirm the code sent to your email, then we’ll move straight to TOTP setup.
-              </Typography>
-              <TextField
-                value={emailOtp}
-                onChange={(event) => setEmailOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="6-digit code"
-                fullWidth
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    borderRadius: '16px',
-                    bgcolor: '#161514',
-                    '& fieldset': { borderColor: 'rgba(255,255,255,0.12)' },
-                  },
-                  mt: 1,
-                }}
-              />
-              <Button
-                variant="contained"
-                onClick={verifyEmailChallenge}
-                disabled={loading || emailOtp.trim().length !== 6 || !vaultUnlocked}
-                sx={{ mt: 2, bgcolor: '#6366F1', color: 'white', fontWeight: 800, textTransform: 'none' }}
-              >
-                {loading ? <CircularProgress size={18} sx={{ color: 'white', mr: 1 }} /> : null}
-                Verify email and continue
-              </Button>
-            </Box>
-
-            {error && (
-              <Box sx={{ p: 2, borderRadius: '16px', bgcolor: '#161514', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
-                <Typography sx={{ color: '#f87171' }}>{error}</Typography>
-              </Box>
-            )}
-          </Stack>
-        )}
-
-        {step === 'totp' && (
-          <Stack spacing={2.5}>
-            <Box sx={{ p: 2.5, borderRadius: '20px', bgcolor: '#161514', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <Typography sx={{ color: 'white', fontWeight: 700, mb: 1 }}>2. Set up TOTP</Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.92rem', mb: 2 }}>
-                Add this account to your authenticator app, then enter the 6-digit code to finish.
-              </Typography>
-              {totpQr ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                  <Box component="img" src={totpQr} alt="TOTP QR code" sx={{ width: 220, height: 220, borderRadius: 4, bgcolor: 'white', p: 1 }} />
-                </Box>
-              ) : null}
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Typography sx={{ fontFamily: 'var(--font-mono)', color: 'white', wordBreak: 'break-all', fontSize: '0.82rem' }}>
-                  {totpUri || totpSecret}
-                </Typography>
-                <IconButton onClick={() => copyToClipboard(totpUri || totpSecret, 'Copied setup secret.')} sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                  <ContentCopyIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            </Box>
-
-            <Box sx={{ p: 2.5, borderRadius: '20px', bgcolor: '#161514', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <Typography sx={{ color: 'white', fontWeight: 700, mb: 1 }}>3. Verify TOTP</Typography>
-              <TextField
-                value={totpOtp}
-                onChange={(event) => setTotpOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="6-digit code"
-                fullWidth
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    borderRadius: '16px',
-                    bgcolor: '#161514',
-                    '& fieldset': { borderColor: 'rgba(255,255,255,0.12)' },
-                  },
-                  mt: 1,
-                }}
-              />
-              <Button
-                variant="contained"
-                onClick={verifyTotpSetup}
-                disabled={loading || totpOtp.trim().length !== 6 || !vaultUnlocked}
-                sx={{ mt: 2, bgcolor: '#6366F1', color: 'white', fontWeight: 800, textTransform: 'none' }}
-              >
-                {loading ? <CircularProgress size={18} sx={{ color: 'white', mr: 1 }} /> : null}
-                Verify and enable 2FA
-              </Button>
-            </Box>
-
-            {error && (
-              <Box sx={{ p: 2, borderRadius: '16px', bgcolor: '#161514', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
-                <Typography sx={{ color: '#f87171' }}>{error}</Typography>
-              </Box>
-            )}
-          </Stack>
-        )}
-
-        {step === 'done' && (
-          <Stack spacing={2.5}>
-            <Box sx={{ p: 2.5, borderRadius: '20px', bgcolor: '#1F1D1B', border: '1px solid rgba(16,185,129,0.18)' }}>
-              <Typography sx={{ color: 'white', fontWeight: 800, mb: 1 }}>2FA is active</Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.92rem' }}>
-                Email and TOTP are both enabled.
-              </Typography>
-            </Box>
-
-            {recoveryCodes.length > 0 && (
-              <Box sx={{ p: 2.5, borderRadius: '20px', bgcolor: '#161514', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <Typography sx={{ color: 'white', fontWeight: 700, mb: 1 }}>Recovery codes</Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', mb: 2 }}>
-                  {RECOVERY_COPY_HINT}
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1 }}>
-                  {recoveryCodes.map((code) => (
-                    <Box key={code} sx={{ p: 1.25, borderRadius: '12px', bgcolor: '#161514', fontFamily: 'var(--font-mono)', color: 'white', fontSize: '0.82rem' }}>
-                      {code}
-                    </Box>
-                  ))}
-                </Box>
-                <Button
-                  onClick={() => copyToClipboard(recoveryCodes.join('\n'), 'Recovery codes copied.')}
-                  variant="outlined"
-                  sx={{ mt: 2, color: 'white', borderColor: 'rgba(255,255,255,0.12)', textTransform: 'none' }}
+          {step === 'email-init' && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="p-6 rounded-[24px] bg-[#161514] border border-white/5 space-y-4">
+                <span className="block text-white font-extrabold text-base">
+                  1. Send email code
+                </span>
+                <p className="text-sm text-white/60 leading-relaxed font-satoshi">
+                  We need to send a verification code to your email before TOTP can be set up.
+                </p>
+                <button
+                  type="button"
+                  onClick={sendEmailCode}
+                  disabled={loading || !canUseEmailFactor}
+                  className="px-5 py-3 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-black font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  Copy recovery codes
-                </Button>
-              </Box>
-            )}
+                  {loading && <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current" />}
+                  <span>Send email code</span>
+                </button>
+              </div>
 
-            <Button
-              variant="contained"
-              onClick={onClose}
-              sx={{ bgcolor: '#6366F1', color: 'white', fontWeight: 800, textTransform: 'none', alignSelf: 'flex-start' }}
-            >
-              Done
-            </Button>
-          </Stack>
-        )}
-      </Box>
-    </Drawer>
+              {error && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-semibold font-satoshi">
+                  {error}
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 'email-verify' && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="p-6 rounded-[24px] bg-[#161514] border border-white/5 space-y-4">
+                <span className="block text-white font-extrabold text-base">
+                  1. Verify email
+                </span>
+                <p className="text-sm text-white/60 leading-relaxed font-satoshi">
+                  Confirm the code sent to your email, then we’ll move straight to TOTP setup.
+                </p>
+                <input
+                  type="text"
+                  value={emailOtp}
+                  onChange={(event) => setEmailOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="6-digit code"
+                  className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1] mt-2"
+                />
+                <button
+                  type="button"
+                  onClick={verifyEmailChallenge}
+                  disabled={loading || emailOtp.trim().length !== 6 || !vaultUnlocked}
+                  className="w-full px-5 py-3 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-black font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {loading && <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current" />}
+                  <span>Verify email and continue</span>
+                </button>
+              </div>
+
+              {error && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-semibold font-satoshi">
+                  {error}
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 'totp' && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="p-6 rounded-[24px] bg-[#161514] border border-white/5 space-y-4">
+                <span className="block text-white font-extrabold text-base">
+                  2. Set up TOTP
+                </span>
+                <p className="text-sm text-white/60 leading-relaxed font-satoshi">
+                  Add this account to your authenticator app, then enter the 6-digit code to finish.
+                </p>
+                {totpQr && (
+                  <div className="flex justify-center items-center py-2 bg-white/[0.02] rounded-2xl">
+                    <img src={totpQr} alt="TOTP QR code" className="w-48 h-48 rounded-xl bg-white p-2" />
+                  </div>
+                )}
+                <div className="flex items-center justify-between gap-3 bg-[#0A0908] p-4 rounded-xl border border-white/5">
+                  <span className="font-mono text-xs text-white/80 break-all select-all flex-1 min-w-0">
+                    {totpUri || totpSecret}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(totpUri || totpSecret, 'Copied setup secret.')}
+                    className="p-2 bg-white/[0.04] border border-white/5 rounded-lg text-white/70 hover:text-white transition-all cursor-pointer flex-shrink-0"
+                  >
+                    <ContentCopyIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 rounded-[24px] bg-[#161514] border border-white/5 space-y-4">
+                <span className="block text-white font-extrabold text-base">
+                  3. Verify TOTP
+                </span>
+                <input
+                  type="text"
+                  value={totpOtp}
+                  onChange={(event) => setTotpOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="6-digit code"
+                  className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1]"
+                />
+                <button
+                  type="button"
+                  onClick={verifyTotpSetup}
+                  disabled={loading || totpOtp.trim().length !== 6 || !vaultUnlocked}
+                  className="w-full px-5 py-3 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-black font-black text-xs transition-all cursor-pointer flex-shrink-0 disabled:opacity-50"
+                >
+                  {loading && <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current" />}
+                  <span>Verify and enable 2FA</span>
+                </button>
+              </div>
+
+              {error && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-semibold font-satoshi">
+                  {error}
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 'done' && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="p-6 rounded-[24px] bg-emerald-500/5 border border-emerald-500/10 space-y-2">
+                <span className="block text-white font-extrabold text-base">
+                  2FA is active
+                </span>
+                <p className="text-sm text-emerald-400/80 font-satoshi font-semibold">
+                  Email and TOTP are both enabled.
+                </p>
+              </div>
+
+              {recoveryCodes.length > 0 && (
+                <div className="p-6 rounded-[24px] bg-[#161514] border border-white/5 space-y-4">
+                  <span className="block text-white font-extrabold text-base">
+                    Recovery codes
+                  </span>
+                  <p className="text-xs text-white/50 leading-relaxed font-satoshi">
+                    {RECOVERY_COPY_HINT}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {recoveryCodes.map((code) => (
+                      <div key={code} className="p-3 rounded-xl bg-[#0A0908] border border-white/5 font-mono text-center text-white text-xs select-all">
+                        {code}
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(recoveryCodes.join('\n'), 'Recovery codes copied.')}
+                    className="w-full py-2.5 px-4 rounded-xl border border-white/10 text-white font-extrabold text-xs hover:border-[#6366F1] hover:bg-[#6366F1]/5 transition-all cursor-pointer"
+                  >
+                    Copy recovery codes
+                  </button>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-3.5 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-black font-black text-sm transition-all cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

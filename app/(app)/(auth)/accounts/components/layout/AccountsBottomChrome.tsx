@@ -1,17 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  Box,
-  BottomNavigation,
-  BottomNavigationAction,
-  Paper,
-  SpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon,
-  alpha,
-} from '@/lib/mui-tailwind/material';
 import {
   UserCircle as ProfileIcon,
   ShieldCheck as SecurityIcon,
@@ -20,21 +10,33 @@ import {
   Fingerprint as IdentityIcon,
   Sliders as PreferencesIcon,
   Settings2 as RootAccountIcon,
+  ShieldAlert as AdminIcon,
   Plus,
   X,
 } from 'lucide-react';
+import { isUserAdmin } from '@/lib/actions/admin/check-admin';
 
-const BRAND_INDIGO = '#6366F1';
-
-/**
- * Specialized bottom chrome for Accounts app.
- * 4 main items in bottom bar, 3 secondary items in a premium FAB SpeedDial.
- * Utilizes high-fidelity icons, staggered skew arrangement, and content blur.
- */
 export function AccountsBottomChrome() {
   const pathname = usePathname();
   const router = useRouter();
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function checkAdmin() {
+      try {
+        const result = await isUserAdmin();
+        if (active) setIsAdmin(result);
+      } catch (err) {
+        console.error('Failed to check admin status:', err);
+      }
+    }
+    checkAdmin();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Map subsettings from URL
   const currentSubsetting = useMemo(() => {
@@ -46,188 +48,121 @@ export function AccountsBottomChrome() {
     { value: 'profile', icon: ProfileIcon, label: 'Profile', path: '/accounts/settings/profile' },
     { value: 'security', icon: SecurityIcon, label: 'Security', path: '/accounts/settings/security' },
     { value: 'sessions', icon: SessionsIcon, label: 'Sessions', path: '/accounts/settings/sessions' },
-    { value: 'activity', icon: ActivityIcon, label: 'Activity', path: '/accounts/settings/activity' }];
+    { value: 'activity', icon: ActivityIcon, label: 'Activity', path: '/accounts/settings/activity' }
+  ];
 
-  const secondaryItems = [
-    { value: 'identities', icon: IdentityIcon, label: 'Identities', path: '/accounts/settings/identities' },
-    { value: 'preferences', icon: PreferencesIcon, label: 'Preferences', path: '/accounts/settings/preferences' },
-    { value: 'account', icon: RootAccountIcon, label: 'Account', path: '/accounts/settings/account' }];
-
-  const handleNavChange = (_: React.SyntheticEvent, newValue: string) => {
-    const item = mainItems.find(i => i.value === newValue);
-    if (item) router.push(item.path);
-  };
+  const secondaryItems = useMemo(() => {
+    const items = [
+      { value: 'identities', icon: IdentityIcon, label: 'Identities', path: '/accounts/settings/identities' },
+      { value: 'preferences', icon: PreferencesIcon, label: 'Preferences', path: '/accounts/settings/preferences' },
+      { value: 'account', icon: RootAccountIcon, label: 'Account', path: '/accounts/settings/account' }
+    ];
+    if (isAdmin) {
+      items.push({ value: 'admin', icon: AdminIcon, label: 'Admin', path: '/accounts/admin' });
+    }
+    return items;
+  }, [isAdmin]);
 
   return (
     <>
       {/* Content Blur Backdrop */}
-      <Box
+      <div
         aria-hidden
-        sx={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 1299,
-          pointerEvents: 'none',
-          opacity: speedDialOpen ? 1 : 0,
-          transition: 'opacity 220ms ease',
-          backdropFilter: speedDialOpen ? 'blur(14px) saturate(170%)' : 'blur(0px)',
-          bgcolor: speedDialOpen ? 'rgba(10, 9, 8, 0.22)' : 'transparent',
-        }}
+        onClick={() => setSpeedDialOpen(false)}
+        className={`fixed inset-0 z-[1299] pointer-events-none transition-all duration-300 ${
+          speedDialOpen 
+            ? 'opacity-100 backdrop-blur-md saturate-[170%] bg-black/40 pointer-events-auto' 
+            : 'opacity-0 backdrop-blur-0 bg-transparent'
+        }`}
       />
 
-      <Box
-        component="footer"
-        sx={{
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 1300,
-          display: { xs: 'block', md: 'none' }, // Only on mobile
-        }}
-      >
+      <div className="fixed left-0 right-0 bottom-0 z-[1300] block md:hidden">
         {/* Premium FAB SpeedDial for secondary items */}
-        <SpeedDial
-          ariaLabel="Account sub-settings"
-          sx={{
-            position: 'absolute',
-            bottom: 88, 
-            right: 20,
-            '& .MuiFab-primary': {
-              width: 64,
-              height: 64,
-              borderRadius: '20px',
-              bgcolor: speedDialOpen ? '#1F1D1B' : BRAND_INDIGO,
-              color: speedDialOpen ? '#fff' : '#000',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              boxShadow: speedDialOpen ? 'none' : `0 18px 40px ${alpha('#000', 0.55)}`,
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                inset: 0,
-                borderRadius: '50%',
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.2), rgba(255,255,255,0.02))',
-                opacity: 0.8,
-                pointerEvents: 'none',
-              },
-              '&:hover': {
-                bgcolor: speedDialOpen ? '#1F1D1B' : '#5254E8',
-                transform: 'translateY(-2px)',
-              },
-            },
-            '& .MuiSpeedDialAction-fab': {
-              bgcolor: 'rgba(10, 10, 10, 0.72)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: 'rgba(255, 255, 255, 0.78)',
-              width: 52,
-              height: 52,
-              transition: 'all 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
-              backdropFilter: 'blur(16px) saturate(180%)',
-              clipPath: 'polygon(18% 0, 100% 0, 82% 100%, 0 100%)',
-              borderRadius: '14px',
-              boxShadow: '0 16px 40px rgba(0, 0, 0, 0.38)',
-              transform: 'skewX(-12deg)',
-              '& .MuiSvgIcon-root, svg': {
-                transform: 'skewX(12deg)',
-              },
-              '&:hover': {
-                bgcolor: alpha(BRAND_INDIGO, 0.14),
-                color: BRAND_INDIGO,
-                borderColor: BRAND_INDIGO,
-                transform: 'skewX(-12deg) translateY(-4px)',
-              },
-            },
-            '& .MuiSpeedDialAction-fab + .MuiSpeedDialAction-fab': {
-              mt: 1,
-            },
-            '& .MuiSpeedDialAction-staticTooltipLabel': {
-              bgcolor: 'rgba(10, 10, 10, 0.88)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#fff',
-              fontFamily: 'var(--font-satoshi)',
-              fontWeight: 700,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              fontSize: '0.75rem',
-              padding: '6px 12px',
-              borderRadius: '10px',
-              backdropFilter: 'blur(14px) saturate(180%)',
-              transform: 'translateY(-1px)',
-            }
-          }}
-          icon={<SpeedDialIcon icon={<Plus size={26} strokeWidth={2.5} />} openIcon={<X size={26} strokeWidth={2.5} />} />}
-          onClose={() => setSpeedDialOpen(false)}
-          onOpen={() => setSpeedDialOpen(true)}
-          open={speedDialOpen}
-          direction="up"
-        >
-          {secondaryItems.map((action) => (
-            <SpeedDialAction
-              key={action.value}
-              icon={<action.icon size={22} strokeWidth={2} />}
-              tooltipTitle={action.label}
-              tooltipOpen
-              onClick={() => {
-                setSpeedDialOpen(false);
-                router.push(action.path);
-              }}
-              sx={{
-                  '& .MuiSpeedDialAction-fab': {
-                      color: currentSubsetting === action.value ? BRAND_INDIGO : 'inherit',
-                      borderColor: currentSubsetting === action.value ? BRAND_INDIGO : 'rgba(255, 255, 255, 0.12)',
-                  }
-              }}
-            />
-          ))}
-        </SpeedDial>
+        <div className="absolute bottom-22 right-5 z-50 flex flex-col items-end gap-3">
+          {/* Expanded SpeedDial Actions */}
+          {speedDialOpen && (
+            <div className="flex flex-col gap-3 items-end mb-2">
+              {secondaryItems.map((action, idx) => {
+                const isSelected = currentSubsetting === action.value;
+                const Icon = action.icon;
+                return (
+                  <div 
+                    key={action.value}
+                    className="flex items-center gap-3 animate-fade-in-up"
+                    style={{ animationDelay: `${idx * 40}ms` }}
+                  >
+                    {/* Tooltip Label */}
+                    <span className="bg-black/90 border border-white/10 text-white font-satoshi font-bold tracking-wider text-[10px] uppercase px-3 py-1.5 rounded-lg select-none shadow-xl backdrop-blur-md">
+                      {action.label}
+                    </span>
+                    {/* Action Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSpeedDialOpen(false);
+                        router.push(action.path);
+                      }}
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all cursor-pointer shadow-lg backdrop-blur-md ${
+                        isSelected
+                          ? 'bg-[#6366F1]/10 border-[#6366F1] text-[#6366F1]'
+                          : 'bg-black/70 border-white/10 text-white/80 hover:bg-[#6366F1]/10 hover:text-[#6366F1] hover:border-[#6366F1] hover:-translate-y-0.5'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
-        <Paper
-          elevation={0}
-          sx={{
-            width: '100%',
-            bgcolor: '#161412',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            borderBottom: 0,
-            borderRadius: '24px 24px 0 0',
-            px: 1,
-            pt: 0.5,
-            pb: 'max(0.5rem, env(safe-area-inset-bottom))',
-            boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.4)',
-          }}
-        >
-          <BottomNavigation
-            value={currentSubsetting}
-            onChange={handleNavChange}
-            showLabels={false}
-            sx={{
-              backgroundColor: 'transparent',
-              height: 72,
-              '& .MuiBottomNavigationAction-root': {
-                minWidth: 'auto',
-                padding: '0',
-                color: 'rgba(255, 255, 255, 0.4)',
-                transition: 'all 0.3s ease',
-                '&.Mui-selected': {
-                  color: BRAND_INDIGO,
-                  '& .lucide': {
-                    transform: 'scale(1.2) translateY(-2px)',
-                    filter: `drop-shadow(0 0 10px ${BRAND_INDIGO}90)`,
-                  }
-                },
-              },
-            }}
+          {/* Trigger FAB */}
+          <button
+            type="button"
+            onClick={() => setSpeedDialOpen(!speedDialOpen)}
+            className={`w-14 h-14 rounded-2xl flex items-center justify-center border border-white/10 shadow-xl transition-all duration-300 transform cursor-pointer ${
+              speedDialOpen 
+                ? 'bg-[#1F1D1B] text-white hover:bg-[#2B2927]' 
+                : 'bg-[#6366F1] text-black hover:bg-[#5254E8] hover:-translate-y-0.5'
+            }`}
           >
-            {mainItems.map((item) => (
-              <BottomNavigationAction
-                key={item.value}
-                value={item.value}
-                icon={<item.icon size={24} strokeWidth={2} className="lucide" />}
-              />
-            ))}
-          </BottomNavigation>
-        </Paper>
-      </Box>
+            {speedDialOpen ? (
+              <X className="w-6 h-6 transform rotate-90 duration-300" strokeWidth={2.5} />
+            ) : (
+              <Plus className="w-6 h-6 transform duration-300" strokeWidth={2.5} />
+            )}
+          </button>
+        </div>
+
+        {/* Bottom Navigation Bar */}
+        <div className="w-full bg-[#161412] border-t border-white/5 px-4 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">
+          <div className="flex items-center justify-around h-16">
+            {mainItems.map((item) => {
+              const isSelected = currentSubsetting === item.value;
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => router.push(item.path)}
+                  className={`flex flex-col items-center justify-center flex-1 py-1 transition-all cursor-pointer ${
+                    isSelected ? 'text-[#6366F1]' : 'text-white/40 hover:text-white'
+                  }`}
+                >
+                  <Icon 
+                    className={`w-6 h-6 transition-all duration-300 ${
+                      isSelected ? 'scale-110 -translate-y-0.5 drop-shadow-[0_0_8px_rgba(99,102,241,0.4)]' : ''
+                    }`} 
+                  />
+                  <span className="text-[9px] font-bold mt-1 font-satoshi uppercase tracking-wider">
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </>
   );
 }

@@ -1,7 +1,6 @@
 'use client';
 
-import { useColors, useTheme } from '@/lib/theme-context';
-import { useEffect, useState, useCallback, use } from 'react';
+import { useEffect, useState, useCallback, use, useMemo } from 'react';
 import { account, AppwriteService } from '@/lib/appwrite';
 import { useRouter } from 'next/navigation';
 import PreferencesManager from '@/components/PreferencesManager';
@@ -15,17 +14,18 @@ import ReferralManager from '@/components/ReferralManager';
 import SudoModal from '@/components/overlays/SudoModal';
 import { TwoFactorDrawer } from '@/components/overlays/TwoFactorDrawer';
 import { AccountsBottomChrome } from '../../components/layout/AccountsBottomChrome';
-import {
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
-  Divider,
-  Stack,
-  Chip,
-  alpha,
-  TextField,
-} from '@/lib/mui-tailwind/material';
+import toast from 'react-hot-toast';
+import { 
+  UserCircle as ProfileIcon,
+  ShieldCheck as SecurityIcon,
+  MonitorSmartphone as SessionsIcon,
+  History as ActivityIcon,
+  Fingerprint as IdentityIcon,
+  Sliders as PreferencesIcon,
+  Settings2 as RootAccountIcon,
+  ShieldAlert as AdminIcon
+} from 'lucide-react';
+import { isUserAdmin } from '@/lib/actions/admin/check-admin';
 
 interface UserData {
   email: string;
@@ -47,8 +47,6 @@ interface MfaFactorsState {
 
 export default function SubSettingsPage(props: { params: Promise<{ subsettings: string }> }) {
   const params = use(props.params);
-  const dynamicColors = useColors();
-  const { isDark } = useTheme();
   const router = useRouter();
   const subsettings = params?.subsettings || 'profile';
 
@@ -65,6 +63,39 @@ export default function SubSettingsPage(props: { params: Promise<{ subsettings: 
   const [giftMonths, setGiftMonths] = useState('1');
   const [giftLoading, setGiftLoading] = useState(false);
   const [giftError, setGiftError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function checkAdmin() {
+      try {
+        const result = await isUserAdmin();
+        if (active) setIsAdmin(result);
+      } catch (err) {
+        console.error('Failed to check admin status:', err);
+      }
+    }
+    checkAdmin();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const navItems = useMemo(() => {
+    const items = [
+      { value: 'profile', label: 'Profile', icon: ProfileIcon, path: '/accounts/settings/profile' },
+      { value: 'security', label: 'Security', icon: SecurityIcon, path: '/accounts/settings/security' },
+      { value: 'sessions', label: 'Sessions', icon: SessionsIcon, path: '/accounts/settings/sessions' },
+      { value: 'activity', label: 'Activity', icon: ActivityIcon, path: '/accounts/settings/activity' },
+      { value: 'identities', label: 'Identities', icon: IdentityIcon, path: '/accounts/settings/identities' },
+      { value: 'preferences', label: 'Preferences', icon: PreferencesIcon, path: '/accounts/settings/preferences' },
+      { value: 'account', label: 'Account', icon: RootAccountIcon, path: '/accounts/settings/account' }
+    ];
+    if (isAdmin) {
+      items.push({ value: 'admin', label: 'Admin Panel', icon: AdminIcon, path: '/accounts/admin' });
+    }
+    return items;
+  }, [isAdmin]);
 
   const checkInitialStatus = useCallback(async (userId: string, email?: string) => {
     try {
@@ -73,7 +104,7 @@ export default function SubSettingsPage(props: { params: Promise<{ subsettings: 
         const suggestion = email?.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '') || 'user';
         setProfileStatus({ 
           label: `Profile missing from directory. Clicking below will link you as @${suggestion}.`, 
-          color: dynamicColors.primary 
+          color: '#6366F1' 
         });
       } else {
         setProfileStatus({ 
@@ -84,7 +115,7 @@ export default function SubSettingsPage(props: { params: Promise<{ subsettings: 
     } catch (_e: unknown) {
       setProfileStatus({ label: 'Unable to verify directory status.', color: '#ef4444' });
     }
-  }, [dynamicColors.primary]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -237,537 +268,370 @@ export default function SubSettingsPage(props: { params: Promise<{ subsettings: 
 
   if (loading || !user) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}>
-        <CircularProgress sx={{ color: dynamicColors.primary }} />
-      </Box>
+      <div className="flex justify-center items-center py-12 bg-black min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6366F1]" />
+      </div>
     );
   }
 
-  const borderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
-  const textColor = isDark ? '#FFFFFF' : '#000000';
-  const surfaceColor = isDark ? 'rgba(15, 13, 12, 0.6)' : 'rgba(245, 245, 245, 0.6)';
-  const brandIndigo = '#6366F1';
-  const secondaryText = isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)';
   const accountMfaEnabled = Boolean(mfaFactors?.email && mfaFactors?.totp);
 
-    return (
-    <Box sx={{ animation: 'fadeIn 0.4s ease-out', bgcolor: '#000000', minHeight: '100vh', p: { xs: 2, md: 4 } }}>
-      <Box sx={{ mb: 6, display: { xs: 'none', md: 'block' } }}>
-        <Typography
-          sx={{
-            fontSize: { md: '2.5rem', lg: '3rem' },
-            fontWeight: 900,
-            color: textColor,
-            lineHeight: 1.1,
-            letterSpacing: '-0.04em',
-            fontFamily: 'var(--font-clash)',
-            textTransform: 'capitalize'
-          }}
-        >
+  return (
+    <div className="animate-fadeIn bg-black min-h-screen p-4 md:p-8 text-white">
+      {/* Header (Desktop Only) */}
+      <div className="mb-8 hidden md:block">
+        <h1 className="text-3xl md:text-4xl lg:text-5xl font-black font-clash text-white tracking-tight leading-tight capitalize">
           {subsettings} Configuration
-        </Typography>
-        <Typography sx={{ color: secondaryText, mt: 1.5, fontSize: '1.1rem', fontWeight: 500, maxWidth: '600px' }}>
+        </h1>
+        <p className="text-[#9B9691] mt-1.5 text-sm font-semibold max-w-[600px] font-satoshi">
           Manage your global {subsettings} protocols and ecosystem preferences.
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      {subsettings === 'profile' && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <Box
-              id="identity"
-              sx={{
-              bgcolor: '#161514',
-              backdropFilter: 'blur(20px)',
-              border: `1px solid ${borderColor}`,
-              borderRadius: '32px',
-              p: { xs: 3, md: 5 },
-              }}
-          >
-              <ProfileManager 
+      <div className="md:grid md:grid-cols-[240px_1fr] md:gap-10 items-start">
+        {/* Desktop Sidebar Navigation */}
+        <aside className="hidden md:block space-y-6 sticky top-24">
+          <div className="space-y-2">
+            <span className="text-[10px] text-[#9B9691] font-bold font-mono uppercase tracking-wider px-3">
+              Settings Protocols
+            </span>
+            <nav className="flex flex-col gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = subsettings === item.value;
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => router.push(item.path)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold font-satoshi transition-all cursor-pointer text-left w-full ${
+                      isActive
+                        ? 'bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20'
+                        : 'text-white/60 hover:bg-white/[0.02] hover:text-white border border-transparent'
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-[#6366F1]' : 'text-white/40'}`} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </aside>
+
+        {/* Settings Content Area */}
+        <div className="min-w-0">
+          {subsettings === 'profile' && (
+            <div className="flex flex-col gap-8 pb-24">
+          <div id="identity" className="bg-[#161514] border border-white/5 rounded-[32px] p-6 md:p-10">
+            <ProfileManager 
               onProfileUpdate={(data) => {
-                  setUser(prev => prev ? {
+                setUser(prev => prev ? {
                   ...prev,
                   ...(data.name && { name: data.name }),
                   ...(data.profilePicId !== undefined && { profilePicId: data.profilePicId })
-                  } : null);
+                } : null);
               }}
-              />
-          </Box>
+            />
+          </div>
 
-          <Box id="identifiers">
-              <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, mb: 3, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', textTransform: 'capitalize' }}>identifiers</Typography>
-              <Stack spacing={2.5}>
-                  <Box
-                  sx={{
-                      backgroundColor: alpha(surfaceColor, 0.3),
-                      border: `1px solid ${borderColor}`,
-                      borderRadius: '20px',
-                      p: 3.5,
-                      display: 'flex',
-                      flexDirection: { xs: 'column', sm: 'row' },
-                      justifyContent: 'space-between',
-                      alignItems: { xs: 'flex-start', sm: 'center' },
-                      gap: 3,
+          <div id="identifiers" className="space-y-4">
+            <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+              Identifiers
+            </h2>
+            <div className="space-y-3.5">
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <span className="text-[10px] text-[#9B9691] font-bold font-mono uppercase tracking-wider block mb-1">
+                    Primary Mail Relay
+                  </span>
+                  <span className="text-lg text-white font-extrabold tracking-tight">
+                    {user.email}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(user.email);
+                    toast.success('Email copied');
                   }}
-                  >
-                  <Box>
-                      <Typography sx={{ fontSize: '0.7rem', color: secondaryText, fontWeight: 800, textTransform: 'uppercase', mb: 1, letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>Primary Mail Relay</Typography>
-                      <Typography sx={{ fontSize: '1.2rem', color: textColor, fontWeight: 700, letterSpacing: '-0.01em' }}>
-                      {user.email}
-                      </Typography>
-                  </Box>
-                  <Button
-                      onClick={() => navigator.clipboard.writeText(user.email)}
-                      variant="outlined"
-                      sx={{
-                      borderColor: borderColor,
-                      color: textColor,
-                      fontWeight: 800,
-                      borderRadius: '12px',
-                      textTransform: 'none',
-                      px: 3.5,
-                      py: 1,
-                      '&:hover': { borderColor: brandIndigo, backgroundColor: alpha(brandIndigo, 0.05) },
-                      }}
-                  >
-                      Copy ID
-                  </Button>
-                  </Box>
+                  className="py-2 px-4 rounded-xl border border-white/10 text-white font-bold text-xs hover:border-[#6366F1] hover:bg-[#6366F1]/5 transition-all cursor-pointer flex-shrink-0"
+                >
+                  Copy ID
+                </button>
+              </div>
 
-                  <Box
-                  sx={{
-                      backgroundColor: alpha(surfaceColor, 0.3),
-                      border: `1px solid ${borderColor}`,
-                      borderRadius: '20px',
-                      p: 3.5,
-                      display: 'flex',
-                      flexDirection: { xs: 'column', sm: 'row' },
-                      justifyContent: 'space-between',
-                      alignItems: { xs: 'flex-start', sm: 'center' },
-                      gap: 3,
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] text-[#9B9691] font-bold font-mono uppercase tracking-wider block mb-1">
+                    Unique Node Signature
+                  </span>
+                  <span className="text-sm text-white/80 font-mono break-all leading-normal">
+                    {user.userId}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(user.userId);
+                    toast.success('Signature copied');
                   }}
+                  className="py-2 px-4 rounded-xl border border-white/10 text-white font-bold text-xs hover:border-[#6366F1] hover:bg-[#6366F1]/5 transition-all cursor-pointer flex-shrink-0"
+                >
+                  Copy Signature
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="pulse" className="space-y-4">
+            <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+              Pulse
+            </h2>
+            <div className="bg-[#6366F1]/[0.02] border border-[#6366F1]/10 rounded-[28px] p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-3.5 h-3.5 rounded-full animate-pulse flex-shrink-0" 
+                  style={{ 
+                    backgroundColor: profileStatus?.color || '#6366F1',
+                    boxShadow: `0 0 12px ${profileStatus?.color || '#6366F1'}`
+                  }} 
+                />
+                <span className="text-base font-extrabold text-white">
+                  Global Directory Synchrony
+                </span>
+              </div>
+              
+              {profileStatus && (
+                <p className="text-sm text-[#9B9691] leading-relaxed font-satoshi">
+                  {profileStatus.label}
+                </p>
+              )}
+
+              {!profileStatus?.label.includes('Correctly linked') && (
+                <div className="space-y-4">
+                  <p className="text-xs text-[#9B9691]/70 leading-relaxed font-satoshi">
+                    Ensure your identity is broadcasted across all nodes to enable seamless interaction in Note, Flow, and Connect.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleFixDiscoverability}
+                    disabled={syncing}
+                    className="px-6 py-3.5 rounded-xl bg-[#6366F1] hover:bg-[#5458E8] text-black font-black text-sm transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontSize: '0.7rem', color: secondaryText, fontWeight: 800, textTransform: 'uppercase', mb: 1, letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>Unique Node Signature</Typography>
-                      <Typography
-                      sx={{
-                          fontSize: '0.95rem',
-                          color: textColor,
-                          fontFamily: 'var(--font-mono)',
-                          wordBreak: 'break-all',
-                          opacity: 0.8,
-                          fontWeight: 500
-                      }}
-                      >
-                      {user.userId}
-                      </Typography>
-                  </Box>
-                  <Button
-                      onClick={() => navigator.clipboard.writeText(user.userId)}
-                      variant="outlined"
-                      sx={{
-                      borderColor: borderColor,
-                      color: textColor,
-                      fontWeight: 800,
-                      borderRadius: '12px',
-                      textTransform: 'none',
-                      px: 3.5,
-                      py: 1,
-                      '&:hover': { borderColor: brandIndigo, backgroundColor: alpha(brandIndigo, 0.05) },
-                      }}
-                  >
-                      Copy Signature
-                  </Button>
-                  </Box>
-              </Stack>
-          </Box>
+                    {syncing && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />}
+                    <span>{syncSuccess ? 'IDENTITY SYNCED' : 'INITIALIZE SYNC'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
 
-          <Box id="pulse">
-              <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, mb: 3, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', textTransform: 'capitalize' }}>pulse</Typography>
-              <Box
-                  sx={{
-                  backgroundColor: alpha(brandIndigo, 0.02),
-                  border: `1px solid ${alpha(brandIndigo, 0.15)}`,
-                  borderRadius: '28px',
-                  p: 4,
-                  }}
-              >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2.5 }}>
-                  <Box 
-                      sx={{ 
-                      width: 12, 
-                      height: 12, 
-                      borderRadius: '50%', 
-                      backgroundColor: profileStatus?.color || brandIndigo,
-                      boxShadow: `0 0 12px ${profileStatus?.color || brandIndigo}`
-                      }} 
-                  />
-                  <Typography sx={{ fontSize: '1.1rem', color: textColor, fontWeight: 800, letterSpacing: '-0.01em' }}>
-                      Global Directory Synchrony
-                  </Typography>
-                  </Box>
-                  
-                  {profileStatus && (
-                  <Typography sx={{ fontSize: '0.95rem', color: secondaryText, mb: profileStatus.label.includes('Correctly linked') ? 0 : 3, fontWeight: 500, lineHeight: 1.7 }}>
-                      {profileStatus.label}
-                  </Typography>
-                  )}
-
-                  {!profileStatus?.label.includes('Correctly linked') && (
-                  <>
-                      <Typography sx={{ fontSize: '0.9rem', color: secondaryText, mb: 4, opacity: 0.7 }}>
-                      Ensure your identity is broadcasted across all nodes to enable seamless interaction in Note, Flow, and Connect.
-                      </Typography>
-                      <Button
-                      onClick={handleFixDiscoverability}
-                      disabled={syncing}
-                      variant="contained"
-                      sx={{
-                          backgroundColor: brandIndigo,
-                          color: '#000',
-                          fontWeight: 900,
-                          borderRadius: '14px',
-                          textTransform: 'none',
-                          px: 4,
-                          py: 1.5,
-                          fontSize: '0.95rem',
-                          boxShadow: `0 8px 20px ${alpha(brandIndigo, 0.2)}`,
-                          '&:hover': {
-                              backgroundColor: alpha(brandIndigo, 0.9),
-                              transform: 'translateY(-2px)'
-                          },
-                          transition: 'all 0.2s'
-                      }}
-                      >
-                      {syncing ? <CircularProgress size={20} sx={{ mr: 1, color: 'inherit' }} /> : null}
-                      {syncSuccess ? 'IDENTITY SYNCED' : 'INITIALIZE SYNC'}
-                      </Button>
-                  </>
-                  )}
-              </Box>
-          </Box>
-
-          <Box
-            sx={{
-              backgroundColor: alpha(surfaceColor, 0.3),
-              border: `1px solid ${borderColor}`,
-              borderRadius: '28px',
-              p: { xs: 3, md: 4 },
-            }}
-          >
-            <Typography sx={{ fontSize: '1.25rem', fontWeight: 900, mb: 1, fontFamily: 'var(--font-clash)' }}>
+          <div className="bg-white/[0.02] border border-white/5 rounded-[28px] p-6 md:p-8 space-y-4">
+            <h3 className="text-lg font-black font-clash text-white">
               Gift Pro
-            </Typography>
-            <Typography sx={{ color: secondaryText, mb: 3 }}>
+            </h3>
+            <p className="text-xs text-[#9B9691] leading-relaxed font-satoshi">
               Send a subscription gift to another Kylrix account. The recipient will claim it automatically on login.
-            </Typography>
+            </p>
 
-            <Stack spacing={2}>
-              <TextField
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Recipient username"
                 value={giftUsername}
                 onChange={(e) => setGiftUsername(e.target.value)}
-                placeholder="Recipient username"
-                fullWidth
-                size="small"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '14px',
-                    color: textColor,
-                    bgcolor: alpha('#FFFFFF', 0.02),
-                    '& fieldset': { borderColor },
-                  },
-                }}
+                className="w-full bg-[#161412] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1]"
               />
-              <TextField
+              <input
+                type="number"
+                placeholder="Months"
+                min={1}
                 value={giftMonths}
                 onChange={(e) => setGiftMonths(e.target.value)}
-                placeholder="Months"
-                type="number"
-                inputProps={{ min: 1 }}
-                fullWidth
-                size="small"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '14px',
-                    color: textColor,
-                    bgcolor: alpha('#FFFFFF', 0.02),
-                    '& fieldset': { borderColor },
-                  },
-                }}
+                className="w-full bg-[#161412] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1]"
               />
               {giftError && (
-                <Typography sx={{ color: '#ef4444', fontSize: '0.9rem' }}>
-                  {giftError}
-                </Typography>
+                <p className="text-xs text-red-500 font-satoshi">{giftError}</p>
               )}
-              <Button
+              <button
+                type="button"
                 onClick={() => void handleGiftCheckout()}
                 disabled={giftLoading}
-                sx={{
-                  alignSelf: 'flex-start',
-                  bgcolor: brandIndigo,
-                  color: '#fff',
-                  fontWeight: 800,
-                  borderRadius: '12px',
-                  textTransform: 'none',
-                  px: 3,
-                  '&:hover': { bgcolor: '#4f46e5' },
-                }}
+                className="px-5 py-3 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-extrabold text-xs transition-colors cursor-pointer"
               >
                 {giftLoading ? 'Preparing Gift...' : 'Gift Subscription'}
-              </Button>
-            </Stack>
-          </Box>
+              </button>
+            </div>
+          </div>
 
-          <Box id="referrals">
-              <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, mb: 3, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', textTransform: 'capitalize' }}>
-                referrals
-              </Typography>
-              <ReferralManager />
-          </Box>
-          </Box>
+          <div id="referrals" className="space-y-4">
+            <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+              Referrals
+            </h2>
+            <ReferralManager />
+          </div>
+        </div>
       )}
 
       {subsettings === 'security' && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <Box id="masterpass">
-              <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, mb: 3, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', textTransform: 'capitalize' }}>
-              encryption
-              </Typography>
-              <Box
-              sx={{
-                  bgcolor: '#161514',
-                  backdropFilter: 'blur(20px)',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '32px',
-                  p: { xs: 3, md: 5 },
-              }}
-              >
+        <div className="flex flex-col gap-8 pb-24">
+          <div id="masterpass" className="space-y-4">
+            <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+              Encryption
+            </h2>
+            <div className="bg-[#161514] border border-white/5 rounded-[32px] p-6 md:p-10">
               <MasterPassManager userId={user.userId} />
-              </Box>
-          </Box>
+            </div>
+          </div>
 
-          <Box id="pin">
-              <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, mb: 3, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', textTransform: 'capitalize' }}>
-              quick access
-              </Typography>
-              <Box
-              sx={{
-                  bgcolor: '#161514',
-                  backdropFilter: 'blur(20px)',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '32px',
-                  p: { xs: 3, md: 5 },
-              }}
-              >
+          <div id="pin" className="space-y-4">
+            <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+              Quick Access
+            </h2>
+            <div className="bg-[#161514] border border-white/5 rounded-[32px] p-6 md:p-10">
               <PinManager />
-              </Box>
-          </Box>
+            </div>
+          </div>
 
-          <Box id="mfa">
-              <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, mb: 3, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', textTransform: 'capitalize' }}>
-                2fa
-              </Typography>
-              <Box
-                sx={{
-                  backgroundColor: alpha(surfaceColor, 0.3),
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '28px',
-                  p: 4,
-                }}
-              >
-                <Stack spacing={2.5}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
-                    <Box>
-                      <Typography sx={{ fontSize: '1.15rem', fontWeight: 800, color: textColor, mb: 1 }}>
-                        2FA status
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.95rem', color: secondaryText, maxWidth: '540px', lineHeight: 1.6 }}>
-                        2FA is on only when both Email and TOTP are enabled.
-                      </Typography>
-                    </Box>
-                    <Button
-                      onClick={() => setTwoFactorSudoOpen(true)}
-                      variant="contained"
-                      sx={{
-                        backgroundColor: brandIndigo,
-                        color: 'white',
-                        fontWeight: 900,
-                        borderRadius: '14px',
-                        textTransform: 'none',
-                        px: 3,
-                      }}
-                    >
-                      {accountMfaEnabled ? 'Manage 2FA' : 'Set up 2FA'}
-                    </Button>
-                  </Box>
+          <div id="mfa" className="space-y-4">
+            <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+              2FA
+            </h2>
+            <div className="bg-white/[0.02] border border-white/5 rounded-[28px] p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h4 className="text-base font-extrabold text-white mb-1">2FA Status</h4>
+                  <p className="text-xs text-[#9B9691] leading-relaxed max-w-[540px]">
+                    2FA is on only when both Email and TOTP are enabled.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTwoFactorSudoOpen(true)}
+                  className="py-3 px-5 rounded-xl bg-[#6366F1] hover:bg-[#5458E8] text-white font-black text-xs transition-colors cursor-pointer flex-shrink-0"
+                >
+                  {accountMfaEnabled ? 'Manage 2FA' : 'Set up 2FA'}
+                </button>
+              </div>
 
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <Chip label={`2FA: ${accountMfaEnabled ? 'enabled' : 'off'}`} sx={{ bgcolor: alpha(accountMfaEnabled ? '#10b981' : '#f59e0b', 0.16), color: 'white' }} />
-                    <Chip label={`Email: ${mfaFactors?.email ? 'enabled' : 'off'}`} sx={{ bgcolor: alpha('#10B981', 0.16), color: 'white' }} />
-                    <Chip label={`TOTP: ${mfaFactors?.totp ? 'enabled' : 'off'}`} sx={{ bgcolor: alpha('#F59E0B', 0.16), color: 'white' }} />
-                  </Box>
+              <div className="flex flex-wrap gap-2">
+                <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
+                  accountMfaEnabled 
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                    : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                }`}>
+                  2FA: {accountMfaEnabled ? 'enabled' : 'off'}
+                </span>
+                <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
+                  mfaFactors?.email 
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                    : 'bg-white/5 border-white/10 text-white/50'
+                }`}>
+                  Email: {mfaFactors?.email ? 'enabled' : 'off'}
+                </span>
+                <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
+                  mfaFactors?.totp 
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                    : 'bg-white/5 border-white/10 text-white/50'
+                }`}>
+                  TOTP: {mfaFactors?.totp ? 'enabled' : 'off'}
+                </span>
+              </div>
 
-                  <Typography sx={{ fontSize: '0.92rem', color: secondaryText, lineHeight: 1.7 }}>
-                    {accountMfaEnabled
-                      ? 'Email and TOTP are both enabled.'
-                      : 'Tap set up 2FA to register email first, then TOTP.'}
-                  </Typography>
-                </Stack>
-              </Box>
-          </Box>
-          </Box>
+              <p className="text-xs text-[#9B9691] leading-relaxed font-satoshi">
+                {accountMfaEnabled
+                  ? 'Email and TOTP are both enabled.'
+                  : 'Tap set up 2FA to register email first, then TOTP.'}
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {subsettings === 'sessions' && (
-          <Box id="active-sessions">
-          <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, mb: 3, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', textTransform: 'capitalize' }}>sessions</Typography>
-          <Box
-              sx={{
-              bgcolor: '#161514',
-              backdropFilter: 'blur(20px)',
-              border: `1px solid ${borderColor}`,
-              borderRadius: '32px',
-              p: { xs: 3, md: 5 },
-              }}
-          >
-              <SessionsManager />
-          </Box>
-          </Box>
+        <div id="active-sessions" className="space-y-4 pb-24">
+          <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+            Sessions
+          </h2>
+          <div className="bg-[#161514] border border-white/5 rounded-[32px] p-6 md:p-10">
+            <SessionsManager />
+          </div>
+        </div>
       )}
 
       {subsettings === 'activity' && (
-          <Box id="activity-log">
-          <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, mb: 3, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', textTransform: 'capitalize' }}>activity</Typography>
-          <Box
-              sx={{
-              bgcolor: '#161514',
-              backdropFilter: 'blur(20px)',
-              border: `1px solid ${borderColor}`,
-              borderRadius: '32px',
-              p: { xs: 3, md: 5 },
-              }}
-          >
-              <ActivityLogs />
-          </Box>
-          </Box>
+        <div id="activity-log" className="space-y-4 pb-24">
+          <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+            Activity
+          </h2>
+          <div className="bg-[#161514] border border-white/5 rounded-[32px] p-6 md:p-10">
+            <ActivityLogs />
+          </div>
+        </div>
       )}
 
       {subsettings === 'identities' && (
-          <Box id="oauth">
-          <Box
-              sx={{
-              bgcolor: '#161514',
-              backdropFilter: 'blur(20px)',
-              border: `1px solid ${borderColor}`,
-              borderRadius: '32px',
-              p: { xs: 3, md: 5 },
-              }}
-          >
-              <ConnectedIdentities />
-          </Box>
-          </Box>
+        <div id="oauth" className="pb-24">
+          <div className="bg-[#161514] border border-white/5 rounded-[32px] p-6 md:p-10">
+            <ConnectedIdentities />
+          </div>
+        </div>
       )}
 
       {subsettings === 'preferences' && (
-          <Box id="env-prefs">
-          <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, mb: 3, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', textTransform: 'capitalize' }}>preferences</Typography>
-          <Box
-              sx={{
-              bgcolor: '#161514',
-              backdropFilter: 'blur(20px)',
-              border: `1px solid ${borderColor}`,
-              borderRadius: '32px',
-              p: { xs: 3, md: 5 },
-              }}
-          >
-              <PreferencesManager />
-          </Box>
-          </Box>
+        <div id="env-prefs" className="space-y-4 pb-24">
+          <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+            Preferences
+          </h2>
+          <div className="bg-[#161514] border border-white/5 rounded-[32px] p-6 md:p-10">
+            <PreferencesManager />
+          </div>
+        </div>
       )}
 
       {subsettings === 'account' && (
-          <Box id="root-mgmt">
-          <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, mb: 4, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', textTransform: 'capitalize' }}>account</Typography>
-          
-          <Stack spacing={3}>
-              <Box
-              id="export"
-              sx={{
-                  backgroundColor: alpha(surfaceColor, 0.3),
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '28px',
-                  p: 5,
-              }}
+        <div id="root-mgmt" className="space-y-6 pb-24">
+          <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+            Account
+          </h2>
+          <div className="bg-white/[0.01] border border-white/5 rounded-[28px] p-6 md:p-8 space-y-6">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div>
+                <h4 className="text-base font-extrabold text-white mb-1">Identity Data Export</h4>
+                <p className="text-xs text-[#9B9691] leading-relaxed max-w-[600px]">
+                  Download a full cryptographic archive of your account data. This process may take several minutes to compile.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="py-3 px-5 rounded-xl border border-white/10 text-white font-extrabold text-xs hover:border-[#6366F1] hover:bg-[#6366F1]/5 transition-all min-w-[200px] cursor-pointer"
               >
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', lg: 'center' }, gap: 4 }}>
-                  <Box>
-                  <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: textColor, mb: 1 }}>
-                      Identity Data Export
-                  </Typography>
-                  <Typography sx={{ fontSize: '1rem', color: secondaryText, maxWidth: '600px', lineHeight: 1.6 }}>
-                      Download a full cryptographic archive of your account data. This process may take several minutes to compile.
-                  </Typography>
-                  </Box>
-                  <Button
-                  variant="outlined"
-                  sx={{
-                      color: textColor,
-                      borderColor: borderColor,
-                      fontSize: '0.9rem',
-                      fontWeight: 800,
-                      textTransform: 'none',
-                      borderRadius: '14px',
-                      px: 4,
-                      py: 1.5,
-                      minWidth: '200px',
-                      '&:hover': { 
-                      borderColor: brandIndigo,
-                      backgroundColor: alpha(brandIndigo, 0.05),
-                      },
-                  }}
-                  >
-                  PREPARE ARCHIVE
-                  </Button>
-              </Box>
+                PREPARE ARCHIVE
+              </button>
+            </div>
+            
+            <div className="h-px bg-white/5 w-full" />
 
-              <Divider sx={{ my: 5, borderColor: borderColor }} />
-
-              <Box id="purge" sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', lg: 'center' }, gap: 4 }}>
-                  <Box>
-                  <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: '#ef4444', mb: 1 }}>
-                      Node Decommissioning
-                  </Typography>
-                  <Typography sx={{ fontSize: '1rem', color: secondaryText, maxWidth: '600px', lineHeight: 1.6 }}>
-                      Permanently terminate this identity node and purge all associated encrypted data from the ecosystem. This operation is terminal.
-                  </Typography>
-                  </Box>
-                  <Button
-                  variant="contained"
-                  sx={{
-                      backgroundColor: alpha('#ef4444', 0.1),
-                      color: '#ef4444',
-                      border: '1px solid rgba(239, 68, 68, 0.2)',
-                      fontSize: '0.9rem',
-                      fontWeight: 900,
-                      textTransform: 'none',
-                      borderRadius: '14px',
-                      px: 4,
-                      py: 1.5,
-                      minWidth: '200px',
-                      '&:hover': {
-                      backgroundColor: alpha('#ef4444', 0.2),
-                      borderColor: '#ef4444',
-                      },
-                  }}
-                  >
-                  PURGE IDENTITY
-                  </Button>
-              </Box>
-              </Box>
-          </Stack>
-          </Box>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div>
+                <h4 className="text-base font-extrabold text-red-500 mb-1">Node Decommissioning</h4>
+                <p className="text-xs text-[#9B9691] leading-relaxed max-w-[600px]">
+                  Permanently terminate this identity node and purge all associated encrypted data from the ecosystem. This operation is terminal.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="py-3 px-5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:border-red-500 font-extrabold text-xs transition-all min-w-[200px] cursor-pointer"
+              >
+                PURGE IDENTITY
+              </button>
+            </div>
+          </div>
+        </div>
       )}
+        </div>
+      </div>
 
       <SudoModal
         isOpen={twoFactorSudoOpen}
@@ -788,6 +652,6 @@ export default function SubSettingsPage(props: { params: Promise<{ subsettings: 
       )}
 
       <AccountsBottomChrome />
-    </Box>
+    </div>
   );
 }
