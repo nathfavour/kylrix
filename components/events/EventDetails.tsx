@@ -1,30 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  IconButton,
-  Button,
-  Chip,
-  Divider,
-  useTheme,
-  CircularProgress,
-} from '@/lib/mui-tailwind/material';
-import {
-  Close as CloseIcon,
-  CalendarToday as CalendarIcon,
-  AccessTime as TimeIcon,
-  LocationOn as LocationIcon,
-  Share as ShareIcon,
-  Videocam as MeetingIcon,
-} from '@/lib/mui-tailwind/icons';
+import { X, Calendar, Clock, MapPin, Share2, Video, ExternalLink } from 'lucide-react';
 import { formatTime } from '@/lib/time-util';
 import { useLayout } from '@/context/LayoutContext';
 import { events as eventApi } from '@/lib/kylrixflow';
 import { generateEventPattern } from '@/utils/patternGenerator';
 import { Event as AppwriteEvent } from '@/types/kylrixflow';
 import { Event as LocalEvent } from '@/types';
+import toast from 'react-hot-toast';
 
 interface EventDetailsProps {
   eventId: string;
@@ -33,7 +17,6 @@ interface EventDetailsProps {
 }
 
 export default function EventDetails({ eventId, initialData, onBack }: EventDetailsProps) {
-  const theme = useTheme();
   const { closeSecondarySidebar } = useLayout();
   const handleClose = () => {
     if (onBack) {
@@ -75,17 +58,24 @@ export default function EventDetails({ eventId, initialData, onBack }: EventDeta
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center h-full bg-[#161412] min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6366F1]" />
+      </div>
     );
   }
 
   if (error || !event) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography color="text.secondary">{error || 'Event not found'}</Typography>
-      </Box>
+      <div className="p-6 text-center h-full flex flex-col justify-center items-center bg-[#161412] min-h-[400px]">
+        <p className="text-[#8E8A86] text-sm font-semibold">{error || 'Event not found'}</p>
+        <button
+          type="button"
+          onClick={handleClose}
+          className="mt-4 px-4 py-2 rounded-xl bg-[#1C1A18] border border-[#34322F] text-white hover:bg-[#242220] transition-all font-bold text-xs cursor-pointer"
+        >
+          Close
+        </button>
+      </div>
     );
   }
 
@@ -101,189 +91,125 @@ export default function EventDetails({ eventId, initialData, onBack }: EventDeta
     : { background: generateEventPattern(eventIdValue + event.title) };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#161412' }}>
+    <div className="h-full flex flex-col bg-[#161412] text-white">
       {/* Header with Cover */}
-      <Box sx={{ position: 'relative' }}>
-        <Box
-            sx={{
-                height: 140,
-                width: '100%',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                ...coverStyle,
-            }}
+      <div className="relative w-full h-[140px] flex-shrink-0">
+        <div
+          className="w-full h-full bg-cover bg-center"
+          style={coverStyle}
         />
-        <IconButton
-            onClick={handleClose}
-            sx={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                bgcolor: '#000000',
-                border: '1px solid #34322F',
-                color: 'white',
-                '&:hover': { bgcolor: '#1C1A18' },
-            }}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#161412] to-transparent opacity-80" />
+        <button
+          type="button"
+          onClick={handleClose}
+          className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 border border-white/10 text-white/80 hover:text-white hover:bg-black/80 transition-colors flex items-center justify-center cursor-pointer"
         >
-            <CloseIcon sx={{ fontSize: 24 }} />
-        </IconButton>
-      </Box>
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
       {/* Content */}
-      <Box sx={{ p: 3, overflow: 'auto', flexGrow: 1 }}>
-        <Box sx={{ mb: 3 }}>
-            <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                <Chip
-                    label={visibility}
-                    size="small"
-                    sx={{
-                      bgcolor: '#1C1A18',
-                      border: '1px solid #34322F',
-                      color: 'white',
-                      fontWeight: 700,
-                      fontFamily: 'var(--font-satoshi)',
-                      textTransform: 'capitalize'
-                    }}
-                />
-                {(event as any).status === 'cancelled' && (
-                    <Chip 
-                      label="Cancelled" 
-                      size="small" 
-                      sx={{
-                        bgcolor: '#EF4444',
-                        color: 'black',
-                        fontWeight: 800,
-                        fontFamily: 'var(--font-mono)'
-                      }}
-                    />
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 scrollbar-thin">
+        {/* Header Title info */}
+        <div>
+          <div className="flex flex-wrap gap-2 mb-2">
+            <span className="px-2.5 py-0.5 rounded-lg bg-[#1C1A18] border border-[#34322F] text-white text-[11px] font-bold font-satoshi capitalize">
+              {visibility}
+            </span>
+            {(event as any).status === 'cancelled' && (
+              <span className="px-2.5 py-0.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-[11px] font-mono font-bold uppercase">
+                Cancelled
+              </span>
+            )}
+          </div>
+          <h2 className="text-xl font-black font-clash text-white tracking-tight leading-snug">
+            {event.title}
+          </h2>
+        </div>
+
+        {/* Date & Time / Location (Card) */}
+        <div className="p-4 rounded-[20px] bg-[#0A0908] border border-white/[0.04] shadow-[0_8px_24px_rgba(0,0,0,0.5)] flex flex-col gap-4">
+          {/* When */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-mono font-bold tracking-wider text-indigo-400 uppercase">When</span>
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-white/5 border border-white/10 rounded-xl text-indigo-400 flex-shrink-0">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-bold text-white leading-tight">
+                  {formatTime(startDate, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                </span>
+                <span className="text-xs text-[#8E8A86] mt-0.5 flex items-center gap-1 font-satoshi">
+                  <Clock className="w-3 h-3 text-[#8E8A86]" />
+                  {formatTime(startDate, { hour: 'numeric', minute: '2-digit', hour12: true })} - {formatTime(endDate, { hour: 'numeric', minute: '2-digit', hour12: true })}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-px bg-white/[0.04] w-full" />
+
+          {/* Where */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-mono font-bold tracking-wider text-indigo-400 uppercase">Where</span>
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-white/5 border border-white/10 rounded-xl text-indigo-400 flex-shrink-0">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-sm font-bold text-white leading-relaxed break-words">
+                  {event.location || 'Online Event'}
+                </span>
+                {meetingUrl && (
+                  <a
+                    href={meetingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center justify-center gap-2 px-3.5 py-1.5 text-xs font-bold font-satoshi text-white bg-[#1C1A18] hover:bg-[#242220] border border-[#34322F] hover:border-[#6366F1] rounded-[8px] transition-all w-fit cursor-pointer"
+                  >
+                    <Video className="w-3.5 h-3.5 text-[#6366F1]" />
+                    <span>Join Meeting</span>
+                  </a>
                 )}
-            </Box>
-            <Typography variant="h5" fontWeight={900} gutterBottom sx={{ fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', color: 'white' }}>
-                {event.title}
-            </Typography>
-        </Box>
-
-        {/* Date & Time */}
-        <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" fontWeight={700} gutterBottom sx={{ color: '#8E8A86', fontFamily: 'var(--font-satoshi)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                When
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-                <CalendarIcon sx={{ fontSize: 18, color: '#8E8A86' }} />
-                <Typography variant="body2" sx={{ color: 'white', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}>
-                    {formatTime(startDate, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-                </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <TimeIcon sx={{ fontSize: 18, color: '#8E8A86' }} />
-                <Typography variant="body2" sx={{ color: 'white', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}>
-                    {formatTime(startDate, { hour: 'numeric', minute: '2-digit', hour12: true })} - {formatTime(endDate, { hour: 'numeric', minute: '2-digit', hour12: true })}
-                </Typography>
-            </Box>
-        </Box>
-
-        {/* Location */}
-        <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" fontWeight={700} gutterBottom sx={{ color: '#8E8A86', fontFamily: 'var(--font-satoshi)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Where
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                <Box sx={{ mt: 0.5 }}>
-                    <LocationIcon sx={{ fontSize: 18, color: '#8E8A86' }} />
-                </Box>
-                <Box>
-                    <Typography variant="body2" sx={{ color: 'white', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }} gutterBottom>
-                        {event.location || 'Online Event'}
-                    </Typography>
-                    {meetingUrl && (
-                        <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<MeetingIcon sx={{ fontSize: 18 }} />}
-                            href={meetingUrl}
-                            target="_blank"
-                            sx={{ 
-                              mt: 1, 
-                              bgcolor: '#1C1A18', 
-                              border: '1px solid #34322F',
-                              color: 'white',
-                              fontWeight: 700,
-                              fontFamily: 'var(--font-satoshi)',
-                              borderRadius: '8px',
-                              textTransform: 'none',
-                              '&:hover': {
-                                bgcolor: '#242220',
-                                borderColor: '#6366F1'
-                              }
-                            }}
-                        >
-                            Join Meeting
-                        </Button>
-                    )}
-                </Box>
-            </Box>
-        </Box>
-
-        <Divider sx={{ my: 3, borderColor: '#34322F' }} />
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Description */}
-        <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" fontWeight={700} gutterBottom sx={{ color: '#8E8A86', fontFamily: 'var(--font-satoshi)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                About
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#C1BEBA', fontFamily: 'var(--font-satoshi)', whiteSpace: 'pre-line', lineHeight: 1.6 }}>
-                {event.description || 'No description provided.'}
-            </Typography>
-        </Box>
-
-        <Divider sx={{ my: 3, borderColor: '#34322F' }} />
+        <div className="flex flex-col gap-2">
+          <span className="text-[10px] font-mono font-bold tracking-wider text-[#8E8A86] uppercase">About</span>
+          <div className="p-4 rounded-[20px] bg-[#0A0908] border border-white/[0.04] text-sm leading-relaxed text-[#C1BEBA] font-satoshi whitespace-pre-line break-words">
+            {event.description || 'No description provided.'}
+          </div>
+        </div>
 
         {/* Actions */}
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Button
-                variant="contained"
-                fullWidth
-                href={`/flow/events/${eventIdValue}`}
-                target="_blank"
-                sx={{
-                  bgcolor: '#6366F1',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-satoshi)',
-                  borderRadius: '12px',
-                  py: 1.25,
-                  '&:hover': {
-                    bgcolor: '#4F46E5'
-                  }
-                }}
-            >
-                View Event Page
-            </Button>
-            <Button
-                variant="outlined"
-                fullWidth
-                startIcon={<ShareIcon sx={{ fontSize: 18 }} />}
-                onClick={() => {
-                     navigator.clipboard.writeText(`${window.location.origin}/events/${eventIdValue}`);
-                }}
-                sx={{
-                  bgcolor: '#1C1A18',
-                  border: '1px solid #34322F',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-satoshi)',
-                  borderRadius: '12px',
-                  py: 1.25,
-                  '&:hover': {
-                    bgcolor: '#242220',
-                    borderColor: '#6366F1'
-                  }
-                }}
-            >
-                Copy Link
-            </Button>
-        </Box>
-      </Box>
-    </Box>
+        <div className="mt-auto flex flex-col gap-3 pt-4 border-t border-[#34322F]">
+          <a
+            href={`/flow/events/${eventIdValue}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3 px-4 rounded-[14px] bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold text-sm text-center font-satoshi transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>View Event Page</span>
+            <ExternalLink className="w-4 h-4" />
+          </a>
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/events/${eventIdValue}`);
+              toast.success('Event link copied!');
+            }}
+            className="w-full py-3 px-4 rounded-[14px] bg-[#1C1A18] hover:bg-[#242220] border border-[#34322F] hover:border-[#6366F1] text-white font-bold text-sm text-center font-satoshi transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Share2 className="w-4 h-4" />
+            <span>Copy Link</span>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
+
