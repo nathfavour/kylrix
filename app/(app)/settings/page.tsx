@@ -35,6 +35,8 @@ import { useAppwriteVault } from '@/context/appwrite-context';
 import { hasPaidKylrixPlan, getUserSubscriptionTier, getUserSubscriptionExpiresAt, getUserProfilePicId, getEffectiveDisplayName, getEffectiveUsername } from '@/lib/utils';
 import { IdentityAvatar } from '@/components/common/IdentityBadge';
 import { getComputeBalanceAction } from '@/lib/actions/ai';
+import { getProfilePicturePreview } from '@/lib/appwrite';
+import { getCachedProfilePreview } from '@/lib/profile-preview';
 
 // Inline Custom Telegram Icon SVG for lucide alignment
 function TelegramIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -91,12 +93,38 @@ export default function SettingsPage() {
     const [isLocalhost, setIsLocalhost] = useState(false);
     const [demoModeEnabled, setDemoModeEnabled] = useState(false);
     const [computeBalance, setComputeBalance] = useState<{ balance: number; maxBalance: number; tier: string; percent: number } | null>(null);
+    const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
             setIsLocalhost(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
         }
     }, []);
+
+    const profilePicId = getUserProfilePicId(user);
+
+    useEffect(() => {
+        let mounted = true;
+        const fetchAvatar = async () => {
+            if (!profilePicId) {
+                if (mounted) setProfileAvatarUrl(null);
+                return;
+            }
+            try {
+                const cached = getCachedProfilePreview(profilePicId, 80, 80);
+                if (cached) {
+                    if (mounted) setProfileAvatarUrl(cached ?? null);
+                    return;
+                }
+                const url = await getProfilePicturePreview(profilePicId, 80, 80);
+                if (mounted) setProfileAvatarUrl(url);
+            } catch (e) {
+                if (mounted) setProfileAvatarUrl(null);
+            }
+        };
+        fetchAvatar();
+        return () => { mounted = false; };
+    }, [profilePicId]);
 
     // Initialize with optimistic default based on client-side tier
     useEffect(() => {
@@ -316,18 +344,14 @@ export default function SettingsPage() {
                 
                 <div className="flex flex-col md:flex-row gap-6 items-center relative z-10">
                     {/* Profile */}
-                    <div className="flex-shrink-0 relative">
+                    <div className="flex-shrink-0">
                         <IdentityAvatar 
+                            src={profileAvatarUrl}
                             userId={user?.$id}
                             pro={hasPaidKylrixPlan(user)}
                             size={56}
-                            sx={{ border: '2px solid rgba(0,0,0,0.2)' }}
+                            fallback={getEffectiveDisplayName(user).slice(0, 1).toUpperCase()}
                         />
-                        {hasPaidKylrixPlan(user) && (
-                            <div className="absolute -bottom-1 -right-1 bg-[#6366F1] text-[8px] font-black px-1.5 py-0.5 rounded-md border border-[#161412] text-white shadow-lg uppercase">
-                                PRO
-                            </div>
-                        )}
                     </div>
 
                     {/* Account Info */}
@@ -337,7 +361,7 @@ export default function SettingsPage() {
                         </h1>
                         <div className="flex items-center justify-center md:justify-start gap-2 mt-1">
                             <span className="text-[10px] font-black text-[#EC4899] uppercase tracking-wider">
-                                {getUserSubscriptionTier(user)}
+                                {getUserSubscriptionTier(user)} PLAN
                             </span>
                             {hasPaidKylrixPlan(user) && getUserSubscriptionExpiresAt(user) && (
                                 <span className="text-[10px] font-bold text-white/20 uppercase font-mono">
