@@ -36,7 +36,25 @@ export function getLastEcosystemRoute(): RouteState | null {
     const raw = localStorage.getItem(STATE_STORAGE_KEY);
     if (!raw) return null;
     const history: RouteState[] = JSON.parse(raw);
-    return history.length > 0 ? history[0] : null;
+    
+    // Dynamically filter out public paths to prevent stale redirects
+    const validHistory = history.filter(s => {
+      const p = s.path;
+      return !(
+        p.startsWith('/send') ||
+        p === '/' ||
+        p.startsWith('/i/') ||
+        p.startsWith('/note/shared') ||
+        p.startsWith('/u/') ||
+        p.startsWith('/p/') ||
+        p.startsWith('/call/') ||
+        p.startsWith('/connect/call/') ||
+        p.startsWith('/flow/forms/') ||
+        p.startsWith('/flow/events/')
+      );
+    });
+
+    return validHistory.length > 0 ? validHistory[0] : null;
   } catch {
     return null;
   }
