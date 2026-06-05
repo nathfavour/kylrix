@@ -17,7 +17,9 @@ export type UnorganicEmailEventType =
   | 'call_started'
   | 'token_transfer_received'
   | 'project_invited'
-  | 'subscription_expiry_reminder';
+  | 'subscription_expiry_reminder'
+  | 'feature_announcement'
+  | 'coupon_issued';
 
 export type UnorganicEmailRecipientInput =
   | { userId: string; email?: never }
@@ -84,6 +86,8 @@ const EVENT_PRIORITY: Record<UnorganicEmailEventType, number> = {
   message_streak: 16,
   project_invited: 50,
   subscription_expiry_reminder: 95,
+  feature_announcement: 70,
+  coupon_issued: 80,
 };
 
 const MAX_UNORGANIC_EMAILS = 5;
@@ -328,6 +332,27 @@ function resolveEventCopy(input: Required<Pick<UnorganicEmailDispatchInput, 'eve
         ctaText: 'Renew Subscription',
         ctaUrl: `${KYLRIX_AUTH_URI}/accounts/settings/profile`,
       };
+    case 'feature_announcement':
+    case 'coupon_issued': {
+      const isCoupon = input.eventType === 'coupon_issued' || Boolean(input.metadata?.couponId);
+      if (isCoupon) {
+        const discount = input.metadata?.discountPercent || 'a special';
+        return {
+          subject: pickText(input.metadata?.subject as string, 'You received a Kylrix Coupon!'),
+          title: 'Special Offer',
+          body: `${actorName} sent you a coupon for ${discount}% off Kylrix Pro. Claim it now to upgrade your workspace.`.trim(),
+          ctaText: 'Claim Coupon',
+          ctaUrl: pickText(input.metadata?.couponUrl as string, ctaUrl),
+        };
+      }
+      return {
+        subject: pickText(input.metadata?.subject as string, `New feature: ${resourceTitle}`),
+        title: 'Feature Update',
+        body: `${actorName} announced a new feature: ${resourceTitle}.`.trim(),
+        ctaText,
+        ctaUrl,
+      };
+    }
     default:
       return {
         subject: `Update from ${resourceTitle}`,
@@ -362,7 +387,7 @@ function buildEmailHtml(params: {
     .card { background: #161412; border: 1px solid rgba(255,255,255,0.06); border-radius: 28px; overflow: hidden; }
     .top { padding: 28px 28px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); }
     .badge { display:inline-block; padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.72); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
-    .logo { margin-top: 18px; width: 44px; height: 44px; background: ${theme.color}; border-radius: ${theme.shape === 'Diamond' ? '10px' : '14px'}; transform: ${theme.shape === 'Diamond' ? 'rotate(45deg)' : 'skewX(-14deg)'}; }
+    .logo { margin-top: 18px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
     .content { padding: 28px; }
     .title { font-size: 26px; line-height: 1.1; font-weight: 900; margin: 0 0 16px; }
     .body { font-size: 16px; line-height: 1.6; color: rgba(255,255,255,0.72); margin: 0 0 24px; }
@@ -375,7 +400,26 @@ function buildEmailHtml(params: {
     <div class="card">
       <div class="top">
         <div class="badge">${escapeHtml(theme.label)} update</div>
-        <div class="logo"></div>
+        <div class="logo">
+          <svg viewBox="0 0 100 100" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3))">
+            <line x1="15" y1="30" x2="50" y2="10" stroke="#EC4899" stroke-width="3.5" stroke-linecap="round" />
+            <line x1="50" y1="10" x2="85" y2="30" stroke="#10B981" stroke-width="3.5" stroke-linecap="round" />
+            <line x1="85" y1="30" x2="85" y2="70" stroke="#EC4899" stroke-width="3.5" stroke-linecap="round" />
+            <line x1="85" y1="70" x2="50" y2="90" stroke="#A855F7" stroke-width="3.5" stroke-linecap="round" />
+            <line x1="50" y1="90" x2="15" y2="70" stroke="#EC4899" stroke-width="3.5" stroke-linecap="round" />
+            <line x1="15" y1="70" x2="15" y2="30" stroke="#F59E0B" stroke-width="3.5" stroke-linecap="round" />
+            <line x1="50" y1="50" x2="15" y2="30" stroke="#A855F7" stroke-width="3.5" stroke-linecap="round" />
+            <line x1="50" y1="50" x2="85" y2="30" stroke="#F59E0B" stroke-width="3.5" stroke-linecap="round" />
+            <line x1="50" y1="50" x2="50" y2="90" stroke="#10B981" stroke-width="3.5" stroke-linecap="round" />
+            <circle cx="50" cy="10" r="4" fill="${theme.color}" stroke="#0A0908" stroke-width="1.5" />
+            <circle cx="15" cy="30" r="4" fill="${theme.color}" stroke="#0A0908" stroke-width="1.5" />
+            <circle cx="85" cy="30" r="4" fill="${theme.color}" stroke="#0A0908" stroke-width="1.5" />
+            <circle cx="15" cy="70" r="4" fill="${theme.color}" stroke="#0A0908" stroke-width="1.5" />
+            <circle cx="50" cy="90" r="4" fill="${theme.color}" stroke="#0A0908" stroke-width="1.5" />
+            <circle cx="85" cy="70" r="4" fill="${theme.color}" stroke="#0A0908" stroke-width="1.5" />
+            <circle cx="50" cy="50" r="5.5" fill="${theme.color}" stroke="#0A0908" stroke-width="2" />
+          </svg>
+        </div>
       </div>
       <div class="content">
         <h1 class="title">${escapeHtml(params.title)}</h1>

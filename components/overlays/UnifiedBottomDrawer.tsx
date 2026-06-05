@@ -89,7 +89,7 @@ export function UnifiedBottomDrawer() {
             anchor={isDesktop ? 'right' : 'bottom'}
             open={true}
             onClose={close}
-            ModalProps={{ keepMounted: false, disablePortal: true }}
+            ModalProps={{ keepMounted: false }}
             PaperProps={{
                 sx: {
                     bgcolor: '#161412',
