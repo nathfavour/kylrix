@@ -309,7 +309,7 @@ export function LoginDrawer() {
         className={`fixed z-[1299] bg-[#161412] border-white/5 shadow-2xl transition-all duration-300 flex flex-col overflow-y-auto ${
           isDesktop 
             ? 'right-0 top-0 bottom-0 w-full sm:w-[480px] border-l animate-slideInRight' 
-            : 'left-0 right-0 bottom-0 h-[60vh] rounded-t-[24px] border-t animate-slideInUp'
+            : 'left-0 right-0 bottom-0 h-auto max-h-[60vh] rounded-t-[24px] border-t animate-slideInUp'
         }`}
       >
         <div className="p-6 pb-[calc(24px+env(safe-area-inset-bottom))]">
