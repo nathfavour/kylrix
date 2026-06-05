@@ -310,94 +310,64 @@ export default function SettingsPage() {
                 <span>Back</span>
             </button>
 
-            {/* Header Title Section / Account Summary */}
-            <header className="mb-10 p-6 md:p-8 bg-gradient-to-br from-[#161412] to-[#0A0908] border border-white/5 rounded-[32px] shadow-2xl overflow-hidden relative group">
-                {/* Subtle Glow Backdrop */}
-                <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#6366F1]/5 blur-[80px] rounded-full group-hover:bg-[#EC4899]/5 transition-colors duration-700" />
+            {/* Header Title Section / Compact Account Summary */}
+            <header className="mb-6 p-5 bg-[#161412] border border-white/5 rounded-[24px] shadow-xl overflow-hidden relative group">
+                <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#6366F1]/5 blur-[40px] rounded-full" />
                 
-                <div className="flex flex-col md:flex-row gap-8 items-start md:items-center relative z-10">
-                    {/* Profile Preview Section */}
+                <div className="flex flex-col md:flex-row gap-6 items-center relative z-10">
+                    {/* Profile */}
                     <div className="flex-shrink-0 relative">
                         <IdentityAvatar 
                             userId={user?.$id}
                             pro={hasPaidKylrixPlan(user)}
-                            size={100}
-                            sx={{ border: '4px solid rgba(0,0,0,0.2)' }}
+                            size={56}
+                            sx={{ border: '2px solid rgba(0,0,0,0.2)' }}
                         />
-                        <div className="absolute -bottom-2 -right-2 bg-[#6366F1] text-[10px] font-black px-2 py-0.5 rounded-lg border-2 border-[#161412] text-white shadow-lg uppercase tracking-widest">
-                            PRO
-                        </div>
+                        {hasPaidKylrixPlan(user) && (
+                            <div className="absolute -bottom-1 -right-1 bg-[#6366F1] text-[8px] font-black px-1.5 py-0.5 rounded-md border border-[#161412] text-white shadow-lg uppercase">
+                                PRO
+                            </div>
+                        )}
                     </div>
 
                     {/* Account Info */}
-                    <div className="flex-1 min-w-0">
-                        <span className="text-[10px] font-black tracking-widest uppercase text-white/30 font-mono block mb-1.5">
-                            KYLRIX CORE IDENTITY
-                        </span>
-                        <h1 className="text-white font-black text-2xl md:text-3xl tracking-tight leading-tight mb-2 font-mono tracking-tighter">
+                    <div className="flex-1 min-w-0 text-center md:text-left">
+                        <h1 className="text-white font-black text-xl tracking-tight leading-tight font-mono truncate">
                             {getEffectiveDisplayName(user)}
                         </h1>
-                        <div className="flex flex-wrap items-center gap-3">
-                            <div className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all duration-500 ${hasPaidKylrixPlan(user) ? 'bg-[#EC4899]/10 text-[#EC4899] border-[#EC4899]/20 shadow-[0_0_12px_rgba(236,72,153,0.1)]' : 'bg-white/5 text-white/40 border-white/10'}`}>
-                                {getUserSubscriptionTier(user)} SUBSCRIBER
-                            </div>
+                        <div className="flex items-center justify-center md:justify-start gap-2 mt-1">
+                            <span className="text-[10px] font-black text-[#EC4899] uppercase tracking-wider">
+                                {getUserSubscriptionTier(user)}
+                            </span>
                             {hasPaidKylrixPlan(user) && getUserSubscriptionExpiresAt(user) && (
-                                <span className="text-[11px] font-bold text-white/30 uppercase tracking-tight font-mono">
-                                    Ends {new Date(getUserSubscriptionExpiresAt(user)!).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                <span className="text-[10px] font-bold text-white/20 uppercase font-mono">
+                                    • Ends {new Date(getUserSubscriptionExpiresAt(user)!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                 </span>
                             )}
                         </div>
                     </div>
 
-                    {/* AI Compute Section */}
-                    <div className="w-full md:w-[320px] pt-6 md:pt-0 border-t md:border-t-0 md:border-l border-white/10 md:pl-8 flex flex-col gap-5">
+                    {/* AI Compute Section (Usage 0-100%) */}
+                    <div className="w-full md:w-[220px] flex flex-col gap-2">
                         <div className="flex items-center justify-between gap-2">
-                            <div className="flex flex-col gap-0.5">
-                                <span className="text-[10px] font-black text-[#6366F1] tracking-[0.2em] uppercase font-mono">
-                                    Agentic Capacity
-                                </span>
-                                <span className="text-[11px] font-bold text-white/60">
-                                    DYNAMIC RESOURCE ALLOCATION
-                                </span>
-                            </div>
-                            <div className="text-right">
-                                <span className="text-xl font-black font-mono text-white">
-                                    {computeBalance ? Math.round(computeBalance.percent) : '100'}<span className="text-white/20 text-sm ml-0.5">%</span>
-                                </span>
-                            </div>
+                            <span className="text-[9px] font-black text-white/30 tracking-widest uppercase font-mono">
+                                AI Compute Usage
+                            </span>
+                            <span className="text-sm font-black font-mono text-white">
+                                {computeBalance ? Math.round(100 - computeBalance.percent) : '0'}%
+                            </span>
                         </div>
                         
-                        {/* Compute Progress Bar Container */}
-                        <div className="relative">
-                            <div className="h-3.5 w-full bg-black/50 rounded-full overflow-hidden border border-white/10 shadow-[inset_0_2px_8px_rgba(0,0,0,0.6)]">
-                                <motion.div 
-                                    initial={{ width: "100%" }}
-                                    animate={{ width: `${computeBalance?.percent ?? 100}%` }}
-                                    transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }}
-                                    className="h-full bg-gradient-to-r from-[#6366F1] via-[#A855F7] to-[#EC4899] relative"
-                                >
-                                    {/* Animated Shine Effect */}
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shine" />
-                                </motion.div>
-                            </div>
-                            
-                            {/* Detailed Balance Hint */}
-                            <div className="flex justify-between mt-2.5 px-0.5">
-                                <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.1em] font-mono">
-                                    {computeBalance?.balance.toLocaleString() || '---'} / {computeBalance?.maxBalance.toLocaleString() || '---'} COMPUTE UNITS
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#EC4899] shadow-[0_0_8px_#EC4899]" />
-                                    <span className="text-[9px] font-black text-white/40 uppercase tracking-widest font-mono">
-                                        Live Pulse
-                                    </span>
-                                </span>
-                            </div>
+                        <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
+                            <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${100 - (computeBalance?.percent ?? 100)}%` }}
+                                transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+                                className="h-full bg-gradient-to-r from-[#6366F1] to-[#EC4899] relative"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-shine" />
+                            </motion.div>
                         </div>
-                        
-                        <p className="text-[9px] font-bold text-white/30 leading-relaxed uppercase tracking-tighter italic">
-                            Availability scales dynamically relative to global ecosystem stress.
-                        </p>
                     </div>
                 </div>
             </header>
