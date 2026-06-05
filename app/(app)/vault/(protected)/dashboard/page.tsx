@@ -18,6 +18,7 @@ import { useSudo } from '@/context/SudoContext';
 import { useFAB } from '@/context/FABContext';
 import { MultiSectionContainer, useSection } from '@/context/SectionContext';
 import { ArrowLeft, Plus, Eye, EyeOff } from 'lucide-react';
+import { Box, Typography, Paper, Button, IconButton, Avatar, CircularProgress, Tooltip, alpha } from '@/lib/mui-tailwind/material';
 
 function DashboardPageContent() {
   const { user, needsMasterPassword, isVaultUnlocked, isVaultBlurEnabled, setVaultBlurEnabled } = useAppwriteVault();
@@ -119,7 +120,7 @@ function DashboardPageContent() {
       setDialogType(action.split('-')[1]);
       setShowDialog(true);
       
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams(searchParams.toString());
       params.delete('action');
       const newPath = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
       router.replace(newPath);
@@ -248,7 +249,7 @@ function DashboardPageContent() {
                 <div className="ml-auto flex items-center gap-2">
                   {isSelectMode && selectedIds.length > 0 && (
                     <button
-                      onClick={() => requestSudo({ onSuccess: handleMultiDelete })}
+                      onClick={() => requestSudo({ onSuccess: () => handleDelete() })}
                       disabled={isMultiDeleting}
                       className="px-3 py-2 bg-[#FF453A]/10 text-[#FF453A] text-xs font-bold rounded-xl hover:bg-[#FF453A]/20 transition-colors"
                     >
@@ -386,4 +387,3 @@ export default function DashboardPage() {
     </Suspense>
   );
 }
-
