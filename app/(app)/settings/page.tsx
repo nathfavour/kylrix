@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
     ArrowLeft,
     Lock, 
@@ -31,7 +32,9 @@ import { checkTelegramConnection } from '@/lib/actions/telegram';
 import { MultiSectionContainer } from '@/context/SectionContext';
 import { CdrConfirmDrawer } from '@/src/features/story-cdr/CdrConfirmDrawer';
 import { useAppwriteVault } from '@/context/appwrite-context';
-import { hasPaidKylrixPlan, getUserSubscriptionTier, getUserSubscriptionExpiresAt } from '@/lib/utils';
+import { hasPaidKylrixPlan, getUserSubscriptionTier, getUserSubscriptionExpiresAt, getUserProfilePicId, getEffectiveDisplayName, getEffectiveUsername } from '@/lib/utils';
+import { IdentityAvatar } from '@/components/common/IdentityBadge';
+import { getComputeBalanceAction } from '@/lib/actions/ai';
 
 // Inline Custom Telegram Icon SVG for lucide alignment
 function TelegramIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -87,11 +90,20 @@ export default function SettingsPage() {
     const [cdrDrawerOpen, setCdrDrawerOpen] = useState(false);
     const [isLocalhost, setIsLocalhost] = useState(false);
     const [demoModeEnabled, setDemoModeEnabled] = useState(false);
+    const [computeBalance, setComputeBalance] = useState<{ balance: number; maxBalance: number; tier: string; percent: number } | null>(null);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
             setIsLocalhost(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
         }
+    }, []);
+
+    useEffect(() => {
+        const fetchCompute = async () => {
+            const balance = await getComputeBalanceAction();
+            if (balance) setComputeBalance(balance);
+        };
+        fetchCompute();
     }, []);
 
     useEffect(() => {
@@ -285,27 +297,79 @@ export default function SettingsPage() {
                 <span>Back</span>
             </button>
 
-            {/* Header Title Section */}
-            <header className="mb-8">
-                <span className="text-[10px] font-black tracking-widest uppercase text-white/40 font-mono block mb-1">
-                    KYLRIX CONTROL PANEL
-                </span>
-                <h1 className="text-white font-black text-2xl md:text-3xl tracking-tight leading-tight mb-1 font-mono tracking-tighter">
-                    Settings
-                </h1>
-                <div className="flex flex-col gap-2">
-                    <p className="text-white/40 text-xs font-semibold leading-normal font-sans max-w-[560px]">
-                        Manage identity discoverability, encryption access, passkeys, and device preferences.
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                        <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${hasPaidKylrixPlan(user) ? 'bg-[#EC4899]/10 text-[#EC4899] border-[#EC4899]/20' : 'bg-white/5 text-white/40 border-white/10'}`}>
-                            {getUserSubscriptionTier(user)} PLAN
+            {/* Header Title Section / Account Summary */}
+            <header className="mb-10 p-6 md:p-8 bg-gradient-to-br from-[#161412] to-[#0A0908] border border-white/5 rounded-[32px] shadow-2xl overflow-hidden relative group">
+                {/* Subtle Glow Backdrop */}
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#6366F1]/5 blur-[80px] rounded-full group-hover:bg-[#EC4899]/5 transition-colors duration-700" />
+                
+                <div className="flex flex-col md:flex-row gap-8 items-start md:items-center relative z-10">
+                    {/* Profile Preview Section */}
+                    <div className="flex-shrink-0 relative">
+                        <IdentityAvatar 
+                            userId={user?.$id}
+                            pro={hasPaidKylrixPlan(user)}
+                            size={100}
+                            sx={{ border: '4px solid rgba(0,0,0,0.2)' }}
+                        />
+                        <div className="absolute -bottom-2 -right-2 bg-[#6366F1] text-[10px] font-black px-2 py-0.5 rounded-lg border-2 border-[#161412] text-white shadow-lg uppercase tracking-widest">
+                            PRO
                         </div>
-                        {hasPaidKylrixPlan(user) && getUserSubscriptionExpiresAt(user) && (
-                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-tighter">
-                                Expires {new Date(getUserSubscriptionExpiresAt(user)!).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </span>
-                        )}
+                    </div>
+
+                    {/* Account Info */}
+                    <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-black tracking-widest uppercase text-white/30 font-mono block mb-1.5">
+                            KYLRIX CORE IDENTITY
+                        </span>
+                        <h1 className="text-white font-black text-2xl md:text-3xl tracking-tight leading-tight mb-2 font-mono tracking-tighter">
+                            {getEffectiveDisplayName(user)}
+                        </h1>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all duration-500 ${hasPaidKylrixPlan(user) ? 'bg-[#EC4899]/10 text-[#EC4899] border-[#EC4899]/20 shadow-[0_0_12px_rgba(236,72,153,0.1)]' : 'bg-white/5 text-white/40 border-white/10'}`}>
+                                {getUserSubscriptionTier(user)} SUBSCRIBER
+                            </div>
+                            {hasPaidKylrixPlan(user) && getUserSubscriptionExpiresAt(user) && (
+                                <span className="text-[11px] font-bold text-white/30 uppercase tracking-tight font-mono">
+                                    Ends {new Date(getUserSubscriptionExpiresAt(user)!).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* AI Compute Section */}
+                    <div className="w-full md:w-[280px] pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-white/5 md:pl-8 flex flex-col gap-4">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex flex-col gap-0.5">
+                                <span className="text-[10px] font-black text-white/30 tracking-widest uppercase font-mono">
+                                    AI Compute Daily Limit
+                                </span>
+                                <span className="text-[11px] font-bold text-white/60">
+                                    Dynamic Resource Allocation
+                                </span>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-lg font-black font-mono text-[#6366F1]">
+                                    {computeBalance ? Math.round(computeBalance.percent) : '0'}%
+                                </span>
+                            </div>
+                        </div>
+                        
+                        {/* Compute Progress Bar */}
+                        <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                            <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${computeBalance?.percent || 0}%` }}
+                                transition={{ duration: 1.2, ease: "easeOut" }}
+                                className="h-full bg-gradient-to-r from-[#6366F1] via-[#A855F7] to-[#EC4899] relative"
+                            >
+                                {/* Animated Shine Effect */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-shine" />
+                            </motion.div>
+                        </div>
+                        
+                        <p className="text-[9px] font-bold text-white/20 leading-relaxed uppercase tracking-tighter">
+                            Availability scales relative to global ecosystem load.
+                        </p>
                     </div>
                 </div>
             </header>

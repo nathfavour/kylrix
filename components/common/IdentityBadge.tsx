@@ -6,7 +6,7 @@ import { CheckCircle as CheckCircleIcon } from '@/lib/mui-tailwind/icons';
 import { UserPresenceState } from '@/lib/services/presence';
 import { storage } from '@/lib/appwrite/client';
 
-const RING_COLORS = ['#6366F1', '#EC4899', '#10B981', '#A855F7', '#F59E0B'];
+const RING_COLORS = ['#6366F1', '#34D399', '#D8B4FE', '#FBBF24', '#F472B6'];
 const RING_GRADIENT = `conic-gradient(from 180deg, ${RING_COLORS.join(', ')}, #6366F1)`;
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;

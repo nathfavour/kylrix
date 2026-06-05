@@ -100,3 +100,12 @@ html {
 [data-dynamic-sidebar="true"]:has(.note-detail-sidebar-root) .dynamic-sidebar-header {
   display: none !important;
 }
+
+@keyframes shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shine {
+  animation: shine 2.5s infinite;
+}

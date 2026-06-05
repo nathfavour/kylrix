@@ -316,3 +316,46 @@ Please utilize this contextual memory to optimize your recommendations if releva
     return { success: false, error: "Failed to generate AI response" };
   }
 }
+
+export async function getComputeBalanceAction(jwt?: string) {
+  const actor = await getActor(jwt);
+  if (!actor) return null;
+
+  try {
+    const tables = createSystemTablesDB();
+    const res = await tables.listRows({
+      databaseId: 'whisperrflow',
+      tableId: 'compute_balances',
+      queries: [
+        Query.equal('userId', actor.$id),
+        Query.limit(1)
+      ]
+    });
+
+    if (res.rows.length === 0) {
+      // Default initial state for return if not yet initialized
+      const isPro = hasPaidKylrixPlan(actor);
+      return {
+        balance: isPro ? 100000 : 0,
+        maxBalance: isPro ? 100000 : 0,
+        tier: isPro ? 'pro' : 'free',
+        percent: isPro ? 100 : 0
+      };
+    }
+
+    const row = res.rows[0];
+    const maxBalance = row.tier === 'pro' ? 100000 : 10000; // Example relative limits
+    const currentBalance = Number(row.balance);
+    const percent = Math.min(100, Math.max(0, (currentBalance / maxBalance) * 100));
+
+    return {
+      balance: currentBalance,
+      maxBalance,
+      tier: row.tier,
+      percent
+    };
+  } catch (err) {
+    console.error('[getComputeBalanceAction] Failed:', err);
+    return null;
+  }
+}
