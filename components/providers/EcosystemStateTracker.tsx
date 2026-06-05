@@ -16,8 +16,20 @@ export function EcosystemStateTracker({ children }: { children: React.ReactNode 
   useEffect(() => {
     if (!pathname) return;
 
-    // Do not track public landers or auth gates
-    if (pathname.startsWith('/send') || pathname === '/' || pathname.startsWith('/i/')) {
+    // Do not track public landers, shared/guest views, or auth gates
+    const isPublic =
+      pathname.startsWith('/send') ||
+      pathname === '/' ||
+      pathname.startsWith('/i/') ||
+      pathname.startsWith('/note/shared') ||
+      pathname.startsWith('/u/') ||
+      pathname.startsWith('/p/') ||
+      pathname.startsWith('/call/') ||
+      pathname.startsWith('/connect/call/') ||
+      pathname.startsWith('/flow/forms/') ||
+      pathname.startsWith('/flow/events/');
+
+    if (isPublic) {
       return;
     }
 
