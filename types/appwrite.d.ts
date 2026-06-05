@@ -51,6 +51,13 @@ export enum BillingWebhookLogsStatus {
     FAILED = "failed"
 }
 
+export enum CouponsStatus {
+    ACTIVE = "active",
+    REVOKED = "revoked",
+    DEPLETED = "depleted",
+    EXPIRED = "expired"
+}
+
 export enum MessagesType {
     TEXT = "text",
     IMAGE = "image",
@@ -131,6 +138,15 @@ export enum CallSignalsType {
     OFFER = "offer",
     ANSWER = "answer",
     CANDIDATE = "candidate"
+}
+
+export enum AccountEventsStatus {
+    ACTIVE = "active",
+    USED = "used",
+    REVOKED = "revoked",
+    APPLIED = "applied",
+    REDEEMED = "redeemed",
+    PENDING = "pending"
 }
 
 export enum FormsStatus {
@@ -322,6 +338,21 @@ export type ResourceTags = Models.Row & {
     isPublic: boolean;
     isGuest: boolean;
     isPinned: boolean | null;
+}
+
+export type Coupons = Models.Row & {
+    discountPercent: number;
+    status: CouponsStatus;
+    expiresAt: string | null;
+    redemptionLimit: number;
+    redemptionCount: number;
+    targetUserId: string | null;
+    createdBy: string;
+    metadata: string | null;
+    note: string | null;
+    title: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
 }
 
 export type SecurityLogs = Models.Row & {
@@ -807,6 +838,20 @@ export type CallSignals = Models.Row & {
     senderId: string;
     type: CallSignalsType;
     payload: string;
+}
+
+export type AccountEvents = Models.Row & {
+    type: string;
+    userId: string;
+    actorId: string;
+    relatedUserId: string | null;
+    status: AccountEventsStatus;
+    discountPercent: number;
+    delta: string | null;
+    expiresAt: string | null;
+    metadata: string | null;
+    redemptionLimit: number;
+    redemptionCount: number;
 }
 
 export type FocusSessions = Models.Row & {
