@@ -13,14 +13,12 @@ export function requireAdmin(user: any) {
     throw new Error('Forbidden: missing master environment API key');
   }
 
-  // 2. Validate email against ADMINS list
+  // 2. Validate email against ADMINS list OR user labels as safety fallback
   const email = String(user?.email || '').trim().toLowerCase();
-  if (!email || !isEmailInAdminList(email)) {
-    throw new Error('Forbidden: admin privileges required');
-  }
+  const isInAdminList = !!(email && isEmailInAdminList(email));
+  const hasAdminLabel = !!(user && Array.isArray(user.labels) && user.labels.includes('admin'));
 
-  // 3. Keep standard checking on user labels as safety fallback
-  if (!user || !Array.isArray(user.labels) || !user.labels.includes('admin')) {
+  if (!isInAdminList && !hasAdminLabel) {
     throw new Error('Forbidden: admin privileges required');
   }
 }
