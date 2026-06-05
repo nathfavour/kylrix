@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { 
   Box, 
   Grid, 
   Paper, 
-
   Typography, 
   alpha,
   Button,
@@ -27,7 +26,15 @@ import {
 import AdminLayout from './components/AdminLayout';
 import { getAdminStatsAction } from '../actions/admin';
 
-export default function AdminDashboard() {
+export default function AdminDashboardWrapper() {
+  return (
+    <Suspense fallback={<CircularProgress />}>
+        <AdminDashboard />
+    </Suspense>
+  );
+}
+
+function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 

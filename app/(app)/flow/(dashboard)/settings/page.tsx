@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { 
     Box, 
     Typography, 
@@ -32,6 +32,15 @@ import toast from 'react-hot-toast';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 
 export default function SettingsPage() {
+    return (
+        <Suspense fallback={<CircularProgress />}>
+            <SettingsPageContent />
+        </Suspense>
+    );
+}
+
+function SettingsPageContent() {
+// ... rest of the component code ...
     const { open: openUnified } = useUnifiedDrawer();
     const [isUnlocked, setIsUnlocked] = useState(ecosystemSecurity.status.isUnlocked);
     const [oldPin, setOldPin] = useState('');
@@ -363,3 +372,4 @@ export default function SettingsPage() {
         </Box>
     );
 }
+
