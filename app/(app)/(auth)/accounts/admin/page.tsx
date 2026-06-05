@@ -26,9 +26,15 @@ import {
 import AdminLayout from './components/AdminLayout';
 import { getAdminStatsAction } from '../actions/admin';
 
+export const dynamic = 'force-dynamic';
+
 export default function AdminDashboardPage() {
   return (
-    <Suspense fallback={<CircularProgress />}>
+    <Suspense fallback={
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#0A0908' }}>
+            <CircularProgress sx={{ color: '#6366F1' }} />
+        </Box>
+    }>
         <AdminDashboard />
     </Suspense>
   );

@@ -31,9 +31,15 @@ import { DiscoverabilitySettings } from '@/components/settings/DiscoverabilitySe
 import toast from 'react-hot-toast';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 
+export const dynamic = 'force-dynamic';
+
 export default function SettingsPage() {
     return (
-        <Suspense fallback={<CircularProgress />}>
+        <Suspense fallback={
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#0A0908' }}>
+                <CircularProgress sx={{ color: '#00F0FF' }} />
+            </Box>
+        }>
             <SettingsPageContent />
         </Suspense>
     );
