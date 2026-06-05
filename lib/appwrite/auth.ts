@@ -169,30 +169,55 @@ export class AppwriteService {
   }
 
   static async searchGlobalProfiles(query: string, limit = 8): Promise<any[]> {
-    const text = query.trim();
+    const text = query.trim().replace(/^@/, '');
     if (!text) return [];
 
     try {
       const tableId = APPWRITE_CONFIG.TABLES.CONNECT.PROFILES;
-      const [byUsername, byDisplayName] = await Promise.all([
-        tablesDB.listRows<ProfileRow>({
+      
+      // Attempt optimized Query.or with startsWith (Prefix match)
+      try {
+        const res = await tablesDB.listRows<ProfileRow>({
           databaseId: CONNECT_DATABASE_ID,
           tableId,
-          queries: [Query.search('username', text), Query.limit(limit)],
-        }),
-        tablesDB.listRows<ProfileRow>({
-          databaseId: CONNECT_DATABASE_ID,
-          tableId,
-          queries: [Query.search('displayName', text), Query.limit(limit)],
-        })]);
+          queries: [
+            Query.or([
+              Query.startsWith('username', text.toLowerCase()),
+              Query.startsWith('displayName', text)
+            ]),
+            Query.limit(limit)
+          ],
+        });
 
-      const merged = new Map<string, ProfileRow>();
-      for (const row of [...byUsername.rows, ...byDisplayName.rows]) {
-        const key = row.userId || row.$id;
-        if (key && !merged.has(key)) merged.set(key, row);
+        const merged = new Map<string, ProfileRow>();
+        for (const row of res.rows) {
+          const key = row.userId || row.$id;
+          if (key && !merged.has(key)) merged.set(key, row);
+        }
+        return Array.from(merged.values());
+      } catch (e: any) {
+        // Fallback: Individual startsWith queries
+        const [byUsername, byDisplayName] = await Promise.all([
+          tablesDB.listRows<ProfileRow>({
+            databaseId: CONNECT_DATABASE_ID,
+            tableId,
+            queries: [Query.startsWith('username', text.toLowerCase()), Query.limit(limit)],
+          }),
+          tablesDB.listRows<ProfileRow>({
+            databaseId: CONNECT_DATABASE_ID,
+            tableId,
+            queries: [Query.startsWith('displayName', text), Query.limit(limit)],
+          })]);
+
+        const merged = new Map<string, ProfileRow>();
+        for (const row of [...byUsername.rows, ...byDisplayName.rows]) {
+          const key = row.userId || row.$id;
+          if (key && !merged.has(key)) merged.set(key, row);
+        }
+        return Array.from(merged.values()).slice(0, limit);
       }
-      return Array.from(merged.values()).slice(0, limit);
-    } catch {
+    } catch (err) {
+      console.warn('[Identity] Global profile search failed:', err);
       return [];
     }
   }
