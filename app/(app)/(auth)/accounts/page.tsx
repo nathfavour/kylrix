@@ -3,12 +3,9 @@
 import { useEffect, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSource } from '@/lib/source-context';
-import { Box, Button, CircularProgress, Typography, alpha } from '@/lib/mui-tailwind/material';
-import { useColors } from '@/lib/theme-context';
 import { useAuth } from '@/context/auth/AuthContext';
 
 function HomeContent() {
-  const dynamicColors = useColors();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setSource } = useSource();
@@ -46,12 +43,12 @@ function HomeContent() {
     };
   }, [authLoading, isAuthenticated, router, searchParams, setSource]);
 
-    if (isChecking) {
+  if (isChecking) {
     return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: '#000000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
-        <CircularProgress sx={{ color: '#6366F1' }} />
-        <Typography sx={{ color: '#FFFFFF' }}>Verifying session...</Typography>
-      </Box>
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6366F1]" />
+        <p className="text-white font-semibold font-satoshi text-sm">Verifying session...</p>
+      </div>
     );
   }
 
@@ -60,94 +57,59 @@ function HomeContent() {
   const isPopup = typeof window !== 'undefined' && !!window.opener;
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        backgroundColor: '#000000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        px: 3,
-      }}
-    >
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: 520,
-          textAlign: 'center',
-          p: 6,
-          borderRadius: '1.5rem',
-          backgroundColor: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-        }}
-
-      >
-        <Typography variant="h3" sx={{ color: 'white', mb: 2, fontWeight: 900 }}>
+    <div className="min-h-screen bg-black flex items-center justify-center px-6">
+      <div className="w-full max-w-[520px] text-center p-8 sm:p-12 rounded-[28px] bg-white/[0.03] border border-white/10 backdrop-blur-md shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]">
+        <h1 className="text-2xl sm:text-3xl font-black font-clash text-white mb-3 tracking-tight">
           Authentication finished
-        </Typography>
-        <Typography sx={{ color: dynamicColors.foreground, mb: 4, opacity: 0.8 }}>
+        </h1>
+        <p className="text-sm text-[#9B9691] mb-8 font-satoshi leading-relaxed">
           You can close this window or tab now and return to the application.
-        </Typography>
+        </p>
         
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4 }}>
+        <div className="flex flex-col gap-3 mb-8">
           {redirectUrl && (
-            <Button
-              variant="contained"
-              fullWidth
+            <button
+              type="button"
               onClick={() => router.push(redirectUrl)}
-              sx={{
-                height: 56,
-                borderRadius: '0.75rem',
-                backgroundColor: dynamicColors.primary,
-                color: dynamicColors.secondary,
-                fontWeight: 800,
-                fontSize: '1rem',
-                textTransform: 'none',
-                boxShadow: `0 8px 20px ${alpha(dynamicColors.primary, 0.25)}`,
-                '&:hover': { backgroundColor: dynamicColors.primary, opacity: 0.9 }
-              }}
+              className="w-full h-14 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-extrabold text-sm transition-all cursor-pointer shadow-lg shadow-[#6366F1]/20 flex items-center justify-center"
             >
               Continue to Application
-            </Button>
+            </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => router.push('/accounts/settings/profile')}
+            className="w-full h-14 rounded-xl bg-[#1C1A18] hover:bg-[#242220] border border-[#34322F] text-white font-extrabold text-sm transition-all cursor-pointer flex items-center justify-center"
+          >
+            View Account Settings
+          </button>
 
           {isPopup && (
-            <Button
-              variant="outlined"
-              fullWidth
+            <button
+              type="button"
               onClick={() => window.close()}
-              sx={{
-                height: 56,
-                borderRadius: '0.75rem',
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-                color: 'white',
-                fontWeight: 800,
-                fontSize: '1rem',
-                textTransform: 'none',
-                '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255, 255, 255, 0.05)' }
-              }}
+              className="w-full h-14 rounded-xl border border-white/10 hover:border-white hover:bg-white/5 text-white font-extrabold text-sm transition-all cursor-pointer flex items-center justify-center"
             >
               Close Window
-            </Button>
+            </button>
           )}
-        </Box>
+        </div>
 
-        <Typography sx={{ color: dynamicColors.foreground, fontSize: '0.875rem', opacity: 0.5 }}>
+        <p className="text-xs text-[#9B9691]/50 font-satoshi leading-normal">
           If things still look stale, refresh the application window you came from as a last resort.
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 }
 
 export default function Home() {
   return (
     <Suspense fallback={
-      <Box sx={{ minHeight: '100vh', backgroundColor: '#000000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress sx={{ color: '#6366F1' }} />
-      </Box>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6366F1]" />
+      </div>
     }>
       <HomeContent />
     </Suspense>
