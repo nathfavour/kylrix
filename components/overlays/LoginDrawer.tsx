@@ -1,23 +1,35 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Box, Typography, Button, Divider, IconButton, TextField, Stack, CircularProgress, alpha, useTheme, useMediaQuery, Drawer } from '@/lib/mui-tailwind/material';
 import { X, Mail, ArrowLeft, Fingerprint } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
 import OAuthButtons from '@/components/OAuthButtons';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import toast from 'react-hot-toast';
-
 import Link from 'next/link';
 
 type LoginStep = 'initial' | 'email' | 'otp' | 'mfa';
+
+// Simple custom media query hook to replace MUI useMediaQuery
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const media = window.matchMedia('(min-width: 768px)');
+    setIsDesktop(media.matches);
+    const listener = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, []);
+  return isDesktop;
+}
+
 export function LoginDrawer() {
   const { activeContent, close } = useUnifiedDrawer();
   const { loginWithEmailOTP, verifyEmailOTP, verifyMFA, refreshUser } = useAuth();
   const { setIsDrawerOpen } = useDrawerState();
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const isDesktop = useIsDesktop();
 
   const [step, setStep] = useState<LoginStep>('initial');
   const [email, setEmail] = useState('');
@@ -158,249 +170,197 @@ export function LoginDrawer() {
     close();
   };
 
+  if (!isOpen) return null;
+
   const renderStep = () => {
     switch (step) {
       case 'initial':
         const isEmailLastUsed = lastUsedMethod === 'email';
         return (
-          <Stack spacing={2}>
+          <div className="space-y-4 animate-fadeIn">
             {checkingSession ? (
-              <Box sx={{ py: 2, display: 'flex', justifyContent: 'center' }}>
-                <CircularProgress size={20} />
-              </Box>
+              <div className="flex justify-center items-center py-4">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#6366F1]" />
+              </div>
             ) : (
               <OAuthButtons disabled={loading || checkingSession} lastUsed={lastUsedMethod} />
             )}
-            <Button
-              fullWidth
-              variant="outlined"
+            
+            <button
+              type="button"
               onClick={() => setStep('email')}
               disabled={checkingSession}
-              startIcon={<Mail size={18} />}
-              sx={{
-                position: 'relative',
-                bgcolor: 'rgba(255,255,255,0.03)',
-                color: 'white',
-                border: '1px solid #34322F',
-                height: isEmailLastUsed ? 60 : 52,
-                borderRadius: '16px',
-                fontWeight: 800,
-                textTransform: 'none',
-                fontSize: isEmailLastUsed ? '0.95rem' : '0.9rem',
-                fontFamily: 'var(--font-satoshi)',
-                ...(isEmailLastUsed && {
-                  boxShadow: `0 8px 24px rgba(255,255,255,0.05)`,
-                  borderColor: 'rgba(255,255,255,0.3)'
-                }),
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.2)', transform: isEmailLastUsed ? 'translateY(-2px)' : 'none' }
-              }}
+              className={`w-full flex items-center justify-between px-5 rounded-2xl border transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                isEmailLastUsed 
+                  ? 'h-[60px] border-white/30 bg-white/5 shadow-lg shadow-white/5' 
+                  : 'h-[52px] border-[#34322F] bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/20'
+              }`}
             >
-              <Box sx={{ flexGrow: 1, textAlign: 'left', pl: 1 }}>Continue with Email</Box>
+              <div className="flex items-center gap-3 font-extrabold text-sm text-white font-satoshi">
+                <Mail className="w-4.5 h-4.5 text-white/40 flex-shrink-0" />
+                <span>Continue with Email</span>
+              </div>
               {isEmailLastUsed && (
-                <Typography variant="caption" sx={{ position: 'absolute', right: 16, fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'white', opacity: 0.6 }}>
+                <span className="text-[10px] font-black uppercase tracking-wider text-white opacity-60">
                   Last Used
-                </Typography>
+                </span>
               )}
-            </Button>
-          </Stack>
+            </button>
+          </div>
         );
 
       case 'email':
         return (
-          <form onSubmit={handleSendOTP}>
-            <Stack spacing={2}>
-              <TextField
-                fullWidth
-                autoFocus
+          <form onSubmit={handleSendOTP} className="space-y-4 animate-fadeIn">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                <Mail className="w-4.5 h-4.5 text-white/30" />
+              </div>
+              <input
+                type="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
-                variant="standard"
-                InputProps={{
-                  disableUnderline: true,
-                  startAdornment: <Mail size={18} style={{ color: '#9B9691', marginRight: 12 }} />,
-                  sx: {
-                    bgcolor: '#0A0908',
-                    color: 'white',
-                    p: 2,
-                    borderRadius: '16px',
-                    border: '1px solid #34322F',
-                    fontFamily: 'var(--font-satoshi)',
-                    fontWeight: 500,
-                  }
-                }}
+                required
+                autoFocus
+                className="w-full bg-[#0A0908] pl-11 pr-4 py-3 rounded-xl border border-[#34322F] text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1] transition-all"
               />
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                disabled={loading || !email}
-                sx={{
-                  bgcolor: '#FFFFFF',
-                  color: '#000',
-                  height: 52,
-                  borderRadius: '16px',
-                  fontWeight: 900,
-                  textTransform: 'none',
-                  '&:hover': { bgcolor: '#F2F2F2' }
-                }}
-              >
-                {loading ? <CircularProgress size={24} color="inherit" /> : 'Send Login Code'}
-              </Button>
-            </Stack>
+            </div>
+            <button
+              type="submit"
+              disabled={loading || !email}
+              className="w-full h-[52px] rounded-xl bg-white hover:bg-white/90 text-black font-black text-sm transition-all cursor-pointer flex justify-center items-center disabled:opacity-50"
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black" />
+              ) : (
+                'Send Login Code'
+              )}
+            </button>
           </form>
         );
 
       case 'otp':
         return (
-          <Box>
-            <Stack spacing={2}>
-              <Typography variant="body2" sx={{ color: '#9B9691', textAlign: 'center', mb: 1 }}>
-                We sent a 6-digit code to <strong>{email}</strong>
-              </Typography>
-              <TextField
-                fullWidth
-                autoFocus
-                placeholder="000000"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                disabled={loading}
-                variant="standard"
-                inputProps={{ style: { textAlign: 'center', letterSpacing: '0.5em', fontSize: '1.5rem', fontWeight: 900 } }}
-                InputProps={{
-                  disableUnderline: true,
-                  sx: {
-                    bgcolor: '#0A0908',
-                    color: 'white',
-                    p: 2,
-                    borderRadius: '16px',
-                    border: '1px solid #34322F',
-                  }
-                }}
-              />
-              {loading && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                    <CircularProgress size={24} color="primary" />
-                </Box>
-              )}
-            </Stack>
-          </Box>
+          <div className="space-y-4 animate-fadeIn">
+            <p className="text-xs text-[#9B9691] text-center leading-relaxed">
+              We sent a 6-digit code to <strong>{email}</strong>
+            </p>
+            <input
+              type="text"
+              placeholder="000000"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+              disabled={loading}
+              autoFocus
+              className="w-full bg-[#0A0908] px-4 py-4 rounded-xl border border-[#34322F] text-center text-2xl font-black tracking-[0.5em] text-white focus:outline-none focus:border-[#6366F1] transition-all"
+            />
+            {loading && (
+              <div className="flex justify-center items-center py-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#6366F1]" />
+              </div>
+            )}
+          </div>
         );
 
       case 'mfa':
         return (
-          <Box>
-            <Stack spacing={2}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Fingerprint size={48} color="#6366F1" />
-                  <Typography variant="h6" sx={{ color: 'white', fontWeight: 900 }}>Two-Factor Auth</Typography>
-                  <Typography variant="body2" sx={{ color: '#9B9691', textAlign: 'center' }}>
-                      Enter the code from your authenticator app to continue.
-                  </Typography>
-              </Box>
-              <TextField
-                fullWidth
-                autoFocus
-                placeholder="Enter 2FA code"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                disabled={loading}
-                variant="standard"
-                inputProps={{ style: { textAlign: 'center', letterSpacing: '0.2em', fontSize: '1.2rem', fontWeight: 900 } }}
-                InputProps={{
-                  disableUnderline: true,
-                  sx: {
-                    bgcolor: '#0A0908',
-                    color: 'white',
-                    p: 2,
-                    borderRadius: '16px',
-                    border: '1px solid #34322F',
-                  }
-                }}
-              />
-              {loading && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                    <CircularProgress size={24} color="primary" />
-                </Box>
-              )}
-            </Stack>
-          </Box>
+          <div className="space-y-6 animate-fadeIn">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <Fingerprint className="w-12 h-12 text-[#6366F1]" />
+              <h4 className="font-clash font-black text-white text-base">Two-Factor Auth</h4>
+              <p className="text-xs text-[#9B9691] leading-relaxed">
+                Enter the code from your authenticator app to continue.
+              </p>
+            </div>
+            <input
+              type="text"
+              placeholder="Enter 2FA code"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+              disabled={loading}
+              autoFocus
+              className="w-full bg-[#0A0908] px-4 py-4 rounded-xl border border-[#34322F] text-center text-lg font-black tracking-[0.2em] text-white focus:outline-none focus:border-[#6366F1] transition-all"
+            />
+            {loading && (
+              <div className="flex justify-center items-center py-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#6366F1]" />
+              </div>
+            )}
+          </div>
         );
       
-      default: return null;
+      default:
+        return null;
     }
   };
 
   return (
-    <Drawer 
-      anchor={isDesktop ? 'right' : 'bottom'} 
-      open={isOpen} 
-      onClose={handleClose}
-      PaperProps={{
-        sx: {
-          bgcolor: '#161412',
-          backgroundImage: 'none',
-          maxWidth: 480,
-          width: '100%',
-          ...(isDesktop ? {
-            height: '100%',
-            borderLeft: '1px solid #34322F',
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
-          } : {
-            borderTopLeftRadius: '24px',
-            borderTopRightRadius: '24px',
-            borderTop: '1px solid #34322F',
-            mx: 'auto'
-          })
-        }
-      }}
-      ModalProps={{
-        keepMounted: false,
-        disableScrollLock: false,
-        disablePortal: true,
-        hideBackdrop: false,
-      }}
-    >
-      <Box sx={{ p: 3, pb: 'calc(24px + env(safe-area-inset-bottom))' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {step !== 'initial' && (
-              <IconButton onClick={handleBack} size="small" sx={{ color: '#9B9691', ml: -1 }}>
-                <ArrowLeft size={20} />
-              </IconButton>
-            )}
-            <Typography sx={{ fontWeight: 900, fontSize: '1.25rem', color: '#fff', fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em' }}>
-              {step === 'mfa' ? 'Security Verification' : 'Continue to Kylrix'}
-            </Typography>
-          </Box>
-          <IconButton onClick={handleClose} sx={{ color: '#9B9691' }}>
-            <X size={20} />
-          </IconButton>
-        </Box>
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 z-[1298] bg-black/60 backdrop-blur-sm transition-all duration-300 animate-fadeIn"
+        onClick={handleClose}
+      />
 
-        {renderStep()}
+      {/* Drawer Container */}
+      <div 
+        className={`fixed z-[1299] bg-[#161412] border-white/5 shadow-2xl transition-all duration-300 flex flex-col overflow-y-auto ${
+          isDesktop 
+            ? 'right-0 top-0 bottom-0 w-full sm:w-[480px] border-l animate-slideInRight' 
+            : 'left-0 right-0 bottom-0 h-[60vh] rounded-t-[24px] border-t animate-slideInUp'
+        }`}
+      >
+        <div className="p-6 pb-[calc(24px+env(safe-area-inset-bottom))]">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+              {step !== 'initial' && (
+                <button 
+                  type="button"
+                  onClick={handleBack}
+                  className="p-1.5 rounded-lg bg-white/[0.04] border border-white/5 hover:border-white/20 text-[#9B9691] hover:text-white transition-all cursor-pointer"
+                >
+                  <ArrowLeft className="w-4.5 h-4.5" />
+                </button>
+              )}
+              <h3 className="font-clash font-black text-white text-xl tracking-tight leading-tight">
+                {step === 'mfa' ? 'Security Verification' : 'Continue to Kylrix'}
+              </h3>
+            </div>
+            <button 
+              type="button" 
+              onClick={handleClose} 
+              className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/[0.04] border border-white/5 hover:border-white/20 text-[#9B9691] hover:text-white transition-all cursor-pointer"
+            >
+              <X className="w-4.5 h-4.5" />
+            </button>
+          </div>
 
-        <Typography sx={{ color: '#9B9691', fontSize: '0.75rem', textAlign: 'center', mt: 4, fontWeight: 500 }}>
-          By continuing, you agree to our{' '}
-          <Link
-            href="/terms-of-service"
-            onClick={handleClose}
-            style={{ color: '#FFFFFF', textDecoration: 'underline', cursor: 'pointer' }}
-          >
-            Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link
-            href="/privacy-policy"
-            onClick={handleClose}
-            style={{ color: '#FFFFFF', textDecoration: 'underline', cursor: 'pointer' }}
-          >
-            Privacy Policy
-          </Link>.
-        </Typography>
-      </Box>
-    </Drawer>
+          {renderStep()}
+
+          {/* Footer policy links */}
+          <p className="text-center text-[10px] text-[#9B9691] mt-8 font-medium font-satoshi leading-normal">
+            By continuing, you agree to our{' '}
+            <Link
+              href="/terms-of-service"
+              onClick={handleClose}
+              className="text-white underline hover:text-white/80 transition-colors"
+            >
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link
+              href="/privacy-policy"
+              onClick={handleClose}
+              className="text-white underline hover:text-white/80 transition-colors"
+            >
+              Privacy Policy
+            </Link>.
+          </p>
+        </div>
+      </div>
+    </>
   );
 }
