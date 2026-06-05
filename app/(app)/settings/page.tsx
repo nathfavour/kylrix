@@ -353,27 +353,27 @@ export default function SettingsPage() {
                     <div className="w-full md:w-[320px] pt-6 md:pt-0 border-t md:border-t-0 md:border-l border-white/10 md:pl-8 flex flex-col gap-5">
                         <div className="flex items-center justify-between gap-2">
                             <div className="flex flex-col gap-0.5">
-                                <span className="text-[10px] font-black text-[#6366F1] tracking-[0.15em] uppercase font-mono">
+                                <span className="text-[10px] font-black text-[#6366F1] tracking-[0.2em] uppercase font-mono">
                                     Agentic Capacity
                                 </span>
-                                <span className="text-[11px] font-bold text-white/70">
-                                    Daily Compute Quota
+                                <span className="text-[11px] font-bold text-white/60">
+                                    DYNAMIC RESOURCE ALLOCATION
                                 </span>
                             </div>
                             <div className="text-right">
                                 <span className="text-xl font-black font-mono text-white">
-                                    {computeBalance ? Math.round(computeBalance.percent) : '0'}<span className="text-white/30 text-sm ml-0.5">%</span>
+                                    {computeBalance ? Math.round(computeBalance.percent) : '100'}<span className="text-white/20 text-sm ml-0.5">%</span>
                                 </span>
                             </div>
                         </div>
                         
                         {/* Compute Progress Bar Container */}
                         <div className="relative">
-                            <div className="h-3 w-full bg-black/40 rounded-full overflow-hidden border border-white/5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]">
+                            <div className="h-3.5 w-full bg-black/50 rounded-full overflow-hidden border border-white/10 shadow-[inset_0_2px_8px_rgba(0,0,0,0.6)]">
                                 <motion.div 
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${computeBalance?.percent || 0}%` }}
-                                    transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+                                    initial={{ width: "100%" }}
+                                    animate={{ width: `${computeBalance?.percent ?? 100}%` }}
+                                    transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }}
                                     className="h-full bg-gradient-to-r from-[#6366F1] via-[#A855F7] to-[#EC4899] relative"
                                 >
                                     {/* Animated Shine Effect */}
@@ -382,12 +382,15 @@ export default function SettingsPage() {
                             </div>
                             
                             {/* Detailed Balance Hint */}
-                            <div className="flex justify-between mt-2 px-0.5">
-                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest font-mono">
-                                    {computeBalance?.balance.toLocaleString() || '0'} / {computeBalance?.maxBalance.toLocaleString() || '0'} TOKENS
+                            <div className="flex justify-between mt-2.5 px-0.5">
+                                <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.1em] font-mono">
+                                    {computeBalance?.balance.toLocaleString() || '---'} / {computeBalance?.maxBalance.toLocaleString() || '---'} COMPUTE UNITS
                                 </span>
-                                <span className="text-[9px] font-black text-[#EC4899] uppercase tracking-widest font-mono animate-pulse">
-                                    Live
+                                <span className="flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#EC4899] shadow-[0_0_8px_#EC4899]" />
+                                    <span className="text-[9px] font-black text-white/40 uppercase tracking-widest font-mono">
+                                        Live Pulse
+                                    </span>
                                 </span>
                             </div>
                         </div>
