@@ -2,10 +2,12 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Copy, RefreshCw, Ticket } from 'lucide-react';
+import { Copy, RefreshCw, Ticket, Search, Check, X } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { createCouponAction, listCouponsAction } from '../../actions/coupons';
+import { getAdminUserByIdAction } from '../../actions/admin';
 import { useAuth } from '@/context/auth/AuthContext';
+import { AppwriteService } from '@/lib/appwrite';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,8 +47,13 @@ export default function AdminCouponsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const { getJWT } = useAuth();
+  
+  const [profileQuery, setProfileQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchingProfiles, setSearchingProfiles] = useState(false);
+  const [selectedTargets, setSelectedTargets] = useState<any[]>([]);
+
   const [form, setForm] = useState({
-    targetUserIds: '',
     discountPercent: '50',
     status: 'active',
     expiresAt: '',
@@ -73,13 +80,63 @@ export default function AdminCouponsPage() {
     loadCoupons();
   }, [getJWT]);
 
+  useEffect(() => {
+    let active = true;
+    if (!profileQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      setSearchingProfiles(true);
+      try {
+        const docs = await AppwriteService.searchGlobalProfiles(profileQuery.trim(), 5);
+        if (active) setSearchResults(docs || []);
+      } catch (err) {
+        console.error('Failed to search profiles:', err);
+      } finally {
+        if (active) setSearchingProfiles(false);
+      }
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
+  }, [profileQuery]);
+
+  const selectProfile = async (profile: any) => {
+    if (selectedTargets.some(t => t.id === profile.userId)) {
+      setProfileQuery('');
+      setSearchResults([]);
+      return;
+    }
+    setError(null);
+    try {
+      const jwt = await getJWT();
+      const userData = await getAdminUserByIdAction(profile.userId, jwt || undefined);
+      setSelectedTargets(prev => [...prev, {
+        id: userData.id,
+        name: userData.name || profile.displayName || profile.username || 'User',
+        email: userData.email,
+        username: profile.username
+      }]);
+      setProfileQuery('');
+      setSearchResults([]);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to fetch target user details');
+    }
+  };
+
+  const removeProfile = (userId: string) => {
+    setSelectedTargets(prev => prev.filter(t => t.id !== userId));
+  };
+
   const createCoupon = async () => {
     setSaving(true);
     setError(null);
     setSuccess(null);
     try {
       const jwt = await getJWT();
-      const targetUserIds = form.targetUserIds.split(',').map((id) => id.trim()).filter(Boolean);
+      const targetUserIds = selectedTargets.map(t => t.id);
       const data = await createCouponAction({
         userIds: targetUserIds.length > 0 ? targetUserIds : undefined,
         discountPercent: Number.parseInt(form.discountPercent, 10) || 0,
@@ -93,7 +150,8 @@ export default function AdminCouponsPage() {
         },
       }, jwt || undefined);
       setSuccess(`Created ${data.count || 1} coupon(s).`);
-      setForm((prev) => ({ ...prev, targetUserIds: '', title: '', note: '', redemptionLimit: '1' }));
+      setForm((prev) => ({ ...prev, title: '', note: '', redemptionLimit: '1' }));
+      setSelectedTargets([]);
       await loadCoupons();
     } catch (err: any) {
       setError(err?.message || 'Failed to create coupon');
@@ -146,16 +204,59 @@ export default function AdminCouponsPage() {
         {/* Coupon Creator Card */}
         <div className="p-6 rounded-[28px] bg-[#161412] border border-white/5 flex flex-col gap-5">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1.5">
-              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Target User IDs</span>
-              <input
-                type="text"
-                placeholder="Comma separated IDs"
-                value={form.targetUserIds}
-                onChange={(event) => setForm((prev) => ({ ...prev, targetUserIds: event.target.value }))}
-                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
-              />
+            <div className="space-y-1.5 relative">
+              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Target Users</span>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                  <Search size={14} className="text-white/40" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search user profiles..."
+                  value={profileQuery}
+                  onChange={(e) => setProfileQuery(e.target.value)}
+                  className="w-full bg-[#0A0908] pl-9 pr-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
+                />
+                
+                {/* Search Results Dropdown */}
+                {searchResults.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 mt-2 bg-[#161412] border border-white/10 rounded-xl shadow-xl max-h-60 overflow-y-auto p-1.5 flex flex-col gap-1">
+                    {searchResults.map((p) => (
+                      <button
+                        key={p.$id}
+                        type="button"
+                        onClick={() => selectProfile(p)}
+                        className="flex items-center justify-between w-full px-3 py-2 rounded-lg bg-transparent hover:bg-white/[0.03] text-left text-xs font-semibold text-white/80 transition-all cursor-pointer"
+                      >
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-extrabold text-white truncate">@{p.username}</span>
+                          <span className="text-[10px] text-white/40 truncate">{p.displayName || 'Unnamed User'}</span>
+                        </div>
+                        <span className="text-[10px] text-[#6366F1] font-extrabold bg-[#6366F1]/10 px-2 py-0.5 rounded-md flex-shrink-0">Select</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <span className="text-[10px] text-white/30 block">Leave blank for open claim</span>
+              
+              {selectedTargets.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2 max-h-24 overflow-y-auto">
+                  {selectedTargets.map((t) => (
+                    <div key={t.id} className="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-full bg-white/[0.04] border border-white/5 text-[9px] font-bold">
+                      <span className="text-[#6366F1]">@{t.username}</span>
+                      <span className="text-white/45 truncate max-w-[100px]" title={t.email}>{t.email}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeProfile(t.id)}
+                        className="p-0.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
