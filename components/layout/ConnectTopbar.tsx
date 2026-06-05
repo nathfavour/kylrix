@@ -48,6 +48,7 @@ import { createProfilePreviewManager, getUserProfilePicId as getSdkUserProfilePi
 import { stageProfileView } from '@/lib/profile-handoff';
 import { getAppColor } from '@/lib/ecosystem-app-colors';
 import { searchGlobalUsers } from '@/lib/ecosystem/identity';
+import { IdentityAvatar } from '@/components/common/IdentityBadge';
 import { useAgenticDrawer } from '@/context/AgenticDrawerContext';
 import { useWalletOverlay } from '@/context/WalletOverlayContext';
 import { useProUpgrade } from '@/context/ProUpgradeContext';

@@ -293,9 +293,21 @@ export default function SettingsPage() {
                 <h1 className="text-white font-black text-2xl md:text-3xl tracking-tight leading-tight mb-1 font-mono tracking-tighter">
                     Settings
                 </h1>
-                <p className="text-white/40 text-xs font-semibold leading-normal font-sans max-w-[560px]">
-                    Manage identity discoverability, encryption access, passkeys, and device preferences.
-                </p>
+                <div className="flex flex-col gap-2">
+                    <p className="text-white/40 text-xs font-semibold leading-normal font-sans max-w-[560px]">
+                        Manage identity discoverability, encryption access, passkeys, and device preferences.
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${hasPaidKylrixPlan(user) ? 'bg-[#EC4899]/10 text-[#EC4899] border-[#EC4899]/20' : 'bg-white/5 text-white/40 border-white/10'}`}>
+                            {getUserSubscriptionTier(user)} PLAN
+                        </div>
+                        {hasPaidKylrixPlan(user) && getUserSubscriptionExpiresAt(user) && (
+                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-tighter">
+                                Expires {new Date(getUserSubscriptionExpiresAt(user)!).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                        )}
+                    </div>
+                </div>
             </header>
 
             {/* Main Content Grid */}
