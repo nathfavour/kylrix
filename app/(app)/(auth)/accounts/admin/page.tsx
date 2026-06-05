@@ -26,7 +26,7 @@ import {
 import AdminLayout from './components/AdminLayout';
 import { getAdminStatsAction } from '../actions/admin';
 
-export default function AdminDashboardWrapper() {
+export default function AdminDashboardPage() {
   return (
     <Suspense fallback={<CircularProgress />}>
         <AdminDashboard />
@@ -35,7 +35,7 @@ export default function AdminDashboardWrapper() {
 }
 
 function AdminDashboard() {
-  const [stats, setStats] = useState<any>(null);
+// ... rest of the code
   const [loading, setLoading] = useState(true);
 
   const fetchStats = async () => {

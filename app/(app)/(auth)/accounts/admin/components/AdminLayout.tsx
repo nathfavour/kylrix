@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useMediaQuery, useTheme, BottomNavigation, BottomNavigationAction, Paper } from '@/lib/mui-tailwind/material';
 import { 
   Box, 
@@ -12,7 +12,8 @@ import {
   ListItemText, 
   Typography,
   Divider,
-  alpha
+  alpha,
+  CircularProgress
 } from '@/lib/mui-tailwind/material';
 import { 
   LayoutDashboard, 
@@ -37,6 +38,14 @@ const menuItems = [
   { label: 'System Settings', icon: Settings, href: '/accounts/admin/settings' }];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<CircularProgress />}>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </Suspense>
+  );
+}
+
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const theme = useTheme();
