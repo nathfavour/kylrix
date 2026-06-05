@@ -3,18 +3,6 @@
 import { useState, useEffect } from 'react';
 import { account, AppwriteService } from '@/lib/appwrite';
 import { useTheme } from '@/lib/theme-context';
-import {
-  Box,
-  Typography,
-  Select,
-  MenuItem,
-  Switch,
-  Alert,
-  AlertTitle,
-  CircularProgress,
-  Stack,
-  Divider,
-} from '@/lib/mui-tailwind/material';
 
 interface PrefsData {
   language?: string;
@@ -39,7 +27,8 @@ const LANGUAGES = [
   { code: 'it', label: 'Italiano' },
   { code: 'pt', label: 'Português' },
   { code: 'ja', label: '日本語' },
-  { code: 'zh', label: '中文' }];
+  { code: 'zh', label: '中文' }
+];
 
 const TIMEZONES = [
   { value: 'UTC', label: 'UTC' },
@@ -53,7 +42,26 @@ const TIMEZONES = [
   { value: 'Asia/Tokyo', label: 'Tokyo' },
   { value: 'Asia/Singapore', label: 'Singapore' },
   { value: 'Asia/Dubai', label: 'Dubai' },
-  { value: 'Australia/Sydney', label: 'Sydney' }];
+  { value: 'Australia/Sydney', label: 'Sydney' }
+];
+
+function Switch({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+        checked ? 'bg-[#6366F1]' : 'bg-white/10'
+      }`}
+    >
+      <span
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+          checked ? 'translate-x-5' : 'translate-x-0'
+        }`}
+      />
+    </button>
+  );
+}
 
 export default function PreferencesManager({ onSave }: PreferencesManagerProps) {
   const { setTheme } = useTheme();
@@ -125,333 +133,169 @@ export default function PreferencesManager({ onSave }: PreferencesManagerProps) 
     }
   };
 
-  const _handleThemeChange = async (newTheme: 'light' | 'dark' | 'system') => {
-    try {
-      setError(null);
-      const updatedUIPrefs = { ...prefs, theme: newTheme };
-      setPrefs(updatedUIPrefs);
-      
-      // Merge with ALL existing prefs
-      const updatedAllPrefs = { ...allPrefs, theme: newTheme };
-      setAllPrefs(updatedAllPrefs);
-      
-      await account.updatePrefs(updatedAllPrefs);
-      await setTheme(newTheme);
-      onSave?.();
-    } catch (_err: unknown) {
-      const err = _err as Error;
-      setError(err.message);
-      // Reload from server on error
-      loadPreferences();
-    }
-  };
-
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-        <CircularProgress size={40} sx={{ color: '#6366F1' }} />
-      </Box>
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6366F1]" />
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div className="space-y-6 text-white">
       {error && (
-        <Alert 
-          severity="error" 
-          sx={{ 
-            mb: 3, 
-            borderRadius: '12px',
-            bgcolor: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            color: '#FCA5A5',
-          }}
-        >
-          <AlertTitle sx={{ fontWeight: 700 }}>Error</AlertTitle>
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-semibold font-satoshi">
+          <span className="block font-bold mb-1">Error</span>
           {error}
-        </Alert>
+        </div>
       )}
 
-      <Stack spacing={3}>
+      <div className="space-y-6">
         {/* Localization Settings */}
-        <Box>
-          <Typography sx={{ fontSize: '1.125rem', fontWeight: 600, mb: 2, color: 'white' }}>
+        <div className="space-y-4">
+          <h3 className="text-lg font-black font-clash text-white tracking-tight leading-tight">
             Language & Timezone
-          </Typography>
-          <Stack spacing={2}>
-            <Box>
-              <Typography sx={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', mb: 1, fontWeight: 500 }}>
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <span className="text-[10px] text-[#9B9691] font-bold font-mono uppercase tracking-wider block">
                 Language
-              </Typography>
-              <Select
+              </span>
+              <select
                 value={prefs.language || 'en'}
-                onChange={(event) => updatePreference('language', event.target.value)}
-                sx={{
-                  backgroundColor: '#161514',
-                  color: 'white',
-                  borderRadius: '8px',
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#6366F1',
-                  },
-                  '& .MuiSvgIcon-root': {
-                    color: '#6366F1',
-                  },
-                }}
+                onChange={(e) => updatePreference('language', e.target.value)}
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1] cursor-pointer"
               >
                 {LANGUAGES.map((lang) => (
-                  <MenuItem key={lang.code} value={lang.code}>
+                  <option key={lang.code} value={lang.code} className="bg-[#161412]">
                     {lang.label}
-                  </MenuItem>
+                  </option>
                 ))}
-              </Select>
-            </Box>
+              </select>
+            </div>
 
-            <Box>
-              <Typography sx={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', mb: 1, fontWeight: 500 }}>
+            <div className="space-y-2">
+              <span className="text-[10px] text-[#9B9691] font-bold font-mono uppercase tracking-wider block">
                 Timezone
-              </Typography>
-              <Select
+              </span>
+              <select
                 value={prefs.timezone || 'UTC'}
-                onChange={(event) => updatePreference('timezone', event.target.value)}
-                sx={{
-                  backgroundColor: '#161514',
-                  color: 'white',
-                  borderRadius: '8px',
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#6366F1',
-                  },
-                  '& .MuiSvgIcon-root': {
-                    color: '#6366F1',
-                  },
-                }}
+                onChange={(e) => updatePreference('timezone', e.target.value)}
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1] cursor-pointer"
               >
                 {TIMEZONES.map((tz) => (
-                  <MenuItem key={tz.value} value={tz.value}>
+                  <option key={tz.value} value={tz.value} className="bg-[#161412]">
                     {tz.label}
-                  </MenuItem>
+                  </option>
                 ))}
-              </Select>
-            </Box>
-          </Stack>
-        </Box>
+              </select>
+            </div>
+          </div>
+        </div>
 
-        <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.05)' }} />
+        <div className="h-px bg-white/5 w-full" />
 
         {/* Discoverability Settings */}
-        <Box>
-          <Typography sx={{ fontSize: '1.125rem', fontWeight: 600, mb: 2, color: 'white' }}>
+        <div className="space-y-4">
+          <h3 className="text-lg font-black font-clash text-white tracking-tight leading-tight">
             Discoverability
-          </Typography>
-          <Stack spacing={2}>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                p: 3,
-                backgroundColor: '#161514',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                transition: 'all 0.2s ease-out',
-                '&:hover': {
-                  backgroundColor: '#1F1D1B',
-                }
-              }}
-            >
-              <Box>
-                <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'white' }}>
-                  Public Profile
-                </Typography>
-                <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', mt: 0.5 }}>
-                  Allow other users to find you by name or username
-                </Typography>
-              </Box>
-              <Switch
-                checked={prefs.publicProfile !== false}
-                onChange={(event) => updatePreference('publicProfile', event.target.checked)}
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': { color: '#6366F1' },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                    backgroundColor: '#6366F1',
-                  },
-                }}
-              />
-            </Box>
-          </Stack>
-        </Box>
+          </h3>
+          <div className="flex items-center justify-between gap-4 p-5 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-[#1F1D1B] hover:border-white/10 transition-all">
+            <div className="space-y-1">
+              <h4 className="text-sm font-extrabold text-white">
+                Public Profile
+              </h4>
+              <p className="text-xs text-[#9B9691]">
+                Allow other users to find you by name or username
+              </p>
+            </div>
+            <Switch
+              checked={prefs.publicProfile !== false}
+              onChange={(checked) => updatePreference('publicProfile', checked)}
+            />
+          </div>
+        </div>
 
-        <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.05)' }} />
+        <div className="h-px bg-white/5 w-full" />
 
         {/* Notification Settings */}
-        <Box>
-          <Typography sx={{ fontSize: '1.125rem', fontWeight: 600, mb: 2, color: 'white' }}>
+        <div className="space-y-4">
+          <h3 className="text-lg font-black font-clash text-white tracking-tight leading-tight">
             Notifications
-          </Typography>
-          <Stack spacing={2}>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                p: 3,
-                backgroundColor: '#161514',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                transition: 'all 0.2s ease-out',
-                '&:hover': {
-                  backgroundColor: '#1F1D1B',
-                }
-              }}
-            >
-              <Box>
-                <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'white' }}>
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4 p-5 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-[#1F1D1B] hover:border-white/10 transition-all">
+              <div className="space-y-1">
+                <h4 className="text-sm font-extrabold text-white">
                   Email Notifications
-                </Typography>
-                <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', mt: 0.5 }}>
+                </h4>
+                <p className="text-xs text-[#9B9691]">
                   Receive emails about account activity
-                </Typography>
-              </Box>
+                </p>
+              </div>
               <Switch
                 checked={prefs.emailNotifications !== false}
-                onChange={(event) => updatePreference('emailNotifications', event.target.checked)}
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': { color: '#6366F1' },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                    backgroundColor: '#6366F1',
-                  },
-                }}
+                onChange={(checked) => updatePreference('emailNotifications', checked)}
               />
-            </Box>
+            </div>
 
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                p: 3,
-                backgroundColor: '#161514',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                transition: 'all 0.2s ease-out',
-                '&:hover': {
-                  backgroundColor: '#1F1D1B',
-                }
-              }}
-            >
-              <Box>
-                <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'white' }}>
+            <div className="flex items-center justify-between gap-4 p-5 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-[#1F1D1B] hover:border-white/10 transition-all">
+              <div className="space-y-1">
+                <h4 className="text-sm font-extrabold text-white">
                   Session Reminders
-                </Typography>
-                <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', mt: 0.5 }}>
+                </h4>
+                <p className="text-xs text-[#9B9691]">
                   Get reminded about active sessions
-                </Typography>
-              </Box>
+                </p>
+              </div>
               <Switch
                 checked={prefs.sessionReminders !== false}
-                onChange={(event) => updatePreference('sessionReminders', event.target.checked)}
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': { color: '#6366F1' },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                    backgroundColor: '#6366F1',
-                  },
-                }}
+                onChange={(checked) => updatePreference('sessionReminders', checked)}
               />
-            </Box>
-          </Stack>
-        </Box>
+            </div>
+          </div>
+        </div>
 
-        <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.05)' }} />
+        <div className="h-px bg-white/5 w-full" />
 
         {/* Privacy Settings */}
-        <Box>
-          <Typography sx={{ fontSize: '1.125rem', fontWeight: 600, mb: 2, color: 'white' }}>
+        <div className="space-y-4">
+          <h3 className="text-lg font-black font-clash text-white tracking-tight leading-tight">
             Privacy & Data
-          </Typography>
-          <Stack spacing={2}>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                p: 3,
-                backgroundColor: '#161514',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                transition: 'all 0.2s ease-out',
-                '&:hover': {
-                  backgroundColor: '#1F1D1B',
-                }
-              }}
-            >
-              <Box>
-                <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'white' }}>
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4 p-5 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-[#1F1D1B] hover:border-white/10 transition-all">
+              <div className="space-y-1">
+                <h4 className="text-sm font-extrabold text-white">
                   Data Collection
-                </Typography>
-                <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', mt: 0.5 }}>
+                </h4>
+                <p className="text-xs text-[#9B9691]">
                   Allow collection of usage analytics
-                </Typography>
-              </Box>
+                </p>
+              </div>
               <Switch
                 checked={prefs.dataCollection === true}
-                onChange={(event) => updatePreference('dataCollection', event.target.checked)}
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': { color: '#6366F1' },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                    backgroundColor: '#6366F1',
-                  },
-                }}
+                onChange={(checked) => updatePreference('dataCollection', checked)}
               />
-            </Box>
+            </div>
 
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                p: 3,
-                backgroundColor: '#161514',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                transition: 'all 0.2s ease-out',
-                '&:hover': {
-                  backgroundColor: '#1F1D1B',
-                }
-              }}
-            >
-              <Box>
-                <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'white' }}>
+            <div className="flex items-center justify-between gap-4 p-5 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-[#1F1D1B] hover:border-white/10 transition-all">
+              <div className="space-y-1">
+                <h4 className="text-sm font-extrabold text-white">
                   Marketing Emails
-                </Typography>
-                <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', mt: 0.5 }}>
+                </h4>
+                <p className="text-xs text-[#9B9691]">
                   Receive promotional and marketing emails
-                </Typography>
-              </Box>
+                </p>
+              </div>
               <Switch
                 checked={prefs.marketingEmails === true}
-                onChange={(event) => updatePreference('marketingEmails', event.target.checked)}
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': { color: '#6366F1' },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                    backgroundColor: '#6366F1',
-                  },
-                }}
+                onChange={(checked) => updatePreference('marketingEmails', checked)}
               />
-            </Box>
-          </Stack>
-        </Box>
-      </Stack>
-    </Box>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
