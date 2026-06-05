@@ -137,23 +137,21 @@ function NoteComposerCard({
             transition={{ duration: 0.2 }}
           >
             <input
+              key="note-title-input"
               type="text"
               placeholder="Note Title"
               value={noteTitle}
               autoComplete="off"
-              onChange={(e) => {
-                if (e.target.value !== noteTitle) {
-                  setNoteTitle(e.target.value);
-                  if (typeof document !== 'undefined' && document.activeElement === e.target) {
-                    setIsTitleManuallyEdited(true);
-                  }
-                }
-              }}
+              onChange={(e) => setNoteTitle(e.target.value)}
+              onKeyDown={() => setIsTitleManuallyEdited(true)}
+              onMouseDown={() => setIsTitleManuallyEdited(true)}
+              onPaste={() => setIsTitleManuallyEdited(true)}
               className="w-full bg-transparent text-4xl font-black font-clash text-white mb-4 placeholder-white/20 focus:outline-none"
             />
           </motion.div>
         )}
         <textarea
+          key="note-body-textarea"
           placeholder="Start typing your brilliant thoughts…"
           value={noteBody}
           onChange={(e) => setNoteBody(e.target.value)}
@@ -255,31 +253,29 @@ function DiscussionComposerCard({
             transition={{ duration: 0.2 }}
           >
             <input
+              key="discussion-title-input"
               type="text"
               placeholder="Discussion Topic / Room Name"
               value={noteTitle}
               autoComplete="off"
-              onChange={(e) => {
-                if (e.target.value !== noteTitle) {
-                  setNoteTitle(e.target.value);
-                  if (typeof document !== 'undefined' && document.activeElement === e.target) {
-                    setIsTitleManuallyEdited(true);
-                  }
-                }
-              }}
+              onChange={(e) => setNoteTitle(e.target.value)}
+              onKeyDown={() => setIsTitleManuallyEdited(true)}
+              onMouseDown={() => setIsTitleManuallyEdited(true)}
+              onPaste={() => setIsTitleManuallyEdited(true)}
               className="w-full bg-transparent text-xl font-bold font-clash text-white mb-4 px-2 placeholder-white/30 focus:outline-none"
             />
           </motion.div>
         )}
-
+ 
         <div className="bg-black rounded-2xl border border-[#34322F] focus-within:border-[#F59E0B] p-3 flex flex-col gap-3">
           <textarea
+            key="discussion-body-textarea"
             placeholder="Open the huddle with a clear message…"
             value={noteBody}
             onChange={(e) => setNoteBody(e.target.value)}
             rows={3}
             autoFocus
-            className="w-full bg-transparent text-white text-base font-satoshi leading-normal placeholder-white/20 focus:outline-none resize-none scrollbar-thin"
+            className="w-full bg-transparent text-white text-base font-satoshi leading-normal placeholder-white/20 focus:outline-none resize-none scrollbar-thin"-thin"
           />
           <div className="flex items-center justify-between pt-2 border-t border-white/[0.03]">
             <div className="flex items-center gap-2">
@@ -347,6 +343,7 @@ export function SendComposer() {
   const [taskPriority, setTaskPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [taskDuePreset, setTaskDuePreset] = useState<'none' | 'today' | 'tomorrow' | 'week'>('none');
   const [isTitleManuallyEdited, setIsTitleManuallyEdited] = useState(false);
+  const [isTaskTitleManuallyEdited, setIsTaskTitleManuallyEdited] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [kindDrawerOpen, setKindDrawerOpen] = useState(false);
   const [securityDrawerOpen, setSecurityDrawerOpen] = useState(false);
@@ -384,7 +381,22 @@ export function SendComposer() {
       if (noteTitle) setNoteTitle('');
     }
   }, [noteBody, isTitleManuallyEdited, noteTitle, kind]);
-
+ 
+  // LIFTED TASK AUTO-TITLE MECHANISM: Automatically generates task title from details
+  useEffect(() => {
+    if (isTaskTitleManuallyEdited) return;
+    if (kind !== 'task') return;
+ 
+    const generatedTitle = buildAutoTitleFromContent(taskDetail);
+    if (taskDetail.trim()) {
+      if (generatedTitle !== taskTitle) {
+        setTaskTitle(generatedTitle);
+      }
+    } else {
+      if (taskTitle) setTaskTitle('');
+    }
+  }, [taskDetail, isTaskTitleManuallyEdited, taskTitle, kind]);
+ 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [taskTitle, setTaskTitle] = useState('');
@@ -490,6 +502,7 @@ export function SendComposer() {
 
   useEffect(() => {
     setIsTitleManuallyEdited(false);
+    setIsTaskTitleManuallyEdited(false);
   }, [kind]);
 
   const draftValid = useMemo(() => {
@@ -528,7 +541,7 @@ export function SendComposer() {
       };
 
       if (kind === 'note') {
-        sparkTitle = noteTitle.trim() || 'Note';
+        sparkTitle = noteTitle.trim() || buildAutoTitleFromContent(noteBody) || 'Note';
         const bodyText = noteBody.trim();
         const { t, c } = await processData(sparkTitle, bodyText);
         outTitle = t;
@@ -557,14 +570,15 @@ export function SendComposer() {
         }
 
         const priorityHeader = `[Priority: ${taskPriority.toUpperCase()}]\n\n`;
+        const finalTaskTitle = taskTitle.trim() || buildAutoTitleFromContent(taskDetail) || 'Task';
         const bundle: SendTaskPayload & { priority?: string } = {
-          title: taskTitle.trim(),
+          title: finalTaskTitle,
           detail: priorityHeader + (taskDetail.trim() || ''),
           dueAt: calculatedDueAt,
           priority: taskPriority
         };
-        sparkTitle = bundle.title;
-        const { t, c } = await processData(bundle.title, JSON.stringify(bundle));
+        sparkTitle = finalTaskTitle;
+        const { t, c } = await processData(finalTaskTitle, JSON.stringify(bundle));
         outTitle = t;
         outContent = c;
         format = 'json';
@@ -579,7 +593,7 @@ export function SendComposer() {
         outContent = c;
         format = 'json';
       } else if (kind === 'discussion') {
-        sparkTitle = noteTitle.trim() || 'Discussion';
+        sparkTitle = noteTitle.trim() || buildAutoTitleFromContent(noteBody) || 'Discussion';
         const bodyText = noteBody.trim() || 'Welcome to the thread.';
         const { t, c } = await processData(sparkTitle, bodyText);
         outTitle = t;
@@ -735,6 +749,7 @@ export function SendComposer() {
     setTaskPriority('medium');
     setTaskDuePreset('none');
     setIsTitleManuallyEdited(false);
+    setIsTaskTitleManuallyEdited(false);
     setShowPassword(false);
     setExpiryMs(SEND_EXPIRY_PRESETS[2].ms);
   }, []);
@@ -1140,18 +1155,24 @@ export function SendComposer() {
                       <div className="flex flex-col gap-1">
                         <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Goal / Objective</label>
                         <input
+                          key="task-title-input"
                           type="text"
                           placeholder="What needs to be achieved?"
                           required
                           value={taskTitle}
+                          autoComplete="off"
                           onChange={(e) => setTaskTitle(e.target.value)}
+                          onKeyDown={() => setIsTaskTitleManuallyEdited(true)}
+                          onMouseDown={() => setIsTaskTitleManuallyEdited(true)}
+                          onPaste={() => setIsTaskTitleManuallyEdited(true)}
                           className="w-full bg-transparent text-lg font-bold font-clash text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#A855F7] focus:outline-none placeholder-white/20"
                         />
                       </div>
-
+ 
                       <div className="flex flex-col gap-1">
                         <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Execution Details / Sub-steps</label>
                         <textarea
+                          key="task-body-textarea"
                           placeholder="Add context, specifications, or step-by-step checklist..."
                           rows={3}
                           value={taskDetail}
