@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Copy, RefreshCw, Ticket, Search, Check, X, Loader2 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
-import { createCouponAction, listCouponsAction } from '../../actions/coupons';
+import { createCouponAction, listCouponsAction, invalidateCouponAction } from '../../actions/coupons';
 import { getAdminUserByIdAction } from '../../actions/admin';
 import { useAuth } from '@/context/auth/AuthContext';
 import { AppwriteService } from '@/lib/appwrite';
@@ -164,6 +164,22 @@ export default function AdminCouponsPage() {
     if (typeof navigator === 'undefined' || !navigator.clipboard) return;
     await navigator.clipboard.writeText(`${window.location.origin}/accounts/coupon/${id}`);
     setSuccess('Coupon link copied.');
+  };
+
+  const revokeCoupon = async (id: string) => {
+    if (!confirm('Are you sure you want to revoke this coupon?')) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const jwt = await getJWT();
+      await invalidateCouponAction(id, jwt || undefined);
+      setSuccess('Coupon revoked successfully.');
+      await loadCoupons();
+    } catch (err: any) {
+      setError(err?.message || 'Failed to revoke coupon');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const totalCoupons = useMemo(() => coupons.length, [coupons]);
@@ -431,6 +447,15 @@ export default function AdminCouponsPage() {
                       Open Coupon Page
                     </a>
                   </Link>
+                  {String(coupon.status || 'active') !== 'revoked' && (
+                    <button
+                      type="button"
+                      onClick={() => revokeCoupon(coupon.$id)}
+                      className="px-4 py-2.5 rounded-full text-xs font-black text-red-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer ml-auto"
+                    >
+                      Revoke
+                    </button>
+                  )}
                 </div>
               </div>
             ))
