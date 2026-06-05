@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Box, Typography, IconButton, Button, Stack, alpha, Switch, FormControlLabel, useTheme, useMediaQuery, Chip, TextField, LinearProgress, CircularProgress } from '@/lib/mui-tailwind/material';
-import { X, GitBranch, Terminal, Shield, RefreshCw, CheckCircle, ChevronRight, ArrowLeft, AlertCircle, Play, ChevronDown, ChevronUp, Info, GitPullRequest, ArrowUpRight } from 'lucide-react';
-import { Drawer } from '@/lib/mui-tailwind/material';
+import { X, Terminal, CheckCircle, ChevronRight, ArrowLeft, Play, ChevronDown, ChevronUp, GitPullRequest, ArrowUpRight } from 'lucide-react';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import toast from 'react-hot-toast';
 import { account } from '@/lib/appwrite';
@@ -11,7 +9,6 @@ import { useAuth } from '@/context/auth/AuthContext';
 import { useSudo } from '@/context/SudoContext';
 import { SourceControlService } from '@/lib/services/sourceControl';
 import { useSection } from '@/context/SectionContext';
-
 import { OAuthProvider } from 'appwrite';
 
 const GITHUB_ICON = (
@@ -33,37 +30,29 @@ function CollapsibleSection({
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   return (
-    <Box sx={{ border: '1px solid #1C1A18', borderRadius: '16px', bgcolor: '#0A0908', overflow: 'hidden' }}>
-      <Box 
+    <div className="border border-[#1C1A18] rounded-2xl bg-[#0A0908] overflow-hidden">
+      <div 
         onClick={() => setExpanded(!expanded)}
-        sx={{ 
-          p: 2, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
-          cursor: 'pointer',
-          userSelect: 'none',
-          '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.02)' }
-        }}
+        className="p-4 flex items-center justify-between cursor-pointer select-none hover:bg-white/[0.02]"
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box sx={{ color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center' }}>
+        <div className="flex items-center gap-3">
+          <div className="text-white/60 flex items-center">
             {icon}
-          </Box>
-          <Typography variant="body2" sx={{ fontWeight: 800, color: 'white' }}>
+          </div>
+          <span className="text-sm font-extrabold text-white">
             {title}
-          </Typography>
-        </Box>
-        <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.4)', p: 0.5 }}>
+          </span>
+        </div>
+        <button type="button" className="text-white/40 p-1 hover:text-white transition-colors cursor-pointer">
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </IconButton>
-      </Box>
+        </button>
+      </div>
       {expanded && (
-        <Box sx={{ p: 2, pt: 0, borderTop: '1px solid rgba(255,255,255,0.02)' }}>
+        <div className="p-4 pt-0 border-t border-white/[0.02]">
           {children}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }
 
@@ -87,10 +76,20 @@ export function GithubIntegrationDrawer({
   const { setIsDrawerOpen } = useDrawerState();
   const { setActiveDetail } = useSection();
   const [isExpanded, setIsExpanded] = useState(false);
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const [isDesktop, setIsDesktop] = useState(true);
   const { user } = useAuth();
   const kylrixEmail = user?.email || '';
+
+  // Viewport observer
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkViewport = () => setIsDesktop(window.innerWidth >= 768);
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
+
+  const isMobile = !isDesktop;
   
   const handleMorphToDetail = () => {
     setActiveDetail({
@@ -386,7 +385,6 @@ export function GithubIntegrationDrawer({
               email: gitHubIdObj.providerEmail || 'github',
               photoURL: null
             });
-            // Try to extract provider token if exposed, otherwise rely on server-side sync later
             setGithubToken(gitHubIdObj.providerAccessToken || null);
             return gitHubIdObj;
           }
@@ -450,7 +448,6 @@ export function GithubIntegrationDrawer({
   const handleFinalDisconnect = async () => {
     setIsAuthenticating(true);
     try {
-      // In a real scenario, we'd delete the Appwrite identity or the specific source control row
       setGithubConnected(false);
       setGithubUser(null);
       setGithubToken(null);
@@ -540,735 +537,578 @@ export function GithubIntegrationDrawer({
     });
   };
 
+  if (!isOpen) return null;
+
   const innerContent = (
-    <Box sx={{ p: 3, pb: 'calc(1.5rem + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', bgcolor: '#161412' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: '12px', bgcolor: 'rgba(255, 255, 255, 0.08)', color: 'white', flexShrink: 0, '& svg': { width: 22, height: 22 } }}>
+    <div className="p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] flex flex-col h-full overflow-y-auto bg-[#161412] text-white scrollbar-thin">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6 flex-shrink-0">
+        <div className="flex gap-3 items-center">
+          <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 text-white flex-shrink-0 [&_svg]:w-[22px] [&_svg]:h-[22px]">
             {GITHUB_ICON}
-          </Box>
-          <Box>
-            <Typography sx={{ fontWeight: 900, fontSize: '1.25rem', color: '#fff', fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em' }}>
+          </div>
+          <div>
+            <h3 className="text-lg font-black font-clash text-white tracking-tight leading-tight">
               GitHub Integration
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.45)', mt: 0.5 }}>
+            </h3>
+            <p className="text-xs text-white/45 mt-0.5 font-satoshi">
               Connect your GitHub account to access repositories, manage sync settings, and export tasks.
-            </Typography>
-          </Box>
-        </Box>
-        <Stack direction="row" spacing={0.5} alignItems="center">
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-1">
           {!isFlapover && (
-            <IconButton onClick={handleMorphToDetail} size="small" sx={{ color: '#F59E0B' }} title="Go Full Detail">
-              <ArrowUpRight size={20} />
-            </IconButton>
+            <button
+              type="button"
+              onClick={handleMorphToDetail}
+              className="p-1.5 rounded-lg text-[#F59E0B] hover:text-white hover:bg-[#1C1A18] transition-colors cursor-pointer"
+              title="Go Full Detail"
+            >
+              <ArrowUpRight className="w-5 h-5" />
+            </button>
           )}
           {!isDesktop && !isFlapover && (
-            <IconButton onClick={() => setIsExpanded(!isExpanded)} size="small" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-              {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-            </IconButton>
-          )}
-          <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)', p: 0.5 }}>
-            <X size={20} />
-          </IconButton>
-        </Stack>
-      </Box>
-
-        {disconnectStep === 1 ? (
-          <Stack spacing={3}>
-            <Box 
-              sx={{ 
-                p: 3, 
-                borderRadius: '24px', 
-                bgcolor: '#0A0908', 
-                border: '1px solid rgba(239, 68, 68, 0.15)', 
-                textAlign: 'center',
-                boxShadow: '0 8px 32px rgba(239, 68, 68, 0.02)'
-              }}
+            <button
+              type="button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-1.5 rounded-lg text-white/50 hover:text-[#F5F2ED] hover:bg-[#1C1A18] transition-colors cursor-pointer"
             >
-              <Typography variant="h6" sx={{ fontWeight: 900, color: '#EF4444', mb: 2, fontFamily: 'var(--font-clash)' }}>
+              {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-[#1C1A18] transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-6">
+        {disconnectStep === 1 ? (
+          <div className="space-y-4">
+            <div className="p-6 rounded-[24px] bg-[#0A0908] border border-red-500/15 text-center shadow-[0_8px_32px_rgba(239,68,68,0.02)]">
+              <h4 className="text-base font-black font-clash text-red-500 mb-2">
                 Step 1: Confirm Disconnect
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 4, lineHeight: 1.6 }}>
+              </h4>
+              <p className="text-xs leading-relaxed text-white/65 mb-6 font-satoshi">
                 Disassociating GitHub will immediately suspend task, issue and pull request synchronization. All active background tasks linking your repository data will cease.
-              </Typography>
-              <Stack direction="row" spacing={2}>
-                <Button
-                  variant="contained"
-                  fullWidth
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
                   onClick={() => setDisconnectStep(2)}
-                  sx={{ bgcolor: '#EF4444', '&:hover': { bgcolor: '#DC2626' }, borderRadius: '12px', textTransform: 'none', fontWeight: 800 }}
+                  className="flex-1 py-3 px-4 rounded-xl bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold text-sm transition-colors cursor-pointer"
                 >
                   Proceed
-                </Button>
-                <Button
-                  variant="outlined"
-                  fullWidth
+                </button>
+                <button
+                  type="button"
                   onClick={() => setDisconnectStep(0)}
-                  sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', color: '#fff', '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,0.05)' }, borderRadius: '12px', textTransform: 'none', fontWeight: 800 }}
+                  className="flex-1 py-3 px-4 rounded-xl border border-white/10 hover:border-white text-white font-bold text-sm hover:bg-white/5 transition-all cursor-pointer"
                 >
                   Cancel
-                </Button>
-              </Stack>
-            </Box>
-          </Stack>
+                </button>
+              </div>
+            </div>
+          </div>
         ) : disconnectStep === 2 ? (
-          <Stack spacing={3}>
-            <Box 
-              sx={{ 
-                p: 3, 
-                borderRadius: '24px', 
-                bgcolor: '#0A0908', 
-                border: '1px solid rgba(239, 68, 68, 0.25)', 
-                textAlign: 'center',
-                boxShadow: '0 8px 32px rgba(239, 68, 68, 0.05)'
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 900, color: '#EF4444', mb: 1, fontFamily: 'var(--font-clash)' }}>
+          <div className="space-y-4">
+            <div className="p-6 rounded-[24px] bg-[#0A0908] border border-red-500/25 text-center shadow-[0_8px_32px_rgba(239,68,68,0.05)]">
+              <h4 className="text-base font-black font-clash text-red-500 mb-1">
                 Step 2: Permanent Teardown
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 3, lineHeight: 1.5 }}>
-                This action requires cryptographic token teardown. Please type <Box component="span" sx={{ color: '#fff', fontWeight: 900 }}>DISCONNECT</Box> below to finalize.
-              </Typography>
+              </h4>
+              <p className="text-xs leading-relaxed text-white/50 mb-3 font-satoshi">
+                This action requires cryptographic token teardown. Please type <span className="text-white font-black">DISCONNECT</span> below to finalize.
+              </p>
               
-              <TextField
-                fullWidth
-                variant="outlined"
-                size="small"
+              <input
+                type="text"
                 placeholder="DISCONNECT"
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
-                sx={{
-                  mb: 4,
-                  '& .MuiOutlinedInput-root': {
-                    bgcolor: '#161412',
-                    borderRadius: '12px',
-                    color: 'white',
-                    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                    '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                    '&.Mui-focused fieldset': { borderColor: '#EF4444' }
-                  }
-                }}
+                className="w-full bg-[#161412] px-4 py-3 rounded-xl border border-white/10 focus:border-[#EF4444] focus:outline-none text-white text-sm font-semibold mb-6 placeholder-white/20"
               />
 
-              <Stack direction="row" spacing={2}>
-                <Button
-                  variant="contained"
-                  fullWidth
+              <div className="flex gap-3">
+                <button
+                  type="button"
                   disabled={confirmText !== 'DISCONNECT'}
                   onClick={handleFinalDisconnect}
-                  sx={{ 
-                    bgcolor: '#EF4444', 
-                    '&:hover': { bgcolor: '#DC2626' }, 
-                    borderRadius: '12px', 
-                    textTransform: 'none', 
-                    fontWeight: 800,
-                    '&.Mui-disabled': { bgcolor: 'rgba(239, 68, 68, 0.2)', color: 'rgba(255, 255, 255, 0.3)' }
-                  }}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all cursor-pointer ${
+                    confirmText !== 'DISCONNECT'
+                      ? 'bg-red-500/20 text-white/30 cursor-not-allowed'
+                      : 'bg-[#EF4444] hover:bg-[#DC2626] text-white'
+                  }`}
                 >
                   Confirm Teardown
-                </Button>
-                <Button
-                  variant="outlined"
-                  fullWidth
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setDisconnectStep(0);
                     setConfirmText('');
                   }}
-                  sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', color: '#fff', '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,0.05)' }, borderRadius: '12px', textTransform: 'none', fontWeight: 800 }}
+                  className="flex-1 py-3 px-4 rounded-xl border border-white/10 hover:border-white text-white font-bold text-sm hover:bg-white/5 transition-all cursor-pointer"
                 >
                   Cancel
-                </Button>
-              </Stack>
-            </Box>
-          </Stack>
+                </button>
+              </div>
+            </div>
+          </div>
         ) : (
-          <Stack spacing={2.5}>
+          <div className="space-y-6">
             {githubConnected && githubUser && (
-              <Box 
-                sx={{ 
-                  p: 2, 
-                  borderRadius: '20px', 
-                  bgcolor: '#0A0908', 
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 2
-                }}
-              >
+              <div className="p-4 rounded-2xl bg-[#0A0908] border border-white/5 flex items-center gap-3">
                 {githubUser.photoURL ? (
-                  <Box 
-                    component="img" 
+                  <img 
                     src={githubUser.photoURL} 
                     alt="GitHub Profile"
-                    sx={{ width: 44, height: 44, borderRadius: '12px', flexShrink: 0 }}
+                    className="w-11 h-11 rounded-xl flex-shrink-0 object-cover"
                   />
                 ) : (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 44,
-                      height: 44,
-                      borderRadius: '12px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      color: 'white',
-                      flexShrink: 0,
-                      '& svg': { width: 22, height: 22 }
-                    }}
-                  >
+                  <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-white/5 text-white flex-shrink-0 [&_svg]:w-[22px] [&_svg]:h-[22px]">
                     {GITHUB_ICON}
-                  </Box>
+                  </div>
                 )}
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-sm font-extrabold text-white truncate leading-tight">
                     {githubUser.displayName || 'GitHub Account'}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                  </span>
+                  <span className="block text-xs text-white/40 truncate font-satoshi mt-0.5">
                     {githubUser.email || githubUser.uid || 'Connected'}
-                  </Typography>
-                </Box>
-                <Chip 
-                  label="CONNECTED" 
-                  size="small" 
-                  sx={{ 
-                    height: 18, 
-                    fontSize: '9px', 
-                    fontWeight: 900, 
-                    bgcolor: 'rgba(16, 185, 129, 0.1)', 
-                    color: '#10B981', 
-                    border: '1px solid rgba(16, 185, 129, 0.2)' 
-                  }} 
-                />
-              </Box>
+                  </span>
+                </div>
+                <span className="flex-shrink-0 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg">
+                  CONNECTED
+                </span>
+              </div>
             )}
 
             {!githubConnected && kylrixEmail && (
-              <Box 
-                sx={{ 
-                  p: 2.25, 
-                  borderRadius: '16px', 
-                  bgcolor: alpha('#6366F1', 0.03), 
-                  border: '1px dashed rgba(99, 102, 241, 0.2)',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 1.5
-                }}
-              >
-                <Box sx={{ fontSize: '1.25rem', mt: 0.25 }}>💡</Box>
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', mb: 0.5 }}>
-                    Link Recommendation <Typography component="span" sx={{ color: '#F59E0B', fontSize: '0.75rem', fontWeight: 900, ml: 1 }}>(STRONGLY ADVISED)</Typography>
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, display: 'block' }}>
-                    To prevent directory sync conflicts, we strongly recommend connecting a GitHub account that uses your active Kylrix email address: <Box component="span" sx={{ color: '#fff', fontWeight: 900, fontFamily: 'var(--font-mono)' }}>{kylrixEmail}</Box>.
-                  </Typography>
-                </Box>
-              </Box>
+              <div className="p-4 rounded-2xl bg-indigo-500/[0.03] border border-dashed border-indigo-500/20 flex items-start gap-3">
+                <span className="text-lg mt-0.5 flex-shrink-0">💡</span>
+                <div>
+                  <span className="block text-sm font-extrabold text-white font-satoshi">
+                    Link Recommendation <span className="text-[#F59E0B] text-[10px] font-black ml-1">(STRONGLY ADVISED)</span>
+                  </span>
+                  <span className="block text-xs text-white/45 leading-relaxed font-satoshi mt-1">
+                    To prevent directory sync conflicts, we strongly recommend connecting a GitHub account that uses your active Kylrix email address: <span className="text-white font-bold font-mono">{kylrixEmail}</span>.
+                  </span>
+                </div>
+              </div>
             )}
 
-            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-               <Button 
-                  variant={githubConnected ? 'outlined' : 'contained'}
-                  onClick={handleToggleConnection}
-                  disabled={isAuthenticating}
-                  sx={{ 
-                      borderRadius: '12px',
-                      textTransform: 'none',
-                      fontWeight: 800,
-                      width: '100%',
-                      py: 1.5,
-                      ...(githubConnected 
-                          ? { borderColor: '#34322F', color: '#fff', '&:hover': { borderColor: '#4A4845', bgcolor: 'rgba(255,255,255,0.02)' } }
-                          : { bgcolor: '#6366F1', '&:hover': { bgcolor: '#5458E8' } })
-                  }}
+            <div>
+              <button 
+                type="button"
+                onClick={handleToggleConnection}
+                disabled={isAuthenticating}
+                className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
+                  githubConnected 
+                    ? 'border border-[#34322F] hover:border-[#4A4845] text-white hover:bg-white/[0.02]' 
+                    : 'bg-[#6366F1] hover:bg-[#5458E8] text-white'
+                }`}
               >
-                  {isAuthenticating ? 'Connecting...' : (githubConnected ? "Disconnect Account" : "Connect GitHub Account")}
-              </Button>
-            </Box>
+                {isAuthenticating ? 'Connecting...' : (githubConnected ? "Disconnect Account" : "Connect GitHub Account")}
+              </button>
+            </div>
 
             {githubConnected && (
               context === 'project' ? (
-                <Stack spacing={2.5}>
+                <div className="space-y-6">
                   {step === 1 ? (
-                    <Box
-                      sx={{
-                        p: 3,
-                        borderRadius: '20px',
-                        bgcolor: alpha('#10B981', 0.03),
-                        border: '1px solid rgba(16, 185, 129, 0.15)',
-                      }}
-                    >
-                      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2.5 }}>
-                        <Box sx={{ color: '#10B981', display: 'flex' }}><CheckCircle size={24} /></Box>
-                        <Box sx={{ minWidth: 0, flex: 1 }}>
-                          <Typography variant="body1" sx={{ fontWeight: 800, color: '#fff' }}>
+                    <div className="p-5 rounded-2xl bg-emerald-500/[0.03] border border-emerald-500/15">
+                      <div className="flex gap-3 items-center mb-4">
+                        <span className="text-emerald-400 flex-shrink-0"><CheckCircle className="w-6 h-6" /></span>
+                        <div className="min-w-0 flex-1">
+                          <span className="block text-sm font-extrabold text-white leading-tight">
                             GitHub Account Connected
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                          </span>
+                          <span className="block text-xs text-white/50 truncate font-satoshi mt-0.5">
                             Linked Profile: {githubUser?.email || githubUser?.displayName || 'Connected'}
-                          </Typography>
-                        </Box>
-                      </Stack>
-                      <Button
-                        variant="contained"
-                        fullWidth
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
                         onClick={() => setStep(2)}
-                        endIcon={<ChevronRight size={16} />}
-                        sx={{
-                          borderRadius: '14px',
-                          bgcolor: '#6366F1',
-                          color: '#fff',
-                          fontWeight: 900,
-                          py: 1.5,
-                          textTransform: 'none',
-                          '&:hover': { bgcolor: '#4F46E5' },
-                        }}
+                        className="w-full py-3.5 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-black text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
                       >
-                        Configure Repository Integration
-                      </Button>
-                    </Box>
+                        <span>Configure Repository Integration</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   ) : (
-                    <Stack spacing={2.5}>
-                      <Box>
-                        <Button
-                          variant="text"
-                          size="small"
+                    <div className="space-y-6">
+                      <div>
+                        <button
+                          type="button"
                           onClick={() => setStep(1)}
-                          startIcon={<ArrowLeft size={14} />}
-                          sx={{ color: 'rgba(255, 255, 255, 0.5)', textTransform: 'none', fontWeight: 800, p: 0, '&:hover': { color: '#fff', bgcolor: 'transparent' } }}
+                          className="inline-flex items-center gap-1.5 text-xs text-white/50 hover:text-white transition-colors cursor-pointer font-bold"
                         >
-                          View Linked Account Info
-                        </Button>
-                      </Box>
+                          <ArrowLeft className="w-3.5 h-3.5" />
+                          <span>View Linked Account Info</span>
+                        </button>
+                      </div>
 
                       {loading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                          <CircularProgress size={28} sx={{ color: '#6366F1' }} />
-                        </Box>
+                        <div className="flex justify-center py-6">
+                          <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-[#6366F1]" />
+                        </div>
                       ) : (
-                        <Stack spacing={2.5}>
-                          <Box sx={{ p: 2.5, borderRadius: '20px', bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'white', mb: 2 }}>
+                        <div className="space-y-6">
+                          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+                            <span className="block text-sm font-extrabold text-white">
                               Repository Settings
-                            </Typography>
-                            <Stack spacing={2}>
+                            </span>
+                            
+                            <div className="space-y-4">
                               {!integration ? (
                                 <>
-                                  <TextField
-                                    fullWidth
-                                    label="Repository Owner"
-                                    variant="outlined"
-                                    size="small"
-                                    placeholder="e.g. facebook"
-                                    value={ownerName}
-                                    onChange={(e) => setOwnerName(e.target.value)}
-                                    sx={{
-                                      '& .MuiOutlinedInput-root': {
-                                        bgcolor: '#161412',
-                                        borderRadius: '12px',
-                                        color: 'white',
-                                        '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }
-                                      }
-                                    }}
-                                  />
-                                  <Button
-                                    variant="outlined"
-                                    size="small"
+                                  <div className="space-y-1.5">
+                                    <label className="text-[10px] font-mono font-bold tracking-wider text-[#8E8A86] uppercase font-satoshi">
+                                      Repository Owner
+                                    </label>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. facebook"
+                                      value={ownerName}
+                                      onChange={(e) => setOwnerName(e.target.value)}
+                                      className="w-full bg-[#161412] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1]"
+                                    />
+                                  </div>
+                                  
+                                  <button
+                                    type="button"
                                     onClick={handleFetchRepos}
                                     disabled={loadingRepos}
-                                    sx={{ 
-                                      borderRadius: '12px', 
-                                      textTransform: 'none', 
-                                      borderColor: '#34322F',
-                                      color: '#6366F1',
-                                      fontFamily: 'var(--font-satoshi)',
-                                      fontWeight: 800,
-                                      py: 1,
-                                      '&:hover': { bgcolor: '#1C1A18', borderColor: '#6366F1' }
-                                    }}
+                                    className="w-full py-3 px-4 rounded-xl border border-[#34322F] hover:border-[#6366F1] text-[#6366F1] font-extrabold text-xs bg-[#1C1A18] hover:bg-black transition-all flex items-center justify-center cursor-pointer"
                                   >
-                                    {loadingRepos ? <CircularProgress size={16} sx={{ color: '#6366F1' }} /> : 'Search Repositories'}
-                                  </Button>
+                                    {loadingRepos ? (
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                                    ) : (
+                                      'Search Repositories'
+                                    )}
+                                  </button>
+
                                   {reposList.length > 0 && (
-                                    <Box sx={{ border: '1px solid #34322F', borderRadius: '16px', p: 1.5, bgcolor: '#000000', maxHeight: 200, overflowY: 'auto' }}>
-                                      <TextField
-                                        fullWidth
+                                    <div className="border border-[#34322F] rounded-2xl p-4 bg-black max-h-[200px] overflow-y-auto space-y-3 scrollbar-thin">
+                                      <input
+                                        type="text"
                                         placeholder="Filter repositories..."
-                                        variant="standard"
-                                        size="small"
                                         value={repoFilter}
                                         onChange={(e) => setRepoFilter(e.target.value)}
-                                        InputProps={{
-                                          disableUnderline: true,
-                                          sx: {
-                                            bgcolor: '#161412',
-                                            color: 'white',
-                                            borderRadius: '8px',
-                                            px: 1.5,
-                                            py: 0.5,
-                                            fontSize: '0.8rem',
-                                            mb: 1,
-                                            border: '1px solid #34322F'
-                                          }
-                                        }}
+                                        className="w-full bg-[#161412] px-3 py-2 rounded-lg border border-[#34322F] text-xs text-white focus:outline-none placeholder-white/20"
                                       />
-                                      <Stack spacing={0.5}>
+                                      <div className="space-y-1">
                                         {reposList
                                           .filter(r => r.name.toLowerCase().includes(repoFilter.toLowerCase()))
                                           .map((repo) => (
-                                            <Button
+                                            <button
                                               key={repo.id}
-                                              fullWidth
+                                              type="button"
                                               onClick={() => {
                                                 setRepoName(repo.name);
                                                 toast.success(`Selected: ${repo.name}`);
                                               }}
-                                              sx={{
-                                                justifyContent: 'flex-start',
-                                                textAlign: 'left',
-                                                px: 1.5,
-                                                py: 1,
-                                                borderRadius: '8px',
-                                                textTransform: 'none',
-                                                bgcolor: repoName === repo.name ? '#1C1A18' : 'transparent',
-                                                border: repoName === repo.name ? '1px solid #6366F1' : '1px solid transparent',
-                                                color: 'white',
-                                                fontSize: '0.8rem',
-                                                '&:hover': { bgcolor: '#1C1A18' }
-                                              }}
+                                              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold font-satoshi flex flex-col transition-all cursor-pointer ${
+                                                repoName === repo.name
+                                                  ? 'bg-[#1C1A18] border border-[#6366F1] text-white'
+                                                  : 'border border-transparent text-white/70 hover:bg-[#1C1A18] hover:text-white'
+                                              }`}
                                             >
-                                              <Box>
-                                                <Typography sx={{ fontWeight: 800, fontSize: '0.8rem', fontFamily: 'var(--font-satoshi)' }}>{repo.name}</Typography>
-                                                {repo.description && (
-                                                  <Typography sx={{ color: '#8E8A86', fontSize: '0.7rem', fontFamily: 'var(--font-satoshi)' }} noWrap>{repo.description}</Typography>
-                                                )}
-                                              </Box>
-                                            </Button>
+                                              <span className="font-extrabold">{repo.name}</span>
+                                              {repo.description && (
+                                                <span className="text-[10px] text-[#8E8A86] truncate mt-0.5">{repo.description}</span>
+                                              )}
+                                            </button>
                                           ))}
-                                      </Stack>
-                                    </Box>
+                                      </div>
+                                    </div>
                                   )}
-                                  <TextField
-                                    fullWidth
-                                    label="Repository Name"
-                                    variant="outlined"
-                                    size="small"
-                                    placeholder="e.g. react"
-                                    value={repoName}
-                                    onChange={(e) => setRepoName(e.target.value)}
-                                    sx={{
-                                      '& .MuiOutlinedInput-root': {
-                                        bgcolor: '#161412',
-                                        borderRadius: '12px',
-                                        color: 'white',
-                                        '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }
-                                      }
-                                    }}
-                                  />
+
+                                  <div className="space-y-1.5">
+                                    <label className="text-[10px] font-mono font-bold tracking-wider text-[#8E8A86] uppercase font-satoshi">
+                                      Repository Name
+                                    </label>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. react"
+                                      value={repoName}
+                                      onChange={(e) => setRepoName(e.target.value)}
+                                      className="w-full bg-[#161412] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1]"
+                                    />
+                                  </div>
                                 </>
                               ) : (
-                                <Box sx={{ p: 2, borderRadius: '12px', bgcolor: '#161412', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', mb: 0.5, fontWeight: 700, textTransform: 'uppercase' }}>
+                                <div className="p-4 rounded-xl bg-[#161412] border border-white/5">
+                                  <span className="block text-[10px] text-white/40 font-bold uppercase tracking-wider mb-1 font-satoshi">
                                     Connected Repository
-                                  </Typography>
-                                  <Typography variant="body1" sx={{ color: 'white', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                                  </span>
+                                  <span className="block text-sm font-bold text-white font-mono">
                                     {integration.ownerName}/{integration.repoName}
-                                  </Typography>
-                                </Box>
+                                  </span>
+                                </div>
                               )}
-                              <FormControlLabel
-                                control={<Switch checked={enabled} onChange={(e) => setEnabled(e.target.checked)} color="primary" />}
-                                label={
-                                  <Box>
-                                    <Typography variant="body2" sx={{ fontWeight: 800, color: 'white' }}>Enable Repository Sync</Typography>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)' }}>Active background sync for tasks.</Typography>
-                                  </Box>
-                                }
-                                sx={{ ml: 0, justifyContent: 'space-between', flexDirection: 'row-reverse', width: '100%', mt: 1 }}
-                              />
-                            </Stack>
-                          </Box>
 
-                          <Stack direction="row" spacing={2}>
-                            <Button
-                              variant="contained"
-                              fullWidth
+                              {/* Enable Sync toggle */}
+                              <div className="flex items-center justify-between py-2">
+                                <div>
+                                  <span className="block text-xs font-extrabold text-white">Enable Repository Sync</span>
+                                  <span className="block text-[10px] text-white/40 mt-0.5">Active background sync for tasks.</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setEnabled(!enabled)}
+                                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                    enabled ? 'bg-[#6366F1]' : 'bg-[#34322F]'
+                                  }`}
+                                >
+                                  <span
+                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                      enabled ? 'translate-x-5' : 'translate-x-0'
+                                    }`}
+                                  />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
                               onClick={handleSave}
                               disabled={loading}
-                              sx={{ borderRadius: '12px', bgcolor: '#6366F1', fontWeight: 800, '&:hover': { bgcolor: '#4F46E5' } }}
+                              className="flex-1 py-3.5 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-extrabold text-sm transition-colors flex items-center justify-center cursor-pointer"
                             >
                               Save Settings
-                            </Button>
-
+                            </button>
                             {integration && (
-                              <Button
-                                variant="outlined"
-                                color="error"
-                                fullWidth
+                              <button
+                                type="button"
                                 onClick={handleDeleteRepo}
                                 disabled={loading}
-                                sx={{ borderRadius: '12px', borderColor: 'rgba(239, 68, 68, 0.2)', color: '#EF4444', '&:hover': { bgcolor: 'rgba(239,68,68,0.05)', borderColor: '#EF4444' } }}
+                                className="flex-1 py-3.5 rounded-xl border border-red-500/20 hover:border-red-500 text-red-400 hover:bg-red-500/5 font-bold text-sm transition-all flex items-center justify-center cursor-pointer"
                               >
                                 Remove Integration
-                              </Button>
+                              </button>
                             )}
-                          </Stack>
+                          </div>
 
                           {integration && (
-                            <Stack spacing={2.5}>
-                              {/* 1. Master Sync Terminal Panel */}
-                              <Box sx={{ border: '1px solid #1C1A18', borderRadius: '16px', bgcolor: '#0A0908', p: 2 }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Terminal size={16} style={{ color: '#6366F1' }} />
-                                    <Typography variant="body2" sx={{ fontWeight: 900, color: 'white' }}>
+                            <div className="space-y-6">
+                              {/* Master Sync Terminal Panel */}
+                              <div className="border border-[#1C1A18] rounded-2xl bg-[#0A0908] p-4">
+                                <div className="flex justify-between items-center mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <Terminal className="w-4 h-4 text-[#6366F1]" />
+                                    <span className="text-xs font-black text-white font-satoshi">
                                       Master Synchronizer
-                                    </Typography>
-                                  </Box>
-                                  <Button
-                                    variant="contained"
-                                    size="small"
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
                                     disabled={syncing}
                                     onClick={handleMasterSync}
-                                    startIcon={<Play size={12} />}
-                                    sx={{
-                                      bgcolor: '#6366F1',
-                                      '&:hover': { bgcolor: '#5458E8' },
-                                      borderRadius: '8px',
-                                      textTransform: 'none',
-                                      fontWeight: 800,
-                                      fontSize: '0.75rem',
-                                      px: 1.5,
-                                      py: 0.5
-                                    }}
+                                    className="px-3 py-1 rounded-lg bg-[#6366F1] hover:bg-[#5458E8] text-white font-extrabold text-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                                   >
-                                    {syncing ? 'Syncing...' : 'Sync Now'}
-                                  </Button>
-                                </Box>
+                                    <Play className="w-3 h-3" />
+                                    <span>{syncing ? 'Syncing...' : 'Sync Now'}</span>
+                                  </button>
+                                </div>
 
                                 {syncing && (
-                                  <Box sx={{ mb: 2 }}>
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 800 }}>
+                                  <div className="mb-4">
+                                    <div className="flex justify-between mb-1">
+                                      <span className="text-[10px] text-white/60 font-bold">
                                         {activeSyncStep}
-                                      </Typography>
-                                      <Typography variant="caption" sx={{ color: '#6366F1', fontWeight: 900 }}>
+                                      </span>
+                                      <span className="text-[10px] text-[#6366F1] font-black">
                                         {syncProgress}%
-                                      </Typography>
-                                    </Box>
-                                    <LinearProgress 
-                                      variant="determinate" 
-                                      value={syncProgress} 
-                                      sx={{
-                                        height: 4,
-                                        borderRadius: 2,
-                                        bgcolor: 'rgba(255,255,255,0.05)',
-                                        '& .MuiLinearProgress-bar': { bgcolor: '#6366F1', borderRadius: 2 }
-                                      }}
-                                    />
-                                  </Box>
+                                      </span>
+                                    </div>
+                                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full bg-[#6366F1] transition-all duration-300"
+                                        style={{ width: `${syncProgress}%` }}
+                                      />
+                                    </div>
+                                  </div>
                                 )}
 
-                                <Box 
-                                  sx={{ 
-                                    p: 1.5, 
-                                    borderRadius: '10px', 
-                                    bgcolor: '#090807', 
-                                    border: '1px solid rgba(255,255,255,0.03)',
-                                    fontFamily: 'var(--font-mono, monospace)',
-                                    fontSize: '10px',
-                                    height: 120,
-                                    overflowY: 'auto',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: 0.75
-                                  }}
-                                >
+                                <div className="p-3 rounded-xl bg-[#090807] border border-white/[0.03] font-mono text-[10px] h-[120px] overflow-y-auto space-y-1 scrollbar-thin">
                                   {syncLogs.map((log: any, idx: number) => (
-                                    <Box key={log.id || idx} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.25)', fontFamily: 'inherit', fontSize: 'inherit', flexShrink: 0 }}>
+                                    <div key={log.id || idx} className="flex gap-2 items-start leading-normal">
+                                      <span className="text-white/20 select-none">
                                         [{log.timestamp || new Date().toLocaleTimeString()}]
-                                      </Typography>
-                                      <Typography 
-                                        variant="caption" 
-                                        sx={{ 
-                                          color: log.type === 'error' ? '#EF4444' : log.type === 'warn' ? '#F59E0B' : log.type === 'success' ? '#10B981' : '#6366F1', 
-                                          fontWeight: 900,
-                                          fontFamily: 'inherit',
-                                          fontSize: 'inherit',
-                                          flexShrink: 0
-                                        }}
+                                      </span>
+                                      <span 
+                                        className={`font-black uppercase flex-shrink-0 ${
+                                          log.type === 'error' 
+                                            ? 'text-[#EF4444]' 
+                                            : log.type === 'warn' 
+                                            ? 'text-[#F59E0B]' 
+                                            : log.type === 'success' 
+                                            ? 'text-[#10B981]' 
+                                            : 'text-[#6366F1]'
+                                        }`}
                                       >
-                                        {(log.service || 'System').toUpperCase()}:
-                                      </Typography>
-                                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'inherit', fontSize: 'inherit', lineBreak: 'anywhere' }}>
+                                        {(log.service || 'System')}:
+                                      </span>
+                                      <span className="text-white/70 break-all">
                                         {log.message || log}
-                                      </Typography>
-                                    </Box>
+                                      </span>
+                                    </div>
                                   ))}
                                   <div ref={logEndRef} />
-                                </Box>
-                              </Box>
+                                </div>
+                              </div>
 
-                              {/* 2. Repository Issues Feed */}
+                              {/* Repository Issues */}
                               <CollapsibleSection title="Repository Issues" icon={<Terminal size={16} />}>
                                 {loadingIssues ? (
-                                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', display: 'block', py: 1 }}>
+                                  <span className="text-xs text-white/40 italic block py-2">
                                     Retrieving issues...
-                                  </Typography>
+                                  </span>
                                 ) : issuesError ? (
-                                  <Typography variant="caption" sx={{ color: '#EF4444', display: 'block', py: 1 }}>
+                                  <span className="text-xs text-red-400 block py-2">
                                     Error: {issuesError}
-                                  </Typography>
+                                  </span>
                                 ) : gitIssues.length === 0 ? (
-                                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', display: 'block', py: 1 }}>
+                                  <span className="text-xs text-white/40 italic block py-2">
                                     No issues found.
-                                  </Typography>
+                                  </span>
                                 ) : (
-                                  <Stack spacing={1.25} sx={{ mt: 1 }}>
+                                  <div className="space-y-2.5 mt-2">
                                     {gitIssues.map((issue) => (
-                                      <Box 
+                                      <div 
                                         key={issue.id}
                                         onClick={() => window.open(issue.htmlUrl, '_blank')}
-                                        sx={{ 
-                                          p: 1.5, 
-                                          borderRadius: '12px', 
-                                          bgcolor: 'rgba(255, 255, 255, 0.02)', 
-                                          border: '1px solid rgba(255, 255, 255, 0.04)',
-                                          cursor: 'pointer',
-                                          '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.04)', borderColor: 'rgba(255,255,255,0.08)' }
-                                        }}
+                                        className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-white/[0.08] transition-all cursor-pointer"
                                       >
-                                        <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', mb: 0.5 }}>
+                                        <span className="block text-xs font-bold text-white mb-1.5 leading-snug">
                                           #{issue.number} {issue.title}
-                                        </Typography>
-                                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
+                                        </span>
+                                        <div className="flex justify-between items-center gap-2">
+                                          <span className="text-[10px] text-white/40">
                                             Created: {new Date(issue.createdAt).toLocaleDateString()}
-                                          </Typography>
-                                          <Chip 
-                                            label={issue.state.toUpperCase()} 
-                                            size="small" 
-                                            sx={{ 
-                                              height: 16, 
-                                              fontSize: '8px', 
-                                              fontWeight: 900,
-                                              bgcolor: issue.state === 'open' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)', 
-                                              color: issue.state === 'open' ? '#10B981' : 'rgba(255,255,255,0.6)' 
-                                            }}
-                                          />
-                                        </Stack>
-                                      </Box>
+                                          </span>
+                                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                            issue.state === 'open' 
+                                              ? 'bg-emerald-500/10 text-emerald-400' 
+                                              : 'bg-white/5 text-white/60'
+                                          }`}>
+                                            {issue.state}
+                                          </span>
+                                        </div>
+                                      </div>
                                     ))}
-                                  </Stack>
+                                  </div>
                                 )}
                               </CollapsibleSection>
 
-                              {/* 3. Repository Pull Requests Feed */}
+                              {/* Repository Pull Requests */}
                               <CollapsibleSection title="Repository Pull Requests" icon={<GitPullRequest size={16} />}>
                                 {loadingPRs ? (
-                                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', display: 'block', py: 1 }}>
+                                  <span className="text-xs text-white/40 italic block py-2">
                                     Retrieving pull requests...
-                                  </Typography>
+                                  </span>
                                 ) : prsError ? (
-                                  <Typography variant="caption" sx={{ color: '#EF4444', display: 'block', py: 1 }}>
+                                  <span className="text-xs text-red-400 block py-2">
                                     Error: {prsError}
-                                  </Typography>
+                                  </span>
                                 ) : gitPRs.length === 0 ? (
-                                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', display: 'block', py: 1 }}>
+                                  <span className="text-xs text-white/40 italic block py-2">
                                     No active pull requests found.
-                                  </Typography>
+                                  </span>
                                 ) : (
-                                  <Stack spacing={1.25} sx={{ mt: 1 }}>
+                                  <div className="space-y-2.5 mt-2">
                                     {gitPRs.map((pr) => (
-                                      <Box 
+                                      <div 
                                         key={pr.id}
                                         onClick={() => window.open(pr.htmlUrl, '_blank')}
-                                        sx={{ 
-                                          p: 1.5, 
-                                          borderRadius: '12px', 
-                                          bgcolor: 'rgba(255, 255, 255, 0.02)', 
-                                          border: '1px solid rgba(255, 255, 255, 0.04)',
-                                          cursor: 'pointer',
-                                          '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.04)', borderColor: 'rgba(255,255,255,0.08)' }
-                                        }}
+                                        className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-white/[0.08] transition-all cursor-pointer"
                                       >
-                                        <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', mb: 0.5 }}>
+                                        <span className="block text-xs font-bold text-white mb-1.5 leading-snug">
                                           #{pr.number} {pr.title}
-                                        </Typography>
-                                        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
-                                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        </span>
+                                        <div className="flex justify-between items-center gap-3">
+                                          <span className="text-[10px] text-white/40 truncate flex-1 font-mono">
                                             {pr.sourceBranch} ➔ {pr.targetBranch}
-                                          </Typography>
-                                          <Chip 
-                                            label={pr.state.toUpperCase()} 
-                                            size="small" 
-                                            sx={{ 
-                                              height: 16, 
-                                              fontSize: '8px', 
-                                              fontWeight: 900,
-                                              bgcolor: pr.state === 'open' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.05)', 
-                                              color: pr.state === 'open' ? '#6366F1' : 'rgba(255,255,255,0.6)' 
-                                            }}
-                                          />
-                                        </Stack>
-                                      </Box>
+                                          </span>
+                                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                            pr.state === 'open' 
+                                              ? 'bg-indigo-500/15 text-indigo-400' 
+                                              : 'bg-white/5 text-white/60'
+                                          }`}>
+                                            {pr.state}
+                                          </span>
+                                        </div>
+                                      </div>
                                     ))}
-                                  </Stack>
+                                  </div>
                                 )}
                               </CollapsibleSection>
-                            </Stack>
+                            </div>
                           )}
-                        </Stack>
+                        </div>
                       )}
-                    </Stack>
+                    </div>
                   )}
-                </Stack>
+                </div>
               ) : (
-                <Stack spacing={1}>
-                    <Box sx={{ p: 2, borderRadius: '16px', bgcolor: '#0A0908', border: '1px solid #1C1A18' }}>
-                        <FormControlLabel
-                            control={<Switch checked={githubSyncIssues} onChange={(e) => setGithubSyncIssues(e.target.checked)} color="primary" />}
-                            label={
-                                <Box>
-                                    <Typography variant="body2" sx={{ fontWeight: 800, color: 'white' }}>GitHub Issue Sync</Typography>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>Mirror project tasks directly into GitHub repository issues.</Typography>
-                                </Box>
-                            }
-                            sx={{ m: 0, width: '100%', justifyContent: 'space-between', flexDirection: 'row-reverse' }}
+                <div className="space-y-3">
+                  {[
+                    {
+                      checked: githubSyncIssues,
+                      onChange: (val: boolean) => setGithubSyncIssues(val),
+                      title: 'GitHub Issue Sync',
+                      desc: 'Mirror project tasks directly into GitHub repository issues.'
+                    },
+                    {
+                      checked: githubSyncCommits,
+                      onChange: (val: boolean) => setGithubSyncCommits(val),
+                      title: 'Commits Feed Sync',
+                      desc: 'Import repository commits as personal feed actions.'
+                    },
+                    {
+                      checked: githubSyncPRs,
+                      onChange: (val: boolean) => setGithubSyncPRs(val),
+                      title: 'Pull Request Notifications',
+                      desc: 'Notify on repository open PR and code review activities.'
+                    }
+                  ].map((item) => (
+                    <div key={item.title} className="p-4 rounded-2xl bg-[#0A0908] border border-[#1C1A18] flex items-center justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <span className="block text-sm font-extrabold text-white">{item.title}</span>
+                        <span className="block text-xs text-white/40 font-satoshi mt-0.5 leading-normal">{item.desc}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => item.onChange(!item.checked)}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          item.checked ? 'bg-[#6366F1]' : 'bg-[#34322F]'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            item.checked ? 'translate-x-5' : 'translate-x-0'
+                          }`}
                         />
-                    </Box>
-                    <Box sx={{ p: 2, borderRadius: '16px', bgcolor: '#0A0908', border: '1px solid #1C1A18' }}>
-                        <FormControlLabel
-                            control={<Switch checked={githubSyncCommits} onChange={(e) => setGithubSyncCommits(e.target.checked)} color="primary" />}
-                            label={
-                                <Box>
-                                    <Typography variant="body2" sx={{ fontWeight: 800, color: 'white' }}>Commits Feed Sync</Typography>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>Import repository commits as personal feed actions.</Typography>
-                                </Box>
-                            }
-                            sx={{ m: 0, width: '100%', justifyContent: 'space-between', flexDirection: 'row-reverse' }}
-                        />
-                    </Box>
-                    <Box sx={{ p: 2, borderRadius: '16px', bgcolor: '#0A0908', border: '1px solid #1C1A18' }}>
-                        <FormControlLabel
-                            control={<Switch checked={githubSyncPRs} onChange={(e) => setGithubSyncPRs(e.target.checked)} color="primary" />}
-                            label={
-                                <Box>
-                                    <Typography variant="body2" sx={{ fontWeight: 800, color: 'white' }}>Pull Request Notifications</Typography>
-                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>Notify on repository open PR and code review activities.</Typography>
-                                </Box>
-                            }
-                            sx={{ m: 0, width: '100%', justifyContent: 'space-between', flexDirection: 'row-reverse' }}
-                        />
-                    </Box>
-                </Stack>
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )
             )}
-          </Stack>
+          </div>
         )}
-      </Box>
+      </div>
+    </div>
   );
 
   if (isFlapover) {
@@ -1276,37 +1116,21 @@ export function GithubIntegrationDrawer({
   }
 
   return (
-    <Drawer 
-        anchor={isDesktop ? 'right' : 'bottom'} 
-        open={isOpen} 
-        onClose={onClose} 
-        PaperProps={{ 
-            sx: {
-                bgcolor: '#161412',
-                backgroundImage: 'none',
-                color: '#fff',
-                ...(isDesktop ? {
-                    height: '100%',
-                    maxWidth: 480,
-                    width: '100%',
-                    borderLeft: '1px solid #1C1A18',
-                    borderTopLeftRadius: 0,
-                    borderTopRightRadius: 0,
-                } : {
-                    height: isExpanded ? '100dvh' : '60dvh',
-                    transition: 'height 0.3s ease-in-out',
-                    borderTopLeftRadius: '28px',
-                    borderTopRightRadius: '28px',
-                    borderTop: '1px solid #1C1A18',
-                    maxWidth: 720,
-                    width: '100%',
-                    mx: 'auto',
-                })
-            } 
-        }} 
-        ModalProps={{ keepMounted: false, disableScrollLock: false, disablePortal: true }}
-    >
-      {innerContent}
-    </Drawer>
+    <div className="fixed inset-0 z-50 flex justify-end overflow-hidden pointer-events-none">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto"
+        onClick={onClose}
+      />
+
+      {/* Drawer Pane */}
+      <div
+        className={`fixed bg-[#161412] border-[#34322F] pointer-events-auto transition-all duration-300 flex flex-col z-50 md:inset-y-0 md:right-0 md:left-auto md:w-full md:max-w-[480px] md:h-full md:border-l md:rounded-none inset-x-0 bottom-0 border-t rounded-t-[28px] ${
+          isMobile ? (isExpanded ? 'h-[100dvh]' : 'h-[60dvh]') : 'h-full'
+        }`}
+      >
+        {innerContent}
+      </div>
+    </div>
   );
 }

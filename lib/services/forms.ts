@@ -111,13 +111,15 @@ export const FormsService = {
                 Query.equal('formId', formId),
                 Query.equal('submitterId', userId),
                 Query.limit(20),
-                Query.select(['$id', 'formId', 'submitterId', 'status', 'metadata', '$createdAt'])
+                Query.select(['$id', 'formId', 'submitterId', 'status', 'metadata', 'payload', '$createdAt'])
             ]
         });
 
         return res.rows.find(s => {
             try {
-                return JSON.parse(s.metadata || '{}').isDraft;
+                if (!s.metadata) return false;
+                const meta = JSON.parse(s.metadata);
+                return meta.isDraft === true;
             } catch (_e) { return false; }
         });
     },
@@ -134,13 +136,15 @@ export const FormsService = {
                 Query.equal('formId', formId),
                 Query.equal('submitterId', userId),
                 Query.limit(20),
-                Query.select(['$id', 'formId', 'submitterId', 'status', 'metadata', '$createdAt'])
+                Query.select(['$id', 'formId', 'submitterId', 'status', 'metadata', 'payload', '$createdAt'])
             ]
         });
 
         const existingDraft = res.rows.find(s => {
             try {
-                return JSON.parse(s.metadata || '{}').isDraft;
+                if (!s.metadata) return false;
+                const meta = JSON.parse(s.metadata);
+                return meta.isDraft === true;
             } catch (_e) { return false; }
         });
 
@@ -255,13 +259,17 @@ export const FormsService = {
                 tableId: SUBMISSIONS_TABLE,
                 queries: [
                     Query.equal('formId', formId),
-                    Query.equal('submitterId', submitterId)
+                    Query.equal('submitterId', submitterId),
+                    Query.limit(20),
+                    Query.select(['$id', 'formId', 'submitterId', 'status', 'metadata', '$createdAt'])
                 ]
             });
 
             const existingDraft = res.rows.find(s => {
                 try {
-                    return JSON.parse(s.metadata || '{}').isDraft;
+                    if (!s.metadata) return false;
+                    const meta = JSON.parse(s.metadata);
+                    return meta.isDraft === true;
                 } catch (_e) { return false; }
             });
 

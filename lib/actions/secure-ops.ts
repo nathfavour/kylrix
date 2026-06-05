@@ -87,7 +87,7 @@ export async function getRowCached(params: { databaseId: string; tableId: string
     return cached.row;
   }
   const db = Registry.getDatabase();
-  const row = await db.getRow<any>(params.databaseId, params.tableId, params.rowId);
+  const row = await db.getRow<any>(params.databaseId, params.tableId, params.rowId, { forceSystem: true });
   if (row) {
     // Prune expired entries to keep memory low
     if (rowCache.size > 100) {

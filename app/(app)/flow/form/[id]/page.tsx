@@ -56,7 +56,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                 // Load existing draft/local data
                 const localKey = `form_draft_${resolvedParams.id}`;
                 const localData = localStorage.getItem(localKey);
-                if (localData) {
+                if (localData && localData !== 'undefined') {
                     try {
                         setFormData(JSON.parse(localData));
                     } catch (_e) {}
@@ -66,8 +66,12 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                 if (user) {
                     try {
                         const draft = await FormsService.getDraft(resolvedParams.id, user.$id);
-                        if (draft) {
-                            setFormData(JSON.parse(draft.payload));
+                        if (draft && draft.payload) {
+                            try {
+                                setFormData(JSON.parse(draft.payload));
+                            } catch (parseErr) {
+                                console.warn("[Form] Remote draft payload invalid JSON", parseErr);
+                            }
                         }
                     } catch (_e) {
                         console.error("Failed to check for remote draft", _e);
