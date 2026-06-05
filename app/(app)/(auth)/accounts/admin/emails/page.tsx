@@ -334,6 +334,3 @@ export default function EmailOrchestrator() {
     </AdminLayout>
   );
 }
-    </AdminLayout>
-  );
-}
