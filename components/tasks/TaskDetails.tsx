@@ -2,52 +2,26 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Box,
-  Typography,
-  IconButton,
-  TextField,
-  Button,
-  Chip,
-  Divider,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Checkbox,
-  Avatar,
-  Menu,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  alpha,
-  CircularProgress,
-  Stack,
-  Paper,
-  Tooltip,
-} from '@/lib/mui-tailwind/material';
-import {
-  Close as CloseIcon,
-  Flag as FlagIcon,
-  CalendarMonth as CalendarIcon,
-  AutoAwesome as ActionIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Description as NotesIcon,
-  VideoCall as MeetingIcon,
-  Send as SendIcon,
-  AutoFixHigh as AutoFixHighIcon,
-  ArrowBack as BackIcon,
-} from '@/lib/mui-tailwind/icons';
+  X,
+  Flag,
+  Calendar,
+  Sparkles,
+  Plus,
+  Trash2,
+  Edit3,
+  FileText,
+  Video,
+  Send,
+  ArrowLeft,
+  Globe
+} from 'lucide-react';
 import { formatTime } from '@/lib/time-util';
+import { formatNoteCreatedDate } from '@/lib/date-utils';
 import { Query } from 'appwrite';
 import { useTask } from '@/context/TaskContext';
 import { Priority, TaskStatus } from '@/types';
 import { useLayout } from '@/context/LayoutContext';
 import { useAI } from '@/hooks/useAI';
-import { useMediaQuery } from '@/lib/mui-tailwind/material';
-import { useTheme } from '@/lib/mui-tailwind/material';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { notes as noteApi } from '@/lib/kylrixflow';
@@ -55,7 +29,6 @@ import UserSearch from '@/components/UserSearch';
 import { getResourceCollaboratorsSecure } from '@/lib/actions/secure-ops';
 import { account } from '@/lib/appwrite';
 import { UsersService } from '@/lib/services/users';
-import { FolderKanban } from 'lucide-react';
 import ProjectLinker from '@/components/projects/ProjectLinker';
 import type { CollaboratorPermission, TaskCollaborator } from '@/types';
 import { createGhostNoteForResource, promoteGhostResourceThreadToStory } from '@/lib/actions/client-ops';
@@ -66,7 +39,6 @@ import { usePresence } from '@/components/providers/PresenceProvider';
 import { useToast } from '@/components/ui/Toast';
 import { AppwriteService } from '@/lib/appwrite';
 import { IdentityAvatar } from '@/components/IdentityBadge';
-import { Clock, FileText, Globe } from 'lucide-react';
 
 const priorityColors: Record<Priority, string> = {
   low: '#A1A1AA',
@@ -89,8 +61,6 @@ interface TaskDetailsProps {
 }
 
 export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user } = useAuth();
   const { open: openUnified } = useUnifiedDrawer();
   const { closeSecondarySidebar } = useLayout();
@@ -122,7 +92,6 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
     toggleSubtask,
     deleteSubtask,
     addComment,
-    listTaskCollaborators,
     addTaskCollaborator,
     updateTaskCollaborator,
     deleteTaskCollaborator,
@@ -149,6 +118,7 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
       subtasks: [...(current.subtasks || []), ...childSubtasks],
     };
   }, [tasks, taskId]);
+
   const [newSubtask, setNewSubtask] = useState('');
   const [newComment, setNewComment] = useState('');
   const [noteQuery, setNoteQuery] = useState('');
@@ -158,8 +128,8 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [statusAnchor, setStatusAnchor] = useState<null | HTMLElement>(null);
-  const [priorityAnchor, setPriorityAnchor] = useState<null | HTMLElement>(null);
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isPriorityOpen, setIsPriorityOpen] = useState(false);
   const [taskParticipantProfiles, setTaskParticipantProfiles] = useState<any[]>([]);
   const [isLoadingAssignees, setIsLoadingAssignees] = useState(false);
   const [taskCollaboratorRows, setTaskCollaboratorRows] = useState<TaskCollaborator[]>([]);
@@ -325,21 +295,6 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
     }
   };
 
-  const handleSaveHuddleAsStory = async () => {
-    setHuddleLoading(true);
-    try {
-      await promoteGhostResourceThreadToStory(taskId, 'task');
-      showSuccess('Discussion promoted to a permanent Story note!');
-      setIsHuddleInit(false);
-      setHuddleMessages([]);
-    } catch (err) {
-      console.error('Failed to save story:', err);
-      showError('Failed to promote discussion.');
-    } finally {
-      setHuddleLoading(false);
-    }
-  };
-
   // AI Integration
   const { generate } = useAI();
   const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false);
@@ -395,31 +350,6 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
       await addSubtask(currentTask.id, newSubtask.trim());
       setNewSubtask('');
     }
-  };
-
-  const handleAddComment = () => {
-    const currentTask = task;
-    if (!currentTask) return;
-    if (newComment.trim()) {
-      addComment(currentTask.id, newComment.trim());
-      setNewComment('');
-    }
-  };
-
-  const handleAttachNote = async (noteId: string) => {
-    const currentTask = task;
-    if (!currentTask) return;
-    const next = Array.from(new Set([...(currentTask.linkedNotes || []), noteId]));
-    await updateTask(currentTask.id, { linkedNotes: next });
-    setNoteQuery('');
-    setNoteResults([]);
-  };
-
-  const handleDetachNote = async (noteId: string) => {
-    const currentTask = task;
-    if (!currentTask) return;
-    const next = (currentTask.linkedNotes || []).filter((id) => id !== noteId);
-    await updateTask(currentTask.id, { linkedNotes: next });
   };
 
   React.useEffect(() => {
@@ -513,10 +443,16 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
 
   if (!task) {
     return (
-        <Box sx={{ p: 6, textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2 }}>
-            <Typography variant="h6" color="text.secondary">Task details unavailable</Typography>
-            <Button variant="outlined" size="small" onClick={handleClose}>Go Back</Button>
-        </Box>
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center gap-4 bg-[#161412] text-[#9B9691] font-satoshi">
+        <h3 className="text-lg font-extrabold font-clash text-[#F5F2ED] tracking-tight uppercase">Goal details unavailable</h3>
+        <button
+          type="button"
+          onClick={handleClose}
+          className="px-4 py-2 border border-[#34322F] hover:border-white/20 text-[#F5F2ED] rounded-xl hover:bg-white/5 transition-all font-bold"
+        >
+          Go Back
+        </button>
+      </div>
     );
   }
 
@@ -529,12 +465,12 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
 
   const handleStatusChange = (status: TaskStatus) => {
     updateTask(task.id, { status });
-    setStatusAnchor(null);
+    setIsStatusOpen(false);
   };
 
   const handlePriorityChange = (priority: Priority) => {
     updateTask(task.id, { priority });
-    setPriorityAnchor(null);
+    setIsPriorityOpen(false);
   };
 
   const handleAddCollaborators = async () => {
@@ -558,252 +494,375 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
   };
 
   return (
-    <Box className="task-detail-root" sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#161412', overflow: 'hidden' }}>
-      {/* Header (Dual-Row Layout - Fixed at top) */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: { xs: 2, md: 2.5 }, pb: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.05)', bgcolor: '#161412' }}>
-        {/* Row 1: Title & Close Button */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
+    <div className="flex flex-col h-full bg-[#161412] text-[#F5F2ED] font-satoshi relative overflow-hidden">
+      {/* Ambient radial gradient spotlight */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(168,85,247,0.12),transparent_60%)] pointer-events-none" />
+
+      {/* Header - Sticky/Fixed at Top */}
+      <div className="relative z-10 flex flex-col gap-3 p-5 md:p-6 border-b border-white/5 bg-[#161412]/60 backdrop-blur-md shrink-0">
+        {/* Row 1: Title & Close Action Buttons */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             {onBack ? (
-              <IconButton onClick={onBack} sx={{ color: theme.palette.text.secondary, flexShrink: 0 }}>
-                <BackIcon />
-              </IconButton>
+              <button
+                type="button"
+                onClick={onBack}
+                className="p-2 text-[#9B9691] hover:text-white rounded-xl hover:bg-white/5 transition-colors flex-shrink-0"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
             ) : (
-              <IconButton onClick={handleClose} sx={{ color: theme.palette.text.secondary, flexShrink: 0, display: { xs: 'inline-flex', sm: 'none' } }}>
-                <BackIcon />
-              </IconButton>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="p-2 text-[#9B9691] hover:text-white rounded-xl hover:bg-white/5 transition-colors flex-shrink-0 md:hidden"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
             )}
+
             {isEditing ? (
-              <TextField 
-                fullWidth 
-                variant="standard" 
-                value={editTitle} 
-                onChange={(e) => setEditTitle(e.target.value)} 
-                onBlur={() => handleSaveEdit()} 
-                autoFocus 
-                InputProps={{ 
-                  disableUnderline: true, 
-                  sx: { 
-                    fontSize: '1.25rem', 
-                    fontWeight: 900, 
-                    color: 'white', 
-                    fontFamily: '"Space Grotesk", sans-serif',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em' 
-                  } 
-                }} 
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                onBlur={handleSaveEdit}
+                onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
+                autoFocus
+                className="w-full bg-transparent border-0 outline-none text-base md:text-lg font-extrabold font-clash text-white tracking-tight uppercase border-b border-white/10 focus:border-[#A855F7] transition-all py-0.5"
               />
             ) : (
-              <Typography 
-                variant="h6" 
-                onClick={handleStartEdit} 
-                noWrap
-                sx={{ 
-                  cursor: 'pointer', 
-                  fontWeight: 900, 
-                  fontFamily: '"Space Grotesk", sans-serif',
-                  color: '#A855F7',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  fontSize: '1.1rem',
-                  flex: 1
-                }}
+              <h2
+                onClick={handleStartEdit}
+                className="text-base md:text-lg font-extrabold font-clash text-[#A855F7] tracking-tight uppercase truncate flex-1 cursor-pointer hover:text-[#b975ff] transition-colors"
               >
                 {task.title}
-              </Typography>
+              </h2>
             )}
-          </Box>
+          </div>
 
-          {!onBack && (
-            <Tooltip title="Close">
-              <IconButton
-                onClick={handleClose}
-                sx={{
-                  color: theme.palette.text.secondary,
-                  display: { xs: 'none', sm: 'inline-flex' },
-                  '&:hover': { color: 'white', bgcolor: alpha(theme.palette.text.primary, 0.08) }
-                }}
-              >
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
-
-        {/* Row 2: Action Toolbar */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-          <Chip
-            label={statusLabels[task.status]}
-            size="small"
-            onClick={(e) => setStatusAnchor(e.currentTarget)}
-            sx={{ 
-              cursor: 'pointer',
-              bgcolor: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              fontWeight: 800,
-              fontSize: '0.65rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              borderRadius: '8px',
-            }}
-          />
-
-          <Box sx={{ flexGrow: 1 }} />
-
-          <Tooltip title="Action hub">
-            <IconButton onClick={() => setShowProjectLinker(true)} sx={{ color: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
-              <ActionIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Edit task">
-            <IconButton onClick={handleStartEdit} sx={{ color: theme.palette.text.secondary }}>
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Delete task">
-            <IconButton 
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowProjectLinker(true)}
+              className="p-2 text-[#A855F7] hover:text-white rounded-xl bg-[#A855F7]/10 hover:bg-[#A855F7]/20 transition-all"
+              title="Link Project"
+            >
+              <Sparkles className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleStartEdit}
+              className="p-2 text-[#9B9691] hover:text-white rounded-xl hover:bg-white/5 transition-all"
+              title="Edit Goal"
+            >
+              <Edit3 className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 openUnified('delete-confirm', {
                   title: 'Delete Goal?',
-                  description: `"${task.title}"`,
-                  onConfirm: () => { /* implement delete logic if needed */ }
+                  description: `Are you sure you want to permanently delete "${task.title}"?`,
+                  onConfirm: async () => {
+                    await deleteTask(task.id);
+                    handleClose();
+                  }
                 });
-              }} 
-              sx={{ color: theme.palette.text.secondary }}
+              }}
+              className="p-2 text-[#9B9691] hover:text-red-400 rounded-xl hover:bg-white/5 transition-all"
+              title="Delete Goal"
             >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
+              <Trash2 className="w-4 h-4" />
+            </button>
+            {!onBack && (
+              <button
+                type="button"
+                onClick={handleClose}
+                className="hidden md:inline-flex p-2 text-[#9B9691] hover:text-white rounded-xl hover:bg-white/5 transition-all"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
 
-      {/* Scrollable Content Area */}
-      <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 2.5 }, pt: 3, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        
-        {/* Content Card (Pitch Black Sub-Region) */}
-        <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#0A0908', border: '1px solid #1C1A18', minHeight: { xs: 200, md: 260 }, boxShadow: '0 12px 32px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <Typography variant="caption" sx={{ color: '#A855F7', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', mb: 2 }}>Objective details</Typography>
-          <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+        {/* Row 2: Status & Priority Dropdowns */}
+        <div className="flex items-center gap-2.5">
+          {/* Status Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsStatusOpen(!isStatusOpen);
+                setIsPriorityOpen(false);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1C1A18] border border-[#34322F] text-[10px] font-bold text-[#F5F2ED] rounded-xl hover:border-white/20 transition-colors uppercase tracking-wider font-mono"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#A855F7]" />
+              <span>Status: {statusLabels[task.status]}</span>
+            </button>
+            {isStatusOpen && (
+              <>
+                <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsStatusOpen(false)} />
+                <div className="absolute left-0 mt-1 w-44 rounded-2xl bg-[#161412] border border-[#34322F] shadow-2xl p-1 z-50 font-satoshi flex flex-col gap-0.5">
+                  {Object.entries(statusLabels).map(([status, label]) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => handleStatusChange(status as TaskStatus)}
+                      className={`w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors ${
+                        task.status === status
+                          ? 'bg-[#A855F7] text-[#0A0908]'
+                          : 'text-[#F5F2ED] hover:bg-white/5'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Priority Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsPriorityOpen(!isPriorityOpen);
+                setIsStatusOpen(false);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1C1A18] border border-[#34322F] text-[10px] font-bold rounded-xl hover:border-white/20 transition-colors uppercase tracking-wider font-mono"
+              style={{ color: priorityColors[task.priority] }}
+            >
+              <Flag className="w-3.5 h-3.5" style={{ color: priorityColors[task.priority] }} />
+              <span>Priority: {task.priority}</span>
+            </button>
+            {isPriorityOpen && (
+              <>
+                <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsPriorityOpen(false)} />
+                <div className="absolute left-0 mt-1 w-44 rounded-2xl bg-[#161412] border border-[#34322F] shadow-2xl p-1 z-50 font-satoshi flex flex-col gap-0.5">
+                  {(['low', 'medium', 'high', 'urgent'] as Priority[]).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => handlePriorityChange(p)}
+                      className={`w-full text-left px-3 py-2 text-xs font-bold rounded-xl transition-colors flex items-center gap-2 ${
+                        task.priority === p
+                          ? 'bg-[#A855F7] text-[#0A0908]'
+                          : 'text-[#F5F2ED] hover:bg-white/5'
+                      }`}
+                    >
+                      <Flag className="w-3 h-3" style={{ color: priorityColors[p] }} />
+                      <span>{p.toUpperCase()}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Content Area - Scrollable */}
+      <div className="relative z-10 flex-1 overflow-y-auto p-5 md:p-6 space-y-6 scrollbar-thin">
+        {/* Objective Details Box */}
+        <div className="p-5 rounded-[28px] bg-[#0A0908] border border-white/5 shadow-[0_12px_32px_rgba(0,0,0,0.4)] flex flex-col">
+          <span className="text-[10px] font-black text-[#A855F7] uppercase tracking-wider mb-2.5 font-mono">Objective details</span>
+          <div className="min-h-[100px] md:min-h-[140px] flex">
             {isEditing ? (
-              <TextField 
-                fullWidth 
-                multiline 
-                rows={6} 
-                variant="standard" 
-                value={editDescription} 
-                onChange={(e) => setEditDescription(e.target.value)} 
-                onBlur={() => handleSaveEdit()}
-                InputProps={{ 
-                  disableUnderline: true, 
-                  sx: { color: 'rgba(255,255,255,0.85)', fontSize: '1rem', lineHeight: 1.8 } 
-                }} 
+              <textarea
+                rows={5}
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                onBlur={handleSaveEdit}
+                className="w-full bg-transparent border-0 outline-none text-sm text-[#F5F2ED]/90 leading-relaxed resize-none focus:ring-0 focus:outline-none"
+                placeholder="Provide detailed parameters for this goal..."
               />
             ) : (
-              <Typography 
-                variant="body1" 
+              <p
                 onClick={handleStartEdit}
-                sx={{ color: 'text.secondary', fontSize: '1rem', lineHeight: 1.8, fontFamily: 'var(--font-satoshi)', cursor: 'text' }}
+                className="text-sm text-[#9B9691] leading-relaxed font-satoshi whitespace-pre-wrap cursor-text w-full"
               >
-                {task.description || 'No detailed parameters provided.'}
-              </Typography>
+                {task.description || 'No detailed parameters provided. Click to add.'}
+              </p>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
-        {/* Execution Track Section (Pitch Black Sub-Region) */}
-        <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#0A0908', border: '1px solid #1C1A18', boxShadow: '0 12px 32px rgba(0,0,0,0.4)' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="caption" sx={{ color: '#A855F7', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Execution Track</Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>{completedSubtasks} / {task.subtasks.length}</Typography>
-          </Box>
-          <Box sx={{ width: '100%', height: 4, bgcolor: 'rgba(255, 255, 255, 0.03)', borderRadius: 2, mb: 3, overflow: 'hidden' }}>
-            <Box sx={{ height: '100%', width: `${subtaskProgress}%`, bgcolor: '#A855F7', transition: 'width 0.4s' }} />
-          </Box>
-          <List disablePadding>
-            {task.subtasks.map((subtask) => (
-              <ListItem key={subtask.id} disablePadding sx={{ mb: 0.5 }}>
-                <ListItemIcon sx={{ minWidth: 36 }}><Checkbox size="small" checked={subtask.completed} onChange={() => toggleSubtask(task.id, subtask.id)} sx={{ color: 'rgba(255, 255, 255, 0.1)', '&.Mui-checked': { color: '#A855F7' } }} /></ListItemIcon>
-                <ListItemText primary={subtask.title} primaryTypographyProps={{ sx: { fontSize: '0.9rem', textDecoration: subtask.completed ? 'line-through' : 'none', color: subtask.completed ? 'text.disabled' : 'text.primary' } }} />
-              </ListItem>
-            ))}
-          </List>
-          <Box sx={{ display: 'flex', gap: 1, mt: 2, p: 0.5, bgcolor: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <TextField fullWidth size="small" placeholder="Add sub-task..." value={newSubtask} variant="standard" onChange={(e) => setNewSubtask(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()} InputProps={{ disableUnderline: true, sx: { px: 1.5, fontSize: '0.85rem' } }} />
-            <IconButton size="small" onClick={handleGenerateSubtasks} disabled={isGeneratingSubtasks} sx={{ color: '#A855F7' }}>{isGeneratingSubtasks ? <CircularProgress size={16} /> : <AutoFixHighIcon sx={{ fontSize: 18 }} />}</IconButton>
-          </Box>
-        </Box>
+        {/* Execution Track Box */}
+        <div className="p-5 rounded-[28px] bg-[#0A0908] border border-white/5 shadow-[0_12px_32px_rgba(0,0,0,0.4)]">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-black text-[#A855F7] uppercase tracking-wider font-mono">Execution Track</span>
+            <span className="text-xs font-bold text-[#9B9691] font-mono">{completedSubtasks} / {task.subtasks.length}</span>
+          </div>
+          <div className="w-full h-1 bg-white/5 rounded-full mb-4 overflow-hidden">
+            <div className="h-full bg-[#A855F7] transition-all duration-500" style={{ width: `${subtaskProgress}%` }} />
+          </div>
+
+          <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+            {task.subtasks.length === 0 ? (
+              <div className="text-xs text-white/30 italic py-2">No sub-tasks yet.</div>
+            ) : (
+              task.subtasks.map((subtask) => (
+                <div key={subtask.id} className="flex items-center gap-3 py-1 group">
+                  <input
+                    type="checkbox"
+                    checked={subtask.completed}
+                    onChange={() => toggleSubtask(task.id, subtask.id)}
+                    className="w-4 h-4 rounded border-[#34322F] bg-transparent text-[#A855F7] focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer"
+                  />
+                  <span className={`text-sm flex-1 truncate ${subtask.completed ? 'text-[#9B9691] line-through' : 'text-[#F5F2ED]'}`}>
+                    {subtask.title}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => deleteSubtask(task.id, subtask.id)}
+                    className="text-[#9B9691] hover:text-red-400 p-1 rounded transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Add Sub-task Bar */}
+          <div className="flex gap-2 mt-4 p-1 bg-white/[0.02] rounded-xl border border-white/5 items-center">
+            <input
+              type="text"
+              placeholder="Add sub-task..."
+              value={newSubtask}
+              onChange={(e) => setNewSubtask(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
+              className="w-full bg-transparent border-0 outline-none px-3 py-1.5 text-xs text-[#F5F2ED] focus:ring-0 focus:outline-none font-satoshi"
+            />
+            <button
+              type="button"
+              onClick={handleGenerateSubtasks}
+              disabled={isGeneratingSubtasks}
+              className="p-1.5 text-[#A855F7] hover:text-white rounded-lg hover:bg-[#A855F7]/10 transition-colors flex shrink-0"
+              title="AI Autocomplete Subtasks"
+            >
+              {isGeneratingSubtasks ? (
+                <div className="w-4 h-4 border-2 border-[#A855F7] border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        </div>
 
         {/* Actionable Meta Grid */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2.5, px: 1 }}>
-          <Box>
-            <Typography variant="caption" sx={{ color: '#A855F7', fontWeight: 900, textTransform: 'uppercase', mb: 1.5, display: 'block' }}>Project Domain</Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: project?.color || '#6366F1' }} />
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>{project?.name || 'Inbox'}</Typography>
-            </Box>
-          </Box>
-          <Box>
-            <Typography variant="caption" sx={{ color: '#A855F7', fontWeight: 900, textTransform: 'uppercase', mb: 1.5, display: 'block' }}>Urgency Level</Typography>
-            <Box onClick={(e) => setPriorityAnchor(e.currentTarget)} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}>
-              <FlagIcon sx={{ fontSize: 18, color: priorityColors[task.priority] }} />
-              <Typography variant="body2" sx={{ fontWeight: 800, color: priorityColors[task.priority] }}>{task.priority.toUpperCase()}</Typography>
-            </Box>
-          </Box>
-        </Box>
+        <div className="grid grid-cols-2 gap-4 px-1">
+          <div>
+            <span className="text-[10px] font-black text-[#A855F7] uppercase tracking-wider mb-1.5 block font-mono">Project Domain</span>
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: project?.color || '#6366F1' }} />
+              <span className="text-sm font-bold text-[#F5F2ED]">{project?.name || 'Inbox'}</span>
+            </div>
+          </div>
+          <div>
+            <span className="text-[10px] font-black text-[#A855F7] uppercase tracking-wider mb-1.5 block font-mono">Urgency Level</span>
+            <div className="flex items-center gap-2 text-[#F5F2ED]">
+              <Flag className="w-4 h-4" style={{ color: priorityColors[task.priority] }} />
+              <span className="text-sm font-bold capitalize" style={{ color: priorityColors[task.priority] }}>{task.priority}</span>
+            </div>
+          </div>
+        </div>
 
-        {/* Huddle Section (Pitch Black Sub-Region) */}
-        <Box sx={{ p: 2.5, borderRadius: '28px', bgcolor: '#0A0908', border: '1px solid #1C1A18', boxShadow: '0 12px 32px rgba(0,0,0,0.4)' }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="caption" sx={{ color: '#A855F7', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Public Huddle Thread</Typography>
-            {isHuddleInit && huddleTimeRemaining && <Typography variant="caption" sx={{ color: '#F59E0B', fontWeight: 800 }}>{huddleTimeRemaining}</Typography>}
-          </Stack>
+        {/* Huddle Section */}
+        <div className="p-5 rounded-[28px] bg-[#0A0908] border border-white/5 shadow-[0_12px_32px_rgba(0,0,0,0.4)]">
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-[10px] font-black text-[#A855F7] uppercase tracking-wider font-mono">Public Huddle Thread</span>
+            {isHuddleInit && huddleTimeRemaining && (
+              <span className="text-xs font-bold text-[#F59E0B] font-mono">{huddleTimeRemaining}</span>
+            )}
+          </div>
 
           {!isHuddleInit ? (
-            <Box sx={{ py: 3, textAlign: 'center' }}>
-              <Globe size={24} style={{ color: '#A855F7', margin: '0 auto 12px' }} />
-              <Button size="small" onClick={handleInitHuddle} sx={{ bgcolor: '#A855F7', color: '#fff', fontWeight: 800, textTransform: 'none', borderRadius: '8px' }}>Start Huddle</Button>
-            </Box>
+            <div className="py-6 text-center">
+              <Globe className="w-6 h-6 text-[#A855F7] mx-auto mb-3" />
+              <button
+                type="button"
+                onClick={handleInitHuddle}
+                className="px-4 py-2 bg-[#A855F7] text-[#0A0908] font-extrabold text-sm rounded-xl shadow-[0_4px_12px_rgba(168,85,247,0.2)] hover:bg-[#9333EA] hover:translate-y-[-1px] transition-all duration-200 font-satoshi"
+              >
+                Start Huddle
+              </button>
+            </div>
           ) : (
-            <>
-              <Box sx={{ maxHeight: 240, overflowY: 'auto', mb: 2 }}>
-                {huddleMessages.map((msg) => (
-                  <Box key={msg.id} sx={{ mb: 1.5, textAlign: msg.senderId === user?.$id ? 'right' : 'left' }}>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, display: 'block', mb: 0.25 }}>{msg.senderName}</Typography>
-                    <Box sx={{ p: 1.25, borderRadius: '12px', display: 'inline-block', bgcolor: msg.senderId === user?.$id ? '#A855F7' : 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)', color: '#fff' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{msg.content}</Typography>
-                    </Box>
-                  </Box>
-                ))}
-                <div ref={huddleMessageEndRef} />
-              </Box>
-              <Box component="form" onSubmit={handleSendHuddleMessage} sx={{ display: 'flex', gap: 1, p: 1, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <TextField fullWidth size="small" placeholder="Message..." variant="standard" value={newComment} onChange={(e) => setNewComment(e.target.value)} InputProps={{ disableUnderline: true, sx: { px: 1, fontSize: '0.85rem' } }} />
-                <IconButton size="small" type="submit" sx={{ color: '#A855F7' }}><SendIcon sx={{ fontSize: 16 }} /></IconButton>
-              </Box>
-            </>
+            <div className="flex flex-col gap-3">
+              {huddleLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <div className="w-6 h-6 border-2 border-[#A855F7] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                  {huddleMessages.length === 0 ? (
+                    <div className="text-xs text-white/30 italic py-4 text-center">No comments inside huddle. Send a message to start.</div>
+                  ) : (
+                    huddleMessages.map((msg) => (
+                      <div key={msg.id} className={`flex flex-col gap-0.5 ${msg.senderId === user?.$id ? 'items-end' : 'items-start'}`}>
+                        <span className="text-[9px] font-bold text-white/30 font-mono">{msg.senderName}</span>
+                        <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed max-w-[85%] border ${
+                          msg.senderId === user?.$id
+                            ? 'bg-[#A855F7] border-[#A855F7]/20 text-[#0A0908] font-semibold'
+                            : 'bg-white/[0.02] border-white/5 text-[#F5F2ED]'
+                        }`}>
+                          {msg.content}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  <div ref={huddleMessageEndRef} />
+                </div>
+              )}
+
+              <form onSubmit={handleSendHuddleMessage} className="flex gap-2 mt-2 p-1 bg-white/[0.02] rounded-xl border border-white/5 items-center">
+                <input
+                  type="text"
+                  placeholder="Message..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  className="w-full bg-transparent border-0 outline-none px-3 py-1.5 text-xs text-[#F5F2ED] focus:ring-0 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={huddleSending}
+                  className="p-1.5 text-[#A855F7] hover:text-white rounded-lg hover:bg-[#A855F7]/10 transition-colors shrink-0"
+                >
+                  {huddleSending ? (
+                    <div className="w-4 h-4 border-2 border-[#A855F7] border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </button>
+              </form>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* Metadata */}
-        <Box sx={{ mt: 'auto', pt: 3, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block' }}>Created {formatNoteCreatedDate(task as any)}</Typography>
-        </Box>
-      </Box>
+        <div className="pt-4 border-t border-white/5">
+          <span className="text-[10px] text-white/30 font-mono block">Created {formatNoteCreatedDate(task as any)}</span>
+        </div>
+      </div>
 
-      {/* Select Menus */}
-      <Menu anchorEl={statusAnchor} open={Boolean(statusAnchor)} onClose={() => setStatusAnchor(null)} PaperProps={{ sx: { bgcolor: '#161412', border: '1px solid #1C1A18', borderRadius: '12px', backgroundImage: 'none' } }}>
-        {Object.entries(statusLabels).map(([status, label]) => (
-          <MenuItem key={status} onClick={() => handleStatusChange(status as TaskStatus)} selected={task.status === status} sx={{ fontSize: '0.85rem', color: '#fff' }}>{label}</MenuItem>
-        ))}
-      </Menu>
-
-      <Menu anchorEl={priorityAnchor} open={Boolean(priorityAnchor)} onClose={() => setPriorityAnchor(null)} PaperProps={{ sx: { bgcolor: '#161412', border: '1px solid #1C1A18', borderRadius: '12px', backgroundImage: 'none' } }}>
-        {(['low', 'medium', 'high', 'urgent'] as Priority[]).map((p) => (
-          <MenuItem key={p} onClick={() => handlePriorityChange(p)} selected={task.priority === p} sx={{ fontSize: '0.85rem', color: '#fff', gap: 1 }}><FlagIcon sx={{ fontSize: 16, color: priorityColors[p] }} />{p.toUpperCase()}</MenuItem>
-        ))}
-      </Menu>
-    </Box>
+      {/* Project Linker Modal Integration */}
+      {showProjectLinker && (
+        <ProjectLinker
+          open={showProjectLinker}
+          onClose={() => setShowProjectLinker(false)}
+          entityId={taskId}
+          entityKind="goal"
+          onLinked={async () => {
+            // refresh projects list inside context or parent if needed
+          }}
+        />
+      )}
+    </div>
   );
 }

@@ -26,6 +26,9 @@ import { useAuth } from '@/context/auth/AuthContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { usePresence } from '@/components/providers/PresenceProvider';
 import { FlowPresenceFlapOver } from '@/components/LinkRenderer';
+import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
+import { useOverlay } from '@/components/ui/OverlayContext';
+import TaskDetails from './TaskDetails';
 
 interface TaskItemProps {
   task: Task;
@@ -54,10 +57,20 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
   const { openCallLauncher } = useCallLauncher();
   const { user } = useAuth();
   const { open: openUnified } = useUnifiedDrawer();
+  const { openSidebar } = useDynamicSidebar();
+  const { openOverlay, closeOverlay } = useOverlay();
   const [anchorEl, setAnchorEl] = useState<boolean>(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isFlapOverOpen, setIsFlapOverOpen] = useState(false);
   const { resourcePresence } = usePresence();
+
+  const [isDesktop, setIsDesktop] = React.useState(true);
+  React.useEffect(() => {
+    const checkViewport = () => setIsDesktop(window.innerWidth >= 768);
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
 
   const activeTeammates = resourcePresence[task.id] || [];
   const projectTeammates = task.projectId ? (resourcePresence[task.projectId] || []) : [];
@@ -155,7 +168,17 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
         } border shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9)] hover:shadow-[0_8px_10px_-8px_rgba(0,0,0,1)] hover:-translate-y-0.5 mb-3`}
         onClick={() => {
           selectTask(task.id);
-          setActiveDetail({ type: 'goal', id: task.id, data: task });
+          if (isDesktop) {
+            openSidebar(
+              <TaskDetails taskId={task.id} />,
+              task.id,
+              { hideHeader: true }
+            );
+          } else {
+            openOverlay(
+              <TaskDetails taskId={task.id} onBack={closeOverlay} />
+            );
+          }
           onClick?.();
         }}
         onMouseEnter={() => setIsHovered(true)}

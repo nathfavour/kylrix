@@ -8,6 +8,9 @@ import { Priority, TaskStatus } from '@/types';
 import { ArrowUpRight, ChevronUp, ChevronDown, X, Type } from 'lucide-react';
 import { useSection } from '@/context/SectionContext';
 import { buildAutoTitleFromContent } from '@/constants/noteTitle';
+import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
+import { useOverlay } from '@/components/ui/OverlayContext';
+import TaskDetails from './TaskDetails';
 
 interface User {
   id: string;
@@ -33,6 +36,17 @@ export default function TaskDialog() {
   const { setActiveDetail } = useSection();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  const { openSidebar } = useDynamicSidebar();
+  const { openOverlay, closeOverlay } = useOverlay();
+  const [isDesktop, setIsDesktop] = React.useState(true);
+
+  React.useEffect(() => {
+    const checkViewport = () => setIsDesktop(window.innerWidth >= 768);
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
   
   const {
     taskDialogOpen,
@@ -188,7 +202,17 @@ export default function TaskDialog() {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('kylrix:draft:task');
       }
-      setActiveDetail({ type: 'goal', id: newTask.id });
+      if (isDesktop) {
+        openSidebar(
+          <TaskDetails taskId={newTask.id} />,
+          newTask.id,
+          { hideHeader: true }
+        );
+      } else {
+        openOverlay(
+          <TaskDetails taskId={newTask.id} onBack={closeOverlay} />
+        );
+      }
     }
     handleClose();
   };
