@@ -15,6 +15,7 @@ interface FastDraftInputProps {
   rows?: number;
   autoFocus?: boolean;
   onEmptyChange?: (isEmpty: boolean) => void;
+  onChange?: (value: string) => void;
 }
 
 export const FastDraftInput = forwardRef<FastDraftInputHandle, FastDraftInputProps>(function FastDraftInput(
@@ -24,6 +25,7 @@ export const FastDraftInput = forwardRef<FastDraftInputHandle, FastDraftInputPro
     rows = 3,
     autoFocus = false,
     onEmptyChange,
+    onChange,
   },
   ref,
 ) {
@@ -38,12 +40,14 @@ export const FastDraftInput = forwardRef<FastDraftInputHandle, FastDraftInputPro
     return () => window.cancelAnimationFrame(frame);
   }, [autoFocus]);
 
-  const syncEmptyState = useCallback((value: string) => {
+  const syncState = useCallback((value: string) => {
     const isEmpty = !value.trim();
-    if (isEmpty === lastEmptyRef.current) return;
-    lastEmptyRef.current = isEmpty;
-    onEmptyChange?.(isEmpty);
-  }, [onEmptyChange]);
+    if (isEmpty !== lastEmptyRef.current) {
+        lastEmptyRef.current = isEmpty;
+        onEmptyChange?.(isEmpty);
+    }
+    onChange?.(value);
+  }, [onEmptyChange, onChange]);
 
   useEffect(() => {
     onEmptyChange?.(lastEmptyRef.current);
@@ -57,17 +61,17 @@ export const FastDraftInput = forwardRef<FastDraftInputHandle, FastDraftInputPro
         inputRef.current.value = next;
         inputRef.current.dispatchEvent(new Event('input', { bubbles: true }));
       }
-      syncEmptyState(next);
+      syncState(next);
     },
     clear: () => {
       if (inputRef.current) {
         inputRef.current.value = '';
         inputRef.current.dispatchEvent(new Event('input', { bubbles: true }));
       }
-      syncEmptyState('');
+      syncState('');
     },
     focus: () => inputRef.current?.focus(),
-  }), [syncEmptyState]);
+  }), [syncState]);
 
   return (
     <>
@@ -83,7 +87,7 @@ export const FastDraftInput = forwardRef<FastDraftInputHandle, FastDraftInputPro
         defaultValue={initialValue}
         placeholder={placeholder}
         rows={rows}
-        onInput={(e: React.FormEvent<HTMLTextAreaElement>) => syncEmptyState(e.currentTarget.value)}
+        onInput={(e: React.FormEvent<HTMLTextAreaElement>) => syncState(e.currentTarget.value)}
         style={{
           width: '100%',
           border: 'none',

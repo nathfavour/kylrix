@@ -27,7 +27,6 @@ import {
 
 import MuralPattern from '@/components/chat/MuralPattern';
 import { buildAutoTitleFromContent } from '@/constants/noteTitle';
-import { FastDraftInput, type FastDraftInputHandle } from '@/components/common/FastDraftInput';
 import PasswordGenerator from '@/components/ui/PasswordGenerator';
 
 import { useAuth } from '@/context/auth/AuthContext';
@@ -91,7 +90,8 @@ function formatRemaining(ms: number): string {
 interface NoteCardProps {
   noteTitle: string;
   setNoteTitle: (val: string) => void;
-  draftInputRef: React.RefObject<FastDraftInputHandle | null>;
+  noteBody: string;
+  setNoteBody: (val: string) => void;
   isTitleManuallyEdited: boolean;
   setIsTitleManuallyEdited: (val: boolean) => void;
   handleCreateLink: () => Promise<void>;
@@ -100,26 +100,18 @@ interface NoteCardProps {
   isCreating: boolean;
   effectiveSecureMode: boolean;
   themeColor: string;
-  onBodyEmptyChange: (isEmpty: boolean) => void;
 }
 
-const NoteComposerCard = React.memo(function NoteComposerCard({
+function NoteComposerCard({
   noteTitle,
   setNoteTitle,
-  draftInputRef,
+  noteBody,
+  setNoteBody,
   isTitleManuallyEdited,
   setIsTitleManuallyEdited,
   renderHeaderActions,
   effectiveSecureMode,
-  onBodyEmptyChange,
 }: NoteCardProps) {
-  const [hasContent, setHasContent] = useState(false);
-
-  const handleEmptyChange = useCallback((isEmpty: boolean) => {
-    setHasContent(!isEmpty);
-    onBodyEmptyChange(isEmpty);
-  }, [onBodyEmptyChange]);
-
   return (
     <div className="rounded-[24px] bg-[#161412] border border-[#34322F] shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] transition duration-200 focus-within:border-pink-500/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(236,72,153,0.15)] overflow-hidden">
       {/* Editor Header */}
@@ -138,7 +130,7 @@ const NoteComposerCard = React.memo(function NoteComposerCard({
 
       {/* Main Inputs */}
       <div className="p-6 sm:p-10 pt-5 sm:pt-6">
-        {(hasContent || noteTitle.trim().length > 0) && (
+        {(noteBody.trim().length > 0 || noteTitle.trim().length > 0) && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -148,30 +140,37 @@ const NoteComposerCard = React.memo(function NoteComposerCard({
               type="text"
               placeholder="Note Title"
               value={noteTitle}
+              autoComplete="off"
               onChange={(e) => {
-                setNoteTitle(e.target.value);
-                setIsTitleManuallyEdited(true);
+                if (e.target.value !== noteTitle) {
+                  setNoteTitle(e.target.value);
+                  if (typeof document !== 'undefined' && document.activeElement === e.target) {
+                    setIsTitleManuallyEdited(true);
+                  }
+                }
               }}
               className="w-full bg-transparent text-4xl font-black font-clash text-white mb-4 placeholder-white/20 focus:outline-none"
             />
           </motion.div>
         )}
-        <FastDraftInput
-          ref={draftInputRef}
+        <textarea
           placeholder="Start typing your brilliant thoughts…"
+          value={noteBody}
+          onChange={(e) => setNoteBody(e.target.value)}
           rows={10}
           autoFocus
-          onEmptyChange={handleEmptyChange}
+          className="w-full bg-transparent text-white text-lg font-satoshi leading-relaxed placeholder-white/20 focus:outline-none resize-none scrollbar-thin"
         />
       </div>
     </div>
   );
-});
+}
 
 interface DiscussionCardProps {
   noteTitle: string;
   setNoteTitle: (val: string) => void;
-  draftInputRef: React.RefObject<FastDraftInputHandle | null>;
+  noteBody: string;
+  setNoteBody: (val: string) => void;
   isTitleManuallyEdited: boolean;
   setIsTitleManuallyEdited: (val: boolean) => void;
   handleCreateLink: () => Promise<void>;
@@ -180,28 +179,21 @@ interface DiscussionCardProps {
   isCreating: boolean;
   user: any;
   themeColor: string;
-  onBodyEmptyChange: (isEmpty: boolean) => void;
 }
 
-const DiscussionComposerCard = React.memo(function DiscussionComposerCard({
+function DiscussionComposerCard({
   noteTitle,
   setNoteTitle,
-  draftInputRef,
+  noteBody,
+  setNoteBody,
+  isTitleManuallyEdited,
   setIsTitleManuallyEdited,
   handleCreateLink,
   renderHeaderActions,
   draftValid,
   isCreating,
   user,
-  onBodyEmptyChange,
 }: DiscussionCardProps) {
-  const [hasContent, setHasContent] = useState(false);
-
-  const handleEmptyChange = useCallback((isEmpty: boolean) => {
-    setHasContent(!isEmpty);
-    onBodyEmptyChange(isEmpty);
-  }, [onBodyEmptyChange]);
-
   return (
     <div className="rounded-[24px] bg-[#161412] border border-[#34322F] shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] transition duration-200 focus-within:border-amber-500/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(245,158,11,0.15)] overflow-hidden relative">
       {/* Mural Pattern Background */}
@@ -234,7 +226,7 @@ const DiscussionComposerCard = React.memo(function DiscussionComposerCard({
         </div>
 
         {/* Outgoing Bubble Preview */}
-        {hasContent && (
+        {noteBody.trim().length > 0 && (
           <div className="self-end max-w-[80%] flex gap-3 items-end">
             <div className="flex flex-col items-end gap-1">
               <div className="bg-[#F59E0B] text-[#0A0908] px-5 py-3.5 rounded-[20px_20px_4px_20px] shadow-[0_4px_12px_rgba(245,158,11,0.2)]">
@@ -256,7 +248,7 @@ const DiscussionComposerCard = React.memo(function DiscussionComposerCard({
       {/* Chat Composer Well */}
       <div className="p-6 border-t border-[#34322F] bg-[#0A0908]/95 backdrop-blur-md relative z-10">
         {/* Conditional Topic Field */}
-        {(hasContent || noteTitle.trim().length > 0) && (
+        {(noteBody.trim().length > 0 || noteTitle.trim().length > 0) && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -266,9 +258,14 @@ const DiscussionComposerCard = React.memo(function DiscussionComposerCard({
               type="text"
               placeholder="Discussion Topic / Room Name"
               value={noteTitle}
+              autoComplete="off"
               onChange={(e) => {
-                setNoteTitle(e.target.value);
-                setIsTitleManuallyEdited(true);
+                if (e.target.value !== noteTitle) {
+                  setNoteTitle(e.target.value);
+                  if (typeof document !== 'undefined' && document.activeElement === e.target) {
+                    setIsTitleManuallyEdited(true);
+                  }
+                }
               }}
               className="w-full bg-transparent text-xl font-bold font-clash text-white mb-4 px-2 placeholder-white/30 focus:outline-none"
             />
@@ -276,12 +273,13 @@ const DiscussionComposerCard = React.memo(function DiscussionComposerCard({
         )}
 
         <div className="bg-black rounded-2xl border border-[#34322F] focus-within:border-[#F59E0B] p-3 flex flex-col gap-3">
-          <FastDraftInput
-            ref={draftInputRef}
+          <textarea
             placeholder="Open the huddle with a clear message…"
+            value={noteBody}
+            onChange={(e) => setNoteBody(e.target.value)}
             rows={3}
             autoFocus
-            onEmptyChange={handleEmptyChange}
+            className="w-full bg-transparent text-white text-base font-satoshi leading-normal placeholder-white/20 focus:outline-none resize-none scrollbar-thin"
           />
           <div className="flex items-center justify-between pt-2 border-t border-white/[0.03]">
             <div className="flex items-center gap-2">
@@ -313,7 +311,7 @@ const DiscussionComposerCard = React.memo(function DiscussionComposerCard({
       </div>
     </div>
   );
-});
+}
 
 export function SendComposer() {
   const reduceMotion = useReducedMotion();
@@ -370,11 +368,23 @@ export function SendComposer() {
   };
 
   const [noteTitle, setNoteTitle] = useState('');
-  const noteBodyRef = useRef<FastDraftInputHandle | null>(null);
-  const [noteBodyHasContent, setNoteBodyHasContent] = useState(false);
-  const handleNoteBodyEmptyChange = useCallback((isEmpty: boolean) => {
-    setNoteBodyHasContent(!isEmpty);
-  }, []);
+  const [noteBody, setNoteBody] = useState('');
+
+  // LIFTED MECHANISM: Exactly like CreateNoteForm.tsx
+  useEffect(() => {
+    if (isTitleManuallyEdited) return;
+    if (kind !== 'note' && kind !== 'discussion') return;
+
+    const generatedTitle = buildAutoTitleFromContent(noteBody);
+    if (noteBody.trim()) {
+      if (generatedTitle !== noteTitle) {
+        setNoteTitle(generatedTitle);
+      }
+    } else {
+      if (noteTitle) setNoteTitle('');
+    }
+  }, [noteBody, isTitleManuallyEdited, noteTitle, kind]);
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [taskTitle, setTaskTitle] = useState('');
@@ -482,30 +492,15 @@ export function SendComposer() {
     setIsTitleManuallyEdited(false);
   }, [kind]);
 
-  useEffect(() => {
-    if (isTitleManuallyEdited) return;
-    if (kind !== 'note' && kind !== 'discussion') return;
-
-    const raw = noteBodyRef.current?.getValue()?.trim() || '';
-    if (raw) {
-      const generatedTitle = buildAutoTitleFromContent(raw);
-      if (generatedTitle !== noteTitle) {
-        setNoteTitle(generatedTitle);
-      }
-    } else {
-      if (noteTitle) setNoteTitle('');
-    }
-  }, [noteBodyHasContent, isTitleManuallyEdited, kind]);
-
   const draftValid = useMemo(() => {
-    if (kind === 'note') return noteBodyHasContent;
+    if (kind === 'note') return noteBody.trim().length > 0;
     if (kind === 'password') return password.trim().length > 0;
     if (kind === 'task') return taskTitle.trim().length > 0;
     if (kind === 'totp') return totpSecret.trim().length > 0;
     if (kind === 'file') return !!sendFile;
-    if (kind === 'discussion') return noteBodyHasContent;
+    if (kind === 'discussion') return noteBody.trim().length > 0;
     return false;
-  }, [kind, noteBodyHasContent, password, taskTitle, totpSecret, sendFile]);
+  }, [kind, noteBody, password, taskTitle, totpSecret, sendFile]);
 
   const handleCreateLink = useCallback(async () => {
     setIsCreating(true);
@@ -534,7 +529,7 @@ export function SendComposer() {
 
       if (kind === 'note') {
         sparkTitle = noteTitle.trim() || 'Note';
-        const bodyText = noteBodyRef.current?.getValue()?.trim() || '';
+        const bodyText = noteBody.trim();
         const { t, c } = await processData(sparkTitle, bodyText);
         outTitle = t;
         outContent = c;
@@ -585,7 +580,7 @@ export function SendComposer() {
         format = 'json';
       } else if (kind === 'discussion') {
         sparkTitle = noteTitle.trim() || 'Discussion';
-        const bodyText = noteBodyRef.current?.getValue()?.trim() || 'Welcome to the thread.';
+        const bodyText = noteBody.trim() || 'Welcome to the thread.';
         const { t, c } = await processData(sparkTitle, bodyText);
         outTitle = t;
         outContent = c;
@@ -696,6 +691,7 @@ export function SendComposer() {
     effectiveSecureMode,
     expiryMs,
     noteTitle,
+    noteBody,
     username,
     password,
     passwordTotpBundle,
@@ -726,8 +722,7 @@ export function SendComposer() {
   const handleReset = useCallback(() => {
     setCreatedUrl(null);
     setNoteTitle('');
-    noteBodyRef.current?.clear();
-    setNoteBodyHasContent(false);
+    setNoteBody('');
     setUsername('');
     setPassword('');
     setTaskTitle('');
@@ -846,7 +841,7 @@ export function SendComposer() {
         }}
       />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-16 pb-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-16 pb-20">
         {/* Workspace Banner */}
         <div className={`mb-8 rounded-3xl overflow-hidden border p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] ${
           user 
@@ -951,7 +946,8 @@ export function SendComposer() {
               <NoteComposerCard
                 noteTitle={noteTitle}
                 setNoteTitle={setNoteTitle}
-                draftInputRef={noteBodyRef}
+                noteBody={noteBody}
+                setNoteBody={setNoteBody}
                 isTitleManuallyEdited={isTitleManuallyEdited}
                 setIsTitleManuallyEdited={setIsTitleManuallyEdited}
                 handleCreateLink={handleCreateLink}
@@ -960,7 +956,6 @@ export function SendComposer() {
                 isCreating={isCreating}
                 effectiveSecureMode={effectiveSecureMode}
                 themeColor={themeColor}
-                onBodyEmptyChange={handleNoteBodyEmptyChange}
               />
             )}
 
@@ -968,7 +963,8 @@ export function SendComposer() {
               <DiscussionComposerCard
                 noteTitle={noteTitle}
                 setNoteTitle={setNoteTitle}
-                draftInputRef={noteBodyRef}
+                noteBody={noteBody}
+                setNoteBody={setNoteBody}
                 isTitleManuallyEdited={isTitleManuallyEdited}
                 setIsTitleManuallyEdited={setIsTitleManuallyEdited}
                 handleCreateLink={handleCreateLink}
@@ -977,7 +973,6 @@ export function SendComposer() {
                 isCreating={isCreating}
                 user={user}
                 themeColor={themeColor}
-                onBodyEmptyChange={handleNoteBodyEmptyChange}
               />
             )}
 
@@ -1206,7 +1201,7 @@ export function SendComposer() {
                               onClick={() => setTaskDuePreset(preset)}
                               className="text-xs font-bold px-4 py-2 rounded-lg border transition duration-200"
                               style={{
-                                borderColor: isSelected ? '#A855F7' : '#34322F',
+                                borderColor: '#A855F7',
                                 backgroundColor: isSelected ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
                                 color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.4)',
                               }}
