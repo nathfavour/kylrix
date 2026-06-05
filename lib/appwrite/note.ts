@@ -628,6 +628,7 @@ async function syncTagsForCreatedNote(noteId: string, rawTags: string[], userId:
 const noteCreationService = createNoteCreationService({
   databaseId: APPWRITE_DATABASE_ID,
   tableId: APPWRITE_TABLE_ID_NOTES,
+  generateId: () => ID.unique(),
   getCurrentUser,
   createRow: async (databaseId, tableId, data, rowId, permissions) => {
     return appwriteDatabases.createRow(databaseId, tableId, data as any, permissions) as any;

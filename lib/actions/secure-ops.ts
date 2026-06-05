@@ -1978,6 +1978,21 @@ export async function createNoteSecure(data: any, jwt?: string) {
     throw new Error('Forbidden: Create operation must be mathematically tied to the current user');
   }
 
+  const contentLength = (data.content || '').length;
+  const BASE_NOTE_LIMIT = 655350;
+  const PRO_NOTE_LIMIT = 655350000;
+
+  if (contentLength > BASE_NOTE_LIMIT) {
+    if (!hasPaidKylrixPlan(actor)) {
+      throw new Error('PAYWALL_REQUIRED: Note content exceeds free limit');
+    }
+    if (contentLength > PRO_NOTE_LIMIT) {
+      throw new Error('Note content exceeds maximum allowed limit');
+    }
+    // Anything beyond the base limit is considered an article
+    data.isArticle = true;
+  }
+
   const tables = createSystemTablesDB();
   const { databases } = createSystemClient();
   const APPWRITE_DATABASE_ID = APPWRITE_CONFIG.DATABASES.NOTE;
@@ -2087,6 +2102,7 @@ export async function createNoteSecure(data: any, jwt?: string) {
   const noteCreationServiceServer = createNoteCreationService({
     databaseId: APPWRITE_DATABASE_ID,
     tableId: APPWRITE_TABLE_ID_NOTES,
+    generateId: () => ID.unique(),
     getCurrentUser: async () => ({ $id: actor.$id }),
     createRow: async (databaseId, tableId, data, rowId, permissions) => {
       return tables.createRow({
@@ -2381,6 +2397,21 @@ export async function updateNoteSecure(noteId: string, data: any, jwt?: string) 
   const isAllowed = await verifyNotePermission(noteId, actor.$id, 'editor');
   if (!isAllowed) {
     throw new Error('Forbidden: Insufficient permissions to update this note');
+  }
+
+  const contentLength = (data.content || '').length;
+  const BASE_NOTE_LIMIT = 655350;
+  const PRO_NOTE_LIMIT = 655350000;
+
+  if (contentLength > BASE_NOTE_LIMIT) {
+    if (!hasPaidKylrixPlan(actor)) {
+      throw new Error('PAYWALL_REQUIRED: Note content exceeds free limit');
+    }
+    if (contentLength > PRO_NOTE_LIMIT) {
+      throw new Error('Note content exceeds maximum allowed limit');
+    }
+    // Anything beyond the base limit is considered an article
+    data.isArticle = true;
   }
 
   const tables = createSystemTablesDB();

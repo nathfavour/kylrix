@@ -33,7 +33,7 @@ export function createNoteCreationService<NoteRow = any>(deps: NoteCreationConte
       }
 
       const now = new Date().toISOString();
-      const docId = deps.generateId ? deps.generateId() : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const docId = deps.generateId ? deps.generateId() : Math.random().toString(36).slice(2);
       const cleanData = deps.cleanRowData(data);
       const noteData = { ...cleanData } as Record<string, unknown>;
       delete noteData.attachments;
