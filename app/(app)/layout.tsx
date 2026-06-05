@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth/AuthContext';
 
@@ -65,5 +65,9 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, isLoading, pathname, router]);
 
-  return <EcosystemProviders>{children}</EcosystemProviders>;
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-[#0A0908]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div>}>
+      <EcosystemProviders>{children}</EcosystemProviders>
+    </Suspense>
+  );
 }
