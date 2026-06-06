@@ -222,7 +222,7 @@ export default function ProSuccessPage() {
 
           <NextLink
             href={dashboardUrl}
-            className="inline-block py-4 px-10 rounded-[16px] bg-white hover:bg-neutral-100 text-black font-black text-base md:text-lg transition-all hover:-translate-y-0.5 shadow-lg"
+            className="inline-block py-4 px-10 rounded-[16px] bg-white hover:bg-neutral-100 !text-black font-black text-base md:text-lg transition-all hover:-translate-y-0.5 shadow-lg"
           >
             Launch Dashboard
           </NextLink>
