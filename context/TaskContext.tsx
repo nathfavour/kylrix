@@ -1176,8 +1176,15 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     filtered.sort((a, b) => {
       const aDone = a.status === 'done';
       const bDone = b.status === 'done';
+      
+      // 1. Completion State: Done tasks always sink to the bottom
       if (aDone !== bDone) {
         return aDone ? 1 : -1;
+      }
+
+      // 2. Pin State: Pinned tasks authoritatively float to the top
+      if (a.isPinned !== b.isPinned) {
+        return a.isPinned ? -1 : 1;
       }
 
       let comparison = 0;
