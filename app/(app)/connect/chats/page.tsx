@@ -184,14 +184,14 @@ export default function Home() {
               <h2 className="text-lg font-black font-clash text-white mb-4">
                 Secret Chats
               </h2>
-              <ChatList activeTab="secure" hideTabs={true} />
+              <ChatList activeTab="secure" hideTabs={true} skipThreadsLoad />
             </div>
             <hr className="border-white/5 my-4" />
             <div>
               <h2 className="text-lg font-black font-clash text-white mb-4">
                 Threads
               </h2>
-              <ChatList activeTab="public" hideTabs={true} />
+              <ChatList activeTab="public" hideTabs={true} skipSecureLoad />
             </div>
           </div>
 

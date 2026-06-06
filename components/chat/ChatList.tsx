@@ -137,7 +137,7 @@ export const ChatList = ({
     const loadRequestRef = React.useRef(0);
     const loadConversationsInflightRef = React.useRef<Promise<void> | null>(null);
     const reloadConversationsTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-    const handledMessageIdsRef = React.useRef<Set<string>>(new Set>(new Set());
+    const handledMessageIdsRef = React.useRef<Set<string>>(new Set());
     const [livePreviewByConversation, setLivePreviewByConversation] = useState<Record<string, {
         lastMessageId: string;
         lastMessageText: string;
@@ -395,19 +395,20 @@ export const ChatList = ({
         rememberConversationRoster([]);
     }, []);
 
-    const loadGhostConversations = React.useCallback(async () => {
+    const loadGhostConversations = React.useCallback(async (options?: { silent?: boolean }) => {
         if (!user) return;
-        setLoadingGhost(true);
+        const hasCachedRows = ghostConversations.length > 0;
+        if (!options?.silent && !hasCachedRows) {
+            setLoadingGhost(true);
+        }
         try {
-            console.log('[ChatList] Loading ghost huddle chats...');
             const results = await listGhostNoteChats();
-            console.log('[ChatList] Loaded ghost huddle chats count:', results.length);
-            
-            const mapped = await Promise.all(results.map(async (note: any) => {
+
+            const mapped = results.map((note: any) => {
                 let metadataObj: any = {};
                 try {
                     metadataObj = typeof note.metadata === 'string' ? JSON.parse(note.metadata) : (note.metadata || {});
-                } catch (e) {
+                } catch {
                     metadataObj = {};
                 }
 
@@ -420,34 +421,17 @@ export const ChatList = ({
 
                 const participants = note.collaborators || metadataObj.participants || [];
                 const otherId = participants.find((p: string) => p !== user.$id);
-                
+
                 let otherName = note.title || 'Huddle';
-                let avatarUrl = null;
-                
+                let avatarUrl: string | null = null;
+
                 if (cleanLinkedResourceType) {
                     otherName = note.title || linkedResourceName || `${cleanLinkedResourceType.charAt(0).toUpperCase() + cleanLinkedResourceType.slice(1)} Huddle`;
                 } else if (otherId) {
                     const cachedOther = getCachedIdentityById(otherId);
                     if (cachedOther) {
                         otherName = cachedOther.displayName || cachedOther.username || `@${otherId.slice(0, 7)}`;
-                        avatarUrl = cachedOther.avatar || null;
-                    } else {
-                        try {
-                            const profile = await UsersService.getProfileById(otherId);
-                            if (profile) {
-                                if (profile.avatar?.startsWith?.('http')) {
-                                    avatarUrl = profile.avatar;
-                                } else if (profile.avatar) {
-                                    try {
-                                        avatarUrl = await fetchProfilePreview(profile.avatar, 64, 64) as unknown as string;
-                                    } catch (_e) {}
-                                }
-                                seedIdentityCache({ ...profile, avatar: profile.avatar || avatarUrl });
-                                otherName = profile.displayName || profile.username || `@${otherId.slice(0, 7)}`;
-                            }
-                        } catch (err) {
-                            console.warn('[ChatList] Failed to resolve huddle other identity:', err);
-                        }
+                        avatarUrl = cachedOther.avatar?.startsWith?.('http') ? cachedOther.avatar : null;
                     }
                 }
 
@@ -463,10 +447,10 @@ export const ChatList = ({
                     lastMessageText: note.content || 'Huddle discussion initialized',
                     lastMessageAt: note.updatedAt || note.$createdAt,
                 };
-            }));
+            });
 
             mapped.sort((a: any, b: any) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime());
-            
+
             if (typeof window !== 'undefined') {
                 localStorage.setItem(THREADS_CACHE_KEY, JSON.stringify(mapped));
             }
@@ -474,18 +458,53 @@ export const ChatList = ({
                 setGhostConversations(mapped);
             });
             setIsInitializing(false);
+
+            void (async () => {
+                const enriched = await Promise.all(mapped.map(async (entry: any) => {
+                    const otherId = entry.otherUserId;
+                    if (!otherId || entry.linkedResourceType) return entry;
+
+                    const identity = await resolveIdentityById(otherId, () => UsersService.getProfileById(otherId));
+                    if (!identity) return entry;
+
+                    let avatarUrl = entry.avatarUrl;
+                    if (!avatarUrl && identity.avatar?.startsWith?.('http')) {
+                        avatarUrl = identity.avatar;
+                    } else if (!avatarUrl && identity.avatar) {
+                        try {
+                            avatarUrl = await fetchProfilePreview(identity.avatar, 64, 64) as unknown as string;
+                        } catch {
+                            avatarUrl = null;
+                        }
+                    }
+
+                    seedIdentityCache({ ...identity, avatar: identity.avatar || avatarUrl });
+                    return {
+                        ...entry,
+                        name: identity.displayName || identity.username || entry.name,
+                        avatarUrl,
+                    };
+                }));
+
+                enriched.sort((a: any, b: any) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime());
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem(THREADS_CACHE_KEY, JSON.stringify(enriched));
+                }
+                startTransition(() => {
+                    setGhostConversations(enriched);
+                });
+            })();
         } catch (error) {
             console.error('Failed to load ghost huddles:', error);
         } finally {
             setLoadingGhost(false);
         }
-    }, [user, startTransition]);
+    }, [user, startTransition, ghostConversations.length]);
 
     useEffect(() => {
-        if (activeTab === 'public') {
-            loadGhostConversations();
-        }
-    }, [activeTab, loadGhostConversations]);
+        if (skipThreadsLoad || activeTab !== 'public') return;
+        loadGhostConversations();
+    }, [activeTab, loadGhostConversations, skipThreadsLoad]);
 
     // Sync external query to local search
     useEffect(() => {
@@ -662,7 +681,9 @@ export const ChatList = ({
         });
     }, [startTransition]);
 
-    const loadConversations = React.useCallback(async () => {
+    const loadConversations = React.useCallback(async (options?: { forceRefresh?: boolean; silent?: boolean }) => {
+        if (skipSecureLoad) return;
+
         const existingRun = loadConversationsInflightRef.current;
         if (existingRun) {
             await existingRun;
@@ -673,20 +694,22 @@ export const ChatList = ({
         const requestId = ++loadRequestRef.current;
         try {
             if (!ecosystemSecurity.status.isUnlocked) {
-                startTransition(() => setConversations([]));
                 setLoading(false);
                 return;
             }
 
-            console.log('[ChatList] Loading conversations for user:', user!.$id);
-            const response = await ChatService.getConversations(user!.$id);
+            const hasCachedRows = conversationsRef.current.length > 0;
+            if (!options?.silent && !hasCachedRows) {
+                setLoading(true);
+            }
+
+            const response = await ChatService.getConversations(user!.$id, {
+                forceRefresh: options?.forceRefresh,
+            });
             let rows = [...response.rows];
 
-            // Check if we need to prompt for unlock
             const hasEncrypted = rows.some(c => c.isEncrypted);
             if (hasEncrypted && !ecosystemSecurity.status.isUnlocked) return;
-
-            console.log('[ChatList] Fetched rows count:', rows.length);
 
             // Bridge: Detect and deduplicate self-chats, then ensure one exists
             const isSelfChat = (c: any) =>
@@ -878,7 +901,7 @@ export const ChatList = ({
                     return timeB - timeA;
                 });
                 if (typeof window !== 'undefined') {
-                    localStorage.setItem('kylrix_connect_cached_secure_v1', JSON.stringify(next));
+                    localStorage.setItem(SECURE_CACHE_KEY, JSON.stringify(next));
                 }
                 startTransition(() => {
                     setConversations(next);
@@ -901,41 +924,64 @@ export const ChatList = ({
                 loadConversationsInflightRef.current = null;
             }
         }
-    }, [user, startTransition]);
+    }, [user, startTransition, skipSecureLoad]);
+
+    const scheduleConversationsReload = React.useCallback((options?: { forceRefresh?: boolean }) => {
+        if (skipSecureLoad) return;
+        if (reloadConversationsTimerRef.current) {
+            clearTimeout(reloadConversationsTimerRef.current);
+        }
+        reloadConversationsTimerRef.current = setTimeout(() => {
+            void loadConversations({ silent: true, forceRefresh: options?.forceRefresh });
+        }, 450);
+    }, [loadConversations, skipSecureLoad]);
 
     useEffect(() => {
         const unsubscribe = ecosystemSecurity.onStatusChange((status) => {
-            if (status.isUnlocked === isUnlocked) return;
+            const wasUnlocked = isUnlockedRef.current;
             setIsUnlocked(status.isUnlocked);
-            if (status.isUnlocked) {
-                loadConversations();
-            } else {
+            if (status.isUnlocked && !wasUnlocked) {
+                void loadConversations({ forceRefresh: true });
+            } else if (!status.isUnlocked) {
                 ChatService.clearConversationPreviewCache();
+                ChatService.invalidateConversationsListCache(user?.$id);
                 startTransition(() => setConversations([]));
+                conversationsRef.current = [];
                 setLoading(false);
             }
         });
 
         return unsubscribe;
-    }, [isUnlocked, loadConversations, startTransition]);
+    }, [loadConversations, user?.$id, startTransition]);
 
     useEffect(() => {
         if (!user) return;
 
-        loadConversations();
-        if (activeTab === 'public') {
-            loadGhostConversations();
+        if (!skipSecureLoad) {
+            void loadConversations({ silent: conversationsRef.current.length > 0 });
+        }
+        if (!skipThreadsLoad && activeTab === 'public') {
+            void loadGhostConversations({ silent: ghostConversations.length > 0 });
         }
 
         const conversationChannel = `databases.${APPWRITE_CONFIG.DATABASES.CHAT}.collections.${APPWRITE_CONFIG.TABLES.CHAT.CONVERSATIONS}.documents`;
         const messageChannel = `databases.${APPWRITE_CONFIG.DATABASES.CHAT}.collections.${APPWRITE_CONFIG.TABLES.CHAT.MESSAGES}.documents`;
         const noteChannel = `databases.${APPWRITE_CONFIG.DATABASES.NOTE}.collections.${APPWRITE_CONFIG.TABLES.NOTE.NOTES}.documents`;
 
-        const subscription: any = realtime.subscribe([conversationChannel, messageChannel, noteChannel], async (response) => {
+        const channels = skipSecureLoad
+            ? [noteChannel]
+            : skipThreadsLoad
+                ? [conversationChannel, messageChannel]
+                : [conversationChannel, messageChannel, noteChannel];
+
+        const subscription: any = realtime.subscribe(channels, async (response) => {
             if (response.channels.some(ch => ch.includes(APPWRITE_CONFIG.TABLES.NOTE.NOTES))) {
-                loadGhostConversations();
+                if (!skipThreadsLoad) {
+                    void loadGhostConversations({ silent: true });
+                }
                 return;
             }
+            if (skipSecureLoad) return;
             const payload = response.payload;
             const isConversationEvent = Array.isArray(payload?.participants);
             const relatedConversationId = isConversationEvent ? payload?.$id : payload?.conversationId;
@@ -950,7 +996,7 @@ export const ChatList = ({
                     });
                     return;
                 }
-                loadConversations();
+                scheduleConversationsReload();
                 return;
             }
 
@@ -972,7 +1018,7 @@ export const ChatList = ({
 
             const existingIndex = conversationsRef.current.findIndex(c => c.$id === relatedConversationId);
             if (existingIndex === -1) {
-                loadConversations();
+                scheduleConversationsReload({ forceRefresh: true });
                 return;
             }
 
@@ -1047,10 +1093,13 @@ export const ChatList = ({
         });
 
         return () => {
+            if (reloadConversationsTimerRef.current) {
+                clearTimeout(reloadConversationsTimerRef.current);
+            }
             if (typeof subscription === 'function') subscription();
             else if (subscription?.unsubscribe) subscription.unsubscribe();
         };
-    }, [user, activeTab, loadConversations, loadGhostConversations, formatPreviewFromMessage, startTransition]);
+    }, [user, activeTab, loadConversations, loadGhostConversations, formatPreviewFromMessage, startTransition, skipSecureLoad, skipThreadsLoad, scheduleConversationsReload, ghostConversations.length]);
 
     if (loading) return (
         <div className="p-4 space-y-3">
