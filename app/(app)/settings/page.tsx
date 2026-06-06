@@ -34,8 +34,9 @@ import { useAppwriteVault } from '@/context/appwrite-context';
 import { hasPaidKylrixPlan, getUserSubscriptionTier, getUserSubscriptionExpiresAt, getUserProfilePicId, getEffectiveDisplayName, getEffectiveUsername } from '@/lib/utils';
 import { IdentityAvatar } from '@/components/common/IdentityBadge';
 import { getComputeBalanceAction } from '@/lib/actions/ai';
-import { getProfilePicturePreview, getUserProfilePicId as getSdkUserProfilePicId } from '@/lib/appwrite';
+import { getProfilePicturePreview } from '@/lib/appwrite';
 import { getCachedProfilePreview } from '@/lib/profile-preview';
+import { getUserProfilePicId as getSdkUserProfilePicId } from '@/lib/user-utils';
 
 // Inline Custom Telegram Icon SVG for lucide alignment
 function TelegramIcon({ className = "w-5 h-5" }: { className?: string }) {
