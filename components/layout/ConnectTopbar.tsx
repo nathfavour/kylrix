@@ -692,7 +692,7 @@ export default function ConnectTopbar({
       <AnimatePresence>
         {notificationsOpen ? renderNotificationPanel() : renderSearchPanel()}
       </AnimatePresence>
-      {renderAppPanel()}
+       
       {renderProfilePanel()}
     </AppBar>
   );
