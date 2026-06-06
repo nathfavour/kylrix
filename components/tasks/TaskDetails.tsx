@@ -810,7 +810,7 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
                         <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed max-w-[85%] border ${
                           msg.senderId === user?.$id
                             ? 'bg-[#A855F7] border-[#A855F7]/20 text-[#0A0908] font-semibold'
-                            : 'bg-white/[0.02] border-white/5 text-[#F5F2ED]'
+                            : 'bg-[#161412] border-[#23211F] text-[#F5F2ED]'
                         }`}>
                           {msg.content}
                         </div>

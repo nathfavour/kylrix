@@ -681,7 +681,7 @@ export function ProjectDiscussionSidebar({
                   </span>
                   <div className="flex flex-col gap-1">
                     <div
-                      className="p-4 rounded-r-2xl rounded-bl-2xl rounded-tl-sm bg-[#161412] border border-[#23211F] border-l-[3px] border-l-[#818CF8] text-[#F5F2ED]"
+                      className="p-4 rounded-r-2xl rounded-bl-2xl rounded-tl-sm !bg-[#161412] !bg-opacity-100 border border-[#23211F] border-l-[3px] border-l-[#818CF8] text-[#F5F2ED]"
                     >
                       {(() => {
                         const parsedParent = parseMessageContent(activeThreadParent.content);
@@ -745,10 +745,10 @@ export function ProjectDiscussionSidebar({
                           {reply.senderName}
                         </span>
                         <div
-                          className={`p-3.5 shadow-xl shadow-black/30 border border-[#23211F] text-xs font-semibold leading-relaxed break-words font-satoshi ${
+                          className={`p-3.5 shadow-xl shadow-black/30 border border-[#23211F] text-xs font-semibold leading-relaxed break-words font-satoshi !bg-opacity-100 ${
                             isSelfReply 
-                              ? 'bg-[#161412] text-white rounded-l-2xl rounded-br-2xl rounded-tr-sm border-r-[3px] border-r-[#6366F1]' 
-                              : 'bg-[#161412] text-[#F5F2ED] rounded-r-2xl rounded-bl-2xl rounded-tl-sm border-l-[3px] border-l-[#34322F]'
+                              ? '!bg-[#161412] text-white rounded-l-2xl rounded-br-2xl rounded-tr-sm border-r-[3px] border-r-[#6366F1]' 
+                              : '!bg-[#161412] text-[#F5F2ED] rounded-r-2xl rounded-bl-2xl rounded-tl-sm border-l-[3px] border-l-[#34322F]'
                           }`}
                         >
                           {parsedReply.type === 'voice' && parsedReply.voiceFileId ? (
@@ -825,10 +825,10 @@ export function ProjectDiscussionSidebar({
                           onTouchStart={(e) => handleTouchStart(e, msg)}
                           onTouchMove={handleTouchMove}
                           onTouchEnd={handleTouchEnd}
-                          className={`p-3.5 shadow-xl shadow-black/30 border border-[#23211F] text-xs font-semibold leading-relaxed break-words font-satoshi cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-black/40 ${
+                          className={`p-3.5 shadow-xl shadow-black/30 border border-[#23211F] text-xs font-semibold leading-relaxed break-words font-satoshi cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-black/40 !bg-opacity-100 ${
                             isSelf 
-                              ? 'bg-[#161412] text-white rounded-l-2xl rounded-br-2xl rounded-tr-sm border-r-[3px] border-r-[#6366F1]' 
-                              : 'bg-[#161412] text-[#F5F2ED] rounded-r-2xl rounded-bl-2xl rounded-tl-sm border-l-[3px] border-l-[#34322F]'
+                              ? '!bg-[#161412] text-white rounded-l-2xl rounded-br-2xl rounded-tr-sm border-r-[3px] border-r-[#6366F1]' 
+                              : '!bg-[#161412] text-[#F5F2ED] rounded-r-2xl rounded-bl-2xl rounded-tl-sm border-l-[3px] border-l-[#34322F]'
                           }`}
                         >
                           {parsed.type === 'voice' && parsed.voiceFileId ? (

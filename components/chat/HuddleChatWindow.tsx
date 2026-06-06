@@ -711,8 +711,9 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                         sx={{
                           p: parsed.type === 'voice' ? 1.25 : 1.75,
                           borderRadius: isSelf ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
-                          bgcolor: '#161412', 
-                          backgroundImage: 'none',
+                          bgcolor: '#161412 !important', 
+                          backgroundImage: 'none !important',
+                          opacity: '1 !important',
                           border: '1px solid #23211F',
                           borderRight: isSelf ? '3px solid #F59E0B' : '1px solid #23211F',
                           borderLeft: !isSelf ? '3px solid #34322F' : '1px solid #23211F',
@@ -721,6 +722,7 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                           position: 'relative',
                           zIndex: 2,
                           cursor: 'context-menu',
+                          backdropFilter: 'none !important',
                           transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                           '&:hover': {
                               transform: 'translateY(-1px)',
@@ -1056,12 +1058,15 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                           sx={{
                             p: parsedReply.type === 'voice' ? 1.25 : 1.75,
                             borderRadius: isSelfReply ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
-                            bgcolor: '#161412',
+                            bgcolor: '#161412 !important',
+                            backgroundImage: 'none !important',
+                            opacity: '1 !important',
                             border: '1px solid #23211F',
                             borderRight: isSelfReply ? '3px solid #F59E0B' : '1px solid #23211F',
                             borderLeft: !isSelfReply ? '3px solid #34322F' : '1px solid #23211F',
                             color: isSelfReply ? '#FFFFFF' : '#F5F2ED',
                             cursor: 'context-menu',
+                            backdropFilter: 'none !important',
                             transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                             zIndex: 2,
                             '&:hover': {

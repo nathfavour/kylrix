@@ -2191,7 +2191,7 @@ export const ChatWindow = ({ conversationId, onBack }: { conversationId: string;
                                                     maxWidth: '100%',
                                                     alignSelf: isOutgoing ? 'flex-end' : 'flex-start',
                                                     borderRadius: isOutgoing ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
-                                                    bgcolor: isOutgoing ? '#1C1A18' : '#161412', // Lifted vs Base
+                                                    bgcolor: isOutgoing ? '#161412' : '#161412', // Standardized Opaque Deep Ash
                                                     backgroundImage: 'none',
                                                     border: '1px solid #23211F',
                                                     borderRight: isOutgoing ? '3px solid #6366F1' : '1px solid #23211F',

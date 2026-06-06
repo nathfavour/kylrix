@@ -570,21 +570,6 @@ export const DiscoverabilitySettings = () => {
                 </div>
             </div>
 
-            {/* Profile image preview box */}
-            <div className="p-4 bg-[#161412] border border-white/5 rounded-2xl flex items-center gap-3 shadow-xl select-none">
-                <div className="w-12 h-12 rounded-full border border-white/8 bg-[#1C1A18] overflow-hidden flex items-center justify-center font-black text-lg select-none text-white/80">
-                    {previewUrl ? (
-                        <img src={previewUrl} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                        (username || user.name || '?').slice(0, 1).toUpperCase()
-                    )}
-                </div>
-                <div>
-                    <h4 className="text-white font-extrabold text-sm leading-none mb-1">Preview</h4>
-                    <p className="text-white/40 text-[10px] font-semibold leading-none">Roughly how you appear in discovery and chats</p>
-                </div>
-            </div>
-
             {/* Confirm Dialog Modal */}
             {showConfirm && (
               <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
