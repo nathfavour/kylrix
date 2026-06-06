@@ -61,8 +61,8 @@ const mapAppwriteTaskToTask = (doc: AppwriteTask): Task => {
     createdAt: new Date(doc.$createdAt),
     updatedAt: new Date(doc.$updatedAt),
     position: 0,
-    isArchived: false,
-    isPinned: (doc as any).isPinned === true || String((doc as any).isPinned) === 'true',
+    isArchived: raw.isArchived === true || String(raw.isArchived) === 'true',
+    isPinned: raw.isPinned === true || String(raw.isPinned) === 'true',
   };
 };
 
@@ -633,7 +633,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     const taskQueries = [
       Query.equal('userId', uid),
       Query.limit(1000),
-      Query.select(['$id', 'userId', 'title', 'status', 'priority', 'dueDate', 'tags', '$createdAt', '$updatedAt', 'isPinned', 'parentId', 'comments'])];
+      Query.select(['$id', 'userId', 'title', 'status', 'priority', 'dueDate', 'tags', '$createdAt', '$updatedAt', 'isPinned', 'isArchived', 'parentId', 'comments'])];
     const calQueries = [
       Query.equal('userId', uid),
       Query.limit(100),
@@ -1196,6 +1196,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     filtered.sort((a, b) => {
       const aDone = a.status === 'done';
       const bDone = b.status === 'done';
+      const aPinned = !!a.isPinned;
+      const bPinned = !!b.isPinned;
       
       // 1. Completion State: Done tasks always sink to the bottom
       if (aDone !== bDone) {
@@ -1203,8 +1205,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       }
 
       // 2. Pin State: Pinned tasks authoritatively float to the top
-      if (a.isPinned !== b.isPinned) {
-        return a.isPinned ? -1 : 1;
+      if (aPinned !== bPinned) {
+        return aPinned ? -1 : 1;
       }
 
       let comparison = 0;

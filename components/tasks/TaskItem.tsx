@@ -228,11 +228,11 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
         />
 
         <div className="flex items-start gap-3 sm:gap-4 pl-1">
-          {/* Checkbox */}
+          {/* Checkbox (Circular Pattern) */}
           <button
             type="button"
             onClick={handleComplete}
-            className={`flex items-center justify-center h-5 w-5 mt-0.5 rounded border transition-all duration-200 hover:scale-115 cursor-pointer shrink-0 ${
+            className={`flex items-center justify-center h-5 w-5 mt-0.5 rounded-full border transition-all duration-200 hover:scale-115 cursor-pointer shrink-0 ${
               task.status === 'done'
                 ? 'border-[#A855F7] bg-[#A855F7] text-[#0A0908]'
                 : 'border-[#34322F] text-[#9B9691]'
