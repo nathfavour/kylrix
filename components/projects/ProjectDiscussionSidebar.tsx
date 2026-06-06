@@ -9,16 +9,26 @@ import {
   Square,
   MessageSquare,
   Globe,
-  Smile,
-  Copy,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
+import {
+  Box,
+  Paper,
+  Typography,
+  TextField,
+  IconButton,
+  AppBar,
+  Toolbar,
+  Stack,
+  Button,
+  CircularProgress,
+} from '@/lib/mui-tailwind/material';
 import { useToast } from '@/components/ui/Toast';
 import { IdentityAvatar } from '@/components/common/IdentityBadge';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
-import { Projects, Notes } from '@/types/appwrite';
+import { Projects } from '@/types/appwrite';
 import { Query, AppwriteService } from '@/lib/appwrite';
-import { databases } from '@/lib/appwrite/client';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import {
   createComment,
@@ -34,12 +44,24 @@ import { VoiceMessage } from '@/components/chat/VoiceMessage';
 import { StorageService } from '@/lib/services/storage';
 import MuralPattern from '@/components/chat/MuralPattern';
 import { searchGlobalUsers } from '@/lib/ecosystem/identity';
+import { formatTime } from '@/lib/time-util';
 
 interface ProjectDiscussionSidebarProps {
   project: Projects;
   fetchProjectData: () => void;
   user: any;
 }
+
+type DiscussionMessage = {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string | null;
+  content: string;
+  timestamp: number;
+  parentCommentId: string | null;
+  reactions: any[];
+};
 
 function getActiveMentionToken(value: string, caret: number | null | undefined) {
   const cursor = typeof caret === 'number' ? caret : value.length;
@@ -56,11 +78,7 @@ function getActiveMentionToken(value: string, caret: number | null | undefined) 
     if (!/[\s(]/.test(prev)) return null;
   }
 
-  return {
-    query: match[1] || '',
-    start,
-    end: cursor,
-  };
+  return { query: match[1] || '', start, end: cursor };
 }
 
 function renderMessageText(text: string): React.ReactNode {
@@ -75,31 +93,79 @@ function renderMessageText(text: string): React.ReactNode {
     const start = match.index;
     const end = start + full.length;
 
-    if (start > lastIndex) {
-      pieces.push(text.slice(lastIndex, start));
-    }
-
-    if (prefix) {
-      pieces.push(prefix);
-    }
+    if (start > lastIndex) pieces.push(text.slice(lastIndex, start));
+    if (prefix) pieces.push(prefix);
 
     pieces.push(
-      <span
+      <Box
         key={`${start}-${username}`}
-        className="text-[#6366F1] font-extrabold bg-[#6366F1]/8 px-1 py-0.5 rounded font-mono text-[0.9em] select-text"
+        component="span"
+        sx={{
+          color: '#6366F1',
+          fontWeight: 800,
+          bgcolor: 'rgba(99, 102, 241, 0.08)',
+          px: 0.5,
+          py: 0.25,
+          borderRadius: '4px',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.9em',
+        }}
       >
         @{username}
-      </span>
+      </Box>
     );
 
     lastIndex = end;
   }
 
-  if (lastIndex < text.length) {
-    pieces.push(text.slice(lastIndex));
-  }
+  if (lastIndex < text.length) pieces.push(text.slice(lastIndex));
 
-  return <span className="whitespace-pre-wrap break-words">{pieces}</span>;
+  return (
+    <Typography component="span" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'var(--font-satoshi)', fontSize: '0.85rem', lineHeight: 1.5 }}>
+      {pieces}
+    </Typography>
+  );
+}
+
+/** Exact secret-chat bubble shell from Connect `ChatWindow`. */
+function secretChatBubbleSx(isOutgoing: boolean) {
+  return {
+    p: 1.5,
+    px: 2.25,
+    width: 'fit-content',
+    maxWidth: '100%',
+    alignSelf: isOutgoing ? 'flex-end' : 'flex-start',
+    borderRadius: isOutgoing ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
+    bgcolor: '#161412',
+    backgroundImage: 'none',
+    border: '1px solid #23211F',
+    borderRight: isOutgoing ? '3px solid #6366F1' : '1px solid #23211F',
+    borderLeft: !isOutgoing ? '3px solid #34322F' : '1px solid #23211F',
+    color: isOutgoing ? '#FFFFFF' : '#F5F2ED',
+    boxShadow: '0 4px 12px -4px rgba(0,0,0,0.8)',
+    position: 'relative' as const,
+    zIndex: 2,
+    transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+    '&:hover': {
+      transform: 'translateY(-1px)',
+      boxShadow: '0 6px 16px -4px rgba(0,0,0,0.9)',
+    },
+  };
+}
+
+function groupCommentReactions(reactions: any[] = [], userId?: string) {
+  const groups = new Map<string, { emoji: string; count: number; reactedBySelf: boolean }>();
+  reactions.forEach((r) => {
+    if (!r?.emoji) return;
+    const existing = groups.get(r.emoji);
+    if (existing) {
+      existing.count += 1;
+      existing.reactedBySelf = existing.reactedBySelf || r.userId === userId;
+    } else {
+      groups.set(r.emoji, { emoji: r.emoji, count: 1, reactedBySelf: r.userId === userId });
+    }
+  });
+  return Array.from(groups.values()).sort((a, b) => b.count - a.count);
 }
 
 export function ProjectDiscussionSidebar({
@@ -110,105 +176,23 @@ export function ProjectDiscussionSidebar({
   const { closeSidebar } = useDynamicSidebar();
   const { showSuccess, showError } = useToast();
 
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
-  // Thread and Reactions states
-  const [activeThreadParent, setActiveThreadParent] = useState<any | null>(null);
+  const [activeThreadParent, setActiveThreadParent] = useState<DiscussionMessage | null>(null);
   const [threadInputText, setThreadInputText] = useState('');
-  const [sendToGeneralChecked, setSendToGeneralChecked] = useState(true);
+  const [sendToGeneralChecked] = useState(true);
 
-  // Mention Autocomplete States & Refs
-  const [mentionAnchorEl, setMentionAnchorEl] = useState<HTMLDivElement | null>(null);
+  const [mentionAnchorEl, setMentionAnchorEl] = useState<HTMLElement | null>(null);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionResults, setMentionResults] = useState<any[]>([]);
-  const [mentionLoading, setMentionLoading] = useState(false);
   const [mentionActiveRange, setMentionActiveRange] = useState<{ start: number; end: number } | null>(null);
   const [mentionInputSource, setMentionInputSource] = useState<'general' | 'thread'>('general');
-  const mentionContainerRef = useRef<HTMLDivElement | null>(null);
-  const threadMentionContainerRef = useRef<HTMLDivElement | null>(null);
+  const inputContainerRef = useRef<HTMLDivElement | null>(null);
+  const textInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
 
-  const closeMentionSuggestions = useCallback(() => {
-    setMentionAnchorEl(null);
-    setMentionResults([]);
-    setMentionQuery('');
-    setMentionActiveRange(null);
-    setMentionLoading(false);
-  }, []);
-
-  const handleInputChange = useCallback((text: string, selectionStart: number, type: 'general' | 'thread') => {
-    if (type === 'general') {
-      setInputText(text);
-    } else {
-      setThreadInputText(text);
-    }
-
-    const caret = selectionStart;
-    const active = getActiveMentionToken(text, caret);
-    if (active) {
-      setMentionQuery(active.query);
-      setMentionActiveRange({ start: active.start, end: active.end });
-      setMentionInputSource(type);
-      setMentionAnchorEl(type === 'general' ? mentionContainerRef.current : threadMentionContainerRef.current);
-    } else {
-      closeMentionSuggestions();
-    }
-  }, [closeMentionSuggestions]);
-
-  const replaceActiveMention = useCallback((item: any) => {
-    if (!mentionActiveRange) return;
-    const mention = `@${item.username || item.title.replace(/\s+/g, '').toLowerCase()}`;
-    const currentValue = mentionInputSource === 'general' ? inputText : threadInputText;
-    const nextValue = `${currentValue.slice(0, mentionActiveRange.start)}${mention} ${currentValue.slice(mentionActiveRange.end)}`;
-
-    if (mentionInputSource === 'general') {
-      setInputText(nextValue);
-    } else {
-      setThreadInputText(nextValue);
-    }
-    closeMentionSuggestions();
-  }, [mentionActiveRange, mentionInputSource, inputText, threadInputText, closeMentionSuggestions]);
-
-  useEffect(() => {
-    if (!mentionQuery.trim()) {
-      setMentionResults([]);
-      setMentionLoading(false);
-      return;
-    }
-
-    let alive = true;
-    const timer = setTimeout(async () => {
-      setMentionLoading(true);
-      try {
-        const docs = await searchGlobalUsers(mentionQuery.trim(), 6);
-        if (!alive) return;
-        const mapped = docs.map((doc: any) => {
-          const id = doc?.$id || doc?.id || doc?.userId;
-          const username = String(doc?.username || doc?.prefs?.username || doc?.displayName || doc?.name || '').replace(/^@+/, '').trim().toLowerCase();
-          return {
-            id,
-            title: doc?.displayName || doc?.name || username || 'Profile',
-            username: username || null,
-            avatar: doc?.avatar || doc?.profilePicId || doc?.prefs?.profilePicId || null,
-          };
-        });
-        setMentionResults(mapped);
-      } catch (err) {
-        if (alive) setMentionResults([]);
-      } finally {
-        if (alive) setMentionLoading(false);
-      }
-    }, 250);
-
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [mentionQuery]);
-
-  // Voice recording states and refs
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -224,97 +208,92 @@ export function ProjectDiscussionSidebar({
     }
   }, [project.metadata]);
 
-  const chatNoteId = metadata.discussionNoteId;
+  const chatNoteId = metadata.discussionNoteId as string | undefined;
   const messageEndRef = useRef<HTMLDivElement>(null);
-  const threadEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom on new messages
+  const draftText = activeThreadParent ? threadInputText : inputText;
+  const setDraftText = activeThreadParent ? setThreadInputText : setInputText;
+
+  const closeMentionSuggestions = useCallback(() => {
+    setMentionAnchorEl(null);
+    setMentionResults([]);
+    setMentionQuery('');
+    setMentionActiveRange(null);
+  }, []);
+
+  const handleInputChange = useCallback((text: string, selectionStart: number, type: 'general' | 'thread') => {
+    if (type === 'general') setInputText(text);
+    else setThreadInputText(text);
+
+    const active = getActiveMentionToken(text, selectionStart);
+    if (active) {
+      setMentionQuery(active.query);
+      setMentionActiveRange({ start: active.start, end: active.end });
+      setMentionInputSource(type);
+      setMentionAnchorEl(inputContainerRef.current);
+    } else {
+      closeMentionSuggestions();
+    }
+  }, [closeMentionSuggestions]);
+
+  const replaceActiveMention = useCallback((item: any) => {
+    if (!mentionActiveRange) return;
+    const mention = `@${item.username || item.title.replace(/\s+/g, '').toLowerCase()}`;
+    const currentValue = mentionInputSource === 'general' ? inputText : threadInputText;
+    const nextValue = `${currentValue.slice(0, mentionActiveRange.start)}${mention} ${currentValue.slice(mentionActiveRange.end)}`;
+    if (mentionInputSource === 'general') setInputText(nextValue);
+    else setThreadInputText(nextValue);
+    closeMentionSuggestions();
+  }, [mentionActiveRange, mentionInputSource, inputText, threadInputText, closeMentionSuggestions]);
+
+  useEffect(() => {
+    if (!mentionQuery.trim()) {
+      setMentionResults([]);
+      return;
+    }
+    let alive = true;
+    const timer = setTimeout(async () => {
+      try {
+        const docs = await searchGlobalUsers(mentionQuery.trim(), 6);
+        if (!alive) return;
+        setMentionResults(
+          docs.map((doc: any) => ({
+            id: doc?.$id || doc?.id || doc?.userId,
+            title: doc?.displayName || doc?.name || doc?.username || 'Profile',
+            username: String(doc?.username || doc?.prefs?.username || '').replace(/^@+/, '').trim().toLowerCase() || null,
+            avatar: doc?.avatar || doc?.profilePicId || doc?.prefs?.profilePicId || null,
+          }))
+        );
+      } catch {
+        if (alive) setMentionResults([]);
+      }
+    }, 250);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [mentionQuery]);
+
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, activeThreadParent]);
 
   useEffect(() => {
-    threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeThreadParent]);
-
-  // Clean up timers on component unmount
-  useEffect(() => {
     return () => {
       if (recordingTimerRef.current) clearTimeout(recordingTimerRef.current);
       if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
-      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
     };
   }, []);
 
-  // Touch long press state/refs
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent, msg: any) => {
-    const touch = e.touches[0];
-    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
-    const currentTarget = e.currentTarget as HTMLElement;
-    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
-    longPressTimerRef.current = setTimeout(() => {
-      if (navigator.vibrate) navigator.vibrate(10);
-    }, 600);
-  }, []);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!touchStartPosRef.current) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - touchStartPosRef.current.x;
-    const dy = touch.clientY - touchStartPosRef.current.y;
-    if (Math.sqrt(dx * dx + dy * dy) > 10) {
-      if (longPressTimerRef.current) {
-        clearTimeout(longPressTimerRef.current);
-        longPressTimerRef.current = null;
-      }
-      touchStartPosRef.current = null;
-    }
-  }, []);
-
-  const handleTouchEnd = useCallback(() => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-    touchStartPosRef.current = null;
-  }, []);
-
-  const handleMessageClick = useCallback((e: React.MouseEvent, msg: any) => {
-    e.stopPropagation();
-    if (msg.parentCommentId) {
-      const parent = messages.find(m => m.id === msg.parentCommentId);
-      if (parent) {
-        setActiveThreadParent(parent);
-      }
-    } else {
-      setActiveThreadParent(msg);
-    }
-  }, [messages]);
-
-  // Keep activeThreadParent fresh in real-time when messages change
   useEffect(() => {
-    if (activeThreadParent) {
-      const freshParent = messages.find(m => m.id === activeThreadParent.id);
-      if (freshParent) {
-        setActiveThreadParent(freshParent);
-      }
-    }
+    if (!activeThreadParent) return;
+    const fresh = messages.find((m) => m.id === activeThreadParent.id);
+    if (fresh) setActiveThreadParent(fresh);
   }, [messages, activeThreadParent]);
 
-  // Format voice recording seconds into beautiful MM:SS string
-  const formatRecordingTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
-  // Safe JSON parser helper
   const parseMessageContent = useCallback((rawContent: string) => {
     if (rawContent?.startsWith('{') && rawContent?.endsWith('}')) {
       try {
@@ -323,41 +302,35 @@ export function ProjectDiscussionSidebar({
           text: json.text || '',
           type: json.type || 'text',
           voiceFileId: json.voiceFileId || null,
-          sendToGeneral: json.sendToGeneral !== false
+          sendToGeneral: json.sendToGeneral !== false,
         };
-      } catch {}
+      } catch {
+        /* fall through */
+      }
     }
     if (rawContent?.startsWith('__voice_note__:')) {
       return {
         text: 'Voice Note',
         type: 'voice',
         voiceFileId: rawContent.substring('__voice_note__:'.length),
-        sendToGeneral: true
+        sendToGeneral: true,
       };
     }
-    return {
-      text: rawContent || '',
-      type: 'text',
-      voiceFileId: null,
-      sendToGeneral: true
-    };
+    return { text: rawContent || '', type: 'text', voiceFileId: null, sendToGeneral: true };
   }, []);
 
-  // Load and Subscribe to Huddle Thread (Ghost Note)
   const loadHuddleMessages = useCallback(async () => {
     if (!chatNoteId) return;
     try {
       const res = await listComments(chatNoteId);
-
-      // Load reactions for comments parallelly
-      let commentReactions: Record<string, any[]> = {};
+      const commentReactions: Record<string, any[]> = {};
       try {
         const commentIds = res.rows.map((r: any) => r.$id);
         if (commentIds.length > 0) {
           const reactionsRes = await listReactions([
             Query.equal('targetType', 'comment'),
             Query.equal('targetId', commentIds),
-            Query.limit(500)
+            Query.limit(500),
           ]);
           reactionsRes.rows.forEach((react: any) => {
             if (!commentReactions[react.targetId]) commentReactions[react.targetId] = [];
@@ -371,26 +344,33 @@ export function ProjectDiscussionSidebar({
       const msgs = await Promise.all(
         res.rows.map(async (doc: any) => {
           let senderName = 'Collaborator';
+          let senderAvatar: string | null = null;
           if (doc.userId === user?.$id) {
             senderName = user.name || 'You';
           } else {
             try {
               const profile = await AppwriteService.getProfile(doc.userId);
-              if (profile) senderName = profile.name || 'Collaborator';
-            } catch {}
+              if (profile) {
+                senderName = profile.name || 'Collaborator';
+                senderAvatar = profile.avatar || profile.profilePicId || null;
+              }
+            } catch {
+              /* ignore */
+            }
           }
           return {
             id: doc.$id,
             senderId: doc.userId,
             senderName,
+            senderAvatar,
             content: doc.content,
             timestamp: new Date(doc.createdAt).getTime(),
             parentCommentId: doc.parentCommentId || null,
-            reactions: commentReactions[doc.$id] || []
-          };
+            reactions: commentReactions[doc.$id] || [],
+          } satisfies DiscussionMessage;
         })
       );
-      msgs.sort((a: any, b: any) => a.timestamp - b.timestamp);
+      msgs.sort((a, b) => a.timestamp - b.timestamp);
       setMessages(msgs);
     } catch (err) {
       console.error('Failed to load huddle comments:', err);
@@ -401,69 +381,37 @@ export function ProjectDiscussionSidebar({
 
   useEffect(() => {
     if (!chatNoteId) return;
-
     let active = true;
     setLoading(true);
-
     loadHuddleMessages();
-
-    // Subscribe to comments and reactions
     const unsubscribe = client.subscribe(
       [
         `databases.${APPWRITE_CONFIG.DATABASES.NOTE}.collections.comments.documents`,
-        `databases.${APPWRITE_CONFIG.DATABASES.NOTE}.collections.reactions.documents`
+        `databases.${APPWRITE_CONFIG.DATABASES.NOTE}.collections.reactions.documents`,
       ],
-      async () => {
-        if (!active) return;
-        loadHuddleMessages();
+      () => {
+        if (active) loadHuddleMessages();
       }
     );
-
     return () => {
       active = false;
       unsubscribe();
     };
   }, [chatNoteId, loadHuddleMessages]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim() || sending) return;
-    setSending(true);
-
-    try {
-      if (chatNoteId) {
-        await createComment(chatNoteId, JSON.stringify({
-          text: inputText.trim(),
-          type: 'text',
-          sendToGeneral: true
-        }));
-      }
-      setInputText('');
-    } catch (err) {
-      console.error('Failed to send message:', err);
-    } finally {
-      setSending(false);
-    }
-  };
-
-  // Toggle reaction in database
   const handleReact = async (msgId: string, emoji: string) => {
     if (!user) return;
-    const msg = messages.find(m => m.id === msgId);
+    const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
-
     try {
-      const existingReaction = msg.reactions?.find(
-        (r: any) => r.userId === user.$id && r.emoji === emoji
-      );
-      if (existingReaction) {
-        await deleteReaction(existingReaction.$id);
-      } else {
+      const existingReaction = msg.reactions?.find((r: any) => r.userId === user.$id && r.emoji === emoji);
+      if (existingReaction) await deleteReaction(existingReaction.$id);
+      else {
         await createReaction({
           userId: user.$id,
           targetId: msgId,
           targetType: TargetType.COMMENT,
-          emoji: emoji
+          emoji,
         });
       }
       loadHuddleMessages();
@@ -472,97 +420,88 @@ export function ProjectDiscussionSidebar({
     }
   };
 
-  // Voice note toggle logic (start/stop)
+  const submitMessage = async () => {
+    const text = draftText.trim();
+    if (!text || sending || !chatNoteId) return false;
+    setSending(true);
+    try {
+      if (activeThreadParent) {
+        await createComment(
+          chatNoteId,
+          JSON.stringify({ text, type: 'text', sendToGeneral: sendToGeneralChecked }),
+          activeThreadParent.id
+        );
+        setThreadInputText('');
+      } else {
+        await createComment(chatNoteId, JSON.stringify({ text, type: 'text', sendToGeneral: true }));
+        setInputText('');
+      }
+      await loadHuddleMessages();
+      return true;
+    } catch (err) {
+      console.error('Failed to send message:', err);
+      return false;
+    } finally {
+      setSending(false);
+    }
+  };
+
   const toggleRecording = async () => {
     if (isRecording) {
-      // Stop recording
-      if (recordingTimerRef.current) {
-        clearTimeout(recordingTimerRef.current);
-        recordingTimerRef.current = null;
-      }
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-        recordingIntervalRef.current = null;
-      }
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-      }
+      if (recordingTimerRef.current) clearTimeout(recordingTimerRef.current);
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+      if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
       setIsRecording(false);
-    } else {
-      // Start recording
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      return;
+    }
 
-        let options = { audioBitsPerSecond: 16000 };
-        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-          (options as any).mimeType = 'audio/webm;codecs=opus';
-        } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
-          (options as any).mimeType = 'audio/ogg;codecs=opus';
-        }
-
-        const mediaRecorder = new MediaRecorder(stream, options);
-        mediaRecorderRef.current = mediaRecorder;
-        audioChunksRef.current = [];
-
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) {
-            audioChunksRef.current.push(e.data);
-          }
-        };
-
-        mediaRecorder.onstop = async () => {
-          if (recordingTimerRef.current) {
-            clearTimeout(recordingTimerRef.current);
-            recordingTimerRef.current = null;
-          }
-          if (recordingIntervalRef.current) {
-            clearInterval(recordingIntervalRef.current);
-            recordingIntervalRef.current = null;
-          }
-
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const audioFile = new File([audioBlob], `voice_note_${Date.now()}.webm`, { type: 'audio/webm' });
-
-          stream.getTracks().forEach(track => track.stop());
-
-          setSending(true);
-          try {
-            const uploaded = await StorageService.uploadFile(audioFile, 'voice');
-            if (chatNoteId) {
-              await createComment(chatNoteId, JSON.stringify({
-                text: 'Voice Note',
-                type: 'voice',
-                voiceFileId: uploaded.$id,
-                sendToGeneral: true
-              }));
-            }
-          } catch (error) {
-            console.error('Failed to send voice note comment:', error);
-          } finally {
-            setSending(false);
-          }
-        };
-
-        mediaRecorder.start();
-        setIsRecording(true);
-        setRecordingSeconds(0);
-
-        recordingIntervalRef.current = setInterval(() => {
-          setRecordingSeconds(s => s + 1);
-        }, 1000);
-
-        // Limit recording to 120 seconds
-        recordingTimerRef.current = setTimeout(() => {
-          if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-            mediaRecorderRef.current.stop();
-          }
-          setIsRecording(false);
-        }, 120000);
-
-      } catch (err) {
-        console.error("Failed to start recording:", err);
-        alert("Microphone access is required for voice notes.");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const options: MediaRecorderOptions = { audioBitsPerSecond: 16000 };
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        options.mimeType = 'audio/webm;codecs=opus';
       }
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        if (recordingTimerRef.current) clearTimeout(recordingTimerRef.current);
+        if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioFile = new File([audioBlob], `voice_note_${Date.now()}.webm`, { type: 'audio/webm' });
+        stream.getTracks().forEach((track) => track.stop());
+        setSending(true);
+        try {
+          const uploaded = await StorageService.uploadFile(audioFile, 'voice');
+          if (chatNoteId) {
+            await createComment(
+              chatNoteId,
+              JSON.stringify({ text: 'Voice Note', type: 'voice', voiceFileId: uploaded.$id, sendToGeneral: true })
+            );
+            await loadHuddleMessages();
+          }
+        } catch (error) {
+          console.error('Failed to send voice note:', error);
+        } finally {
+          setSending(false);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      recordingIntervalRef.current = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
+      recordingTimerRef.current = setTimeout(() => {
+        if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
+        setIsRecording(false);
+      }, 120000);
+    } catch {
+      showError('Microphone access is required for voice notes.');
     }
   };
 
@@ -578,18 +517,18 @@ export function ProjectDiscussionSidebar({
     }
   };
 
-  // Split messages into general huddle list vs thread huddle replies
-  const generalMessages = useMemo(() => {
-    return messages.filter(m => {
-      if (!m.parentCommentId) return true;
-      const parsed = parseMessageContent(m.content);
-      return parsed.sendToGeneral !== false;
-    });
-  }, [messages, parseMessageContent]);
+  const generalMessages = useMemo(
+    () =>
+      messages.filter((m) => {
+        if (!m.parentCommentId) return true;
+        return parseMessageContent(m.content).sendToGeneral !== false;
+      }),
+    [messages, parseMessageContent]
+  );
 
   const threadReplies = useMemo(() => {
-    const groups: Record<string, any[]> = {};
-    messages.forEach(m => {
+    const groups: Record<string, DiscussionMessage[]> = {};
+    messages.forEach((m) => {
       if (m.parentCommentId) {
         if (!groups[m.parentCommentId]) groups[m.parentCommentId] = [];
         groups[m.parentCommentId].push(m);
@@ -600,495 +539,384 @@ export function ProjectDiscussionSidebar({
 
   const threadMessages = useMemo(() => {
     if (!activeThreadParent) return [];
-    return messages.filter(m => m.parentCommentId === activeThreadParent.id);
+    return messages.filter((m) => m.parentCommentId === activeThreadParent.id);
   }, [messages, activeThreadParent]);
 
-  // Mentions list dropdown
-  const showMentions = mentionAnchorEl && mentionResults.length > 0;
+  const visibleMessages = activeThreadParent ? threadMessages : generalMessages;
+
+  const renderBubbleBody = (msg: DiscussionMessage) => {
+    const parsed = parseMessageContent(msg.content);
+    if (parsed.type === 'voice' && parsed.voiceFileId) {
+      return <VoiceMessage url={StorageService.getFileView(parsed.voiceFileId, 'voice')} />;
+    }
+    return renderMessageText(parsed.text);
+  };
+
+  const renderMessageRow = (msg: DiscussionMessage, opts?: { isThreadParent?: boolean }) => {
+    const isOutgoing = msg.senderId === user?.$id;
+    const replyCount = threadReplies[msg.id]?.length || 0;
+    const reactionGroups = groupCommentReactions(msg.reactions, user?.$id);
+
+    return (
+      <Box
+        key={msg.id}
+        sx={{
+          width: '100%',
+          display: 'flex',
+          justifyContent: isOutgoing ? 'flex-end' : 'flex-start',
+          position: 'relative',
+          zIndex: 2,
+        }}
+      >
+        <Stack
+          direction={isOutgoing ? 'row-reverse' : 'row'}
+          spacing={1}
+          alignItems="flex-end"
+          sx={{ width: '100%', maxWidth: '80%' }}
+        >
+          <IdentityAvatar
+            fileId={msg.senderAvatar}
+            alt={msg.senderName}
+            fallback={msg.senderName.slice(0, 1).toUpperCase()}
+            size={30}
+            borderRadius="50%"
+          />
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 0.5,
+              minWidth: 0,
+              flex: '0 1 auto',
+              alignItems: isOutgoing ? 'flex-end' : 'flex-start',
+            }}
+          >
+            {!isOutgoing && (
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  color: '#9B9691',
+                  pl: 0.5,
+                  mb: 0.25,
+                  fontFamily: 'var(--font-mono)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                {msg.senderName}
+              </Typography>
+            )}
+            <Paper
+              elevation={0}
+              onClick={() => {
+                if (!opts?.isThreadParent && !activeThreadParent) setActiveThreadParent(msg);
+              }}
+              sx={{
+                ...secretChatBubbleSx(isOutgoing),
+                cursor: opts?.isThreadParent ? 'default' : 'pointer',
+              }}
+            >
+              {renderBubbleBody(msg)}
+            </Paper>
+
+            {reactionGroups.length > 0 && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignSelf: isOutgoing ? 'flex-end' : 'flex-start', mt: 0.5, px: 0.5 }}>
+                {reactionGroups.slice(0, 5).map((group) => (
+                  <Box
+                    key={group.emoji}
+                    component="button"
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleReact(msg.id, group.emoji);
+                    }}
+                    sx={{
+                      p: 0,
+                      m: 0,
+                      border: 0,
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      lineHeight: 1,
+                      opacity: group.reactedBySelf ? 1 : 0.95,
+                    }}
+                  >
+                    {group.emoji}
+                  </Box>
+                ))}
+              </Box>
+            )}
+
+            {!activeThreadParent && replyCount > 0 && (
+              <Button
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveThreadParent(msg);
+                }}
+                startIcon={<MessageSquare size={12} />}
+                sx={{
+                  alignSelf: isOutgoing ? 'flex-end' : 'flex-start',
+                  mt: 0.5,
+                  px: 1.5,
+                  py: 0.5,
+                  minHeight: 0,
+                  borderRadius: '10px',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  textTransform: 'none',
+                  color: '#818CF8',
+                  bgcolor: 'rgba(99, 102, 241, 0.06)',
+                  border: '1px solid rgba(99, 102, 241, 0.15)',
+                  '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.12)' },
+                }}
+              >
+                {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+              </Button>
+            )}
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, alignSelf: isOutgoing ? 'flex-end' : 'flex-start', px: 0.5, position: 'relative', zIndex: 2 }}>
+              <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.72)', fontWeight: 700 }}>
+                {formatTime(new Date(msg.timestamp), { hour: 'numeric', minute: '2-digit', hour12: true })}
+              </Typography>
+            </Box>
+          </Box>
+        </Stack>
+      </Box>
+    );
+  };
 
   return (
-    <div className="flex flex-col h-full bg-[#0A0908] overflow-hidden relative">
-      
-      {/* 1. Header (Fixed/Anchored at top) */}
-      <div className="flex flex-col p-5 border-b border-white/5 bg-[#0A0908] z-10">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 min-w-0">
-            {activeThreadParent && (
-              <button
-                type="button"
-                onClick={() => setActiveThreadParent(null)}
-                className="text-white/50 hover:text-white transition p-1.5 rounded-lg hover:bg-white/5 mr-1 shrink-0"
-              >
-                <ChevronLeft size={18} />
-              </button>
-            )}
-            <div className="min-w-0">
-              <h3 className="font-black font-clash text-[#6366F1] uppercase tracking-wider text-sm truncate">
-                {activeThreadParent ? 'Thread replies' : 'Project Discussion'}
-              </h3>
-              <span className="text-[10px] text-white/40 block truncate font-bold font-satoshi mt-0.5">
-                {project.title}
-              </span>
-            </div>
-          </div>
+    <Box sx={{ bgcolor: '#0A0908', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+      <MuralPattern />
 
-          <button
-            type="button"
-            onClick={closeSidebar}
-            className="text-white/50 hover:text-white transition p-1.5 rounded-lg hover:bg-white/5 shrink-0"
-          >
-            <X size={18} />
-          </button>
-        </div>
-      </div>
+      <AppBar
+        position="static"
+        color="transparent"
+        elevation={0}
+        sx={{
+          bgcolor: '#0A0908',
+          borderBottom: '1px solid #1C1A18',
+          zIndex: 10,
+          flexShrink: 0,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+        }}
+      >
+        <Toolbar sx={{ gap: 1, minHeight: '64px !important', px: 2 }}>
+          {activeThreadParent ? (
+            <IconButton onClick={() => setActiveThreadParent(null)} sx={{ color: 'rgba(255,255,255,0.6)', '&:hover': { color: '#fff', bgcolor: '#161412' } }}>
+              <ChevronLeft size={20} strokeWidth={2} />
+            </IconButton>
+          ) : null}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', lineHeight: 1.1, color: '#fff', fontSize: '1rem' }}>
+              {activeThreadParent ? 'Thread' : project.title}
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#9B9691', fontWeight: 700, fontSize: '0.75rem' }}>
+              {activeThreadParent ? `Replying in ${project.title}` : 'Project discussion'}
+            </Typography>
+          </Box>
+          <IconButton onClick={closeSidebar} sx={{ color: 'rgba(255,255,255,0.6)', '&:hover': { color: '#fff', bgcolor: '#161412' } }}>
+            <X size={20} strokeWidth={2} />
+          </IconButton>
+        </Toolbar>
+      </AppBar>
 
-      {/* 2. Middle Content (Free scroll chat viewport) */}
-      <div className="flex-1 min-h-0 relative flex flex-col bg-[#080706]">
-        <MuralPattern />
-
-        {loading && (
-          <div className="absolute inset-0 grid place-items-center bg-[#0A0908]/70 z-30 animate-in fade-in">
-            <Loader2 size={28} className="text-[#6366F1] animate-spin" />
-          </div>
+      <Box sx={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        {loading && !messages.length && (
+          <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', bgcolor: 'rgba(10,9,8,0.7)', zIndex: 30 }}>
+            <CircularProgress sx={{ color: '#6366F1' }} size={28} />
+          </Box>
         )}
 
         {!chatNoteId ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center relative z-10">
-            <div className="w-14 h-14 rounded-2xl grid place-items-center bg-[#6366F1]/8 text-[#6366F1] border border-[#6366F1]/15 mb-6">
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 4, textAlign: 'center', position: 'relative', zIndex: 2 }}>
+            <Box sx={{ width: 56, height: 56, borderRadius: '16px', display: 'grid', placeItems: 'center', bgcolor: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)', color: '#6366F1', mb: 3 }}>
               <Globe size={26} />
-            </div>
-            <h4 className="font-extrabold text-sm text-white mb-2 font-satoshi">Initialize Public Huddle</h4>
-            <p className="text-xs text-white/40 max-w-[320px] leading-relaxed mb-6 font-medium font-satoshi">
-              A temporary public comment thread lets your team coordinate tasks, tag members, and comment on assets. Messages automatically clean up in 7 days.
-            </p>
-            <button
-              type="button"
-              onClick={handleInitHuddle}
-              className="bg-[#6366F1] hover:bg-[#6366F1]/90 text-white font-extrabold text-xs py-3 px-6 rounded-xl transition duration-200"
-            >
+            </Box>
+            <Typography sx={{ fontWeight: 900, color: '#fff', mb: 1, fontFamily: 'var(--font-satoshi)' }}>
+              Start project discussion
+            </Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem', lineHeight: 1.6, maxWidth: 320, mb: 3 }}>
+              Spin up a team huddle thread for this project. Messages auto-clean after 7 days.
+            </Typography>
+            <Button variant="contained" onClick={handleInitHuddle} sx={{ bgcolor: '#6366F1', color: '#fff', fontWeight: 900, borderRadius: '14px', px: 3, py: 1.25, textTransform: 'none' }}>
               Start Huddle
-            </button>
-          </div>
+            </Button>
+          </Box>
         ) : (
-          /* Scrollable Messages view */
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4 min-h-0 scrollbar-thin">
-            {activeThreadParent ? (
-              /* THREAD REPLIES VIEW */
-              <>
-                <div className="border-b border-white/5 pb-4 mb-2">
-                  <span className="text-[10px] text-[#818CF8] font-black block uppercase tracking-wider mb-2 font-satoshi">
-                    Thread initialized by {activeThreadParent.senderName}
-                  </span>
-                  <div className="flex flex-col gap-1">
-                    <div
-                      className="p-4 rounded-r-2xl rounded-bl-2xl rounded-tl-sm bg-[#161412] border border-[#23211F] border-l-[3px] border-l-[#818CF8] text-[#F5F2ED]"
-                    >
-                      {(() => {
-                        const parsedParent = parseMessageContent(activeThreadParent.content);
-                        if (parsedParent.type === 'voice' && parsedParent.voiceFileId) {
-                          return <VoiceMessage url={StorageService.getFileView(parsedParent.voiceFileId, 'voice')} />;
-                        }
-                        return (
-                          <p className="font-semibold text-xs leading-relaxed break-words font-satoshi">
-                            {renderMessageText(parsedParent.text)}
-                          </p>
-                        );
-                      })()}
-                    </div>
-
-                    {/* Parent Reactions */}
-                    {activeThreadParent.reactions && activeThreadParent.reactions.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2 align-self-start">
-                        {Object.entries(
-                          activeThreadParent.reactions.reduce((acc: Record<string, string[]>, r: any) => {
-                            if (!acc[r.emoji]) acc[r.emoji] = [];
-                            acc[r.emoji].push(r.userId);
-                            return acc;
-                          }, {})
-                        ).map(([emoji, userIds]) => {
-                          const hasReacted = (userIds as any[]).includes(user?.$id);
-                          return (
-                            <button
-                              type="button"
-                              key={emoji}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleReact(activeThreadParent.id, emoji);
-                              }}
-                              className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border transition-colors ${
-                                hasReacted 
-                                  ? 'bg-[#818CF8]/15 text-[#818CF8] border-[#818CF8]/30' 
-                                  : 'bg-white/3 text-white/55 border-white/5 hover:bg-white/5 hover:border-white/10'
-                              }`}
-                            >
-                              <span>{emoji}</span>
-                              <span>{(userIds as any[]).length}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {threadMessages.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center py-8 opacity-40">
-                    <span className="italic font-bold text-xs font-satoshi text-white/60">No replies yet. Send a reply below!</span>
-                  </div>
-                ) : (
-                  threadMessages.map(reply => {
-                    const isSelfReply = reply.senderId === user?.$id;
-                    const parsedReply = parseMessageContent(reply.content);
-                    return (
-                      <div key={reply.id} className={`max-w-[85%] flex flex-col ${isSelfReply ? 'self-end' : 'self-start'}`}>
-                        <span className={`text-[10px] text-white/30 font-black block mb-1 font-satoshi ${isSelfReply ? 'text-right' : 'text-left'}`}>
-                          {reply.senderName}
-                        </span>
-                        <div
-                          className={`p-3.5 shadow-xl shadow-black/30 border border-[#23211F] text-xs font-semibold leading-relaxed break-words font-satoshi ${
-                            isSelfReply 
-                              ? 'bg-[#1C1A18] text-white rounded-l-2xl rounded-br-2xl rounded-tr-sm border-r-[3px] border-r-[#6366F1]' 
-                              : 'bg-[#161412] text-[#F5F2ED] rounded-r-2xl rounded-bl-2xl rounded-tl-sm border-l-[3px] border-l-[#34322F]'
-                          }`}
-                        >
-                          {parsedReply.type === 'voice' && parsedReply.voiceFileId ? (
-                            <VoiceMessage url={StorageService.getFileView(parsedReply.voiceFileId, 'voice')} />
-                          ) : (
-                            <p className="font-semibold text-xs leading-relaxed break-words font-satoshi">
-                              {renderMessageText(parsedReply.text)}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Reply Reactions */}
-                        {reply.reactions && reply.reactions.length > 0 && (
-                          <div className={`flex flex-wrap gap-1 mt-1.5 ${isSelfReply ? 'justify-end' : 'justify-start'}`}>
-                            {Object.entries(
-                              reply.reactions.reduce((acc: Record<string, string[]>, r: any) => {
-                                if (!acc[r.emoji]) acc[r.emoji] = [];
-                                acc[r.emoji].push(r.userId);
-                                return acc;
-                              }, {})
-                            ).map(([emoji, userIds]) => {
-                              const hasReacted = (userIds as any[]).includes(user?.$id);
-                              return (
-                                <button
-                                  type="button"
-                                  key={emoji}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleReact(reply.id, emoji);
-                                  }}
-                                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border transition-colors ${
-                                    hasReacted 
-                                      ? 'bg-[#818CF8]/15 text-[#818CF8] border-[#818CF8]/30' 
-                                      : 'bg-white/3 text-white/55 border-white/5 hover:bg-white/5 hover:border-white/10'
-                                  }`}
-                                >
-                                  <span>{emoji}</span>
-                                  <span>{(userIds as any[]).length}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        <span className={`text-[9px] text-white/20 block mt-1.5 font-bold font-satoshi ${isSelfReply ? 'text-right' : 'text-left'}`}>
-                          {new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={threadEndRef} />
-              </>
-            ) : (
-              /* GENERAL HUDDLE CHAT LIST */
-              <>
-                {generalMessages.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center opacity-40">
-                    <span className="italic font-bold text-xs font-satoshi text-white/60">No messages yet. Start the discussion!</span>
-                  </div>
-                ) : (
-                  generalMessages.map((msg) => {
-                    const isSelf = msg.senderId === user?.$id;
-                    const parsed = parseMessageContent(msg.content);
-                    const replyCount = threadReplies[msg.id]?.length || 0;
-
-                    return (
-                      <div key={msg.id} className={`max-w-[85%] flex flex-col ${isSelf ? 'self-end' : 'self-start'}`}>
-                        <span className={`text-[10px] text-white/30 font-black block mb-1 font-satoshi ${isSelf ? 'text-right' : 'text-left'}`}>
-                          {msg.senderName}
-                        </span>
-                        <div
-                          onClick={(e) => handleMessageClick(e, msg)}
-                          onTouchStart={(e) => handleTouchStart(e, msg)}
-                          onTouchMove={handleTouchMove}
-                          onTouchEnd={handleTouchEnd}
-                          className={`p-3.5 shadow-xl shadow-black/30 border border-[#23211F] text-xs font-semibold leading-relaxed break-words font-satoshi cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-black/40 ${
-                            isSelf 
-                              ? 'bg-[#1C1A18] text-white rounded-l-2xl rounded-br-2xl rounded-tr-sm border-r-[3px] border-r-[#6366F1]' 
-                              : 'bg-[#161412] text-[#F5F2ED] rounded-r-2xl rounded-bl-2xl rounded-tl-sm border-l-[3px] border-l-[#34322F]'
-                          }`}
-                        >
-                          {parsed.type === 'voice' && parsed.voiceFileId ? (
-                            <VoiceMessage url={StorageService.getFileView(parsed.voiceFileId, 'voice')} />
-                          ) : (
-                            <p className="font-semibold text-xs leading-relaxed break-words font-satoshi">
-                              {renderMessageText(parsed.text)}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Reactions and Quick Emoji Picker */}
-                        <div className={`flex items-center gap-1.5 mt-1.5 ${isSelf ? 'justify-end' : 'justify-start'}`}>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleReact(msg.id, '👍');
-                            }}
-                            className="p-1 text-white/30 bg-white/2 border border-white/5 rounded-md hover:text-[#818CF8] hover:bg-[#6366F1]/8 hover:border-[#6366F1]/15 transition"
-                          >
-                            <Smile size={12} />
-                          </button>
-
-                          {msg.reactions && msg.reactions.length > 0 && (
-                            Object.entries(
-                              msg.reactions.reduce((acc: Record<string, string[]>, r: any) => {
-                                if (!acc[r.emoji]) acc[r.emoji] = [];
-                                acc[r.emoji].push(r.userId);
-                                return acc;
-                              }, {})
-                            ).map(([emoji, userIds]) => {
-                              const hasReacted = (userIds as any[]).includes(user?.$id);
-                              return (
-                                <button
-                                  type="button"
-                                  key={emoji}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleReact(msg.id, emoji);
-                                  }}
-                                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border transition-colors ${
-                                    hasReacted 
-                                      ? 'bg-[#818CF8]/15 text-[#818CF8] border-[#818CF8]/30' 
-                                      : 'bg-white/3 text-white/55 border-white/5 hover:bg-white/5 hover:border-white/10'
-                                  }`}
-                                >
-                                  <span>{emoji}</span>
-                                  <span>{(userIds as any[]).length}</span>
-                                </button>
-                              );
-                            })
-                          )}
-                        </div>
-
-                        {/* Thread Replies Button */}
-                        {replyCount > 0 && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveThreadParent(msg);
-                            }}
-                            className={`flex items-center justify-center gap-1.5 mt-1.5 px-3 py-1 bg-[#6366F1]/4 border border-[#6366F1]/10 rounded-lg text-[#818CF8] font-extrabold text-[10px] transition duration-200 hover:bg-[#6366F1]/8 hover:border-[#818CF8] ${
-                              isSelf ? 'self-end' : 'self-start'
-                            }`}
-                          >
-                            <MessageSquare size={12} />
-                            <span>{replyCount} {replyCount === 1 ? 'reply' : 'replies'}</span>
-                          </button>
-                        )}
-
-                        <span className={`text-[9px] text-white/20 block mt-1.5 font-bold font-satoshi ${isSelf ? 'text-right' : 'text-left'}`}>
-                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={messageEndRef} />
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* 3. Input Panel (Fixed/Anchored at bottom) */}
-      {chatNoteId && (
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (activeThreadParent) {
-              if (!threadInputText.trim() || sending) return;
-              setSending(true);
-              try {
-                await createComment(chatNoteId, JSON.stringify({
-                  text: threadInputText.trim(),
-                  type: 'text',
-                  sendToGeneral: sendToGeneralChecked
-                }), activeThreadParent.id);
-                setThreadInputText('');
-                loadHuddleMessages();
-              } catch (err) {
-                console.error('Failed to send thread reply:', err);
-              } finally {
-                setSending(false);
-              }
-            } else {
-              handleSendMessage(e);
-            }
-          }}
-          className="p-4 border-t border-white/5 bg-[#0A0908]/95 backdrop-blur-md relative z-20"
-        >
-          {/* Mentions dropdown popup overlay */}
-          {showMentions && (
-            <div className="absolute bottom-full left-4 right-4 bg-[#161412] border border-[#23211F] rounded-2xl p-3 mb-3 max-h-45 overflow-y-auto shadow-2xl shadow-black/85 z-30 scrollbar-thin">
-              <span className="text-[10px] text-white/40 font-black block uppercase tracking-wider mb-2 font-satoshi">
-                Mention users
-              </span>
-              <div className="flex flex-col gap-1">
-                {mentionResults.map((item) => (
-                  <button
-                    type="button"
-                    key={item.id}
-                    onClick={() => replaceActiveMention(item)}
-                    className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-white/4 transition-colors w-full text-left"
-                  >
-                    <IdentityAvatar fileId={item.avatar} alt={item.title} fallback={item.title[0]?.toUpperCase()} size={28} />
-                    <div className="min-w-0 flex flex-col">
-                      <span className="font-extrabold text-xs text-white truncate font-satoshi">{item.title}</span>
-                      {item.username && <span className="text-[10px] text-white/40 font-bold truncate mt-0.5 font-satoshi">@{item.username}</span>}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center gap-3">
-            {!activeThreadParent && (
-              <button
-                type="button"
-                onClick={toggleRecording}
-                disabled={sending}
-                className={`w-11 h-11 shrink-0 flex items-center justify-center bg-[#161412] border rounded-xl hover:bg-[#1C1A18] hover:text-white transition ${
-                  isRecording ? 'text-[#ff4d4d] border-[#ff4d4d]' : 'text-white/40 border-white/5'
-                }`}
-              >
-                {isRecording ? <Square size={16} fill="#ff4d4d" className="text-[#ff4d4d]" /> : <Mic size={18} />}
-              </button>
-            )}
-
-            <div ref={activeThreadParent ? threadMentionContainerRef : mentionContainerRef} className="flex-1 relative flex items-center min-w-0">
-              {isRecording && (
-                <div className="absolute inset-0 bg-[#0A0908] rounded-xl border border-[#ff4d4d] flex items-center px-4 gap-3 z-[2]">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#ff4d4d] animate-pulse" />
-                  <span className="text-white/60 text-xs font-extrabold flex-1 truncate font-satoshi">
-                    Recording... click stop to send
-                  </span>
-                  <span className="text-[#ff4d4d] text-xs font-black font-mono">
-                    {formatRecordingTime(recordingSeconds)}
-                  </span>
-                </div>
+          <>
+            <Box
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                overflowY: 'auto',
+                p: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1.5,
+                pb: 'calc(96px + env(safe-area-inset-bottom))',
+                position: 'relative',
+                zIndex: 2,
+              }}
+              className="scrollbar-thin"
+            >
+              {activeThreadParent && (
+                <Box sx={{ mb: 1, pb: 2, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 900, color: '#818CF8', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', mb: 1, display: 'block' }}>
+                    Thread started by {activeThreadParent.senderName}
+                  </Typography>
+                  {renderMessageRow(activeThreadParent, { isThreadParent: true })}
+                </Box>
               )}
 
-              <input
-                type="text"
-                className="w-full bg-[#161412] rounded-xl text-white px-4 py-3 font-semibold text-xs border border-white/5 transition hover:border-white/10 focus:border-[#6366F1] outline-none"
-                value={activeThreadParent ? threadInputText : inputText}
-                disabled={isRecording}
-                onChange={(e) => handleInputChange(
-                  e.target.value,
-                  e.target.selectionStart ?? e.target.value.length,
-                  activeThreadParent ? 'thread' : 'general'
-                )}
-                onBlur={() => {
-                  setTimeout(() => closeMentionSuggestions(), 120);
-                }}
-                onFocus={(e) => {
-                  const caret = e.currentTarget.selectionStart ?? (activeThreadParent ? threadInputText.length : inputText.length);
-                  const active = getActiveMentionToken(activeThreadParent ? threadInputText : inputText, caret);
-                  if (active) {
-                    setMentionQuery(active.query);
-                    setMentionActiveRange({ start: active.start, end: active.end });
-                    setMentionInputSource(activeThreadParent ? 'thread' : 'general');
-                    setMentionAnchorEl(activeThreadParent ? threadMentionContainerRef.current : mentionContainerRef.current);
-                  }
-                }}
-                placeholder={activeThreadParent ? "Reply in thread..." : "Type huddle message..."}
-                onKeyDown={async (e) => {
-                  if (e.key === 'g' && (e.ctrlKey || e.metaKey)) {
-                    e.preventDefault();
-                    const currentText = activeThreadParent ? threadInputText : inputText;
-                    const val = currentText.trim();
-                    if (!val) {
-                      showError('Type a message first to secure it.');
-                      return;
-                    }
-                    const setVal = activeThreadParent ? setThreadInputText : setInputText;
-                    setVal('Securing message payload...');
-                    try {
-                      const { AppwriteService } = await import('@/lib/appwrite');
-                      const { encryptGhostData } = await import('@/lib/encryption/ghost-crypto');
-                      
-                      const ghostSecret = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-send`;
-                      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-                      
-                      const titleEnc = await encryptGhostData('Secure Note');
-                      const contentEnc = await encryptGhostData(val, titleEnc.key);
-                      
-                      const note = await AppwriteService.createSendGhostObject({
-                        title: titleEnc.encrypted,
-                        content: contentEnc.encrypted,
-                        format: 'markdown',
-                        ghostSecret,
-                        expiresAt,
-                        isEncrypted: true,
-                        sendObject: { kind: 'note' }
-                      });
-                      
-                      const origin = typeof window !== 'undefined' ? window.location.origin : '';
-                      const url = `${origin}/send/${note.$id}/${titleEnc.key}`;
-                      
-                      try {
-                        const existing = JSON.parse(localStorage.getItem('kylrix_send_sparks') || '[]');
-                        const newSpark = {
-                          id: note.$id,
-                          kind: 'note',
-                          title: 'Secure Note',
-                          url,
-                          expiresAt,
-                        };
-                        localStorage.setItem('kylrix_send_sparks', JSON.stringify([newSpark, ...existing]));
-                      } catch (err) {
-                        console.warn('Failed to cache spark:', err);
-                      }
-                      
-                      setVal(url);
-                      showSuccess('Message secured as Zero-Knowledge Ghost Note!');
-                    } catch (err) {
-                      console.error('Failed to secure message:', err);
-                      setVal(val);
-                      showError('Failed to secure message.');
-                    }
-                    return;
-                  }
-                }}
-              />
-            </div>
+              {visibleMessages.length === 0 ? (
+                <Box sx={{ flex: 1, display: 'grid', placeItems: 'center', py: 6 }}>
+                  <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                    {activeThreadParent ? 'No replies yet.' : 'No messages yet. Say hello!'}
+                  </Typography>
+                </Box>
+              ) : (
+                visibleMessages.map((msg) => renderMessageRow(msg))
+              )}
+              <div ref={messageEndRef} />
+            </Box>
 
-            <button
-              type="submit"
-              disabled={sending || isRecording || (activeThreadParent ? !threadInputText.trim() : !inputText.trim())}
-              className="bg-[#6366F1] hover:bg-[#575CF0] disabled:bg-white/2 disabled:text-white/10 text-white rounded-xl w-11 h-11 shrink-0 flex items-center justify-center transition duration-200"
+            {/* Input — Connect secret chat bottom drawer */}
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                px: { xs: 1.5, md: 2 },
+                pb: 'max(1rem, env(safe-area-inset-bottom))',
+                pt: 1.5,
+                bgcolor: '#161412',
+                borderTop: '1px solid #1C1A18',
+                borderRadius: '24px 24px 0 0',
+                boxShadow: '0 -4px 24px rgba(0,0,0,0.6)',
+                zIndex: 20,
+              }}
             >
-              <Send size={18} />
-            </button>
-          </div>
-        </form>
-      )}
-    </div>
+              {mentionAnchorEl && mentionResults.length > 0 && (
+                <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '16px', bgcolor: '#1C1A18', border: '1px solid #34322F', maxHeight: 180, overflowY: 'auto' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1, display: 'block' }}>
+                    Mention
+                  </Typography>
+                  <Stack spacing={0.5}>
+                    {mentionResults.map((item) => (
+                      <Button
+                        key={item.id}
+                        onClick={() => replaceActiveMention(item)}
+                        sx={{ justifyContent: 'flex-start', gap: 1.5, py: 1, px: 1.5, borderRadius: '12px', color: '#fff', textTransform: 'none' }}
+                      >
+                        <IdentityAvatar fileId={item.avatar} alt={item.title} fallback={item.title[0]?.toUpperCase()} size={28} />
+                        <Box sx={{ minWidth: 0, textAlign: 'left' }}>
+                          <Typography sx={{ fontWeight: 800, fontSize: '0.85rem' }} noWrap>{item.title}</Typography>
+                          {item.username && (
+                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>@{item.username}</Typography>
+                          )}
+                        </Box>
+                      </Button>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
+
+              <Box ref={inputContainerRef} sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.75, position: 'relative', zIndex: 2 }}>
+                {!activeThreadParent && (
+                  <IconButton
+                    onClick={toggleRecording}
+                    sx={{
+                      color: isRecording ? '#ff4d4d' : '#9B9691',
+                      width: 44,
+                      height: 44,
+                      flexShrink: 0,
+                      bgcolor: '#161412',
+                      border: '1px solid #1C1A18',
+                      '&:hover': { bgcolor: '#1C1A18', borderColor: '#6366F1', color: '#fff' },
+                    }}
+                  >
+                    {isRecording ? <Square size={18} fill="#ff4d4d" /> : <Mic size={20} strokeWidth={2} />}
+                  </IconButton>
+                )}
+
+                <Box sx={{ flex: 1, position: 'relative' }}>
+                  {isRecording && (
+                    <Box sx={{ position: 'absolute', inset: 0, bgcolor: '#0A0908', borderRadius: '18px', border: '1px solid #ff4d4d', display: 'flex', alignItems: 'center', px: 2, gap: 1, zIndex: 3 }}>
+                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#ff4d4d', animation: 'pulse 1.5s infinite' }} />
+                      <Typography sx={{ flex: 1, fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)' }}>
+                        Recording… tap stop to send
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, color: '#ff4d4d', fontFamily: 'var(--font-mono)' }}>
+                        {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, '0')}
+                      </Typography>
+                    </Box>
+                  )}
+                  <TextField
+                    fullWidth
+                    multiline
+                    maxRows={4}
+                    disabled={isRecording}
+                    placeholder={activeThreadParent ? 'Reply in thread…' : 'Message the team…'}
+                    value={draftText}
+                    onChange={(e) =>
+                      handleInputChange(
+                        e.target.value,
+                        e.target.selectionStart ?? e.target.value.length,
+                        activeThreadParent ? 'thread' : 'general'
+                      )
+                    }
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        await submitMessage();
+                      }
+                    }}
+                    inputRef={textInputRef}
+                    variant="standard"
+                    InputProps={{
+                      disableUnderline: true,
+                      sx: {
+                        px: 2,
+                        py: 1.5,
+                        bgcolor: '#161412',
+                        borderRadius: '18px',
+                        border: '1px solid #1C1A18',
+                        color: '#fff',
+                        fontWeight: 600,
+                        fontFamily: 'var(--font-satoshi)',
+                        fontSize: '0.95rem',
+                        '&:focus-within': { borderColor: '#6366F1', bgcolor: '#1C1A18' },
+                      },
+                    }}
+                  />
+                </Box>
+
+                <IconButton
+                  disabled={!draftText.trim() || sending || isRecording}
+                  onClick={() => void submitMessage()}
+                  sx={{
+                    color: draftText.trim() ? '#6366F1' : 'rgba(255,255,255,0.1)',
+                    width: 44,
+                    height: 44,
+                    flexShrink: 0,
+                    bgcolor: draftText.trim() ? '#161412' : 'transparent',
+                    border: '1px solid',
+                    borderColor: draftText.trim() ? '#1C1A18' : 'transparent',
+                    '&:hover': { bgcolor: '#1C1A18', borderColor: '#6366F1' },
+                  }}
+                >
+                  {sending ? <RefreshCw className="animate-spin" size={20} /> : <Send size={20} strokeWidth={2.5} />}
+                </IconButton>
+              </Box>
+            </Box>
+          </>
+        )}
+      </Box>
+    </Box>
   );
 }

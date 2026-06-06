@@ -408,6 +408,83 @@ export default function ConnectTopbar({
     return () => window.removeEventListener('pointerdown', handlePointerDown, true);
   }, [activePanel, handleCloseAll]);
 
+  const renderNotificationDrawer = () => {
+    return (
+      <Drawer
+        anchor="top"
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        keepMounted={false}
+        disablePortal={false} // Covers the entire viewport including Topbar
+        PaperProps={{
+          sx: {
+            bgcolor: '#161412',
+            backgroundImage: 'none',
+            width: isDesktop ? 420 : '100%',
+            mx: 'auto',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            borderLeft: '1px solid rgba(255,255,255,0.08)',
+            borderRight: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '0 0 24px 24px',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
+            maxHeight: 400, // Short expansion
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }
+        }}
+      >
+        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, mb: 1 }}>
+            <Typography sx={{ color: 'white/40', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                System Alerts
+            </Typography>
+            <IconButton onClick={() => setNotificationsOpen(false)} size="small" sx={{ color: 'white/20' }}>
+                <CloseIcon size={14} />
+            </IconButton>
+          </Box>
+
+          <Box sx={{ display: 'grid', gap: 1, overflowY: 'auto', maxHeight: 320, pr: 0.5 }}>
+            {notifications.length === 0 ? (
+                <Typography sx={{ color: 'white/20', fontSize: '0.8rem', p: 4, textAlign: 'center' }}>No active alerts.</Typography>
+            ) : (
+                notifications.map(notif => (
+                    <Box 
+                        key={notif.id} 
+                        sx={{ 
+                            display: 'flex', 
+                            gap: 2, 
+                            p: 2, 
+                            borderRadius: '16px', 
+                            bgcolor: notif.read ? 'transparent' : 'rgba(255,255,255,0.02)',
+                            border: '1px solid',
+                            borderColor: notif.read ? 'rgba(255,255,255,0.02)' : alpha(notif.accent, 0.15),
+                            cursor: 'pointer',
+                            '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' }
+                        }}
+                        onClick={() => markNotificationRead(notif.id)}
+                    >
+                        <Box sx={{ width: 34, height: 34, borderRadius: '10px', bgcolor: alpha(notif.accent, 0.1), color: notif.accent, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                            <Bell size={16} />
+                        </Box>
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                            <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.85rem', lineHeight: 1.2 }}>{notif.title}</Typography>
+                            <Typography sx={{ color: 'white/40', fontSize: '0.74rem', lineHeight: 1.3 }}>{notif.message}</Typography>
+                        </Box>
+                        <IconButton size="small" onClick={(e) => dismissNotification(notif.id, e)} sx={{ color: 'white/10', alignSelf: 'flex-start' }}>
+                            <CloseIcon size={12} />
+                        </IconButton>
+                    </Box>
+                ))
+            )}
+          </Box>
+        </Box>
+      </Drawer>
+    );
+  };
+
   const renderSearchPanel = () => {
     if (!searchOpen) return null;
 
@@ -1633,213 +1710,121 @@ export default function ConnectTopbar({
         }}
       >
         <SyncIndicator />
-        <Box sx={{ maxWidth: 1440, mx: 'auto', px: { xs: 2, md: 4 }, width: '100%' }}>
-          <Box
-            sx={{
-              minHeight: TOPBAR_LAYOUT.height,
-              display: activePanel ? 'none' : 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: { xs: 1.25, md: 2 },
-            }}
-          >
-            <Box
-              component="div"
-              role="button"
-              tabIndex={0}
-              onClick={user ? openAppMenu : () => openUnified('login')}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  if (user) {
-                    setAppMenuAnchorEl(event.currentTarget as HTMLElement);
-                  } else {
-                    openUnified('login');
-                  }
-                }
-              }}
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                p: 0,
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                flexShrink: 0,
-                position: 'relative',
-              }}
-            >
-              <Logo app={activeApp} size={32} variant={isDesktop ? 'full' : 'icon'} />
+        <Box sx={{ maxWidth: 1440, mx: 'auto', px: { xs: 2, md: 4 }, width: '100%', height: '88px', display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { xs: 'auto 1fr auto', md: '1fr auto 1fr' }, 
+            alignItems: 'center', 
+            width: '100%', 
+            gap: 2 
+          }}>
+            
+            {/* Left: App Logo / Menu Trigger */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+              <Box onClick={user ? openAppMenu : () => openUnified('login')} sx={{ cursor: 'pointer', flexShrink: 0 }}>
+                <Logo app={activeApp} size={32} variant={isDesktop ? 'full' : 'icon'} />
+              </Box>
             </Box>
 
-            {user ? (
-              <Box
-                sx={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {searchOpen ? (
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      width: { xs: 'calc(100vw - 32px)', sm: 420, md: 520 },
-                      maxWidth: 'calc(100vw - 32px)',
-                      height: 44,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.25,
-                      px: 1.5,
-                      py: 0,
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      bgcolor: '#000',
-                      color: 'white',
-                      borderRadius: '24px',
-                      boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 0 26px rgba(0,0,0,0.55)',
-                    }}
-                  >
-                    <Search size={16} strokeWidth={2.25} style={{ flexShrink: 0, opacity: 0.84 }} />
-                    <InputBase
-                      id="topbar-search-input"
-                      inputRef={searchInputRef}
-                      value={searchQuery}
-                      onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="Search people, notes, apps..."
-                      sx={{
-                        flex: 1,
-                        color: 'white',
-                        fontWeight: 800,
-                        '& input::placeholder': { color: 'rgba(255,255,255,0.42)', opacity: 1 },
-                      }}
-                    />
-                    <IconButton size="small" onClick={() => setSearchOpen(false)} sx={{ color: 'rgba(255,255,255,0.6)' }}>
-                      <CloseIcon size={16} />
+            {/* Center: 🏝️ Dynamic Island Search & Notification Host */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+              {user ? (
+                <AnimatePresence mode="wait">
+                  {searchOpen ? (
+                    <motion.div 
+                      key="search-active"
+                      initial={{ width: 44, opacity: 0 }} 
+                      animate={{ width: isDesktop ? 520 : 'calc(100vw - 32px)', opacity: 1 }} 
+                      exit={{ width: 44, opacity: 0 }} 
+                      transition={{ type: 'spring', damping: 25, stiffness: 200 }} 
+                      style={{ position: 'relative', maxWidth: '100%' }}
+                    >
+                      <Paper elevation={0} sx={{ height: 44, display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, border: '1px solid rgba(255,255,255,0.1)', bgcolor: '#000', color: 'white', borderRadius: '24px', boxShadow: '0 0 26px rgba(0,0,0,0.5)' }}>
+                        <Search size={16} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
+                        <InputBase 
+                          inputRef={searchInputRef} 
+                          value={searchQuery} 
+                          onChange={(e) => setSearchQuery(e.target.value)} 
+                          placeholder="Search ecosystem..." 
+                          sx={{ flex: 1, color: 'white', fontWeight: 800, fontSize: '0.9rem', '& input::placeholder': { color: 'white/20' } }} 
+                        />
+                        
+                        {/* 🔔 Notifications CTA - The Island Extension */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                            <Box sx={{ width: 1, height: 20, bgcolor: 'white/10', mx: 0.5 }} />
+                            <IconButton 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setNotificationsOpen(!notificationsOpen);
+                                }} 
+                                sx={{ 
+                                    color: unreadNotifCount > 0 ? BRAND_INDIGO : 'white/20', 
+                                    position: 'relative', 
+                                    p: 1,
+                                    bgcolor: notificationsOpen ? 'white/5' : 'transparent',
+                                    '&:hover': { bgcolor: 'white/8' }
+                                }}
+                            >
+                                <Bell size={18} strokeWidth={2.5} />
+                                {unreadNotifCount > 0 && (
+                                    <Box sx={{ position: 'absolute', top: 6, right: 6, width: 6, height: 6, borderRadius: '50%', bgcolor: '#EC4899', border: '1.5px solid #000' }} />
+                                )}
+                            </IconButton>
+                        </Box>
+
+                        <Box sx={{ width: 1, height: 20, bgcolor: 'white/10', mx: 0.5 }} />
+                        
+                        <IconButton size="small" onClick={() => setSearchOpen(false)} sx={{ color: 'white/40' }}><CloseIcon size={16} /></IconButton>
+                      </Paper>
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      key="island-rest"
+                      initial={{ scale: 0.8, opacity: 0 }} 
+                      animate={{ scale: 1, opacity: 1 }} 
+                      whileHover={{ scale: 1.05 }} 
+                      onClick={openSearch} 
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <Box sx={{ width: { xs: 44, md: 160 }, height: 44, borderRadius: '999px', bgcolor: '#000', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.25, color: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                        <Search size={18} strokeWidth={2.5} />
+                        <Typography sx={{ display: { xs: 'none', md: 'block' }, fontWeight: 900, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Search</Typography>
+                        {unreadNotifCount > 0 && <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#EC4899', ml: -0.5 }} />}
+                      </Box>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              ) : <Box sx={{ height: 44 }} />}
+            </Box>
+
+            {/* Right: Smart Systems & Profile */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flexShrink: 0 }}>
+                {user ? (
+                  <>
+                    <IconButton onClick={() => openAgenticDrawer()} sx={{ color: appAccent, bgcolor: '#0A0908', border: '1px solid', borderColor: alpha(appAccent, 0.2), borderRadius: '50%', width: 38, height: 38, boxShadow: `0 8px 22px ${alpha(appAccent, 0.15)}`, '&:hover': { bgcolor: '#111' } }}>
+                      <Bot size={16} strokeWidth={2} />
                     </IconButton>
-                  </Paper>
-                ) : (
-                  <Button
-                    onClick={openSearch}
-                    sx={{
-                      width: { xs: 44, md: 170 },
-                      minWidth: { xs: 44, md: 170 },
-                      maxWidth: { xs: 44, md: 170 },
-                      height: 44,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 1,
-                      px: 1.25,
-                      py: 0,
-                      minHeight: 44,
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      bgcolor: '#000',
-                      color: 'white',
-                      borderRadius: '999px',
-                      boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 0 26px rgba(0,0,0,0.55)',
-                      textTransform: 'none',
-                      '&:hover': { bgcolor: '#0f0f0f', transform: 'translateY(-1px)' },
-                    }}
-                  >
-                    <Search size={16} strokeWidth={2.25} />
-                    <Typography sx={{ display: { xs: 'none', md: 'block' }, fontWeight: 800 }}>
-                      Search
-                    </Typography>
-                  </Button>
-                )}
-              </Box>
-            ) : (
-              <Box sx={{ flex: 1 }} />
-            )}
-
-            <Stack direction="row" alignItems="center" spacing={1.25} sx={{ flexShrink: 0 }}>
-              {isClient && (
-                <>
-                  {!user && (
-                    <Button
-                      onClick={() => openUnified('login')}
-                      disabled={isAuthenticating}
-                      sx={{
-                        color: '#fff',
-                        bgcolor: '#6366F1',
-                        borderRadius: '12px',
-                        minWidth: { xs: 40, md: 98 },
-                        height: 40,
-                        px: { xs: 1.25, md: 2 },
-                        textTransform: 'none',
-                        fontWeight: 800,
-                        boxShadow: '0 16px 36px rgba(99, 102, 241, 0.25)',
-                        '&:hover': { bgcolor: '#5254E8' }
-                      }}
-                    >
-                      {isAuthenticating ? (
-                        <CircularProgress size={16} color="inherit" />
-                      ) : (
-                        <>
-                          <Box component="span" sx={{ display: { xs: 'inline-flex', md: 'none' }, alignItems: 'center' }}>
-                            <Sparkles size={15} />
-                          </Box>
-                          <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
-                            Connect
-                          </Box>
-                        </>
-                      )}
-                    </Button>
-                  )}
-                  {user && (
-                    <Tooltip title="Smart Systems">
-                      <IconButton
-                        aria-label="Open smart systems"
-                        onClick={() => openAgenticDrawer()}
-                        sx={{
-                          color: getAppColor(activeApp),
-                          bgcolor: '#0A0908',
-                          border: '1px solid',
-                          borderColor: alpha(getAppColor(activeApp), 0.24),
-                          borderRadius: '999px',
-                          width: 38,
-                          height: 38,
-                          boxShadow: `0 8px 22px ${alpha(getAppColor(activeApp), 0.18)}`,
-                          '&:hover': { bgcolor: '#13110F', borderColor: alpha(getAppColor(activeApp), 0.36) },
-                        }}
-                      >
-                        <Bot size={16} strokeWidth={1.8} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-
-                  {user && (
-                    <ButtonBase
-                      onClick={openProfileMenu}
-                      sx={{
-                        p: 0,
-                        border: 'none',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        '&:hover': { transform: 'scale(1.05)' },
-                        transition: 'transform 0.2s',
-                      }}
-                    >
-                      <IdentityAvatar
-                        src={isRenderableImageSrc(profileAvatarUrl) ? profileAvatarUrl : null}
-                        size={38}
-                        pro={isPro}
-                        fallback={profileName.slice(0, 1).toUpperCase()}
-                        sx={{
-                          bgcolor: profileAvatarUrl ? 'rgba(255,255,255,0.04)' : tone.secondary,
-                        }}
+                    <ButtonBase onClick={openProfileMenu} sx={{ borderRadius: '50%', transition: 'all 0.2s', '&:hover': { transform: 'scale(1.05)' } }}>
+                      <IdentityAvatar 
+                        src={profileAvatarUrl} 
+                        userId={user?.$id}
+                        size={38} 
+                        pro={isPro} 
+                        fallback={profileName[0]} 
                       />
                     </ButtonBase>
-                  )}
-                </>
-              )}
-            </Stack>
+                  </>
+                ) : (
+                  <Button onClick={() => openUnified('login')} sx={{ bgcolor: '#6366F1', color: 'white', fontWeight: 900, borderRadius: '12px', px: 2.5, py: 1, '&:hover': { bgcolor: '#5254E8' } }}>{isAuthenticating ? <CircularProgress size={16} color="inherit" /> : 'Connect'}</Button>
+                )}
+              </Stack>
+            </Box>
           </Box>
         </Box>
 
         {renderSearchPanel()}
+        {renderNotificationDrawer()}
         {renderAppPanel()}
         {renderProfilePanel()}
       </AppBar>
