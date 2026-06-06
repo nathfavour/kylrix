@@ -479,6 +479,26 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
         }),
       };
 
+    case 'TOGGLE_PIN_TASK':
+      return {
+        ...state,
+        tasks: state.tasks.map(task =>
+          task.id === action.payload
+            ? { ...task, isPinned: !task.isPinned, updatedAt: new Date() }
+            : task
+        ),
+      };
+
+    case 'TOGGLE_PIN_PROJECT':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload
+            ? { ...project, isPinned: !project.isPinned, updatedAt: new Date() }
+            : project
+        ),
+      };
+
     default:
       return state;
   }
@@ -613,11 +633,11 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     const taskQueries = [
       Query.equal('userId', uid),
       Query.limit(1000),
-      Query.select(['$id', 'userId', 'title', 'status', 'priority', 'dueDate', 'tags', '$createdAt', '$updatedAt'])];
+      Query.select(['$id', 'userId', 'title', 'status', 'priority', 'dueDate', 'tags', '$createdAt', '$updatedAt', 'isPinned', 'parentId', 'comments'])];
     const calQueries = [
       Query.equal('userId', uid),
       Query.limit(100),
-      Query.select(['$id', 'userId', 'name', 'color', 'isDefault'])];
+      Query.select(['$id', 'userId', 'name', 'color', 'isDefault', 'isPinned'])];
 
     const [tList, cList] = await Promise.all([
       fetchOptimized(tasksKey, () => taskApi.list(taskQueries), force ? 0 : FLOW_WARM_TTL),
