@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   alpha,
@@ -35,9 +35,6 @@ import {
   Sparkles,
   Activity,
   RefreshCw,
-  MoreVertical,
-  CheckCircle2,
-  AlertTriangle,
 } from 'lucide-react';
 
 import Logo from '@/components/common/Logo';
@@ -118,8 +115,6 @@ function SyncIndicator() {
   );
 }
 
-const BRAND_INDIGO = '#6366F1';
-
 export default function ConnectTopbar({
   className,
 }: ConnectTopbarProps) {
@@ -145,15 +140,11 @@ export default function ConnectTopbar({
     return 'kylrix';
   }, [pathname]);
 
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [appMenuOpen, setAppMenuOpen] = useState(false);
+  const [profileMenuAnchorEl, setProfileMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [appMenuAnchorEl, setAppMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied-userid' | 'copied-username'>('idle');
-  
-  // Dynamic Island Search & Notification State
   const [searchOpen, setSearchOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  
   const [searchQuery, setSearchQuery] = useState('');
   const [peopleResults, setPeopleResults] = useState<any[]>([]);
   const [searchingPeople, setSearchingPeople] = useState(false);
@@ -166,8 +157,6 @@ export default function ConnectTopbar({
     { id: 'notif-2', title: 'Workflows Negations Active', message: 'Action chain engine generated valid inversions for 3 private notes.', time: '2 hours ago', read: false, accent: '#6366F1' },
     { id: 'notif-3', title: 'Secure Keychain Audited', message: 'Local master credentials checked. Integrity score 100%.', time: '1 day ago', read: true, accent: '#F59E0B' }
   ]);
-
-  const unreadNotifCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
 
   const markNotificationRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
@@ -184,7 +173,7 @@ export default function ConnectTopbar({
   const profileName = user?.name || user?.email || 'User';
   const profileUsername = (user as any)?.username || (user as any)?.prefs?.username || null;
   
-  const [isClient, setIsClient] = useState(false);
+  const [isClient, setIsClient] = useState(true);
   useEffect(() => setIsClient(true), []);
 
   const profileSeed = useMemo(
@@ -236,9 +225,8 @@ export default function ConnectTopbar({
   }, [previewManager, profilePicId]);
 
   const openSearch = useCallback(() => {
-    setNotificationsOpen(false);
-    setProfileMenuOpen(false);
-    setAppMenuOpen(false);
+    setProfileMenuAnchorEl(null);
+    setAppMenuAnchorEl(null);
     setSearchOpen(true);
     setTimeout(() => {
       searchInputRef.current?.focus();
@@ -246,17 +234,18 @@ export default function ConnectTopbar({
   }, []);
 
   const handleCloseAll = useCallback(() => {
-    setProfileMenuOpen(false);
-    setAppMenuOpen(false);
+    setProfileMenuAnchorEl(null);
+    setAppMenuAnchorEl(null);
     setSearchOpen(false);
-    setNotificationsOpen(false);
   }, []);
 
-  const toggleNotifications = useCallback(() => {
-    setSearchOpen(true);
-    setAppMenuOpen(false);
-    setProfileMenuOpen(false);
-    setNotificationsOpen(prev => !prev);
+  const openAppMenu = useCallback((event: MouseEvent<HTMLElement>) => {
+    setAppMenuAnchorEl(event.currentTarget);
+  }, []);
+
+  const openProfileMenu = useCallback((event: MouseEvent<HTMLElement>) => {
+    setProfileMenuAnchorEl(event.currentTarget);
+    setCopyState('idle');
   }, []);
 
   useEffect(() => {
@@ -301,6 +290,7 @@ export default function ConnectTopbar({
   );
 
   const dynamicQuickActions = useMemo(() => {
+    // 1. Dynamic recommendations based on current app route
     const routeSuggestions = {
       note: [
         { id: 'create-note', title: 'Write a New Note', description: 'Create a private note inside your workspace', href: '/note/notes', kind: 'note', accent: '#EC4899' },
@@ -322,6 +312,8 @@ export default function ConnectTopbar({
     };
 
     const currentAppSuggestions = routeSuggestions[activeApp as keyof typeof routeSuggestions] || [];
+
+    // 2. Historical recommendations based on past user actions (most frequent niches in cache)
     const nicheCounts: Record<string, number> = {};
     events.forEach(e => {
       nicheCounts[e.niche] = (nicheCounts[e.niche] || 0) + 1;
@@ -339,15 +331,30 @@ export default function ConnectTopbar({
     const historicalSuggestions = [];
     if (topNiche === 'workspace' && activeApp !== 'note') {
       historicalSuggestions.push({
-        id: 'hist-note', title: 'Review Recent Notes', description: 'Resume writing your workspace notes?', href: '/note/notes', kind: 'note', accent: '#EC4899'
+        id: 'hist-note',
+        title: 'Review Recent Notes',
+        description: 'You spent a lot of time in workspace notes recently. Resume writing?',
+        href: '/note/notes',
+        kind: 'note',
+        accent: '#EC4899'
       });
     } else if (topNiche === 'productivity' && activeApp !== 'flow') {
       historicalSuggestions.push({
-        id: 'hist-flow', title: 'Coordinate Action Items', description: 'Manage outstanding roadmaps and deliverables', href: '/flow/tasks', kind: 'flow', accent: '#A855F7'
+        id: 'hist-flow',
+        title: 'Coordinate Action Items',
+        description: 'Manage outstanding roadmaps and deliverables',
+        href: '/flow/tasks',
+        kind: 'flow',
+        accent: '#A855F7'
       });
     } else if (topNiche === 'security' && activeApp !== 'vault') {
       historicalSuggestions.push({
-        id: 'hist-vault', title: 'Audit Vault Keychain', description: 'Manage passwords and TOTP codes safely', href: '/vault/sharing', kind: 'vault', accent: '#10B981'
+        id: 'hist-vault',
+        title: 'Audit Vault Keychain',
+        description: 'Manage passwords and TOTP codes safely',
+        href: '/vault/sharing',
+        kind: 'vault',
+        accent: '#10B981'
       });
     }
 
@@ -384,171 +391,1458 @@ export default function ConnectTopbar({
     [activeApp],
   );
 
-  const activePanel = searchOpen ? 'search' : notificationsOpen ? 'notifications' : profileMenuOpen ? 'profile' : appMenuOpen ? 'ecosystem' : null;
+  const appPanelMotion = useMemo(() => createTopbarPanelMotion(), []);
+
+  const activePanel = searchOpen ? 'search' : profileMenuAnchorEl ? 'profile' : appMenuAnchorEl ? 'ecosystem' : null;
 
   useEffect(() => {
     if (!activePanel) return;
+
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node | null;
       if (!target || (headerRef.current && headerRef.current.contains(target))) return;
       handleCloseAll();
     };
+
     window.addEventListener('pointerdown', handlePointerDown, true);
     return () => window.removeEventListener('pointerdown', handlePointerDown, true);
   }, [activePanel, handleCloseAll]);
 
   const renderSearchPanel = () => {
-    if (!searchOpen || notificationsOpen) return null;
+    if (!searchOpen) return null;
+
     const query = searchQuery.trim().toLowerCase();
     const hasQuery = query.length >= 2;
 
-    return (
-      <Box sx={{ width: '100%', px: { xs: 2.25, md: 4 }, py: 1.25, borderBottom: '1px solid rgba(255,255,255,0.08)', bgcolor: '#161412', borderRadius: '0 0 28px 28px', boxShadow: '0 12px 32px rgba(0,0,0,0.35)', maxHeight: '45vh', overflowY: 'auto' }}>
-        <Stack spacing={2} sx={{ mt: 1.5 }}>
-          {!hasQuery ? (
-            <Box sx={{ display: 'grid', gridTemplateColumns: isDesktop ? '1fr' : { xs: '1fr', md: '1.2fr 1fr' }, gap: 2.5 }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {suggestions.length > 0 && (
-                  <Box sx={{ display: 'grid', gap: 1 }}>
-                    <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 0.75, px: 0.5 }}>
-                      <Sparkles size={11} style={{ color: '#6366F1' }} /> Smart Insights
-                    </Typography>
-                    <Box sx={{ display: 'grid', gap: 1 }}>
-                      {suggestions.map((suggestion) => (
-                        <Box key={suggestion.id} sx={{ p: 1.75, borderRadius: '22px', bgcolor: 'rgba(99, 102, 241, 0.04)', border: '1px solid rgba(99, 102, 241, 0.12)', display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                          <Box sx={{ display: 'flex', gap: 1.25 }}>
-                            <Box sx={{ width: 34, height: 34, borderRadius: '10px', bgcolor: 'rgba(99, 102, 241, 0.1)', color: '#6366F1', display: 'grid', placeItems: 'center', flexShrink: 0 }}><Bot size={16} /></Box>
-                            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.25 }}><Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.84rem' }}>{suggestion.title}</Typography><Typography component="span" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.74rem' }}>{suggestion.description}</Typography></Box>
-                          </Box>
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
-                )}
-                <Box sx={{ display: 'grid', gap: 0.75 }}>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', px: 0.5 }}>Quick Actions</Typography>
-                  {dynamicQuickActions.map((action) => (
-                    <Box key={action.id} component="button" onClick={() => { handleCloseAll(); router.push(action.href); }} sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 1.25, px: 2, py: 1.25, borderRadius: '20px', bgcolor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', color: 'white', cursor: 'pointer', textAlign: 'left', '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}>
-                      <Box sx={{ width: 36, height: 36, borderRadius: '10px', display: 'grid', placeItems: 'center', bgcolor: `${action.accent}12`, color: action.accent, flexShrink: 0 }}><Logo app={action.kind as any} size={15} variant="icon" /></Box>
-                      <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, pr: 0.5 }}><Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.86rem' }} noWrap>{action.title}</Typography><Typography component="span" sx={{ color: 'rgba(255,255,255,0.58)', fontWeight: 600, fontSize: '0.74rem' }}>{action.description}</Typography></Box>
-                    </Box>
-                  ))}
-                </Box>
+    const searchContent = (
+        <Box
+          onWheel={(event) => {
+            if (isDesktop) return;
+            const node = event.currentTarget;
+            if (event.deltaY < 0 && isTopbarScrollAtTop(node)) {
+              event.preventDefault();
+              handleCloseAll();
+            }
+          }}
+          sx={{
+            width: '100%',
+            px: isDesktop ? 0 : { xs: 2.25, md: 4 },
+            py: isDesktop ? 0 : 1.25,
+            maxHeight: isDesktop ? 'none' : '45vh',
+            overflowY: isDesktop ? 'visible' : 'auto',
+          }}
+        >
+          {!isDesktop && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap', mb: 2 }}>
+              <Box sx={{ width: 36, height: 36, borderRadius: '12px', display: 'grid', placeItems: 'center', bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+                <Logo app={activeApp} size={16} variant="icon" />
               </Box>
-          ) : (
-            <Box sx={{ display: 'grid', gap: 1.5 }}>
-              <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', px: 0.5 }}>{searchSurface.searchAcrossLabel}</Typography>
-              {searchSurface.searchTargets.slice(0, 4).map((action) => (
-                <Box key={action.id} component="button" onClick={() => { handleCloseAll(); router.push(action.href); }} sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 1.25, px: 2, py: 1.25, borderRadius: '20px', bgcolor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', color: 'white', textAlign: 'left', cursor: 'pointer', '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}>
-                  <Box sx={{ width: 36, height: 36, borderRadius: '10px', display: 'grid', placeItems: 'center', bgcolor: `${action.accent}12`, color: action.accent, flexShrink: 0 }}><Logo app={action.kind as any} size={15} variant="icon" /></Box>
-                  <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}><Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.86rem' }} noWrap>{action.title}</Typography><Typography component="span" sx={{ color: 'rgba(255,255,255,0.58)', fontSize: '0.74rem' }} noWrap>{action.description}</Typography></Box>
-                </Box>
-              ))}
+              <TextField
+                id="topbar-search-field"
+                inputRef={searchInputRef}
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search ecosystem"
+                variant="standard"
+                fullWidth
+                autoFocus
+                InputProps={{
+                  disableUnderline: true,
+                  sx: {
+                    color: 'white',
+                    fontWeight: 800,
+                    fontSize: '0.94rem',
+                    '& input::placeholder': { color: 'rgba(255,255,255,0.38)', opacity: 1 },
+                  },
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Typography sx={{ color: 'rgba(255,255,255,0.38)', fontWeight: 800, fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', mr: 0.5 }}>
+                        Search
+                      </Typography>
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchQuery ? (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSearchQuery('')} sx={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <CloseIcon size={14} />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+                sx={{ flex: 1, minWidth: { xs: '100%', md: 320 } }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    handleCloseAll();
+                  }
+                }}
+              />
             </Box>
           )}
-        </Stack>
-      </Box>
-    );
-  };
 
-  const renderNotificationPanel = () => {
-    if (!notificationsOpen) return null;
-    return (
-      <Box sx={{ width: '100%', bgcolor: '#161412', borderBottom: '1px solid rgba(255,255,255,0.05)', borderRadius: '0 0 28px 28px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(0,0,0,0.35)', maxHeight: 320 }}>
-        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1, overflowY: 'auto' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, mb: 1 }}><Typography sx={{ color: 'white/40', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recent Alerts</Typography>{unreadNotifCount > 0 && <Box sx={{ px: 1, py: 0.25, bgcolor: BRAND_INDIGO, color: 'white', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 900 }}>{unreadNotifCount} NEW</Box>}</Box>
-          {notifications.map(notif => (
-            <Box key={notif.id} sx={{ display: 'flex', gap: 1.5, p: 1.5, borderRadius: '16px', bgcolor: notif.read ? 'transparent' : 'rgba(255,255,255,0.02)', border: '1px solid', borderColor: notif.read ? 'rgba(255,255,255,0.02)' : alpha(notif.accent, 0.15), cursor: 'pointer', transition: 'all 0.2s', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' } }} onClick={() => markNotificationRead(notif.id)}><Box sx={{ width: 32, height: 32, borderRadius: '10px', bgcolor: alpha(notif.accent, 0.1), color: notif.accent, display: 'grid', placeItems: 'center', flexShrink: 0 }}><Bell size={14} /></Box><Box sx={{ minWidth: 0, flex: 1 }}><Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.8rem', lineHeight: 1.2 }}>{notif.title}</Typography><Typography sx={{ color: 'white/40', fontSize: '0.72rem', lineHeight: 1.3 }}>{notif.message}</Typography></Box><IconButton size="small" onClick={(e) => dismissNotification(notif.id, e)} sx={{ color: 'white/10', alignSelf: 'flex-start' }}><CloseIcon size={12} /></IconButton></Box>
-          ))}
+          <Stack spacing={2} sx={{ mt: isDesktop ? 0 : 1.5 }}>
+            {!hasQuery ? (
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: isDesktop ? '1fr' : { xs: '1fr', md: '1.2fr 1fr' },
+                  gap: 2.5,
+                }}
+              >
+                {/* Left Column: Contextual Action Flow & Proactive Insights */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {/* Proactive Confident AI Suggestions if any */}
+                  {suggestions.length > 0 && (
+                    <Box sx={{ display: 'grid', gap: 1 }}>
+                      <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 0.75, px: 0.5 }}>
+                        <Sparkles size={11} style={{ color: '#6366F1' }} />
+                        Smart Insights
+                      </Typography>
+                      <Box sx={{ display: 'grid', gap: 1 }}>
+                        {suggestions.map((suggestion) => (
+                          <Box
+                            key={suggestion.id}
+                            sx={{
+                              p: 1.75,
+                              borderRadius: '22px',
+                              bgcolor: 'rgba(99, 102, 241, 0.04)',
+                              border: '1px solid rgba(99, 102, 241, 0.12)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 1.25,
+                              position: 'relative',
+                              overflow: 'hidden',
+                              transition: 'all 0.2s',
+                              '&:hover': {
+                                bgcolor: 'rgba(99, 102, 241, 0.06)',
+                                borderColor: 'rgba(99, 102, 241, 0.2)',
+                              }
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', gap: 1.25 }}>
+                              <Box sx={{
+                                width: 34,
+                                height: 34,
+                                borderRadius: '10px',
+                                bgcolor: 'rgba(99, 102, 241, 0.1)',
+                                color: '#6366F1',
+                                display: 'grid',
+                                placeItems: 'center',
+                                flexShrink: 0
+                              }}>
+                                <Bot size={16} />
+                              </Box>
+                              <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.25, pr: 0.5 }}>
+                                <Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.84rem', lineHeight: 1.2 }}>
+                                  {suggestion.title}
+                                </Typography>
+                                <Typography component="span" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.74rem', lineHeight: 1.3 }}>
+                                  {suggestion.description}
+                                </Typography>
+                              </Box>
+                            </Box>
+                            
+                            <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'flex-end', zIndex: 1 }}>
+                              <Button
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  dismissSuggestion(suggestion.id);
+                                }}
+                                sx={{
+                                  color: 'rgba(255,255,255,0.35)',
+                                  textTransform: 'none',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  borderRadius: '9px',
+                                  px: 1.25,
+                                  '&:hover': { color: '#FF4D4D', bgcolor: 'rgba(255, 77, 77, 0.06)' }
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                              {suggestion.actionHref && (
+                                <Button
+                                  size="small"
+                                  onClick={() => {
+                                    handleCloseAll();
+                                    router.push(suggestion.actionHref!);
+                                  }}
+                                  variant="contained"
+                                  sx={{
+                                    bgcolor: '#6366F1',
+                                    color: 'white',
+                                    textTransform: 'none',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 800,
+                                    borderRadius: '9px',
+                                    px: 1.75,
+                                    '&:hover': { bgcolor: '#5254E8' }
+                                  }}
+                                >
+                                  {suggestion.actionLabel || 'Run'}
+                                </Button>
+                              )}
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+
+                  {/* Contextual Suggestions */}
+                  <Box sx={{ display: 'grid', gap: 0.75 }}>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 0.75, px: 0.5 }}>
+                      <Activity size={11} style={{ color: '#F59E0B' }} />
+                      Quick Actions
+                    </Typography>
+                    <Box sx={{ display: 'grid', gap: 0.75 }}>
+                      {dynamicQuickActions.length === 0 ? (
+                        <Box sx={{ p: 2, borderRadius: '18px', border: '1px dashed rgba(255,255,255,0.06)', textAlign: 'center' }}>
+                          <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem' }}>
+                            Explore to build context!
+                          </Typography>
+                        </Box>
+                      ) : (
+                        dynamicQuickActions.map((action) => (
+                          <Box
+                            key={action.id}
+                            component="button"
+                            onClick={() => {
+                              handleCloseAll();
+                              router.push(action.href);
+                            }}
+                            sx={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1.25,
+                              px: 2,
+                              py: 1.25,
+                              borderRadius: '20px',
+                              bgcolor: 'rgba(255,255,255,0.01)',
+                              border: '1px solid rgba(255,255,255,0.04)',
+                              color: 'white',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              '&:hover': {
+                                bgcolor: 'rgba(255,255,255,0.03)',
+                                borderColor: 'rgba(255,255,255,0.08)',
+                                transform: 'translateX(2px)'
+                              }
+                            }}
+                          >
+                            <Box sx={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: '10px',
+                              display: 'grid',
+                              placeItems: 'center',
+                              bgcolor: `${action.accent}12`,
+                              color: action.accent,
+                              flexShrink: 0
+                            }}>
+                              <Logo app={action.kind as any} size={15} variant="icon" />
+                            </Box>
+                            <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, pr: 0.5 }}>
+                              <Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.86rem', lineHeight: 1.2 }} noWrap>
+                                {action.title}
+                              </Typography>
+                              <Typography component="span" sx={{ color: 'rgba(255,255,255,0.58)', fontWeight: 600, fontSize: '0.74rem', lineHeight: 1.3 }}>
+                                {action.description}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        ))
+                      )}
+                    </Box>
+                  </Box>
+                </Box>
+
+                {/* Right Column: Platform Alerts & Notifications */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 0.5 }}>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <Bell size={11} style={{ color: '#EC4899' }} />
+                      Alerts
+                    </Typography>
+                    {notifications.filter(n => !n.read).length > 0 && (
+                      <Box sx={{
+                        px: 0.75,
+                        py: 0.1,
+                        borderRadius: '6px',
+                        bgcolor: '#6366F1',
+                        color: 'white',
+                        fontSize: '0.64rem',
+                        fontWeight: 900
+                      }}>
+                        {notifications.filter(n => !n.read).length} New
+                      </Box>
+                    )}
+                  </Box>
+
+                  <Box sx={{ display: 'grid', gap: 0.75 }}>
+                    {notifications.length === 0 ? (
+                      <Box sx={{ px: 2, py: 1.5, borderRadius: '18px', border: '1px dashed rgba(255,255,255,0.06)', textAlign: 'center' }}>
+                        <Typography component="span" sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', lineHeight: 1.4, display: 'block' }}>
+                          System stable.
+                        </Typography>
+                      </Box>
+                    ) : (
+                      notifications.map((notif) => (
+                        <Box
+                          key={notif.id}
+                          component="div"
+                          onClick={() => markNotificationRead(notif.id)}
+                          sx={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 1.25,
+                            px: 2,
+                            py: 1.25,
+                            borderRadius: '20px',
+                            bgcolor: notif.read ? 'rgba(255,255,255,0.005)' : 'rgba(255,255,255,0.015)',
+                            border: '1px solid',
+                            borderColor: notif.read ? 'rgba(255,255,255,0.02)' : alpha(notif.accent, 0.18),
+                            color: 'white',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                              bgcolor: 'rgba(255,255,255,0.03)',
+                              borderColor: notif.read ? 'rgba(255,255,255,0.05)' : alpha(notif.accent, 0.3),
+                            },
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: '10px',
+                              display: 'grid',
+                              placeItems: 'center',
+                              flexShrink: 0,
+                              bgcolor: alpha(notif.accent, notif.read ? 0.04 : 0.1),
+                              color: notif.accent,
+                              position: 'relative',
+                            }}
+                          >
+                            <Bell size={14} />
+                            {!notif.read && (
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  top: 4,
+                                  right: 4,
+                                  width: 7,
+                                  height: 7,
+                                  borderRadius: '999px',
+                                  bgcolor: notif.accent,
+                                  border: '1.5px solid #161412',
+                                }}
+                              />
+                            )}
+                          </Box>
+
+                          <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, pr: 0.5 }}>
+                            <Typography
+                              component="span"
+                              sx={{
+                                color: 'white',
+                                fontWeight: 800,
+                                fontSize: '0.82rem',
+                                lineHeight: 1.2,
+                                opacity: notif.read ? 0.65 : 1,
+                                display: 'block',
+                              }}
+                            >
+                              {notif.title}
+                            </Typography>
+                            <Typography
+                              component="span"
+                              sx={{
+                                color: 'rgba(255,255,255,0.38)',
+                                fontSize: '0.66rem',
+                                fontWeight: 600,
+                                lineHeight: 1.3,
+                                display: 'block',
+                              }}
+                            >
+                              {notif.time}
+                            </Typography>
+                            <Typography
+                              component="span"
+                              sx={{
+                                color: 'rgba(255,255,255,0.58)',
+                                fontSize: '0.74rem',
+                                lineHeight: 1.35,
+                                fontWeight: 500,
+                                display: 'block',
+                                mt: 0.5
+                              }}
+                            >
+                              {notif.message}
+                            </Typography>
+                          </Box>
+
+                          <IconButton
+                            size="small"
+                            aria-label="Dismiss alert"
+                            onClick={(e) => dismissNotification(notif.id, e)}
+                            sx={{
+                              flexShrink: 0,
+                              mt: -0.25,
+                              color: 'rgba(255,255,255,0.25)',
+                              width: 26,
+                              height: 26,
+                              borderRadius: '8px',
+                              '&:hover': {
+                                color: 'white',
+                                bgcolor: 'rgba(255,255,255,0.06)',
+                              },
+                            }}
+                          >
+                            <CloseIcon size={11} />
+                          </IconButton>
+                        </Box>
+                      ))
+                    )}
+                  </Box>
+                </Box>
+              </Box>
+            ) : (
+              /* If hasQuery is true, show Search Results */
+              <Box sx={{ display: 'grid', gap: 1.5 }}>
+                <Box sx={{ display: 'grid', gap: 0.5 }}>
+                  <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', px: 0.5 }}>
+                    {searchSurface.searchAcrossLabel}
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: isDesktop ? '1fr' : { xs: '1fr', sm: '1fr 1fr' }, gap: 0.75 }}>
+                    {searchSurface.searchTargets.slice(0, 4).map((action) => (
+                      <Box
+                        key={action.id}
+                        component="button"
+                        onClick={() => {
+                          handleCloseAll();
+                          router.push(action.href);
+                        }}
+                        sx={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.25,
+                          px: 2,
+                          py: 1.25,
+                          borderRadius: '20px',
+                          bgcolor: 'rgba(255,255,255,0.01)',
+                          border: '1px solid rgba(255,255,255,0.04)',
+                          color: 'white',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          '&:hover': { bgcolor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }
+                        }}
+                      >
+                        <Box sx={{ width: 36, height: 36, borderRadius: '10px', display: 'grid', placeItems: 'center', bgcolor: `${action.accent}12`, color: action.accent, flexShrink: 0 }}>
+                          <Logo app={action.kind as any} size={15} variant="icon" />
+                        </Box>
+                        <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, pr: 0.5 }}>
+                          <Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.86rem', lineHeight: 1.2 }} noWrap>
+                            {action.title}
+                          </Typography>
+                          <Typography component="span" sx={{ color: 'rgba(255,255,255,0.58)', fontWeight: 600, fontSize: '0.74rem', lineHeight: 1.3 }} noWrap>
+                            {action.description}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+
+                {(searchingPeople || peopleResults.length > 0) && (
+                  <Box sx={{ display: 'grid', gap: 0.5 }}>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', px: 0.5 }}>
+                      People
+                    </Typography>
+                    {searchingPeople ? (
+                      <Typography sx={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.8rem', px: 0.5 }}>
+                        Searching...
+                      </Typography>
+                    ) : (
+                      <Box sx={{ display: 'grid', gap: 0.75 }}>
+                        {peopleResults.slice(0, 3).map((person) => (
+                          <Box
+                            key={person.$id || person.id}
+                            component="button"
+                            onClick={() => {
+                              const username = person.username || person.prefs?.username;
+                              if (username) {
+                                stageProfileView(person, person.avatar || null);
+                                handleCloseAll();
+                                router.push(`/u/${encodeURIComponent(username.replace(/^@+/, ''))}?transition=profile`);
+                              }
+                            }}
+                            sx={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1.25,
+                              px: 2,
+                              py: 1.25,
+                              borderRadius: '20px',
+                              bgcolor: 'rgba(255,255,255,0.01)',
+                              border: '1px solid rgba(255,255,255,0.04)',
+                              color: 'white',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                              '&:hover': { bgcolor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }
+                            }}
+                          >
+                            <Avatar
+                              src={person.avatar || undefined}
+                              sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.06)', color: 'white', fontSize: '0.75rem', fontWeight: 800 }}
+                            >
+                              {(person.displayName || person.name || String(person.username || person.prefs?.username || 'U').replace(/^@+/, '') || 'U')[0].toUpperCase()}
+                            </Avatar>
+                            <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, pr: 0.5 }}>
+                              <Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.86rem', lineHeight: 1.2 }} noWrap>
+                                {person.displayName || person.name}
+                              </Typography>
+                              <Typography component="span" sx={{ color: 'rgba(255,255,255,0.58)', fontWeight: 600, fontSize: '0.74rem', lineHeight: 1.3 }} noWrap>
+                                @{String(person.username || person.prefs?.username || 'user').replace(/^@+/, '')}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </Box>
+            )}
+          </Stack>
         </Box>
+    );
+
+    if (isDesktop) {
+      return (
+        <Drawer
+          anchor="left"
+          open={searchOpen}
+          onClose={handleCloseAll}
+          keepMounted={false}
+          disablePortal={true}
+          PaperProps={{
+            sx: {
+              bgcolor: '#161412',
+              width: 360,
+              height: '100vh',
+              borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+              p: 2.75,
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }
+          }}
+        >
+          {/* Header */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.75 }}>
+            <Typography variant="h6" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 900, color: '#fff', fontSize: '1.1rem' }}>
+              Search Ecosystem
+            </Typography>
+            <IconButton onClick={handleCloseAll} sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: 'white' }, width: 32, height: 32 }}>
+              <CloseIcon size={16} />
+            </IconButton>
+          </Box>
+          
+          <Box sx={{ flex: 1, overflowY: 'auto', mx: -2.75, px: 2.75 }}>
+            {searchContent}
+          </Box>
+        </Drawer>
+      );
+    }
+
+    return (
+      <Box
+        data-note-search-surface="true"
+        sx={{
+          width: '100%',
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '0 0 28px 28px',
+          bgcolor: '#161412',
+          overflow: 'hidden',
+          boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
+        }}
+      >
+        {searchContent}
       </Box>
     );
   };
 
   const renderProfilePanel = () => {
-    if (!profileMenuOpen || !user) return null;
+    if (!profileMenuAnchorEl || !user) return null;
+
+    const profileContent = (
+      <Box
+        sx={{ px: { xs: 2.25, md: 4 }, py: 1.25, maxHeight: isDesktop ? 'calc(100vh - 120px)' : '45vh', overflowY: 'auto' }}
+      >
+          <Paper
+            elevation={0}
+            sx={{
+              width: '100%',
+              borderRadius: '26px',
+              bgcolor: '#161412',
+              border: `1px solid ${alpha(appAccent, 0.22)}`,
+              overflow: 'hidden',
+            }}
+          >
+            <Box sx={{ p: 1.25 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, px: 0.5, mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 34, height: 34, borderRadius: '12px', display: 'grid', placeItems: 'center', color: appAccent, bgcolor: alpha(appAccent, 0.06), border: `1px solid ${alpha(appAccent, 0.18)}` }}>
+                    <Logo app={activeApp} size={16} variant="icon" />
+                  </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, minWidth: 0 }}>
+                    <Typography component="span" sx={{ color: 'white', fontWeight: 900, fontSize: '0.86rem', lineHeight: 1.2 }}>
+                      {profileName}
+                    </Typography>
+                    <Typography component="span" variant="caption" sx={{ color: alpha('#fff', 0.45), fontWeight: 700, lineHeight: 1.3 }}>
+                      Profile
+                    </Typography>
+                  </Box>
+                </Box>
+                <IconButton onClick={handleCloseAll} size="small" sx={{ width: 30, height: 30, borderRadius: '999px', color: alpha('#fff', 0.8), bgcolor: alpha('#fff', 0.05), border: '1px solid rgba(255,255,255,0.06)' }}>
+                  ✕
+                </IconButton>
+              </Box>
+
+                <Box sx={{ display: 'grid', gap: 1.25, maxHeight: '58vh', overflowY: 'auto', pr: 0.5, pb: 0.5 }}>
+                <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', p: 0.75 }}>
+                  <IdentityAvatar
+                    src={isRenderableImageSrc(profileAvatarUrl) ? profileAvatarUrl : null}
+                    size={88}
+                    pro={isPro}
+                    fallback={profileName.slice(0, 1).toUpperCase()}
+                    sx={{
+                       bgcolor: tone.secondary,
+                       flexShrink: 0
+                    }}
+                  />
+                  <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                    <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
+                      <Typography component="span" sx={{ color: 'white', fontWeight: 900, fontSize: '1.05rem', lineHeight: 1.15, minWidth: 0, flex: 1 }} noWrap>
+                        {profileName}
+                      </Typography>
+                      <IconButton
+                        onClick={handleOpenFullProfile}
+                        disabled={!profileSeed.username}
+                        size="small"
+                        sx={{
+                          flexShrink: 0,
+                          width: 28,
+                          height: 28,
+                          color: 'rgba(255, 255, 255, 0.5)',
+                          '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.06)' },
+                          '&.Mui-disabled': { color: 'rgba(255,255,255,0.25)' }
+                        }}
+                      >
+                        <UserIcon size={16} />
+                      </IconButton>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                      <Typography component="span" sx={{ color: alpha('#fff', 0.58), fontWeight: 700, fontSize: '0.82rem', lineHeight: 1.35, minWidth: 0, flex: 1 }} noWrap>
+                        {profileUsername ? `@${String(profileUsername).replace(/^@+/, '')}` : 'profile'}
+                      </Typography>
+                      {profileUsername && (
+                        <IconButton
+                          onClick={handleCopyUsername}
+                          size="small"
+                          title={copyState === 'copied-username' ? 'Copied!' : 'Copy username'}
+                          sx={{
+                            flexShrink: 0,
+                            width: 26,
+                            height: 26,
+                            color: copyState === 'copied-username' ? '#10B981' : 'rgba(255, 255, 255, 0.35)',
+                            '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.06)' }
+                          }}
+                        >
+                          <CopyIcon size={12} />
+                        </IconButton>
+                      )}
+                    </Box>
+                  </Box>
+                </Box>
+
+                <div className="rounded-[20px] border border-white/[0.04] bg-white/[0.01] p-4">
+                  <span className="block text-white/45 text-[11px] font-extrabold uppercase tracking-wider mb-2 leading-none font-satoshi">
+                    userid
+                  </span>
+                  
+                  {/* UserId section with copy button */}
+                  <div className="flex gap-2 items-center">
+                    <span className="text-white/85 font-mono text-xs font-semibold min-w-0 flex-1 break-all select-all leading-normal">
+                      {shortenUserId(profileSeed.userId) || 'No ID'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyUserId}
+                      title={copyState === 'copied-userid' ? 'Copied!' : 'Copy user ID'}
+                      className={`flex-shrink-0 w-6.5 h-6.5 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                        copyState === 'copied-userid' ? 'text-[#10B981] bg-[#10B981]/10' : 'text-white/35 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      <CopyIcon size={12} />
+                    </button>
+                  </div>
+                </div>
+
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  <Button
+                    onClick={() => {
+                      handleCloseAll();
+                        openWallet();
+                    }}
+                    sx={{
+                      minWidth: 0,
+                      flex: '1 1 120px',
+                      borderRadius: '14px',
+                      bgcolor: alpha(appAccent, 0.06),
+                      color: appAccent,
+                      px: 1.25,
+                      py: 1,
+                      fontSize: '0.84rem',
+                      textTransform: 'none',
+                      '&:hover': { bgcolor: alpha(appAccent, 0.12) },
+                    }}
+                    startIcon={<Wallet size={14} />}
+                  >
+                    Wallet
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      handleCloseAll();
+                      router.push('/settings');
+                    }}
+                    sx={{
+                      minWidth: 0,
+                      flex: '1 1 120px',
+                      borderRadius: '14px',
+                      bgcolor: 'rgba(255,255,255,0.02)',
+                      color: 'white',
+                      px: 1.25,
+                      py: 1,
+                      fontSize: '0.84rem',
+                      textTransform: 'none',
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+                    }}
+                  >
+                    Settings
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      handleCloseAll();
+                      void logout();
+                    }}
+                    sx={{
+                      minWidth: 0,
+                      flex: '1 1 120px',
+                      borderRadius: '14px',
+                      bgcolor: 'rgba(255, 77, 77, 0.06)',
+                      color: '#FF4D4D',
+                      px: 1.25,
+                      py: 1,
+                      fontSize: '0.84rem',
+                      textTransform: 'none',
+                      '&:hover': { bgcolor: 'rgba(255, 77, 77, 0.12)' },
+                    }}
+                  >
+                    Sign out
+                  </Button>
+                </Stack>
+
+                <Button
+                  onClick={handleOpenFullProfile}
+                  disabled={!profileSeed.username}
+                  variant="contained"
+                  sx={{
+                    width: '100%',
+                    borderRadius: '14px',
+                    px: 2,
+                    py: 1.15,
+                    textTransform: 'none',
+                    fontWeight: 900,
+                    fontSize: '0.88rem',
+                    bgcolor: appAccent,
+                    color: '#000',
+                    '&:hover': { bgcolor: alpha(appAccent, 0.86) },
+                    '&.Mui-disabled': { bgcolor: alpha(appAccent, 0.22), color: 'rgba(255,255,255,0.5)' },
+                  }}
+                >
+                  See full profile
+                </Button>
+            </Box>
+          </Box>
+        </Paper>
+      </Box>
+    );
+
+    if (isDesktop) {
+      return (
+        <Drawer
+          anchor="left"
+          open={Boolean(profileMenuAnchorEl)}
+          onClose={() => setProfileMenuAnchorEl(null)}
+          keepMounted={false}
+          disablePortal={true}
+          PaperProps={{
+            sx: {
+              bgcolor: '#161412',
+              width: 320,
+              height: '100vh',
+              borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+              p: 2.75,
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }
+          }}
+        >
+          {/* Header */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3.5 }}>
+            <Typography variant="h6" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 900, color: '#fff', letterSpacing: '0.02em', fontSize: '1.1rem' }}>
+              Secure Space
+            </Typography>
+            <IconButton onClick={() => setProfileMenuAnchorEl(null)} sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.06)' }, width: 32, height: 32 }}>
+              <CloseIcon size={16} />
+            </IconButton>
+          </Box>
+
+          {/* Scrollable Content */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3, overflowY: 'auto', mx: -2.75, px: 2.75 }}>
+            {/* User Profile Info Card */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 1.75, p: 2, borderRadius: '26px', bgcolor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <Box sx={{ position: 'relative' }}>
+                <Avatar
+                  src={isRenderableImageSrc(profileAvatarUrl) ? profileAvatarUrl || undefined : undefined}
+                  sx={{ width: 88, height: 88, bgcolor: tone.secondary, color: '#fff', fontWeight: 900, fontSize: '1.75rem', borderRadius: '26px', border: `1.5px solid ${alpha(appAccent, 0.15)}` }}
+                >
+                  {profileName.slice(0, 1).toUpperCase()}
+                </Avatar>
+                {/* Active Indicator dot */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: -1,
+                    right: -1,
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    bgcolor: '#10B981',
+                    border: '2.5px solid #161412',
+                  }}
+                />
+              </Box>
+
+              <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                <Typography component="span" sx={{ color: 'white', fontWeight: 900, fontSize: '1.15rem', lineHeight: 1.15 }}>
+                  {profileName}
+                </Typography>
+                
+                {profileUsername && (
+                  <Box
+                    onClick={handleCopyUsername}
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      alignSelf: 'center',
+                      gap: 0.5,
+                      px: 1.25,
+                      py: 0.35,
+                      borderRadius: '999px',
+                      bgcolor: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' }
+                    }}
+                  >
+                    <Typography component="span" sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: '0.78rem', lineHeight: 1.35 }}>
+                      @{String(profileUsername).replace(/^@+/, '')}
+                    </Typography>
+                    <CopyIcon size={11} style={{ color: copyState === 'copied-username' ? '#10B981' : 'rgba(255, 255, 255, 0.3)' }} />
+                  </Box>
+                )}
+              </Box>
+            </Box>
+
+            {/* System Identification details */}
+            <Box sx={{ borderRadius: '22px', border: '1px solid rgba(255,255,255,0.04)', bgcolor: 'rgba(255,255,255,0.005)', p: 2 }}>
+                    <Typography component="span" sx={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.75, display: 'block', lineHeight: 1.3 }}>
+                System Key
+              </Typography>
+              
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Typography component="span" sx={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'var(--font-mono)', fontSize: '0.74rem', fontWeight: 600, minWidth: 0, flex: 1, wordBreak: 'break-all', lineHeight: 1.45 }}>
+                  {profileSeed.userId || 'No ID'}
+                </Typography>
+                <IconButton
+                  onClick={handleCopyUserId}
+                  size="small"
+                  sx={{
+                    flexShrink: 0,
+                    width: 26,
+                    height: 26,
+                    bgcolor: 'rgba(255,255,255,0.03)',
+                    color: copyState === 'copied-userid' ? '#10B981' : 'rgba(255, 255, 255, 0.3)',
+                    '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.06)' }
+                  }}
+                >
+                  <CopyIcon size={12} />
+                </IconButton>
+              </Box>
+            </Box>
+
+            {/* Large styled navigation lists */}
+            <Stack spacing={1.25}>
+              <Button
+                fullWidth
+                onClick={() => {
+                  handleCloseAll();
+                  openWallet();
+                }}
+                variant="contained"
+                sx={{
+                  borderRadius: '16px',
+                  bgcolor: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid rgba(255,255,255,0.04)',
+                  color: 'white',
+                  py: 1.25,
+                  px: 2.25,
+                  textTransform: 'none',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  justifyContent: 'flex-start',
+                  gap: 1.75,
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.08)', transform: 'translateX(2px)' },
+                }}
+              >
+                <Wallet size={16} style={{ color: appAccent }} />
+                Manage Wallet
+              </Button>
+
+              <Button
+                fullWidth
+                onClick={() => {
+                  handleCloseAll();
+                  router.push('/settings');
+                }}
+                variant="contained"
+                sx={{
+                  borderRadius: '16px',
+                  bgcolor: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid rgba(255,255,255,0.04)',
+                  color: 'white',
+                  py: 1.25,
+                  px: 2.25,
+                  textTransform: 'none',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  justifyContent: 'flex-start',
+                  gap: 1.75,
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.08)', transform: 'translateX(2px)' },
+                }}
+              >
+                <UserIcon size={16} style={{ color: '#F59E0B' }} />
+                Account Settings
+              </Button>
+
+              <Button
+                fullWidth
+                onClick={handleOpenFullProfile}
+                disabled={!profileSeed.username}
+                variant="contained"
+                sx={{
+                  borderRadius: '16px',
+                  bgcolor: appAccent,
+                  color: '#000',
+                  py: 1.35,
+                  px: 2.25,
+                  mt: 1,
+                  textTransform: 'none',
+                  fontWeight: 900,
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  '&:hover': { bgcolor: alpha(appAccent, 0.86), transform: 'translateY(-1px)' },
+                  '&.Mui-disabled': { bgcolor: alpha(appAccent, 0.12), color: 'rgba(255,255,255,0.25)' },
+                }}
+              >
+                See Full Profile
+              </Button>
+            </Stack>
+          </Box>
+
+          {/* Sign Out Button strictly aligned at the bottom */}
+          <Box sx={{ mt: 'auto', pt: 2.5, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+            <Button
+              fullWidth
+              onClick={() => {
+                handleCloseAll();
+                void logout();
+              }}
+              variant="contained"
+              sx={{
+                borderRadius: '12px',
+                bgcolor: 'rgba(255, 77, 77, 0.05)',
+                border: '1px solid rgba(255, 77, 77, 0.12)',
+                color: '#FF4D4D',
+                py: 1.15,
+                textTransform: 'none',
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                '&:hover': { bgcolor: 'rgba(255, 77, 77, 0.12)', borderColor: 'rgba(255, 77, 77, 0.2)' },
+              }}
+            >
+              Sign Out
+            </Button>
+          </Box>
+        </Drawer>
+      );
+    }
+
     return (
-      <Drawer anchor="left" open={profileMenuOpen} onClose={() => setProfileMenuOpen(false)} disablePortal={true} PaperProps={{ sx: { bgcolor: '#161412', width: 320, height: '100vh', borderRight: '1px solid rgba(255,255,255,0.06)', p: 2.75, display: 'flex', flexDirection: 'column' } }}>
-        <Typography variant="h6" sx={{ color: 'white', fontWeight: 900, mb: 3 }}>Secure Space</Typography>
-        <Box sx={{ flex: 1, overflowY: 'auto' }}>
-          <Paper elevation={0} sx={{ borderRadius: '24px', bgcolor: '#161412', border: `1px solid ${alpha(appAccent, 0.2)}`, overflow: 'hidden', p: 2 }}>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}><IdentityAvatar src={profileAvatarUrl} userId={user?.$id} size={64} pro={isPro} fallback={profileName[0]} /><Box sx={{ minWidth: 0, flex: 1 }}><Typography sx={{ color: 'white', fontWeight: 900, fontSize: '1rem' }} noWrap>{profileName}</Typography><Typography sx={{ color: 'white/40', fontSize: '0.8rem', fontWeight: 700 }} noWrap>@{profileUsername || 'user'}</Typography></Box></Box>
-            <Stack spacing={1}><Button fullWidth onClick={() => { handleCloseAll(); openWallet(); }} sx={{ justifyContent: 'flex-start', color: appAccent, bgcolor: alpha(appAccent, 0.05), borderRadius: '12px' }} startIcon={<Wallet size={16} />}>Wallet</Button><Button fullWidth onClick={() => { handleCloseAll(); router.push('/settings'); }} sx={{ justifyContent: 'flex-start', color: 'white', bgcolor: 'white/3', borderRadius: '12px' }} startIcon={<UserIcon size={16} />}>Settings</Button><Button fullWidth onClick={() => { handleCloseAll(); logout(); }} sx={{ justifyContent: 'flex-start', color: '#ff4d4d', bgcolor: 'rgba(255,77,77,0.05)', borderRadius: '12px' }} startIcon={<CloseIcon size={16} />}>Sign Out</Button></Stack>
-          </Paper>
-        </Box>
-      </Drawer>
+      <Box
+        sx={{
+          width: '100%',
+          borderTop: '1px solid rgba(255,255,255,0.04)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '0 0 28px 28px',
+          bgcolor: '#161412',
+          overflow: 'hidden',
+          boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
+        }}
+      >
+        {profileContent}
+      </Box>
     );
   };
 
   const renderAppPanel = () => {
-    if (!appMenuOpen) return null;
+    if (!appMenuAnchorEl) return null;
+
+    if (isDesktop) {
+      return (
+        <Drawer
+          anchor="left"
+          open={Boolean(appMenuAnchorEl)}
+          onClose={() => setAppMenuAnchorEl(null)}
+          keepMounted={false}
+          disablePortal={true}
+          PaperProps={{
+            sx: {
+              bgcolor: '#161412',
+              width: 320,
+              height: '100vh',
+              borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+              p: 2.75,
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }
+          }}
+        >
+          {/* Header */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.75 }}>
+            <Typography variant="h6" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 900, color: '#fff', fontSize: '1.1rem' }}>
+              Ecosystem
+            </Typography>
+            <IconButton onClick={() => setAppMenuAnchorEl(null)} sx={{ color: 'rgba(255, 255, 255, 0.3)', '&:hover': { color: 'white' }, width: 32, height: 32 }}>
+              <CloseIcon size={16} />
+            </IconButton>
+          </Box>
+          
+          {/* App List */}
+          <Stack spacing={1.25} sx={{ overflowY: 'auto', flex: 1, mx: -2.75, px: 2.75 }}>
+            {connectApps.map((item) => {
+              const appTone = getAppTone(item.app);
+              return (
+                <Box
+                  key={item.href}
+                  component="button"
+                  onClick={() => {
+                    handleCloseAll();
+                    if (!user || user.isPulse) {
+                      openUnified('login');
+                    } else {
+                      router.push(item.href);
+                    }
+                  }}
+                  sx={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
+                    textAlign: 'left',
+                    px: 2.25,
+                    py: 1.5,
+                    borderRadius: '16px',
+                    color: '#fff',
+                    background: 'transparent',
+                    bgcolor: item.selected ? alpha(appTone.secondary, 0.06) : 'rgba(255, 255, 255, 0.005)',
+                    border: '1px solid',
+                    borderColor: item.selected ? alpha(appTone.secondary, 0.15) : 'rgba(255, 255, 255, 0.03)',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      bgcolor: alpha(appTone.secondary, 0.1),
+                      borderColor: alpha(appTone.secondary, 0.2),
+                      transform: 'translateX(3px)',
+                    }
+                  }}
+                >
+                  <Stack direction="row" spacing={1.25} alignItems="center" sx={{ width: '100%' }}>
+                    <Box sx={{ width: 34, height: 34, borderRadius: '10px', display: 'grid', placeItems: 'center', bgcolor: alpha(appTone.secondary, 0.08), color: appTone.secondary, flexShrink: 0 }}>
+                      <Logo app={item.app} size={15} variant="icon" />
+                    </Box>
+                    <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, pr: 0.5 }}>
+                      <Typography component="span" sx={{ color: '#F3F2F0', fontWeight: 800, fontSize: '0.86rem', lineHeight: 1.2 }} noWrap>
+                        {item.label}
+                      </Typography>
+                      <Typography component="span" sx={{ color: 'rgba(255,255,255,0.62)', fontWeight: 600, fontSize: '0.74rem', lineHeight: 1.3 }} noWrap>
+                        {item.description}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+              );
+            })}
+          </Stack>
+        </Drawer>
+      );
+    }
+
     return (
-      <Drawer anchor="left" open={appMenuOpen} onClose={() => setAppMenuOpen(false)} disablePortal={true} PaperProps={{ sx: { bgcolor: '#161412', width: 320, height: '100vh', borderRight: '1px solid rgba(255,255,255,0.06)', p: 2.75, display: 'flex', flexDirection: 'column' } }}>
-        <Typography variant="h6" sx={{ color: 'white', fontWeight: 900, mb: 3 }}>Ecosystem</Typography>
-        <Box sx={{ flex: 1, overflowY: 'auto' }}>
-          <Box sx={{ display: 'grid', gap: 1 }}>
-            {connectApps.map(item => (
-              <Box key={item.href} component="button" onClick={() => { handleCloseAll(); router.push(item.href); }} sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: '16px', bgcolor: item.selected ? alpha(getAppColor(item.app), 0.06) : 'rgba(255,255,255,0.01)', border: '1px solid', borderColor: item.selected ? alpha(getAppColor(item.app), 0.15) : 'rgba(255,255,255,0.03)', color: 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' } }}>
-                <Box sx={{ width: 34, height: 34, borderRadius: '10px', bgcolor: alpha(getAppColor(item.app), 0.1), color: getAppColor(item.app), display: 'grid', placeItems: 'center' }}><Logo app={item.app} size={15} variant="icon" /></Box>
-                <Box sx={{ minWidth: 0, flex: 1 }}><Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.85rem' }} noWrap>{item.label}</Typography><Typography sx={{ color: 'white/40', fontSize: '0.72rem' }} noWrap>{item.description}</Typography></Box>
-              </Box>
-            ))}
+      <motion.div
+        key="app-panel"
+        initial={appPanelMotion.initial}
+        animate={appPanelMotion.animate}
+        exit={appPanelMotion.exit}
+        transition={appPanelMotion.transition}
+        style={{ width: '100%', transformOrigin: 'top center' }}
+      >
+        <Box 
+          sx={{ 
+            width: '100%', 
+            bgcolor: '#161412', 
+            overflow: 'hidden',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '0 0 28px 28px',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
+          }}
+        >
+          <Box
+            onWheel={(event) => {
+              const node = event.currentTarget;
+              if (event.deltaY < 0 && isTopbarScrollAtTop(node)) {
+                event.preventDefault();
+                handleCloseAll();
+              }
+            }}
+            sx={{ px: { xs: 2.25, md: 4 }, py: 1.25, maxHeight: '45vh', overflowY: 'auto' }}
+          >
+            <Box sx={{ display: 'grid', gap: 0.75 }}>
+              {connectApps.map((item) => {
+                const appTone = getAppTone(item.app);
+                return (
+                  <Box
+                    key={item.href}
+                    component="button"
+                    onClick={() => {
+                      handleCloseAll();
+                      if (!user && item.app !== 'kylrix') {
+                        openUnified('login');
+                      } else {
+                        router.push(item.href);
+                      }
+                    }}
+                    sx={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-start',
+                      textAlign: 'left',
+                      px: 2.25,
+                      py: 1.5,
+                      borderRadius: '20px',
+                      color: 'white',
+                      background: 'transparent',
+                      bgcolor: item.selected ? alpha(appTone.secondary, 0.06) : 'rgba(255,255,255,0.01)',
+                      border: '1px solid',
+                      borderColor: item.selected ? alpha(appTone.secondary, 0.15) : 'rgba(255,255,255,0.04)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        bgcolor: alpha(appTone.secondary, 0.1),
+                        borderColor: alpha(appTone.secondary, 0.2),
+                      },
+                    }}
+                  >
+                    <Stack direction="row" spacing={1.25} alignItems="center" sx={{ width: '100%' }}>
+                      <Box sx={{ width: 34, height: 34, borderRadius: '10px', display: 'grid', placeItems: 'center', bgcolor: alpha(appTone.secondary, 0.08), color: appTone.secondary, flexShrink: 0 }}>
+                        <Logo app={item.app} size={15} variant="icon" />
+                      </Box>
+                      <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, pr: 0.5 }}>
+                        <Typography component="span" sx={{ color: '#F3F2F0', fontWeight: 800, fontSize: '0.86rem', lineHeight: 1.2 }} noWrap>
+                          {item.label}
+                        </Typography>
+                        <Typography component="span" sx={{ color: 'rgba(255,255,255,0.62)', fontWeight: 600, fontSize: '0.74rem', lineHeight: 1.3 }} noWrap>
+                          {item.description}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                );
+              })}
+            </Box>
           </Box>
         </Box>
-      </Drawer>
+      </motion.div>
     );
   };
 
   return (
     <>
-      <AppBar ref={headerRef} position="fixed" elevation={0} sx={{ zIndex: 1201, bgcolor: '#161412', borderBottom: '1px solid rgba(255,255,255,0.05)', borderRadius: '0 0 28px 28px', boxShadow: '0 16px 42px rgba(0,0,0,0.42)', backgroundImage: 'none', overflow: 'visible', height: activePanel === 'search' || activePanel === 'notifications' ? 'auto' : '88px' }}>
+      <AppBar
+        ref={headerRef}
+        className={`${className} kylrix-topbar`}
+        position="fixed"
+        elevation={0}
+        sx={{
+          zIndex: 1201,
+          bgcolor: '#161412',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          borderRadius: '0 0 28px 28px',
+          boxShadow: '0 16px 42px rgba(0,0,0,0.42)',
+          backgroundImage: 'none',
+          overflow: 'visible',
+          pointerEvents: 'auto',
+          height: activePanel ? 'auto' : '88px',
+        }}
+      >
         <SyncIndicator />
-        <Box sx={{ maxWidth: 1440, mx: 'auto', px: { xs: 2, md: 4 }, width: '100%', height: '88px', display: 'flex', alignItems: 'center' }}>
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', width: '100%', gap: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <Box onClick={user ? () => setAppMenuOpen(true) : () => openUnified('login')} sx={{ cursor: 'pointer', flexShrink: 0 }}>
-                <Logo app={activeApp} size={32} variant={isDesktop ? 'full' : 'icon'} />
-              </Box>
+        <Box sx={{ maxWidth: 1440, mx: 'auto', px: { xs: 2, md: 4 }, width: '100%' }}>
+          <Box
+            sx={{
+              minHeight: TOPBAR_LAYOUT.height,
+              display: activePanel ? 'none' : 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: { xs: 1.25, md: 2 },
+            }}
+          >
+            <Box
+              component="div"
+              role="button"
+              tabIndex={0}
+              onClick={user ? openAppMenu : () => openUnified('login')}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  if (user) {
+                    setAppMenuAnchorEl(event.currentTarget as HTMLElement);
+                  } else {
+                    openUnified('login');
+                  }
+                }
+              }}
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: 0,
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                flexShrink: 0,
+                position: 'relative',
+              }}
+            >
+              <Logo app={activeApp} size={32} variant={isDesktop ? 'full' : 'icon'} />
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'center', minWidth: 0 }}>
-              {user ? (
-                <AnimatePresence mode="wait">
-                  {searchOpen ? (
-                    <motion.div key="search-active" initial={{ width: 44, opacity: 0 }} animate={{ width: isDesktop ? 520 : '100%', opacity: 1 }} exit={{ width: 44, opacity: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} style={{ position: 'relative', maxWidth: '100%' }}>
-                      <Paper elevation={0} sx={{ height: 44, display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, border: '1px solid rgba(255,255,255,0.1)', bgcolor: '#000', color: 'white', borderRadius: '24px', boxShadow: '0 0 26px rgba(0,0,0,0.5)' }}>
-                        <Search size={16} strokeWidth={2.5} style={{ opacity: 0.6 }} />
-                        <InputBase inputRef={searchInputRef} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search ecosystem..." sx={{ flex: 1, color: 'white', fontWeight: 800, fontSize: '0.9rem', '& input::placeholder': { color: 'white/20' } }} />
-                        <IconButton onClick={toggleNotifications} sx={{ color: unreadNotifCount > 0 ? '#6366F1' : 'white/20', position: 'relative', p: 0.5, bgcolor: notificationsOpen ? 'white/5' : 'transparent' }}><Bell size={18} strokeWidth={2.5} />{unreadNotifCount > 0 && <Box sx={{ position: 'absolute', top: 4, right: 4, width: 6, height: 6, borderRadius: '50%', bgcolor: '#EC4899', border: '1.5px solid #000' }} />}</IconButton>
-                        <Box sx={{ width: 1, height: 20, bgcolor: 'white/10', mx: 0.5 }} />
-                        <IconButton size="small" onClick={() => setSearchOpen(false)} sx={{ color: 'white/40' }}><CloseIcon size={16} /></IconButton>
-                      </Paper>
-                    </motion.div>
-                  ) : (
-                    <motion.div key="island-rest" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} whileHover={{ scale: 1.05 }} onClick={openSearch} style={{ cursor: 'pointer' }}>
-                      <Box sx={{ width: { xs: 44, md: 160 }, height: 44, borderRadius: '999px', bgcolor: '#000', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.25, color: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}><Search size={18} strokeWidth={2.5} /><Typography sx={{ display: { xs: 'none', md: 'block' }, fontWeight: 900, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Search</Typography>{unreadNotifCount > 0 && <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#EC4899' }} />}</Box>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              ) : <Box sx={{ height: 44 }} />}
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                {user ? (
-                  <>
-                    <IconButton onClick={() => openAgenticDrawer()} sx={{ color: appAccent, bgcolor: '#0A0908', border: '1px solid', borderColor: alpha(appAccent, 0.2), borderRadius: '50%', width: 38, height: 38, boxShadow: `0 8px 22px ${alpha(appAccent, 0.15)}`, '&:hover': { bgcolor: '#111' } }}><Bot size={16} strokeWidth={2} /></IconButton>
-                    <ButtonBase onClick={() => setProfileMenuOpen(true)} sx={{ borderRadius: '50%', transition: 'all 0.2s', '&:hover': { transform: 'scale(1.05)' } }}><IdentityAvatar src={profileAvatarUrl} userId={user?.$id} size={38} pro={isPro} fallback={profileName[0]} /></ButtonBase>
-                  </>
+
+            {user ? (
+              <Box
+                sx={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {searchOpen ? (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      width: { xs: 'calc(100vw - 32px)', sm: 420, md: 520 },
+                      maxWidth: 'calc(100vw - 32px)',
+                      height: 44,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.25,
+                      px: 1.5,
+                      py: 0,
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      bgcolor: '#000',
+                      color: 'white',
+                      borderRadius: '24px',
+                      boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 0 26px rgba(0,0,0,0.55)',
+                    }}
+                  >
+                    <Search size={16} strokeWidth={2.25} style={{ flexShrink: 0, opacity: 0.84 }} />
+                    <InputBase
+                      id="topbar-search-input"
+                      inputRef={searchInputRef}
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Search people, notes, apps..."
+                      sx={{
+                        flex: 1,
+                        color: 'white',
+                        fontWeight: 800,
+                        '& input::placeholder': { color: 'rgba(255,255,255,0.42)', opacity: 1 },
+                      }}
+                    />
+                    <IconButton size="small" onClick={() => setSearchOpen(false)} sx={{ color: 'rgba(255,255,255,0.6)' }}>
+                      <CloseIcon size={16} />
+                    </IconButton>
+                  </Paper>
                 ) : (
-                  <Button onClick={() => openUnified('login')} sx={{ bgcolor: '#6366F1', color: 'white', fontWeight: 900, borderRadius: '12px', px: 2.5, py: 1, '&:hover': { bgcolor: '#5254E8' } }}>{isAuthenticating ? <CircularProgress size={16} color="inherit" /> : 'Connect'}</Button>
+                  <Button
+                    onClick={openSearch}
+                    sx={{
+                      width: { xs: 44, md: 170 },
+                      minWidth: { xs: 44, md: 170 },
+                      maxWidth: { xs: 44, md: 170 },
+                      height: 44,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 1,
+                      px: 1.25,
+                      py: 0,
+                      minHeight: 44,
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      bgcolor: '#000',
+                      color: 'white',
+                      borderRadius: '999px',
+                      boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 0 26px rgba(0,0,0,0.55)',
+                      textTransform: 'none',
+                      '&:hover': { bgcolor: '#0f0f0f', transform: 'translateY(-1px)' },
+                    }}
+                  >
+                    <Search size={16} strokeWidth={2.25} />
+                    <Typography sx={{ display: { xs: 'none', md: 'block' }, fontWeight: 800 }}>
+                      Search
+                    </Typography>
+                  </Button>
                 )}
-              </Stack>
-            </Box>
+              </Box>
+            ) : (
+              <Box sx={{ flex: 1 }} />
+            )}
+
+            <Stack direction="row" alignItems="center" spacing={1.25} sx={{ flexShrink: 0 }}>
+              {isClient && (
+                <>
+                  {!user && (
+                    <Button
+                      onClick={() => openUnified('login')}
+                      disabled={isAuthenticating}
+                      sx={{
+                        color: '#fff',
+                        bgcolor: '#6366F1',
+                        borderRadius: '12px',
+                        minWidth: { xs: 40, md: 98 },
+                        height: 40,
+                        px: { xs: 1.25, md: 2 },
+                        textTransform: 'none',
+                        fontWeight: 800,
+                        boxShadow: '0 16px 36px rgba(99, 102, 241, 0.25)',
+                        '&:hover': { bgcolor: '#5254E8' }
+                      }}
+                    >
+                      {isAuthenticating ? (
+                        <CircularProgress size={16} color="inherit" />
+                      ) : (
+                        <>
+                          <Box component="span" sx={{ display: { xs: 'inline-flex', md: 'none' }, alignItems: 'center' }}>
+                            <Sparkles size={15} />
+                          </Box>
+                          <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+                            Connect
+                          </Box>
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  {user && (
+                    <Tooltip title="Smart Systems">
+                      <IconButton
+                        aria-label="Open smart systems"
+                        onClick={() => openAgenticDrawer()}
+                        sx={{
+                          color: getAppColor(activeApp),
+                          bgcolor: '#0A0908',
+                          border: '1px solid',
+                          borderColor: alpha(getAppColor(activeApp), 0.24),
+                          borderRadius: '999px',
+                          width: 38,
+                          height: 38,
+                          boxShadow: `0 8px 22px ${alpha(getAppColor(activeApp), 0.18)}`,
+                          '&:hover': { bgcolor: '#13110F', borderColor: alpha(getAppColor(activeApp), 0.36) },
+                        }}
+                      >
+                        <Bot size={16} strokeWidth={1.8} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+
+                  {user && (
+                    <ButtonBase
+                      onClick={openProfileMenu}
+                      sx={{
+                        p: 0,
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        '&:hover': { transform: 'scale(1.05)' },
+                        transition: 'transform 0.2s',
+                      }}
+                    >
+                      <IdentityAvatar
+                        src={isRenderableImageSrc(profileAvatarUrl) ? profileAvatarUrl : null}
+                        size={38}
+                        pro={isPro}
+                        fallback={profileName.slice(0, 1).toUpperCase()}
+                        sx={{
+                          bgcolor: profileAvatarUrl ? 'rgba(255,255,255,0.04)' : tone.secondary,
+                        }}
+                      />
+                    </ButtonBase>
+                  )}
+                </>
+              )}
+            </Stack>
           </Box>
         </Box>
-        <AnimatePresence>{notificationsOpen ? renderNotificationPanel() : renderSearchPanel()}</AnimatePresence>
+
+        {renderSearchPanel()}
+        {renderAppPanel()}
+        {renderProfilePanel()}
       </AppBar>
-      {renderAppPanel()}
-      {renderProfilePanel()}
     </>
   );
 }

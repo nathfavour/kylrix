@@ -710,12 +710,11 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                         onTouchEnd={handleTouchEnd}
                         sx={{
                           p: parsed.type === 'voice' ? 1.25 : 1.75,
-                          px: 2.25,
                           borderRadius: isSelf ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
-                          bgcolor: '#161412', 
+                          bgcolor: isSelf ? '#1C1A18' : '#161412', 
                           backgroundImage: 'none',
                           border: '1px solid #23211F',
-                          borderRight: isSelf ? '3px solid #6366F1' : '1px solid #23211F',
+                          borderRight: isSelf ? '3px solid #F59E0B' : '1px solid #23211F',
                           borderLeft: !isSelf ? '3px solid #34322F' : '1px solid #23211F',
                           color: isSelf ? '#FFFFFF' : '#F5F2ED',
                           boxShadow: '0 4px 12px -4px rgba(0,0,0,0.8)',
@@ -1056,21 +1055,18 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                           onTouchEnd={handleTouchEnd}
                           sx={{
                             p: parsedReply.type === 'voice' ? 1.25 : 1.75,
-                            px: 2.25,
                             borderRadius: isSelfReply ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
-                            bgcolor: '#161412',
-                            backgroundImage: 'none',
+                            bgcolor: isSelfReply ? '#1C1A18' : '#161412',
                             border: '1px solid #23211F',
-                            borderRight: isSelfReply ? '3px solid #6366F1' : '1px solid #23211F',
+                            borderRight: isSelfReply ? '3px solid #F59E0B' : '1px solid #23211F',
                             borderLeft: !isSelfReply ? '3px solid #34322F' : '1px solid #23211F',
                             color: isSelfReply ? '#FFFFFF' : '#F5F2ED',
-                            boxShadow: '0 4px 12px -4px rgba(0,0,0,0.8)',
                             cursor: 'context-menu',
-                            transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                             zIndex: 2,
                             '&:hover': {
                                 transform: 'translateY(-1px)',
-                                boxShadow: '0 6px 16px -4px rgba(0,0,0,0.9)',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
                             }
                           }}
                         >
