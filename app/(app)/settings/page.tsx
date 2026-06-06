@@ -34,8 +34,7 @@ import { useAppwriteVault } from '@/context/appwrite-context';
 import { hasPaidKylrixPlan, getUserSubscriptionTier, getUserSubscriptionExpiresAt, getUserProfilePicId, getEffectiveDisplayName, getEffectiveUsername } from '@/lib/utils';
 import { IdentityAvatar } from '@/components/common/IdentityBadge';
 import { getComputeBalanceAction } from '@/lib/actions/ai';
-import { getProfilePicturePreview } from '@/lib/appwrite';
-import { getCachedProfilePreview } from '@/lib/profile-preview';
+import { getProfilePicturePreview, getCachedProfilePreview, getUserProfilePicId as getSdkUserProfilePicId } from '@/lib/appwrite';
 
 // Inline Custom Telegram Icon SVG for lucide alignment
 function TelegramIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -98,7 +97,7 @@ export default function SettingsPage() {
         }
     }, []);
 
-    const profilePicId = getUserProfilePicId(user);
+    const profilePicId = getUserProfilePicId(user) || getSdkUserProfilePicId(user);
 
     useEffect(() => {
         let mounted = true;
@@ -142,7 +141,7 @@ export default function SettingsPage() {
             if (balance) setComputeBalance(balance);
         };
         fetchCompute();
-    }, [computeBalance]);
+    }, []);
 
     useEffect(() => {
         if (user?.prefs) {
@@ -316,7 +315,6 @@ export default function SettingsPage() {
                     <div className="flex-shrink-0">
                         <IdentityAvatar 
                             src={profileAvatarUrl}
-                            userId={user?.$id}
                             pro={hasPaidKylrixPlan(user)}
                             size={56}
                             fallback={getEffectiveDisplayName(user).slice(0, 1).toUpperCase()}
