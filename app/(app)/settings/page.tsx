@@ -142,7 +142,7 @@ export default function SettingsPage() {
             if (balance) setComputeBalance(balance);
         };
         fetchCompute();
-    }, []);
+    }, [computeBalance]);
 
     useEffect(() => {
         if (user?.prefs) {
