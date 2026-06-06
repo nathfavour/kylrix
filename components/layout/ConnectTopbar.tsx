@@ -145,6 +145,7 @@ export default function ConnectTopbar({
   const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied-userid' | 'copied-username'>('idle');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [peopleResults, setPeopleResults] = useState<any[]>([]);
   const [searchingPeople, setSearchingPeople] = useState(false);
@@ -237,15 +238,29 @@ export default function ConnectTopbar({
     setProfileMenuAnchorEl(null);
     setAppMenuAnchorEl(null);
     setSearchOpen(false);
+    setNotificationsOpen(false);
   }, []);
 
   const openAppMenu = useCallback((event: MouseEvent<HTMLElement>) => {
+    setNotificationsOpen(false);
+    setSearchOpen(false);
+    setProfileMenuAnchorEl(null);
     setAppMenuAnchorEl(event.currentTarget);
   }, []);
 
   const openProfileMenu = useCallback((event: MouseEvent<HTMLElement>) => {
+    setNotificationsOpen(false);
+    setSearchOpen(false);
+    setAppMenuAnchorEl(null);
     setProfileMenuAnchorEl(event.currentTarget);
     setCopyState('idle');
+  }, []);
+
+  const openNotifications = useCallback(() => {
+    setSearchOpen(false);
+    setAppMenuAnchorEl(null);
+    setProfileMenuAnchorEl(null);
+    setNotificationsOpen(true);
   }, []);
 
   useEffect(() => {
@@ -393,7 +408,7 @@ export default function ConnectTopbar({
 
   const appPanelMotion = useMemo(() => createTopbarPanelMotion(), []);
 
-  const activePanel = searchOpen ? 'search' : profileMenuAnchorEl ? 'profile' : appMenuAnchorEl ? 'ecosystem' : null;
+  const activePanel = searchOpen ? 'search' : notificationsOpen ? 'notifications' : profileMenuAnchorEl ? 'profile' : appMenuAnchorEl ? 'ecosystem' : null;
 
   useEffect(() => {
     if (!activePanel) return;
@@ -659,157 +674,291 @@ export default function ConnectTopbar({
                   </Box>
                 </Box>
 
-                {/* Right Column: Platform Alerts & Notifications */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 0.5 }}>
-                    <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                      <Bell size={11} style={{ color: '#EC4899' }} />
-                      Alerts
-                    </Typography>
-                    {notifications.filter(n => !n.read).length > 0 && (
-                      <Box sx={{
-                        px: 0.75,
-                        py: 0.1,
-                        borderRadius: '6px',
-                        bgcolor: '#6366F1',
-                        color: 'white',
-                        fontSize: '0.64rem',
-                        fontWeight: 900
-                      }}>
-                        {notifications.filter(n => !n.read).length} New
-                      </Box>
-                    )}
-                  </Box>
-
-                  <Box sx={{ display: 'grid', gap: 0.75 }}>
-                    {notifications.length === 0 ? (
-                      <Box sx={{ px: 2, py: 1.5, borderRadius: '18px', border: '1px dashed rgba(255,255,255,0.06)', textAlign: 'center' }}>
-                        <Typography component="span" sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', lineHeight: 1.4, display: 'block' }}>
-                          System stable.
-                        </Typography>
-                      </Box>
-                    ) : (
-                      notifications.map((notif) => (
-                        <Box
-                          key={notif.id}
-                          component="div"
-                          onClick={() => markNotificationRead(notif.id)}
-                          sx={{
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: 1.25,
-                            px: 2,
-                            py: 1.25,
-                            borderRadius: '20px',
-                            bgcolor: notif.read ? 'rgba(255,255,255,0.005)' : 'rgba(255,255,255,0.015)',
-                            border: '1px solid',
-                            borderColor: notif.read ? 'rgba(255,255,255,0.02)' : alpha(notif.accent, 0.18),
-                            color: 'white',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            '&:hover': {
-                              bgcolor: 'rgba(255,255,255,0.03)',
-                              borderColor: notif.read ? 'rgba(255,255,255,0.05)' : alpha(notif.accent, 0.3),
-                            },
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              width: 34,
-                              height: 34,
-                              borderRadius: '10px',
-                              display: 'grid',
-                              placeItems: 'center',
-                              flexShrink: 0,
-                              bgcolor: alpha(notif.accent, notif.read ? 0.04 : 0.1),
-                              color: notif.accent,
-                              position: 'relative',
-                            }}
-                          >
-                            <Bell size={14} />
-                            {!notif.read && (
-                              <Box
-                                sx={{
-                                  position: 'absolute',
-                                  top: 4,
-                                  right: 4,
-                                  width: 7,
-                                  height: 7,
-                                  borderRadius: '999px',
-                                  bgcolor: notif.accent,
-                                  border: '1.5px solid #161412',
-                                }}
-                              />
-                            )}
-                          </Box>
-
-                          <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, pr: 0.5 }}>
-                            <Typography
-                              component="span"
-                              sx={{
-                                color: 'white',
-                                fontWeight: 800,
-                                fontSize: '0.82rem',
-                                lineHeight: 1.2,
-                                opacity: notif.read ? 0.65 : 1,
-                                display: 'block',
-                              }}
-                            >
-                              {notif.title}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              sx={{
-                                color: 'rgba(255,255,255,0.38)',
-                                fontSize: '0.66rem',
-                                fontWeight: 600,
-                                lineHeight: 1.3,
-                                display: 'block',
-                              }}
-                            >
-                              {notif.time}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              sx={{
-                                color: 'rgba(255,255,255,0.58)',
-                                fontSize: '0.74rem',
-                                lineHeight: 1.35,
-                                fontWeight: 500,
-                                display: 'block',
-                                mt: 0.5
-                              }}
-                            >
-                              {notif.message}
-                            </Typography>
-                          </Box>
-
-                          <IconButton
-                            size="small"
-                            aria-label="Dismiss alert"
-                            onClick={(e) => dismissNotification(notif.id, e)}
-                            sx={{
-                              flexShrink: 0,
-                              mt: -0.25,
-                              color: 'rgba(255,255,255,0.25)',
-                              width: 26,
-                              height: 26,
-                              borderRadius: '8px',
-                              '&:hover': {
-                                color: 'white',
-                                bgcolor: 'rgba(255,255,255,0.06)',
-                              },
-                            }}
-                          >
-                            <CloseIcon size={11} />
-                          </IconButton>
+            ) : (
+              /* If hasQuery is true, show Search Results */
+              <Box sx={{ display: 'grid', gap: 1.5 }}>
+                <Box sx={{ display: 'grid', gap: 0.5 }}>
+                  <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', px: 0.5 }}>
+                    {searchSurface.searchAcrossLabel}
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: isDesktop ? '1fr' : { xs: '1fr', sm: '1fr 1fr' }, gap: 0.75 }}>
+                    {searchSurface.searchTargets.slice(0, 4).map((action) => (
+                      <Box
+                        key={action.id}
+                        component="button"
+                        onClick={() => {
+                          handleCloseAll();
+                          router.push(action.href);
+                        }}
+                        sx={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.25,
+                          px: 2,
+                          py: 1.25,
+                          borderRadius: '20px',
+                          bgcolor: 'rgba(255,255,255,0.01)',
+                          border: '1px solid rgba(255,255,255,0.04)',
+                          color: 'white',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          '&:hover': { bgcolor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }
+                        }}
+                      >
+                        <Box sx={{ width: 36, height: 36, borderRadius: '10px', display: 'grid', placeItems: 'center', bgcolor: `${action.accent}12`, color: action.accent, flexShrink: 0 }}>
+                          <Logo app={action.kind as any} size={15} variant="icon" />
                         </Box>
-                      ))
-                    )}
+                        <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, pr: 0.5 }}>
+                          <Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.86rem', lineHeight: 1.2 }} noWrap>
+                            {action.title}
+                          </Typography>
+                          <Typography component="span" sx={{ color: 'rgba(255,255,255,0.58)', fontWeight: 600, fontSize: '0.74rem', lineHeight: 1.3 }} noWrap>
+                            {action.description}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
                   </Box>
                 </Box>
+
+                {(searchingPeople || peopleResults.length > 0) && (
+                  <Box sx={{ display: 'grid', gap: 0.5 }}>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', px: 0.5 }}>
+                      People
+                    </Typography>
+                    {searchingPeople ? (
+                      <Typography sx={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.8rem', px: 0.5 }}>
+                        Searching...
+                      </Typography>
+                    ) : (
+                      <Box sx={{ display: 'grid', gap: 0.75 }}>
+                        {peopleResults.slice(0, 3).map((person) => (
+                          <Box
+                            key={person.$id || person.id}
+                            component="button"
+                            onClick={() => {
+                              const username = person.username || person.prefs?.username;
+                              if (username) {
+                                stageProfileView(person, person.avatar || null);
+                                handleCloseAll();
+                                router.push(`/u/${encodeURIComponent(username.replace(/^@+/, ''))}?transition=profile`);
+                              }
+                            }}
+                            sx={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1.25,
+                              px: 2,
+                              py: 1.25,
+                              borderRadius: '20px',
+                              bgcolor: 'rgba(255,255,255,0.01)',
+                              border: '1px solid rgba(255,255,255,0.04)',
+                              color: 'white',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                              '&:hover': { bgcolor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }
+                            }}
+                          >
+                            <Avatar
+                              src={person.avatar || undefined}
+                              sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.06)', color: 'white', fontSize: '0.75rem', fontWeight: 800 }}
+                            >
+                              {(person.displayName || person.name || String(person.username || person.prefs?.username || 'U').replace(/^@+/, '') || 'U')[0].toUpperCase()}
+                            </Avatar>
+                            <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, pr: 0.5 }}>
+                              <Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.86rem', lineHeight: 1.2 }} noWrap>
+                                {person.displayName || person.name}
+                              </Typography>
+                              <Typography component="span" sx={{ color: 'rgba(255,255,255,0.58)', fontWeight: 600, fontSize: '0.74rem', lineHeight: 1.3 }} noWrap>
+                                @{String(person.username || person.prefs?.username || 'user').replace(/^@+/, '')}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </Box>
+            )}
+          </Stack>
+        </Box>
+    );
+
+    if (isDesktop) {
+      return (
+        <Drawer
+          anchor="left"
+          open={searchOpen}
+          onClose={handleCloseAll}
+          keepMounted={false}
+          disablePortal={true}
+          PaperProps={{
+            sx: {
+              bgcolor: '#161412',
+              width: 360,
+              height: '100vh',
+              borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+              p: 2.75,
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }
+          }}
+        >
+          {/* Header */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.75 }}>
+            <Typography variant="h6" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 900, color: '#fff', fontSize: '1.1rem' }}>
+              Search Ecosystem
+            </Typography>
+            <IconButton onClick={handleCloseAll} sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: 'white' }, width: 32, height: 32 }}>
+              <CloseIcon size={16} />
+            </IconButton>
+          </Box>
+          
+          <Box sx={{ flex: 1, overflowY: 'auto', mx: -2.75, px: 2.75 }}>
+            {searchContent}
+          </Box>
+        </Drawer>
+      );
+    }
+
+    return (
+      <Box
+        data-note-search-surface="true"
+        sx={{
+          width: '100%',
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '0 0 28px 28px',
+          bgcolor: '#161412',
+          overflow: 'hidden',
+          boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
+        }}
+      >
+        {searchContent}
+      </Box>
+    );
+  };
+
+  const renderNotificationPanel = () => {
+    if (!notificationsOpen) return null;
+
+    const unreadCount = notifications.filter(n => !n.read).length;
+
+    const notificationContent = (
+      <Box sx={{ px: { xs: 2.25, md: 4 }, py: 1.25, maxHeight: isDesktop ? 'calc(100vh - 120px)' : '45vh', overflowY: 'auto' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, px: 0.5 }}>
+            <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Bell size={11} style={{ color: '#EC4899' }} />
+              System Alerts
+            </Typography>
+            {unreadCount > 0 && (
+              <Box sx={{ px: 0.75, py: 0.1, borderRadius: '6px', bgcolor: '#6366F1', color: 'white', fontSize: '0.64rem', fontWeight: 900 }}>
+                {unreadCount} New
+              </Box>
+            )}
+        </Box>
+
+        <Box sx={{ display: 'grid', gap: 0.75 }}>
+          {notifications.length === 0 ? (
+            <Box sx={{ px: 2, py: 4, borderRadius: '20px', border: '1px dashed rgba(255,255,255,0.06)', textAlign: 'center' }}>
+              <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.78rem', fontWeight: 600 }}>
+                All systems synchronized.
+              </Typography>
+            </Box>
+          ) : (
+            notifications.map((notif) => (
+              <Box
+                key={notif.id}
+                onClick={() => markNotificationRead(notif.id)}
+                sx={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 1.5,
+                  px: 2,
+                  py: 1.75,
+                  borderRadius: '20px',
+                  bgcolor: notif.read ? 'rgba(255,255,255,0.005)' : 'rgba(255,255,255,0.015)',
+                  border: '1px solid',
+                  borderColor: notif.read ? 'rgba(255,255,255,0.02)' : alpha(notif.accent, 0.18),
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    bgcolor: 'rgba(255,255,255,0.03)',
+                    borderColor: notif.read ? 'rgba(255,255,255,0.05)' : alpha(notif.accent, 0.3),
+                  },
+                }}
+              >
+                <Box sx={{
+                  width: 38, height: 38, borderRadius: '12px', display: 'grid', placeItems: 'center', flexShrink: 0,
+                  bgcolor: alpha(notif.accent, notif.read ? 0.04 : 0.1), color: notif.accent, position: 'relative',
+                }}>
+                  <Bell size={16} />
+                  {!notif.read && (
+                    <Box sx={{ position: 'absolute', top: 4, right: 4, width: 7, height: 7, borderRadius: '50%', bgcolor: notif.accent, border: '1.5px solid #161412' }} />
+                  )}
+                </Box>
+                <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                  <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.85rem', lineHeight: 1.2, opacity: notif.read ? 0.6 : 1 }}>{notif.title}</Typography>
+                  <Typography sx={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.68rem', fontWeight: 700 }}>{notif.time}</Typography>
+                  <Typography sx={{ color: 'rgba(255,255,255,0.58)', fontSize: '0.76rem', lineHeight: 1.4, mt: 0.5 }}>{notif.message}</Typography>
+                </Box>
+                <IconButton size="small" onClick={(e) => dismissNotification(notif.id, e)} sx={{ mt: -0.5, color: 'rgba(255,255,255,0.2)' }}>
+                  <CloseIcon size={14} />
+                </IconButton>
+              </Box>
+            ))
+          )}
+        </Box>
+      </Box>
+    );
+
+    if (isDesktop) {
+      return (
+        <Drawer
+          anchor="left"
+          open={notificationsOpen}
+          onClose={handleCloseAll}
+          keepMounted={false}
+          disablePortal={true}
+          PaperProps={{
+            sx: {
+              bgcolor: '#161412',
+              width: 320,
+              height: '100vh',
+              borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+              p: 2.75,
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.75 }}>
+            <Typography variant="h6" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 900, color: '#fff', fontSize: '1.1rem' }}>
+              Notifications
+            </Typography>
+            <IconButton onClick={handleCloseAll} sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: 'white' }, width: 32, height: 32 }}>
+              <CloseIcon size={16} />
+            </IconButton>
+          </Box>
+          <Box sx={{ flex: 1, overflowY: 'auto', mx: -2.75, px: 2.75 }}>
+            {notificationContent}
+          </Box>
+        </Drawer>
+      );
+    }
+
+    return (
+      <Box sx={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.08)', borderRadius: '0 0 28px 28px', bgcolor: '#161412', overflow: 'hidden', boxShadow: '0 12px 32px rgba(0,0,0,0.35)' }}>
+        {notificationContent}
+      </Box>
+    );
+  };
               </Box>
             ) : (
               /* If hasQuery is true, show Search Results */
