@@ -258,26 +258,6 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
           }
         }
 
-        // Heuristic 3: Workspace and Productivity Synergy
-        if (newEvent.niche === 'productivity' && newEvent.app === 'flow' && newEvent.action === 'page_view') {
-          const recentNoteView = currentEvents.find(e => 
-            e.niche === 'workspace' && 
-            e.app === 'note' && 
-            e.action === 'page_view' &&
-            (now - new Date(e.timestamp).getTime() < 15000)
-          );
-
-          if (recentNoteView) {
-            addSuggestion({
-              title: 'Bridge Notes & Tasks',
-              description: 'We notice you are actively switching between Notes and Tasks. Keep notes open in side panel?',
-              niche: 'productivity',
-              actionLabel: 'Open notes',
-              actionHref: '/note/notes'
-            });
-          }
-        }
-
         return currentEvents;
       });
     }, 100);

@@ -22,7 +22,7 @@ import { useSidebar as useSidebarContext } from '@/components/ui/SidebarContext'
 import { useAgenticDrawer } from '@/context/AgenticDrawerContext';
 import { FABProvider } from '@/context/FABContext';
 import UniversalFAB from '@/components/layout/UniversalFAB';
-import { SuggestionsDeck } from '@/components/ephemeral/SuggestionsDeck';
+
 import { useAppChrome } from '@/components/providers/AppChromeProvider';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { useCallLauncher } from '@/context/CallLauncherContext';
@@ -221,7 +221,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
         <Box sx={{ display: 'none' }} />
       )}
       <UniversalFAB />
-      <SuggestionsDeck />
+
       </FABProvider>
 
       {/* --- LAYER 2: OVERLAYS (Strict Unmounting) --- */}

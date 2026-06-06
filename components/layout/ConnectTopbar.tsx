@@ -147,14 +147,35 @@ export default function ConnectTopbar({
   const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied-userid' | 'copied-username'>('idle');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifHint, setNotifHint] = useState<{ id: string; title: string; description: string; accent: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [peopleResults, setPeopleResults] = useState<any[]>([]);
   const [searchingPeople, setSearchingPeople] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const headerRef = useRef<HTMLDivElement | null>(null);
 
   const { events, suggestions, dismissSuggestion } = useLocalContext();
+
+  // Watch for new intelligence pulses (suggestions) to show in Dynamic Island
+  useEffect(() => {
+    if (suggestions.length > 0) {
+      const latest = suggestions[0];
+      // Only show hint if it's new (not already the hint or unread)
+      if (!notifHint || notifHint.id !== latest.id) {
+        setNotifHint({
+          id: latest.id,
+          title: latest.title,
+          description: latest.description,
+          accent: latest.niche === 'intelligence' ? '#6366F1' : '#10B981'
+        });
+        setSearchOpen(true);
+        // Clear hint after 8 seconds to return to standard search expansion
+        const timer = setTimeout(() => setNotifHint(null), 8000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [suggestions, notifHint]);
   const [notifications, setNotifications] = useState([
     { id: 'notif-1', title: 'Workspace Sync Complete', message: 'All local action workflows and workspace logs successfully synchronized.', time: 'Just now', read: false, accent: '#10B981' },
     { id: 'notif-2', title: 'Workflows Negations Active', message: 'Action chain engine generated valid inversions for 3 private notes.', time: '2 hours ago', read: false, accent: '#6366F1' },
@@ -238,10 +259,22 @@ export default function ConnectTopbar({
     }, 10);
   }, []);
 
+  const toggleNotifications = useCallback(() => {
+    if (!notificationsOpen) {
+      handleCloseAll();
+      setNotificationsOpen(true);
+    } else {
+      setNotificationsOpen(false);
+    }
+    setNotifHint(null);
+  }, [notificationsOpen]);
+
   const handleCloseAll = useCallback(() => {
     setProfileMenuAnchorEl(null);
     setAppMenuAnchorEl(null);
     setSearchOpen(false);
+    setNotificationsOpen(false);
+    setNotifHint(null);
   }, []);
 
   const openAppMenu = useCallback((event: MouseEvent<HTMLElement>) => {
@@ -420,69 +453,121 @@ export default function ConnectTopbar({
         open={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
         keepMounted={false}
-        disablePortal={false} // Covers the entire viewport including Topbar
+        disablePortal={false} 
         PaperProps={{
           sx: {
             bgcolor: '#161412',
             backgroundImage: 'none',
-            width: isDesktop ? 420 : '100%',
+            width: isDesktop ? 480 : '100%',
             mx: 'auto',
             left: '50%',
             transform: 'translateX(-50%)',
             borderBottom: '1px solid rgba(255,255,255,0.08)',
-            borderLeft: '1px solid rgba(255,255,255,0.08)',
-            borderRight: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '0 0 24px 24px',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
-            maxHeight: 400, // Short expansion
+            borderLeft: isDesktop ? '1px solid rgba(255,255,255,0.08)' : 'none',
+            borderRight: isDesktop ? '1px solid rgba(255,255,255,0.08)' : 'none',
+            borderRadius: '0 0 32px 32px',
+            boxShadow: '0 12px 48px rgba(0,0,0,0.6)',
+            maxHeight: 460, 
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column'
           }
         }}
       >
-        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, mb: 1 }}>
-            <Typography sx={{ color: 'white/40', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                System Alerts
-            </Typography>
-            <IconButton onClick={() => setNotificationsOpen(false)} size="small" sx={{ color: 'white/20' }}>
-                <CloseIcon size={14} />
+        <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box sx={{ width: 36, height: 36, borderRadius: '12px', bgcolor: 'rgba(99, 102, 241, 0.1)', color: '#6366F1', display: 'grid', placeItems: 'center' }}>
+                    <Bell size={18} strokeWidth={2.5} />
+                </Box>
+                <Box>
+                    <Typography sx={{ color: 'white', fontSize: '1rem', fontWeight: 900, fontFamily: 'var(--font-clash)', textTransform: 'uppercase', tracking: '0.05em', lineHeight: 1 }}>
+                        Intelligence Center
+                    </Typography>
+                    <Typography sx={{ color: 'white/30', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                        System Pulses & Alerts
+                    </Typography>
+                </Box>
+            </Box>
+            <IconButton onClick={() => setNotificationsOpen(false)} size="small" sx={{ color: 'white/20', '&:hover': { color: 'white', bgcolor: 'white/5' } }}>
+                <CloseIcon size={16} />
             </IconButton>
           </Box>
 
-          <Box sx={{ display: 'grid', gap: 1, overflowY: 'auto', maxHeight: 320, pr: 0.5 }}>
-            {notifications.length === 0 ? (
-                <Typography sx={{ color: 'white/20', fontSize: '0.8rem', p: 4, textAlign: 'center' }}>No active alerts.</Typography>
-            ) : (
-                notifications.map(notif => (
-                    <Box 
-                        key={notif.id} 
-                        sx={{ 
-                            display: 'flex', 
-                            gap: 2, 
-                            p: 2, 
-                            borderRadius: '16px', 
-                            bgcolor: notif.read ? 'transparent' : 'rgba(255,255,255,0.02)',
-                            border: '1px solid',
-                            borderColor: notif.read ? 'rgba(255,255,255,0.02)' : alpha(notif.accent, 0.15),
-                            cursor: 'pointer',
-                            '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' }
-                        }}
-                        onClick={() => markNotificationRead(notif.id)}
-                    >
-                        <Box sx={{ width: 34, height: 34, borderRadius: '10px', bgcolor: alpha(notif.accent, 0.1), color: notif.accent, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                            <Bell size={16} />
-                        </Box>
-                        <Box sx={{ minWidth: 0, flex: 1 }}>
-                            <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.85rem', lineHeight: 1.2 }}>{notif.title}</Typography>
-                            <Typography sx={{ color: 'white/40', fontSize: '0.74rem', lineHeight: 1.3 }}>{notif.message}</Typography>
-                        </Box>
-                        <IconButton size="small" onClick={(e) => dismissNotification(notif.id, e)} sx={{ color: 'white/10', alignSelf: 'flex-start' }}>
-                            <CloseIcon size={12} />
-                        </IconButton>
+          <Box sx={{ display: 'grid', gap: 1, overflowY: 'auto', maxHeight: 340, pr: 0.5 }}>
+            {/* 1. Intelligence Pulses (Authoritative Suggestions) */}
+            {suggestions.map(suggestion => (
+                <Box 
+                    key={suggestion.id} 
+                    sx={{ 
+                        display: 'flex', 
+                        gap: 2, 
+                        p: 2, 
+                        borderRadius: '20px', 
+                        bgcolor: 'rgba(99, 102, 241, 0.04)',
+                        border: '1px solid rgba(99, 102, 241, 0.12)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.08)', transform: 'translateY(-1px)', borderColor: 'rgba(99, 102, 241, 0.3)' }
+                    }}
+                    onClick={() => {
+                        dismissSuggestion(suggestion.id);
+                        setNotifHint(null);
+                        handleCloseAll();
+                        if (suggestion.actionHref) router.push(suggestion.actionHref);
+                    }}
+                >
+                    <Box sx={{ width: 38, height: 38, borderRadius: '12px', bgcolor: 'rgba(99, 102, 241, 0.15)', color: '#6366F1', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                        <Sparkles size={18} strokeWidth={2.5} />
                     </Box>
-                ))
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '0.88rem', lineHeight: 1.2 }}>{suggestion.title}</Typography>
+                        <Typography sx={{ color: 'white/45', fontSize: '0.76rem', lineHeight: 1.35, mt: 0.25 }}>{suggestion.description}</Typography>
+                    </Box>
+                    <ChevronRight size={16} style={{ color: 'white/10', alignSelf: 'center' }} />
+                </Box>
+            ))}
+
+            {/* 2. System Alerts */}
+            {notifications.map(notif => (
+                <Box 
+                    key={notif.id} 
+                    sx={{ 
+                        display: 'flex', 
+                        gap: 2, 
+                        p: 2, 
+                        borderRadius: '20px', 
+                        bgcolor: notif.read ? 'transparent' : 'rgba(255,255,255,0.02)',
+                        border: '1px solid',
+                        borderColor: notif.read ? 'rgba(255,255,255,0.03)' : alpha(notif.accent, 0.12),
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.04)', borderColor: alpha(notif.accent, 0.25) }
+                    }}
+                    onClick={() => markNotificationRead(notif.id)}
+                >
+                    <Box sx={{ width: 38, height: 38, borderRadius: '12px', bgcolor: alpha(notif.accent, 0.1), color: notif.accent, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                        <Activity size={18} strokeWidth={2.5} />
+                    </Box>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.2 }}>{notif.title}</Typography>
+                        <Typography sx={{ color: 'white/30', fontSize: '0.76rem', lineHeight: 1.35, mt: 0.25 }}>{notif.message}</Typography>
+                    </Box>
+                    <IconButton size="small" onClick={(e) => dismissNotification(notif.id, e)} sx={{ color: 'white/10', alignSelf: 'flex-start', '&:hover': { color: '#EF4444' } }}>
+                        <CloseIcon size={12} />
+                    </IconButton>
+                </Box>
+            ))}
+
+            {notifications.length === 0 && suggestions.length === 0 && (
+                <Box sx={{ py: 6, textAlign: 'center' }}>
+                    <Box sx={{ w: 48, h: 48, borderRadius: 'full', bgcolor: 'white/3', display: 'grid', placeItems: 'center', mx: 'auto', mb: 2 }}>
+                        <RefreshCw size={24} className="text-white/10" />
+                    </Box>
+                    <Typography sx={{ color: 'white/20', fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                        No Active Pulses
+                    </Typography>
+                </Box>
             )}
           </Box>
         </Box>
@@ -1744,15 +1829,41 @@ export default function ConnectTopbar({
                       transition={{ type: 'spring', damping: 25, stiffness: 200 }} 
                       style={{ position: 'relative', maxWidth: '100%' }}
                     >
-                      <Paper elevation={0} sx={{ height: 44, display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, border: '1px solid rgba(255,255,255,0.1)', bgcolor: '#000', color: 'white', borderRadius: '24px', boxShadow: '0 0 26px rgba(0,0,0,0.5)' }}>
-                        <Search size={16} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
-                        <InputBase 
-                          inputRef={searchInputRef} 
-                          value={searchQuery} 
-                          onChange={(e) => setSearchQuery(e.target.value)} 
-                          placeholder="Search ecosystem..." 
-                          sx={{ flex: 1, color: 'white', fontWeight: 800, fontSize: '0.9rem', '& input::placeholder': { color: 'white/20' } }} 
-                        />
+                      <Paper elevation={0} sx={{ height: 44, display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, border: '1px solid rgba(255,255,255,0.1)', bgcolor: '#000', color: 'white', borderRadius: '24px', boxShadow: '0 0 26px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+                        {notifHint ? (
+                            <Box 
+                                onClick={toggleNotifications}
+                                sx={{ 
+                                    flex: 1, 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: 1.5, 
+                                    cursor: 'pointer',
+                                    px: 0.5,
+                                    animation: 'fadeIn 0.4s ease'
+                                }}
+                            >
+                                <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: `${notifHint.accent}12`, color: notifHint.accent, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                                    <Sparkles size={16} strokeWidth={2.5} />
+                                </Box>
+                                <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                    <Typography component="span" sx={{ color: 'white', fontWeight: 900, fontSize: '0.82rem', lineHeight: 1.1, textTransform: 'uppercase' }} noWrap>{notifHint.title}</Typography>
+                                    <Typography component="span" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.72rem', lineHeight: 1.2 }} noWrap>{notifHint.description}</Typography>
+                                </Box>
+                                <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                            </Box>
+                        ) : (
+                            <>
+                                <Search size={16} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
+                                <InputBase 
+                                    inputRef={searchInputRef} 
+                                    value={searchQuery} 
+                                    onChange={(e) => setSearchQuery(e.target.value)} 
+                                    placeholder="Search ecosystem..." 
+                                    sx={{ flex: 1, color: 'white', fontWeight: 800, fontSize: '0.9rem', '& input::placeholder': { color: 'white/20' } }} 
+                                />
+                            </>
+                        )}
                         
                         {/* 🔔 Notifications CTA - The Island Extension */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
@@ -1760,10 +1871,10 @@ export default function ConnectTopbar({
                             <IconButton 
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    setNotificationsOpen(!notificationsOpen);
+                                    toggleNotifications();
                                 }} 
                                 sx={{ 
-                                    color: unreadNotifCount > 0 ? BRAND_INDIGO : 'white/20', 
+                                    color: (unreadNotifCount > 0 || suggestions.length > 0) ? BRAND_INDIGO : 'white/20', 
                                     position: 'relative', 
                                     p: 1,
                                     bgcolor: notificationsOpen ? 'white/5' : 'transparent',
@@ -1771,7 +1882,7 @@ export default function ConnectTopbar({
                                 }}
                             >
                                 <Bell size={18} strokeWidth={2.5} />
-                                {unreadNotifCount > 0 && (
+                                {(unreadNotifCount > 0 || suggestions.length > 0) && (
                                     <Box sx={{ position: 'absolute', top: 6, right: 6, width: 6, height: 6, borderRadius: '50%', bgcolor: '#EC4899', border: '1.5px solid #000' }} />
                                 )}
                             </IconButton>
