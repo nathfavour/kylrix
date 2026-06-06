@@ -2165,7 +2165,7 @@ export async function verifyResourcePermissionSecure(params: {
   metadataField?: string;
   data?: any;
 }) {
-  const { databaseId, tableId, rowId, actorId, action, ownerFields = ['userId', 'ownerId'], metadataField = 'metadata', data } = params;
+  const { databaseId, tableId, rowId, actorId, action, ownerFields = ['userId', 'ownerId', 'creatorId'], metadataField = 'metadata', data } = params;
   
   let row = data;
   if (!row && databaseId && tableId && rowId) {
