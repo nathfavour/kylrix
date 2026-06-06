@@ -1715,7 +1715,7 @@ export default function ConnectTopbar({
         }}
       >
         <SyncIndicator />
-        <Box sx={{ maxWidth: 1440, mx: 'auto', px: { xs: 2, md: 4 }, width: '100%', height: '88px', display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ maxWidth: 1440, mx: 'auto', px: { xs: 2, md: 4 }, width: '100%', height: '88px', display: activePanel ? 'none' : 'flex', alignItems: 'center' }}>
           <Box sx={{ 
             display: 'grid', 
             gridTemplateColumns: { xs: 'auto 1fr auto', md: '1fr auto 1fr' }, 

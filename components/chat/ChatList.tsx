@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { fetchProfilePreview } from '@/lib/profile-preview';
 import { IdentityAvatar } from '../IdentityBadge';
-import { seedIdentityCache, getCachedIdentityById  } from '@/lib/identity-cache';
+import { seedIdentityCache, getCachedIdentityById, resolveIdentityById  } from '@/lib/identity-cache';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import toast from 'react-hot-toast';
 import { useSudo } from '@/context/SudoContext';
@@ -68,16 +68,43 @@ const GlobalSearchAvatar = ({ u }: { u: any }) => {
     );
 };
 
+const SECURE_CACHE_KEY = 'kylrix_connect_cached_secure_v1';
+const THREADS_CACHE_KEY = 'kylrix_connect_cached_threads_v1';
+
+function readJsonCache<T>(key: string): T | null {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) as T : null;
+    } catch {
+        return null;
+    }
+}
+
+function readSecureCache(): any[] {
+    return readJsonCache<any[]>(SECURE_CACHE_KEY) || [];
+}
+
+function readThreadsCache(): any[] {
+    return readJsonCache<any[]>(THREADS_CACHE_KEY) || [];
+}
+
 export const ChatList = ({ 
     externalQuery = '',
     activeTab: propActiveTab,
     onTabChange,
-    hideTabs = false
+    hideTabs = false,
+    skipSecureLoad = false,
+    skipThreadsLoad = false,
 }: { 
     externalQuery?: string;
     activeTab?: 'secure' | 'public';
     onTabChange?: (tab: 'secure' | 'public') => void;
     hideTabs?: boolean;
+    /** Desktop threads panel — skip encrypted conversation fetch + subscriptions. */
+    skipSecureLoad?: boolean;
+    /** Desktop secure panel — skip ghost thread fetch. */
+    skipThreadsLoad?: boolean;
 }) => {
     const { user } = useAuth();
     const { unreadConversations } = useChatNotifications();
@@ -95,17 +122,22 @@ export const ChatList = ({
         return () => media.removeEventListener('change', listener);
     }, []);
     const { setActiveDetail } = useSection();
-    const [conversations, setConversations] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const initialSecureCache = readSecureCache();
+    const initialThreadsCache = readThreadsCache();
+    const [conversations, setConversations] = useState<any[]>(() => initialSecureCache);
+    const [loading, setLoading] = useState(() => !skipSecureLoad && initialSecureCache.length === 0);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [searching, setSearching] = useState(false);
     const [isUnlocked, setIsUnlocked] = useState(ecosystemSecurity.status.isUnlocked);
+    const isUnlockedRef = React.useRef(isUnlocked);
+    isUnlockedRef.current = isUnlocked;
     const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
-    const conversationsRef = React.useRef<any[]>([]);
+    const conversationsRef = React.useRef<any[]>(initialSecureCache);
     const loadRequestRef = React.useRef(0);
     const loadConversationsInflightRef = React.useRef<Promise<void> | null>(null);
-    const handledMessageIdsRef = React.useRef<Set<string>>(new Set());
+    const reloadConversationsTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const handledMessageIdsRef = React.useRef<Set<string>>(new Set>(new Set());
     const [livePreviewByConversation, setLivePreviewByConversation] = useState<Record<string, {
         lastMessageId: string;
         lastMessageText: string;
@@ -117,8 +149,8 @@ export const ChatList = ({
         return propActiveTab || (ecosystemSecurity.status.isUnlocked ? 'secure' : 'public');
     });
 
-    const [ghostConversations, setGhostConversations] = useState<any[]>([]);
-    const [loadingGhost, setLoadingGhost] = useState(false);
+    const [ghostConversations, setGhostConversations] = useState<any[]>(() => initialThreadsCache);
+    const [loadingGhost, setLoadingGhost] = useState(() => !skipThreadsLoad && initialThreadsCache.length === 0);
 
     const [isInitializing, setIsInitializing] = useState(false);
     const [hasMasterpass, setHasMasterpass] = useState<boolean | null>(null);
@@ -259,30 +291,18 @@ export const ChatList = ({
         setActiveTab('public');
     }, [setActiveTab]);
 
-    // Load cached lists from localStorage on mount & check implicit intent
+    // Restore tab intent from localStorage on mount
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const storedTab = localStorage.getItem('kylrix_connect_active_tab');
-                if (storedTab === 'secure' || storedTab === 'public') {
-                    localStorage.removeItem('kylrix_connect_active_tab');
-                    setActiveTabState(storedTab);
-                    if (onTabChange) onTabChange(storedTab);
-                }
-
-                const cachedSec = localStorage.getItem('kylrix_connect_cached_secure_v1');
-                if (cachedSec) {
-                    const parsed = JSON.parse(cachedSec);
-                    setConversations(parsed);
-                    conversationsRef.current = parsed;
-                }
-                const cachedThr = localStorage.getItem('kylrix_connect_cached_threads_v1');
-                if (cachedThr) {
-                    setGhostConversations(JSON.parse(cachedThr));
-                }
-            } catch (e) {
-                console.warn('[ChatList] Failed to parse cached conversations:', e);
+        if (typeof window === 'undefined') return;
+        try {
+            const storedTab = localStorage.getItem('kylrix_connect_active_tab');
+            if (storedTab === 'secure' || storedTab === 'public') {
+                localStorage.removeItem('kylrix_connect_active_tab');
+                setActiveTabState(storedTab);
+                if (onTabChange) onTabChange(storedTab);
             }
+        } catch (e) {
+            console.warn('[ChatList] Failed to restore active tab:', e);
         }
     }, [onTabChange]);
 
@@ -311,7 +331,7 @@ export const ChatList = ({
         const timer = setTimeout(() => {
             if (loading) {
                 try {
-                    const cachedSec = localStorage.getItem('kylrix_connect_cached_secure_v1');
+                    const cachedSec = localStorage.getItem(SECURE_CACHE_KEY);
                     if (cachedSec) {
                         const parsed = JSON.parse(cachedSec);
                         if (parsed.length > 0) {
@@ -335,7 +355,7 @@ export const ChatList = ({
         const timer = setTimeout(() => {
             if (loadingGhost) {
                 try {
-                    const cachedThr = localStorage.getItem('kylrix_connect_cached_threads_v1');
+                    const cachedThr = localStorage.getItem(THREADS_CACHE_KEY);
                     if (cachedThr) {
                         const parsed = JSON.parse(cachedThr);
                         if (parsed.length > 0) {
@@ -448,7 +468,7 @@ export const ChatList = ({
             mapped.sort((a: any, b: any) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime());
             
             if (typeof window !== 'undefined') {
-                localStorage.setItem('kylrix_connect_cached_threads_v1', JSON.stringify(mapped));
+                localStorage.setItem(THREADS_CACHE_KEY, JSON.stringify(mapped));
             }
             startTransition(() => {
                 setGhostConversations(mapped);
@@ -791,7 +811,7 @@ export const ChatList = ({
 
             console.log('[ChatList] Base conversations count:', sorted.length);
             if (typeof window !== 'undefined') {
-                localStorage.setItem('kylrix_connect_cached_secure_v1', JSON.stringify(sorted));
+                localStorage.setItem(SECURE_CACHE_KEY, JSON.stringify(sorted));
             }
             startTransition(() => {
                 setConversations(sorted);

@@ -35,8 +35,19 @@ const conversationPreviewCache = new Map<string, {
     lastMessageAt: string;
     lastMessageSenderId?: string | null;
 }>();
+const conversationsListCache = new Map<string, { rows: any[]; fetchedAt: number }>();
+const CONVERSATIONS_LIST_TTL_MS = 60_000;
+let conversationsFetchInflight: { userId: string; promise: Promise<{ total: number; rows: any[] }> } | null = null;
 const conversationRosterCache = new Map<string, any>();
 const conversationRosterListeners = new Set<(rows: any[]) => void>();
+
+export function invalidateConversationsListCache(userId?: string) {
+    if (userId) {
+        conversationsListCache.delete(userId);
+        return;
+    }
+    conversationsListCache.clear();
+}
 
 const arraysEqual = (left: string[], right: string[]) =>
     left.length === right.length && left.every((value, index) => value === right[index]);
@@ -608,6 +619,10 @@ export const ChatService = {
         conversationPreviewCache.clear();
     },
 
+    invalidateConversationsListCache(userId?: string) {
+        invalidateConversationsListCache(userId);
+    },
+
     async rewrapConversationKeys(conversationId: string, auth?: { jwt?: string; cookie?: string }) {
         if (!conversationId) return null;
         const repairResult = await callConversationRepairApi({
@@ -684,7 +699,38 @@ export const ChatService = {
         return conv;
     },
 
-    async getConversations(userId: string) {
+    async getConversations(userId: string, options?: { forceRefresh?: boolean }) {
+        if (!ecosystemSecurity.status.isUnlocked) {
+            return { total: 0, rows: [] as any[] };
+        }
+
+        const cached = conversationsListCache.get(userId);
+        if (
+            cached &&
+            !options?.forceRefresh &&
+            Date.now() - cached.fetchedAt < CONVERSATIONS_LIST_TTL_MS
+        ) {
+            return { total: cached.rows.length, rows: cached.rows };
+        }
+
+        if (conversationsFetchInflight?.userId === userId && !options?.forceRefresh) {
+            return conversationsFetchInflight.promise;
+        }
+
+        const promise = this._fetchConversations(userId).then((result) => {
+            conversationsListCache.set(userId, { rows: result.rows, fetchedAt: Date.now() });
+            return result;
+        }).finally(() => {
+            if (conversationsFetchInflight?.userId === userId) {
+                conversationsFetchInflight = null;
+            }
+        });
+
+        conversationsFetchInflight = { userId, promise };
+        return promise;
+    },
+
+    async _fetchConversations(userId: string) {
         console.log('[ChatService] getConversations for:', userId);
 
         let conversationRows: any[] = [];
@@ -698,7 +744,6 @@ export const ChatService = {
             total = response.total || 0;
         } catch (err) {
             console.error('[ChatService] getConversationsAction failed:', err);
-            // Fallback to legacy client-side check just in case, though it will likely be empty
             const legacy = await tablesDB.listRows(DB_ID, CONV_TABLE, [
                 Query.contains('participants', userId),
                 Query.limit(100)
@@ -708,7 +753,6 @@ export const ChatService = {
         }
 
         const memberRowsByConversation = new Map<string, string[]>();
-        // Initialize with participants already in the conversation object
         for (const conv of conversationRows) {
             if (Array.isArray(conv.participants)) {
                 memberRowsByConversation.set(conv.$id, conv.participants.filter(Boolean));
