@@ -19,11 +19,14 @@ import {
   Paper
 } from '@/lib/mui-tailwind/material';
 import {
-  Delete as DeleteIcon,
-  Save as SaveIcon,
-  InfoOutlined as InfoIcon,
-  PhotoCamera as PhotoCameraIcon
-} from '@/lib/mui-tailwind/icons';
+  Camera,
+  Trash2,
+  Save,
+  Info,
+  CheckCircle2,
+  Image as ImageIcon,
+  RotateCcw
+} from 'lucide-react';
 import { IdentityAvatar, IdentityName, computeIdentityFlags } from './IdentityBadge';
 import { secureUploadFile } from '@/lib/actions/client-ops';
 
@@ -366,112 +369,106 @@ export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps)
         </Alert>
       )}
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={6} alignItems={{ xs: 'center', md: 'flex-start' }}>
-        <Box sx={{ textAlign: 'center' }}>
-          {!profilePic && (
-            <>
-              <Box sx={{ position: 'relative', mb: 3 }}>
-                <IdentityAvatar
-                  src={user?.prefs?.profilePicId ? profilePicUrl : undefined}
-                  alt={name || user?.email || 'profile'}
-                  fallback={initials || 'U'}
-                  verified={identitySignals.verified}
-                  pro={identitySignals.pro}
-                  size={160}
-                  verifiedSize={26}
-                  borderRadius="28px"
-                />
-                <IconButton
-                  component="label"
-                  sx={{
-                    position: 'absolute',
-                    bottom: 8,
-                    right: 8,
-                    bgcolor: brandIndigo,
-                    color: 'white',
-                    '&:hover': { bgcolor: '#4f46e5' },
-                    boxShadow: '0 8px 16px rgba(0,0,0,0.4)',
-                    width: 40,
-                    height: 40,
-                    border: '2px solid #000'
-                  }}
-                >
-                  <input hidden accept="image/*" type="file" onChange={handleFileChange} />
-                  <PhotoCameraIcon sx={{ fontSize: 20 }} />
-                </IconButton>
-              </Box>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={8} alignItems={{ xs: 'center', md: 'flex-start' }}>
+        <Box sx={{ textAlign: 'center', position: 'relative' }}>
+          <Box sx={{ position: 'relative', mb: 3 }}>
+            <IdentityAvatar
+              src={profilePicUrl || (user?.prefs?.profilePicId ? profilePicUrl : undefined)}
+              userId={user?.$id}
+              alt={name || user?.email || 'profile'}
+              fallback={initials || 'U'}
+              verified={identitySignals.verified}
+              pro={identitySignals.pro}
+              size={180}
+              verifiedSize={28}
+              borderRadius="50%"
+              isPreview={!!profilePic}
+              sx={{
+                boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+              }}
+            />
+            
+            {/* Upload Floating Action Button */}
+            <IconButton
+              component="label"
+              sx={{
+                position: 'absolute',
+                bottom: 8,
+                right: 8,
+                bgcolor: brandIndigo,
+                color: 'white',
+                '&:hover': { bgcolor: '#4f46e5', transform: 'scale(1.1)' },
+                boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                width: 44,
+                height: 44,
+                border: '3px solid #161514',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                zIndex: 5,
+              }}
+            >
+              <input hidden accept="image/*" type="file" onChange={handleFileChange} />
+              <Camera size={20} />
+            </IconButton>
 
-              <Stack direction="row" spacing={1} justifyContent="center">
-                {user?.prefs?.profilePicId && (
-                  <Button
-                    size="small"
-                    variant="text"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={handleRemovePic}
-                    disabled={isRemovingPic || saving}
-                    sx={{ 
-                      borderRadius: '12px', 
-                      textTransform: 'none', 
-                      fontWeight: 700,
-                      '&:hover': { backgroundColor: 'rgba(239, 68, 68, 0.1)' }
-                    }}
-                  >
-                    Remove Photo
-                  </Button>
-                )}
-              </Stack>
-            </>
-          )}
+            {/* Clear/Reset selection if previewing */}
+            {profilePic && (
+              <IconButton
+                onClick={() => {
+                  setProfilePic(null);
+                  setProfilePicUrl(user?.prefs?.profilePicId ? storage.getFilePreview(AVATAR_BUCKET_ID, user.prefs.profilePicId, 320, 320).toString() : null);
+                }}
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  bgcolor: '#0A0908',
+                  color: 'white',
+                  '&:hover': { bgcolor: '#1C1A18', color: '#ef4444' },
+                  width: 32,
+                  height: 32,
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  zIndex: 5,
+                }}
+              >
+                <RotateCcw size={16} />
+              </IconButton>
+            )}
+          </Box>
 
-          {profilePic && profilePicUrl && (
-            <>
-              <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 700, textTransform: 'uppercase', mb: 1.5, fontFamily: '"JetBrains Mono", monospace' }}>
-                Preview
-              </Typography>
-              <Box sx={{ position: 'relative', mb: 3, display: 'inline-block' }}>
-                <IdentityAvatar
-                  src={profilePicUrl}
-                  alt={name || user?.email || 'profile'}
-                  fallback={initials || 'U'}
-                  isPreview={true}
-                  size={160}
-                  verifiedSize={26}
-                  borderRadius="28px"
-                />
-              </Box>
-              <Typography sx={{ fontSize: '0.75rem', color: 'rgba(99, 102, 241, 0.7)', mb: 2, fontFamily: '"JetBrains Mono", monospace', fontStyle: 'italic' }}>
-                Click &quot;Update Ecosystem Identity&quot; to save
-              </Typography>
+          <Stack direction="row" spacing={1} justifyContent="center">
+            {user?.prefs?.profilePicId && !profilePic && (
               <Button
                 size="small"
                 variant="text"
-                color="inherit"
-                onClick={() => {
-                  setProfilePic(null);
-                  setProfilePicUrl(null);
-                }}
-                disabled={saving}
+                color="error"
+                startIcon={<Trash2 size={16} />}
+                onClick={handleRemovePic}
+                disabled={isRemovingPic || saving}
                 sx={{ 
                   borderRadius: '12px', 
                   textTransform: 'none', 
-                  fontWeight: 700,
-                  color: 'rgba(255, 255, 255, 0.6)',
-                  '&:hover': { 
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                    color: 'rgba(255, 255, 255, 0.8)'
-                  }
+                  fontWeight: 800,
+                  fontSize: '0.75rem',
+                  letterSpacing: '0.02em',
+                  opacity: 0.6,
+                  '&:hover': { backgroundColor: 'rgba(239, 68, 68, 0.1)', opacity: 1 }
                 }}
               >
-                Discard Selected
+                REMOVE PHOTO
               </Button>
-            </>
+            )}
+          </Stack>
+          
+          {profilePic && (
+             <Typography sx={{ fontSize: '10px', fontWeight: 900, color: brandIndigo, mt: 2, textTransform: 'uppercase', letterSpacing: '0.1em', animation: 'pulse 2s infinite' }}>
+                Unsaved Preview
+             </Typography>
           )}
         </Box>
 
         <Stack spacing={4} sx={{ flex: 1, width: '100%' }}>
           <Box>
-            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 700, textTransform: 'uppercase', mb: 1, ml: 1, fontFamily: '"JetBrains Mono", monospace' }}>Display Name</Typography>
+            <Typography sx={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.3)', fontWeight: 900, textTransform: 'uppercase', mb: 1.5, ml: 0.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>Legal Identity</Typography>
             <TextField
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -481,21 +478,21 @@ export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps)
               sx={{
                 '& .MuiOutlinedInput-root': {
                   color: 'white',
-                  borderRadius: '16px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                  fontFamily: '"Space Grotesk", sans-serif',
-                  fontWeight: 600,
-                  fontSize: '1.1rem',
-                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.05)' },
-                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                  '&.Mui-focused fieldset': { borderColor: brandIndigo },
+                  borderRadius: '18px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.015)',
+                  fontFamily: 'var(--font-satoshi)',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.04)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.08)' },
+                  '&.Mui-focused fieldset': { borderColor: brandIndigo, borderWidth: '2px' },
                 }
               }}
             />
           </Box>
 
           <Box>
-            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 700, textTransform: 'uppercase', mb: 1, ml: 1, fontFamily: '"JetBrains Mono", monospace' }}>Ecosystem Handle</Typography>
+            <Typography sx={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.3)', fontWeight: 900, textTransform: 'uppercase', mb: 1.5, ml: 0.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>Ecosystem Handle</Typography>
             <TextField
               value={username}
               onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
@@ -503,32 +500,33 @@ export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps)
               variant="outlined"
               placeholder="username"
               InputProps={{
-                startAdornment: <Typography sx={{ color: brandIndigo, mr: 0.5, fontWeight: 900, fontSize: '1.2rem' }}>@</Typography>
+                startAdornment: <Typography sx={{ color: brandIndigo, mr: 1, fontWeight: 900, fontSize: '1.1rem', fontFamily: 'var(--font-mono)' }}>@</Typography>
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   color: 'white',
-                  borderRadius: '16px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                  fontFamily: '"JetBrains Mono", monospace',
-                  fontSize: '1rem',
-                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.05)' },
-                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                  '&.Mui-focused fieldset': { borderColor: brandIndigo },
+                  borderRadius: '18px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.015)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.04)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.08)' },
+                  '&.Mui-focused fieldset': { borderColor: brandIndigo, borderWidth: '2px' },
                 }
               }}
             />
             {user?.prefs?.last_username_edit && (
-              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.3)', mt: 1.5, ml: 1, display: 'flex', alignItems: 'center', gap: 0.75, fontFamily: '"JetBrains Mono", monospace', fontSize: '0.7rem' }}>
-                <InfoIcon sx={{ fontSize: '0.9rem', color: brandIndigo }} />
-                IDENTITY LAST SYNCED: {new Date(user.prefs.last_username_edit).toLocaleDateString().toUpperCase()}
+              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.25)', mt: 2, ml: 0.5, display: 'flex', alignItems: 'center', gap: 1, fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                <Info size={12} style={{ color: brandIndigo }} />
+                LAST PROTOCOL SYNC: {new Date(user.prefs.last_username_edit).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
               </Typography>
             )}
           </Box>
 
           <Box>
-            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 700, textTransform: 'uppercase', mb: 1, ml: 1, fontFamily: '"JetBrains Mono", monospace' }}>Privacy Settings</Typography>
-            <Paper sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.02)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <Typography sx={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.3)', fontWeight: 900, textTransform: 'uppercase', mb: 1.5, ml: 0.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>Presence & Visibility</Typography>
+            <Paper elevation={0} sx={{ p: 2.5, bgcolor: 'rgba(255, 255, 255, 0.01)', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.03)' }}>
                 <FormControlLabel
                     control={
                         <Switch 
@@ -541,49 +539,58 @@ export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps)
                         />
                     }
                     label={
-                        <Box>
-                            <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.9rem' }}>Show Online Status</Typography>
-                            <Typography variant="caption" sx={{ color: '#9B9691', display: 'block' }}>Allow others to see when you are active in the ecosystem.</Typography>
+                        <Box sx={{ ml: 1 }}>
+                            <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.85rem', letterSpacing: '-0.01em' }}>Broadcast Live Status</Typography>
+                            <Typography sx={{ color: 'white/40', fontSize: '0.75rem', fontWeight: 500, lineHeight: 1.4, mt: 0.25 }}>Enable real-time presence across Note, Flow, and Connect nodes.</Typography>
                         </Box>
                     }
+                    sx={{ margin: 0, width: '100%', alignItems: 'flex-start' }}
                 />
             </Paper>
           </Box>
 
           <Button
             variant="contained"
-            startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+            startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <Save size={18} />}
             onClick={handleSave}
             disabled={saving || (name === user.name && username === (user.prefs?.username || '') && isOnlineVisible === (profileRecord?.isOnlineVisible !== false) && !profilePic)}
             sx={{
-              py: 2,
-              borderRadius: '16px',
+              py: 2.25,
+              borderRadius: '18px',
               bgcolor: brandIndigo,
               color: 'white',
-              fontWeight: 800,
-              fontSize: '1rem',
-              textTransform: 'none',
-              boxShadow: `0 8px 24px ${alpha(brandIndigo, 0.2)}`,
+              fontWeight: 900,
+              fontSize: '0.9rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              boxShadow: `0 8px 32px ${alpha(brandIndigo, 0.25)}`,
+              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
               '&:hover': { 
                 bgcolor: '#4f46e5',
-                boxShadow: `0 12px 32px ${alpha(brandIndigo, 0.3)}`,
+                boxShadow: `0 12px 48px ${alpha(brandIndigo, 0.4)}`,
+                transform: 'translateY(-2px)'
               },
               '&.Mui-disabled': {
-                bgcolor: 'rgba(255, 255, 255, 0.03)',
+                bgcolor: 'rgba(255, 255, 255, 0.02)',
                 color: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.05)'
+                border: '1px solid rgba(255, 255, 255, 0.04)'
               }
             }}
           >
-            {saving ? 'Synchronizing Profile...' : 'Update Ecosystem Identity'}
+            {saving ? 'Synchronizing Ecosystem Identity...' : 'Commit Profile Changes'}
           </Button>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IdentityName verified={identitySignals.verified} sx={{ color: 'white', fontWeight: 800 }}>
-              {name || user?.email}
-            </IdentityName>
-            {identitySignals.pro && (
-              <Typography sx={{ color: '#6366F1', fontWeight: 800, fontSize: '0.8rem' }}>PRO</Typography>
-            )}
+          
+          <Box sx={{ pt: 1, borderTop: '1px solid rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+             <div className="flex items-center gap-2">
+                <IdentityName verified={identitySignals.verified} sx={{ color: 'white', fontWeight: 900, fontSize: '0.9rem' }}>
+                  {name || user?.email}
+                </IdentityName>
+                {identitySignals.pro && (
+                  <span className="bg-[#6366F1]/10 text-[#6366F1] text-[9px] font-black px-2 py-0.5 rounded-lg border border-[#6366F1]/20 uppercase tracking-widest">
+                    PRO
+                  </span>
+                )}
+             </div>
           </Box>
         </Stack>
       </Stack>
