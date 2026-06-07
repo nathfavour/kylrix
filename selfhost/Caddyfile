@@ -1,42 +1,56 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Kylrix — Caddyfile
 # Automatic HTTPS via Let's Encrypt / ZeroSSL
-# Domain is injected via {$DOMAIN} environment variable
+#
+# Environment variables (set in .env):
+#   DOMAIN          — Main app domain (e.g. kylrix.example.com)
+#   APPWRITE_DOMAIN — Appwrite API domain (e.g. api.example.com)
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ── Main Kylrix App ─────────────────────────────────────────────────────────
 {$DOMAIN:localhost} {
-	# ── Reverse proxy to the Next.js app ──
+	# Reverse proxy to the Next.js standalone server
 	reverse_proxy kylrix:3000 {
-		# Health checking — Caddy will stop sending traffic to unhealthy backends
-		health_uri /api/health
-		health_interval 30s
-		health_timeout 5s
-
-		# Proper headers for Next.js (SSR needs these for correct URL generation)
+		# Proper headers for SSR URL generation and auth cookies
 		header_up X-Real-IP {remote_host}
 		header_up X-Forwarded-For {remote_host}
 		header_up X-Forwarded-Proto {scheme}
 		header_up X-Forwarded-Host {host}
 	}
 
-	# ── Compression ──
+	# Compression
 	encode gzip zstd
 
-	# ── Security headers ──
+	# Security headers
 	header {
-		# Prevent MIME type sniffing
 		X-Content-Type-Options "nosniff"
-		# Clickjacking protection
 		X-Frame-Options "SAMEORIGIN"
-		# XSS protection (legacy browsers)
 		X-XSS-Protection "1; mode=block"
-		# Referrer policy
 		Referrer-Policy "strict-origin-when-cross-origin"
-		# Remove server identification
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 		-Server
 	}
 
-	# ── Logging ──
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+}
+
+# ── Appwrite API (bundled mode only) ────────────────────────────────────────
+# Routes Appwrite traffic including WebSocket realtime connections.
+# If using external Appwrite, remove or comment this block.
+{$APPWRITE_DOMAIN:appwrite.localhost} {
+	reverse_proxy appwrite:80 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
+
+	encode gzip zstd
+
 	log {
 		output stdout
 		format console
