@@ -47,6 +47,7 @@ import {
   tagResourceSecure,
   untagResourceSecure,
   getResourceTagsSecure,
+  getResourceCollaboratorsSecure,
   createGhostNoteChatSecure,
   listGhostNoteChatsSecure,
   getCrossSuggestionsSecure,

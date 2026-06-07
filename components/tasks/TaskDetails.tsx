@@ -29,10 +29,12 @@ import {
   initGoalDiscussion 
 } from '@/lib/actions/client-ops';
 import { createComment, listComments, getNote } from '@/lib/appwrite/note';
+import { formatNoteCreatedDate } from '@/lib/date-utils';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { useLayout } from '@/context/LayoutContext';
 import { useTask } from '@/context/TaskContext';
+import { useAI } from '@/hooks/useAI';
 import { client } from '@/lib/appwrite/client';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { usePresence } from '@/components/providers/PresenceProvider';
