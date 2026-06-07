@@ -926,6 +926,7 @@ export type Tasks = Models.Row & {
     keepPermission: boolean | null;
     isArchived: boolean | null;
     comments: string[] | null;
+    discussionId: string | null;
 }
 
 export type Forms = Models.Row & {
