@@ -633,8 +633,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     const taskQueries = [
       Query.equal('userId', uid),
       Query.limit(1000),
-      // Pruned non-existent 'isArchived' and 'comments' to prevent authoritative query failure
-      Query.select(['$id', 'userId', 'title', 'status', 'priority', 'dueDate', 'tags', '$createdAt', '$updatedAt', 'isPinned', 'parentId'])];
+      Query.select(['$id', 'userId', 'title', 'status', 'priority', 'dueDate', 'tags', '$createdAt', '$updatedAt', 'isPinned', 'isArchived', 'parentId', 'comments'])];
     const calQueries = [
       Query.equal('userId', uid),
       Query.limit(100),
