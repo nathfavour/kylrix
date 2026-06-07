@@ -1671,7 +1671,17 @@ export const Fab = React.forwardRef(({ children, className, sx, color, ...props 
   </button>
 ));
 Fab.displayName = 'Fab';
-export const Fade = ({ children, ...props }: any) => React.createElement('div', props, children);
+export const Fade = ({ children, in: inProp, timeout, sx, ...props }: any) => (
+  <div 
+    style={{ 
+        display: inProp === false ? 'none' : 'contents',
+        ...cleanSx(sx)
+    }} 
+    {...props}
+  >
+    {children}
+  </div>
+);
 export const FiberPin = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const FingerprintOutlined = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const Flag = ({ children, ...props }: any) => React.createElement('div', props, children);
@@ -2228,6 +2238,12 @@ export const ToggleOn = ({ children, ...props }: any) => React.createElement('di
 export const Undo = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const UploadFile = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const VerifiedUser = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const Zoom = ({ children, in: _in, ...props }: any) => React.createElement('div', props, children);
+export const Zoom = ({ children, in: _in, timeout, sx, ...props }: any) => React.createElement('div', { 
+    ...props, 
+    style: { 
+        display: _in === false ? 'none' : 'contents',
+        ...cleanSx(sx)
+    } 
+}, children);
 export const keyframes = (...args: any[]) => String(args[0] ?? '');
 export default {};
