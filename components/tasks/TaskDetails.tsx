@@ -23,22 +23,7 @@ import {
   MoreVertical,
   ChevronRight
 } from 'lucide-react';
-import { formatTime } from '@/lib/time-util';
-import { formatNoteCreatedDate } from '@/lib/date-utils';
-import { Query } from 'appwrite';
-import { useTask } from '@/context/TaskContext';
-import { Priority, TaskStatus } from '@/types';
-import { useLayout } from '@/context/LayoutContext';
-import { useAI } from '@/hooks/useAI';
-import { useAuth } from '@/context/auth/AuthContext';
-import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
-import { notes as noteApi } from '@/lib/kylrixflow';
-import UserSearch from '@/components/UserSearch';
-import { getResourceCollaboratorsSecure } from '@/lib/actions/secure-ops';
-import { account } from '@/lib/appwrite';
-import { UsersService } from '@/lib/services/users';
-import ProjectLinker from '@/components/projects/ProjectLinker';
-import type { CollaboratorPermission, TaskCollaborator } from '@/types';
+...
 import { 
   createGhostNoteForResource, 
   promoteGhostResourceThreadToStory,
@@ -149,75 +134,45 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
   const [showProjectLinker, setShowProjectLinker] = useState(false);
   const [pendingCollaboratorPermission, setPendingCollaboratorPermission] = useState<CollaboratorPermission>('write');
 
-  // Huddle Discussion State & Effects
+  // High-Fidelity Discussion State & Effects
   const { showSuccess, showError } = useToast();
   const [huddleMessages, setHuddleMessages] = useState<any[]>([]);
   const [huddleLoading, setHuddleLoading] = useState(false);
   const [huddleSending, setHuddleSending] = useState(false);
-  const [isHuddleInit, setIsHuddleInit] = useState(false);
-  const [huddleTimeRemaining, setHuddleTimeRemaining] = useState('');
   const huddleMessageEndRef = React.useRef<HTMLDivElement>(null);
 
-  // Check if Huddle is initialized and set timer countdown
-  React.useEffect(() => {
-    if (!taskId) return;
-    let active = true;
-
-    const checkHuddle = async () => {
-      try {
-        const note = await getNote(taskId);
-        if (!active) return;
-        if (note && note.metadata) {
-          setIsHuddleInit(true);
-          const noteMeta = JSON.parse(note.metadata);
-          const expiresAt = new Date(noteMeta.expiresAt).getTime();
-          const updateTimer = () => {
-            const diff = expiresAt - Date.now();
-            if (diff <= 0) {
-              setHuddleTimeRemaining('Expired');
-            } else {
-              const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-              const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-              setHuddleTimeRemaining(`${days}d ${hours}h remaining`);
-            }
-          };
-          updateTimer();
-        }
-      } catch (err) {
-        if (active) setIsHuddleInit(false);
-      }
-    };
-
-    checkHuddle();
-
-    return () => { active = false; };
-  }, [taskId]);
+  const discussionNoteId = task?.discussionId;
 
   // Load comments and subscribe to Appwrite comments
   React.useEffect(() => {
-    if (!taskId || !isHuddleInit) return;
+    if (!discussionNoteId) return;
     let active = true;
     setHuddleLoading(true);
 
-    const loadHuddleComments = async () => {
+    const loadDiscussionComments = async () => {
       try {
-        const res = await listComments(taskId);
+        const res = await listComments(discussionNoteId);
         if (!active) return;
         const msgs = await Promise.all(
           res.rows.map(async (row: any) => {
             let senderName = 'Collaborator';
+            let senderAvatar: string | null = null;
             if (user && row.userId === user.$id) {
               senderName = user.name || 'You';
             } else {
               try {
                 const profile = await AppwriteService.getProfile(row.userId);
-                if (profile) senderName = profile.name || 'Collaborator';
+                if (profile) {
+                    senderName = profile.name || 'Collaborator';
+                    senderAvatar = profile.avatar || profile.profilePicId || null;
+                }
               } catch {}
             }
             return {
               id: row.$id,
               senderId: row.userId,
               senderName,
+              senderAvatar,
               content: row.content,
               timestamp: new Date(row.createdAt).getTime(),
             };
@@ -227,13 +182,13 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
         msgs.sort((a: any, b: any) => a.timestamp - b.timestamp);
         setHuddleMessages(msgs);
       } catch (err) {
-        console.error('Failed to load huddle comments:', err);
+        console.error('Failed to load discussion comments:', err);
       } finally {
         if (active) setHuddleLoading(false);
       }
     };
 
-    loadHuddleComments();
+    loadDiscussionComments();
 
     const unsubscribe = client.subscribe(
       `databases.${APPWRITE_CONFIG.DATABASES.NOTE}.collections.comments.documents`,
@@ -242,20 +197,25 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
         const events = response.events;
         const payload = response.payload;
 
-        if (events.some((e: string) => e.includes('.create')) && payload.noteId === taskId) {
+        if (events.some((e: string) => e.includes('.create')) && payload.noteId === discussionNoteId) {
           let senderName = 'Collaborator';
+          let senderAvatar: string | null = null;
           if (user && payload.userId === user.$id) {
             senderName = user.name || 'You';
           } else {
             try {
               const profile = await AppwriteService.getProfile(payload.userId);
-              if (profile) senderName = profile.name || 'Collaborator';
+              if (profile) {
+                senderName = profile.name || 'Collaborator';
+                senderAvatar = profile.avatar || profile.profilePicId || null;
+              }
             } catch {}
           }
           const msg = {
             id: payload.$id,
             senderId: payload.userId,
             senderName,
+            senderAvatar,
             content: payload.content,
             timestamp: new Date(payload.createdAt).getTime(),
           };
@@ -271,33 +231,32 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
       active = false;
       unsubscribe();
     };
-  }, [taskId, isHuddleInit, user]);
+  }, [discussionNoteId, user]);
 
   React.useEffect(() => {
     huddleMessageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [huddleMessages]);
 
-  const handleInitHuddle = async () => {
+  const handleInitDiscussion = async () => {
     if (!task) return;
     setHuddleLoading(true);
     try {
-      await createGhostNoteForResource(taskId, 'task', `${task.title} Discussion`);
-      setIsHuddleInit(true);
-      showSuccess('Discussion huddle initialized!');
+      await initGoalDiscussion(task.id);
+      showSuccess('Goal discussion initialized!');
     } catch (err) {
-      console.error('Failed to init huddle:', err);
-      showError('Failed to initialize huddle.');
+      console.error('Failed to init discussion:', err);
+      showError('Failed to initialize discussion.');
     } finally {
       setHuddleLoading(false);
     }
   };
 
-  const handleSendHuddleMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || huddleSending) return;
+    if (!newComment.trim() || huddleSending || !discussionNoteId) return;
     setHuddleSending(true);
     try {
-      await createComment(taskId, newComment.trim());
+      await createComment(discussionNoteId, newComment.trim());
       setNewComment('');
     } catch (err) {
       console.error('Failed to send comment:', err);
@@ -785,71 +744,121 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
           </div>
         </div>
 
-        {/* Huddle Section */}
+        {/* Tags Section */}
+        {task.labels.length > 0 && (
+            <div className="px-1">
+                <span className="text-[10px] font-black text-[#A855F7] uppercase tracking-wider mb-2.5 block font-mono">Ecosystem Tags</span>
+                <div className="flex flex-wrap gap-2">
+                    {task.labels.map((labelId) => {
+                        const label = labels.find(l => l.id === labelId);
+                        return (
+                            <div 
+                                key={labelId}
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/5 text-[11px] font-bold text-white/60"
+                            >
+                                <TagIcon size={10} style={{ color: label?.color || '#9B9691' }} />
+                                <span>{label?.name || labelId}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        )}
+
+        {/* Discussion Section */}
         <div className="p-5 rounded-[28px] bg-[#0A0908] border border-white/5 shadow-[0_12px_32px_rgba(0,0,0,0.4)]">
           <div className="flex justify-between items-center mb-4">
-            <span className="text-[10px] font-black text-[#A855F7] uppercase tracking-wider font-mono">Public Huddle Thread</span>
-            {isHuddleInit && huddleTimeRemaining && (
-              <span className="text-xs font-bold text-[#F59E0B] font-mono">{huddleTimeRemaining}</span>
+            <div className="flex items-center gap-2">
+                <MessageSquare className="w-3.5 h-3.5 text-[#A855F7]" />
+                <span className="text-[10px] font-black text-[#A855F7] uppercase tracking-wider font-mono">Goal Discussion</span>
+            </div>
+            {discussionNoteId && (
+                <div className="flex items-center gap-1.5 text-[9px] font-black text-[#10B981] uppercase tracking-[0.15em] font-mono">
+                    <Activity size={10} className="animate-pulse" />
+                    <span>Live Secure Channel</span>
+                </div>
             )}
           </div>
 
-          {!isHuddleInit ? (
+          {!discussionNoteId ? (
             <div className="py-6 text-center">
-              <Globe className="w-6 h-6 text-[#A855F7] mx-auto mb-3" />
+              <Globe className="w-6 h-6 text-white/10 mx-auto mb-3" />
               <button
                 type="button"
-                onClick={handleInitHuddle}
-                className="px-4 py-2 bg-[#A855F7] text-[#0A0908] font-extrabold text-sm rounded-xl shadow-[0_4px_12px_rgba(168,85,247,0.2)] hover:bg-[#9333EA] hover:translate-y-[-1px] transition-all duration-200 font-satoshi"
+                onClick={handleInitDiscussion}
+                disabled={huddleLoading}
+                className="px-5 py-2.5 bg-[#A855F7] text-[#0A0908] font-black text-[11px] uppercase tracking-widest rounded-xl shadow-[0_8px_20px_-8px_rgba(168,85,247,0.4)] hover:bg-[#9333EA] hover:translate-y-[-1px] transition-all duration-200 font-satoshi flex items-center gap-2 mx-auto"
               >
-                Start Huddle
+                {huddleLoading ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} strokeWidth={3} />}
+                <span>Start Discussion</span>
               </button>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {huddleLoading ? (
+              {huddleLoading && !huddleMessages.length ? (
                 <div className="flex items-center justify-center py-6">
                   <div className="w-6 h-6 border-2 border-[#A855F7] border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : (
-                <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
                   {huddleMessages.length === 0 ? (
-                    <div className="text-xs text-white/30 italic py-4 text-center">No comments inside huddle. Send a message to start.</div>
+                    <div className="text-[11px] text-white/20 font-black uppercase tracking-widest py-8 text-center flex flex-col gap-2">
+                        <MessageSquare size={20} className="mx-auto opacity-10" />
+                        No parameters defined yet.
+                    </div>
                   ) : (
-                    huddleMessages.map((msg) => (
-                      <div key={msg.id} className={`flex flex-col gap-0.5 ${msg.senderId === user?.$id ? 'items-end' : 'items-start'}`}>
-                        <span className="text-[9px] font-bold text-white/30 font-mono">{msg.senderName}</span>
-                        <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed max-w-[85%] border ${
-                          msg.senderId === user?.$id
-                            ? 'bg-[#A855F7] border-[#A855F7]/20 text-[#0A0908] font-semibold'
-                            : 'bg-white/[0.02] border-white/5 text-[#F5F2ED]'
-                        }`}>
-                          {msg.content}
+                    huddleMessages.map((msg) => {
+                      const isOutgoing = msg.senderId === user?.$id;
+                      return (
+                        <div key={msg.id} className={`flex flex-col gap-1.5 ${isOutgoing ? 'items-end' : 'items-start'}`}>
+                           <div className={`flex items-center gap-2 ${isOutgoing ? 'flex-row-reverse' : 'flex-row'}`}>
+                                <IdentityAvatar
+                                    fileId={msg.senderAvatar}
+                                    alt={msg.senderName}
+                                    fallback={msg.senderName.slice(0, 1).toUpperCase()}
+                                    size={20}
+                                    borderRadius="50%"
+                                />
+                                <span className="text-[10px] font-black text-white/30 font-mono uppercase tracking-wider">{msg.senderName}</span>
+                           </div>
+                           <div 
+                             className={`px-3.5 py-2 rounded-2xl text-[13px] leading-relaxed max-w-[90%] border shadow-sm transition-all hover:shadow-md ${
+                               isOutgoing
+                                 ? 'bg-[#161412] border-[#23211F] border-right-[3px] border-r-[#A855F7] text-white font-medium'
+                                 : 'bg-[#161412] border-[#23211F] border-left-[3px] border-l-[#34322F] text-[#F5F2ED]'
+                             }`}
+                           >
+                             {msg.content}
+                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                   <div ref={huddleMessageEndRef} />
                 </div>
               )}
 
-              <form onSubmit={handleSendHuddleMessage} className="flex gap-2 mt-2 p-1 bg-white/[0.02] rounded-xl border border-white/5 items-center">
+              <form onSubmit={handleSendMessage} className="flex gap-2 mt-2 p-1.5 bg-[#1C1A18] rounded-2xl border border-white/5 items-center focus-within:border-[#A855F7]/30 transition-all">
                 <input
                   type="text"
-                  placeholder="Message..."
+                  placeholder="Message the team..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  className="w-full bg-transparent border-0 outline-none px-3 py-1.5 text-xs text-[#F5F2ED] focus:ring-0 focus:outline-none"
+                  className="w-full bg-transparent border-0 outline-none px-3 py-1.5 text-[13px] text-white font-medium placeholder:text-white/10 focus:ring-0 focus:outline-none"
                 />
                 <button
                   type="submit"
-                  disabled={huddleSending}
-                  className="p-1.5 text-[#A855F7] hover:text-white rounded-lg hover:bg-[#A855F7]/10 transition-colors shrink-0"
+                  disabled={huddleSending || !newComment.trim()}
+                  className={`p-2 rounded-xl transition-all shrink-0 ${
+                      newComment.trim() 
+                        ? 'bg-[#A855F7] text-[#0A0908] shadow-[0_4px_12px_-4px_rgba(168,85,247,0.4)]' 
+                        : 'text-white/10'
+                  }`}
                 >
                   {huddleSending ? (
-                    <div className="w-4 h-4 border-2 border-[#A855F7] border-t-transparent rounded-full animate-spin" />
+                    <RefreshCw className="animate-spin w-4 h-4" />
                   ) : (
-                    <Send className="w-4 h-4" />
+                    <Send className="w-4 h-4" strokeWidth={2.5} />
                   )}
                 </button>
               </form>
