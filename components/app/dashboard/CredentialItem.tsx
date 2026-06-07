@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Credentials } from '@/lib/appwrite/types';
-import { Shield, ExternalLink, Copy, Edit2, Trash2, MoreVertical, User, Lock, Pin, CheckSquare } from 'lucide-react';
+import { Shield, ExternalLink, Copy, Edit2, Trash2, MoreVertical, User, Lock, Pin, CheckSquare, Sparkles, ChevronRight, Share2, ShieldCheck, Key } from 'lucide-react';
+import { useContextMenu } from '@/components/ui/ContextMenuContext';
 
 export default function CredentialItem({
   credential,
@@ -27,25 +28,10 @@ export default function CredentialItem({
   isSelected?: boolean;
   onToggleSelect?: () => void;
 }) {
-  const [showActionMenu, setShowActionMenu] = useState(false);
-  const [showCopyMenu, setShowCopyMenu] = useState(false);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowActionMenu(false);
-        setShowCopyMenu(false);
-      }
-    };
-    if (showActionMenu || showCopyMenu) {
-      window.addEventListener('keydown', handleKeyDown);
-    }
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showActionMenu, showCopyMenu]);
+  const { openMenu } = useContextMenu();
 
   const handleCopy = (value: string) => {
     onCopy(value);
-    setShowCopyMenu(false);
   };
 
   const getFaviconUrl = (url: string | null | undefined) => {
@@ -60,6 +46,68 @@ export default function CredentialItem({
 
   const faviconUrl = getFaviconUrl(credential.url);
 
+  const contextMenuItems = [
+    { 
+        label: 'Identity', 
+        icon: <User size={16} />, 
+        submenu: [
+            { label: 'Copy Username', icon: <User size={16} />, onClick: () => handleCopy(credential.username || '') },
+            { label: 'Copy Secret', icon: <Lock size={16} className="text-[#10B981]" />, onClick: () => handleCopy(credential.password || '') },
+            { label: 'Copy URL', icon: <ExternalLink size={16} />, onClick: () => handleCopy(credential.url || '') },
+        ]
+    },
+    { 
+        label: 'Protection', 
+        icon: <ShieldCheck size={16} />, 
+        submenu: [
+            { label: credential.isPinned ? 'Unpin Secret' : 'Pin Secret', icon: <Pin size={16} className={credential.isPinned ? 'text-[#F59E0B]' : ''} />, onClick: () => onTogglePin?.() },
+            { label: 'AI Audit Security', icon: <Sparkles size={16} className="text-[#10B981]" />, onClick: () => { /* AI Logic */ } },
+        ]
+    },
+    { 
+        label: 'Synergy', 
+        icon: <Share2 size={16} />, 
+        submenu: [
+            { label: 'Share Access', icon: <Share2 size={16} />, onClick: () => { /* Share logic */ } },
+            { label: 'Manage Roster', icon: <Shield size={16} />, onClick: () => { /* Roster logic */ } },
+        ]
+    },
+    { 
+        label: 'Edit Record', 
+        icon: <Edit2 size={16} />, 
+        onClick: onEdit 
+    },
+    { 
+        label: 'Delete', 
+        icon: <Trash2 size={16} className="text-[#FF453A]" />, 
+        onClick: onDelete,
+        variant: 'destructive' as const
+    }
+  ];
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openMenu({
+        x: e.clientX,
+        y: e.clientY,
+        items: contextMenuItems,
+        appType: 'vault'
+    });
+  };
+
+  const handleMoreClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    openMenu({
+        x: rect.left,
+        y: rect.bottom + 8,
+        items: contextMenuItems,
+        appType: 'vault'
+    });
+  };
+
   return (
     <div
       onClick={() => {
@@ -69,6 +117,7 @@ export default function CredentialItem({
           onClick();
         }
       }}
+      onContextMenu={handleContextMenu}
       className={`group px-[18px] py-[14px] mb-3 rounded-[24px] border cursor-pointer transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center gap-[12px] shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),0_2px_3px_-3px_rgba(37,35,33,0.9)] ${
         isSelected 
           ? 'bg-[#1C1A18] border-[#10B981]/40 shadow-[0_8px_10px_-8px_rgba(0,0,0,1),0_6px_8px_-6px_rgba(37,35,33,1.0)]' 
@@ -121,119 +170,12 @@ export default function CredentialItem({
 
       {/* Actions */}
       <div className="relative flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-        {/* Desktop Actions */}
-        <div className="hidden sm:flex items-center gap-1">
-          <button 
-            onClick={() => handleCopy(credential.username || '')}
-            title="Copy Username"
-            className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            <User className="w-[18px] h-[18px]" />
-          </button>
-
-          <button 
-            onClick={() => handleCopy(credential.password || '')}
-            title="Copy Secret"
-            className="p-1.5 rounded-lg text-[#10B981] hover:bg-[#10B981]/10 transition-colors"
-          >
-            <Lock className="w-[18px] h-[18px]" />
-          </button>
-
-          <button 
-            onClick={onEdit}
-            title="Edit Record"
-            className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            <Edit2 className="w-[18px] h-[18px]" />
-          </button>
-
-          <button 
-            onClick={onDelete}
-            title="Delete"
-            className="p-1.5 rounded-lg text-white/15 hover:text-[#FF453A] hover:bg-[#FF453A]/5 transition-colors"
-          >
-            <Trash2 className="w-[18px] h-[18px]" />
-          </button>
-        </div>
-
-        {/* Mobile Actions */}
-        <div className="flex sm:hidden items-center gap-1">
-          <button 
-            onClick={() => setShowCopyMenu(!showCopyMenu)}
-            className="p-1.5 rounded-lg text-[#10B981] hover:bg-[#10B981]/10 transition-colors"
-          >
-            <Copy className="w-5 h-5" />
-          </button>
-          <button 
-            onClick={() => setShowActionMenu(!showActionMenu)}
-            className="p-1.5 rounded-lg text-[#9B9691] hover:bg-white/5 transition-colors"
-          >
-            <MoreVertical className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Copy Dropdown Menu */}
-        {showCopyMenu && (
-          <>
-            <div 
-              className="fixed inset-0 z-40" 
-              onClick={(e) => { e.stopPropagation(); setShowCopyMenu(false); }} 
-            />
-            <div 
-              className="absolute right-0 top-8 z-50 min-w-[200px] py-1 bg-[#161412] border border-[#34322F] rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-1 duration-150"
-            >
-              <button 
-                onClick={() => { handleCopy(credential.username || ''); }} 
-                className="w-full text-left py-2.5 px-5 flex items-center gap-3 hover:bg-white/5 transition-colors text-white font-semibold text-xs"
-              >
-                <User className="w-4.5 h-4.5 text-[#9B9691]" />
-                <span>Copy Username</span>
-              </button>
-              <button 
-                onClick={() => { handleCopy(credential.password || ''); }} 
-                className="w-full text-left py-2.5 px-5 flex items-center gap-3 hover:bg-white/5 transition-colors text-[#10B981] font-semibold text-xs"
-              >
-                <Lock className="w-4.5 h-4.5 text-[#10B981]" />
-                <span>Copy Secret</span>
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* Action Dropdown Menu */}
-        {showActionMenu && (
-          <>
-            <div 
-              className="fixed inset-0 z-40" 
-              onClick={(e) => { e.stopPropagation(); setShowActionMenu(false); }} 
-            />
-            <div 
-              className="absolute right-0 top-8 z-50 min-w-[180px] py-1 bg-[#161412] border border-[#34322F] rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-1 duration-150"
-            >
-              <button 
-                onClick={() => { onEdit(); setShowActionMenu(false); }} 
-                className="w-full text-left py-2.5 px-5 flex items-center gap-3 hover:bg-white/5 transition-colors text-white font-semibold text-xs"
-              >
-                <Edit2 className="w-4.5 h-4.5 text-[#9B9691]" />
-                <span>Edit Record</span>
-              </button>
-              <button 
-                onClick={() => { onTogglePin?.(); setShowActionMenu(false); }} 
-                className="w-full text-left py-2.5 px-5 flex items-center gap-3 hover:bg-white/5 transition-colors text-white font-semibold text-xs"
-              >
-                <Pin className={`w-4.5 h-4.5 ${credential.isPinned ? 'text-[#F59E0B]' : 'text-[#9B9691]'}`} />
-                <span>{credential.isPinned ? 'Unpin Secret' : 'Pin Secret'}</span>
-              </button>
-              <button 
-                onClick={() => { onDelete(); setShowActionMenu(false); }} 
-                className="w-full text-left py-2.5 px-5 flex items-center gap-3 hover:bg-[#FF453A]/10 transition-colors text-[#FF453A] font-semibold text-xs"
-              >
-                <Trash2 className="w-4.5 h-4.5 text-[#FF453A]" />
-                <span>Delete</span>
-              </button>
-            </div>
-          </>
-        )}
+        <button 
+          onClick={handleMoreClick}
+          className="p-1.5 rounded-lg text-[#9B9691] hover:text-white hover:bg-white/5 transition-all duration-200"
+        >
+          <MoreVertical className="w-5 h-5" />
+        </button>
       </div>
     </div>
   );

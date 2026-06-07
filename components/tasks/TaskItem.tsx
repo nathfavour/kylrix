@@ -14,7 +14,11 @@ import {
   Video,
   Pin,
   Check,
-  UserPlus as AssignIcon
+  UserPlus as AssignIcon,
+  Sparkles,
+  Settings,
+  ChevronRight,
+  Folder
 } from 'lucide-react';
 import { formatTime, isToday, isTomorrow, isPast, isThisWeek } from '@/lib/time-util';
 import { Task, Priority } from '@/types';
@@ -84,51 +88,66 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
 
   const contextMenuItems = [
     { 
+        label: 'Synergy', 
+        icon: <Sparkles size={16} className="text-[#A855F7]" />,
+        submenu: [
+            { 
+                label: 'Assign Goal', 
+                icon: <AssignIcon size={16} />, 
+                onClick: () => openUnified('share-note', {
+                    resourceId: task.id,
+                    resourceType: 'goal',
+                    resourceTitle: task.title,
+                    actorName: user?.name || 'A Kylrix User'
+                })
+            },
+            { 
+                label: 'Start Huddle', 
+                icon: <Video size={16} />, 
+                onClick: () => {
+                    const participantIds = Array.from(new Set([task.creatorId, ...(task.assigneeIds || [])].filter(Boolean)));
+                    openCallLauncher({
+                      source: 'task',
+                      taskId: task.id,
+                      participantIds,
+                      title: task.title ? `Task Huddle: ${task.title}` : 'Task Huddle',
+                    });
+                }
+            },
+        ]
+    },
+    { 
+        label: 'Workflow', 
+        icon: <Settings size={16} />,
+        submenu: [
+            { 
+                label: 'Duplicate', 
+                icon: <Copy size={16} />, 
+                onClick: () => {
+                    addTask({
+                        title: `${task.title} (Copy)`,
+                        description: task.description,
+                        status: task.status,
+                        priority: task.priority,
+                        projectId: task.projectId,
+                        labels: task.labels,
+                        dueDate: task.dueDate
+                    });
+                }
+            },
+            { 
+                label: 'Archive', 
+                icon: <Archive size={16} />, 
+                onClick: () => updateTask(task.id, { isArchived: true })
+            },
+        ]
+    },
+    { 
         label: 'Edit Task', 
         icon: <Edit size={16} />, 
         onClick: () => {
             selectTask(task.id);
             openSecondarySidebar('task', task.id);
-        }
-    },
-    { 
-        label: 'Duplicate', 
-        icon: <Copy size={16} />, 
-        onClick: () => {
-            // Implementation logic preserved
-        }
-    },
-    { 
-        label: 'Archive', 
-        icon: <Archive size={16} />, 
-        onClick: () => updateTask(task.id, { isArchived: true })
-    },
-    { 
-        label: task.isPinned ? "Unpin Goal" : "Pin Goal", 
-        icon: <Pin size={16} className={task.isPinned ? 'text-[#F59E0B]' : ''} />, 
-        onClick: () => togglePinTask(task.id)
-    },
-    { 
-        label: 'Assign Goal', 
-        icon: <AssignIcon size={16} />, 
-        onClick: () => openUnified('share-note', {
-            resourceId: task.id,
-            resourceType: 'goal',
-            resourceTitle: task.title,
-            actorName: user?.name || 'A Kylrix User'
-        })
-    },
-    { 
-        label: 'Start Huddle', 
-        icon: <Video size={16} />, 
-        onClick: () => {
-            const participantIds = Array.from(new Set([task.creatorId, ...(task.assigneeIds || [])].filter(Boolean)));
-            openCallLauncher({
-              source: 'task',
-              taskId: task.id,
-              participantIds,
-              title: task.title ? `Task Huddle: ${task.title}` : 'Task Huddle',
-            });
         }
     },
     { 

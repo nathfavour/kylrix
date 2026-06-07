@@ -19,15 +19,18 @@ import {
 
 type KylrixApp = 'root' | 'accounts' | 'kylrix' | 'vault' | 'flow' | 'note' | 'connect';
 
+interface ContextMenuItem {
+  label: string;
+  icon?: React.ReactNode;
+  onClick?: () => void;
+  submenu?: ContextMenuItem[];
+  variant?: 'default' | 'destructive';
+}
+
 interface MenuState {
   x: number;
   y: number;
-  items: Array<{
-    label: string;
-    icon?: React.ReactNode;
-    onClick: () => void;
-    variant?: 'default' | 'destructive';
-  }>;
+  items: ContextMenuItem[];
   appType?: KylrixApp;
 }
 

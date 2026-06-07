@@ -269,16 +269,30 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
   };
 
   const contextMenuItems = [
-    { label: pinned ? 'Unpin' : 'Pin', icon: <PinIcon size={16} className={pinned ? 'rotate-45 text-[#EC4899]' : ''} />, onClick: () => { handlePinToggle(); } },
-    ...(isPublic ? [{ label: 'Copy Share Link', icon: <LinkIcon size={16} />, onClick: () => { handleCopyShareLink(); } }, { label: 'Change Public Link', icon: <RefreshIcon size={16} />, onClick: () => { handleRotatePublicLink(); } }] : []),
-    { label: isPublic ? 'Make Private' : 'Make Public', icon: isPublic ? <PrivateIcon size={16} /> : <Unlock size={16} />, onClick: () => { handleTogglePublic(); } },
+    { 
+      label: 'Global Presence', 
+      icon: <PublicIcon size={16} />, 
+      submenu: [
+        { label: isPublic ? 'Make Private' : 'Make Public', icon: isPublic ? <PrivateIcon size={16} /> : <Unlock size={16} />, onClick: () => { handleTogglePublic(); } },
+        ...(isPublic ? [
+            { label: 'Copy Share Link', icon: <LinkIcon size={16} />, onClick: () => { handleCopyShareLink(); } }, 
+            { label: 'Change Public Link', icon: <RefreshIcon size={16} />, onClick: () => { handleRotatePublicLink(); } }
+        ] : []),
+      ]
+    },
+    ...(isPro ? [
+      { 
+        label: 'Intelligence', 
+        icon: <Sparkles size={16} className="text-[#6366F1]" />, 
+        submenu: [
+            { label: 'AI Summarize', icon: <SummarizeIcon size={16} className="text-[#6366F1]" />, onClick: () => { handleAIAction('summarize'); } },
+            { label: 'AI Fix Grammar', icon: <GrammarIcon size={16} className="text-[#6366F1]" />, onClick: () => { handleAIAction('grammar'); } },
+            { label: 'Convert To Todo', icon: <TodoIcon size={16} className="text-[#6366F1]" />, onClick: () => { handleCreateTodo(); } }
+        ]
+      }
+    ] : []),
     { label: 'Duplicate', icon: <DuplicateIcon size={16} />, onClick: () => { handleDuplicate(); } },
     { label: 'Add Paywall', icon: <LocalOfferIcon size={16} className="text-[#EC4899]" />, onClick: () => { setIsPaywallDialogOpen(true); } },
-    ...(isPro ? [
-      { label: 'AI Summarize', icon: <SummarizeIcon size={16} className="text-[#6366F1]" />, onClick: () => { handleAIAction('summarize'); } },
-      { label: 'AI Fix Grammar', icon: <GrammarIcon size={16} className="text-[#6366F1]" />, onClick: () => { handleAIAction('grammar'); } },
-      { label: 'Convert To Todo', icon: <TodoIcon size={16} className="text-[#6366F1]" />, onClick: () => { handleCreateTodo(); } }
-    ] : []),
     { label: 'Share with...', icon: <ShareIcon size={16} />, onClick: () => setIsShareDrawerOpen(true) },
     { label: 'Delete', icon: <TrashIcon size={16} className="text-red-500" />, onClick: () => setIsDeleteDrawerOpen(true), variant: 'destructive' as const }
   ];
