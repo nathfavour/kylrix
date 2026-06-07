@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import {
+  DEFAULT_AUTHENTICATED_ROUTE,
+  DEFAULT_GUEST_ROUTE,
+  isValidAppResumePath,
+  LAST_ROUTE_COOKIE,
+  resolveAuthenticatedEntryPath,
+} from '@/lib/ecosystem/resume-route';
 
 /**
  * KYLRIX APPLICATION LAYER PROTECTION
@@ -20,8 +27,32 @@ const MAX_RAPID_RELOADS = 30;         // Max page loads within the window
 const RELOAD_WINDOW_MS = 5_000;       // 5-second sliding window
 const MAX_REDIRECT_DEPTH = 5;         // Max chained redirects before circuit-breaker fires
 
+function hasAuthSessionHint(request: NextRequest): boolean {
+  if (request.cookies.get('kylrix_pulse_v2')) return true;
+  return request.cookies.getAll().some((cookie) => cookie.name.startsWith('a_session_'));
+}
+
+function readResumePathFromCookie(request: NextRequest): string | null {
+  const raw = request.cookies.get(LAST_ROUTE_COOKIE)?.value;
+  if (!raw) return null;
+  try {
+    const path = decodeURIComponent(raw);
+    return isValidAppResumePath(path) ? path : null;
+  } catch {
+    return null;
+  }
+}
+
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+
+  // Kill the landing page — instant entry routing before any client JS loads.
+  if ((pathname === '/' || pathname === '') && !searchParams.has('stay')) {
+    const target = hasAuthSessionHint(request)
+      ? resolveAuthenticatedEntryPath(readResumePathFromCookie(request))
+      : DEFAULT_GUEST_ROUTE;
+    return NextResponse.redirect(new URL(target, request.url));
+  }
 
   // Skip static assets, API routes, and Next.js internals entirely — zero overhead
   if (

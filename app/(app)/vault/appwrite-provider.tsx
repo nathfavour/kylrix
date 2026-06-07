@@ -56,6 +56,14 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
   // Fetch current user and check master password status
   const fetchUser = useCallback(async (isRetry = false, retryCount = 0) => {
     if (typeof window === 'undefined') return;
+    const { hasAuthSessionHint } = await import('@/lib/appwrite/client');
+    if (!isRetry && !hasAuthSessionHint()) {
+      setUser(null);
+      setNeedsMasterPassword(false);
+      setLoading(false);
+      setIsAuthReady(true);
+      return null;
+    }
     if (!isRetry) setLoading(true);
     try {
       const account = getCurrentUserSnapshot() ?? await getCurrentUser(isRetry);
@@ -300,6 +308,12 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
   // Initial load and authentication check orchestration
   useEffect(() => {
     const initAuth = async () => {
+      const { hasAuthSessionHint } = await import('@/lib/appwrite/client');
+      if (!hasAuthSessionHint()) {
+        setLoading(false);
+        setIsAuthReady(true);
+        return;
+      }
       try {
         await fetchUser(false);
       } catch (err: unknown) {

@@ -677,10 +677,11 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         // 1. Proactive Hydration (RxDB Substrate)
         const tasksKey = `f_tasks_${userId}`;
         const calsKey = `f_calendars_${userId}`;
+        const COLD_START_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days authoritative window
 
         const [cachedTasksRes, cachedCalsRes] = await Promise.all([
-            getCachedDataAsync<any>(tasksKey),
-            getCachedDataAsync<any>(calsKey)
+            getCachedDataAsync<any>(tasksKey, COLD_START_TTL),
+            getCachedDataAsync<any>(calsKey, COLD_START_TTL)
         ]);
 
         if (cachedTasksRes || cachedCalsRes) {

@@ -90,6 +90,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 document.head.appendChild(s);
               }
             } catch(e) {}
+
+            try {
+              if (location.pathname === '/' && !/[?&]stay(?:=|$)/.test(location.search)) {
+                var hasPulse = document.documentElement.getAttribute('data-kylrix-pulse') === 'true';
+                var hasSession = document.cookie.indexOf('a_session_') !== -1;
+                var dest = '/send';
+                if (hasPulse || hasSession) {
+                  dest = '/connect/chats';
+                  try {
+                    var hist = localStorage.getItem('kylrix_ecosystem_state_tracker');
+                    if (hist) {
+                      var routes = JSON.parse(hist);
+                      for (var i = 0; i < routes.length; i++) {
+                        var p = routes[i] && routes[i].path;
+                        if (p && p !== '/' && p.indexOf('/send') !== 0 && p.indexOf('/note/shared') !== 0) {
+                          dest = p;
+                          break;
+                        }
+                      }
+                    }
+                  } catch (e) {}
+                }
+                location.replace(dest);
+              }
+            } catch(e) {}
           })();
         `}} />
         

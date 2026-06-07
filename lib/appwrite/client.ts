@@ -219,7 +219,32 @@ let currentUserInFlight: Promise<any | null> | null = null;
 const currentUserListeners = new Set<(user: any | null) => void>();
 const CURRENT_USER_CACHE_TTL = 30000; // 30 seconds for passive reads
 const CURRENT_USER_FORCE_TTL = 2000;  // 2 seconds to dedupe identical forced refreshes
+const CURRENT_USER_NETWORK_TIMEOUT_MS = 4000;
 const CURRENT_USER_CACHE_KEY = 'kylrix_flow_current_user_v2';
+
+function withNetworkTimeout<T>(promise: Promise<T>, ms = CURRENT_USER_NETWORK_TIMEOUT_MS): Promise<T> {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('account.get timeout')), ms);
+        promise.then(
+            (value) => {
+                clearTimeout(timer);
+                resolve(value);
+            },
+            (error) => {
+                clearTimeout(timer);
+                reject(error);
+            }
+        );
+    });
+}
+
+/** Fast local signal — skip network auth probes when nothing suggests a session. */
+export function hasAuthSessionHint(): boolean {
+    if (typeof window === 'undefined') return false;
+    if (getKylrixPulse()) return true;
+    if (getCurrentUserSnapshot()) return true;
+    return document.cookie.includes('a_session_');
+}
 
 function canUseStorage() {
     return typeof window !== 'undefined';
@@ -446,7 +471,11 @@ export async function getCurrentUser(force = false): Promise<any | null> {
         return currentUserInFlight;
     }
 
-    currentUserInFlight = account.get()
+    if (!force && !hasAuthSessionHint()) {
+        return null;
+    }
+
+    currentUserInFlight = withNetworkTimeout(account.get())
         .then((user) => {
             const forcedAt = force ? Date.now() : (currentUserCache?.lastForcedAt);
             currentUserCache = { 
@@ -487,16 +516,8 @@ export function onCurrentUserChanged(listener: (user: any | null) => void) {
     };
 }
 
-export const globalSessionPromise = typeof window !== 'undefined'
-    ? (async () => {
-        try {
-            const hasCookie = document.cookie.includes('a_session');
-            if (!hasCookie) return null;
-            return await getCurrentUser();
-        } catch (_error) {
-            return null;
-        }
-    })()
+export const globalSessionPromise = typeof window !== 'undefined' && hasAuthSessionHint()
+    ? getCurrentUser().catch(() => null)
     : Promise.resolve(null);
 
 // --- USER SESSION ---

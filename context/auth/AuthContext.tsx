@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { getCurrentUser, account, getKylrixPulse, setKylrixPulse, clearKylrixPulse, invalidateCurrentUserCache, onCurrentUserChanged } from '@/lib/appwrite';
+import { getCurrentUser, account, getKylrixPulse, setKylrixPulse, clearKylrixPulse, invalidateCurrentUserCache, onCurrentUserChanged, hasAuthSessionHint } from '@/lib/appwrite';
 import { getEcosystemUrl } from '@/lib/ecosystem';
 
 interface User {
@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return null;
   });
   
-  const [isLoading, setIsLoading] = useState(!getKylrixPulse());
+  const [isLoading, setIsLoading] = useState(() => hasAuthSessionHint());
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [idmWindowOpen, setIDMWindowOpen] = useState(false);
   const idmWindowRef = useRef<Window | null>(null);
@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const timeout = setTimeout(() => {
         cleanup();
         resolve(false);
-      }, 5000);
+      }, 2500);
 
       const handleIframeMessage = (event: MessageEvent) => {
         if (event.origin !== `https://${authSubdomain}.${domain}`) return;
@@ -107,6 +107,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const refreshUser = useCallback(async (forceRefresh = false): Promise<User | null> => {
     try {
+      if (!forceRefresh && !hasAuthSessionHint()) {
+        setUser(null);
+        setIsLoading(false);
+        return null;
+      }
+
       // 1. Get from cache first (very fast)
       const session = await getCurrentUser(false);
       if (session) {
@@ -141,7 +147,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return session as any;
       }
 
-      const wasSilentlyAuthed = await attemptSilentAuthRef.current?.();
+      const wasSilentlyAuthed = hasAuthSessionHint()
+        ? await attemptSilentAuthRef.current?.()
+        : false;
 
       if (wasSilentlyAuthed) {
         const retrySession = await getCurrentUser(true);
