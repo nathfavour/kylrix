@@ -7901,6 +7901,13 @@
                     "required": false,
                     "array": false,
                     "default": null
+                },
+                {
+                    "key": "isPinned",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
                 }
             ],
             "indexes": [
@@ -7935,6 +7942,19 @@
                     "columns": [
                         "userId",
                         "isGuest"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_cals_pinned",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isPinned"
                     ],
                     "orders": [
                         "ASC",
@@ -8094,6 +8114,22 @@
                     "required": false,
                     "array": false,
                     "default": null
+                },
+                {
+                    "key": "isArchived",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "comments",
+                    "type": "string",
+                    "required": false,
+                    "array": true,
+                    "size": 5000,
+                    "default": null,
+                    "encrypt": false
                 }
             ],
             "indexes": [
@@ -8141,6 +8177,19 @@
                     "columns": [
                         "userId",
                         "isPinned"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "idx_tasks_archived",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "isArchived"
                     ],
                     "orders": [
                         "ASC",
