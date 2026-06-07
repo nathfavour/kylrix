@@ -4,15 +4,21 @@ import { createSystemClient, createSystemTablesDB } from '@/lib/appwrite-admin';
 import { createServerClient } from '@/lib/appwrite/server';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { Permission, Role, Query } from 'node-appwrite';
+import { z } from 'zod';
+import { JWTSchema } from '@/lib/validations/schemas';
 
 /**
  * Stage 1: Initial Connect
  * Generates a pairing code, creates a transient connection row, and returns the deep link.
  */
 export async function initializeTelegramConnection(jwt?: string, forceRegenerate = false) {
+  // Rigorous runtime validation
+  const validatedJwt = JWTSchema.parse(jwt);
+  const validatedForce = z.boolean().default(false).parse(forceRegenerate);
+
   try {
     const { getActor } = await import('./secure-ops');
-    const actor = await getActor(jwt);
+    const actor = await getActor(validatedJwt);
     if (!actor?.$id) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -37,7 +43,7 @@ export async function initializeTelegramConnection(jwt?: string, forceRegenerate
     }
 
     // If already verified and not forcing a reset, return early with current status
-    if (!forceRegenerate && existingDoc?.is_verified) {
+    if (!validatedForce && existingDoc?.is_verified) {
         return {
             success: true,
             isVerified: true,
@@ -46,7 +52,7 @@ export async function initializeTelegramConnection(jwt?: string, forceRegenerate
         };
     }
 
-    if (!forceRegenerate && existingDoc && !existingDoc.is_verified && existingDoc.pair_code) {
+    if (!validatedForce && existingDoc && !existingDoc.is_verified && existingDoc.pair_code) {
       const updatedAtTime = new Date(existingDoc.$updatedAt).getTime();
       const nowTime = Date.now();
       const threeMinutesInMs = 3 * 60 * 1000;
@@ -127,9 +133,12 @@ export async function initializeTelegramConnection(jwt?: string, forceRegenerate
  * Checks if the current user's Telegram connection is verified.
  */
 export async function checkTelegramConnection(jwt?: string) {
+  // Rigorous runtime validation
+  const validatedJwt = JWTSchema.parse(jwt);
+
   try {
     const { getActor } = await import('./secure-ops');
-    const actor = await getActor(jwt);
+    const actor = await getActor(validatedJwt);
     if (!actor?.$id) {
       return { success: false, error: 'Unauthorized' };
     }

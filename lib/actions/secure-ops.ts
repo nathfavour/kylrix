@@ -31,7 +31,14 @@ import {
   CreateRowSchema,
   UpdateRowSchema,
   CRUDParamsSchema,
-  ListParamsSchema 
+  ListParamsSchema,
+  NoteSchema,
+  ProjectSchema,
+  EventSchema,
+  FormSchema,
+  TokenOperationSchema,
+  TelemetrySchema,
+  EphemeralNoteSchema
 } from '@/lib/validations/schemas';
 
 /**
@@ -1977,23 +1984,26 @@ export async function createNoteSecure(data: any, jwt?: string) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
 
+  // Rigorous runtime validation
+  const validated = NoteSchema.parse(data);
+
   // Mathematically tie the create operation to the current user
-  if (!data) {
-    data = {};
-  }
-  data.userId = actor.$id;
+  const noteData: any = {
+    ...validated,
+    userId: actor.$id,
+  };
 
   const isCreateAllowed = await verifyResourcePermissionSecure({
     actorId: actor.$id,
     action: 'create',
     ownerFields: ['userId'],
-    data,
+    data: noteData,
   });
   if (!isCreateAllowed) {
     throw new Error('Forbidden: Create operation must be mathematically tied to the current user');
   }
 
-  const contentLength = (data.content || '').length;
+  const contentLength = (noteData.content || '').length;
   const BASE_NOTE_LIMIT = 655350;
   const PRO_NOTE_LIMIT = 655350000;
 
@@ -2005,7 +2015,7 @@ export async function createNoteSecure(data: any, jwt?: string) {
       throw new Error('Note content exceeds maximum allowed limit');
     }
     // Anything beyond the base limit is considered an article
-    data.isArticle = true;
+    noteData.isArticle = true;
   }
 
   const tables = createSystemTablesDB();
@@ -2157,7 +2167,7 @@ export async function createNoteSecure(data: any, jwt?: string) {
     syncTags,
   });
 
-  const note = await noteCreationServiceServer.createNote(data);
+  const note = await noteCreationServiceServer.createNote(noteData);
   return JSON.parse(JSON.stringify(note));
 }
 
@@ -2751,17 +2761,20 @@ export async function createProjectSecure(data: any, jwt?: string) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
 
+  // Rigorous runtime validation
+  const validated = ProjectSchema.parse(data);
+
   // Mathematically tie the create operation to the current user
-  if (!data) {
-    data = {};
-  }
-  data.ownerId = actor.$id;
+  const projectData: any = {
+    ...validated,
+    ownerId: actor.$id,
+  };
 
   const isCreateAllowed = await verifyResourcePermissionSecure({
     actorId: actor.$id,
     action: 'create',
     ownerFields: ['ownerId'],
-    data,
+    data: projectData,
   });
   if (!isCreateAllowed) {
     throw new Error('Forbidden: Create operation must be mathematically tied to the current user');
@@ -2782,7 +2795,7 @@ export async function createProjectSecure(data: any, jwt?: string) {
   // 1. Native Appwrite Team: Premium High-Performance Read-Access
   if (isPro) {
       try {
-          await teams.create(projectId, data.name || data.title || 'New Project');
+          await teams.create(projectId, projectData.name || 'New Project');
           // Add creator as owner
           await teams.createMembership(projectId, ['owner'], undefined, actor.$id);
           // Add high-performance team permission
@@ -4606,15 +4619,20 @@ export async function createRowSecure(
   permissions?: string[],
   jwt?: string
 ) {
+  // Rigorous runtime validation
+  const validated = CreateRowSchema.parse({ databaseId, tableId, data, permissions });
+  const { databaseId: dbId, tableId: tblId, data: rowData } = validated;
+  let perms = validated.permissions;
+
   // 1. Check if it's an anonymous-friendly form submission
   let isAnonymousFormSubmission = false;
-  if (tableId === 'formSubmissions' && data && data.formId) {
+  if (tblId === 'formSubmissions' && rowData && (rowData as any).formId) {
     try {
       const tables = createSystemTablesDB();
       const form = await tables.getRow({
         databaseId: APPWRITE_CONFIG.DATABASES.FLOW,
         tableId: APPWRITE_CONFIG.TABLES.FLOW.FORMS,
-        rowId: data.formId,
+        rowId: (rowData as any).formId,
       });
       if (form && form.status === 'published') {
         let settings: any = {};
@@ -4642,84 +4660,90 @@ export async function createRowSecure(
   }
 
   // 3. Security checks and payload preparation
-  if (data && typeof data === 'object') {
-    const isSpecializedTable = await getIsSpecializedTable(tableId);
+  if (rowData && typeof rowData === 'object') {
+    const isSpecializedTable = await getIsSpecializedTable(tblId);
 
     if (!isSpecializedTable) {
-      if (data.userId && data.userId !== actor.$id) {
+      if ((rowData as any).userId && (rowData as any).userId !== actor?.$id) {
         throw new Error('Forbidden: Cannot create resource for another user');
       }
-      if (data.ownerId && data.ownerId !== actor.$id) {
+      if ((rowData as any).ownerId && (rowData as any).ownerId !== actor?.$id) {
         throw new Error('Forbidden: Cannot create resource for another user');
       }
-      if (!data.userId && !data.ownerId) {
-        data.userId = actor.$id;
+      if (!(rowData as any).userId && !(rowData as any).ownerId && actor?.$id) {
+        (rowData as any).userId = actor.$id;
       }
     } else {
       // Specialized Table Policies on creation
-      if (tableId === 'Collaborators' || tableId === 'collaborators') {
-        const noteIdStr = String(data.noteId || '');
+      if (tblId === 'Collaborators' || tblId === 'collaborators') {
+        const noteIdStr = String((rowData as any).noteId || '');
         if (noteIdStr.startsWith('task:')) {
           const taskId = noteIdStr.replace('task:', '');
           const isAllowed = await verifyResourcePermissionSecure({
             databaseId: APPWRITE_CONFIG.DATABASES.FLOW,
             tableId: APPWRITE_CONFIG.TABLES.FLOW.TASKS,
             rowId: taskId,
-            actorId: actor.$id,
+            actorId: actor?.$id,
             action: 'update',
           });
           if (!isAllowed) throw new Error('Forbidden: Insufficient permissions on parent task');
         }
-      } else if (tableId === 'formSubmissions') {
+      } else if (tblId === 'formSubmissions') {
         let metadata: any = {};
         try {
-          metadata = typeof data.metadata === 'string' ? JSON.parse(data.metadata) : data.metadata || {};
+          metadata = typeof (rowData as any).metadata === 'string' ? JSON.parse((rowData as any).metadata) : (rowData as any).metadata || {};
         } catch (_) {}
         if (metadata.isDraft) {
           if (!actor || !actor.$id) throw new Error('Unauthorized: Drafts require authentication');
-          if (data.submitterId && data.submitterId !== actor.$id) {
+          if ((rowData as any).submitterId && (rowData as any).submitterId !== actor.$id) {
             throw new Error('Forbidden: Cannot create draft for another user');
           }
-          data.submitterId = actor.$id;
+          (rowData as any).submitterId = actor.$id;
         } else {
           // It's a real submission
           if (actor && actor.$id) {
-            if (data.submitterId && data.submitterId !== actor.$id) {
+            if ((rowData as any).submitterId && (rowData as any).submitterId !== actor.$id) {
               throw new Error('Forbidden: Submitter ID must match authenticated actor');
             }
-            data.submitterId = actor.$id;
+            (rowData as any).submitterId = actor.$id;
           } else {
             // Anonymous Submission
             if (!isAnonymousFormSubmission) {
               throw new Error('Unauthorized: Authentication required for this form');
             }
-            data.submitterId = null;
+            (rowData as any).submitterId = null;
           }
         }
-      } else if (tableId === 'wallets') {
-        if (data.ownerId && data.ownerId !== `user:${actor.$id}`) {
+      } else if (tblId === 'wallets') {
+        if ((rowData as any).ownerId && (rowData as any).ownerId !== `user:${actor?.$id}`) {
           throw new Error('Forbidden: Cannot create wallet for another user');
         }
-        data.ownerId = `user:${actor.$id}`;
-      } else if (tableId === 'walletMap') {
-        if (data.userId && data.userId !== actor.$id) {
+        if (actor?.$id) {
+            (rowData as any).ownerId = `user:${actor.$id}`;
+        }
+      } else if (tblId === 'walletMap') {
+        if ((rowData as any).userId && (rowData as any).userId !== actor?.$id) {
           throw new Error('Forbidden: Cannot map wallet for another user');
         }
-        data.userId = actor.$id;
-      } else if (tableId === 'follows') {
-        if (data.followerId && data.followerId !== actor.$id) {
+        if (actor?.$id) {
+            (rowData as any).userId = actor.$id;
+        }
+      } else if (tblId === 'follows') {
+        if ((rowData as any).followerId && (rowData as any).followerId !== actor?.$id) {
           throw new Error('Forbidden: Cannot follow user as someone else');
         }
-        data.followerId = actor.$id;
+        if (actor?.$id) {
+            (rowData as any).followerId = actor.$id;
+        }
         
         // Grant read permission to both follower and following
-        if (!permissions) {
-            permissions = [
-                Permission.read(Role.user(data.followerId)),
-                Permission.read(Role.user(data.followingId))
+        if (!perms && actor?.$id) {
+            perms = [
+                Permission.read(Role.user((rowData as any).followerId)),
+                Permission.read(Role.user((rowData as any).followingId))
             ];
         }
-      } else if (tableId === 'activityLog') {
+      } else if (tblId === 'activityLog') {
         if (!actor && !isAnonymousFormSubmission) {
           throw new Error('Unauthorized: Notification logging requires an active session');
         }
@@ -4729,18 +4753,17 @@ export async function createRowSecure(
 
   const tables = createSystemTablesDB();
   // Setup permissions
-  let perms = permissions;
   if (!perms) {
     if (actor && actor.$id) {
       perms = [Permission.read(Role.user(actor.$id))];
     } else {
       let formOwnerId: string | null = null;
-      if (data && data.formId) {
+      if (rowData && (rowData as any).formId) {
         try {
           const form = await tables.getRow({
             databaseId: APPWRITE_CONFIG.DATABASES.FLOW,
             tableId: APPWRITE_CONFIG.TABLES.FLOW.FORMS,
-            rowId: data.formId,
+            rowId: (rowData as any).formId,
           });
           formOwnerId = form?.userId || null;
         } catch (_) {}
@@ -4749,15 +4772,15 @@ export async function createRowSecure(
     }
   }
   
-  const customRowId = (data && data.$id) ? String(data.$id) : ID.unique();
-  const dataCopy = data ? { ...data } : {};
+  const customRowId = (rowData && (rowData as any).$id) ? String((rowData as any).$id) : ID.unique();
+  const dataCopy = rowData ? { ...rowData } : {};
   if (dataCopy.$id) {
     delete dataCopy.$id;
   }
 
   const result = await Registry.getDatabase().createRow<any>(
-    databaseId,
-    tableId,
+    dbId,
+    tblId,
     customRowId,
     dataCopy,
     perms,
@@ -4775,16 +4798,20 @@ export async function updateRowSecure(
   permissions?: string[],
   jwt?: string
 ) {
+  // Rigorous runtime validation
+  const validated = UpdateRowSchema.parse({ databaseId, tableId, rowId, data, permissions });
+  const { databaseId: dbId, tableId: tblId, rowId: rId, data: rowData, permissions: perms } = validated;
+
   const actor = await getActor(jwt);
   if (!actor || !actor.$id) throw new Error('Unauthorized');
 
   let isAllowed = false;
-  const isSpecializedTable = await getIsSpecializedTable(tableId);
+  const isSpecializedTable = await getIsSpecializedTable(tblId);
 
   if (isSpecializedTable) {
-    const existingRow = await getRowCached({ databaseId, tableId, rowId });
+    const existingRow = await getRowCached({ databaseId: dbId, tableId: tblId, rowId: rId });
 
-    if (tableId === 'Collaborators' || tableId === 'collaborators') {
+    if (tblId === 'Collaborators' || tblId === 'collaborators') {
       const noteIdStr = String(existingRow?.noteId || '');
       if (noteIdStr.startsWith('task:')) {
         const taskId = noteIdStr.replace('task:', '');
@@ -4798,7 +4825,7 @@ export async function updateRowSecure(
       } else {
         isAllowed = true;
       }
-    } else if (tableId === 'formSubmissions') {
+    } else if (tblId === 'formSubmissions') {
       const isSubmitter = existingRow?.submitterId === actor.$id;
       if (isSubmitter) {
         isAllowed = true;
@@ -4814,36 +4841,36 @@ export async function updateRowSecure(
           });
         }
       }
-    } else if (tableId === 'wallets') {
+    } else if (tblId === 'wallets') {
       isAllowed = existingRow?.ownerId === `user:${actor.$id}`;
-    } else if (tableId === 'walletMap') {
+    } else if (tblId === 'walletMap') {
       isAllowed = existingRow?.userId === actor.$id;
-    } else if (tableId === 'follows') {
+    } else if (tblId === 'follows') {
       isAllowed = existingRow?.followerId === actor.$id || existingRow?.followingId === actor.$id;
-    } else if (tableId === 'activityLog') {
+    } else if (tblId === 'activityLog') {
       isAllowed = existingRow?.userId === actor.$id;
     } else {
       isAllowed = true;
     }
   } else {
     isAllowed = await verifyResourcePermissionSecure({
-      databaseId,
-      tableId: tableId,
-      rowId: rowId,
+      databaseId: dbId,
+      tableId: tblId,
+      rowId: rId,
       actorId: actor.$id,
       action: 'update',
-      data,
+      data: rowData,
     });
   }
 
   if (!isAllowed) throw new Error('Forbidden');
 
   const result = await Registry.getDatabase().updateRow<any>(
-    databaseId,
-    tableId,
-    rowId,
-    data,
-    permissions,
+    dbId,
+    tblId,
+    rId,
+    rowData,
+    perms,
     { forceSystem: true }
   );
 
@@ -4856,16 +4883,20 @@ export async function deleteRowSecure(
   rowId: string,
   jwt?: string
 ) {
+  // Rigorous runtime validation
+  const validated = CRUDParamsSchema.parse({ databaseId, tableId, rowId });
+  const { databaseId: dbId, tableId: tblId, rowId: rId } = validated;
+
   const actor = await getActor(jwt);
   if (!actor || !actor.$id) throw new Error('Unauthorized');
 
   let isAllowed = false;
-  const isSpecializedTable = await getIsSpecializedTable(tableId);
+  const isSpecializedTable = await getIsSpecializedTable(tblId);
 
   if (isSpecializedTable) {
-    const existingRow = await getRowCached({ databaseId, tableId, rowId });
+    const existingRow = await getRowCached({ databaseId: dbId, tableId: tblId, rowId: rId });
 
-    if (tableId === 'Collaborators' || tableId === 'collaborators') {
+    if (tblId === 'Collaborators' || tblId === 'collaborators') {
       const noteIdStr = String(existingRow?.noteId || '');
       if (noteIdStr.startsWith('task:')) {
         const taskId = noteIdStr.replace('task:', '');
@@ -4879,7 +4910,7 @@ export async function deleteRowSecure(
       } else {
         isAllowed = true;
       }
-    } else if (tableId === 'formSubmissions') {
+    } else if (tblId === 'formSubmissions') {
       const isSubmitter = existingRow?.submitterId === actor.$id;
       if (isSubmitter) {
         isAllowed = true;
@@ -4895,22 +4926,22 @@ export async function deleteRowSecure(
           });
         }
       }
-    } else if (tableId === 'wallets') {
+    } else if (tblId === 'wallets') {
       isAllowed = existingRow?.ownerId === `user:${actor.$id}`;
-    } else if (tableId === 'walletMap') {
+    } else if (tblId === 'walletMap') {
       isAllowed = existingRow?.userId === actor.$id;
-    } else if (tableId === 'follows') {
+    } else if (tblId === 'follows') {
       isAllowed = existingRow?.followerId === actor.$id || existingRow?.followingId === actor.$id;
-    } else if (tableId === 'activityLog') {
+    } else if (tblId === 'activityLog') {
       isAllowed = existingRow?.userId === actor.$id;
     } else {
       isAllowed = true;
     }
   } else {
     isAllowed = await verifyResourcePermissionSecure({
-      databaseId,
-      tableId: tableId,
-      rowId: rowId,
+      databaseId: dbId,
+      tableId: tblId,
+      rowId: rId,
       actorId: actor.$id,
       action: 'delete',
     });
@@ -4919,12 +4950,12 @@ export async function deleteRowSecure(
   if (!isAllowed) throw new Error('Forbidden');
 
   try {
-    await executeCascadeDeleteSecure(databaseId, tableId, rowId);
+    await executeCascadeDeleteSecure(dbId, tblId, rId);
   } catch (err: any) {
     console.error('deleteRowSecure cascade cleanup failed:', err);
   }
 
-  await Registry.getDatabase().deleteRow(databaseId, tableId, rowId, { forceSystem: true });
+  await Registry.getDatabase().deleteRow(dbId, tblId, rId, { forceSystem: true });
   const result = { success: true };
 
   return JSON.parse(JSON.stringify(result));

@@ -13,25 +13,22 @@ import { Query } from 'node-appwrite';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { createSystemTablesDB } from '@/lib/appwrite-admin';
 
-export async function createMessageAction(payload: {
-  conversationId: string;
-  senderId: string;
-  content: string;
-  type: string;
-  attachments?: string[];
-  replyTo?: string;
-  jwt?: string;
-}) {
-  const conversationId = String(payload.conversationId || '').trim();
-  const content = String(payload.content || '').trim();
-  const type = String(payload.type || 'text').trim();
-  
-  if (!conversationId) throw new Error('conversationId is required');
-  if (!content) throw new Error('content is required');
+import { 
+  ChatMessageSchema, 
+  ReactionSchema, 
+  JoinRequestSchema,
+  IDSchema,
+  JWTSchema
+} from '@/lib/validations/schemas';
+
+export async function createMessageAction(payload: any) {
+  // Rigorous runtime validation
+  const validated = ChatMessageSchema.parse(payload);
+  const validatedJwt = JWTSchema.parse(payload.jwt);
 
   // Retrieve the authenticated actor securely on the server
   const { getActor } = await import('./secure-ops');
-  const actor = await getActor(payload.jwt);
+  const actor = await getActor(validatedJwt);
   
   if (!actor?.$id) {
     throw new Error('Unauthorized');
@@ -39,10 +36,7 @@ export async function createMessageAction(payload: {
 
   // Force senderId to match the authenticated actor's ID to prevent any spoofing
   const securedPayload = {
-    ...payload,
-    conversationId,
-    content,
-    type,
+    ...validated,
     senderId: actor.$id,
     actorId: actor.$id,
   };
@@ -50,31 +44,20 @@ export async function createMessageAction(payload: {
   return await createMessageInternal(securedPayload);
 }
 
-export async function toggleReactionAction(payload: {
-  conversationId: string;
-  messageId: string;
-  emoji: string;
-  action: 'POST' | 'DELETE';
-  jwt?: string;
-}) {
-  const conversationId = String(payload.conversationId || '').trim();
-  const messageId = String(payload.messageId || '').trim();
-  const emoji = String(payload.emoji || '').trim();
-  
-  if (!conversationId || !messageId || !emoji) throw new Error('Missing required fields');
+export async function toggleReactionAction(payload: any) {
+  // Rigorous runtime validation
+  const validated = ReactionSchema.parse(payload);
+  const validatedJwt = JWTSchema.parse(payload.jwt);
 
   const { getActor } = await import('./secure-ops');
-  const actor = await getActor(payload.jwt);
+  const actor = await getActor(validatedJwt);
   
   if (!actor?.$id) {
     throw new Error('Unauthorized');
   }
 
   return await toggleReactionInternal({
-    ...payload,
-    conversationId,
-    messageId,
-    emoji,
+    ...validated,
     actorId: actor.$id,
   });
 }
@@ -84,20 +67,25 @@ export async function repairConversationAction(payload: {
   conversationId?: string;
   jwt?: string;
 }) {
+  // Rigorous runtime validation
+  const validatedJwt = JWTSchema.parse(payload.jwt);
+  const validatedUserId = IDSchema.optional().parse(payload.userId);
+  const validatedConversationId = IDSchema.optional().parse(payload.conversationId);
+
   // Retrieve actor to ensure they can only repair their own profiles unless they are admin
   const { getActor } = await import('./secure-ops');
-  const actor = await getActor(payload.jwt);
+  const actor = await getActor(validatedJwt);
   
   if (!actor?.$id) {
     throw new Error('Unauthorized');
   }
 
   const isAdmin = actor.isAdmin;
-  const targetUserId = payload.userId && isAdmin ? payload.userId : actor.$id;
+  const targetUserId = validatedUserId && isAdmin ? validatedUserId : actor.$id;
 
   const securedPayload = {
-    ...payload,
     userId: targetUserId,
+    conversationId: validatedConversationId,
     actorId: actor.$id,
     actorLabels: isAdmin ? ['admin'] : [],
   };
@@ -109,15 +97,19 @@ export async function clearConversationFootprintAction(payload: {
   conversationId: string;
   jwt?: string;
 }) {
+  // Rigorous runtime validation
+  const validatedConversationId = IDSchema.parse(payload.conversationId);
+  const validatedJwt = JWTSchema.parse(payload.jwt);
+
   const { getActor } = await import('./secure-ops');
-  const actor = await getActor(payload.jwt);
+  const actor = await getActor(validatedJwt);
   
   if (!actor?.$id) {
     throw new Error('Unauthorized');
   }
 
   return await clearConversationFootprintInternal({
-    ...payload,
+    conversationId: validatedConversationId,
     actorId: actor.$id,
   });
 }
@@ -126,15 +118,19 @@ export async function nuclearWipeConversationAction(payload: {
   conversationId: string;
   jwt?: string;
 }) {
+  // Rigorous runtime validation
+  const validatedConversationId = IDSchema.parse(payload.conversationId);
+  const validatedJwt = JWTSchema.parse(payload.jwt);
+
   const { getActor } = await import('./secure-ops');
-  const actor = await getActor(payload.jwt);
+  const actor = await getActor(validatedJwt);
   
   if (!actor?.$id) {
     throw new Error('Unauthorized');
   }
 
   return await nuclearWipeConversationInternal({
-    ...payload,
+    conversationId: validatedConversationId,
     actorId: actor.$id,
   });
 }
@@ -143,37 +139,38 @@ export async function deleteConversationFullyAction(payload: {
   conversationId: string;
   jwt?: string;
 }) {
+  // Rigorous runtime validation
+  const validatedConversationId = IDSchema.parse(payload.conversationId);
+  const validatedJwt = JWTSchema.parse(payload.jwt);
+
   const { getActor } = await import('./secure-ops');
-  const actor = await getActor(payload.jwt);
+  const actor = await getActor(validatedJwt);
   
   if (!actor?.$id) {
     throw new Error('Unauthorized');
   }
 
   return await deleteConversationFullyInternal({
-    ...payload,
+    conversationId: validatedConversationId,
     actorId: actor.$id,
   });
 }
 
-export async function joinRequestAction(payload: {
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
-  resourceType: string,
-  resourceId: string,
-  requesterId?: string,
-  action?: 'accept' | 'reject',
-  jwt?: string;
-}) {
+export async function joinRequestAction(payload: any) {
+  // Rigorous runtime validation
+  const validated = JoinRequestSchema.parse(payload);
+  const validatedJwt = JWTSchema.parse(payload.jwt);
+
   // Retrieve the authenticated actor securely on the server
   const { getActor } = await import('./secure-ops');
-  const actor = await getActor(payload.jwt);
+  const actor = await getActor(validatedJwt);
 
   const securedPayload = {
-    ...payload,
+    ...validated,
     actorId: actor?.$id,
   };
 
-  if (payload.method === 'POST') {
+  if (validated.method === 'POST') {
     if (!actor?.$id) {
       throw new Error('Unauthorized');
     }
@@ -188,10 +185,14 @@ export async function getConversationsAction(payload: {
   userId: string;
   jwt?: string;
 }) {
+  // Rigorous runtime validation
+  const validatedUserId = IDSchema.parse(payload.userId);
+  const validatedJwt = JWTSchema.parse(payload.jwt);
+
   const { getActor } = await import('./secure-ops');
-  const actor = await getActor(payload.jwt);
+  const actor = await getActor(validatedJwt);
   
-  if (!actor?.$id || actor.$id !== payload.userId) {
+  if (!actor?.$id || actor.$id !== validatedUserId) {
     console.warn('[getConversationsAction] Actor mismatch or not found. Returning empty list.');
     return { total: 0, rows: [] };
   }
@@ -206,7 +207,7 @@ export async function getConversationsAction(payload: {
     const memberRows = await tables.listRows({
       databaseId: DB_ID,
       tableId: CONV_MEMBERS_TABLE,
-      queries: [Query.equal('userId', payload.userId), Query.limit(1000)]
+      queries: [Query.equal('userId', validatedUserId), Query.limit(1000)]
     }).catch(() => ({ total: 0, rows: [] }));
 
     const conversationIds = Array.from(new Set(
@@ -230,7 +231,7 @@ export async function getConversationsAction(payload: {
       databaseId: DB_ID,
       tableId: CONV_TABLE,
       queries: [
-        Query.contains('participants', payload.userId),
+        Query.contains('participants', validatedUserId),
         Query.limit(100)
       ]
     }).catch(() => ({ total: 0, rows: [] }));

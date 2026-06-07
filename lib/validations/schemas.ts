@@ -77,3 +77,76 @@ export const FormSchema = z.object({
   isPublic: z.boolean().optional(),
 });
 
+export const CallParamsSchema = z.object({
+  callId: IDSchema,
+  status: z.string().optional(),
+});
+
+export const DiscussionParamsSchema = z.object({
+  taskId: IDSchema.optional(),
+  projectId: IDSchema.optional(),
+  title: z.string().optional(),
+});
+
+export const TelegramParamsSchema = z.object({
+  chatId: z.union([z.string(), z.number()]),
+  message: z.string().min(1),
+  parseMode: z.enum(['Markdown', 'HTML', 'MarkdownV2']).default('Markdown'),
+});
+
+export const CallInputSchema = z.object({
+  conversationId: IDSchema,
+  participantIds: z.array(IDSchema).min(1),
+  type: z.enum(['audio', 'video']).default('audio'),
+  title: z.string().optional(),
+  durationMinutes: z.number().optional().default(120),
+  scope: z.enum(['direct', 'group']).optional(),
+});
+
+export const ChatMessageSchema = z.object({
+  conversationId: IDSchema,
+  content: z.string().min(1),
+  type: z.string().default('text'),
+  attachments: z.array(z.string()).optional(),
+  replyTo: z.string().optional(),
+});
+
+export const ReactionSchema = z.object({
+  conversationId: IDSchema,
+  messageId: IDSchema,
+  emoji: z.string().min(1),
+  action: z.enum(['POST', 'DELETE']),
+});
+
+export const JoinRequestSchema = z.object({
+  method: z.enum(['GET', 'POST', 'PATCH', 'DELETE']),
+  resourceType: z.string(),
+  resourceId: IDSchema,
+  requesterId: IDSchema.optional(),
+  action: z.enum(['accept', 'reject']).optional(),
+});
+
+export const TokenOperationSchema = z.object({
+  operation: z.enum(['mint', 'transfer', 'fine', 'claim']),
+  userId: IDSchema,
+  amount: z.number().positive(),
+  metadata: z.record(z.any()).optional(),
+  jwt: JWTSchema,
+});
+
+export const TelemetrySchema = z.object({
+  action: z.string(),
+  app: z.string(),
+  niche: z.string(),
+  metadata: z.record(z.any()).optional(),
+});
+
+export const EphemeralNoteSchema = z.object({
+  noteId: IDSchema,
+  secret: z.string().min(1),
+});
+
+
+
+
+

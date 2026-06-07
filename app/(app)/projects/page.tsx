@@ -48,13 +48,10 @@ import {
   Globe,
   LayoutGrid,
   FileText,
-  Activity,
   Play,
   RotateCcw,
   UserCheck,
-  Terminal,
   Loader2,
-  CheckCircle2,
 } from 'lucide-react';
 import { useFAB } from '@/context/FABContext';
 import { ProjectsService } from '@/lib/appwrite/projects';
@@ -387,9 +384,6 @@ export default function ProjectsPage() {
   const { open } = useUnifiedDrawer();
   const { 
     savedWorkflows,
-    isRecording, 
-    startRecording, 
-    stopRecording, 
     updateWorkflow 
   } = useLocalContext();
   const { user } = useAuth();
@@ -418,10 +412,6 @@ export default function ProjectsPage() {
   // Workflow Simulator States
   const [runningWorkflow, setRunningWorkflow] = useState<string | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1);
-
-  // Recorder states
-  const [wfName, setWfName] = useState('');
-  const [wfDesc, setWfDesc] = useState('');
 
   // Sync workflows from Appwrite database on mount
   useEffect(() => {
@@ -507,18 +497,6 @@ export default function ProjectsPage() {
       localStorage.setItem('kylrix_saved_workflows', JSON.stringify(nextSaved));
     }
     showSuccess("Workflow deleted");
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
-  };
-
-  const handleStopRecording = () => {
-    const name = wfName.trim() || 'Custom Flow';
-    const desc = wfDesc.trim() || 'Automated chain';
-    stopRecording(name, desc, 'workspace');
-    showSuccess(`Workflow "${name}" saved!`);
-    setWfName('');
-    setWfDesc('');
     setTimeout(() => {
       window.location.reload();
     }, 500);
@@ -1017,7 +995,7 @@ export default function ProjectsPage() {
           </Stack>
 
           {/* Flagship Workspace Cockpit Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 gap-6 mb-8">
             {/* Quick Draft Note & Actions */}
             <div className="bg-[#161412] rounded-[32px] border border-white/6 p-6 flex flex-col justify-between min-h-[260px] relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-64 h-64 bg-[#EC4899]/5 rounded-full filter blur-3xl pointer-events-none group-hover:bg-[#EC4899]/8 transition-all duration-500" />
@@ -1072,106 +1050,6 @@ export default function ProjectsPage() {
                     </>
                   )}
                 </button>
-              </div>
-            </div>
-
-            {/* Live Telemetry & Workflow Recorder */}
-            <div className="bg-[#161412] rounded-[32px] border border-white/6 p-6 flex flex-col justify-between min-h-[260px] relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#6366F1]/5 rounded-full filter blur-3xl pointer-events-none group-hover:bg-[#6366F1]/8 transition-all duration-500" />
-              
-              <div className="space-y-4 flex-1">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-white text-sm font-black tracking-tight leading-tight flex items-center gap-2 font-mono select-none">
-                    <Terminal size={18} className="text-[#6366F1]" />
-                    Ecosystem Telemetry
-                  </h3>
-                  <div className="flex items-center gap-1.5 bg-[#6366F1]/10 px-2 py-0.5 rounded border border-[#6366F1]/20 select-none">
-                    <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-[#FF453A] animate-pulse' : 'bg-[#10B981]'}`} />
-                    <span className="text-[9px] text-white/70 font-black font-mono uppercase">
-                      {isRecording ? 'RECORDING ACTIVE' : 'RECORDER READY'}
-                    </span>
-                  </div>
-                </div>
-                
-                {isRecording ? (
-                  <div className="bg-[#0A0908]/60 border border-[#FF453A]/20 rounded-2xl p-4 space-y-3">
-                    <p className="text-xs text-white/60 font-semibold leading-relaxed">
-                      Currently recording telemetry interactions. Go anywhere in the app to record actions, then customize below:
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="text"
-                        value={wfName}
-                        onChange={(e) => setWfName(e.target.value)}
-                        placeholder="Workflow Name..."
-                        className="w-full bg-[#0A0908] border border-white/5 rounded-xl px-3 py-2 text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-[#FF453A]/50 transition-all"
-                      />
-                      <input
-                        type="text"
-                        value={wfDesc}
-                        onChange={(e) => setWfDesc(e.target.value)}
-                        placeholder="Description..."
-                        className="w-full bg-[#0A0908] border border-white/5 rounded-xl px-3 py-2 text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-[#FF453A]/50 transition-all"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2 text-xs text-white/50 leading-relaxed font-sans select-none">
-                    <div className="flex justify-between items-center py-1 border-b border-white/[0.02]">
-                      <span className="font-bold">Ecosystem Status:</span>
-                      <span className="text-[#10B981] font-mono font-black">100% ONLINE</span>
-                    </div>
-                    <div className="flex justify-between items-center py-1 border-b border-white/[0.02]">
-                      <span className="font-bold">Huddles Launcher:</span>
-                      <span className="text-white/70 font-mono">STANDBY (P2P Mesh)</span>
-                    </div>
-                    <div className="flex justify-between items-center py-1 border-b border-white/[0.02]">
-                      <span className="font-bold">Vault Security:</span>
-                      <span className="text-[#10B981] font-mono font-black">LOCKED & PRIVILEGED</span>
-                    </div>
-                    <div className="flex justify-between items-center py-1">
-                      <span className="font-bold">Pinned Shortcuts:</span>
-                      <div className="flex flex-wrap gap-1 mt-1 justify-end">
-                        {sortedProjects.filter(p => (p as any).isPinned).length === 0 ? (
-                          <span className="italic text-white/30 text-[10px]">No pinned projects</span>
-                        ) : (
-                          sortedProjects.filter(p => (p as any).isPinned).map(p => (
-                            <button 
-                              key={p.$id}
-                              onClick={() => handleProjectClick(p.$id)}
-                              className="text-[9px] font-black bg-white/5 px-2 py-0.5 rounded border border-white/10 hover:border-[#6366F1]/50 hover:bg-[#6366F1]/10 text-white transition-all font-mono"
-                            >
-                              {p.title.toUpperCase()}
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/4">
-                <span className="text-[10px] text-white/30 font-medium">
-                  {isRecording ? 'Stop to bundle interaction steps.' : 'Capture actions to create a custom smart macro.'}
-                </span>
-                {isRecording ? (
-                  <button
-                    onClick={handleStopRecording}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all bg-[#FF453A] text-white hover:bg-[#DC352C]"
-                  >
-                    <CheckCircle2 size={13} strokeWidth={3} />
-                    <span>Save Recorded Flow</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={startRecording}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all bg-[#6366F1] text-white hover:bg-[#4F46E5]"
-                  >
-                    <Zap size={13} strokeWidth={3} />
-                    <span>Record New Flow</span>
-                  </button>
-                )}
               </div>
             </div>
           </div>

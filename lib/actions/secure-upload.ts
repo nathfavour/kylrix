@@ -7,6 +7,7 @@ import { hasPaidKylrixPlan } from '@/lib/utils';
 import { ID } from 'node-appwrite';
 import { Registry } from '@/lib/core/di/registry';
 import { InputFile } from 'node-appwrite/file';
+import { IDSchema, JWTSchema } from '@/lib/validations/schemas';
 
 /**
  * Securely handles file uploads on the server.
@@ -14,9 +15,11 @@ import { InputFile } from 'node-appwrite/file';
  * Follows "The Golden Rule of Server Action Security".
  */
 export async function secureUploadFile(formData: FormData, jwt?: string) {
-  const bucketId = String(formData.get('bucketId') || '').trim();
+  // Rigorous runtime validation
+  const validatedJwt = JWTSchema.parse(jwt);
+  const bucketId = IDSchema.parse(String(formData.get('bucketId') || '').trim());
   const file = formData.get('file') as File;
-  const fileId = String(formData.get('fileId') || ID.unique()).trim();
+  const fileId = IDSchema.parse(String(formData.get('fileId') || ID.unique()).trim());
 
   // 1. Strict Bucket Whitelist
   const ALLOWED_BUCKETS = new Set([
@@ -41,7 +44,7 @@ export async function secureUploadFile(formData: FormData, jwt?: string) {
 
   let actor = null;
   try {
-    actor = await getActor(jwt);
+    actor = await getActor(validatedJwt);
   } catch {}
 
   const isAnonymousAllowedBucket = bucketId === APPWRITE_CONFIG.BUCKETS.FORM_ATTACHMENTS || bucketId === APPWRITE_CONFIG.BUCKETS.SEND_EPHEMERAL;

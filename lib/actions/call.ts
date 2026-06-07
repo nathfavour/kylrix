@@ -5,59 +5,43 @@ import { createSystemTablesDB } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { createCallMetadata } from '@/lib/sdk/calls/index';
 import { getActor } from './secure-ops';
+import { CallInputSchema } from '@/lib/validations/schemas';
 
 // ... (rest of imports)
 
 const DB_ID = APPWRITE_CONFIG.DATABASES.CHAT;
 const LINKS_TABLE = APPWRITE_CONFIG.TABLES.CHAT.CALL_LINKS;
 
-export async function createChatCallAction(input: {
-  conversationId: string;
-  participantIds: string[];
-  type?: 'audio' | 'video';
-  title?: string;
-  durationMinutes?: number;
-  scope?: 'direct' | 'group';
-}, jwt?: string) {
+export async function createChatCallAction(input: any, jwt?: string) {
   const actor = await getActor(jwt);
   if (!actor?.$id) throw new Error('Unauthorized');
   const userId = actor.$id;
 
-  const conversationId = String(input.conversationId || '').trim();
-  if (!conversationId) throw new Error('conversationId is required');
+  // Rigorous runtime validation
+  const validated = CallInputSchema.parse(input);
 
-  if (!Array.isArray(input.participantIds) || input.participantIds.length === 0) {
-    throw new Error('At least one participantId is required');
-  }
-
-  const durationMinutes = Number(input.durationMinutes) || 120;
+  const durationMinutes = validated.durationMinutes;
   const startTime = new Date();
   const expiresAt = new Date(startTime.getTime() + durationMinutes * 60 * 1000).toISOString();
 
   const uniqueParticipants = Array.from(
-    new Set(
-      input.participantIds
-        .map((id) => String(id || '').trim())
-        .filter(Boolean)
-    )
+    new Set([
+      ...validated.participantIds,
+      userId // Ensure host is always included
+    ])
   );
 
-  // Ensure the host is always included
-  if (!uniqueParticipants.includes(userId)) {
-    uniqueParticipants.unshift(userId);
-  }
-
   const metadata = createCallMetadata({
-    scope: input.scope || (uniqueParticipants.length > 2 ? 'group' : 'direct'),
+    scope: validated.scope || (uniqueParticipants.length > 2 ? 'group' : 'direct'),
     hostId: userId,
     sourceApp: 'connect',
-    conversationId: input.conversationId,
+    conversationId: validated.conversationId,
     participantIds: uniqueParticipants,
     isPrivate: true,
     allowGuests: false,
     startsAt: startTime.toISOString(),
     expiresAt,
-    title: input.title,
+    title: validated.title,
   });
 
   // Build strict per-participant permissions using System Client
@@ -72,12 +56,12 @@ export async function createChatCallAction(input: {
     rowId: ID.unique(),
     data: {
       userId,
-      type: input.type || 'audio',
+      type: validated.type,
       expiresAt,
       startsAt: startTime.toISOString(),
-      title: input.title || undefined,
+      title: validated.title || undefined,
       metadata,
-      conversationId: input.conversationId,
+      conversationId: validated.conversationId,
     },
     permissions,
   });
