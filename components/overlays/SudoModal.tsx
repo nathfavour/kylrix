@@ -174,6 +174,10 @@ export default function SudoModal({
         try {
             const success = await unlockWithPasskey(user.$id);
             if (success) {
+                const rawMek = await crypto.subtle.exportKey("raw", ecosystemSecurity.getMasterKey()!);
+                await masterPassCrypto.importKey(rawMek);
+                await masterPassCrypto.unlockWithImportedKey();
+
                 toast.success("Verified");
                 handleSuccessWithSync();
             } else {
@@ -213,24 +217,25 @@ export default function SudoModal({
                 setIsPendingVault(pending);
 
                 // 3. Check if user has passkeys configured
-                const keys = await AppwriteService.listPasskeys(user.$id);
-                const hasKeys = keys.length > 0;
+                const entries = await AppwriteService.listKeychainEntries(user.$id);
+                const passkeyPresent = entries.some((e: { type?: string }) => e.type === "passkey");
+                const passkeyAllowed = passkeyPresent && isKylrixDomain;
                 if (!active) return;
-                setHasPasskey(hasKeys);
+                setHasPasskey(passkeyAllowed);
 
                 // Determine default mode
                 if (intent === "initialize") {
                     setMode("initialize");
                 } else if (pending) {
                     setMode("password");
-                } else if (hasKeys && usePasskeysByDefault) {
+                } else if (passkeyAllowed && usePasskeysByDefault) {
                     setMode("passkey");
                 } else {
                     setMode("password");
                 }
 
                 // Trigger passkey verification immediately if it's default
-                if (hasKeys && usePasskeysByDefault && !passkeyTriggeredRef.current) {
+                if (passkeyAllowed && usePasskeysByDefault && !passkeyTriggeredRef.current) {
                     passkeyTriggeredRef.current = true;
                     // Run async to avoid blocking
                     setTimeout(() => {
@@ -250,7 +255,7 @@ export default function SudoModal({
         return () => {
             active = false;
         };
-    }, [isOpen, user, intent, usePasskeysByDefault, handlePasskeyVerify]);
+    }, [isOpen, user, intent, usePasskeysByDefault, handlePasskeyVerify, isKylrixDomain]);
 
     // Reset ref when closed
     useEffect(() => {
