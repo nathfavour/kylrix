@@ -275,7 +275,7 @@ export default function CreateNoteForm({
   }, [content, isTitleManuallyEdited, title]);
 
   const existingTags = useMemo(() => {
-    const tagSet = new Set<string>();
+    const tagSet = new Set<string>(ecosystemTags);
     (Array.isArray(allNotes) ? allNotes : []).forEach((note) => {
       (note.tags || []).forEach((tag: string) => {
         const cleaned = tag.trim();
@@ -283,7 +283,7 @@ export default function CreateNoteForm({
       });
     });
     return Array.from(tagSet);
-  }, [allNotes]);
+  }, [allNotes, ecosystemTags]);
 
   const filteredExistingTags = useMemo(() => {
     const available = existingTags.filter((t) => !tags.includes(t));
@@ -431,13 +431,21 @@ export default function CreateNoteForm({
   const appendTag = useCallback((tag: string) => {
     const next = tag.trim();
     if (!next) return;
+    
+    // Strict Case-Insensitive Integrity Check
+    const alreadyExistsInNote = tags.some(t => t.toLowerCase() === next.toLowerCase());
+    if (alreadyExistsInNote) {
+        setCurrentTag('');
+        return;
+    }
+
     const existingMatch = existingTags.find(
       (et) => et.toLowerCase() === next.toLowerCase()
     );
     const finalTag = existingMatch || next;
-    setTags((prev) => normalizeTags([...prev, finalTag]));
+    setTags((prev) => [...prev, finalTag]);
     setCurrentTag('');
-  }, [existingTags]);
+  }, [existingTags, tags]);
 
   const removeTag = useCallback((tag: string) => {
     setTags((prev) => prev.filter((candidate) => candidate !== tag));
@@ -853,7 +861,7 @@ export default function CreateNoteForm({
               ))}
               
               {/* Mini Tag Input */}
-              <div className="relative flex items-center">
+              <div className="relative flex items-center flex-1 min-w-[140px]">
                 <input
                   type="text"
                   value={currentTag}
@@ -864,7 +872,7 @@ export default function CreateNoteForm({
                   onFocus={() => setIsTagDropdownOpen(true)}
                   onKeyDown={handleTagKeyDown}
                   placeholder="Add tag..."
-                  className="bg-black/30 border border-white/5 focus:border-pink-500/30 rounded-lg px-2.5 py-1 text-xs font-mono text-white placeholder-white/20 focus:outline-none transition-all w-32"
+                  className="bg-black/30 border border-white/5 focus:border-pink-500/30 rounded-lg px-2.5 py-1 text-xs font-mono text-white placeholder-white/20 focus:outline-none transition-all w-full"
                 />
                 {currentTag.trim() && (
                   <button
@@ -883,7 +891,7 @@ export default function CreateNoteForm({
                       className="fixed inset-0 z-40" 
                       onClick={() => setIsTagDropdownOpen(false)}
                     />
-                    <div className="absolute bottom-full mb-2 left-0 w-48 max-h-48 overflow-y-auto bg-[#0F0D0C] border border-white/10 rounded-xl shadow-2xl p-1 z-50 flex flex-col gap-0.5 scrollbar-thin animate-in fade-in slide-in-from-bottom-2 duration-150">
+                    <div className="absolute bottom-full mb-2 left-0 w-full min-w-[200px] max-h-48 overflow-y-auto bg-[#0F0D0C] border border-white/10 rounded-xl shadow-2xl p-1 z-50 flex flex-col gap-0.5 scrollbar-thin animate-in fade-in slide-in-from-bottom-2 duration-150">
                       <div className="px-2 py-1 text-[10px] font-mono text-white/40 border-b border-white/5 uppercase tracking-wider mb-1">
                         Select Existing Tag
                       </div>
@@ -896,14 +904,16 @@ export default function CreateNoteForm({
                               appendTag(t);
                               setIsTagDropdownOpen(false);
                             }}
-                            className="w-full text-left px-2 py-1 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 text-white/80 font-mono text-xs transition-colors flex items-center justify-between"
+                            className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 text-white/80 font-mono text-xs transition-colors flex items-center justify-between group"
                           >
                             <span>{t}</span>
-                            <Plus className="w-2.5 h-2.5 opacity-40" />
+                            <div className="flex items-center gap-1.5">
+                                <Plus className="w-2.5 h-2.5 opacity-40 group-hover:opacity-100" />
+                            </div>
                           </button>
                         ))
                       ) : (
-                        <div className="px-2 py-1.5 text-xs font-mono text-white/30 italic">
+                        <div className="px-2 py-2 text-xs font-mono text-white/30 italic text-center">
                           No matching tags
                         </div>
                       )}
