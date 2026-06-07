@@ -20,7 +20,7 @@ import { StorageService } from '@/lib/services/storage';
 import { buildAutoTitleFromContent } from '@/constants/noteTitle';
 import { useOverlay } from '@/components/ui/OverlayContext';
 import { useToast } from '@/components/ui/Toast';
-import { getNote, getNotePublicState, toggleNoteVisibility } from '@/lib/appwrite';
+import { getNote, getNotePublicState, toggleNoteVisibility, getAllTags } from '@/lib/appwrite';
 import { createNote, updateNote } from '@/lib/actions/client-ops';
 import type { Notes } from '@/types/appwrite';
 import DoodleCanvas from '@/components/DoodleCanvas';
@@ -82,7 +82,21 @@ export default function CreateNoteForm({
   const [hasPaywall, setHasPaywall] = useState(false);
   const [paywallAmount, setPaywallAmount] = useState<number | ''>(0);
   const [composerKind, setComposerKind] = useState<'note' | 'project'>(noteKind);
+  const [ecosystemTags, setEcosystemTags] = useState<string[]>([]);
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Load all ecosystem tags once for high-fidelity searching
+  useEffect(() => {
+    const loadEcosystemTags = async () => {
+      try {
+        const res = await getAllTags();
+        setEcosystemTags(res.rows.map((t: any) => t.name));
+      } catch (err) {
+        console.warn('Failed to load ecosystem tags for composer', err);
+      }
+    };
+    loadEcosystemTags();
+  }, []);
   const createdToastShown = useRef(false);
   const persistInFlightRef = useRef<Promise<Notes | null> | null>(null);
   const isPastedRef = useRef(false);
