@@ -82,33 +82,53 @@ export function UnifiedBottomDrawer() {
   const content = renderContent();
   if (!content) return null;
 
-  // Some components handle their own Drawer wrapper, but for new simple ones we wrap them
+  // Authoritative Drawer Wrapper with Rigid Viewport Isolation
   if (['secure-chat-setup', 'delete-confirm', 'project-invite'].includes(activeContent)) {
     return (
-        <Drawer
-            anchor={isDesktop ? 'right' : 'bottom'}
-            open={true}
-            onClose={close}
-            ModalProps={{ keepMounted: false }}
-            PaperProps={{
-                sx: {
-                    bgcolor: '#161412',
-                    ...(isDesktop ? {
-                        borderLeft: '1px solid rgba(255,255,255,0.08)',
-                        height: '100%',
-                        maxWidth: 480,
-                        width: '100%'
-                    } : {
-                        borderTop: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '32px 32px 0 0',
-                        maxHeight: activeContent === 'form' ? '60dvh' : '90dvh',
-                    }),
-                    overflow: 'hidden'
-                }
-            }}
-        >
-            {content}
-        </Drawer>
+        <>
+            {/* Mobile-Only Authoritative Bottom Drawer */}
+            <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+                <Drawer
+                    anchor="bottom"
+                    open={true}
+                    onClose={close}
+                    ModalProps={{ keepMounted: false }}
+                    PaperProps={{
+                        sx: {
+                            bgcolor: '#161412',
+                            borderTop: '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: '32px 32px 0 0',
+                            maxHeight: activeContent === 'form' ? '60dvh' : '90dvh',
+                            overflow: 'hidden'
+                        }
+                    }}
+                >
+                    {content}
+                </Drawer>
+            </Box>
+
+            {/* Desktop-Only Authoritative Right Sidepanel */}
+            <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                <Drawer
+                    anchor="right"
+                    open={true}
+                    onClose={close}
+                    ModalProps={{ keepMounted: false }}
+                    PaperProps={{
+                        sx: {
+                            bgcolor: '#161412',
+                            borderLeft: '1px solid rgba(255,255,255,0.08)',
+                            height: '100%',
+                            maxWidth: 480,
+                            width: '100%',
+                            overflow: 'hidden'
+                        }
+                    }}
+                >
+                    {content}
+                </Drawer>
+            </Box>
+        </>
     );
   }
 
