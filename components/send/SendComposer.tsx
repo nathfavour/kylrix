@@ -881,7 +881,7 @@ export function SendComposer() {
               {user ? (
                 `You are currently signed in as ${user.name || user.email || 'Teammate'}. Head back to your workspace to manage your active execution containers, notes, and secure vaults.`
               ) : (
-                "You are sharing as a guest. Create a free account to permanently save these ghost objects, unlock unlimited encrypted vaults, and collaborate in real-time with up to 8 teammates."
+                "You are sharing as a guest. Create a free account to permanently save these ghost objects, unlock unlimited encrypted vaults, and collaborate in real-time with teammates."
               )}
             </p>
           </div>

@@ -13,7 +13,9 @@ import {
     Settings, 
     Pin, 
     Share2, 
-    FolderKanban 
+    FolderKanban,
+    Lock,
+    Link as LinkIcon
 } from 'lucide-react';
 import { FormsService } from '@/lib/services/forms';
 import { DraftsService, FormDraft } from '@/lib/services/drafts';
@@ -30,6 +32,9 @@ import { toast } from 'react-hot-toast';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { useFAB } from '@/context/FABContext';
 import { useSection, MultiSectionContainer } from '@/context/SectionContext';
+import { ShareLockButton } from '@/components/share/ShareLockButton';
+import { useAccessControlMenuItems } from '@/components/share/AccessControlMenuItems';
+import { useContextMenu } from '@/components/ui/ContextMenuContext';
 
 export default function FormsDashboard() {
     const { user } = useAuth();
@@ -50,7 +55,7 @@ export default function FormsDashboard() {
     const [formDraftStatus, setFormDraftStatus] = useState<Record<string, boolean>>({});
     
     // UI States
-    const [activeMenuFormId, setActiveMenuFormId] = useState<string | null>(null);
+    const { openMenu } = useContextMenu();
     const [isDesktop, setIsDesktop] = useState(false);
 
     useEffect(() => {
