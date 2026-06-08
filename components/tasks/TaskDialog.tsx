@@ -8,7 +8,7 @@ import {
   ArrowUpRight, 
   ChevronUp, 
   ChevronDown, 
-  X, 
+  X as CloseIcon, 
   Type, 
   Plus, 
   Tag as TagIcon,
