@@ -469,70 +469,72 @@ export async function getEmailVerificationStatus(): Promise<boolean> {
 
 // --- PINNED NOTES ---
 
-/**
- * Pinned Notes Logic using account preferences.
- * Hard cap of 10 pins for Pro, 3 for Free.
- */
-export async function getPinnedNoteIds(): Promise<string[]> {
+/** Owner row pins + per-user collaborator pins from user_resource_pins. */
+export async function getPinnedNoteIds(userId?: string): Promise<string[]> {
   try {
-    const user = await account.get();
-    
-    // Primary: fetch from database using native column
+    const user = userId ? { $id: userId } : await account.get();
+    const uid = user.$id;
+    const ids = new Set<string>();
+
+    const { UserResourcePinService } = await import('@/lib/services/user-resource-pins');
+    const collaboratorPins = await UserResourcePinService.listForUser(uid, 'note');
+    collaboratorPins.forEach((row) => ids.add(row.resourceId));
+
     try {
-        const res = await databases.listRows(
-            APPWRITE_DATABASE_ID,
-            APPWRITE_TABLE_ID_NOTES,
-            [
-                Query.equal('userId', user.$id),
-                Query.equal('isPinned', true),
-                Query.limit(100),
-                Query.select(['$id'])
-            ]
-        );
-        if (res.rows.length > 0) {
-            return res.rows.map(d => d.$id);
-        }
+      const res = await databases.listRows(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_NOTES, [
+        Query.equal('userId', uid),
+        Query.equal('isPinned', true),
+        Query.limit(100),
+        Query.select(['$id']),
+      ]);
+      res.rows.forEach((row) => ids.add(row.$id));
     } catch (dbErr) {
-        console.warn('[getPinnedNoteIds] Native fetch failed, falling back to prefs:', dbErr);
+      console.warn('[getPinnedNoteIds] Owner pin fetch failed:', dbErr);
     }
 
-    // Fallback: use account preferences (legacy)
-    return (user.prefs?.pinnedNoteIds || []) as string[];
+    return Array.from(ids);
   } catch {
     return [];
   }
 }
 
-export async function pinNote(noteId: string): Promise<string[]> {
+async function setNotePinned(noteId: string, pinned: boolean): Promise<string[]> {
   const user = await account.get();
-  const currentPins = (user.prefs?.pinnedNoteIds || []) as string[];
-  
-  if (!currentPins.includes(noteId)) {
-    const newPins = [noteId, ...currentPins];
-    await account.updatePrefs({ ...user.prefs, pinnedNoteIds: newPins });
+  const note = await databases.getRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_NOTES, noteId);
+  const ownerId = (note as any).creatorId || (note as any).userId || user.$id;
+  const { toggleResourcePin } = await import('@/lib/services/resource-pin-coordinator');
+  const { UserResourcePinService, resolveEffectivePinned } = await import('@/lib/services/user-resource-pins');
+  const pinRows = await UserResourcePinService.listForUser(user.$id, 'note');
+  const pinSet = new Set(pinRows.map((row) => row.resourceId));
+  const currentlyPinned = resolveEffectivePinned(
+    user.$id,
+    ownerId,
+    noteId,
+    (note as any).isPinned,
+    pinSet,
+    'note',
+  );
+  if (currentlyPinned !== pinned) {
+    await toggleResourcePin({
+      actorId: user.$id,
+      ownerId,
+      resourceType: 'note',
+      resourceId: noteId,
+      currentlyPinned,
+      setOwnerRowPin: async (nextPinned) => {
+        await updateNote(noteId, { isPinned: nextPinned } as any);
+      },
+    });
   }
+  return getPinnedNoteIds(user.$id);
+}
 
-  // Persist to native column
-  await updateNote(noteId, { isPinned: true } as any);
-  
-  const refreshedUser = await account.get();
-  return (refreshedUser.prefs?.pinnedNoteIds || []) as string[];
+export async function pinNote(noteId: string): Promise<string[]> {
+  return setNotePinned(noteId, true);
 }
 
 export async function unpinNote(noteId: string): Promise<string[]> {
-  const user = await account.get();
-  const currentPins = (user.prefs?.pinnedNoteIds || []) as string[];
-  
-  if (currentPins.includes(noteId)) {
-    const newPins = currentPins.filter(id => id !== noteId);
-    await account.updatePrefs({ ...user.prefs, pinnedNoteIds: newPins });
-  }
-
-  // Persist to native column
-  await updateNote(noteId, { isPinned: false } as any);
-
-  const refreshedUser = await account.get();
-  return (refreshedUser.prefs?.pinnedNoteIds || []) as string[];
+  return setNotePinned(noteId, false);
 }
 
 export async function isNotePinned(noteId: string): Promise<boolean> {

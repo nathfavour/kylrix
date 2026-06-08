@@ -7,8 +7,8 @@ import { useAppwriteVault } from '@/context/appwrite-context';
 import {
   deleteCredential,
   listAllCredentials,
-  toggleCredentialPin,
 } from '@/lib/appwrite';
+import { useResourcePins } from '@/context/ResourcePinContext';
 import toast from 'react-hot-toast';
 import CredentialItem from '@/components/app/dashboard/CredentialItem';
 import CredentialDialog from '@/components/app/dashboard/CredentialDialog';
@@ -22,6 +22,7 @@ import { Box, Typography, Paper, Button, IconButton, Avatar, CircularProgress, T
 
 function DashboardPageContent() {
   const { user, needsMasterPassword, isVaultUnlocked, isVaultBlurEnabled, setVaultBlurEnabled } = useAppwriteVault();
+  const { isPinned: isResourcePinned, togglePin, setLocalPin } = useResourcePins();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { registerCreateModal } = useAI();
@@ -181,12 +182,38 @@ function DashboardPageContent() {
   };
 
   const handleTogglePin = async (id: string) => {
+    const credential = allCredentials.find((c) => c.$id === id);
+    if (!credential || !user?.$id) return;
+    const ownerId = credential.userId || user.$id;
+    const currentlyPinned = isResourcePinned('credential', id, ownerId, credential.isPinned);
+    const isOwner = user.$id === ownerId;
+
     try {
-      const newPinned = await toggleCredentialPin(id);
-      setAllCredentials(prev => prev.map(c => c.$id === id ? { ...c, isPinned: newPinned } : c));
-      toast.success(newPinned ? "Pinned to top" : "Unpinned");
+      const nextPinned = await togglePin({
+        resourceType: 'credential',
+        resourceId: id,
+        ownerId,
+        rowIsPinned: credential.isPinned,
+        setOwnerRowPin: async (pinned) => {
+          const { databases } = await import('@/lib/appwrite/client');
+          const { APPWRITE_CONFIG } = await import('@/lib/appwrite/config');
+          await databases.updateRow(
+            APPWRITE_CONFIG.DATABASES.VAULT,
+            APPWRITE_CONFIG.TABLES.VAULT.CREDENTIALS,
+            id,
+            { isPinned: pinned },
+          );
+        },
+      });
+      if (isOwner) {
+        setAllCredentials((prev) => prev.map((c) => (c.$id === id ? { ...c, isPinned: nextPinned } : c)));
+      }
+      toast.success(nextPinned ? 'Pinned to top' : 'Unpinned');
     } catch (error: unknown) {
-      toast.error("Failed to toggle pin");
+      if (!isOwner) {
+        setLocalPin('credential', id, currentlyPinned);
+      }
+      toast.error('Failed to toggle pin');
     }
   };
 

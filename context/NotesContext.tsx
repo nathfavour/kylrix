@@ -6,8 +6,7 @@ import { Query } from 'appwrite';
 import { 
   listNotesPaginated, 
   getPinnedNoteIds, 
-  pinNote as appwritePinNote, 
-  unpinNote as appwriteUnpinNote,
+  updateNote,
   realtime,
   APPWRITE_DATABASE_ID,
   APPWRITE_TABLE_ID_NOTES,
@@ -20,6 +19,7 @@ import { useAuth } from '@/context/auth/AuthContext';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { hasPaidKylrixPlan } from '@/lib/utils';
 import { useDataNexus } from './DataNexusContext';
+import { useResourcePins } from '@/context/ResourcePinContext';
 
 interface NotesContextType {
   notes: Notes[];
@@ -92,6 +92,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   }
 
   const { fetchOptimized, setCachedData, invalidate, getCachedData, getCachedDataAsync } = useDataNexus();
+  const { pinSets, isPinned: isResourcePinned, togglePin } = useResourcePins();
 
   const PINNED_CACHE_KEY = useMemo(() => user?.$id ? `pinned_ids_${user.$id}` : null, [user?.$id]);
   const INITIAL_NOTES_CACHE_KEY = useMemo(() => user?.$id ? `initial_notes_${user.$id}` : null, [user?.$id]);
@@ -447,43 +448,74 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated, notes.length, sweepEncryptedNotes]);
 
-  const pinNote = useCallback(async (noteId: string) => {
-    try {
-      const newPins = await appwritePinNote(noteId);
-      setPinnedIds(newPins);
-      if (PINNED_CACHE_KEY) setCachedData(PINNED_CACHE_KEY, newPins);
-      setNotes(prev => prev.map(n => n.$id === noteId ? { ...n, isPinned: true } : n));
-    } catch (err: any) {
-      throw err;
-    }
-  }, [PINNED_CACHE_KEY, setCachedData]);
-
-  const unpinNote = useCallback(async (noteId: string) => {
-    try {
-      const newPins = await appwriteUnpinNote(noteId);
-      setPinnedIds(newPins);
-      if (PINNED_CACHE_KEY) setCachedData(PINNED_CACHE_KEY, newPins);
-      setNotes(prev => prev.map(n => n.$id === noteId ? { ...n, isPinned: false } : n));
-    } catch (err: any) {
-      throw err;
-    }
-  }, [PINNED_CACHE_KEY, setCachedData]);
+  const noteOwnerId = useCallback((note: Notes) => note.creatorId || note.userId || user?.$id || '', [user?.$id]);
 
   const isPinned = useCallback((noteId: string) => {
     const note = notes.find(n => n.$id === noteId);
-    if (note && note.isPinned) return true;
-    return pinnedIds.includes(noteId);
-  }, [notes, pinnedIds]);
+    if (!note) return pinSets.note.has(noteId);
+    return isResourcePinned('note', noteId, noteOwnerId(note), note.isPinned);
+  }, [notes, pinSets.note, isResourcePinned, noteOwnerId]);
+
+  const effectivePinnedIds = useMemo(() => {
+    const ids = new Set<string>(pinSets.note);
+    notes.forEach((note) => {
+      if (isResourcePinned('note', note.$id, noteOwnerId(note), note.isPinned)) {
+        ids.add(note.$id);
+      }
+    });
+    return Array.from(ids);
+  }, [notes, pinSets.note, isResourcePinned, noteOwnerId]);
+
+  useEffect(() => {
+    if (!PINNED_CACHE_KEY) return;
+    setPinnedIds(effectivePinnedIds);
+    setCachedData(PINNED_CACHE_KEY, effectivePinnedIds);
+  }, [effectivePinnedIds, PINNED_CACHE_KEY, setCachedData]);
+
+  const applyNotePin = useCallback(async (noteId: string, pinned: boolean) => {
+    const note = notes.find(n => n.$id === noteId);
+    if (!note || !user?.$id) return;
+    const ownerId = noteOwnerId(note);
+    const currentlyPinned = isResourcePinned('note', noteId, ownerId, note.isPinned);
+    if (currentlyPinned === pinned) return;
+
+    const isOwner = user.$id === ownerId;
+
+    try {
+      await togglePin({
+        resourceType: 'note',
+        resourceId: noteId,
+        ownerId,
+        rowIsPinned: note.isPinned,
+        setOwnerRowPin: async (nextPinned) => {
+          await updateNote(noteId, { isPinned: nextPinned } as any);
+        },
+      });
+      if (isOwner) {
+        setNotes((prev) => prev.map((n) => (n.$id === noteId ? { ...n, isPinned: pinned } : n)));
+      }
+    } catch (err) {
+      throw err;
+    }
+  }, [notes, user?.$id, noteOwnerId, isResourcePinned, togglePin]);
+
+  const pinNote = useCallback(async (noteId: string) => {
+    await applyNotePin(noteId, true);
+  }, [applyNotePin]);
+
+  const unpinNote = useCallback(async (noteId: string) => {
+    await applyNotePin(noteId, false);
+  }, [applyNotePin]);
 
   const sortedNotes = useMemo(() => {
     return [...notes].sort((a, b) => {
-      const aPinned = a.isPinned || pinnedIds.includes(a.$id);
-      const bPinned = b.isPinned || pinnedIds.includes(b.$id);
+      const aPinned = isResourcePinned('note', a.$id, noteOwnerId(a), a.isPinned);
+      const bPinned = isResourcePinned('note', b.$id, noteOwnerId(b), b.isPinned);
       if (aPinned && !bPinned) return -1;
       if (!aPinned && bPinned) return 1;
       return 0;
     });
-  }, [notes, pinnedIds]);
+  }, [notes, isResourcePinned, noteOwnerId]);
 
   /**
    * Memoize the context value so consumers (note list, sidebar, search, etc.) don't
@@ -500,7 +532,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       refetchNotes,
       upsertNote,
       removeNote,
-      pinnedIds: pinnedIds,
+      pinnedIds: effectivePinnedIds,
       pinNote,
       unpinNote,
       isPinned,
@@ -515,10 +547,11 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       refetchNotes,
       upsertNote,
       removeNote,
-      pinnedIds,
+      effectivePinnedIds,
       pinNote,
       unpinNote,
-      isPinned]
+      isPinned,
+    ]
   );
 
   return (

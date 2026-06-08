@@ -13,17 +13,17 @@ To bypass the 8-user limit without inflating individual database row permissions
 
 ## To-Do List
 
-- [ ] **1. Provision Background Team Creation**
+- [x] **1. Provision Background Team Creation**
   - Implement a hook in `secure-ops.ts` to automatically provision a hidden Appwrite Team when a Pro user adds a 9th collaborator to a Project or Goal.
 
-- [ ] **2. Refactor ACL Permissions Sync**
+- [x] **2. Refactor ACL Permissions Sync**
   - Update `updateNoteAccessForUser` (or equivalent resource permission functions) to dynamically append `read("team:<ID>")` to the row's permissions if a background team exists.
 
-- [ ] **3. Implement Team Role Mapping**
+- [x] **3. Implement Team Role Mapping**
   - Map Kylrix roles (e.g., 'editor', 'viewer') to Appwrite Team Membership roles (`Role.team(ID, ['editor'])`) to enforce granular CRUD limits for members 9+.
 
-- [ ] **4. Server Action Validation Updates**
+- [x] **4. Server Action Validation Updates**
   - Refactor `verifyResourcePermissionSecure` to check both the `collaborators` table AND Appwrite Team membership when evaluating if an actor has write/delete privileges.
 
-- [ ] **5. Automated Downgrade Purge**
+- [x] **5. Automated Downgrade Purge**
   - Implement the downgrade lifecycle hook. When Pro status is lost, identify all background teams owned by the user, sever the resource links, and delete the teams to enforce the free-tier boundaries cleanly.

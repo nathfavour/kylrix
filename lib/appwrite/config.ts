@@ -28,7 +28,8 @@ export const APPWRITE_CONFIG = {
         MESSAGES: 'messages',
         PROFILES: 'profiles',
         KEYCHAIN: 'keychain',
-        
+        USER_RESOURCE_PINS: 'user_resource_pins',
+
         NOTE: {
             USERS: '67ff05c900247b5673d3',
             NOTES: '67ff05f3002502ef239e',

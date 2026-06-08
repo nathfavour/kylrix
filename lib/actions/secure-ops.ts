@@ -12,7 +12,7 @@ import { InternalKylrixTokenService } from '@/lib/services/internal/kylrix-token
 import { trackEngagementView, type TrackEngagementInput } from '@/lib/services/internal/engagement-views';
 import { deleteCallIfExpired } from '@/lib/services/internal/calls';
 import { applyPermissionMutation, revokePermissionMutation } from '@/lib/services/internal/permissions';
-import { normalizeTargetUserIds, upsertLockboxRows } from '@/lib/api/permission-updater';
+import { normalizeTargetUserIds, upsertLockboxRows, provisionHybridTeamExpansionSecure } from '@/lib/api/permission-updater';
 import { reconcileStaleLiveCallPresenceForUser } from '@/lib/services/internal/live-call-presence-reconcile';
 import { executeSessionRuntimeJob, isSessionRuntimeJobId } from '@/lib/runtime-functions/session-jobs';
 import { normalizeMfaFactors, sessionNeedsTotpMfa } from '@/lib/mfa-session';
@@ -2385,6 +2385,25 @@ export async function verifyResourcePermissionSecure(params: {
         if (p === 'admin') matchedCollabRole = 'admin';
         else if (['write', 'editor'].includes(p)) matchedCollabRole = 'editor';
         else if (['read', 'viewer'].includes(p)) matchedCollabRole = 'viewer';
+      } else {
+        // Hybrid Team Expansion Check
+        const teamId = `rt_${rowId.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30)}`;
+        const teamCollabsRes = await tables.listRows({
+          databaseId: FLOW_DATABASE_ID,
+          tableId: COLLABORATORS_TABLE,
+          queries: [
+            Query.equal('resourceId', teamId),
+            Query.equal('resourceType', 'team'),
+            Query.equal('userId', actorId)
+          ] as any
+        });
+        
+        if (teamCollabsRes.rows.length > 0) {
+          const p = teamCollabsRes.rows[0].permission;
+          if (p === 'admin') matchedCollabRole = 'admin';
+          else if (['write', 'editor'].includes(p)) matchedCollabRole = 'editor';
+          else if (['read', 'viewer'].includes(p)) matchedCollabRole = 'viewer';
+        }
       }
     } catch (err) {
       console.error('[verifyResourcePermissionSecure] Polymorphic table check failed:', err);
@@ -2874,84 +2893,6 @@ export async function deleteProjectSecure(
   return JSON.parse(JSON.stringify(result));
 }
 
-/**
- * Hybrid Collaboration Architecture: Provision Background Team
- * Dynamically spins up an Appwrite Team when a resource exceeds 8 collaborators.
- */
-export async function provisionHybridTeamExpansionSecure(
-  resourceId: string, 
-  resourceType: string, 
-  ownerId: string,
-  targetUserId: string,
-  targetRole: string
-): Promise<{ isTeamExpanded: boolean, newAcl: string | null }> {
-  const tables = createSystemTablesDB();
-  const { users, teams, databases } = createSystemClient();
-  
-  // 1. Check current collaborator count
-  const existingCollabsRes = await tables.listRows({
-    databaseId: APPWRITE_CONFIG.DATABASES.FLOW,
-    tableId: APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators',
-    queries: [
-      Query.equal('resourceId', resourceId),
-      Query.equal('resourceType', resourceType),
-      Query.limit(100)
-    ] as any
-  });
-
-  const uniqueCollabIds = Array.from(new Set(existingCollabsRes.rows.map(r => r.userId)));
-  if (!uniqueCollabIds.includes(targetUserId)) {
-      uniqueCollabIds.push(targetUserId);
-  }
-
-  // If under limit, no team needed
-  if (uniqueCollabIds.length <= 8) {
-      return { isTeamExpanded: false, newAcl: null };
-  }
-
-  // 2. Enforce Pro limits
-  const owner = await users.get(ownerId).catch(() => null);
-  const isPro = owner ? hasPaidKylrixPlan(owner) : false;
-
-  if (!isPro) {
-      throw new Error('Limit reached: Free plan is limited to 8 collaborators. Upgrade to PRO for unlimited team members.');
-  }
-
-  const teamId = `rt_${resourceId.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30)}`;
-
-  // 3. Provision Team if missing
-  try {
-      await teams.get(teamId);
-  } catch (err: any) {
-      if (err.code === 404) {
-          try {
-              await teams.create(teamId, `${resourceType.toUpperCase()} Expansion: ${resourceId}`);
-              
-              // Seed the team with the owner and existing 8 collaborators
-              await teams.createMembership(teamId, ['owner'], undefined, ownerId).catch(() => null);
-
-              for (const row of existingCollabsRes.rows) {
-                  if (row.userId !== ownerId) {
-                      const role = row.permission === 'admin' ? 'admin' : (row.permission === 'write' ? 'editor' : 'viewer');
-                      await teams.createMembership(teamId, [role], undefined, row.userId).catch(() => null);
-                  }
-              }
-          } catch (createErr: any) {
-              console.warn('[provisionHybridTeamExpansionSecure] Team creation failed:', createErr?.message);
-          }
-      }
-  }
-
-  // 4. Add the 9th+ user
-  try {
-      await teams.createMembership(teamId, [targetRole], undefined, targetUserId).catch(() => null);
-  } catch (addErr: any) {
-      console.warn('[provisionHybridTeamExpansionSecure] Failed to add member to expansion team:', addErr?.message);
-  }
-
-  return { isTeamExpanded: true, newAcl: `read("team:${teamId}")` };
-}
-
 export async function addProjectCollaboratorSecure(projectId: string, targetUserId: string, permissionLevel: string = 'viewer', jwt?: string) {
   const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
@@ -3245,21 +3186,20 @@ export async function acceptProjectInviteSecure(projectId: string, jwt?: string)
   const newPermissions = new Set(project.$permissions || []);
   newPermissions.add(`read("user:${actor.$id}")`);
 
-  const { users, teams } = createSystemClient();
+  const { users, databases } = createSystemClient();
   const owner = await users.get(project.ownerId);
   const isPro = hasPaidKylrixPlan(owner);
 
   if (isPro) {
-    newPermissions.add(`read("team:${projectId}")`);
     try {
-      await teams.createMembership(
-        projectId,
-        [permissionLevel],
-        undefined,
-        actor.$id
+      const { isTeamExpanded, newAcl } = await provisionHybridTeamExpansionSecure(
+        databases, projectId, 'project', project.ownerId, actor.$id, permissionLevel
       );
+      if (isTeamExpanded && newAcl) {
+        newPermissions.add(newAcl);
+      }
     } catch (teamErr: any) {
-      console.warn('[acceptProjectInviteSecure] Team membership creation skipped or failed:', teamErr?.message);
+      console.warn('[acceptProjectInviteSecure] Hybrid Team expansion skipped or failed:', teamErr?.message);
     }
   }
 
@@ -3365,10 +3305,11 @@ export async function removeProjectCollaboratorSecure(projectId: string, targetU
 
   // 1. Sync to native Appwrite Team for optimized read-access
   try {
-      const memberships = await teams.listMemberships(projectId);
+      const teamId = `rt_${projectId.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30)}`;
+      const memberships = await teams.listMemberships(teamId);
       const membership = memberships.memberships.find(m => m.userId === targetUserId);
       if (membership) {
-          await teams.deleteMembership(projectId, membership.$id);
+          await teams.deleteMembership(teamId, membership.$id);
       }
   } catch (teamErr: any) {
       console.warn('[removeProjectCollaboratorSecure] Team membership removal skipped or failed:', teamErr?.message);

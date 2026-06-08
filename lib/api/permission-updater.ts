@@ -2,6 +2,130 @@ import { NextRequest } from 'next/server';
 import { Account, Client, Databases, ID, Permission, Query, Role, Storage } from 'node-appwrite';
 import { createHash } from 'node:crypto';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
+import { hasPaidKylrixPlan } from '@/lib/utils';
+import { createSystemClient } from '@/lib/appwrite-admin';
+
+function getResourceTypeFromTableId(tableId: string): string | null {
+  if (tableId === APPWRITE_CONFIG.TABLES.NOTE.NOTES) return 'note';
+  if (tableId === 'projects') return 'project';
+  if (tableId === APPWRITE_CONFIG.TABLES.FLOW.TASKS) return 'task';
+  if (tableId === APPWRITE_CONFIG.TABLES.FLOW.EVENTS) return 'event';
+  if (tableId === APPWRITE_CONFIG.TABLES.FLOW.FORMS) return 'form';
+  if (tableId === APPWRITE_CONFIG.TABLES.VAULT.CREDENTIALS) return 'secret';
+  return null;
+}
+
+/**
+ * Hybrid Collaboration Architecture: Provision Background Team
+ * Dynamically spins up an Appwrite Team when a resource exceeds 8 collaborators.
+ */
+export async function provisionHybridTeamExpansionSecure(
+  databases: Databases,
+  resourceId: string, 
+  resourceType: string, 
+  ownerId: string,
+  targetUserId: string,
+  targetRole: string
+): Promise<{ isTeamExpanded: boolean, newAcl: string | null }> {
+  const { users, teams } = createSystemClient();
+  
+  // 1. Check current collaborator count
+  const existingCollabsRes = await databases.listRows(
+    APPWRITE_CONFIG.DATABASES.FLOW,
+    APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators',
+    [
+      Query.equal('resourceId', resourceId),
+      Query.equal('resourceType', resourceType),
+      Query.limit(100)
+    ]
+  ).catch(() => ({ rows: [] }));
+
+  const uniqueCollabIds = Array.from(new Set(existingCollabsRes.rows.map(r => r.userId)));
+  if (!uniqueCollabIds.includes(targetUserId)) {
+      uniqueCollabIds.push(targetUserId);
+  }
+
+  // If under limit, no team needed
+  if (uniqueCollabIds.length <= 8) {
+      return { isTeamExpanded: false, newAcl: null };
+  }
+
+  // 2. Enforce Pro limits
+  const owner = await users.get(ownerId).catch(() => null);
+  const isPro = owner ? hasPaidKylrixPlan(owner) : false;
+
+  if (!isPro) {
+      throw new Error('Limit reached: Free plan is limited to 8 collaborators. Upgrade to PRO for unlimited team members.');
+  }
+
+  const teamId = `rt_${resourceId.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30)}`;
+
+  // 3. Provision Team if missing
+  try {
+      await teams.get(teamId);
+  } catch (err: any) {
+      if (err.code === 404) {
+          try {
+              await teams.create(teamId, `${resourceType.toUpperCase()} Expansion: ${resourceId}`);
+              
+              // Seed the team with the owner and existing 8 collaborators
+              await teams.createMembership(teamId, ['owner'], undefined, ownerId).catch(() => null);
+
+              for (const row of existingCollabsRes.rows) {
+                  if (row.userId !== ownerId) {
+                      const role = row.permission === 'admin' ? 'admin' : (row.permission === 'write' ? 'editor' : 'viewer');
+                      await teams.createMembership(teamId, [role], undefined, row.userId).catch(() => null);
+                  }
+                  
+                  // Mirror to collaborators table under team scope
+                  await databases.createRow(
+                      APPWRITE_CONFIG.DATABASES.FLOW,
+                      APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators',
+                      ID.unique(),
+                      {
+                          resourceId: teamId,
+                          resourceType: 'team',
+                          userId: row.userId,
+                          permission: row.permission,
+                          role: row.role || 'collaborator',
+                          status: row.status || 'accepted',
+                          accepted: row.accepted ?? true,
+                          invitedAt: new Date().toISOString()
+                      }
+                  ).catch(() => null);
+              }
+          } catch (createErr: any) {
+              console.warn('[provisionHybridTeamExpansionSecure] Team creation failed:', createErr?.message);
+          }
+      }
+  }
+
+  // 4. Add the 9th+ user
+  try {
+      await teams.createMembership(teamId, [targetRole], undefined, targetUserId).catch(() => null);
+      
+      // Mirror 9th+ user to team collaborators
+      await databases.createRow(
+          APPWRITE_CONFIG.DATABASES.FLOW,
+          APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators',
+          ID.unique(),
+          {
+              resourceId: teamId,
+              resourceType: 'team',
+              userId: targetUserId,
+              permission: targetRole === 'admin' ? 'admin' : (targetRole === 'editor' ? 'write' : 'read'),
+              role: 'collaborator',
+              status: 'accepted',
+              accepted: true,
+              invitedAt: new Date().toISOString()
+          }
+      ).catch(() => null);
+  } catch (addErr: any) {
+      console.warn('[provisionHybridTeamExpansionSecure] Failed to add member to expansion team:', addErr?.message);
+  }
+
+  return { isTeamExpanded: true, newAcl: `read("team:${teamId}")` };
+}
 
 export type PermissionLevel = 'read' | 'write' | 'admin';
 export type PermissionAction = 'grant' | 'revoke' | 'rotate_epoch' | 'pin_ghost_note';
@@ -321,8 +445,26 @@ export async function mutateRowPermissions(
   let nextPermissions = [...currentPermissions];
 
   if (action === 'grant') {
+    const resourceType = getResourceTypeFromTableId(input.tableId);
+    
     for (const userId of targetUserIds) {
       nextPermissions.push(...buildRecipientPermissions(userId, permission));
+      
+      // Hybrid Team Expansion Hook
+      if (resourceType) {
+        try {
+          const role = permission === 'admin' ? 'admin' : (permission === 'write' ? 'editor' : 'viewer');
+          const { isTeamExpanded, newAcl } = await provisionHybridTeamExpansionSecure(
+            databases, input.rowId, resourceType, ownerId, userId, role
+          );
+          if (isTeamExpanded && newAcl) {
+            nextPermissions.push(newAcl);
+          }
+        } catch (expansionErr: any) {
+          console.warn('[mutateRowPermissions] Hybrid Expansion rejected:', expansionErr?.message);
+          throw expansionErr; // Surface the "Limit reached" error to the client
+        }
+      }
     }
   } else {
     // Revoke: filter out all permissions for these specific users

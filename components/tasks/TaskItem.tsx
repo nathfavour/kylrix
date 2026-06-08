@@ -26,6 +26,7 @@ import { useLayout } from '@/context/LayoutContext';
 import { useSection } from '@/context/SectionContext';
 import { useCallLauncher } from '@/context/CallLauncherContext';
 import { useAuth } from '@/context/auth/AuthContext';
+import { useResourcePins } from '@/context/ResourcePinContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { usePresence } from '@/components/providers/PresenceProvider';
 import { FlowPresenceFlapOver } from '@/components/LinkRenderer';
@@ -65,6 +66,8 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
     selectTask,
     getTagFilterOptions,
   } = useTask();
+  const { isPinned: isResourcePinned } = useResourcePins();
+  const taskPinned = isResourcePinned('task', task.id, task.creatorId, task.isPinned);
   const { openSecondarySidebar } = useLayout();
   const { setActiveDetail } = useSection();
   const { openCallLauncher } = useCallLauncher();
@@ -322,7 +325,7 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
                   task.status === 'done' ? 'text-[#9B9691] line-through' : 'text-[#F5F2ED]'
                 }`}
               >
-                {task.isPinned && (
+                {taskPinned && (
                   <Pin className="h-3.5 w-3.5 text-[#F59E0B] rotate-45 shrink-0" style={{ color: '#F59E0B' }} />
                 )}
                 <span className="truncate">{task.title}</span>

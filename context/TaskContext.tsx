@@ -12,6 +12,7 @@ import { Task as AppwriteTask, Calendar as AppwriteCalendar } from '@/types/kylr
 import { useDataNexus } from './DataNexusContext';
 import { sendKylrixEmailNotification } from '@/lib/email-notifications';
 import { useAuth } from '@/context/auth/AuthContext';
+import { useResourcePins } from '@/context/ResourcePinContext';
 import { getAllTags } from '@/lib/appwrite';
 import type { Tags } from '@/types/appwrite';
 import {
@@ -640,6 +641,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(taskReducer, initialState);
   const { fetchOptimized, invalidate, getCachedData, getCachedDataAsync, setCachedData, refreshInBackground } = useDataNexus();
   const { user: authUser, isLoading: isAuthLoading } = useAuth();
+  const { isPinned: isResourcePinned, togglePin, setLocalPin } = useResourcePins();
   const flowWarmOwnerRef = useRef<string | null>(null);
   const pendingStatusPatchesRef = useRef<Map<string, PendingStatusPatch>>(new Map());
 
@@ -984,31 +986,67 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
   const togglePinTask = useCallback(async (id: string) => {
     const task = state.tasks.find(t => t.id === id);
-    if (!task) return;
-    const newPinned = !task.isPinned;
-    dispatch({ type: 'TOGGLE_PIN_TASK', payload: id });
-    try {
-        await taskApi.update(id, { isPinned: newPinned } as any);
-        invalidateTasksNexus(state.userId || 'guest');
-    } catch (err) {
-        console.error('Failed to toggle task pin', err);
-        dispatch({ type: 'TOGGLE_PIN_TASK', payload: id });
+    if (!task || !state.userId) return;
+    const ownerId = task.creatorId || state.userId;
+    const currentlyPinned = isResourcePinned('task', id, ownerId, task.isPinned);
+    const isOwner = state.userId === ownerId;
+
+    if (isOwner) {
+      dispatch({ type: 'TOGGLE_PIN_TASK', payload: id });
     }
-  }, [state.tasks, state.userId, invalidateTasksNexus]);
+
+    try {
+      await togglePin({
+        resourceType: 'task',
+        resourceId: id,
+        ownerId,
+        rowIsPinned: task.isPinned,
+        setOwnerRowPin: async (pinned) => {
+          await taskApi.update(id, { isPinned: pinned } as any);
+        },
+      });
+      invalidateTasksNexus(state.userId);
+    } catch (err) {
+      console.error('Failed to toggle task pin', err);
+      if (isOwner) {
+        dispatch({ type: 'TOGGLE_PIN_TASK', payload: id });
+      } else {
+        setLocalPin('task', id, currentlyPinned);
+      }
+    }
+  }, [state.tasks, state.userId, isResourcePinned, togglePin, setLocalPin, invalidateTasksNexus]);
 
   const togglePinProject = useCallback(async (id: string) => {
     const project = state.projects.find(p => p.id === id);
-    if (!project) return;
-    const newPinned = !project.isPinned;
-    dispatch({ type: 'TOGGLE_PIN_PROJECT', payload: id });
-    try {
-        await calendarApi.update(id, { isPinned: newPinned } as any);
-        invalidateTasksNexus(state.userId || 'guest');
-    } catch (err) {
-        console.error('Failed to toggle project pin', err);
-        dispatch({ type: 'TOGGLE_PIN_PROJECT', payload: id });
+    if (!project || !state.userId) return;
+    const ownerId = project.ownerId || state.userId;
+    const currentlyPinned = isResourcePinned('calendar', id, ownerId, project.isPinned);
+    const isOwner = state.userId === ownerId;
+
+    if (isOwner) {
+      dispatch({ type: 'TOGGLE_PIN_PROJECT', payload: id });
     }
-  }, [state.projects, state.userId, invalidateTasksNexus]);
+
+    try {
+      await togglePin({
+        resourceType: 'calendar',
+        resourceId: id,
+        ownerId,
+        rowIsPinned: project.isPinned,
+        setOwnerRowPin: async (pinned) => {
+          await calendarApi.update(id, { isPinned: pinned } as any);
+        },
+      });
+      invalidateTasksNexus(state.userId);
+    } catch (err) {
+      console.error('Failed to toggle project pin', err);
+      if (isOwner) {
+        dispatch({ type: 'TOGGLE_PIN_PROJECT', payload: id });
+      } else {
+        setLocalPin('calendar', id, currentlyPinned);
+      }
+    }
+  }, [state.projects, state.userId, isResourcePinned, togglePin, setLocalPin, invalidateTasksNexus]);
 
   const deleteTask = useCallback(async (id: string) => {
     try {
@@ -1343,8 +1381,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     filtered.sort((a, b) => {
       const aDone = a.status === 'done';
       const bDone = b.status === 'done';
-      const aPinned = !!a.isPinned;
-      const bPinned = !!b.isPinned;
+      const aPinned = isResourcePinned('task', a.id, a.creatorId, a.isPinned);
+      const bPinned = isResourcePinned('task', b.id, b.creatorId, b.isPinned);
       
       // 1. Completion State: Done tasks always sink to the bottom
       if (aDone !== bDone) {
@@ -1390,7 +1428,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     });
 
     return filtered;
-  }, [state.tasks, state.filter, state.sort, state.searchQuery]);
+  }, [state.tasks, state.filter, state.sort, state.searchQuery, isResourcePinned]);
 
   const getTasksByProject = useCallback(
     (projectId: string) => {
