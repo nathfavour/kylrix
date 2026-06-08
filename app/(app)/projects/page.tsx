@@ -302,7 +302,7 @@ function LocalProjectCard({ project, onClick, onDelete, onTogglePin }: {
         <div className="flex-1 min-w-0 flex flex-col gap-1">
           {/* Header Row */}
           <div className="flex items-center gap-2 flex-wrap">
-            {(project as any).isPinned && (
+            {pinned && (
               <Pin size={14} className="text-[#F59E0B] fill-[#F59E0B] rotate-45 flex-shrink-0" />
             )}
             <h3 className="text-white text-base font-black tracking-tight leading-tight truncate flex-1 min-w-0">

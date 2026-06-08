@@ -28,6 +28,11 @@ import {
   ShieldAlert, 
   Briefcase, 
   Zap,
+  Lock,
+  Users,
+  Globe,
+  Check,
+  ChevronRight
 } from 'lucide-react';
 import { ProjectsService } from '@/lib/appwrite/projects';
 import { useToast } from '@/components/ui/Toast';
@@ -66,6 +71,7 @@ export function NewProjectDrawer() {
   const [step, setStep] = useState(1);
   const [isExpanded, setIsExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isVisibilityDrawerOpen, setIsVisibilityDrawerOpen] = useState(false);
   
   // Resources for picking
   const [resources, setResources] = useState<any[]>([]);
@@ -312,7 +318,7 @@ export function NewProjectDrawer() {
             flex: 1, 
             display: 'flex', 
             flexDirection: 'column', 
-            gap: 3,
+            gap: 2,
             overflowY: 'auto',
             pr: 0.5
           }}
@@ -427,43 +433,55 @@ export function NewProjectDrawer() {
                     <Typography component="span" sx={{ fontWeight: 800, color: TEXT_MUTED, mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1.35 }}>
                     Visibility
                     </Typography>
-                    <FormControl fullWidth variant="standard">
-                        <Select
-                            value={visibility}
-                            onChange={(e) => setVisibility(e.target.value as any)}
-                            disableUnderline
-                            sx={{
-                                color: '#fff',
-                                bgcolor: VOID,
-                                borderRadius: '16px',
-                                fontWeight: 700,
-                                px: 2,
-                                py: 0.5,
-                                border: BORDER,
-                                fontFamily: fontUi,
-                                '& .MuiSelect-select': { py: 1.5 },
-                                '& .MuiSvgIcon-root': { color: TEXT_MUTED }
-                            }}
-                            MenuProps={{
-                                PaperProps: {
-                                    sx: {
-                                        bgcolor: SURFACE_ASH,
-                                        border: BORDER,
-                                        borderRadius: '12px',
-                                        color: '#fff',
-                                        mt: 1
-                                    }
-                                }
-                            }}
+                    <Box
+                      component="button"
+                      type="button"
+                      onClick={() => setIsVisibilityDrawerOpen(true)}
+                      sx={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        px: 2.25,
+                        py: 1.5,
+                        borderRadius: '16px',
+                        bgcolor: VOID,
+                        border: BORDER,
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: BRAND_TRANSITION,
+                        '&:hover': { borderColor: '#4F4C49', bgcolor: HOVER },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flex: 1 }}>
+                        <Box
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '10px',
+                            display: 'grid',
+                            placeItems: 'center',
+                            flexShrink: 0,
+                            bgcolor: 'rgba(255,255,255,0.03)',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                          }}
                         >
-                            <MenuItem value="private" sx={{ fontWeight: 600 }}>Private</MenuItem>
-                            <MenuItem value="shared" sx={{ fontWeight: 600 }}>Shared</MenuItem>
-                            <MenuItem value="public" sx={{ fontWeight: 600 }}>Public</MenuItem>
-                        </Select>
-                    </FormControl>
+                          {visibility === 'private' ? <Lock size={16} color={TEXT_MUTED} /> : visibility === 'shared' ? <Users size={16} color={SYSTEM_PRIMARY} /> : <Globe size={16} color="#10B981" />}
+                        </Box>
+                        <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                          <Typography component="span" sx={{ fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.25, color: '#fff', textTransform: 'capitalize' }}>
+                            {visibility}
+                          </Typography>
+                          <Typography component="span" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600, fontSize: '0.76rem', lineHeight: 1.35 }} noWrap>
+                            {visibility === 'private' ? 'Only you and collaborators' : visibility === 'shared' ? 'Anyone with the link' : 'Public to the ecosystem'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <ChevronRight size={18} color={TEXT_MUTED} style={{ flexShrink: 0 }} />
+                    </Box>
                 </Box>
 
-                <Box sx={{ mt: 'auto', pt: 4 }}>
+                <Box sx={{ mt: 'auto', pt: 2 }}>
                     <Button 
                         fullWidth
                         type="submit"
@@ -505,6 +523,104 @@ export function NewProjectDrawer() {
           )}
         </Box>
       </Box>
+
+      {/* Visibility Selection Sub-Drawer */}
+      <Drawer
+        anchor="bottom"
+        open={isVisibilityDrawerOpen}
+        onClose={() => setIsVisibilityDrawerOpen(false)}
+        ModalProps={{ keepMounted: false, disableScrollLock: false }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            bgcolor: SURFACE_ASH,
+            borderTopLeftRadius: RADIUS_LARGE,
+            borderTopRightRadius: RADIUS_LARGE,
+            border: BORDER,
+            borderBottom: 0,
+            pb: 'max(24px, env(safe-area-inset-bottom))',
+            pt: 2,
+            px: { xs: 2.25, sm: 2.75 },
+          }
+        }}
+      >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+          <Typography component="span" sx={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem', fontFamily: fontDisplay, letterSpacing: '-0.02em', lineHeight: 1.25 }}>
+            Project Visibility
+          </Typography>
+          <IconButton
+            onClick={() => setIsVisibilityDrawerOpen(false)}
+            sx={{
+              color: '#E8E6E3',
+              bgcolor: VOID,
+              border: BORDER,
+              '&:hover': { bgcolor: HOVER },
+              flexShrink: 0,
+            }}
+          >
+            <CloseIcon size={18} />
+          </IconButton>
+        </Stack>
+
+        <Stack spacing={2}>
+          {[
+            { id: 'private', label: 'Private', desc: 'Only you and explicitly added collaborators can access.', icon: Lock, color: TEXT_MUTED },
+            { id: 'shared', label: 'Shared', desc: 'Anyone with the exact secure link can access.', icon: Users, color: SYSTEM_PRIMARY },
+            { id: 'public', label: 'Public', desc: 'Visible and searchable to the entire ecosystem.', icon: Globe, color: '#10B981' }
+          ].map((opt) => {
+            const isSelected = visibility === opt.id;
+            return (
+              <Box
+                key={opt.id}
+                component="button"
+                type="button"
+                onClick={() => {
+                  setVisibility(opt.id as any);
+                  setIsVisibilityDrawerOpen(false);
+                }}
+                sx={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  px: 2.25,
+                  py: 1.75,
+                  borderRadius: '16px',
+                  bgcolor: isSelected ? 'rgba(99, 102, 241, 0.05)' : VOID,
+                  border: isSelected ? `1px solid ${SYSTEM_PRIMARY}` : BORDER,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: BRAND_TRANSITION,
+                  '&:hover': { borderColor: isSelected ? SYSTEM_PRIMARY : '#4F4C49', bgcolor: isSelected ? 'rgba(99, 102, 241, 0.08)' : HOVER },
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '12px',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                    bgcolor: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                  }}
+                >
+                  <opt.icon size={18} color={opt.color} />
+                </Box>
+                <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                  <Typography component="span" sx={{ fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.25, color: '#fff' }}>
+                    {opt.label}
+                  </Typography>
+                  <Typography component="span" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600, fontSize: '0.76rem', lineHeight: 1.35 }} noWrap>
+                    {opt.desc}
+                  </Typography>
+                </Box>
+                {isSelected && <Check size={20} color={SYSTEM_PRIMARY} style={{ flexShrink: 0 }} />}
+              </Box>
+            );
+          })}
+        </Stack>
+      </Drawer>
     </Drawer>
   );
 }
