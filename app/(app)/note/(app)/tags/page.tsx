@@ -30,20 +30,6 @@ export default function TagsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<Tags | null>(null);
 
-  const handleCreateNew = useCallback(() => {
-    open('new-tag', { onSuccess: fetchTags });
-  }, [open, fetchTags]);
-
-  useEffect(() => {
-    setConfiguration({
-      isVisible: true,
-      mainColor: '#6366F1',
-      onMainClick: handleCreateNew,
-      actions: []
-    });
-    return () => resetConfiguration();
-  }, [setConfiguration, resetConfiguration, handleCreateNew]);
-
   const fetchTags = useCallback(async () => {
     if (!user) {
       setError('User not authenticated');
@@ -60,6 +46,10 @@ export default function TagsPage() {
       setLoading(false);
     }
   }, [user]);
+
+  const handleCreateNew = useCallback(() => {
+    open('new-tag', { onSuccess: fetchTags });
+  }, [open, fetchTags]);
 
   useEffect(() => {
     if (!isAuthenticated) {

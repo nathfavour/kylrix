@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   Menu, 
   MenuItem, 
@@ -38,6 +38,16 @@ export function ContextMenu({ x, y, onCloseAction, items, appType }: ContextMenu
   const [menuStack, setMenuStack] = useState<ContextMenuItem[][]>([items]);
   const currentItems = menuStack[menuStack.length - 1];
   const isSubmenu = menuStack.length > 1;
+
+  useEffect(() => {
+    setMenuStack((prev) => {
+      if (prev.length <= 1) return [items];
+      const root = prev[0];
+      const nextRoot = items;
+      if (root === nextRoot) return prev;
+      return [nextRoot, ...prev.slice(1)];
+    });
+  }, [items]);
 
   const handleBack = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();

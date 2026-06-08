@@ -546,18 +546,6 @@ export default function ProjectsPage() {
       onMainClick: () => openCreateDrawerRef.current(),
       actions: [
         { id: 'create-project', label: 'CREATE PROJECT', icon: <Plus size={20} />, onClick: () => openCreateDrawerRef.current() },
-        { 
-            id: 'create-team', 
-            label: 'CREATE TEAM', 
-            icon: <Users size={20} />, 
-            onClick: () => {
-                if (!hasPaidKylrixPlan(user)) {
-                    open('pro-upgrade', {});
-                } else {
-                    showSuccess('Team creation environment is spinning up...');
-                }
-            } 
-        },
         { id: 'workflows-nav', label: 'ACTION WORKFLOWS', icon: <Workflow size={20} />, onClick: () => router.push('/projects/workflows') },
         { id: 'insights', label: 'AI INSIGHTS', icon: <Sparkles size={20} />, onClick: () => router.push('/note/notes') }]
     });
@@ -566,8 +554,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     fetchProjects();
-    fetchTeams();
-  }, [fetchProjects, fetchTeams]);
+  }, [fetchProjects]);
 
   const handleDeleteProject = async (project: Projects) => {
     open('delete-confirm', {

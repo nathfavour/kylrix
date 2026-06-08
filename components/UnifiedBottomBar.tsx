@@ -154,7 +154,7 @@ export function UnifiedBottomBar() {
   const isPublicFormPage = Boolean(pathname?.match(/^\/flow\/form\/[^/]+$/));
 
   if (pathname?.startsWith('/accounts')) return null;
-  if (pathname?.startsWith('/projects') || pathname?.startsWith('/teams')) return null;
+  if (pathname?.startsWith('/projects')) return null;
 
   if (
     isSpecificChatPage ||
