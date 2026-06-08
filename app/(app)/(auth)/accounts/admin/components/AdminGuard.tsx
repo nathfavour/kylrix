@@ -55,7 +55,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
     };
 
     checkStatus();
-  }, [isRealUser, isStillLoading, user, router]);
+  }, [isRealUser, isStillLoading, user, router, getJWT]);
 
   // Show spinner while loading, pulse-resolving, or waiting for admin check result
   if (isStillLoading || isAdmin === null) {
