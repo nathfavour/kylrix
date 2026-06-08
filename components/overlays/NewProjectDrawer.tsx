@@ -81,7 +81,7 @@ export function NewProjectDrawer() {
   // Form State
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
-  const [visibility, setVisibility] = useState<'private' | 'shared' | 'public'>('private');
+  const [visibility, setVisibility] = useState<'private' | 'public'>('private');
 
   const fetchResources = useCallback(async () => {
     if (!user?.$id) return;
@@ -168,6 +168,7 @@ export function NewProjectDrawer() {
         summary: summary.trim(),
         visibility,
         isPublic: visibility === 'public',
+        isGuest: visibility === 'public',
         status: 'active',
         metadata: JSON.stringify(metadata)
       } as any);
@@ -466,14 +467,14 @@ export function NewProjectDrawer() {
                             border: '1px solid rgba(255,255,255,0.05)',
                           }}
                         >
-                          {visibility === 'private' ? <Lock size={16} color={TEXT_MUTED} /> : visibility === 'shared' ? <Users size={16} color={SYSTEM_PRIMARY} /> : <Globe size={16} color="#10B981" />}
+                          {visibility === 'private' ? <Lock size={16} color={TEXT_MUTED} /> : <Globe size={16} color="#10B981" />}
                         </Box>
                         <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
                           <Typography component="span" sx={{ fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.25, color: '#fff', textTransform: 'capitalize' }}>
                             {visibility}
                           </Typography>
                           <Typography component="span" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600, fontSize: '0.76rem', lineHeight: 1.35 }} noWrap>
-                            {visibility === 'private' ? 'Only you and collaborators' : visibility === 'shared' ? 'Anyone with the link' : 'Public to the ecosystem'}
+                            {visibility === 'private' ? 'Only you and collaborators' : 'Public to the ecosystem and guests'}
                           </Typography>
                         </Box>
                       </Box>
