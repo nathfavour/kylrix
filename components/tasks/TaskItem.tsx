@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Flag,
   Clock,
@@ -17,8 +17,7 @@ import {
   UserPlus as AssignIcon,
   Sparkles,
   Settings,
-  ChevronRight,
-  Folder
+  Tag,
 } from 'lucide-react';
 import { formatTime, isToday, isTomorrow, isPast, isThisWeek } from '@/lib/time-util';
 import { Task, Priority } from '@/types';
@@ -56,7 +55,16 @@ const priorityLabels: Record<Priority, string> = {
 };
 
 export default React.memo(function TaskItem({ task, onClick, compact = false }: TaskItemProps) {
-  const { completeTask, deleteTask, updateTask, labels, projects, selectTask, togglePinTask } = useTask();
+  const {
+    completeTask,
+    deleteTask,
+    updateTask,
+    addTask,
+    labels,
+    projects,
+    selectTask,
+    getTagFilterOptions,
+  } = useTask();
   const { openSecondarySidebar } = useLayout();
   const { setActiveDetail } = useSection();
   const { openCallLauncher } = useCallLauncher();
@@ -82,11 +90,28 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
   const hasPresence = activeTeammates.length > 0 || projectTeammates.length > 0;
 
   const project = projects.find((p) => p.id === task.projectId);
-  const taskLabels = labels.filter((l) => task.labels.includes(l.id));
+  const taskLabels = useMemo(() => {
+    const known = labels.filter((label) => task.labels.includes(label.name));
+    const knownNames = new Set(known.map((label) => label.name));
+    const orphans = task.labels
+      .filter((name) => !knownNames.has(name))
+      .map((name) => ({ id: name, name, color: '#9B9691' }));
+    return [...known, ...orphans];
+  }, [labels, task.labels]);
   const completedSubtasks = task.subtasks.filter((s) => s.completed).length;
   const totalSubtasks = task.subtasks.length;
 
-  const contextMenuItems = [
+  const toggleTaskTag = (tagName: string) => {
+    const hasTag = task.labels.includes(tagName);
+    const nextLabels = hasTag
+      ? task.labels.filter((name) => name !== tagName)
+      : [...task.labels, tagName];
+    updateTask(task.id, { labels: nextLabels });
+  };
+
+  const tagMenuOptions = getTagFilterOptions();
+
+  const contextMenuItems = useMemo(() => [
     { 
         label: 'Synergy', 
         icon: <Sparkles size={16} className="text-[#A855F7]" />,
@@ -115,6 +140,20 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
                 }
             },
         ]
+    },
+    {
+        label: 'Tags',
+        icon: <Tag size={16} className="text-[#A855F7]" />,
+        submenu: tagMenuOptions.length > 0
+          ? tagMenuOptions.map((tagName) => ({
+              label: tagName,
+              icon: task.labels.includes(tagName)
+                ? <Check size={16} className="text-[#A855F7]" />
+                : <Tag size={14} className="opacity-30" />,
+              keepOpen: true,
+              onClick: () => toggleTaskTag(tagName),
+            }))
+          : [{ label: 'No tags available', onClick: () => undefined }],
     },
     { 
         label: 'Workflow', 

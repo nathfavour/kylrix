@@ -318,6 +318,42 @@ export default function TaskList() {
           </div>
         </div>
 
+        {tagFilterOptions.length > 0 && (
+          <div className="overflow-x-auto scrollbar-none mb-6 p-2 bg-white/[0.01] border border-white/5 rounded-[24px] flex items-center gap-2 select-none">
+            <Tag size={14} className="text-[#A855F7]/60 ml-2 shrink-0" />
+            {tagFilterOptions.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                aria-pressed={activeTagFilter === tag}
+                onClick={() => handleTagFilterToggle(tag)}
+                className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                  activeTagFilter === tag
+                    ? 'bg-[#A855F7] border-[#A855F7] text-white shadow-[0_4px_12px_rgba(168,85,247,0.2)]'
+                    : 'bg-white/3 border-white/8 text-white/60 hover:text-white hover:border-white/15'
+                }`}
+                style={
+                  activeTagFilter !== tag
+                    ? { borderColor: `${getTagColor(tag)}33`, color: getTagColor(tag) }
+                    : undefined
+                }
+              >
+                {tag}
+              </button>
+            ))}
+            {activeTagFilter && (
+              <button
+                type="button"
+                onClick={() => setFilter({ ...filter, labels: [] })}
+                className="ml-1 px-3 py-1.5 text-xs text-[#A855F7] hover:text-[#c084fc] font-mono font-bold tracking-wider flex items-center gap-1 shrink-0"
+              >
+                <X size={12} />
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Grid Content */}
         <div className="min-h-[60vh]">
           {/* Task List View */}
