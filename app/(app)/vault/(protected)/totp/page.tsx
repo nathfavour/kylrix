@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Shield, Copy, Pencil, Trash2, Search } from 'lucide-react';
+import { ArrowLeft, Plus, Shield, Copy, Pencil, Trash2, Search, Pin, Lock, Link as LinkIcon } from 'lucide-react';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { listTotpSecrets, deleteTotpSecret, listFolders } from '@/lib/appwrite';
 import { generateTOTP } from '@/lib/totp-util';
@@ -11,6 +11,11 @@ import NewTotpDialog from '@/components/app/totp/new';
 import { useSudo } from '@/context/SudoContext';
 import { useFAB } from '@/context/FABContext';
 import { MultiSectionContainer } from '@/context/SectionContext';
+import { useResourcePins } from '@/context/ResourcePinContext';
+import { useContextMenu } from '@/components/ui/ContextMenuContext';
+import { ShareLockButton } from '@/components/share/ShareLockButton';
+import { useAccessControlMenuItems } from '@/components/share/AccessControlMenuItems';
+import { useMemo, useCallback } from 'react';
 
 export const dynamic = 'force-dynamic';
 
@@ -163,6 +168,9 @@ function TOTPPageContent() {
     }
   };
 
+  const { openMenu } = useContextMenu();
+  const { isPinned: isResourcePinned, togglePin } = useResourcePins();
+
   const TOTPCard = ({ totp }: { totp: TotpItem }) => {
     const code = generateTOTP(
       totp.secretKey,
@@ -179,6 +187,41 @@ function TOTPPageContent() {
     const issuerInitials = totp.issuer ? totp.issuer.trim().charAt(0).toUpperCase() : "?";
 
     const isSelected = selectedTotp?.$id === totp.$id;
+    const pinned = isResourcePinned('totp', totp.$id, user?.$id, (totp as any).isPinned);
+
+    const handlePinToggle = async (e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
+      try {
+        await togglePin({
+          resourceType: 'totp',
+          resourceId: totp.$id,
+          ownerId: user?.$id || '',
+          rowIsPinned: (totp as any).isPinned,
+          setOwnerRowPin: async (pinned) => {
+              // Update via local refresh for now or implement updateTotpSecret
+          },
+        });
+      } catch (err: any) {
+        console.error('Failed to toggle pin:', err);
+      }
+    };
+
+    const contextMenuItems = useMemo(() => [
+        { label: pinned ? 'Unpin Code' : 'Pin Code', icon: <Pin size={16} className={pinned ? 'rotate-45 text-[#F59E0B]' : ''} />, onClick: handlePinToggle },
+        { label: 'Edit', icon: <Pencil size={16} />, onClick: () => openEditDialog(totp) },
+        { label: 'Delete', icon: <Trash2 size={16} />, variant: 'destructive' as const, onClick: () => openDeleteDialog(totp.$id) }
+    ], [pinned, totp]);
+
+    const handleContextMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openMenu({
+            x: e.clientX,
+            y: e.clientY,
+            items: contextMenuItems,
+            appType: 'vault'
+        });
+    };
 
     // SVG variables
     const radius = 10;
@@ -188,6 +231,7 @@ function TOTPPageContent() {
     return (
       <div
         onClick={() => setSelectedTotp(totp)}
+        onContextMenu={handleContextMenu}
         className={`p-5 rounded-3xl transition-all duration-300 flex flex-col sm:flex-row sm:items-center sm:justify-between cursor-pointer border ${
           isSelected 
             ? 'bg-[#1C1A18] border-emerald-500/40' 
@@ -294,26 +338,24 @@ function TOTPPageContent() {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2">
+          {/* Action Buttons (Pin, Lock/Link) */}
+          <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
             <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                openEditDialog(totp);
-              }} 
-              className="p-2 text-[#9B9691] border border-white/5 rounded-xl hover:text-white hover:bg-white/5 transition-colors"
+              onClick={handlePinToggle}
+              className={`p-1.5 rounded-lg transition-all duration-200 ${pinned ? 'text-[#F59E0B] bg-[#F59E0B]/5' : 'text-white/20 hover:text-[#F59E0B] hover:bg-[#F59E0B]/5'}`}
+              title={pinned ? 'Unpin' : 'Pin'}
             >
-              <Pencil className="h-[15px] w-[15px]" />
+              <Pin size={16} className={pinned ? 'fill-[#F59E0B]' : ''} />
             </button>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                openDeleteDialog(totp.$id);
-              }} 
-              className="p-2 text-[#9B9691] border border-white/5 rounded-xl hover:text-red-500 hover:bg-red-500/5 hover:border-red-500/20 transition-colors"
-            >
-              <Trash2 className="h-[15px] w-[15px]" />
-            </button>
+            <ShareLockButton 
+                resourceType="totp"
+                resourceId={totp.$id}
+                isPublic={false}
+                isGuest={false}
+                accentColor="#10B981"
+                canPublish={false}
+                blockReason="TOTP codes cannot be shared publicly"
+            />
           </div>
         </div>
       </div>
