@@ -66,8 +66,9 @@ export function TagSelectorDrawer() {
       anchor="bottom"
       open={isOpen}
       onClose={close}
-      ModalProps={{ keepMounted: false, disableScrollLock: false, disablePortal: true }}
+      ModalProps={{ keepMounted: false, disableScrollLock: false }}
       sx={{
+        zIndex: 2000,
         '& .MuiDrawer-paper': {
           height: '50dvh',
           maxHeight: '80dvh',
@@ -83,6 +84,7 @@ export function TagSelectorDrawer() {
           flexDirection: 'column',
           maxWidth: isDesktop ? '600px' : '100%',
           margin: isDesktop ? '0 auto' : '0',
+          zIndex: 2000,
         },
       }}
     >

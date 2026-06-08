@@ -211,8 +211,9 @@ export function NewTagDrawer() {
       anchor={isDesktop ? 'right' : 'bottom'}
       open={isOpen}
       onClose={close}
-      ModalProps={{ keepMounted: false, disableScrollLock: false, disablePortal: true }}
+      ModalProps={{ keepMounted: false, disableScrollLock: false }}
       sx={{
+        zIndex: 2000,
         '& .MuiDrawer-paper': {
           ...(isDesktop
             ? {
@@ -229,6 +230,7 @@ export function NewTagDrawer() {
                 borderTop: BORDER,
                 borderBottom: 0,
                 borderRight: 0,
+                zIndex: 2000,
               }
             : {
                 height: isExpanded ? '100dvh' : '60dvh',
@@ -239,6 +241,7 @@ export function NewTagDrawer() {
                 borderTopRightRadius: RADIUS_LARGE,
                 border: BORDER,
                 borderBottom: 0,
+                zIndex: 2000,
               }),
           bgcolor: SURFACE_ASH,
           boxShadow: 'none',
