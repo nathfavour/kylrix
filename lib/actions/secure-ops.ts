@@ -24,6 +24,8 @@ import { executeCascadeDeleteSecure } from './cascade-delete';
 import { verifyCreatorDeletionProof } from '@/lib/ephemeral/ephemeral-proof';
 import { verifyTurnstileToken } from '@/lib/turnstile';
 import { validatePublicNoteAccess } from '@/lib/appwrite/note';
+import { buildPublicResourceUrl } from '@/lib/share/public-url';
+import { PublicResourceType } from '@/lib/share/resource-types';
 import { 
   MutatePermissionsSchema, 
   IDSchema, 
@@ -6286,6 +6288,139 @@ export async function getGlobalProfileStatusSecure(userId: string) {
     return { exists: false, error: 'Not Found' };
   } catch (e: any) {
     return { exists: false, error: e.message };
+  }
+}
+
+/**
+ * Ruthless Sharing: Unified toggle for isPublic and isGuest flags.
+ */
+export async function toggleResourcePublicGuestSecure(params: {
+  resourceType: PublicResourceType;
+  resourceId: string;
+  mode: 'publish' | 'copy_only' | 'make_private' | 'guest_off' | 'guest_on';
+  projectId?: string;
+  jwt?: string;
+}) {
+  const actor = await getActor(params.jwt);
+  if (!actor || !actor.$id) throw new Error('Unauthorized');
+
+  const { resourceType, resourceId, mode, projectId } = params;
+  const tables = createSystemTablesDB();
+
+  const config = getResourceConfig(resourceType);
+  if (!config) throw new Error(`Unsupported resource type: ${resourceType}`);
+
+  const row = await tables.getRow({
+    databaseId: config.databaseId,
+    tableId: config.tableId,
+    rowId: resourceId
+  }).catch(() => null);
+
+  if (!row) throw new Error('Resource not found');
+  
+  const ownerId = row.userId || row.ownerId || row.creatorId;
+  if (ownerId !== actor.$id) {
+     throw new Error('Only the owner can manage public sharing');
+  }
+
+  let isPublic = !!row.isPublic;
+  let isGuest = !!row.isGuest;
+
+  if (mode === 'copy_only') {
+    return {
+      success: true,
+      isPublic,
+      isGuest,
+      publicUrl: buildPublicResourceUrl(resourceType, resourceId, { projectId })
+    };
+  }
+
+  if (mode === 'publish') {
+    isPublic = true;
+    isGuest = true;
+  } else if (mode === 'make_private') {
+    isPublic = false;
+    isGuest = false;
+  } else if (mode === 'guest_off') {
+    isGuest = false;
+  } else if (mode === 'guest_on') {
+    isGuest = true;
+    isPublic = true;
+  }
+
+  // Constraint: TOTP cannot be shared
+  if ((isPublic || isGuest) && resourceType === 'totp') {
+    throw new Error("TOTP codes can't be shared publicly");
+  }
+
+  const updateData: any = {
+    isPublic,
+    isGuest,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (resourceType === 'project') {
+    updateData.visibility = isPublic ? 'public' : 'private';
+  }
+
+  if (resourceType === 'form' && mode === 'publish') {
+    updateData.status = 'published';
+  }
+
+  await tables.updateRow({
+    databaseId: config.databaseId,
+    tableId: config.tableId,
+    rowId: resourceId,
+    data: updateData
+  });
+
+  const publicUrl = buildPublicResourceUrl(resourceType, resourceId, { projectId });
+
+  return {
+    success: true,
+    isPublic,
+    isGuest,
+    publicUrl
+  };
+}
+
+export async function getResourcePublicGuestSecure(params: {
+  resourceType: PublicResourceType;
+  resourceId: string;
+  jwt?: string;
+}) {
+  const config = getResourceConfig(params.resourceType);
+  if (!config) throw new Error(`Unsupported resource type: ${params.resourceType}`);
+
+  const tables = createSystemTablesDB();
+  const row = await tables.getRow({
+    databaseId: config.databaseId,
+    tableId: config.tableId,
+    rowId: params.resourceId
+  }).catch(() => null);
+
+  if (!row) throw new Error('Resource not found');
+
+  return {
+    isPublic: !!row.isPublic,
+    isGuest: !!row.isGuest,
+    isPinned: !!row.isPinned,
+    userId: row.userId || row.ownerId || row.creatorId
+  };
+}
+
+function getResourceConfig(type: PublicResourceType) {
+  switch (type) {
+    case 'note': return { databaseId: APPWRITE_CONFIG.DATABASES.NOTE, tableId: APPWRITE_CONFIG.TABLES.NOTE.NOTES };
+    case 'credential': return { databaseId: APPWRITE_CONFIG.DATABASES.VAULT, tableId: APPWRITE_CONFIG.TABLES.VAULT.CREDENTIALS };
+    case 'totp': return { databaseId: APPWRITE_CONFIG.DATABASES.VAULT, tableId: APPWRITE_CONFIG.TABLES.VAULT.TOTP_SECRETS };
+    case 'task':
+    case 'goal': return { databaseId: APPWRITE_CONFIG.DATABASES.FLOW, tableId: APPWRITE_CONFIG.TABLES.FLOW.TASKS };
+    case 'form': return { databaseId: APPWRITE_CONFIG.DATABASES.FLOW, tableId: APPWRITE_CONFIG.TABLES.FLOW.FORMS };
+    case 'event': return { databaseId: APPWRITE_CONFIG.DATABASES.FLOW, tableId: APPWRITE_CONFIG.TABLES.FLOW.EVENTS };
+    case 'project': return { databaseId: APPWRITE_CONFIG.DATABASES.CHAT, tableId: 'projects' };
+    case 'moment': return { databaseId: APPWRITE_CONFIG.DATABASES.CHAT, tableId: APPWRITE_CONFIG.TABLES.CHAT.MOMENTS };
+    default: return null;
   }
 }
 

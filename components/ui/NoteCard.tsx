@@ -17,7 +17,9 @@ import {
   CheckSquare as GrammarIcon,
   PlusSquare as TodoIcon,
   Calendar,
-  Unlock
+  Unlock,
+  ShieldCheck,
+  Globe
 } from 'lucide-react';
 
 import { useContextMenu } from './ContextMenuContext';
@@ -29,6 +31,8 @@ import { DoodleStroke } from '@/types/notes';
 import { sidebarIgnoreProps } from '@/constants/sidebar';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { useSection } from '@/context/SectionContext';
+import { ShareLockButton } from '../share/ShareLockButton';
+import { useAccessControlMenuItems } from '../share/AccessControlMenuItems';
 
 import { toggleNoteVisibility, rotatePublicNoteLink, createTaskFromNote, getShareableUrl, getCurrentPublicNoteShareUrl, getNotePublicState } from '@/lib/appwrite';
 import { createNote, updateNote } from '@/lib/actions/client-ops';
@@ -275,10 +279,20 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
     setActiveDetail({ type: 'note', id: note.$id, data: note });
   };
 
-  const contextMenuItems = [
+  const accessControlItems = useAccessControlMenuItems({
+    resourceType: 'note',
+    resourceId: note.$id,
+    isPublic: !!note.isPublic,
+    isGuest: !!note.isGuest,
+    resourceTitle: note.title || 'Untitled Note',
+    onUpdate: () => {
+      onUpdate?.(note);
+    }
+  });
+
+  const contextMenuItems = useMemo(() => [
     { label: pinned ? 'Unpin' : 'Pin', icon: <PinIcon size={16} className={pinned ? 'rotate-45 text-[#EC4899]' : ''} />, onClick: () => { handlePinToggle(); } },
-    ...(isPublic ? [{ label: 'Copy Share Link', icon: <LinkIcon size={16} />, onClick: () => { handleCopyShareLink(); } }, { label: 'Change Public Link', icon: <RefreshIcon size={16} />, onClick: () => { handleRotatePublicLink(); } }] : []),
-    { label: isPublic ? 'Make Private' : 'Make Public', icon: isPublic ? <PrivateIcon size={16} /> : <Unlock size={16} />, onClick: () => { handleTogglePublic(); } },
+    ...accessControlItems,
     { label: 'Duplicate', icon: <DuplicateIcon size={16} />, onClick: () => { handleDuplicate(); } },
     { label: 'Add Paywall', icon: <LocalOfferIcon size={16} className="text-[#EC4899]" />, onClick: () => { setIsPaywallDialogOpen(true); } },
     ...(isPro ? [
@@ -288,19 +302,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
     ] : []),
     { label: 'Share with...', icon: <ShareIcon size={16} />, onClick: openShare },
     { label: 'Delete', icon: <TrashIcon size={16} className="text-red-500" />, onClick: openDelete, variant: 'destructive' as const }
-  ];
-
-  const openCardActionsMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    openMenu({
-      x: rect.right,
-      y: rect.bottom + 4,
-      items: contextMenuItems,
-      appType: 'note',
-    });
-  };
+  ], [pinned, accessControlItems, isPro, handlePinToggle, handleDuplicate, setIsPaywallDialogOpen, handleAIAction, handleCreateTodo, openShare, openDelete]);
 
   return (
     <>
@@ -350,31 +352,26 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
               </div>
             </div>
 
-            {/* Top-Right Inline Actions (Pin, Menu) */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {isPublic && (
-                <button
-                  onClick={handleCopyShareLink}
-                  className="p-1.5 rounded-lg text-white/20 hover:text-[#EC4899] hover:bg-[#EC4899]/5 transition-all duration-200"
-                  title="Copy Share Link"
-                >
-                  <LinkIcon size={16} />
-                </button>
-              )}
+            {/* Top-Right Inline Actions (Pin, Lock/Link) */}
+            <div className="flex items-center gap-0.5 flex-shrink-0">
               <button
                 onClick={handlePinToggle}
-                className="p-1.5 rounded-lg text-white/20 hover:text-[#EC4899] hover:bg-[#EC4899]/5 transition-all duration-200"
+                className={`p-1.5 rounded-lg transition-all duration-200 ${pinned ? 'text-[#EC4899] bg-[#EC4899]/5' : 'text-white/20 hover:text-[#EC4899] hover:bg-[#EC4899]/5'}`}
                 title={pinned ? 'Unpin' : 'Pin'}
               >
                 <PinIcon size={16} className={pinned ? 'fill-[#EC4899]' : ''} />
               </button>
-              <button
-                onClick={openCardActionsMenu}
-                className="p-1.5 rounded-lg text-white/20 hover:text-white hover:bg-white/5 transition-all duration-200"
-                title="More Actions"
-              >
-                <MoreHorizIcon size={16} />
-              </button>
+
+              <ShareLockButton 
+                resourceType="note"
+                resourceId={note.$id}
+                isPublic={!!note.isPublic}
+                isGuest={!!note.isGuest}
+                accentColor="#EC4899"
+                onPublished={() => onUpdate?.(note)}
+                canPublish={!isEncryptedNote}
+                blockReason="Unlock vault to share encrypted notes"
+              />
             </div>
 
           </div>

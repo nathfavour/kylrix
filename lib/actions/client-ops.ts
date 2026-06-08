@@ -51,8 +51,11 @@ import {
   createGhostNoteChatSecure,
   listGhostNoteChatsSecure,
   getCrossSuggestionsSecure,
-  initGoalDiscussionSecure
+  initGoalDiscussionSecure,
+  toggleResourcePublicGuestSecure,
+  getResourcePublicGuestSecure
 } from './secure-ops';
+import { PublicResourceType } from '@/lib/share/resource-types';
 
 // Helper to fetch JWT securely from client-side SDK
 async function getJwt(): Promise<string | undefined> {
@@ -365,6 +368,25 @@ export async function recordAnonymizedTelemetry(params: {
 }) {
   const { recordAnonymizedTelemetrySecure } = await import('./secure-ops');
   return recordAnonymizedTelemetrySecure(params);
+}
+
+// --- Ruthless Sharing ---
+export async function toggleResourcePublicGuest(params: {
+  resourceType: PublicResourceType;
+  resourceId: string;
+  mode: 'publish' | 'copy_only' | 'make_private' | 'guest_off' | 'guest_on';
+  projectId?: string;
+}) {
+  const jwt = await getJwt();
+  return toggleResourcePublicGuestSecure({ ...params, jwt });
+}
+
+export async function getResourcePublicGuest(params: {
+  resourceType: PublicResourceType;
+  resourceId: string;
+}) {
+  const jwt = await getJwt();
+  return getResourcePublicGuestSecure({ ...params, jwt });
 }
 
 
