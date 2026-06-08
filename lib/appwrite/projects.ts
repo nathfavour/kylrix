@@ -121,118 +121,95 @@ export const ProjectsService = {
 
   async listTaggedResources(tagIds: string[]) {
     if (!tagIds || tagIds.length === 0) {
-      return { 
-        notes: [], 
-        tasks: [], 
-        credentials: [], 
-        totps: [], 
-        events: [], 
-        forms: [], 
-        moments: [] 
-      };
+      return { notes: [], tasks: [], credentials: [], totps: [], events: [], forms: [], moments: [] };
     }
 
     const databaseId = APPWRITE_CONFIG.DATABASES.NOTE;
     const pivotTable = APPWRITE_CONFIG.TABLES.NOTE.NOTE_TAGS || 'resource_tags';
 
     try {
-      const pivotRes = await databases.listRows(
-        databaseId,
-        pivotTable,
-        [
-          Query.equal('tagId', tagIds),
-          Query.limit(5000)
-        ]
-      );
+      // 0. Resolve tag names for fallback name-based sweeping
+      const { listTags } = await import('./index');
+      const tagsRes = await listTags([Query.equal('$id', tagIds)]);
+      const tagNames = tagsRes.rows.map((t: any) => t.name).filter(Boolean);
 
-      const resourceIdsByType: Record<string, string[]> = {};
-      pivotRes.rows.forEach((p: any) => {
+      // 1. Fetch ALL pivot records for these tags (by ID and by Name)
+      // We do this in parallel to be exhaustive
+      const [pivotById, pivotByName] = await Promise.all([
+        databases.listRows(databaseId, pivotTable, [Query.equal('tagId', tagIds), Query.limit(5000)]),
+        tagNames.length 
+          ? databases.listRows(databaseId, pivotTable, [Query.equal('tag', tagNames), Query.limit(5000)])
+          : Promise.resolve({ rows: [] })
+      ]);
+
+      const allPivotRows = [...pivotById.rows, ...pivotByName.rows];
+
+      if (!allPivotRows.length) {
+        return { notes: [], tasks: [], credentials: [], totps: [], events: [], forms: [], moments: [] };
+      }
+
+      const resourceIdsByType: Record<string, Set<string>> = {};
+      allPivotRows.forEach((p: any) => {
         const type = p.resourceType;
         const id = p.resourceId;
         if (!type || !id) return;
-        if (!resourceIdsByType[type]) resourceIdsByType[type] = [];
-        resourceIdsByType[type].push(id);
-      });
-
-      // Deduplicate IDs per type
-      Object.keys(resourceIdsByType).forEach(type => {
-        resourceIdsByType[type] = Array.from(new Set(resourceIdsByType[type]));
+        
+        // Normalize types
+        let normalized = type;
+        if (type === 'productivity.task' || type === 'goal') normalized = 'task';
+        if (type === 'password' || type === 'secret') normalized = 'credential';
+        
+        if (!resourceIdsByType[normalized]) resourceIdsByType[normalized] = new Set();
+        resourceIdsByType[normalized].add(id);
       });
 
       // Fetch actual objects in parallel
-      const { 
-        listNotes, 
-        listFlowTasks, 
-        listKeepCredentials 
-      } = await import('./index');
+      const { listNotes, listFlowTasks, listKeepCredentials } = await import('./index');
 
-      const notesPromise = resourceIdsByType['note']?.length 
-        ? listNotes([Query.equal('$id', resourceIdsByType['note'])]).then(r => r.rows).catch(() => []) 
+      // Notes
+      const notesPromise = resourceIdsByType['note']?.size 
+        ? listNotes([Query.equal('$id', Array.from(resourceIdsByType['note']))], 500).then(r => r.rows).catch(() => []) 
         : Promise.resolve([]);
 
-      const tasksPromise = (resourceIdsByType['goal']?.length || resourceIdsByType['task']?.length)
-        ? listFlowTasks([Query.equal('$id', [...(resourceIdsByType['goal'] || []), ...(resourceIdsByType['task'] || [])])]).then(r => r.rows).catch(() => [])
+      // Tasks
+      const tasksPromise = resourceIdsByType['task']?.size
+        ? listFlowTasks([Query.equal('$id', Array.from(resourceIdsByType['task']))], 500).then(r => r.rows).catch(() => [])
         : Promise.resolve([]);
 
-      const credentialsPromise = resourceIdsByType['password']?.length || resourceIdsByType['credential']?.length
-        ? listKeepCredentials([Query.equal('$id', [...(resourceIdsByType['password'] || []), ...(resourceIdsByType['credential'] || [])])]).then(r => r.rows).catch(() => [])
+      // Credentials
+      const credentialsPromise = resourceIdsByType['credential']?.size
+        ? listKeepCredentials([Query.equal('$id', Array.from(resourceIdsByType['credential']))], 500).then(r => r.rows).catch(() => [])
         : Promise.resolve([]);
 
-      const totpsPromise = resourceIdsByType['totp']?.length
-        ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER, 'totpSecrets', [Query.equal('$id', resourceIdsByType['totp'])]).then((r: any) => r.rows).catch(() => [])
+      // TOTPs
+      const totpsPromise = resourceIdsByType['totp']?.size
+        ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.VAULT, APPWRITE_CONFIG.TABLES.VAULT.TOTP_SECRETS, [Query.equal('$id', Array.from(resourceIdsByType['totp']))], 500).then((r: any) => r.rows).catch(() => [])
         : Promise.resolve([]);
 
-      const eventsPromise = resourceIdsByType['event']?.length
-        ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.KYLRIXFLOW, 'events', [Query.equal('$id', resourceIdsByType['event'])]).then((r: any) => r.rows).catch(() => [])
+      // Events
+      const eventsPromise = resourceIdsByType['event']?.size
+        ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.FLOW, APPWRITE_CONFIG.TABLES.FLOW.EVENTS, [Query.equal('$id', Array.from(resourceIdsByType['event']))], 500).then((r: any) => r.rows).catch(() => [])
         : Promise.resolve([]);
 
-      const formsPromise = resourceIdsByType['form']?.length
-        ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.FLOW, APPWRITE_CONFIG.TABLES.FLOW.FORMS, [Query.equal('$id', resourceIdsByType['form'])]).then((r: any) => r.rows).catch(() => [])
+      // Forms
+      const formsPromise = resourceIdsByType['form']?.size
+        ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.FLOW, APPWRITE_CONFIG.TABLES.FLOW.FORMS, [Query.equal('$id', Array.from(resourceIdsByType['form']))], 500).then((r: any) => r.rows).catch(() => [])
         : Promise.resolve([]);
 
-      const momentsPromise = resourceIdsByType['moment']?.length
-        ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.MOMENTS, [Query.equal('$id', resourceIdsByType['moment'])]).then((r: any) => r.rows).catch(() => [])
+      // Moments
+      const momentsPromise = resourceIdsByType['moment']?.size
+        ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CONNECT, APPWRITE_CONFIG.TABLES.CONNECT.MOMENTS, [Query.equal('$id', Array.from(resourceIdsByType['moment']))], 500).then((r: any) => r.rows).catch(() => [])
         : Promise.resolve([]);
 
-      const [
-        notes,
-        tasks,
-        credentials,
-        totps,
-        events,
-        forms,
-        moments
-      ] = await Promise.all([
-        notesPromise,
-        tasksPromise,
-        credentialsPromise,
-        totpsPromise,
-        eventsPromise,
-        formsPromise,
-        momentsPromise
+      const [notes, tasks, credentials, totps, events, forms, moments] = await Promise.all([
+        notesPromise, tasksPromise, credentialsPromise, totpsPromise, eventsPromise, formsPromise, momentsPromise
       ]);
 
-      return {
-        notes,
-        tasks,
-        credentials,
-        totps,
-        events,
-        forms,
-        moments
-      };
+      return { notes, tasks, credentials, totps, events, forms, moments };
 
     } catch (err) {
       console.error('[ProjectsService] Failed to list tagged resources:', err);
-      return { 
-        notes: [], 
-        tasks: [], 
-        credentials: [], 
-        totps: [], 
-        events: [], 
-        forms: [], 
-        moments: [] 
-      };
+      return { notes: [], tasks: [], credentials: [], totps: [], events: [], forms: [], moments: [] };
     }
   }
 };
