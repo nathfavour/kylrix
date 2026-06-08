@@ -318,30 +318,32 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
 
           {/* Main Content */}
           <div className="flex-grow min-w-0">
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-start justify-between gap-2 mb-1">
               {/* Title */}
-              <div 
-                className={`font-satoshi font-bold text-sm sm:text-base tracking-tight truncate flex items-center gap-1.5 ${
+              <div
+                className={`font-satoshi font-bold text-sm sm:text-base tracking-tight flex-1 min-w-0 ${
                   task.status === 'done' ? 'text-[#9B9691] line-through' : 'text-[#F5F2ED]'
                 }`}
               >
-                {taskPinned && (
-                  <Pin className="h-3.5 w-3.5 text-[#F59E0B] rotate-45 shrink-0" style={{ color: '#F59E0B' }} />
-                )}
-                <span className="truncate">{task.title}</span>
-                {hasPresence && (
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      setIsFlapOverOpen(true);
-                    }}
-                    className="inline-block w-2 h-2 rounded-full bg-[#A1A1AA] shadow-[0_0_6px_rgba(161,161,170,0.6)] cursor-pointer animate-pulse ml-1 shrink-0"
-                  />
-                )}
+                <span className="inline-flex items-start gap-1.5 flex-wrap break-words [overflow-wrap:anywhere]">
+                  {taskPinned && (
+                    <Pin className="h-3.5 w-3.5 text-[#F59E0B] rotate-45 shrink-0 mt-0.5" style={{ color: '#F59E0B' }} />
+                  )}
+                  <span>{task.title}</span>
+                  {hasPresence && (
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setIsFlapOverOpen(true);
+                      }}
+                      className="inline-block w-2 h-2 rounded-full bg-[#A1A1AA] shadow-[0_0_6px_rgba(161,161,170,0.6)] cursor-pointer animate-pulse shrink-0 mt-1.5"
+                    />
+                  )}
+                </span>
               </div>
 
-              <div className="flex gap-1 items-center shrink-0 relative">
+              <div className="flex gap-1 items-start shrink-0 relative pt-0.5">
                 {/* Indicators */}
                 <div className="flex items-center gap-2 sm:gap-3 mr-1.5 text-[#9B9691] opacity-80">
                   {totalSubtasks > 0 && (

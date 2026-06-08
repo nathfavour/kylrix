@@ -489,8 +489,8 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
       {/* Header - Sticky/Fixed at Top */}
       <div className="relative z-10 flex flex-col gap-3 p-5 md:p-6 border-b border-white/5 bg-[#161412]/60 backdrop-blur-md shrink-0">
         {/* Row 1: Title & Close Action Buttons */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-2 flex-1 min-w-0">
             {onBack ? (
               <button
                 type="button"
