@@ -34,6 +34,8 @@ import { FlowPresenceFlapOver } from '@/components/LinkRenderer';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { useOverlay } from '@/components/ui/OverlayContext';
 import { useContextMenu } from '@/components/ui/ContextMenuContext';
+import { ShareLockButton } from '../share/ShareLockButton';
+import { useAccessControlMenuItems } from '../share/AccessControlMenuItems';
 import TaskDetails from './TaskDetails';
 
 interface TaskItemProps {
@@ -67,8 +69,29 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
     selectTask,
     getTagFilterOptions,
   } = useTask();
-  const { isPinned: isResourcePinned } = useResourcePins();
+  const { isPinned: isResourcePinned, togglePin } = useResourcePins();
   const taskPinned = isResourcePinned('task', task.id, task.creatorId, task.isPinned);
+
+  const handlePinToggle = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    try {
+      await togglePin({
+        resourceType: 'task',
+        resourceId: task.id,
+        ownerId: task.creatorId,
+        rowIsPinned: task.isPinned,
+        setOwnerRowPin: async (nextPinned) => {
+          await updateTask(task.id, { isPinned: nextPinned });
+        },
+      });
+    } catch (err: any) {
+      console.error('Failed to toggle pin:', err);
+    }
+  };
+
   const { openSecondarySidebar } = useLayout();
   const { setActiveDetail } = useSection();
   const { openCallLauncher } = useCallLauncher();
@@ -115,7 +138,20 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
 
   const tagMenuOptions = getTagFilterOptions();
 
+  const accessControlItems = useAccessControlMenuItems({
+    resourceType: 'goal',
+    resourceId: task.id,
+    isPublic: !!task.isPublic,
+    isGuest: !!task.isGuest,
+    resourceTitle: task.title,
+    onUpdate: () => {
+        // Updated via realtime or parent refetch
+    }
+  });
+
   const contextMenuItems = useMemo(() => [
+    { label: taskPinned ? 'Unpin' : 'Pin', icon: <Pin size={16} className={taskPinned ? 'rotate-45 text-[#F59E0B]' : ''} />, onClick: handlePinToggle },
+    ...accessControlItems,
     { 
         label: 'Synergy', 
         icon: <Sparkles size={16} className="text-[#A855F7]" />,
@@ -222,6 +258,8 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
         })
     }
   ], [
+    taskPinned,
+    accessControlItems,
     task,
     tagMenuOptions,
     toggleTaskTag,
@@ -234,18 +272,6 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
     openSecondarySidebar,
     deleteTask,
   ]);
-
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
-    event.stopPropagation();
-    event.preventDefault();
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    openMenu({ 
-        x: rect.left, 
-        y: rect.bottom + 4, 
-        items: contextMenuItems,
-        appType: 'flow'
-    });
-  };
 
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -358,7 +384,7 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
                 </span>
               </div>
 
-              <div className="flex gap-1 items-start shrink-0 relative pt-0.5">
+              <div className="flex gap-0.5 items-start shrink-0 relative pt-0.5">
                 {/* Indicators */}
                 <div className="flex items-center gap-2 sm:gap-3 mr-1.5 text-[#9B9691] opacity-80">
                   {totalSubtasks > 0 && (
@@ -375,14 +401,26 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
                   )}
                 </div>
 
-                {/* Menu Trigger */}
-                <button
-                  type="button"
-                  onClick={handleMenuClick}
-                  className="p-1 rounded-full text-[#9B9691] hover:text-[#F5F2ED] transition-colors"
-                >
-                  <MoreVertical className="h-4.5 w-4.5" />
-                </button>
+                {/* Inline Actions (Pin, Lock/Link) */}
+                <div className="flex items-center gap-0.5">
+                  <button
+                    type="button"
+                    onClick={handlePinToggle}
+                    className={`p-1 rounded-lg transition-all duration-200 ${taskPinned ? 'text-[#F59E0B] bg-[#F59E0B]/5' : 'text-white/20 hover:text-[#F59E0B] hover:bg-[#F59E0B]/5'}`}
+                    title={taskPinned ? 'Unpin' : 'Pin'}
+                  >
+                    <Pin size={16} className={taskPinned ? 'fill-[#F59E0B]' : ''} />
+                  </button>
+
+                  <ShareLockButton 
+                    resourceType="goal"
+                    resourceId={task.id}
+                    isPublic={!!task.isPublic}
+                    isGuest={!!task.isGuest}
+                    accentColor="#A855F7"
+                    onPublished={() => {}}
+                  />
+                </div>
               </div>
             </div>
 

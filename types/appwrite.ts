@@ -185,11 +185,9 @@ export type Notes = Models.Row & {
     color: string | null;
     description: string | null;
     isDeleted?: boolean;
-    }
-
     userId: string | null;
     nameLower: string | null;
-}
+};
 
 export type ApiKeys = Models.Row & {
     id: string | null;
