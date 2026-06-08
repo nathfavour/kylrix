@@ -1017,8 +1017,49 @@ export default function ProjectDetailPage() {
                     </div>
                 </div>
 
+                {/* --- Project Tags Section --- */}
+                <div className="bg-[#161412] border border-white/6 rounded-[32px] overflow-hidden shadow-2xl mt-8">
+                    <div className="border-b border-white/6 px-6 py-5 bg-white/[0.01] flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <Tag size={18} className="text-[#6366F1] flex-shrink-0" />
+                          <span className="text-white font-black text-base tracking-tight leading-none block">
+                              Project Tags
+                          </span>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setAddModalTab(5); // Tags tab index
+                                setIsAddModalOpen(true);
+                            }}
+                            className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white/40 hover:text-white bg-white/5 hover:bg-[#6366F1]/20 border border-white/6 hover:border-[#6366F1]/30 transition-all"
+                        >
+                            <Plus size={14} />
+                        </button>
+                    </div>
+
+                    <div className="p-4 md:p-8">
+                        {tags.length === 0 ? (
+                            <div className="py-8 text-center text-white/30 italic text-sm">
+                                No tags linked to this project.
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {tags.map(tag => (
+                                    <span 
+                                      key={tag.$id}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1C1A18] rounded-lg border border-[#34322F] text-xs font-black font-mono tracking-wider transition-all hover:border-[#6366F1]/50 cursor-default"
+                                      style={{ color: tag.color || '#6366F1' }}
+                                    >
+                                        # {tag.name.toUpperCase()}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
                 {/* Tagged Resources Section */}
-                {Object.values(taggedResources).some(arr => arr.length > 0) && (
+                {tags.length > 0 && (
                   <div className="bg-[#161412] border border-white/6 rounded-[32px] overflow-hidden shadow-2xl mt-8">
                       <div className="border-b border-white/6 px-6 py-5 bg-white/[0.01] flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3">
@@ -1040,18 +1081,24 @@ export default function ProjectDetailPage() {
                       </div>
 
                       <div className="p-4 md:p-8">
-                          <TaggedResourcesTabs 
-                            resources={taggedResources} 
-                            openSidebar={openSidebar}
-                            openSecondarySidebar={openSecondarySidebar}
-                            openOverlay={openOverlay}
-                            closeOverlay={closeOverlay}
-                            fetchProjectData={fetchProjectData}
-                            handleToggleKeepPermission={handleToggleKeepPermission}
-                            handleRemoveObject={handleRemoveObject}
-                            router={router}
-                            showError={showError}
-                          />
+                          {Object.values(taggedResources).every(arr => arr.length === 0) ? (
+                            <div className="py-8 text-center text-white/30 italic text-sm">
+                                No external resources swept by these tags.
+                            </div>
+                          ) : (
+                            <TaggedResourcesTabs 
+                                resources={taggedResources} 
+                                openSidebar={openSidebar}
+                                openSecondarySidebar={openSecondarySidebar}
+                                openOverlay={openOverlay}
+                                closeOverlay={closeOverlay}
+                                fetchProjectData={fetchProjectData}
+                                handleToggleKeepPermission={handleToggleKeepPermission}
+                                handleRemoveObject={handleRemoveObject}
+                                router={router}
+                                showError={showError}
+                            />
+                          )}
                       </div>
                   </div>
                 )}
@@ -1271,12 +1318,14 @@ export default function ProjectDetailPage() {
       </MultiSectionContainer>
 
       {isAddModalOpen && (
-        <ProjectAddObjectModal 
-          open={isAddModalOpen} 
-          onClose={() => setIsAddModalOpen(false)} 
-          projectId={projectId as string} 
-          onAdded={fetchProjectData} 
+        <ProjectAddObjectModal
+          open={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          projectId={projectId as string}
+          onAdded={fetchProjectData}
+          initialTab={addModalTab}
         />
+
       )}
 
       {isExtractModalOpen && extractGoalsNote && (
