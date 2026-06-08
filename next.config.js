@@ -14,6 +14,30 @@ const nextConfig = {
       'lodash',
       'date-fns'],
   },
+  async redirects() {
+    return [
+      {
+        source: '/note/notes',
+        destination: '/note',
+        permanent: true,
+      },
+      {
+        source: '/vault/dashboard',
+        destination: '/vault',
+        permanent: true,
+      },
+      {
+        source: '/flow/goals',
+        destination: '/flow',
+        permanent: true,
+      },
+      {
+        source: '/flow/tasks',
+        destination: '/flow',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

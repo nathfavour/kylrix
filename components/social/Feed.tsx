@@ -47,7 +47,10 @@ import {
     Plus,
     Search,
     Phone,
-    Video
+    Video,
+    Pin,
+    Lock,
+    Link as LinkIcon
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -75,6 +78,10 @@ import { showUpgradeIsland } from '@/lib/upgrade-island';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { mintNoteShareMomentSecure } from '@/lib/actions/secure-ops';
 import { getNoteAttachmentIdFromMomentFileId } from '@/lib/moment-file-meta';
+import { useResourcePins } from '@/context/ResourcePinContext';
+import { useContextMenu } from '@/components/ui/ContextMenuContext';
+import { ShareLockButton } from '@/components/share/ShareLockButton';
+import { useAccessControlMenuItems } from '@/components/share/AccessControlMenuItems';
 
 import toast from 'react-hot-toast';
 
@@ -1872,8 +1879,63 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
                 const creatorName = isOwnPost ? (user?.name || 'You') : resolvedCreator.displayName;
                 const creatorAvatar = isOwnPost ? userAvatarUrl : (moment.creator?.avatar || cachedCreator?.avatar || undefined);
 
+                const { isPinned: isResourcePinned, togglePin } = useResourcePins();
+                const pinned = isResourcePinned('moment', moment.$id, creatorId, moment.isPinned);
+                const { openMenu } = useContextMenu();
+
+                const handlePinToggle = async (e?: React.MouseEvent) => {
+                  if (e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }
+                  try {
+                    await togglePin({
+                      resourceType: 'moment',
+                      resourceId: moment.$id,
+                      ownerId: creatorId,
+                      rowIsPinned: moment.isPinned,
+                      setOwnerRowPin: async (nextPinned) => {
+                         // State refresh handled by parent/realtime
+                      },
+                    });
+                  } catch (err: any) {
+                    console.error('Failed to toggle pin:', err);
+                  }
+                };
+
+                const accessControlItems = useAccessControlMenuItems({
+                  resourceType: 'moment',
+                  resourceId: moment.$id,
+                  isPublic: !!moment.isPublic,
+                  isGuest: !!moment.isGuest,
+                  resourceTitle: moment.caption,
+                  onUpdate: () => {
+                    // Update state or refetch
+                  }
+                });
+
+                const contextMenuItems = [
+                  { label: pinned ? 'Unpin' : 'Pin', icon: <Pin size={16} className={pinned ? 'rotate-45 text-[#F59E0B]' : ''} />, onClick: handlePinToggle },
+                  ...accessControlItems,
+                  ...(isOwnPost ? [
+                    { label: 'Edit Moment', icon: <Edit size={16} />, onClick: () => handleEditMoment(moment) },
+                    { label: 'Delete', icon: <Trash2 size={16} />, variant: 'destructive' as const, onClick: () => handleDeletePost(moment.$id) }
+                  ] : [])
+                ];
+
+                const handleRightClick = (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        items: contextMenuItems,
+                        appType: 'connect'
+                    });
+                };
+
                 return (
-                    <Card key={moment.$id} sx={{ ...momentCardSx, mb: { xs: 2.5, md: 3 } }} elevation={0}>
+                    <Card key={moment.$id} onContextMenu={handleRightClick} sx={{ ...momentCardSx, mb: { xs: 2.5, md: 3 } }} elevation={0}>
                         <CardHeader
                             sx={{ px: 2, pt: 2, pb: 0.75, '& .MuiCardHeader-content': { minWidth: 0 } }}
                             avatar={
@@ -1909,17 +1971,26 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
                                 </Typography>
                             }
                             action={
-                                isOwnPost && (
-                                    <IconButton 
-                                        onClick={(e) => { 
-                                            setPostMenuAnchorEl(e.currentTarget); 
-                                            setMenuMoment(moment); 
-                                        }}
-                                        sx={{ color: 'rgba(255, 255, 255, 0.2)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' } }}
-                                    >
-                                        <MoreHorizontal size={18} />
-                                    </IconButton>
-                                )
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <IconButton
+                                    size="small"
+                                    onClick={handlePinToggle}
+                                    sx={{
+                                      color: pinned ? '#F59E0B' : 'rgba(255, 255, 255, 0.15)',
+                                      '&:hover': { color: '#F59E0B', bgcolor: 'rgba(255, 255, 255, 0.03)' }
+                                    }}
+                                  >
+                                    <Pin size={16} className={pinned ? 'fill-[#F59E0B]' : ''} />
+                                  </IconButton>
+                                  <ShareLockButton 
+                                    resourceType="moment"
+                                    resourceId={moment.$id}
+                                    isPublic={!!moment.isPublic}
+                                    isGuest={!!moment.isGuest}
+                                    accentColor="#F59E0B"
+                                    onPublished={() => {}}
+                                  />
+                                </Box>
                             }
                         />
                         <CardContent

@@ -72,7 +72,6 @@ export function UnifiedLeftSidebar() {
     if (appContext === 'flow') {
       if (pathname?.includes('/forms')) return 'forms';
       if (pathname?.includes('/events')) return 'events';
-      if (pathname?.startsWith('/flow/tasks') || pathname?.includes('/tasks')) return 'goals';
       return 'goals';
     }
     if (appContext === 'connect') {
@@ -86,28 +85,28 @@ export function UnifiedLeftSidebar() {
   const handleNavChange = (newValue: string) => {
     if (appContext === 'note') {
       const routes: Record<string, string> = {
-        notes: '/note/notes',
+        notes: '/note',
         shared: '/note/shared',
         tags: '/note/tags',
         projects: '/projects',
       };
-      router.push(routes[newValue] || '/note/notes');
+      router.push(routes[newValue] || '/note');
     } else if (appContext === 'vault') {
       const routes: Record<string, string> = {
-        credentials: '/vault/dashboard',
+        credentials: '/vault',
         sharing: '/vault/sharing',
         totp: '/vault/totp',
         projects: '/projects',
       };
-      router.push(routes[newValue] || '/vault/dashboard');
+      router.push(routes[newValue] || '/vault');
     } else if (appContext === 'flow') {
       const routes: Record<string, string> = {
-        goals: '/flow/tasks',
+        goals: '/flow',
         forms: '/flow/forms',
         events: '/flow/events',
         projects: '/projects',
       };
-      router.push(routes[newValue] || '/flow/tasks');
+      router.push(routes[newValue] || '/flow');
     } else if (appContext === 'connect') {
       const routes: Record<string, string> = {
         home: '/connect',

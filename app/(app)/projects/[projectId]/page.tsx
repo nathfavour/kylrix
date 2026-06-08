@@ -827,6 +827,7 @@ export default function ProjectDetailPage() {
                                     {notes.map(note => (
                                         <ResourceItem 
                                             key={note.$id}
+                                            id={note.$id}
                                             title={note.title || 'Untitled Note'} 
                                             kind="note"
                                             metadata={note.tags?.slice(0, 3).join(' • ') || 'No tags'}
@@ -858,6 +859,7 @@ export default function ProjectDetailPage() {
                                     {tasks.map(task => (
                                         <ResourceItem 
                                             key={task.$id}
+                                            id={task.$id}
                                             title={task.title} 
                                             kind="goal"
                                             metadata={`${task.status.replace('-', ' ')} • ${task.priority}`}
@@ -878,6 +880,7 @@ export default function ProjectDetailPage() {
                                     {credentials.map(cred => (
                                         <ResourceItem 
                                             key={cred.$id}
+                                            id={cred.$id}
                                             title={cred.name} 
                                             kind="password"
                                             metadata={cred.username || 'Shared secret'}
@@ -897,6 +900,7 @@ export default function ProjectDetailPage() {
                                     {totps.map(totp => (
                                         <ResourceItem 
                                             key={totp.$id}
+                                            id={totp.$id}
                                             title={totp.issuer || totp.name || 'Smart Code'} 
                                             kind="totp"
                                             metadata={totp.accountName || 'TOTP secret'}
@@ -941,6 +945,7 @@ export default function ProjectDetailPage() {
                                     {subProjects.map(sub => (
                                         <ResourceItem 
                                             key={sub.$id}
+                                            id={sub.$id}
                                             title={sub.title || 'Untitled Project'}
                                             kind="project"
                                             metadata={sub.summary || 'Private Container'}
@@ -959,6 +964,7 @@ export default function ProjectDetailPage() {
                                     {events.map(event => (
                                         <ResourceItem 
                                             key={event.$id}
+                                            id={event.$id}
                                             title={event.title} 
                                             kind="event"
                                             metadata={`${event.location || 'No location'} • ${new Date(event.startTime).toLocaleString()}`}
@@ -971,6 +977,7 @@ export default function ProjectDetailPage() {
                                     {calls.map(call => (
                                         <ResourceItem 
                                             key={call.$id}
+                                            id={call.$id}
                                             title={call.title || 'Call Link'} 
                                             kind="call"
                                             metadata={`Scheduled Type: ${call.type || 'video'}`}
@@ -997,6 +1004,7 @@ export default function ProjectDetailPage() {
                                     {forms.map(form => (
                                         <ResourceItem 
                                             key={form.$id}
+                                            id={form.$id}
                                             title={form.title || 'Untitled Form'} 
                                             kind="form"
                                             metadata={form.description || 'Interactive Flow Schema'}
@@ -1014,6 +1022,7 @@ export default function ProjectDetailPage() {
                                     {moments.map(moment => (
                                         <ResourceItem 
                                             key={moment.$id}
+                                            id={moment.$id}
                                             title={moment.caption || 'Integrated Moment'} 
                                             kind="moment"
                                             metadata={`Published: ${new Date(moment.$createdAt || moment.createdAt).toLocaleDateString()}`}
@@ -1552,6 +1561,7 @@ function EmptyState({ kind }: { kind: string }) {
 }
 
 function ResourceItem({ 
+    id,
     title, 
     kind, 
     metadata, 
@@ -1561,6 +1571,7 @@ function ResourceItem({
     keepPermission,
     onToggleKeepPermission
 }: { 
+    id: string,
     title: string, 
     kind: string, 
     metadata: string, 
@@ -1691,26 +1702,31 @@ function ResourceItem({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 w-full md:w-auto justify-end flex-shrink-0 border-t border-white/4 md:border-t-0 pt-3 md:pt-0">
-                    {onExtractGoals && (
-                        <button
-                            onClick={onExtractGoals}
-                            className="inline-flex items-center gap-1 text-[#818CF8] bg-[#818CF8]/10 hover:bg-[#818CF8]/15 border border-[#818CF8]/20 hover:border-[#818CF8]/30 font-extrabold text-xs px-3.5 py-1.5 rounded-[10px] transition-all"
-                        >
-                            <Sparkles size={12} />
-                            <span>Extract Goals</span>
-                        </button>
-                    )}
+                <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-shrink-0 border-t border-white/4 md:border-t-0 pt-3 md:pt-0">
                     <button
-                        onClick={onOpen}
+                        onClick={(e) => { e.stopPropagation(); onOpen(); }}
                         className="inline-flex items-center gap-1 text-white/70 hover:text-white bg-white/2 hover:bg-white/5 border border-white/6 hover:border-white/12 font-extrabold text-xs px-3.5 py-1.5 rounded-[10px] transition-all"
                     >
                         <ExternalLink size={12} />
-                        <span>View</span>
+                        <span>Open</span>
                     </button>
+
+                    <div className="bg-white/3 rounded-[10px] border border-white/6 p-0.5 flex items-center">
+                        <ShareLockButton 
+                            resourceType={kind === 'goal' ? 'goal' : kind as any}
+                            resourceId={id}
+                            isPublic={false} // Would need real state here
+                            isGuest={false}
+                            accentColor={accent}
+                            projectId={projectId as string}
+                            onPublished={() => {}}
+                        />
+                    </div>
+
                     <button
-                        onClick={onUnlink}
-                        className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white/30 hover:text-[#FF453A] bg-white/2 hover:bg-[#FF453A]/10 border border-white/6 hover:border-[#FF453A]/20 transition-all"
+                        onClick={(e) => { e.stopPropagation(); onUnlink(); }}
+                        className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white/20 hover:text-[#FF453A] hover:bg-[#FF453A]/10 transition-all"
+                        title="Unlink from project"
                     >
                         <Trash2 size={14} />
                     </button>
@@ -2036,6 +2052,7 @@ function TaggedResourcesTabs({
         {currentTabLabel === 'Notes' && resources.notes.map((note: any) => (
           <ResourceItem 
             key={note.$id}
+            id={note.$id}
             title={note.title || 'Untitled Note'} 
             kind="note"
             metadata={note.tags?.slice(0, 3).join(' • ') || 'Auto-swept'}
@@ -2056,6 +2073,7 @@ function TaggedResourcesTabs({
         {currentTabLabel === 'Tasks' && resources.tasks.map((task: any) => (
           <ResourceItem 
             key={task.$id}
+            id={task.$id}
             title={task.title} 
             kind="goal"
             metadata={`${task.status.replace('-', ' ')} • ${task.priority}`}
@@ -2071,6 +2089,7 @@ function TaggedResourcesTabs({
             {resources.credentials.map((cred: any) => (
               <ResourceItem 
                 key={cred.$id}
+                id={cred.$id}
                 title={cred.name} 
                 kind="password"
                 metadata={cred.username || 'Shared secret'}
@@ -2090,6 +2109,7 @@ function TaggedResourcesTabs({
             {resources.totps.map((totp: any) => (
               <ResourceItem 
                 key={totp.$id}
+                id={totp.$id}
                 title={totp.issuer || totp.name || 'Smart Code'} 
                 kind="totp"
                 metadata={totp.accountName || 'TOTP secret'}
@@ -2116,6 +2136,7 @@ function TaggedResourcesTabs({
             {resources.forms.map((form: any) => (
               <ResourceItem 
                 key={form.$id}
+                id={form.$id}
                 title={form.title || 'Untitled Form'} 
                 kind="form"
                 metadata={form.description || 'Interactive Flow Schema'}
@@ -2133,6 +2154,7 @@ function TaggedResourcesTabs({
             {resources.events.map((event: any) => (
               <ResourceItem 
                 key={event.$id}
+                id={event.$id}
                 title={event.title} 
                 kind="event"
                 metadata={`${event.location || 'No location'} • ${new Date(event.startTime).toLocaleString()}`}
@@ -2145,6 +2167,7 @@ function TaggedResourcesTabs({
             {resources.moments.map((moment: any) => (
               <ResourceItem 
                 key={moment.$id}
+                id={moment.$id}
                 title={moment.caption || 'Integrated Moment'} 
                 kind="moment"
                 metadata={`Published: ${new Date(moment.$createdAt || moment.createdAt).toLocaleDateString()}`}

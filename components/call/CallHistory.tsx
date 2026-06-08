@@ -13,11 +13,16 @@ import {
     PhoneCall, 
     Trash2, 
     RefreshCw, 
-    History 
+    History,
+    Pin,
+    Lock,
+    Link as LinkIcon
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { seedIdentityCache } from '@/lib/identity-cache';
 import { useSection } from '@/context/SectionContext';
+import { ShareLockButton } from '../share/ShareLockButton';
+import { useResourcePins } from '@/context/ResourcePinContext';
 
 export const CallHistory = ({ onNewCall }: { onNewCall?: () => void }) => {
     const { user } = useAuth();
@@ -36,6 +41,25 @@ export const CallHistory = ({ onNewCall }: { onNewCall?: () => void }) => {
     }, []);
     
     const { setActiveDetail } = useSection();
+
+    const { isPinned: isResourcePinned, togglePin } = useResourcePins();
+
+    const handlePinToggle = async (call: any, e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
+      try {
+        await togglePin({
+          resourceType: 'call',
+          resourceId: call.$id,
+          ownerId: call.callerId,
+          rowIsPinned: call.isPinned,
+          setOwnerRowPin: async (pinned) => {
+              // Update logic if needed
+          },
+        });
+      } catch (err: any) {
+        console.error('Failed to toggle pin:', err);
+      }
+    };
 
     const loadCalls = React.useCallback(async () => {
         if (!user) return;
@@ -178,13 +202,27 @@ export const CallHistory = ({ onNewCall }: { onNewCall?: () => void }) => {
                                     </span>
                                 </div>
                             </div>
-                            <div>
+                            <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                                <button 
+                                    onClick={(e) => handlePinToggle(call, e)} 
+                                    className={`p-1.5 rounded-lg transition-all duration-200 ${isResourcePinned('call', call.$id, call.callerId, call.isPinned) ? 'text-[#F59E0B] bg-[#F59E0B]/5' : 'text-white/20 hover:text-[#F59E0B] hover:bg-[#F59E0B]/5'}`}
+                                >
+                                    <Pin size={16} className={isResourcePinned('call', call.$id, call.callerId, call.isPinned) ? 'fill-[#F59E0B]' : ''} />
+                                </button>
+                                <ShareLockButton 
+                                    resourceType="call"
+                                    resourceId={call.$id}
+                                    isPublic={!!call.isPublic}
+                                    isGuest={!!call.isGuest}
+                                    accentColor="#6366F1"
+                                    onPublished={() => loadCalls()}
+                                />
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); handleDeleteCall(call.$id); }} 
-                                    className="p-1.5 rounded-lg text-[#EF4444] hover:bg-[#EF4444]/10 transition-all"
+                                    className="p-1.5 rounded-lg text-[#EF4444]/40 hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-all"
                                     title="Delete Permanently"
                                 >
-                                    <Trash2 size={18} />
+                                    <Trash2 size={16} />
                                 </button>
                             </div>
                         </div>
