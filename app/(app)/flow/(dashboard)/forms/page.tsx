@@ -330,187 +330,136 @@ export default function FormsDashboard() {
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {filteredForms.map((form) => (
-                                            <div 
-                                                key={form.$id}
-                                                onClick={() => {
-                                                    if (isDesktop) {
-                                                        setActiveDetail({ type: 'form', id: form.$id, data: form });
-                                                    } else {
-                                                        router.push(`/flow/forms/${form.$id}`);
-                                                    }
-                                                }}
-                                                className="bg-[#161412] border border-[#34322F] hover:border-[#6366F1] rounded-[28px] cursor-pointer p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.5)] flex flex-col justify-between h-full"
-                                            >
-                                                <div>
-                                                    <div className="flex justify-between items-center mb-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <span 
-                                                                className="text-[9px] font-bold font-mono px-2 py-0.5 rounded border tracking-wider" 
-                                                                style={{ 
-                                                                    color: getStatusColor(form.status || 'draft'),
-                                                                    borderColor: getStatusColor(form.status || 'draft')
-                                                                }}
-                                                            >
-                                                                {(form.status || 'draft').toUpperCase()}
-                                                            </span>
-                                                            {formDraftStatus[form.$id] && (
-                                                                <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded border bg-[#1C1A18] text-[#FFB020] border-[#FFB020] tracking-wider">
-                                                                    UNSYNCED DRAFT
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-1">
-                                                            {/* Workflow Trigger */}
-                                                            <button
-                                                                type="button"
-                                                                className="p-1.5 text-[#6366F1] bg-[#1C1A18] border border-[#34322F] hover:border-[#6366F1] hover:bg-[#34322F] rounded-xl transition-all relative cursor-pointer"
-                                                                title="Activate Form-to-Project Workflow"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    openDrawer('new-project', {
-                                                                        template: {
-                                                                            id: 'form-to-project',
-                                                                            title: 'Analyze Responses', 
-                                                                            summary: 'Convert intake forms into context and auto-spin execution tasks.',
-                                                                            color: '#6366F1'
-                                                                        },
-                                                                        formId: form.$id,
-                                                                        selectedResourceId: form.$id,
-                                                                        formTitle: form.title,
-                                                                        formDescription: form.description || ''
-                                                                    });
-                                                                }}
-                                                            >
-                                                                <div className="relative w-5.5 h-5.5 flex items-center justify-center">
-                                                                    <FolderKanban className="h-3.5 w-3.5" strokeWidth={2.5} />
-                                                                    <div className="absolute -bottom-1 -right-1 bg-black rounded p-0.5 border border-white/10 flex items-center justify-center">
-                                                                        <FileText className="h-2 w-2 text-[#10B981]" />
-                                                                    </div>
-                                                                </div>
-                                                            </button>
-                                                            
-                                                            {/* More Menu Dropdown Wrapper */}
-                                                            <div className="relative">
-                                                                <button 
-                                                                    type="button"
-                                                                    className="p-1.5 rounded-xl text-[#9B9691] bg-[#1C1A18] border border-[#34322F] hover:bg-[#34322F] hover:text-white transition-colors cursor-pointer"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setActiveMenuFormId(form.$id);
+                                        {filteredForms.map((form) => {
+                                            const pinned = isResourcePinned('form', form.$id, form.userId, form.isPinned);
+                                            
+                                            const accessControlItems = useAccessControlMenuItems({
+                                                resourceType: 'form',
+                                                resourceId: form.$id,
+                                                isPublic: !!form.isPublic,
+                                                isGuest: !!form.isGuest,
+                                                resourceTitle: form.title,
+                                                onUpdate: () => fetchForms(false)
+                                            });
+
+                                            const contextMenuItems = [
+                                                { label: pinned ? 'Unpin' : 'Pin', icon: <Pin size={16} className={pinned ? 'rotate-45 text-[#F59E0B]' : ''} />, onClick: () => handleTogglePin(form) },
+                                                ...accessControlItems,
+                                                { label: 'Edit Schema', icon: <Edit size={16} />, onClick: () => handleEdit(form) },
+                                                { label: 'Settings', icon: <Settings size={16} />, onClick: () => handleOpenSettings(form) },
+                                                { 
+                                                    label: 'Project Workflow', 
+                                                    icon: <FolderKanban size={16} />, 
+                                                    onClick: () => openDrawer('new-project', {
+                                                        template: {
+                                                            id: 'form-to-project',
+                                                            title: 'Analyze Responses', 
+                                                            summary: 'Convert intake forms into context and auto-spin execution tasks.',
+                                                            color: '#6366F1'
+                                                        },
+                                                        formId: form.$id,
+                                                        selectedResourceId: form.$id,
+                                                        formTitle: form.title,
+                                                        formDescription: form.description || ''
+                                                    })
+                                                },
+                                                { label: 'Delete', icon: <Trash2 size={16} />, variant: 'destructive' as const, onClick: () => handleDelete(form) }
+                                            ];
+
+                                            const handleRightClick = (e: React.MouseEvent) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                openMenu({
+                                                    x: e.clientX,
+                                                    y: e.clientY,
+                                                    items: contextMenuItems,
+                                                    appType: 'flow'
+                                                });
+                                            };
+
+                                            return (
+                                                <div 
+                                                    key={form.$id}
+                                                    onClick={() => {
+                                                        if (isDesktop) {
+                                                            setActiveDetail({ type: 'form', id: form.$id, data: form });
+                                                        } else {
+                                                            router.push(`/flow/forms/${form.$id}`);
+                                                        }
+                                                    }}
+                                                    onContextMenu={handleRightClick}
+                                                    className="bg-[#161412] border border-[#34322F] hover:border-[#6366F1] rounded-[28px] cursor-pointer p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(0,0,0,0.5)] flex flex-col justify-between h-full"
+                                                >
+                                                    <div>
+                                                        <div className="flex justify-between items-center mb-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <span 
+                                                                    className="text-[9px] font-bold font-mono px-2 py-0.5 rounded border tracking-wider" 
+                                                                    style={{ 
+                                                                        color: getStatusColor(form.status || 'draft'),
+                                                                        borderColor: getStatusColor(form.status || 'draft')
                                                                     }}
                                                                 >
-                                                                    <MoreVertical className="h-4.5 w-4.5" />
-                                                                </button>
-                                                                {activeMenuFormId === form.$id && (
-                                                                    <>
-                                                                        <div className="fixed inset-0 z-40 bg-transparent cursor-default" onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setActiveMenuFormId(null);
-                                                                        }} />
-                                                                        <div 
-                                                                            className="absolute right-0 top-full mt-1.5 w-44 rounded-2xl bg-[#161412] border border-[#34322F] shadow-2xl p-1.5 z-50 font-satoshi text-left cursor-default"
-                                                                            onClick={(e) => e.stopPropagation()}
-                                                                        >
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => { setActiveMenuFormId(null); handleEdit(form); }}
-                                                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9B9691] hover:bg-[#1C1A18] hover:text-white rounded-xl transition-colors font-semibold"
-                                                                            >
-                                                                                <Edit className="h-4 w-4" />
-                                                                                <span>Edit Schema</span>
-                                                                            </button>
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => { setActiveMenuFormId(null); handleOpenSettings(form); }}
-                                                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9B9691] hover:bg-[#1C1A18] hover:text-white rounded-xl transition-colors font-semibold"
-                                                                            >
-                                                                                <Settings className="h-4 w-4" />
-                                                                                <span>Settings</span>
-                                                                            </button>
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => { 
-                                                                                    setActiveMenuFormId(null); 
-                                                                                    openDrawer('share-note', {
-                                                                                        resourceId: form.$id,
-                                                                                        resourceType: 'form',
-                                                                                        resourceTitle: form.title
-                                                                                    });
-                                                                                }}
-                                                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9B9691] hover:bg-[#1C1A18] hover:text-white rounded-xl transition-colors font-semibold"
-                                                                            >
-                                                                                <Share2 className="h-4 w-4" />
-                                                                                <span>Share Form</span>
-                                                                            </button>
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => { setActiveMenuFormId(null); handleTogglePin(form); }}
-                                                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9B9691] hover:bg-[#1C1A18] hover:text-white rounded-xl transition-colors font-semibold"
-                                                                            >
-                                                                                <Pin className={`h-4 w-4 ${isResourcePinned('form', form.$id, form.userId, form.isPinned) ? 'text-[#F59E0B]' : ''}`} />
-                                                                                <span>{isResourcePinned('form', form.$id, form.userId, form.isPinned) ? 'Unpin Form' : 'Pin Form'}</span>
-                                                                            </button>
-                                                                            <div className="my-1 border-t border-[#34322F]" />
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => { setActiveMenuFormId(null); handleDelete(form); }}
-                                                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#D14343] hover:bg-red-500/5 rounded-xl transition-colors font-bold"
-                                                                            >
-                                                                                <Trash2 className="h-4 w-4" />
-                                                                                <span>Delete Form</span>
-                                                                            </button>
-                                                                        </div>
-                                                                    </>
+                                                                    {(form.status || 'draft').toUpperCase()}
+                                                                </span>
+                                                                {formDraftStatus[form.$id] && (
+                                                                    <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded border bg-[#1C1A18] text-[#FFB020] border-[#FFB020] tracking-wider">
+                                                                        UNSYNCED
+                                                                    </span>
                                                                 )}
+                                                            </div>
+                                                            <div className="flex items-center gap-0.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleTogglePin(form);
+                                                                    }}
+                                                                    className={`p-1.5 rounded-lg transition-all duration-200 ${pinned ? 'text-[#F59E0B] bg-[#F59E0B]/5' : 'text-white/20 hover:text-[#F59E0B] hover:bg-[#F59E0B]/5'}`}
+                                                                >
+                                                                    <Pin size={16} className={pinned ? 'fill-[#F59E0B]' : ''} />
+                                                                </button>
+                                                                <ShareLockButton 
+                                                                    resourceType="form"
+                                                                    resourceId={form.$id}
+                                                                    isPublic={!!form.isPublic}
+                                                                    isGuest={!!form.isGuest}
+                                                                    accentColor="#10B981"
+                                                                    onPublished={() => fetchForms(false)}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <h2 className="text-lg font-bold mb-1 text-white font-clash tracking-tight truncate">
+                                                            {form.title}
+                                                        </h2>
+                                                        <p className="text-[#9B9691] text-xs sm:text-sm font-satoshi leading-relaxed mb-4 min-h-[3em] line-clamp-2">
+                                                            {form.description || 'No description provided.'}
+                                                        </p>
+                                                    </div>
+                                                    
+                                                    <div>
+                                                        <hr className="border-[#34322F] mb-4" />
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[10px] font-bold text-white/20 font-mono">
+                                                                {new Date(form.$createdAt).toLocaleDateString()}
+                                                            </span>
+                                                            <div className="flex gap-2">
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleEdit(form);
+                                                                    }} 
+                                                                    className="p-1.5 text-[#9B9691] bg-[#1C1A18] border border-[#34322F] hover:border-[#6366F1] hover:text-white rounded-xl transition-all"
+                                                                >
+                                                                    <Edit className="h-4 w-4" />
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <h2 className="text-lg font-bold mb-1 text-white font-clash tracking-tight truncate">
-                                                        {form.title}
-                                                    </h2>
-                                                    <p className="text-[#9B9691] text-xs sm:text-sm font-satoshi leading-relaxed mb-4 min-h-[3em] line-clamp-2">
-                                                        {form.description || 'No description provided.'}
-                                                    </p>
                                                 </div>
-                                                
-                                                <div>
-                                                    <hr className="border-[#34322F] mb-4" />
-                                                    <div className="flex gap-2 items-center">
-                                                        <Link 
-                                                            href={`/flow/form/${form.$id}`} 
-                                                            target="_blank" 
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            className="p-1.5 bg-[#1C1A18] border border-[#34322F] hover:bg-[#34322F] text-[#6366F1] rounded-xl transition-colors inline-flex items-center justify-center cursor-pointer"
-                                                            title="Preview Public Form"
-                                                        >
-                                                            <ExternalLink className="h-4.5 w-4.5" />
-                                                        </Link>
-                                                        <div className="flex-grow" />
-                                                        <button 
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleEdit(form);
-                                                            }} 
-                                                            className="p-1.5 text-[#9B9691] bg-[#1C1A18] border border-[#34322F] hover:bg-[#34322F] hover:text-white rounded-xl transition-colors inline-flex items-center justify-center cursor-pointer"
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </button>
-                                                        <button 
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleDelete(form);
-                                                            }} 
-                                                            className="p-1.5 text-[#D14343] bg-[#1C1A18] border border-[#34322F] hover:bg-[#34322F] hover:text-[#ff4444] rounded-xl transition-colors inline-flex items-center justify-center cursor-pointer"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </>

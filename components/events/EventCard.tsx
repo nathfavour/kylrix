@@ -5,17 +5,23 @@ import {
   Share2,
   Clock,
   Users,
-  MoreVertical,
   Edit,
   Trash2,
+  Pin,
+  Lock,
+  Link as LinkIcon
 } from 'lucide-react';
 import { Event } from '@/types';
 import { formatTime, isToday, isTomorrow } from '@/lib/time-util';
 import { generateEventPattern as generatePattern } from '@/utils/patternGenerator';
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+import { useResourcePins } from '@/context/ResourcePinContext';
+import { useContextMenu } from '@/components/ui/ContextMenuContext';
+import { ShareLockButton } from '@/components/share/ShareLockButton';
+import { useAccessControlMenuItems } from '@/components/share/AccessControlMenuItems';
 import { events as eventApi } from '@/lib/kylrixflow';
 import toast from 'react-hot-toast';
 
