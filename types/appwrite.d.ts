@@ -58,6 +58,19 @@ export enum CouponsStatus {
     EXPIRED = "expired"
 }
 
+export enum UserResourcePinsResourceType {
+    NOTE = "note",
+    CREDENTIAL = "credential",
+    TOTP = "totp",
+    TASK = "task",
+    CALENDAR = "calendar",
+    EVENT = "event",
+    FORM = "form",
+    PROJECT = "project",
+    CONVERSATION = "conversation",
+    MESSAGE = "message"
+}
+
 export enum MessagesType {
     TEXT = "text",
     IMAGE = "image",
@@ -353,6 +366,13 @@ export type Coupons = Models.Row & {
     title: string | null;
     createdAt: string | null;
     updatedAt: string | null;
+}
+
+export type UserResourcePins = Models.Row & {
+    userId: string;
+    resourceType: UserResourcePinsResourceType;
+    resourceId: string;
+    pinnedAt: string | null;
 }
 
 export type SecurityLogs = Models.Row & {

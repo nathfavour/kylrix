@@ -41,6 +41,7 @@ tableIdMap["67ff05a9000296822396"]["billing_webhook_logs"] = "billing_webhook_lo
 tableIdMap["67ff05a9000296822396"]["tags"] = "67ff06280034908cf08a";
 tableIdMap["67ff05a9000296822396"]["resource_tags"] = "resource_tags";
 tableIdMap["67ff05a9000296822396"]["coupons"] = "coupons";
+tableIdMap["67ff05a9000296822396"]["User Resource Pins"] = "user_resource_pins";
 tableIdMap["passwordManagerDb"] = Object.create(null);
 tableIdMap["passwordManagerDb"]["Security Logs"] = "securityLogs";
 tableIdMap["passwordManagerDb"]["Credentials"] = "credentials";

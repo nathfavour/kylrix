@@ -55,6 +55,19 @@ export enum CouponsStatus {
     EXPIRED = "expired"
 }
 
+export enum UserResourcePinsResourceType {
+    NOTE = "note",
+    CREDENTIAL = "credential",
+    TOTP = "totp",
+    TASK = "task",
+    CALENDAR = "calendar",
+    EVENT = "event",
+    FORM = "form",
+    PROJECT = "project",
+    CONVERSATION = "conversation",
+    MESSAGE = "message"
+}
+
 export enum MessagesType {
     TEXT = "text",
     IMAGE = "image",
@@ -512,6 +525,20 @@ export type Coupons = Models.Row & {
     "title"?: string | null;
     "createdAt"?: string | null;
     "updatedAt"?: string | null;
+}
+
+export type UserResourcePinsCreate = {
+    "userId": string;
+    "resourceType": UserResourcePinsResourceType;
+    "resourceId": string;
+    "pinnedAt"?: string | null;
+}
+
+export type UserResourcePins = Models.Row & {
+    "userId": string;
+    "resourceType": UserResourcePinsResourceType;
+    "resourceId": string;
+    "pinnedAt"?: string | null;
 }
 
 export type SecurityLogsCreate = {
@@ -2327,6 +2354,23 @@ export type DatabaseTableMap = {
       }>, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<Coupons>;
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
       list: (options?: { queries?: (q: { equal: <K extends QueryableKeys<Coupons>>(field: K, value: QueryableFieldValue<Coupons, K>) => string; notEqual: <K extends QueryableKeys<Coupons>>(field: K, value: QueryableFieldValue<Coupons, K>) => string; lessThan: <K extends QueryableKeys<Coupons>>(field: K, value: QueryableFieldValue<Coupons, K>) => string; lessThanEqual: <K extends QueryableKeys<Coupons>>(field: K, value: QueryableFieldValue<Coupons, K>) => string; greaterThan: <K extends QueryableKeys<Coupons>>(field: K, value: QueryableFieldValue<Coupons, K>) => string; greaterThanEqual: <K extends QueryableKeys<Coupons>>(field: K, value: QueryableFieldValue<Coupons, K>) => string; contains: <K extends QueryableKeys<Coupons>>(field: K, value: QueryableFieldValue<Coupons, K>) => string; search: <K extends QueryableKeys<Coupons>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<Coupons>>(field: K) => string; isNotNull: <K extends QueryableKeys<Coupons>>(field: K) => string; startsWith: <K extends QueryableKeys<Coupons>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<Coupons>>(field: K, value: string) => string; between: <K extends QueryableKeys<Coupons>>(field: K, start: QueryableFieldValue<Coupons, K>, end: QueryableFieldValue<Coupons, K>) => string; select: <K extends keyof Coupons>(fields: K[]) => string; orderAsc: <K extends keyof Coupons>(field: K) => string; orderDesc: <K extends keyof Coupons>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[] }) => Promise<{ total: number; rows: Coupons[] }>;
+    };
+    "User Resource Pins": {
+      create: (data: {
+        "userId": string;
+        "resourceType": UserResourcePinsResourceType;
+        "resourceId": string;
+        "pinnedAt"?: string | null;
+      }, options?: { rowId?: string; permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<UserResourcePins>;
+      get: (id: string) => Promise<UserResourcePins>;
+      update: (id: string, data: Partial<{
+        "userId": string;
+        "resourceType": UserResourcePinsResourceType;
+        "resourceId": string;
+        "pinnedAt"?: string | null;
+      }>, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<UserResourcePins>;
+      delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
+      list: (options?: { queries?: (q: { equal: <K extends QueryableKeys<UserResourcePins>>(field: K, value: QueryableFieldValue<UserResourcePins, K>) => string; notEqual: <K extends QueryableKeys<UserResourcePins>>(field: K, value: QueryableFieldValue<UserResourcePins, K>) => string; lessThan: <K extends QueryableKeys<UserResourcePins>>(field: K, value: QueryableFieldValue<UserResourcePins, K>) => string; lessThanEqual: <K extends QueryableKeys<UserResourcePins>>(field: K, value: QueryableFieldValue<UserResourcePins, K>) => string; greaterThan: <K extends QueryableKeys<UserResourcePins>>(field: K, value: QueryableFieldValue<UserResourcePins, K>) => string; greaterThanEqual: <K extends QueryableKeys<UserResourcePins>>(field: K, value: QueryableFieldValue<UserResourcePins, K>) => string; contains: <K extends QueryableKeys<UserResourcePins>>(field: K, value: QueryableFieldValue<UserResourcePins, K>) => string; search: <K extends QueryableKeys<UserResourcePins>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<UserResourcePins>>(field: K) => string; isNotNull: <K extends QueryableKeys<UserResourcePins>>(field: K) => string; startsWith: <K extends QueryableKeys<UserResourcePins>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<UserResourcePins>>(field: K, value: string) => string; between: <K extends QueryableKeys<UserResourcePins>>(field: K, start: QueryableFieldValue<UserResourcePins, K>, end: QueryableFieldValue<UserResourcePins, K>) => string; select: <K extends keyof UserResourcePins>(fields: K[]) => string; orderAsc: <K extends keyof UserResourcePins>(field: K) => string; orderDesc: <K extends keyof UserResourcePins>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[] }) => Promise<{ total: number; rows: UserResourcePins[] }>;
     }
   };
   "passwordManagerDb": {
