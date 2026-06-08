@@ -278,7 +278,7 @@ export default function TaskDialog() {
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[#1C1A18] flex-shrink-0">
           <div className="min-w-0 flex-1 pr-4">
-            <h3 className="text-white text-lg font-black tracking-tight font-clash leading-none truncate">
+            <h3 className="text-white text-lg font-black tracking-tight font-clash leading-snug break-words [overflow-wrap:anywhere]">
               {(!showTitleInput && title) ? title.toUpperCase() : "NEW GOAL"}
             </h3>
             <p className="text-[#9B9691] text-[10px] font-bold mt-1 tracking-wider uppercase truncate">

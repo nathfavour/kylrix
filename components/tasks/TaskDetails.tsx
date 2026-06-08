@@ -522,7 +522,7 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
             ) : (
               <h2
                 onClick={handleStartEdit}
-                className="text-base md:text-lg font-extrabold font-clash text-[#A855F7] tracking-tight uppercase truncate flex-1 cursor-pointer hover:text-[#b975ff] transition-colors"
+                className="text-base md:text-lg font-extrabold font-clash text-[#A855F7] tracking-tight uppercase flex-1 min-w-0 break-words [overflow-wrap:anywhere] cursor-pointer hover:text-[#b975ff] transition-colors"
               >
                 {task.title}
               </h2>
@@ -711,14 +711,14 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
               <div className="text-xs text-white/30 italic py-2">No sub-tasks yet.</div>
             ) : (
               task.subtasks.map((subtask) => (
-                <div key={subtask.id} className="flex items-center gap-3 py-1 group">
+                <div key={subtask.id} className="flex items-start gap-3 py-1 group">
                   <input
                     type="checkbox"
                     checked={subtask.completed}
                     onChange={() => toggleSubtask(task.id, subtask.id)}
-                    className="w-4 h-4 rounded border-[#34322F] bg-transparent text-[#A855F7] focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer"
+                    className="w-4 h-4 mt-0.5 rounded border-[#34322F] bg-transparent text-[#A855F7] focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer shrink-0"
                   />
-                  <span className={`text-sm flex-1 truncate ${subtask.completed ? 'text-[#9B9691] line-through' : 'text-[#F5F2ED]'}`}>
+                  <span className={`text-sm flex-1 min-w-0 break-words [overflow-wrap:anywhere] ${subtask.completed ? 'text-[#9B9691] line-through' : 'text-[#F5F2ED]'}`}>
                     {subtask.title}
                   </span>
                   <button
