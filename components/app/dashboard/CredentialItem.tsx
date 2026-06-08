@@ -51,7 +51,20 @@ export default function CredentialItem({
 
   const faviconUrl = getFaviconUrl(credential.url);
 
-  const contextMenuItems = [
+  const accessControlItems = useAccessControlMenuItems({
+    resourceType: 'credential',
+    resourceId: credential.$id,
+    isPublic: !!credential.isPublic,
+    isGuest: !!credential.isGuest,
+    resourceTitle: credential.name,
+    onUpdate: () => {
+      // Parent handles refresh
+    }
+  });
+
+  const contextMenuItems = useMemo(() => [
+    { label: pinned ? 'Unpin Secret' : 'Pin Secret', icon: <Pin size={16} className={pinned ? 'text-[#F59E0B]' : ''} />, onClick: () => onTogglePin?.() },
+    ...accessControlItems,
     { 
         label: 'Identity', 
         icon: <User size={16} />, 
@@ -65,16 +78,7 @@ export default function CredentialItem({
         label: 'Protection', 
         icon: <ShieldCheck size={16} />, 
         submenu: [
-            { label: pinned ? 'Unpin Secret' : 'Pin Secret', icon: <Pin size={16} className={pinned ? 'text-[#F59E0B]' : ''} />, onClick: () => onTogglePin?.() },
             { label: 'AI Audit Security', icon: <Sparkles size={16} className="text-[#10B981]" />, onClick: () => { /* AI Logic */ } },
-        ]
-    },
-    { 
-        label: 'Synergy', 
-        icon: <Share2 size={16} />, 
-        submenu: [
-            { label: 'Share Access', icon: <Share2 size={16} />, onClick: () => { /* Share logic */ } },
-            { label: 'Manage Roster', icon: <Shield size={16} />, onClick: () => { /* Roster logic */ } },
         ]
     },
     { 
@@ -88,7 +92,7 @@ export default function CredentialItem({
         onClick: onDelete,
         variant: 'destructive' as const
     }
-  ];
+  ], [pinned, accessControlItems, credential, onTogglePin, onEdit, onDelete]);
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -96,18 +100,6 @@ export default function CredentialItem({
     openMenu({
         x: e.clientX,
         y: e.clientY,
-        items: contextMenuItems,
-        appType: 'vault'
-    });
-  };
-
-  const handleMoreClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    openMenu({
-        x: rect.left,
-        y: rect.bottom + 8,
         items: contextMenuItems,
         appType: 'vault'
     });
@@ -173,14 +165,24 @@ export default function CredentialItem({
         )}
       </div>
 
-      {/* Actions */}
-      <div className="relative flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+      {/* Actions (Pin, Lock/Link) */}
+      <div className="relative flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
         <button 
-          onClick={handleMoreClick}
-          className="p-1.5 rounded-lg text-[#9B9691] hover:text-white hover:bg-white/5 transition-all duration-200"
+          onClick={(e) => { e.stopPropagation(); onTogglePin?.(); }}
+          className={`p-1.5 rounded-lg transition-all duration-200 ${pinned ? 'text-[#F59E0B] bg-[#F59E0B]/5' : 'text-white/20 hover:text-[#F59E0B] hover:bg-[#F59E0B]/5'}`}
+          title={pinned ? 'Unpin' : 'Pin'}
         >
-          <MoreVertical className="w-5 h-5" />
+          <Pin size={16} className={pinned ? 'fill-[#F59E0B]' : ''} />
         </button>
+
+        <ShareLockButton 
+          resourceType="credential"
+          resourceId={credential.$id}
+          isPublic={!!credential.isPublic}
+          isGuest={!!credential.isGuest}
+          accentColor="#10B981"
+          onPublished={() => {}}
+        />
       </div>
     </div>
   );

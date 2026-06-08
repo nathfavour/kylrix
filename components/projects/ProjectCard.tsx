@@ -19,8 +19,14 @@ import {
   Users,
   LayoutGrid,
   Pin,
+  Link as LinkIcon,
+  Edit2
 } from 'lucide-react';
 import { Projects } from '@/types/appwrite';
+import { ShareLockButton } from '../share/ShareLockButton';
+import { useAccessControlMenuItems } from '../share/AccessControlMenuItems';
+import { useContextMenu } from '../ui/ContextMenuContext';
+import { useResourcePins } from '@/context/ResourcePinContext';
 
 const NAV_SURFACE = '#161412';
 
@@ -32,12 +38,36 @@ interface ProjectCardProps {
 }
 
 export default function ProjectCard({ project, onClick, onDelete, onTogglePin }: ProjectCardProps) {
-  const getVisibilityIcon = () => {
-    switch (project.visibility) {
-      case 'public': return <Globe size={14} />;
-      case 'shared': return <Users size={14} />;
-      default: return <Lock size={14} />;
+  const { openMenu } = useContextMenu();
+  const { isPinned: isResourcePinned } = useResourcePins();
+  const pinned = (project as any).isPinned || isResourcePinned('project', project.$id, project.ownerId, (project as any).isPinned);
+
+  const accessControlItems = useAccessControlMenuItems({
+    resourceType: 'project',
+    resourceId: project.$id,
+    isPublic: project.visibility === 'public',
+    isGuest: project.visibility === 'public', // Projects currently mirror public/guest
+    resourceTitle: project.title,
+    onUpdate: () => {
+       // Refresh via parent
     }
+  });
+
+  const contextMenuItems = React.useMemo(() => [
+    { label: pinned ? 'Unpin Project' : 'Pin Project', icon: <Pin size={16} className={pinned ? 'rotate-45 text-[#F59E0B]' : ''} />, onClick: () => onTogglePin?.(project.$id) },
+    ...accessControlItems,
+    { label: 'Delete', icon: <Trash2 size={16} />, variant: 'destructive' as const, onClick: () => onDelete(project.$id) }
+  ], [pinned, accessControlItems, project, onTogglePin, onDelete]);
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: contextMenuItems,
+      appType: 'kylrix'
+    });
   };
 
   const getStatusColor = () => {
@@ -52,6 +82,7 @@ export default function ProjectCard({ project, onClick, onDelete, onTogglePin }:
   return (
     <Card
       onClick={() => onClick(project.$id)}
+      onContextMenu={handleContextMenu}
       sx={{
         width: '100%',
         height: '100%',
@@ -111,48 +142,35 @@ export default function ProjectCard({ project, onClick, onDelete, onTogglePin }:
                   gap: 1,
                 }}
               >
-                {(project as any).isPinned && (
+                {pinned && (
                   <Pin size={14} fill="#F59E0B" color="#F59E0B" style={{ transform: 'rotate(45deg)', flexShrink: 0 }} />
                 )}
                 <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                   {project.title}
                 </Box>
               </Typography>
-              {project.visibility === 'public' && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'rgba(255,255,255,0.3)' }}>
-                  {getVisibilityIcon()}
-                  <Typography
-                    component="span"
-                    variant="caption"
-                    sx={{ textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em', lineHeight: 1.3 }}
-                  >
-                    {project.visibility}
-                  </Typography>
-                </Box>
-              )}
             </Box>
             {!(project as any).isPending ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                 <IconButton
                   size="small"
                   onClick={(e) => { e.stopPropagation(); onTogglePin?.(project.$id); }}
                   sx={{
-                    color: (project as any).isPinned ? '#F59E0B' : 'rgba(255,255,255,0.2)',
+                    color: pinned ? '#F59E0B' : 'rgba(255,255,255,0.2)',
                     '&:hover': { color: '#F59E0B', bgcolor: alpha('#F59E0B', 0.05) },
                   }}
                 >
-                  <Pin size={18} fill={(project as any).isPinned ? '#F59E0B' : 'none'} />
+                  <Pin size={18} fill={pinned ? '#F59E0B' : 'none'} />
                 </IconButton>
-                <IconButton
-                  size="small"
-                  onClick={(e) => { e.stopPropagation(); onDelete(project.$id); }}
-                  sx={{
-                    color: 'rgba(255,255,255,0.2)',
-                    '&:hover': { color: '#FF453A', bgcolor: alpha('#FF453A', 0.05) },
-                  }}
-                >
-                  <Trash2 size={18} />
-                </IconButton>
+                
+                <ShareLockButton 
+                  resourceType="project"
+                  resourceId={project.$id}
+                  isPublic={project.visibility === 'public'}
+                  isGuest={project.visibility === 'public'}
+                  accentColor="#6366F1"
+                  onPublished={() => {}}
+                />
               </Box>
             ) : (
               <Chip
