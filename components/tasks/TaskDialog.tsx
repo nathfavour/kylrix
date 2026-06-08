@@ -4,12 +4,44 @@ import React, { useState, useEffect } from 'react';
 import UserSearch from '@/components/UserSearch';
 import { useTask } from '@/context/TaskContext';
 import { Priority, TaskStatus } from '@/types';
-import { ArrowUpRight, ChevronUp, ChevronDown, X, Type } from 'lucide-react';
+import { 
+  ArrowUpRight, 
+  ChevronUp, 
+  ChevronDown, 
+  X, 
+  Type, 
+  Plus, 
+  Tag as TagIcon,
+  ShieldCheck
+} from 'lucide-react';
 import { useSection } from '@/context/SectionContext';
 import { buildAutoTitleFromContent } from '@/constants/noteTitle';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { useOverlay } from '@/components/ui/OverlayContext';
 import TaskDetails from './TaskDetails';
+import { 
+  Drawer, 
+  Box, 
+  Typography, 
+  Stack, 
+  IconButton, 
+  List, 
+  ListItem, 
+  ListItemButton, 
+  ListItemText,
+  alpha 
+} from '@/lib/mui-tailwind/material';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+
+const SURFACE_ASH = '#161412';
+const VOID = '#0A0908';
+const HOVER = '#1C1A18';
+const BORDER_HAIRLINE = '#34322F';
+const TEXT_MUTED = '#9B9691';
+const SYSTEM_PRIMARY = '#6366F1';
+const BORDER = `1px solid ${BORDER_HAIRLINE}`;
+const RADIUS_LARGE = '24px';
+const RADIUS_SMALL = '12px';
 
 interface User {
   id: string;
@@ -38,7 +70,9 @@ export default function TaskDialog() {
 
   const { openSidebar } = useDynamicSidebar();
   const { openOverlay, closeOverlay } = useOverlay();
+  const { open: openUnified } = useUnifiedDrawer();
   const [isDesktop, setIsDesktop] = React.useState(true);
+  const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
 
   React.useEffect(() => {
     const checkViewport = () => setIsDesktop(window.innerWidth >= 768);
@@ -448,14 +482,7 @@ export default function TaskDialog() {
             
             <button
               type="button"
-              onClick={() => openUnified('tag-selector', {
-                selectedTags: selectedLabels,
-                onSelect: (tagName: string) => {
-                  if (!selectedLabels.includes(tagName)) {
-                    setSelectedLabels(prev => [...prev, tagName]);
-                  }
-                }
-              })}
+              onClick={() => setIsTagSelectorOpen(true)}
               className="w-full flex items-center justify-between bg-[#161412] border border-[#1C1A18] rounded-xl px-3 py-2.5 text-sm text-[#9B9691] font-semibold hover:border-[#6366F1] hover:text-white transition-all cursor-pointer"
             >
               <span>{selectedLabels.length > 0 ? 'Add more tags...' : 'Add tags to this goal...'}</span>
@@ -494,6 +521,135 @@ export default function TaskDialog() {
           </button>
         </div>
       </div>
+
+      {/* Tag Selector Sub-Drawer */}
+      <Drawer
+        anchor="bottom"
+        open={isTagSelectorOpen}
+        onClose={() => setIsTagSelectorOpen(false)}
+        ModalProps={{ keepMounted: false, disableScrollLock: false }}
+        sx={{
+          zIndex: 2000,
+          '& .MuiDrawer-paper': {
+            bgcolor: SURFACE_ASH,
+            borderTopLeftRadius: RADIUS_LARGE,
+            borderTopRightRadius: RADIUS_LARGE,
+            border: BORDER,
+            borderBottom: 0,
+            pb: 'max(24px, env(safe-area-inset-bottom))',
+            pt: 2,
+            px: { xs: 2.25, sm: 2.75 },
+            maxWidth: '600px',
+            mx: 'auto',
+          }
+        }}
+      >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <TagIcon size={20} color={SYSTEM_PRIMARY} />
+            <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem', fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em' }}>
+              Select Tags
+            </Typography>
+          </Stack>
+          <IconButton
+            onClick={() => setIsTagSelectorOpen(false)}
+            sx={{
+              color: '#E8E6E3',
+              bgcolor: VOID,
+              border: BORDER,
+              '&:hover': { bgcolor: HOVER },
+            }}
+          >
+            <CloseIcon size={18} />
+          </IconButton>
+        </Stack>
+
+        <Box sx={{ maxHeight: '40dvh', overflowY: 'auto', pr: 0.5 }}>
+          <List sx={{ py: 0 }}>
+            <ListItem disablePadding sx={{ mb: 1 }}>
+              <ListItemButton 
+                onClick={() => {
+                  setIsTagSelectorOpen(false);
+                  openUnified('new-tag', { 
+                    onSuccess: async () => {
+                      await refreshEcosystemTags();
+                    } 
+                  });
+                }}
+                sx={{ 
+                  borderRadius: RADIUS_SMALL, 
+                  bgcolor: alpha(SYSTEM_PRIMARY, 0.1),
+                  border: `1px dashed ${alpha(SYSTEM_PRIMARY, 0.3)}`,
+                  py: 1.5,
+                  '&:hover': { bgcolor: alpha(SYSTEM_PRIMARY, 0.15) }
+                }}
+              >
+                <Plus size={18} color={SYSTEM_PRIMARY} style={{ marginRight: '12px' }} />
+                <ListItemText 
+                  primary="Create New Tag" 
+                  primaryTypographyProps={{ sx: { color: SYSTEM_PRIMARY, fontWeight: 800, fontSize: '0.9rem' } }}
+                />
+              </ListItemButton>
+            </ListItem>
+
+            {ecosystemTags.map((tag) => {
+              const isSelected = selectedLabels.includes(tag.name);
+              const color = (tag as any).color || '#9B9691';
+
+              return (
+                <ListItem key={tag.$id} disablePadding sx={{ mb: 0.5 }}>
+                  <ListItemButton 
+                    onClick={() => {
+                      if (!isSelected) {
+                        setSelectedLabels(prev => [...prev, tag.name]);
+                      } else {
+                        setSelectedLabels(prev => prev.filter(n => n !== tag.name));
+                      }
+                      setIsTagSelectorOpen(false);
+                    }}
+                    sx={{ 
+                      borderRadius: RADIUS_SMALL, 
+                      py: 1.5,
+                      border: '1px solid transparent',
+                      borderColor: isSelected ? color : 'transparent',
+                      bgcolor: isSelected ? alpha(color, 0.1) : 'transparent',
+                      '&:hover': { bgcolor: HOVER }
+                    }}
+                  >
+                    <Box 
+                      sx={{ 
+                        width: 12, 
+                        height: 12, 
+                        borderRadius: '4px', 
+                        bgcolor: color, 
+                        mr: 2,
+                        boxShadow: `0 0 10px ${alpha(color, 0.4)}`
+                      }} 
+                    />
+                    <ListItemText 
+                      primary={tag.name.toUpperCase()} 
+                      primaryTypographyProps={{ 
+                        sx: { 
+                          color: isSelected ? 'white' : TEXT_MUTED, 
+                          fontWeight: 900, 
+                          fontSize: '0.8rem',
+                          fontFamily: 'var(--font-mono)',
+                          letterSpacing: '0.05em'
+                        } 
+                      }}
+                    />
+                    {isSelected && (
+                      <Typography sx={{ color: color, fontWeight: 900, fontSize: '0.7rem', opacity: 0.8 }}>
+                        SELECTED
+                      </Typography>
+                    )}
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
+          </List>
+        </Box>
+      </Drawer>
     </>
   );
 }
