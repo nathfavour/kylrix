@@ -1152,7 +1152,7 @@ export async function getAllTags(): Promise<{ rows: Tags[], total: number }> {
       queries.push(Query.cursorAfter(cursor));
     }
     
-    const res = await appwriteDatabases.listRows(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, queries);
+    const res = await databases.listRows(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, queries);
     const tags = (res.rows as unknown as Tags[]).map(t => hydrateTagMetadata(t));
     
     allTags = [...allTags, ...tags];

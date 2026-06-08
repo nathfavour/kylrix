@@ -265,7 +265,7 @@ export function NewProjectDrawer() {
         }}
       >
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-          <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
             <Box
               sx={{
                 width: 40,
@@ -275,15 +275,16 @@ export function NewProjectDrawer() {
                 placeItems: 'center',
                 bgcolor: VOID,
                 border: BORDER,
+                flexShrink: 0,
               }}
             >
               {template?.icon ? <template.icon size={20} color={template.color} strokeWidth={2.5} /> : <ProjectIcon size={20} color={SYSTEM_PRIMARY} strokeWidth={2} />}
             </Box>
-            <Box>
-                <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem', fontFamily: fontDisplay, letterSpacing: '-0.02em' }}>
+            <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                <Typography component="span" sx={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem', fontFamily: fontDisplay, letterSpacing: '-0.02em', lineHeight: 1.25 }} noWrap>
                     {template?.title || 'New Project'}
                 </Typography>
-                <Typography variant="caption" sx={{ color: TEXT_MUTED, fontWeight: 700, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                <Typography component="span" sx={{ color: TEXT_MUTED, fontWeight: 700, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', fontSize: '0.65rem', lineHeight: 1.35 }} noWrap>
                     {step === 1 ? 'Step 1: Link Context' : 'Step 2: Finalize'}
                 </Typography>
             </Box>
@@ -296,6 +297,8 @@ export function NewProjectDrawer() {
               bgcolor: VOID,
               border: BORDER,
               '&:hover': { bgcolor: HOVER },
+              flexShrink: 0,
+              ml: 2,
             }}
           >
             <CloseIcon size={18} />
@@ -316,7 +319,7 @@ export function NewProjectDrawer() {
         >
           {step === 1 && (
               <Box>
-                  <Typography variant="caption" sx={{ fontWeight: 800, color: TEXT_MUTED, mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>
+                  <Typography component="span" sx={{ fontWeight: 800, color: TEXT_MUTED, mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1.35 }}>
                       Select existing {template?.id?.includes('form') ? 'Form' : 'Note'} to link
                   </Typography>
                   
@@ -326,7 +329,7 @@ export function NewProjectDrawer() {
                       </Stack>
                   ) : resources.length === 0 ? (
                       <Box sx={{ p: 3, bgcolor: VOID, borderRadius: '16px', border: BORDER, textAlign: 'center' }}>
-                          <Typography variant="body2" sx={{ color: TEXT_MUTED, mb: 2 }}>You don&apos;t have any {template?.id?.includes('form') ? 'forms' : 'notes'} to link yet.</Typography>
+                          <Typography component="span" sx={{ color: TEXT_MUTED, mb: 2, display: 'block', lineHeight: 1.5 }}>You don&apos;t have any {template?.id?.includes('form') ? 'forms' : 'notes'} to link yet.</Typography>
                           <Button variant="outlined" size="small" onClick={() => setStep(2)} sx={{ color: '#fff', borderColor: BORDER_HAIRLINE }}>Skip & Create Manual</Button>
                       </Box>
                   ) : (
@@ -343,11 +346,14 @@ export function NewProjectDrawer() {
                                       borderColor: BORDER_HAIRLINE,
                                       cursor: 'pointer',
                                       transition: 'all 0.2s ease',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: 0.35,
                                       '&:hover': { borderColor: template?.color || SYSTEM_PRIMARY, bgcolor: HOVER }
                                   }}
                               >
-                                  <Typography variant="body2" sx={{ fontWeight: 800, color: '#fff' }}>{res.title || res.name}</Typography>
-                                  <Typography variant="caption" sx={{ color: TEXT_MUTED, display: 'block', mt: 0.5 }}>{new Date(res.$createdAt).toLocaleDateString()}</Typography>
+                                  <Typography component="span" sx={{ fontWeight: 800, color: '#fff', fontSize: '0.88rem', lineHeight: 1.25 }}>{res.title || res.name}</Typography>
+                                  <Typography component="span" sx={{ color: TEXT_MUTED, fontSize: '0.76rem', fontWeight: 600, lineHeight: 1.35 }}>{new Date(res.$createdAt).toLocaleDateString()}</Typography>
                               </Box>
                           ))}
                           <Button variant="text" size="small" onClick={() => setStep(2)} sx={{ color: TEXT_MUTED, mt: 1 }}>Skip to manual setup</Button>
@@ -359,7 +365,7 @@ export function NewProjectDrawer() {
           {step === 2 && (
               <>
                 <Box>
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: TEXT_MUTED, mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>
+                    <Typography component="span" sx={{ fontWeight: 800, color: TEXT_MUTED, mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1.35 }}>
                     Project Title
                     </Typography>
                     <TextField
@@ -388,7 +394,7 @@ export function NewProjectDrawer() {
                 </Box>
 
                 <Box>
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: TEXT_MUTED, mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>
+                    <Typography component="span" sx={{ fontWeight: 800, color: TEXT_MUTED, mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1.35 }}>
                     Summary
                     </Typography>
                     <TextField
@@ -418,7 +424,7 @@ export function NewProjectDrawer() {
                 </Box>
 
                 <Box>
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: TEXT_MUTED, mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>
+                    <Typography component="span" sx={{ fontWeight: 800, color: TEXT_MUTED, mb: 1, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', lineHeight: 1.35 }}>
                     Visibility
                     </Typography>
                     <FormControl fullWidth variant="standard">

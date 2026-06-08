@@ -61,6 +61,7 @@ import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { MultiSectionContainer } from '@/context/SectionContext';
 import { useLocalContext } from '@/lib/context-engine';
 import { useAuth } from '@/lib/auth';
+import { useResourcePins } from '@/context/ResourcePinContext';
 import { hasPaidKylrixPlan } from '@/lib/utils';
 import { useProUpgrade } from '@/context/ProUpgradeContext';
 import { createNote } from '@/lib/appwrite/note';
@@ -244,6 +245,9 @@ function LocalProjectCard({ project, onClick, onDelete, onTogglePin }: {
   onDelete: (projectId: string) => void;
   onTogglePin?: (projectId: string) => void;
 }) {
+  const { isPinned: isResourcePinned } = useResourcePins();
+  const pinned = isResourcePinned('project', project.$id, project.ownerId, project.isPinned);
+
   const getVisibilityIcon = () => {
     switch (project.visibility) {
       case 'public': return <Globe size={13} />;
@@ -639,6 +643,8 @@ export default function ProjectsPage() {
       </Grid>
     </Box>
   );
+
+  const teamsElement = null;
 
   const workflowsCardElement = (
     <div className="bg-[#161412] rounded-[32px] border border-white/6 p-6 mb-6 space-y-4">

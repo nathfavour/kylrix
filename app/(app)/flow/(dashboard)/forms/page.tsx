@@ -22,6 +22,7 @@ import Link from 'next/link';
 import FormDialog from '@/components/forms/FormDialog';
 import FormSettingsDialog from '@/components/forms/FormSettingsDialog';
 import { useAuth } from '@/context/auth/AuthContext';
+import { useResourcePins } from '@/context/ResourcePinContext';
 import { useRouter } from 'next/navigation';
 import { useDataNexus } from '@/context/DataNexusContext';
 import { toast } from 'react-hot-toast';
@@ -32,6 +33,7 @@ import { useSection, MultiSectionContainer } from '@/context/SectionContext';
 
 export default function FormsDashboard() {
     const { user } = useAuth();
+    const { isPinned: isResourcePinned, togglePin, setLocalPin } = useResourcePins();
     const router = useRouter();
     const { fetchOptimized, invalidate } = useDataNexus();
     const { open: openDrawer } = useUnifiedDrawer();
@@ -91,8 +93,10 @@ export default function FormsDashboard() {
             const uniqueForms = response.rows
                 .filter((form, index, self) => index === self.findIndex((f) => f.$id === form.$id))
                 .sort((a: any, b: any) => {
-                    if (a.isPinned && !b.isPinned) return -1;
-                    if (!a.isPinned && b.isPinned) return 1;
+                    const aPinned = isResourcePinned('form', a.$id, a.userId, a.isPinned);
+                    const bPinned = isResourcePinned('form', b.$id, b.userId, b.isPinned);
+                    if (aPinned && !bPinned) return -1;
+                    if (!aPinned && bPinned) return 1;
                     return new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime();
                 });
             
@@ -115,7 +119,7 @@ export default function FormsDashboard() {
         } finally {
             if (shouldShowLoading) setLoading(false);
         }
-    }, [user, fetchOptimized]);
+    }, [user, fetchOptimized, isResourcePinned]);
 
     const handleCreate = () => {
         setSelectedForm(null);
@@ -176,12 +180,30 @@ export default function FormsDashboard() {
     };
 
     const handleTogglePin = async (form: Forms) => {
+        if (!user?.$id) return;
+        const ownerId = form.userId || user.$id;
+        const currentlyPinned = isResourcePinned('form', form.$id, ownerId, form.isPinned);
+        const isOwner = user.$id === ownerId;
+
         try {
-            await FormsService.togglePin(form.$id);
-            fetchForms(false);
-            toast.success(form.isPinned ? "Unpinned" : "Pinned to top");
+            const nextPinned = await togglePin({
+                resourceType: 'form',
+                resourceId: form.$id,
+                ownerId,
+                rowIsPinned: form.isPinned,
+                setOwnerRowPin: async (pinned) => {
+                    await FormsService.updateForm(form.$id, { isPinned: pinned } as any);
+                },
+            });
+            setForms((prev) =>
+                prev.map((f) => (f.$id === form.$id && isOwner ? { ...f, isPinned: nextPinned } : f)),
+            );
+            toast.success(nextPinned ? 'Pinned to top' : 'Unpinned');
         } catch (err) {
-            toast.error("Failed to toggle pin");
+            if (!isOwner) {
+                setLocalPin('form', form.$id, currentlyPinned);
+            }
+            toast.error('Failed to toggle pin');
         }
     };
 
@@ -421,8 +443,8 @@ export default function FormsDashboard() {
                                                                                 onClick={() => { setActiveMenuFormId(null); handleTogglePin(form); }}
                                                                                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#9B9691] hover:bg-[#1C1A18] hover:text-white rounded-xl transition-colors font-semibold"
                                                                             >
-                                                                                <Pin className={`h-4 w-4 ${form.isPinned ? 'text-[#F59E0B]' : ''}`} />
-                                                                                <span>{form.isPinned ? 'Unpin Form' : 'Pin Form'}</span>
+                                                                                <Pin className={`h-4 w-4 ${isResourcePinned('form', form.$id, form.userId, form.isPinned) ? 'text-[#F59E0B]' : ''}`} />
+                                                                                <span>{isResourcePinned('form', form.$id, form.userId, form.isPinned) ? 'Unpin Form' : 'Pin Form'}</span>
                                                                             </button>
                                                                             <div className="my-1 border-t border-[#34322F]" />
                                                                             <button

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Credentials } from '@/lib/appwrite/types';
 import { Shield, ExternalLink, Copy, Edit2, Trash2, MoreVertical, User, Lock, Pin, CheckSquare, Sparkles, ChevronRight, Share2, ShieldCheck, Key } from 'lucide-react';
 import { useContextMenu } from '@/components/ui/ContextMenuContext';
+import { useResourcePins } from '@/context/ResourcePinContext';
 
 export default function CredentialItem({
   credential,
@@ -28,6 +29,8 @@ export default function CredentialItem({
   isSelected?: boolean;
   onToggleSelect?: () => void;
 }) {
+  const { isPinned: isResourcePinned } = useResourcePins();
+  const pinned = isResourcePinned('credential', credential.$id, credential.userId, credential.isPinned);
   const { openMenu } = useContextMenu();
 
   const handleCopy = (value: string) => {
@@ -60,7 +63,7 @@ export default function CredentialItem({
         label: 'Protection', 
         icon: <ShieldCheck size={16} />, 
         submenu: [
-            { label: credential.isPinned ? 'Unpin Secret' : 'Pin Secret', icon: <Pin size={16} className={credential.isPinned ? 'text-[#F59E0B]' : ''} />, onClick: () => onTogglePin?.() },
+            { label: pinned ? 'Unpin Secret' : 'Pin Secret', icon: <Pin size={16} className={pinned ? 'text-[#F59E0B]' : ''} />, onClick: () => onTogglePin?.() },
             { label: 'AI Audit Security', icon: <Sparkles size={16} className="text-[#10B981]" />, onClick: () => { /* AI Logic */ } },
         ]
     },
@@ -150,7 +153,7 @@ export default function CredentialItem({
       {/* Info */}
       <div className="flex-1 min-w-0 flex flex-col gap-[3px] pr-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          {credential.isPinned && <Pin className="w-3.5 h-3.5 text-[#F59E0B] shrink-0 fill-[#F59E0B]" />}
+          {pinned && <Pin className="w-3.5 h-3.5 text-[#F59E0B] shrink-0 fill-[#F59E0B]" />}
           <span className="font-black text-white leading-tight font-clash text-base truncate">
             {credential.name}
           </span>

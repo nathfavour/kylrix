@@ -54,10 +54,14 @@ export const NoteSchema = z.object({
 });
 
 export const ProjectSchema = z.object({
-  name: z.string().min(1).max(255),
+  title: z.string().min(1).max(255),
+  summary: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
   color: z.string().optional(),
-  description: z.string().optional(),
+  visibility: z.enum(['private', 'shared', 'public']).optional().default('private'),
+  status: z.enum(['active', 'paused', 'archived', 'completed', 'on_hold']).optional().default('active'),
   isPublic: z.boolean().optional(),
+  metadata: z.string().nullable().optional(),
 });
 
 export const EventSchema = z.object({

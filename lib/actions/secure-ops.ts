@@ -2820,8 +2820,7 @@ export async function createProjectSecure(data: any, jwt?: string) {
       tableId: 'projects',
       rowId: projectId,
       data: {
-      ...data,
-      ownerId: actor.$id,
+      ...projectData,
       createdAt: now,
       updatedAt: now,
     },
@@ -2841,6 +2840,9 @@ export async function updateProjectSecure(projectId: string, data: any, permissi
     throw new Error('Forbidden: Insufficient permissions to update this project');
   }
 
+  // Rigorous runtime validation (partial since it's an update)
+  const validated = ProjectSchema.partial().parse(data);
+
   const tables = createSystemTablesDB();
   const { databases } = createSystemClient();
   const now = new Date().toISOString();
@@ -2850,7 +2852,7 @@ export async function updateProjectSecure(projectId: string, data: any, permissi
       tableId: 'projects',
       rowId: projectId,
       data: {
-      ...data,
+      ...validated,
       updatedAt: now,
     },
       permissions: permissions,
