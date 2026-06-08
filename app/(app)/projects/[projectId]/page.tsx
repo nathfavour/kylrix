@@ -144,6 +144,7 @@ export default function ProjectDetailPage() {
   } as any : null);
   const [tabValue, setTabValue] = useState(0);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addModalTab, setAddModalTab] = useState(0);
   const [isExtractModalOpen, setIsExtractModalOpen] = useState(false);
   const [extractGoalsNote, setExtractGoalsNote] = useState<Notes | null>(null);
   const [isAddSubProjectModalOpen, setIsAddSubProjectModalOpen] = useState(false);
@@ -981,7 +982,7 @@ export default function ProjectDetailPage() {
 
                         {/* Interconnected Flow: Forms, Tags, Moments */}
                         <CustomTabPanel value={tabValue} index={5}>
-                            {loading ? null : resolving ? <LoadingPlaceholder /> : (forms.length === 0 && tags.length === 0 && moments.length === 0) ? <EmptyState kind="flow" /> : (
+                            {loading ? null : resolving ? <LoadingPlaceholder /> : (forms.length === 0 && moments.length === 0) ? <EmptyState kind="flow" /> : (
                                 <div className="flex flex-col gap-4">
                                     {forms.map(form => (
                                         <ResourceItem 
@@ -998,16 +999,6 @@ export default function ProjectDetailPage() {
                                               />
                                             )}
                                             onUnlink={() => handleRemoveObject(form.$id)}
-                                        />
-                                    ))}
-                                    {tags.map(tag => (
-                                        <ResourceItem 
-                                            key={tag.$id}
-                                            title={`# ${tag.name}`} 
-                                            kind="tag"
-                                            metadata={`Color accent: ${tag.color || 'default'}`}
-                                            onOpen={() => openUnified('new-tag', { tag, onSuccess: fetchProjectData })}
-                                            onUnlink={() => handleRemoveObject(tag.$id)}
                                         />
                                     ))}
                                     {moments.map(moment => (

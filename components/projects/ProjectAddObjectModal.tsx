@@ -67,6 +67,7 @@ interface ProjectAddObjectModalProps {
   onClose: () => void;
   projectId: string;
   onAdded: () => void;
+  initialTab?: number;
 }
 
 function CreateMomentDialog({ 
@@ -166,7 +167,7 @@ function CreateMomentDialog({
 
 import { DialogActions } from '@/lib/mui-tailwind/material';
 
-export default function ProjectAddObjectModal({ open, onClose, projectId, onAdded }: ProjectAddObjectModalProps) {
+export default function ProjectAddObjectModal({ open, onClose, projectId, onAdded, initialTab = 0 }: ProjectAddObjectModalProps) {
   const theme = useTheme();
   const { showSuccess, showError } = useToast();
   const { fetchOptimized } = useDataNexus();
@@ -175,12 +176,18 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
   const { open: openUnified } = useUnifiedDrawer();
   const { setTaskDialogOpen } = useTask();
 
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(initialTab);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [adding, setAdding] = useState<string | null>(null);
   const [isMomentDialogOpen, setIsMomentDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setTab(initialTab);
+    }
+  }, [open, initialTab]);
 
   const fetchResults = useCallback(async () => {
     if (!user?.$id) return;
