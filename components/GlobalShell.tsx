@@ -78,7 +78,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
   const { isOpen: isCallLauncherOpen } = useCallLauncher();
 
   // Smart responsive Left Sidebar visibility
-  const isNoteFullPageDetail = useMemo(() => Boolean(pathname?.match(/^\/note\/notes\/[^/]+$/)), [pathname]);
+  const isNoteFullPageDetail = useMemo(() => Boolean(pathname?.match(/^\/note\/[^/]+$/)), [pathname]);
   const isConnectCallDetail = useMemo(() => Boolean(pathname?.match(/^\/connect\/call\/[^/]+$/)), [pathname]);
   const isConnectChatPage = useMemo(() => Boolean(pathname?.startsWith('/connect/chats') || pathname?.match(/^\/connect\/chat\/[^/]+$/)), [pathname]);
   const isProjectDetailPage = useMemo(() => Boolean(pathname?.match(/^\/projects\/[^/]+$/)), [pathname]);

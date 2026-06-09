@@ -65,16 +65,21 @@ export function middleware(request: NextRequest) {
   }
 
   // Instant Route Forwards (Legacy -> Canonical)
-  if (pathname === '/note/notes' || pathname === '/note/notes/') {
-    return NextResponse.redirect(new URL('/note', request.url));
+  if (pathname.startsWith('/note/notes')) {
+    const subPath = pathname.replace('/note/notes', '');
+    return NextResponse.redirect(new URL(`/note${subPath}`, request.url));
   }
   
-  if (pathname === '/flow/tasks' || pathname === '/flow/tasks/' || pathname === '/flow/goals' || pathname === '/flow/goals/') {
-    return NextResponse.redirect(new URL('/flow', request.url));
+  if (pathname.startsWith('/flow/tasks') || pathname.startsWith('/flow/goals')) {
+    const subPath = pathname.startsWith('/flow/tasks') 
+      ? pathname.replace('/flow/tasks', '') 
+      : pathname.replace('/flow/goals', '');
+    return NextResponse.redirect(new URL(`/flow${subPath}`, request.url));
   }
 
-  if (pathname === '/vault/dashboard' || pathname === '/vault/dashboard/') {
-    return NextResponse.redirect(new URL('/vault', request.url));
+  if (pathname.startsWith('/vault/dashboard')) {
+    const subPath = pathname.replace('/vault/dashboard', '');
+    return NextResponse.redirect(new URL(`/vault${subPath}`, request.url));
   }
 
   // ─── REDIRECT LOOP DEFENSE ────────────────────────────────────────────

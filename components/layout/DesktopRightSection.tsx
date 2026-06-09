@@ -568,7 +568,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
                     <IconButton onClick={() => togglePanel(panel)} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: 'white' } }}>
                       {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </IconButton>
-                    <IconButton onClick={() => router.push('/note/notes')} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#EC4899' } }}>
+                    <IconButton onClick={() => router.push('/note')} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#EC4899' } }}>
                       <Maximize2 size={14} />
                     </IconButton>
                   </Box>
@@ -587,7 +587,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
                         {notes.map((note) => (
                           <Box
                             key={note.$id}
-                            onClick={() => router.push(`/note/notes/${note.$id}`)}
+                            onClick={() => router.push(`/note/${note.$id}`)}
                             sx={{
                               display: 'flex',
                               gap: 1.5,
@@ -852,7 +852,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
                     <IconButton onClick={() => togglePanel(panel)} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: 'white' } }}>
                       {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </IconButton>
-                    <IconButton onClick={() => router.push('/vault/dashboard')} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#10B981' } }}>
+                    <IconButton onClick={() => router.push('/vault')} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#10B981' } }}>
                       <Maximize2 size={14} />
                     </IconButton>
                   </Box>
@@ -871,7 +871,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
                         {secrets.map((secret) => (
                           <Box
                             key={secret.$id}
-                            onClick={() => router.push('/vault/dashboard')}
+                            onClick={() => router.push('/vault')}
                             sx={{
                               display: 'flex',
                               gap: 1.5,
@@ -1034,7 +1034,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
                     <IconButton onClick={() => togglePanel(panel)} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: 'white' } }}>
                       {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </IconButton>
-                    <IconButton onClick={() => router.push('/flow/goals')} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#10B981' } }}>
+                    <IconButton onClick={() => router.push('/flow')} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#10B981' } }}>
                       <Maximize2 size={14} />
                     </IconButton>
                   </Box>
@@ -1057,7 +1057,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
                             onDragStart={(e) => {
                               e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'goal', id: goal.$id, title: goal.title }));
                             }}
-                            onClick={() => router.push('/flow/goals')}
+                            onClick={() => router.push('/flow')}
                             sx={{
                               display: 'flex',
                               gap: 1.5,

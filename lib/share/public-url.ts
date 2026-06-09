@@ -58,7 +58,7 @@ export function buildPublicResourceUrl(
 }
 
 /**
- * Flagship collapses: /note/notes -> /note, etc.
+ * Flagship collapses: /note -> /note, etc.
  */
 export function buildInternalFlagshipUrl(app: 'note' | 'vault' | 'flow'): string {
   return `/${app}`;

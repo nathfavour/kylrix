@@ -145,9 +145,9 @@ export const ContextMenuProvider = ({ children }: { children: ReactNode }) => {
       // Compile Morphing Options
       if (isSidebar) {
         items.push(
-          { label: 'Notes Vault', icon: <FolderIcon sx={{ fontSize: 16 }} />, onClick: () => router.push('/note/notes') },
+          { label: 'Notes Vault', icon: <FolderIcon sx={{ fontSize: 16 }} />, onClick: () => router.push('/note') },
           { label: 'Connect Hub', icon: <ChatIcon sx={{ fontSize: 16 }} />, onClick: () => router.push('/connect') },
-          { label: 'Vault Crypt', icon: <LockIcon sx={{ fontSize: 16 }} />, onClick: () => router.push('/vault/dashboard') },
+          { label: 'Vault Crypt', icon: <LockIcon sx={{ fontSize: 16 }} />, onClick: () => router.push('/vault') },
           { label: 'Settings', icon: <SettingsIcon sx={{ fontSize: 16 }} />, onClick: () => router.push('/settings') }
         );
       } else if (isTopbar) {

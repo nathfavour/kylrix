@@ -103,7 +103,7 @@ Each row is a single interactive surface with a **flat flex row** and a **stacke
 
 ### Cards: use the Note card shell (`components/ui/NoteCard.tsx`)
 
-**Reference:** `/note/notes` grid cards. This is the canonical fix for jam-packed project/template cards.
+**Reference:** `/note` grid cards. This is the canonical fix for jam-packed project/template cards.
 
 #### What Note cards do right
 
@@ -256,7 +256,7 @@ Match the quick-actions row structure (not a single crushed `Stack`):
 
 ### Vault landing (`/vault`)
 
-- **Routing**: exact path `/vault` is **public** (password generator). Signed-in users redirect to `/vault/dashboard` after `isAuthReady` (masterpass unlock runs there via `SudoModal`).
+- **Routing**: exact path `/vault` is **public** (password generator). Signed-in users redirect to `/vault` after `isAuthReady` (masterpass unlock runs there via `SudoModal`).
 - Hero copy: `Typography component="span"`, solid accent color (no gradient text).
 - **Password display**: do **not** use a cramped `TextField` for read-only output. Use the quick-actions row shell:
 

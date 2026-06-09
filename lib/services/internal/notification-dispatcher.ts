@@ -41,7 +41,7 @@ export async function dispatchSecureNotification(input: SecureNotificationInput)
     } else if (input.resourceType === 'note') {
       ctaUrl = `${appBaseUrl}/note/shared/${input.resourceId}`;
     } else if (input.resourceType === 'task') {
-      ctaUrl = `${appBaseUrl}/flow/tasks/${input.resourceId}`;
+      ctaUrl = `${appBaseUrl}/flow/${input.resourceId}`;
     }
   }
 

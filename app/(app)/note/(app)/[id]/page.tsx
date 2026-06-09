@@ -99,7 +99,7 @@ export default function NoteEditorPage() {
       // Invalidate cache
       if (CACHE_KEY) invalidate(CACHE_KEY);
       showSuccess('Deleted', 'Note removed');
-      router.push('/note/notes');
+      router.push('/note');
     } catch (error: any) {
       console.error('Delete failed', error);
       showError('Delete failed', 'Could not delete the note.');

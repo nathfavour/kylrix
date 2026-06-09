@@ -22,8 +22,18 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: '/note/notes/:path*',
+        destination: '/note/:path*',
+        permanent: true,
+      },
+      {
         source: '/vault/dashboard',
         destination: '/vault',
+        permanent: true,
+      },
+      {
+        source: '/vault/dashboard/:path*',
+        destination: '/vault/:path*',
         permanent: true,
       },
       {
@@ -32,8 +42,18 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: '/flow/goals/:path*',
+        destination: '/flow/:path*',
+        permanent: true,
+      },
+      {
         source: '/flow/tasks',
         destination: '/flow',
+        permanent: true,
+      },
+      {
+        source: '/flow/tasks/:path*',
+        destination: '/flow/:path*',
         permanent: true,
       },
     ];

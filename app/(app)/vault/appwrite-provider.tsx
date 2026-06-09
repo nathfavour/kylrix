@@ -209,7 +209,7 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
           setUser(account);
           setIsAuthenticating(false);
           if (pathname === "/" || pathname === "/landing") {
-            router.replace("/vault/dashboard");
+            router.replace("/vault");
           }
           return;
       }
@@ -225,7 +225,7 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
           setUser(account);
           setIsAuthenticating(false);
           if (pathname === "/" || pathname === "/landing") {
-            router.replace("/vault/dashboard");
+            router.replace("/vault");
           }
           return;
       }
@@ -279,7 +279,7 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
         
         // Redirect to dashboard if authenticated
         if (account) {
-          router.replace("/vault/dashboard");
+          router.replace("/vault");
         }
       }
     };

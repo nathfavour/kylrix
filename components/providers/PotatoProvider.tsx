@@ -51,8 +51,8 @@ function normalizeQuery(query: string) {
 function routeLabelFromPath(pathname: string | null) {
   if (!pathname) return 'Note';
   if (pathname === '/' || pathname === '/landing') return 'Landing';
-  if (pathname === '/note' || pathname === '/note/notes') return 'Notes';
-  if (pathname.startsWith('/note/notes/')) return 'Note';
+  if (pathname === '/note' || pathname === '/note') return 'Notes';
+  if (pathname.startsWith('/note/')) return 'Note';
   if (pathname === '/note/shared' || pathname.startsWith('/note/shared/')) return 'Shared';
   if (pathname === '/note/tags') return 'Tags';
   if (pathname === '/note/extensions') return 'Extensions';
@@ -74,7 +74,7 @@ function routeSnippets(pathname: string | null, user: any | null): PotatoSnippet
       }];
   }
 
-  if (pathname === '/note' || pathname === '/note/notes') {
+  if (pathname === '/note' || pathname === '/note') {
     return [
       {
         id: 'notes-current',
@@ -90,7 +90,7 @@ function routeSnippets(pathname: string | null, user: any | null): PotatoSnippet
       }];
   }
 
-  if (pathname.startsWith('/note/notes/')) {
+  if (pathname.startsWith('/note/')) {
     return [
       {
         id: 'note-editor',
@@ -168,20 +168,20 @@ function buildSurface(query: string, routeLabel: string, snippets: PotatoSnippet
       kind: 'note',
       title: 'Draft a note',
       description: 'Capture the current context before it disappears.',
-        href: '/note/notes/new',
+        href: '/note/new',
       accent: '#EC4899',
       terms: ['note', 'draft', 'capture', 'write'],
-      onSelect: () => navigate('/note/notes/new'),
+      onSelect: () => navigate('/note/new'),
     },
     {
       id: 'browse-notes',
       kind: 'note',
       title: 'Open notes',
       description: 'Jump to your notes workspace.',
-        href: '/note/notes',
+        href: '/note',
       accent: '#EC4899',
       terms: ['notes', 'note', 'workspace', 'home'],
-      onSelect: () => navigate('/note/notes'),
+      onSelect: () => navigate('/note'),
     },
     {
       id: 'browse-shared',
@@ -220,10 +220,10 @@ function buildSurface(query: string, routeLabel: string, snippets: PotatoSnippet
       kind: 'note',
       title: 'Search notes',
       description: 'Find drafts, archives, and research.',
-        href: `/note/notes?search=${encodeURIComponent(query)}`,
+        href: `/note?search=${encodeURIComponent(query)}`,
       accent: '#EC4899',
       terms: ['note', 'notes', 'writing', 'draft'],
-      onSelect: () => navigate(`/note/notes?search=${encodeURIComponent(query)}`),
+      onSelect: () => navigate(`/note?search=${encodeURIComponent(query)}`),
     },
     {
       id: 'search-shared',

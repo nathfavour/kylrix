@@ -165,7 +165,7 @@ export default function GlobalSearch() {
     }
 
     if (result.type === 'note') {
-      router.push(`/note/notes?openNoteId=${result.id}`);
+      router.push(`/note?openNoteId=${result.id}`);
       return;
     }
 

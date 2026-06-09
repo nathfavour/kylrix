@@ -183,7 +183,7 @@ export default function GlobalShortcuts() {
           try {
             sessionStorage.setItem("open-create-note", "1");
           } catch {}
-          router.push("/note/notes");
+          router.push("/note");
         }
         return;
       }

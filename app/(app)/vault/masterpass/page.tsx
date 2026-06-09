@@ -55,20 +55,20 @@ function MasterPassPageInner() {
 
   const callbackUrl = useMemo(() => {
     const raw = searchParams.get('callbackUrl');
-    if (!raw) return '/vault/dashboard';
+    if (!raw) return '/vault';
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     try {
       const url = new URL(raw, origin || 'https://kylrix.space');
-      if (origin && url.origin !== origin) return '/vault/dashboard';
+      if (origin && url.origin !== origin) return '/vault';
       return `${url.pathname}${url.search}${url.hash}`;
     } catch {
-      return '/vault/dashboard';
+      return '/vault';
     }
   }, [searchParams]);
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace('/vault/dashboard');
+      router.replace('/vault');
       return;
     }
     if (!user?.$id) return;

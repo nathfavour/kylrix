@@ -8,7 +8,7 @@ description: Foundation for note discovery and partitioning in the Kylrix ecosys
 This skill pins the canonical filtering and discovery patterns for notes to prevent AI agents from breaking the specific partitioning required for secure collaboration.
 
 ## 1. Primary Notes List (Ownership-Only)
-The main Notes page (`/note/notes`) must ONLY display notes explicitly owned by the current user.
+The main Notes page (`/note`) must ONLY display notes explicitly owned by the current user.
 - **Filter**: `Query.equal('userId', currentUser.$id)`
 - **Intent**: Personal workspace management.
 - **Rule**: Never include shared or public notes owned by others here.

@@ -1022,7 +1022,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
           <Box sx={{ mb: 2 }}>
             <Button
               component={NextLink}
-              href="/note/notes"
+              href="/note"
               startIcon={<ArrowBackIcon />}
               sx={{
                 borderRadius: '12px',
@@ -1064,7 +1064,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
               </Typography>
               <Button
                 component={NextLink}
-                href="/note/notes"
+                href="/note"
                 variant="contained"
                 size="large"
                 endIcon={<ArrowRightIcon />}
@@ -1187,7 +1187,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
         <Box sx={{ mb: 2 }}>
           <Button
             component={NextLink}
-            href="/note/notes"
+            href="/note"
             startIcon={<ArrowBackIcon />}
             sx={{
               borderRadius: '12px',

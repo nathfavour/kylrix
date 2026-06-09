@@ -175,7 +175,7 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
               title = 'Quick Note Shortcut';
               description = 'You frequently manage notes. Jump straight back to your workspace notes?';
               actionLabel = 'Write note';
-              actionHref = '/note/notes';
+              actionHref = '/note';
             } else if (app === 'projects') {
               title = 'Workflow Hub Suggestion';
               description = 'We notice you are actively working in Projects. Manage your recorded workflows to speed up task automation?';
@@ -185,7 +185,7 @@ export function LocalContextProvider({ children }: { children: React.ReactNode }
               title = 'Synergize Your Tasks';
               description = 'You frequently update your tasks and flows. Review outstanding goals in the Productivity Center?';
               actionLabel = 'Open flows';
-              actionHref = '/flow/tasks';
+              actionHref = '/flow';
             } else if (app === 'vault') {
               title = 'Secure Password Manager';
               description = 'You frequently access credentials. Review and audit vault item sharing rules?';

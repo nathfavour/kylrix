@@ -26,7 +26,7 @@ When building URLs dynamically on the server or client side:
 When generating invite or share links:
 - **Projects**: `${baseUrl}/project/${projectId}`
 - **Notes**: `${baseUrl}/note/shared/${noteId}`
-- **Tasks**: `${baseUrl}/flow/tasks/${taskId}`
+- **Tasks**: `${baseUrl}/flow/${taskId}`
 
 ### 3. Verification & Email Deliverability
 - All outbound template metadata (such as `iconUrl` in `EmailDispatchPayload`) must point to `https://www.kylrix.space/logo.svg` to maintain TLS/SSL certificate trust and secure static assets delivery.

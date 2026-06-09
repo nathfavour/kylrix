@@ -89,7 +89,7 @@ export default function LandingPage() {
       return;
     }
     if (isAuthenticated) {
-      router.replace('/note/notes');
+      router.replace('/note');
       return;
     }
   }, [isAuthenticated, router]);

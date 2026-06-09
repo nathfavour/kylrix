@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { getSharedNotes } from '@/lib/appwrite';
 import { ProjectsService } from '@/lib/appwrite/projects';
-import CreateNoteForm from './CreateNoteForm';
+import CreateNoteForm from './notes/CreateNoteForm';
 import { useSidebar } from '@/components/ui/SidebarContext';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { NoteDetailSidebar } from '@/components/ui/NoteDetailSidebar';
@@ -282,7 +282,7 @@ export default function NotesPage() {
   useEffect(() => {
     const format = searchParams.get('format');
     if (format === 'doodle') {
-      window.history.replaceState({}, '', '/note/notes');
+      window.history.replaceState({}, '', '/note');
       openOverlay(<CreateNoteForm initialFormat="doodle" onNoteCreated={handleNoteCreated} noteKind="note" />);
     }
   }, [searchParams, openOverlay, handleNoteCreated]);
@@ -355,7 +355,7 @@ export default function NotesPage() {
       if (typeof window === 'undefined') return;
       const params = new URLSearchParams(window.location.search);
       params.delete('openNoteId');
-      const path = `/note/notes${params.toString() ? `?${params.toString()}` : ''}`;
+      const path = `/note${params.toString() ? `?${params.toString()}` : ''}`;
       router.replace(path);
     };
 

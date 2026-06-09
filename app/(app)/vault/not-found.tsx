@@ -44,7 +44,7 @@ export default function NotFound() {
             Home
           </Button>
           <Button
-            href="/vault/dashboard"
+            href="/vault"
             variant="contained"
           >
             Go to Dashboard

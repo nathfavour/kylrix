@@ -128,13 +128,13 @@ export default function UserQuickProfileDrawer({
   const noteAction = useCallback(() => {
     if (!activeUserId) return;
     onClose();
-    router.push(`/note/notes?shareTo=${encodeURIComponent(activeUserId)}`);
+    router.push(`/note?shareTo=${encodeURIComponent(activeUserId)}`);
   }, [activeUserId, onClose, router]);
 
   const flowAction = useCallback(() => {
     if (!activeUserId) return;
     onClose();
-    router.push(`/flow/tasks?assignee=${encodeURIComponent(activeUserId)}`);
+    router.push(`/flow?assignee=${encodeURIComponent(activeUserId)}`);
   }, [activeUserId, onClose, router]);
 
   const openProfileAction = useCallback(() => {
