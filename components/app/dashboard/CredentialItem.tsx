@@ -62,37 +62,37 @@ export default function CredentialItem({
     }
   });
 
-  const contextMenuItems = useMemo(() => [
-    { label: pinned ? 'Unpin Secret' : 'Pin Secret', icon: <Pin size={16} className={pinned ? 'text-[#F59E0B]' : ''} />, onClick: () => onTogglePin?.() },
+  const contextMenuItems = [
+    { label: pinned ? "Unpin Secret" : "Pin Secret", icon: <Pin size={16} className={pinned ? "text-[#F59E0B]" : ""} />, onClick: () => onTogglePin?.() },
     ...accessControlItems,
     { 
-        label: 'Identity', 
+        label: "Identity", 
         icon: <User size={16} />, 
         submenu: [
-            { label: 'Copy Username', icon: <User size={16} />, onClick: () => handleCopy(credential.username || '') },
-            { label: 'Copy Secret', icon: <Lock size={16} className="text-[#10B981]" />, onClick: () => handleCopy(credential.password || '') },
-            { label: 'Copy URL', icon: <ExternalLink size={16} />, onClick: () => handleCopy(credential.url || '') },
+            { label: "Copy Username", icon: <User size={16} />, onClick: () => handleCopy(credential.username || "") },
+            { label: "Copy Secret", icon: <Lock size={16} className="text-[#10B981]" />, onClick: () => handleCopy(credential.password || "") },
+            { label: "Copy URL", icon: <ExternalLink size={16} />, onClick: () => handleCopy(credential.url || "") },
         ]
     },
     { 
-        label: 'Protection', 
+        label: "Protection", 
         icon: <ShieldCheck size={16} />, 
         submenu: [
-            { label: 'AI Audit Security', icon: <Sparkles size={16} className="text-[#10B981]" />, onClick: () => { /* AI Logic */ } },
+            { label: "AI Audit Security", icon: <Sparkles size={16} className="text-[#10B981]" />, onClick: () => { /* AI Logic */ } },
         ]
     },
     { 
-        label: 'Edit Record', 
+        label: "Edit Record", 
         icon: <Edit2 size={16} />, 
         onClick: onEdit 
     },
     { 
-        label: 'Delete', 
+        label: "Delete", 
         icon: <Trash2 size={16} className="text-[#FF453A]" />, 
         onClick: onDelete,
-        variant: 'destructive' as const
+        variant: "destructive" as const
     }
-  ], [pinned, accessControlItems, credential, onTogglePin, onEdit, onDelete]);
+  ];
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();

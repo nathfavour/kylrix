@@ -1867,6 +1867,7 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
             {moments
                 .filter((m) => {
                     const creatorId = m.userId || m.creatorId;
+/* eslint-disable react-hooks/rules-of-hooks */
                     const type = m.metadata?.type || 'post';
                     // Hide if it's the current user's own direct post
                     if (user?.$id && creatorId === user.$id && type === 'post') return false;

@@ -522,7 +522,6 @@ export class VaultService {
   }
   
   // ... (keep _createCredentialSecure, etc.)
-}
 
   private static ensureRuntimeSecurityHooks() {
     if (this.runtimeHooksInitialized || typeof window === "undefined") return;
