@@ -53,7 +53,8 @@ import {
   getCrossSuggestionsSecure,
   initGoalDiscussionSecure,
   toggleResourcePublicGuestSecure,
-  getResourcePublicGuestSecure
+  getResourcePublicGuestSecure,
+  getPublicGoalDataSecure,
 } from './secure-ops';
 import { PublicResourceType } from '@/lib/share/resource-types';
 
@@ -387,6 +388,10 @@ export async function getResourcePublicGuest(params: {
 }) {
   const jwt = await getJwt();
   return getResourcePublicGuestSecure({ ...params, jwt });
+}
+
+export async function getPublicGoalData(goalId: string) {
+  return getPublicGoalDataSecure(goalId);
 }
 
 

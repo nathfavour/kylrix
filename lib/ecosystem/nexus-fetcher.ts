@@ -50,7 +50,7 @@ export async function invalidateCache(key: string) {
     try {
         const db = await getRxDB();
         const doc = await db.cache.findOne(key).exec();
-        if (doc) await doc.remove();
+        if (key.includes("*")) { const prefix = key.split("*")[0]; const docs = await db.cache.find({ selector: { id: { $regex: `^${prefix}` } } }).exec(); await Promise.all(docs.map(d => d.remove())); } else { const doc = await db.cache.findOne(key).exec(); if (doc) await doc.remove(); }
         
         // Notify React components to clear memory mirror
         publishNexusInvalidate(key);

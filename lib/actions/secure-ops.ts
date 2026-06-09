@@ -757,6 +757,36 @@ export async function getSharedProfilesSecure(userIds: string[], jwt?: string) {
  * Fetches a public note and its metadata.
  * Replaces legacy /api/shared/[noteid] route.
  */
+/**
+ * Read-only public goal/task payload for /flow/goal/[id] guest pages.
+ */
+export async function getPublicGoalDataSecure(goalId: string) {
+  const tables = createSystemTablesDB();
+  const row = await tables.getRow({
+    databaseId: APPWRITE_CONFIG.DATABASES.FLOW,
+    tableId: APPWRITE_CONFIG.TABLES.FLOW.TASKS,
+    rowId: goalId,
+  }).catch(() => null);
+
+  if (!row) return null;
+
+  const isGuest = row.isGuest === true;
+  const isPublic = row.isPublic === true;
+  if (!isGuest && !isPublic) return null;
+
+  return JSON.parse(JSON.stringify({
+    id: row.$id,
+    title: row.title || 'Untitled goal',
+    description: row.description || null,
+    status: row.status || 'todo',
+    priority: row.priority || 'medium',
+    dueDate: row.dueDate || null,
+    isPublic,
+    isGuest,
+    updatedAt: row.$updatedAt,
+  }));
+}
+
 export async function getPublicNoteDataSecure(noteId: string) {
   const note = await validatePublicNoteAccess(noteId);
   if (!note) return null;

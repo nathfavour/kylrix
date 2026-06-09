@@ -29,7 +29,15 @@ export default async function EcosystemAliasRedirectPage({
   const subdomain = ALIAS_TO_SUBDOMAIN[alias?.toLowerCase() || ''];
   if (!subdomain) notFound();
 
+  const slugPath = slug?.length ? `/${slug.map(encodeURIComponent).join('/')}` : '';
+  const currentPath = `/${alias}${slugPath}`;
   const targetPath = buildTargetUrl(subdomain, slug || []);
+
+  // Already on the canonical path — avoid redirect loop (e.g. /flow/goal/[id] before page exists).
+  if (targetPath === currentPath) {
+    notFound();
+  }
+
   const targetSearchParams = new URLSearchParams();
   if (resolvedSearchParams) {
     for (const [key, value] of Object.entries(resolvedSearchParams)) {

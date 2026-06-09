@@ -8,6 +8,8 @@ const PUBLIC_PREFIXES = [
   '/p/',
   '/call/',
   '/connect/call/',
+  '/flow/form/',
+  '/flow/goal/',
   '/flow/forms/',
   '/flow/events/',
 ];
