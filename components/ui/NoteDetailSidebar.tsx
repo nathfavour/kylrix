@@ -568,19 +568,7 @@ export function NoteDetailSidebar({
     });
   }, [liveNote, openCallLauncher]);
 
-  const handleDoodleSave = useCallback((doodleData: string) => {
-    setContent(doodleData);
-    setFormat('doodle');
-    markDirty();
-    setShowDoodleEditor(false);
-  }, [markDirty]);
-
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const displayContent = useMemo(
-    () => (shouldMaskEncrypted ? '' : (content || liveNote.content || '')),
-    [shouldMaskEncrypted, content, liveNote.content],
-  );
   const displayTags = useMemo(() => tags.split(',').map((t: string) => t.trim()).filter(Boolean), [tags]);
 
   const currentAttachments = useMemo(() => {
@@ -686,7 +674,7 @@ export function NoteDetailSidebar({
         pickNoteAutosavePayload({
           content: nextContent,
           title,
-          format,
+          format: 'text',
           tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
         })
       );
@@ -698,7 +686,7 @@ export function NoteDetailSidebar({
     } catch (err) {
       console.error('Failed to run immediate save on voice note insert:', err);
     }
-  }, [content, liveNote.$id, updateLocalAndParentNote, title, format, tags, markDirty]);
+  }, [content, liveNote.$id, updateLocalAndParentNote, title, tags, markDirty]);
 
   // --- RENDER ---
   return (
@@ -796,7 +784,7 @@ export function NoteDetailSidebar({
           </button>
 
           {/* Voice recorder top fallback bar button */}
-          {format === 'text' && (
+          {!shouldMaskEncrypted && (
             <button 
               type="button"
               onClick={toggleRecording} 
@@ -864,7 +852,7 @@ export function NoteDetailSidebar({
             </div>
             
             <div className="flex items-center gap-2">
-              {format === 'text' && !shouldMaskEncrypted && (
+              {!shouldMaskEncrypted && (
                 <button
                   type="button"
                   onClick={toggleRecording}
@@ -878,32 +866,6 @@ export function NoteDetailSidebar({
                   {isRecording ? <Square className="w-3 h-3 fill-red-500 text-red-500" /> : <Mic className="w-3 h-3" />}
                   <span>{isRecording ? `${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}` : "Record Voice"}</span>
                 </button>
-              )}
-
-              {!shouldMaskEncrypted && (
-                <div className="flex items-center bg-black/40 border border-white/5 rounded-xl p-0.5 font-mono text-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormat('text');
-                      markDirty();
-                    }}
-                    className={`px-2 py-0.5 rounded-lg transition-colors font-bold ${format === 'text' ? 'bg-indigo-500/20 text-indigo-400 font-extrabold' : 'text-white/50 hover:text-white'}`}
-                  >
-                    Text
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormat('doodle');
-                      markDirty();
-                      setShowDoodleEditor(true);
-                    }}
-                    className={`px-2 py-0.5 rounded-lg transition-colors font-bold ${format === 'doodle' ? 'bg-indigo-500/20 text-indigo-400 font-extrabold' : 'text-white/50 hover:text-white'}`}
-                  >
-                    Doodle
-                  </button>
-                </div>
               )}
             </div>
           </div>
@@ -919,7 +881,9 @@ export function NoteDetailSidebar({
                   Secure content hidden. Unlock your secure space to view and edit this note.
                 </p>
               </button>
-            ) : format === 'text' ? (
+            ) : liveNote.format === 'doodle' ? (
+              <NoteContentRenderer content={content} format="doodle" />
+            ) : (
               <textarea
                 value={content}
                 onChange={(e) => {
@@ -931,21 +895,6 @@ export function NoteDetailSidebar({
                 placeholder="Write in Markdown — headings, lists, links, and voice tags are supported."
                 spellCheck
               />
-            ) : (
-              <div
-                onClick={() => setShowDoodleEditor(true)}
-                className="min-h-[200px] border border-dashed border-white/10 rounded-xl flex items-center justify-center cursor-pointer hover:bg-white/[0.02]"
-              >
-                {displayContent ? (
-                  <NoteContentRenderer
-                    content={displayContent}
-                    format="doodle"
-                    onEditDoodle={() => setShowDoodleEditor(true)}
-                  />
-                ) : (
-                  <span className="text-xs text-white/40 font-mono">Open Sketchpad</span>
-                )}
-              </div>
             )}
           </div>
         </div>
@@ -1185,7 +1134,6 @@ export function NoteDetailSidebar({
         entityKind="note" 
       />
 
-      {showDoodleEditor && <DoodleCanvas initialData={format === 'doodle' ? content : ''} onSave={handleDoodleSave} onClose={() => setShowDoodleEditor(false)} />}
     </div>
   );
 }
