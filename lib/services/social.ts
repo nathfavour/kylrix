@@ -349,15 +349,18 @@ export const SocialService = {
     async getFeed(userId?: string, targetUserId?: string) {
         // Use FeedRanker if no specific target user, else fallback to standard chronological
         if (!targetUserId) {
-            const rankedIds = await FeedRanker.rankMomentsForUser(userId || 'anon', 50);
-            if (rankedIds.length > 0) {
-                 const moments = await tablesDB.listRows(DB_ID, MOMENTS_TABLE, [
-                    Query.equal('$id', rankedIds),
-                    Query.limit(50)
-                ]);
-                // Re-sort to maintain rank
-                const rankedRows = moments.rows.sort((a, b) => rankedIds.indexOf(a.$id) - rankedIds.indexOf(b.$id));
-                return { ...moments, rows: rankedRows };
+            try {
+                const rankedIds = await FeedRanker.rankMomentsForUser(userId || 'anon', 50);
+                if (rankedIds.length > 0) {
+                    const moments = await tablesDB.listRows(DB_ID, MOMENTS_TABLE, [
+                        Query.equal('$id', rankedIds),
+                        Query.limit(50),
+                    ]);
+                    const rankedRows = moments.rows.sort((a, b) => rankedIds.indexOf(a.$id) - rankedIds.indexOf(b.$id));
+                    return { ...moments, rows: rankedRows };
+                }
+            } catch (error) {
+                console.warn('[SocialService.getFeed] FeedRanker failed, falling back to chronological feed:', error);
             }
         }
 

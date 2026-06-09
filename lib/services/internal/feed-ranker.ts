@@ -1,12 +1,17 @@
+import { Query } from 'appwrite';
 import { databases } from '../../appwrite/client';
+import { APPWRITE_CONFIG } from '../../appwrite/config';
 import { EngagementAnalyzer } from './engagement-analyzer';
 
 export class FeedRanker {
   static async rankMomentsForUser(userId: string, limit: number = 20): Promise<string[]> {
     const moments = await databases.listRows(
-      'chat',
-      'moments',
-      [`limit(${limit * 3})`, 'orderDesc($createdAt)']
+      APPWRITE_CONFIG.DATABASES.CHAT,
+      APPWRITE_CONFIG.TABLES.CHAT.MOMENTS,
+      [
+        Query.limit(limit * 3),
+        Query.orderDesc('$createdAt'),
+      ],
     );
 
     const rankedMoments = await Promise.all(
@@ -24,18 +29,16 @@ export class FeedRanker {
         const ageMinutes = (Date.now() - new Date(m.$createdAt).getTime()) / 60000;
         const signals = await EngagementAnalyzer.analyzeEngagement(engagement, ageMinutes);
 
-        // Apply logarithmic attenuation to engagement
         const log_likes = Math.log(signals.likeCommentRatio + 1);
         const score = log_likes * signals.nerfCoefficient;
 
         return { momentId: m.$id, score, signals };
-      })
+      }),
     );
 
-    // Sort by score and return top N
     return rankedMoments
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
-      .map(m => m.momentId);
+      .map((m) => m.momentId);
   }
 }
