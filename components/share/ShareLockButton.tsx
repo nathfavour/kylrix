@@ -14,7 +14,7 @@ interface ShareLockButtonProps {
   isGuest: boolean;
   accentColor?: string;
   projectId?: string;
-  onPublished?: () => void;
+  onPublished?: (result: { isPublic: boolean; isGuest: boolean; publicUrl: string }) => void;
   canPublish?: boolean;
   blockReason?: string;
 }
@@ -36,6 +36,18 @@ export function ShareLockButton({
 }: ShareLockButtonProps) {
   const [loading, setLoading] = useState(false);
   const { showSuccess, showError } = useToast();
+
+  const copyPublicUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const errorMessage = (err: unknown, fallback: string) =>
+    err instanceof Error && err.message ? err.message : fallback;
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -59,19 +71,25 @@ export function ShareLockButton({
           mode: 'copy_only',
           projectId
         });
-        if (res.publicUrl) {
-          await navigator.clipboard.writeText(res.publicUrl);
-          showSuccess('Link copied', 'Anyone with the link can view');
+        if (!res?.publicUrl) {
+          showError('Could not copy link', 'No public link is available for this item.');
+          return;
         }
-      } catch (err: any) {
-        showError('Failed to copy link', err.message);
+        const copied = await copyPublicUrl(res.publicUrl);
+        if (copied) {
+          showSuccess('Link copied', 'Anyone with the link can view');
+        } else {
+          showSuccess('Public link ready', res.publicUrl);
+        }
+      } catch (err: unknown) {
+        showError('Could not copy link', errorMessage(err, 'Try again in a moment.'));
       } finally {
         setLoading(false);
       }
       return;
     }
 
-    // 3. Publish to web
+    // 3. Publish to web — save first, copy second (clipboard must not fail the publish)
     setLoading(true);
     try {
       const res = await toggleResourcePublicGuest({
@@ -80,13 +98,25 @@ export function ShareLockButton({
         mode: 'publish',
         projectId
       });
-      if (res.success && res.publicUrl) {
-        await navigator.clipboard.writeText(res.publicUrl);
-        showSuccess('Published & Link copied', 'Anyone with the link can view');
-        if (onPublished) onPublished();
+      if (!res?.success || !res.publicUrl) {
+        showError('Could not publish', 'Sharing settings were not saved. Try again.');
+        return;
       }
-    } catch (err: any) {
-      showError('Failed to publish', err.message);
+
+      onPublished?.({
+        isPublic: !!res.isPublic,
+        isGuest: !!res.isGuest,
+        publicUrl: res.publicUrl,
+      });
+
+      const copied = await copyPublicUrl(res.publicUrl);
+      if (copied) {
+        showSuccess('Published & Link copied', 'Anyone with the link can view');
+      } else {
+        showSuccess('Published', res.publicUrl);
+      }
+    } catch (err: unknown) {
+      showError('Could not publish', errorMessage(err, 'Sharing settings were not saved.'));
     } finally {
       setLoading(false);
     }

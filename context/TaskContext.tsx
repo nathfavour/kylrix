@@ -66,6 +66,8 @@ const mapAppwriteTaskToTask = (doc: AppwriteTask): Task => {
     position: 0,
     isArchived: raw.isArchived === true || String(raw.isArchived) === 'true',
     isPinned: raw.isPinned === true || String(raw.isPinned) === 'true',
+    isPublic: raw.isPublic === true || String(raw.isPublic) === 'true',
+    isGuest: raw.isGuest === true || String(raw.isGuest) === 'true',
     discussionId: raw.discussionId || null,
   };
 };
@@ -727,7 +729,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     const taskQueries = [
       Query.equal('userId', uid),
       Query.limit(1000),
-      Query.select(['$id', 'userId', 'title', 'description', 'status', 'priority', 'dueDate', 'recurrenceRule', 'tags', 'assigneeIds', 'attachmentIds', '$createdAt', '$updatedAt', 'isPinned', 'isArchived', 'parentId', 'comments', 'discussionId'])];
+      Query.select(['$id', 'userId', 'title', 'description', 'status', 'priority', 'dueDate', 'recurrenceRule', 'tags', 'assigneeIds', 'attachmentIds', '$createdAt', '$updatedAt', 'isPinned', 'isArchived', 'isPublic', 'isGuest', 'parentId', 'comments', 'discussionId'])];
     const calQueries = [
       Query.equal('userId', uid),
       Query.limit(100),
@@ -910,6 +912,14 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
     const currentTask = state.tasks.find(t => t.id === id);
     if (!currentTask) return;
+
+    const shareOnly =
+      (updates.isPublic !== undefined || updates.isGuest !== undefined) &&
+      Object.keys(updates).every((key) => key === 'isPublic' || key === 'isGuest');
+    if (shareOnly) {
+      dispatch({ type: 'UPDATE_TASK', payload: { id, updates } });
+      return;
+    }
 
     const previousStatus = currentTask.status;
     const previousCompletedAt = currentTask.completedAt;

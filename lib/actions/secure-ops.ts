@@ -6353,11 +6353,15 @@ export async function toggleResourcePublicGuestSecure(params: {
     throw new Error("TOTP codes can't be shared publicly");
   }
 
-  const updateData: any = {
+  const updateData: Record<string, unknown> = {
     isPublic,
     isGuest,
-    updatedAt: new Date().toISOString()
   };
+
+  // Only tables with a custom updatedAt column — tasks/events/forms omit it.
+  if (resourceType === 'note' || resourceType === 'project' || resourceType === 'credential' || resourceType === 'totp') {
+    updateData.updatedAt = new Date().toISOString();
+  }
 
   if (resourceType === 'project') {
     updateData.visibility = isPublic ? 'public' : 'private';
@@ -6367,12 +6371,18 @@ export async function toggleResourcePublicGuestSecure(params: {
     updateData.status = 'published';
   }
 
-  await tables.updateRow({
-    databaseId: config.databaseId,
-    tableId: config.tableId,
-    rowId: resourceId,
-    data: updateData
-  });
+  try {
+    await tables.updateRow({
+      databaseId: config.databaseId,
+      tableId: config.tableId,
+      rowId: resourceId,
+      data: updateData
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Could not save sharing settings';
+    console.error('[toggleResourcePublicGuest]', resourceType, resourceId, error);
+    throw new Error(message);
+  }
 
   const publicUrl = buildPublicResourceUrl(resourceType, resourceId, { projectId });
 

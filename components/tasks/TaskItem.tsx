@@ -418,7 +418,9 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
                     isPublic={!!task.isPublic}
                     isGuest={!!task.isGuest}
                     accentColor="#A855F7"
-                    onPublished={() => {}}
+                    onPublished={({ isPublic, isGuest }) => {
+                      updateTask(task.id, { isPublic, isGuest });
+                    }}
                   />
                 </div>
               </div>

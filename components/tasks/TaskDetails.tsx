@@ -27,7 +27,8 @@ import {
 import { 
   createGhostNoteForResource, 
   promoteGhostResourceThreadToStory,
-  initGoalDiscussion 
+  initGoalDiscussion,
+  getResourceCollaborators,
 } from '@/lib/actions/client-ops';
 import { createComment, listComments, getNote } from '@/lib/appwrite/note';
 import { formatNoteCreatedDate } from '@/lib/date-utils';
@@ -399,13 +400,9 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
 
       setIsLoadingAssignees(true);
       try {
-        const { jwt } = await account.createJWT();
-        if (!active) return;
-        
-        const { collaborators } = await getResourceCollaboratorsSecure({
-            resourceId: taskId,
-            resourceType: 'task',
-            jwt
+        const { collaborators } = await getResourceCollaborators({
+          resourceId: taskId,
+          resourceType: 'task',
         });
         if (active) setTaskParticipantProfiles(collaborators);
       } catch (err) {

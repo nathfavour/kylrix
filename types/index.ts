@@ -91,6 +91,8 @@ export interface Task {
   position: number; // for ordering
   isArchived: boolean;
   isPinned: boolean;
+  isPublic?: boolean;
+  isGuest?: boolean;
   discussionId?: string | null;
   // Ecosystem integration fields
   linkedNotes?: string[]; // Kylrix Note integration

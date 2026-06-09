@@ -46,6 +46,8 @@ type TableUpdateData<T extends Models.Row> =
 import { fetchOptimized, invalidateCache } from "@/lib/ecosystem/nexus-fetcher";
 
 const FLOW_TTL = 1000 * 60 * 15; // 15 mins
+const CACHE_TTL = FLOW_TTL;
+const queryCache = new Map<string, { data: unknown; expires: number }>();
 
 async function listRows<T extends Models.Row>(tableId: string, queries: string[] = []): Promise<Models.RowList<T>> {
     const key = `list:${tableId}:${JSON.stringify(queries)}`;
@@ -234,7 +236,7 @@ async function createRow<T extends Models.Row>(
 async function getRow<T extends Models.Row>(tableId: string, rowId: string): Promise<T> {
     const key = `get:${tableId}:${rowId}`;
     const cached = queryCache.get(key);
-    if (cached && cached.expires > Date.now()) return cached.data;
+    if (cached && cached.expires > Date.now()) return cached.data as T;
 
     const res = await tablesDB.getRow<T>({
         databaseId: FLOW_DATABASE_ID,

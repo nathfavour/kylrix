@@ -30,6 +30,8 @@ import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { useSudo } from '@/context/SudoContext';
 import { useSection } from '@/context/SectionContext';
 
+import { useRouter } from 'next/navigation';
+
 interface CreateNoteFormProps {
   onNoteCreated: (note: Notes) => void;
   initialContent?: {
@@ -57,6 +59,7 @@ export default function CreateNoteForm({
   isExpanded: controlledIsExpanded,
   onToggleExpand,
 }: CreateNoteFormProps) {
+  const router = useRouter();
   const { setActiveDetail } = useSection();
   const { closeOverlay } = useOverlay();
   const { showSuccess, showError } = useToast();
@@ -838,7 +841,14 @@ export default function CreateNoteForm({
         <div className="px-2.5 py-1.5 border-t border-white/5 bg-[#161412] flex flex-col gap-1.5 shrink-0">
           {/* Tags section */}
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5">
+            <div 
+              className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 active:opacity-60 transition-opacity w-fit"
+              onClick={() => {
+                if (onClose) onClose();
+                closeOverlay();
+                router.push('/tags');
+              }}
+            >
               <Tag className="w-3.5 h-3.5 text-white/40" />
               <span className="text-xs font-mono text-white/40 uppercase tracking-wider">Tags</span>
             </div>
