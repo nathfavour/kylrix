@@ -98,7 +98,7 @@ export function SecureChatSetupDrawer() {
               Secure Communication
             </Typography>
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
-              KYLRIX END-TO-E2EE PROTOCOL
+              Secure messaging setup
             </Typography>
           </Box>
         </Stack>

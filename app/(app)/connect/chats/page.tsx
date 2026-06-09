@@ -111,9 +111,9 @@ export default function Home() {
         isVisible: true,
         mainColor: '#F59E0B',
         mainIcon: <Plus size={32} strokeWidth={3} />,
-        onMainClick: () => openUnified('new-chat'),
+        onMainClick: () => openUnified('new-chat', { mode: 'thread' }),
         actions: [
-          { id: 'new-thread', label: 'NEW THREAD', icon: <Hash size={20} />, onClick: () => openUnified('new-chat') }
+          { id: 'new-thread', label: 'NEW THREAD', icon: <Hash size={20} />, onClick: () => openUnified('new-chat', { mode: 'thread' }) }
         ]
       });
     } else {
@@ -122,9 +122,9 @@ export default function Home() {
         isVisible: true,
         mainColor: '#F59E0B',
         mainIcon: <Plus size={32} strokeWidth={3} />,
-        onMainClick: () => openUnified('new-chat'),
+        onMainClick: () => openUnified('new-chat', { mode: 'secure' }),
         actions: [
-          { id: 'secret-chat', label: 'NEW SECRET CHAT', icon: <MessageSquare size={20} />, onClick: () => openUnified('new-chat') },
+          { id: 'secret-chat', label: 'SECURE CHAT', icon: <MessageSquare size={20} />, onClick: () => openUnified('new-chat', { mode: 'secure' }) },
           { id: 'channel', label: 'NEW CHANNEL', icon: <Plus size={20} />, onClick: () => openUnified('new-channel') },
           { id: 'huddle', label: 'START HUDDLE', icon: <Phone size={20} />, onClick: () => router.push('/connect/calls?start=1') }]
       });

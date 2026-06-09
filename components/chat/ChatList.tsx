@@ -1138,7 +1138,7 @@ export const ChatList = ({
                                 : 'text-white/50 hover:text-white hover:bg-white/4'
                         }`}
                     >
-                        Secure Chat (E2EE)
+                        Secure Chat
                     </button>
                     <button
                         onClick={() => setActiveTab('public')}

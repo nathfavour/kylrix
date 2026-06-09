@@ -22,7 +22,6 @@ import {
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { useAuth } from '@/lib/auth';
 import { KeychainService } from '@/lib/appwrite/keychain';
-import { PasskeySetup } from '@/components/overlays/PasskeySetup';
 import { useSudo } from '@/context/SudoContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { DiscoverabilitySettings } from '@/components/settings/DiscoverabilitySettings';
@@ -74,7 +73,6 @@ export default function SettingsPage() {
     const { open: openDrawer } = useUnifiedDrawer();
     const [isUnlocked, setIsUnlocked] = useState(ecosystemSecurity.status.isUnlocked);
     const [isArgon, setIsArgon] = useState(ecosystemSecurity.status.isArgon);
-    const [passkeySetupOpen, setPasskeySetupOpen] = useState(false);
     const [hasMasterpass, setHasMasterpass] = useState<boolean | null>(null);
 
     // Telegram state
@@ -576,7 +574,14 @@ export default function SettingsPage() {
                                         </p>
                                     </div>
                                     <button
-                                        onClick={() => setPasskeySetupOpen(true)}
+                                        onClick={() => {
+                                            if (!user?.$id) return;
+                                            openDrawer('passkey-setup', {
+                                                userId: user.$id,
+                                                trustUnlocked: true,
+                                                onSuccess: loadPasskeys,
+                                            });
+                                        }}
                                         disabled={hasMasterpass === false}
                                         className="h-9 px-4 rounded-xl bg-[#6366F1] hover:bg-[#5458E8] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
@@ -699,19 +704,6 @@ export default function SettingsPage() {
             </div>
 
             {/* Conditionally unmounted overlays/drawers mathematically preventing click blocking */}
-            {passkeySetupOpen && (
-                <PasskeySetup 
-                    open={passkeySetupOpen}
-                    onClose={() => setPasskeySetupOpen(false)}
-                    userId={user?.$id || ""}
-                    onSuccess={() => {
-                        setPasskeySetupOpen(false);
-                        loadPasskeys();
-                    }}
-                    trustUnlocked={true}
-                />
-            )}
-
             {tgDrawerOpen && (
                 <TelegramDrawer
                     open={tgDrawerOpen}

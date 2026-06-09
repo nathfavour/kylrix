@@ -19,6 +19,7 @@ const NewTagDrawer = dynamic(() => import('./NewTagDrawer').then(mod => mod.NewT
 const TagSelectorDrawer = dynamic(() => import('./TagSelectorDrawer').then(mod => mod.TagSelectorDrawer), { ssr: false });
 const NewProjectDrawer = dynamic(() => import('./NewProjectDrawer').then(mod => mod.NewProjectDrawer), { ssr: false });
 const SecureChatSetupDrawer = dynamic(() => import('./SecureChatSetupDrawer').then(mod => mod.SecureChatSetupDrawer), { ssr: false });
+const PasskeySetupPanel = dynamic(() => import('./PasskeySetup').then(mod => mod.PasskeySetupPanel), { ssr: false });
 const DeleteConfirmDrawer = dynamic(() => import('./DeleteConfirmDrawer').then(mod => mod.DeleteConfirmDrawer), { ssr: false });
 const ProjectInviteDrawer = dynamic(() => import('./ProjectInviteDrawer').then(mod => mod.ProjectInviteDrawer), { ssr: false });
 const UnifiedFormContent = dynamic(() => import('../forms/UnifiedFormContent').then(mod => mod.UnifiedFormContent), { ssr: false });
@@ -64,11 +65,23 @@ export function UnifiedBottomDrawer() {
                 noteTitle={drawerData?.noteTitle} 
             />;
         case 'new-chat':
-            return <NewChatDrawer isOpen={true} onClose={close} />;
+            return <NewChatDrawer isOpen={true} onClose={close} mode={drawerData?.mode} />;
         case 'new-channel':
             return <NewChannelDrawer isOpen={true} onClose={close} />;
         case 'secure-chat-setup':
             return <SecureChatSetupDrawer />;
+        case 'passkey-setup':
+            return (
+                <PasskeySetupPanel
+                    onClose={close}
+                    userId={drawerData?.userId || ''}
+                    onSuccess={() => {
+                        drawerData?.onSuccess?.();
+                        close();
+                    }}
+                    trustUnlocked={drawerData?.trustUnlocked ?? true}
+                />
+            );
         case 'delete-confirm':
             return <DeleteConfirmDrawer />;
         case 'project-invite':
@@ -88,7 +101,7 @@ export function UnifiedBottomDrawer() {
   if (!content) return null;
 
   // Authoritative Drawer Wrapper with Rigid Viewport Isolation
-  if (['secure-chat-setup', 'delete-confirm', 'project-invite'].includes(activeContent)) {
+  if (['secure-chat-setup', 'passkey-setup', 'delete-confirm', 'project-invite'].includes(activeContent)) {
     return (
         <>
             {/* Mobile-Only Authoritative Bottom Drawer */}

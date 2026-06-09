@@ -28,12 +28,15 @@ import {
 import { Fingerprint, X } from 'lucide-react';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 
-interface PasskeySetupProps {
-  open: boolean;
+export interface PasskeySetupPanelProps {
   onClose: () => void;
   userId: string;
   onSuccess: () => void;
   trustUnlocked?: boolean;
+}
+
+interface PasskeySetupProps extends PasskeySetupPanelProps {
+  open: boolean;
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -45,22 +48,21 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return window.btoa(binary);
 }
 
-export function PasskeySetup({
-  open,
+export function PasskeySetupPanel({
   onClose,
   userId,
   onSuccess,
   trustUnlocked = false,
-}: PasskeySetupProps) {
+}: PasskeySetupPanelProps) {
   const router = useRouter();
   const muiTheme = useTheme();
   const isDesktop = useMediaQuery(muiTheme.breakpoints.up('md'));
   const { setIsDrawerOpen } = useDrawerState();
 
   useEffect(() => {
-    setIsDrawerOpen(open);
+    setIsDrawerOpen(true);
     return () => setIsDrawerOpen(false);
-  }, [open, setIsDrawerOpen]);
+  }, [setIsDrawerOpen]);
 
   const [step, setStep] = useState(trustUnlocked && ecosystemSecurity.status.isUnlocked ? 2 : 1);
   const [loading, setLoading] = useState(false);
@@ -231,29 +233,7 @@ export function PasskeySetup({
   };
 
   return (
-    <Drawer
-      anchor={isDesktop ? 'right' : 'bottom'}
-      open={open}
-      onClose={handleClose}
-      keepMounted={false}
-      disablePortal={true}
-      PaperProps={{
-        sx: {
-          width: isDesktop ? 'min(480px, 90vw)' : '100%',
-          maxWidth: '100%',
-          maxHeight: isDesktop ? '100dvh' : '85dvh',
-          borderTopLeftRadius: isDesktop ? 0 : '28px',
-          borderTopRightRadius: isDesktop ? 0 : '28px',
-          bgcolor: '#161412',
-          borderTop: isDesktop ? 0 : '1px solid rgba(255, 255, 255, 0.06)',
-          borderLeft: isDesktop ? '1px solid rgba(255, 255, 255, 0.06)' : 0,
-          backgroundImage: 'none',
-          color: 'white',
-          display: 'flex',
-          flexDirection: 'column',
-        },
-      }}
-    >
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: isDesktop ? '100%' : 'auto', maxHeight: isDesktop ? '100dvh' : '85dvh', color: 'white' }}>
       {!isDesktop && (
         <Box
           sx={{
@@ -396,7 +376,7 @@ export function PasskeySetup({
         )}
       </Box>
 
-      <Box sx={{ px: 3, pb: 3, pt: 1, display: 'flex', gap: 1.5, flexDirection: isDesktop ? 'row' : 'column' }}>
+      <Box sx={{ px: 3, pb: 'calc(24px + env(safe-area-inset-bottom))', pt: 1, display: 'flex', gap: 1.5, flexDirection: isDesktop ? 'row' : 'column' }}>
         {step === 1 && (
           <>
             <Button onClick={handleClose} variant="outlined" fullWidth sx={{ borderRadius: '12px' }}>
@@ -468,6 +448,51 @@ export function PasskeySetup({
           </Button>
         )}
       </Box>
+    </Box>
+  );
+}
+
+export function PasskeySetup({
+  open,
+  onClose,
+  userId,
+  onSuccess,
+  trustUnlocked = false,
+}: PasskeySetupProps) {
+  const muiTheme = useTheme();
+  const isDesktop = useMediaQuery(muiTheme.breakpoints.up('md'));
+
+  if (!open) return null;
+
+  return (
+    <Drawer
+      anchor={isDesktop ? 'right' : 'bottom'}
+      open={open}
+      onClose={onClose}
+      keepMounted={false}
+      disablePortal={true}
+      PaperProps={{
+        sx: {
+          width: isDesktop ? 'min(480px, 90vw)' : '100%',
+          maxWidth: '100%',
+          maxHeight: isDesktop ? '100dvh' : '85dvh',
+          borderTopLeftRadius: isDesktop ? 0 : '28px',
+          borderTopRightRadius: isDesktop ? 0 : '28px',
+          bgcolor: '#161412',
+          borderTop: isDesktop ? 0 : '1px solid rgba(255, 255, 255, 0.06)',
+          borderLeft: isDesktop ? '1px solid rgba(255, 255, 255, 0.06)' : 0,
+          backgroundImage: 'none',
+          color: 'white',
+          p: 0,
+        },
+      }}
+    >
+      <PasskeySetupPanel
+        onClose={onClose}
+        userId={userId}
+        onSuccess={onSuccess}
+        trustUnlocked={trustUnlocked}
+      />
     </Drawer>
   );
 }

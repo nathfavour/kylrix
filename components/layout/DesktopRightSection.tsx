@@ -1272,7 +1272,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
                           <span className="text-[11px] font-bold text-white leading-tight">New Project</span>
                         </button>
                         <button
-                          onClick={() => openUnified('new-chat')}
+                          onClick={() => openUnified('new-chat', { mode: 'secure' })}
                           className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.06] hover:border-white/10 text-left transition-all group"
                         >
                           <MessageSquare size={15} className="text-[#F59E0B] group-hover:scale-110 transition-transform" />
