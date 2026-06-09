@@ -8,6 +8,7 @@ import { events as eventApi } from '@/lib/kylrixflow';
 import { generateEventPattern } from '@/utils/patternGenerator';
 import { Event as AppwriteEvent } from '@/types/kylrixflow';
 import { Event as LocalEvent } from '@/types';
+import { useOverlay } from '@/components/ui/OverlayContext';
 import toast from 'react-hot-toast';
 
 interface EventDetailsProps {
@@ -18,12 +19,14 @@ interface EventDetailsProps {
 
 export default function EventDetails({ eventId, initialData, onBack }: EventDetailsProps) {
   const { closeSecondarySidebar } = useLayout();
+  const { closeOverlay } = useOverlay();
+  
   const handleClose = () => {
     if (onBack) {
       onBack();
-    } else {
-      closeSecondarySidebar();
     }
+    closeOverlay();
+    closeSecondarySidebar();
   };
   const [event, setEvent] = useState<AppwriteEvent | LocalEvent | null>(initialData || null);
   const [loading, setLoading] = useState(!initialData);
