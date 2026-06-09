@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Box, IconButton, Typography } from '@/lib/mui-tailwind/material';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { X as CloseIcon, ArrowLeft as BackIcon } from 'lucide-react';
@@ -11,6 +12,7 @@ const SELF_CONTAINED_PANEL_KEYS = new Set([
   'note-detail',
   'task-detail',
   'event-detail',
+  'pinned-notes',
 ]);
 
 export function DynamicSidebar() {
@@ -20,7 +22,7 @@ export function DynamicSidebar() {
   useEffect(() => {
     if (isOpen) {
       setMounted(true);
-      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      if (typeof window !== 'undefined') {
         document.body.style.overflow = 'hidden';
       }
     } else {
@@ -50,7 +52,9 @@ export function DynamicSidebar() {
     shouldHideHeader ||
     Boolean(activeContentKey && SELF_CONTAINED_PANEL_KEYS.has(activeContentKey));
 
-  return (
+  const isFullscreen = activeContentKey === 'pinned-notes';
+
+  const sheet = (
     <>
       {/* Openbricks: blur scrim behind focused drawer */}
       <Box
@@ -58,7 +62,7 @@ export function DynamicSidebar() {
         sx={{
           position: 'fixed',
           inset: 0,
-          zIndex: 9990,
+          zIndex: 10000,
           bgcolor: 'rgba(0, 0, 0, 0.58)',
           backdropFilter: 'blur(10px) saturate(120%)',
           WebkitBackdropFilter: 'blur(10px) saturate(120%)',
@@ -68,7 +72,7 @@ export function DynamicSidebar() {
         }}
       />
 
-      {/* Side sheet — deep ash on pitch-black stage */}
+      {/* Side sheet — portaled above global topbar (z 1200) */}
       <Box
         sx={{
           position: 'fixed',
@@ -76,13 +80,13 @@ export function DynamicSidebar() {
           right: 0,
           bottom: 0,
           height: '100dvh',
-          width: { xs: '100%', md: 480, lg: 520 },
+          width: isFullscreen ? '100%' : { xs: '100%', md: 480, lg: 520 },
           display: 'flex',
           flexDirection: 'column',
-          zIndex: 9995,
+          zIndex: 10001,
           bgcolor: '#161412',
-          borderLeft: '1px solid #1C1A18',
-          boxShadow: '-12px 0 48px rgba(0, 0, 0, 0.55)',
+          borderLeft: isFullscreen ? 'none' : '1px solid #1C1A18',
+          boxShadow: isFullscreen ? 'none' : '-12px 0 48px rgba(0, 0, 0, 0.55)',
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
           transition: 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1)',
           overflow: 'hidden',
@@ -166,4 +170,7 @@ export function DynamicSidebar() {
       </Box>
     </>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(sheet, document.body);
 }

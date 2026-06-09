@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Query } from 'appwrite';
-import { Box, Typography, Stack, IconButton, useTheme, alpha, Tooltip, CircularProgress } from '@/lib/mui-tailwind/material';
+import { Box, Typography, Stack, IconButton, useTheme, alpha, CircularProgress } from '@/lib/mui-tailwind/material';
 import { Close as CloseIcon, PushPin as PinIcon } from '@/lib/mui-tailwind/icons';
 import { useNotes } from '@/context/NotesContext';
 import NoteCard from '@/components/ui/NoteCard';
@@ -113,8 +113,30 @@ export function PinnedNotesSidebar() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#161412', overflow: 'hidden' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: { xs: 2, md: 2.5 }, borderBottom: '1px solid rgba(255, 255, 255, 0.05)', bgcolor: '#161412' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: { xs: 2, md: 2.5 },
+          pt: { xs: 'max(16px, env(safe-area-inset-top))', md: 2.5 },
+          flexShrink: 0,
+          bgcolor: '#161412',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+        }}
+      >
         <Stack direction="row" spacing={1.5} alignItems="center">
+          <IconButton
+            onClick={closeSidebar}
+            sx={{
+              color: 'rgba(255,255,255,0.55)',
+              '&:hover': { color: '#fff', bgcolor: '#1C1A18' },
+            }}
+            size="small"
+            aria-label="Close pinned notes"
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
           <Box
             sx={{
               p: 1,
@@ -141,11 +163,6 @@ export function PinnedNotesSidebar() {
             Pinned Notes ({safePinnedIds.length || pinnedNotes.length})
           </Typography>
         </Stack>
-        <Tooltip title="Close">
-          <IconButton onClick={closeSidebar} sx={{ color: 'rgba(255, 255, 255, 0.4)', '&:hover': { color: 'white' } }}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
       </Box>
 
       <Box sx={{ flex: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>

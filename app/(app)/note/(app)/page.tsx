@@ -549,7 +549,7 @@ export default function NotesPage() {
 
                 {pinnedIds.length > 3 && (
                   <button 
-                    onClick={() => openSidebar(<PinnedNotesSidebar />, 'pinned-notes')}
+                    onClick={() => openSidebar(<PinnedNotesSidebar />, 'pinned-notes', { hideHeader: true })}
                     className="text-xs font-black text-[#EC4899] hover:text-[#f472b6] bg-[#EC4899]/5 hover:bg-[#EC4899]/10 border border-[#EC4899]/10 hover:border-[#EC4899]/20 px-3 py-1.5 rounded-xl transition-all"
                   >
                     See More ({pinnedIds.length - 3})
