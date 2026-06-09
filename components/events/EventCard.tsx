@@ -39,6 +39,44 @@ export default function EventCard({ event, onClick, onDelete }: EventCardProps) 
   const { open: openUnified } = useUnifiedDrawer();
   const { openMenu } = useContextMenu();
   const { isPinned: isResourcePinned, togglePin } = useResourcePins();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const handleMenuClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen(prev => !prev);
+  }, []);
+
+  const handleMenuClose = useCallback(() => {
+    setIsMenuOpen(false);
+  }, []);
+
+  const handleShareEvent = useCallback(() => {
+    openUnified('share-note', {
+        resourceId: event.id,
+        resourceType: 'event',
+        resourceTitle: event.title,
+    });
+    handleMenuClose();
+  }, [event, openUnified, handleMenuClose]);
+
+  const handleEditEvent = useCallback(() => {
+    router.push(`/flow/events/${event.id}`);
+    handleMenuClose();
+  }, [event, router, handleMenuClose]);
+
+  const handleDeleteEvent = useCallback(() => {
+    openUnified('delete-confirm', {
+        title: `Delete event: "${event.title}"?`,
+        description: 'This will permanently remove this event from your ecosystem.',
+        resourceName: 'this event',
+        confirmLabel: 'Delete Event',
+        onConfirm: async () => {
+          await eventApi.delete(event.id);
+          onDelete?.();
+        }
+    });
+    handleMenuClose();
+  }, [event, eventApi, onDelete, openUnified, handleMenuClose]);
 
   const isCreator = user && (event.creatorId === user.$id || (event as any).userId === user.$id);
   const pinned = isResourcePinned('event', event.id, event.creatorId, event.isPinned);
