@@ -87,7 +87,7 @@ export function UnifiedLeftSidebar() {
       const routes: Record<string, string> = {
         notes: '/note',
         shared: '/note/shared',
-        tags: '/note/tags',
+        tags: '/tags',
         projects: '/projects',
       };
       router.push(routes[newValue] || '/note');

@@ -94,7 +94,7 @@ export function UnifiedBottomBar() {
 
   const handleNavChange = (_: React.SyntheticEvent, newValue: string) => {
     const routes: Record<string, Record<string, string>> = {
-      note: { notes: '/note', shared: '/note/shared', tags: '/note/tags', projects: '/projects' },
+      note: { notes: '/note', shared: '/note/shared', tags: '/tags', projects: '/projects' },
       vault: { credentials: '/vault', sharing: '/vault/sharing', totp: '/vault/totp', projects: '/projects' },
       flow: { goals: '/flow', forms: '/flow/forms', events: '/flow/events', projects: '/projects' },
       connect: { home: '/connect', chats: '/connect/chats', calls: '/connect/calls', projects: '/projects' },

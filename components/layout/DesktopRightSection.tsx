@@ -694,7 +694,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
                     <IconButton onClick={() => togglePanel(panel)} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: 'white' } }}>
                       {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </IconButton>
-                    <IconButton onClick={() => router.push('/note/tags')} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#6366F1' } }}>
+                    <IconButton onClick={() => router.push('/tags')} size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#6366F1' } }}>
                       <Maximize2 size={14} />
                     </IconButton>
                   </Box>
@@ -714,7 +714,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
                           <Chip
                             key={tag.$id}
                             label={tag.name}
-                            onClick={() => router.push(`/note/tags?tag=${encodeURIComponent(tag.name)}`)}
+                            onClick={() => router.push(`/tags?tag=${encodeURIComponent(tag.name)}`)}
                             sx={{
                               bgcolor: alpha(tag.color || '#6366F1', 0.08),
                               color: tag.color || '#6366F1',

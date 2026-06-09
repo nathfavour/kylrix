@@ -54,7 +54,7 @@ function routeLabelFromPath(pathname: string | null) {
   if (pathname === '/note' || pathname === '/note') return 'Notes';
   if (pathname.startsWith('/note/')) return 'Note';
   if (pathname === '/note/shared' || pathname.startsWith('/note/shared/')) return 'Shared';
-  if (pathname === '/note/tags') return 'Tags';
+  if (pathname === '/tags') return 'Tags';
   if (pathname === '/note/extensions') return 'Extensions';
   if (pathname === '/note/settings') return 'Settings';
   if (pathname === '/pitch') return 'Pitch';
@@ -116,7 +116,7 @@ function routeSnippets(pathname: string | null, user: any | null): PotatoSnippet
       }];
   }
 
-  if (pathname === '/note/tags') {
+  if (pathname === '/tags') {
     return [
       {
         id: 'tags-overview',
@@ -198,10 +198,10 @@ function buildSurface(query: string, routeLabel: string, snippets: PotatoSnippet
       kind: 'tag',
       title: 'Organize tags',
       description: 'Sort notes into clear topical clusters.',
-        href: '/note/tags',
+        href: '/tags',
       accent: '#6366F1',
       terms: ['tag', 'tags', 'organize', 'cluster'],
-      onSelect: () => navigate('/note/tags'),
+      onSelect: () => navigate('/tags'),
     },
     {
       id: 'open-extensions',
@@ -240,10 +240,10 @@ function buildSurface(query: string, routeLabel: string, snippets: PotatoSnippet
       kind: 'tag',
       title: 'Search tags',
       description: 'Find topics and clusters faster.',
-        href: `/note/tags?search=${encodeURIComponent(query)}`,
+        href: `/tags?search=${encodeURIComponent(query)}`,
       accent: '#6366F1',
       terms: ['tag', 'tags', 'topic', 'cluster'],
-      onSelect: () => navigate(`/note/tags?search=${encodeURIComponent(query)}`),
+      onSelect: () => navigate(`/tags?search=${encodeURIComponent(query)}`),
     },
     {
       id: 'search-extensions',

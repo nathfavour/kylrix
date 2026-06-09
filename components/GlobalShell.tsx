@@ -83,6 +83,8 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
   const isConnectChatPage = useMemo(() => Boolean(pathname?.startsWith('/connect/chats') || pathname?.match(/^\/connect\/chat\/[^/]+$/)), [pathname]);
   const isProjectDetailPage = useMemo(() => Boolean(pathname?.match(/^\/projects\/[^/]+$/)), [pathname]);
 
+  const isTagsPage = pathname?.startsWith('/tags');
+
   const showLeftSidebar = useMemo(() => Boolean(
     isAppRoute &&
     !isSharedPage &&
@@ -90,6 +92,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     !isLandingPage &&
     !isProjectsPage &&
     !isConnectChatPage &&
+    !isTagsPage &&
     !pathname?.includes('/settings') &&
     unifiedDrawerActive === 'navbar' &&
     mode !== 'compact' &&
@@ -105,6 +108,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     isLandingPage,
     isProjectsPage,
     isConnectChatPage,
+    isTagsPage,
     pathname,
     unifiedDrawerActive,
     mode,
@@ -208,7 +212,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
         </Box>
       </Box>
 
-      {isAppRoute && !isSharedPage && !isVaultResetRoute && !isLandingPage && (
+      {isAppRoute && !isSharedPage && !isVaultResetRoute && !isLandingPage && !isTagsPage && (
         <UnifiedBottomBar />
       )}
       

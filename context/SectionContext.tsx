@@ -61,7 +61,7 @@ const SectionContext = createContext<SectionContextType | undefined>(undefined);
 const DEFAULT_LAYOUTS: Record<string, PanelType[]> = {
   '/note': ['note', 'huddles', 'projects'],
   '/note': ['note', 'huddles', 'projects'],
-  '/note/tags': ['note', 'huddles', 'projects'],
+  '/tags': ['note', 'huddles', 'projects'],
   '/note/shared': ['tags', 'huddles', 'projects'],
   '/flow': ['forms', 'huddles', 'projects'],
   '/flow': ['forms', 'huddles', 'projects'],
