@@ -2,10 +2,8 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Notes } from '@/types/appwrite';
-import dynamic from 'next/dynamic';
 
-const DoodleCanvas = dynamic(() => import('@/components/DoodleCanvas'), { ssr: false });
-const NoteContentRenderer = dynamic(() => import('@/components/NoteContentRenderer'), { ssr: false });
+import NoteContentRenderer from '@/components/NoteContentRenderer';
 
 import {
   Mic,
@@ -155,7 +153,6 @@ export function NoteDetailSidebar({
   }, []);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showDoodleEditor, setShowDoodleEditor] = useState(false);
 
   const isDirtyRef = useRef(false);
   const loadedNoteIdRef = useRef<string | null>(null);
@@ -166,7 +163,6 @@ export function NoteDetailSidebar({
   
   const [title, setTitle] = useState(liveNote.title || '');
   const [content, setContent] = useState(liveNote.content || '');
-  const [format, setFormat] = useState<'text' | 'doodle'>(liveNote.format as 'text' | 'doodle' || 'text');
   const [tags, setTags] = useState(liveNote.tags?.join(', ') || '');
   const [isPublic, setIsPublic] = useState(getNotePublicState(liveNote));
 
@@ -222,7 +218,6 @@ export function NoteDetailSidebar({
       setTitle(liveNote.title || '');
       setContent(liveNote.content || '');
       setTags(liveNote.tags?.join(', ') || '');
-      setFormat(liveNote.format as 'text' | 'doodle' || 'text');
       setIsPublic(getNotePublicState(liveNote));
       return;
     }
@@ -234,7 +229,6 @@ export function NoteDetailSidebar({
     setTitle(liveNote.title || '');
     setContent(liveNote.content || '');
     setTags(liveNote.tags?.join(', ') || '');
-    setFormat(liveNote.format as 'text' | 'doodle' || 'text');
     setIsPublic(getNotePublicState(liveNote));
   }, [liveNote]);
 
@@ -248,7 +242,6 @@ export function NoteDetailSidebar({
             setTitle(decrypted.title || '');
             setContent(decrypted.content || '');
             setTags(decrypted.tags?.join(', ') || '');
-            setFormat(decrypted.format as 'text' | 'doodle' || 'text');
             setIsLocallyDecrypted(true);
             isDirtyRef.current = false;
             lastAppliedServerTsRef.current = String(decrypted.updatedAt || decrypted.$updatedAt || '');
@@ -415,9 +408,9 @@ export function NoteDetailSidebar({
     ...liveNote,
     title,
     content,
-    format,
+    format: 'text',
     tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-  }), [liveNote, title, content, format, tags]);
+  }), [liveNote, title, content, tags]);
 
   const candidateNoteRef = useRef(candidateNote);
   candidateNoteRef.current = candidateNote;
