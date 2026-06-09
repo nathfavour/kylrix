@@ -2532,6 +2532,8 @@ export async function updateNoteSecure(noteId: string, data: any, jwt?: string) 
     cleanRowData, 
     filterNoteData, 
     getNotePermissions,
+    createNoteCreationService,
+    sanitizeNoteUpdatePatch,
   } = await import('@/lib/appwrite/note');
 
   const noteRow = await tables.getRow({
@@ -2540,34 +2542,63 @@ export async function updateNoteSecure(noteId: string, data: any, jwt?: string) 
     rowId: noteId,
   }) as { creatorId?: string | null; userId?: string | null };
 
-  const patch = { ...data };
   const noteOwnerId = noteRow.creatorId || noteRow.userId || '';
-  if (Object.prototype.hasOwnProperty.call(patch, 'isPinned') && noteOwnerId !== actor.$id) {
-    delete patch.isPinned;
-  }
+  const patch = sanitizeNoteUpdatePatch({ ...data }, { actorId: actor.$id, noteOwnerId });
 
-  const cleanData = cleanRowData(patch);
-  const updatedAt = new Date().toISOString();
-  const updatedData = filterNoteData({ ...cleanData, updatedAt: updatedAt });
-
-  let permissions = undefined;
-  if (patch.isPublic !== undefined) {
-    permissions = getNotePermissions(actor.$id, !!patch.isPublic);
-  }
-
-  const row = await tables.updateRow({
+  const hydrateNoteRow = async (rowId: string) => {
+    const hydrated = await tables.getRow({
       databaseId: APPWRITE_DATABASE_ID,
       tableId: APPWRITE_TABLE_ID_NOTES,
-      rowId: noteId,
-      data: updatedData,
-      permissions: permissions,
+      rowId,
     }) as any;
+    try {
+      const noteTagsTable = APPWRITE_CONFIG.TABLES.NOTE.NOTE_TAGS || 'note_tags';
+      const pivot = await tables.listRows({
+        databaseId: APPWRITE_DATABASE_ID,
+        tableId: noteTagsTable,
+        queries: [Query.equal('resourceId', rowId), Query.equal('resourceType', 'note'), Query.limit(200)] as any,
+      });
+      if (pivot.rows.length) {
+        const tags = Array.from(new Set(pivot.rows.map((p: any) => p.tag).filter(Boolean)));
+        hydrated.tags = tags;
+      }
+    } catch {}
+    if (!hydrated.attachments || !Array.isArray(hydrated.attachments)) {
+      hydrated.attachments = [];
+    }
+    return hydrated;
+  };
+
+  const noteService = createNoteCreationService({
+    databaseId: APPWRITE_DATABASE_ID,
+    tableId: APPWRITE_TABLE_ID_NOTES,
+    getCurrentUser: async () => ({ $id: actor.$id }),
+    createRow: async () => {
+      throw new Error('createRow is not available in updateNoteSecure');
+    },
+    updateRow: async (_databaseId, _tableId, rowId, rowData, permissions) => {
+      return tables.updateRow({
+        databaseId: APPWRITE_DATABASE_ID,
+        tableId: APPWRITE_TABLE_ID_NOTES,
+        rowId,
+        data: rowData as any,
+        permissions,
+      }) as any;
+    },
+    getNote: hydrateNoteRow,
+    getNotePermissions,
+    cleanRowData,
+    filterNoteData,
+  });
+
+  const updatedAt = new Date().toISOString();
+  const row = await noteService.updateNote(noteId, patch, { ownerId: noteOwnerId || actor.$id });
 
   try {
-    if (Array.isArray((data as any).tags)) {
+    if (Array.isArray(patch.tags)) {
       const noteTagsTable = APPWRITE_CONFIG.TABLES.NOTE.NOTE_TAGS || 'note_tags';
       const tagsTable = APPWRITE_TABLE_ID_TAGS;
-      const incomingRaw: string[] = (data as any).tags.filter(Boolean).map((t: string) => t.trim());
+      const incomingRaw: string[] = patch.tags.filter(Boolean).map((t: string) => t.trim());
       const normalizedIncoming = Array.from(new Set(incomingRaw)).filter(Boolean);
       const incomingSet = new Set(normalizedIncoming);
 

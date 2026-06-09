@@ -4,11 +4,9 @@ import React, { useMemo } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { Box, Typography, alpha } from '@/lib/mui-tailwind/material';
-import NoteContentDisplay from '@/components/NoteContentDisplay';
 import { preProcessMarkdown } from '@/lib/markdown';
 import { VoiceNotePlayer } from '@/components/LinkRenderer';
 
-// Configure marked for GFM and breaks
 marked.setOptions({
   gfm: true,
   breaks: true,
@@ -16,74 +14,67 @@ marked.setOptions({
 
 interface NoteContentRendererProps {
   content?: string | null;
-  format?: 'text' | 'doodle' | null;
+  format?: string | null;
   emptyFallback?: React.ReactNode;
   preview?: boolean;
-  onEditDoodle?: () => void;
 }
 
 export function NoteContentRenderer({
   content,
   format = 'text',
   emptyFallback = <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'rgba(255, 255, 255, 0.3)' }}>This note is empty.</Typography>,
-  preview = false,
-  onEditDoodle,
 }: NoteContentRendererProps) {
-  const noteFormat = format === 'doodle' ? 'doodle' : 'text';
+  if (format === 'doodle') {
+    return (
+      <Box>
+        <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'rgba(255, 255, 255, 0.4)' }}>
+          Sketch notes are no longer supported. Create a new text note to continue.
+        </Typography>
+      </Box>
+    );
+  }
 
   const parts = useMemo(() => {
     const trimmed = content?.trim();
-    if (!trimmed || noteFormat === 'doodle') return [];
-    
-    // Split by voice tag to render VoiceNotePlayer inline natively
+    if (!trimmed) return [];
+
     const voiceNoteRegex = /(\[voice:[a-zA-Z0-9_-]+\])/g;
     return trimmed.split(voiceNoteRegex);
-  }, [content, noteFormat]);
-
-  if (noteFormat === 'doodle') {
-    return (
-      <NoteContentDisplay
-        content={content || ''}
-        format="doodle"
-        preview={preview}
-        onEditDoodle={onEditDoodle}
-      />
-    );
-  }
+  }, [content]);
 
   if (parts.length === 0) {
     return <Box>{emptyFallback}</Box>;
   }
 
   return (
-    <Box 
+    <Box
       sx={{
         color: 'rgba(255, 255, 255, 0.9)',
         fontSize: '1.125rem',
         lineHeight: 1.75,
         '& p': { mb: 3 },
-        '& h1': { 
-          fontSize: '2.25rem', 
-          fontWeight: 900, 
-          mb: 4, 
-          mt: 4, 
+        '& h1': {
+          fontSize: '2.25rem',
+          fontWeight: 900,
+          mb: 4,
+          mt: 4,
           color: 'white',
-          letterSpacing: '-0.02em'
+          letterSpacing: '-0.02em',
         },
-        '& h2': { 
-          fontSize: '1.875rem', 
-          fontWeight: 800, 
-          mb: 3, 
-          mt: 4, 
+        '& h2': {
+          fontSize: '1.875rem',
+          fontWeight: 800,
+          mb: 3,
+          mt: 4,
           color: 'white',
-          letterSpacing: '-0.01em'
+          letterSpacing: '-0.01em',
         },
-        '& h3': { 
-          fontSize: '1.5rem', 
-          fontWeight: 700, 
-          mb: 2, 
-          mt: 3, 
-          color: 'white' 
+        '& h3': {
+          fontSize: '1.5rem',
+          fontWeight: 700,
+          mb: 2,
+          mt: 3,
+          color: 'white',
         },
         '& ul, & ol': { mb: 3, pl: 4 },
         '& li': { mb: 1 },
@@ -95,7 +86,7 @@ export function NoteContentRenderer({
           bgcolor: alpha('#6366F1', 0.05),
           borderRadius: '0 12px 12px 0',
           fontStyle: 'italic',
-          color: 'rgba(255, 255, 255, 0.8)'
+          color: 'rgba(255, 255, 255, 0.8)',
         },
         '& code': {
           bgcolor: 'rgba(255, 255, 255, 0.1)',
@@ -104,7 +95,7 @@ export function NoteContentRenderer({
           borderRadius: '6px',
           fontSize: '0.9em',
           fontFamily: 'monospace',
-          color: '#6366F1'
+          color: '#6366F1',
         },
         '& pre': {
           bgcolor: 'rgba(0, 0, 0, 0.3)',
@@ -116,20 +107,19 @@ export function NoteContentRenderer({
           '& code': {
             bgcolor: 'transparent',
             p: 0,
-            color: 'inherit'
-          }
+            color: 'inherit',
+          },
         },
         '& img': {
           maxWidth: '100%',
           borderRadius: '16px',
-          my: 4
+          my: 4,
         },
         '& hr': {
           border: 'none',
           borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          my: 6
+          my: 6,
         },
-        // Link styling
         '& a': {
           color: '#6366F1',
           textDecoration: 'none',
@@ -138,8 +128,8 @@ export function NoteContentRenderer({
           transition: 'all 0.2s ease',
           '&:hover': {
             borderBottomColor: '#6366F1',
-          }
-        }
+          },
+        },
       }}
     >
       {parts.map((part, index) => {

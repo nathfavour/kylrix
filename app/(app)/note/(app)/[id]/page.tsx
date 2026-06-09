@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getNote } from '@/lib/appwrite';
-import { updateNote, deleteNote } from '@/lib/actions/client-ops';
+import { deleteNote } from '@/lib/actions/client-ops';
 import type { Notes } from '@/types/appwrite';
 import { NoteDetailSidebar } from '@/components/ui/NoteDetailSidebar';
 import { 
@@ -79,17 +79,9 @@ export default function NoteEditorPage() {
     };
   }, [id, CACHE_KEY, showError, fetchOptimized, getCachedData]);
 
-  const handleUpdate = async (updated: Notes) => {
-    try {
-      const saved = await updateNote(updated.$id || (id as string) || '', updated);
-      setRawNote(saved);
-      // Update cache
-      if (CACHE_KEY) setCachedData(CACHE_KEY, saved);
-      showSuccess('Saved', 'Note updated successfully');
-    } catch (error: any) {
-      console.error('Update failed', error);
-      showError('Update failed', 'Could not save your changes.');
-    }
+  const handleUpdate = (updated: Notes) => {
+    setRawNote(updated);
+    if (CACHE_KEY) setCachedData(CACHE_KEY, updated);
   };
 
   const handleDelete = async (noteId: string) => {

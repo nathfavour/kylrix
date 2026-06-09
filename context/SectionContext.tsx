@@ -22,7 +22,7 @@ import { GithubIntegrationDrawer } from '@/components/overlays/GithubIntegration
 // Helper imports for note detail fetching
 import { Notes } from '@/types/appwrite';
 import { getNote } from '@/lib/appwrite';
-import { updateNote, deleteNote } from '@/lib/actions/client-ops';
+import { deleteNote } from '@/lib/actions/client-ops';
 import { useDataNexus } from '@/context/DataNexusContext';
 import { useToast } from '@/components/ui/Toast';
 import CommentsSection from '@/app/(app)/note/(app)/notes/Comments';
@@ -295,15 +295,9 @@ export function NoteDetailContainer({ noteId, onBack }: { noteId: string; onBack
     return () => { mounted = false; };
   }, [noteId, CACHE_KEY, fetchOptimized, getCachedData, showError]);
 
-  const handleUpdate = async (updated: Notes) => {
-    try {
-      const saved = await updateNote(updated.$id || noteId || '', updated);
-      setNote(saved);
-      if (CACHE_KEY) setCachedData(CACHE_KEY, saved);
-      showSuccess('Saved', 'Note updated successfully');
-    } catch (error: any) {
-      showError('Update failed', 'Could not save your changes.');
-    }
+  const handleUpdate = (updated: Notes) => {
+    setNote(updated);
+    if (CACHE_KEY) setCachedData(CACHE_KEY, updated);
   };
 
   const handleDelete = async (noteId: string) => {

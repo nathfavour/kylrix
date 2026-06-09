@@ -27,7 +27,6 @@ import {
   CheckSquare as TaskIcon,
   Calendar as EventIcon,
   Key as KeyIcon,
-  Check as CheckIcon,
 } from 'lucide-react';
 
 import { useToast } from '@/components/ui/Toast';
@@ -63,6 +62,7 @@ import { useCallLauncher } from '@/context/CallLauncherContext';
 import { ShareLockButton } from '@/components/share/ShareLockButton';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { useAutosave } from '@/hooks/useAutosave';
+import { pickNoteAutosavePayload } from '@/lib/appwrite/note';
 import ProjectLinker from '@/components/projects/ProjectLinker';
 
 export interface NoteDetailSidebarProps {
@@ -154,11 +154,15 @@ export function NoteDetailSidebar({
     return ecosystemSecurity.onStatusChange((s) => setVaultUnlocked(s.isUnlocked));
   }, []);
 
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [isEditingContent, setIsEditingContent] = useState(false);
-  const isEditing = isEditingTitle || isEditingContent;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDoodleEditor, setShowDoodleEditor] = useState(false);
+
+  const isDirtyRef = useRef(false);
+  const loadedNoteIdRef = useRef<string | null>(null);
+  const lastAppliedServerTsRef = useRef('');
+  const markDirty = useCallback(() => {
+    isDirtyRef.current = true;
+  }, []);
   
   const [title, setTitle] = useState(liveNote.title || '');
   const [content, setContent] = useState(liveNote.content || '');
@@ -202,41 +206,37 @@ export function NoteDetailSidebar({
   const isT4Encrypted = useMemo(() => (noteMeta?.isEncrypted === true || noteMeta?.isEncrypted === 'true') && noteMeta?.encryptionVersion === 'T4', [noteMeta]);
   const isEncryptedNote = useMemo(() => isT4Encrypted && !noteMeta?.clientDecrypted && !isLocallyDecrypted, [isT4Encrypted, noteMeta, isLocallyDecrypted]);
   const isT4EncryptedPublicNote = useMemo(() => isPublic && isT4Encrypted, [isPublic, isT4Encrypted]);
+  const shouldMaskEncrypted = useMemo(() => isEncryptedNote && !vaultUnlocked, [isEncryptedNote, vaultUnlocked]);
 
-  // Sync local state with liveNote (crucial for auto-decryption healing)
+  // Sync local fields from server only when switching notes or when not dirty.
   useEffect(() => {
-    if (!isEditing) {
+    const noteId = liveNote.$id;
+    if (!noteId) return;
+
+    const serverTs = String(liveNote.updatedAt || liveNote.$updatedAt || '');
+
+    if (loadedNoteIdRef.current !== noteId) {
+      loadedNoteIdRef.current = noteId;
+      isDirtyRef.current = false;
+      lastAppliedServerTsRef.current = serverTs;
       setTitle(liveNote.title || '');
       setContent(liveNote.content || '');
       setTags(liveNote.tags?.join(', ') || '');
       setFormat(liveNote.format as 'text' | 'doodle' || 'text');
       setIsPublic(getNotePublicState(liveNote));
+      return;
     }
-  }, [liveNote, isEditing]);
 
-  const syncContent = useCallback((updatedTitle: string, updatedContent: string, updatedTags: string, updatedFormat: 'text' | 'doodle') => {
-    updateLocalAndParentNote({
-      ...liveNote,
-      title: updatedTitle,
-      content: updatedContent,
-      format: updatedFormat,
-      tags: updatedTags.split(',').map((t: string) => t.trim()).filter(Boolean),
-    });
-  }, [liveNote, updateLocalAndParentNote]);
+    if (isDirtyRef.current) return;
+    if (!serverTs || serverTs === lastAppliedServerTsRef.current) return;
 
-  // Instant in-memory sync to note card while typing
-  useEffect(() => {
-    if (!isEditing) return;
-    
-    const hasDiff = liveNote.title !== title ||
-                    liveNote.content !== content ||
-                    liveNote.format !== format ||
-                    liveNote.tags?.join(', ') !== tags;
-                    
-    if (hasDiff) {
-      syncContent(title, content, tags, format);
-    }
-  }, [isEditing, title, content, format, tags, liveNote, syncContent]);
+    lastAppliedServerTsRef.current = serverTs;
+    setTitle(liveNote.title || '');
+    setContent(liveNote.content || '');
+    setTags(liveNote.tags?.join(', ') || '');
+    setFormat(liveNote.format as 'text' | 'doodle' || 'text');
+    setIsPublic(getNotePublicState(liveNote));
+  }, [liveNote]);
 
   // Automatically heal T4 encrypted state if vault is unlocked
   useEffect(() => {
@@ -250,8 +250,8 @@ export function NoteDetailSidebar({
             setTags(decrypted.tags?.join(', ') || '');
             setFormat(decrypted.format as 'text' | 'doodle' || 'text');
             setIsLocallyDecrypted(true);
-            setIsEditingContent(false);
-            setIsEditingTitle(false);
+            isDirtyRef.current = false;
+            lastAppliedServerTsRef.current = String(decrypted.updatedAt || decrypted.$updatedAt || '');
             updateLocalAndParentNote(decrypted);
             showSuccess('Note decrypted', 'Content is now visible.');
           }
@@ -377,6 +377,7 @@ export function NoteDetailSidebar({
       if (!isCreate && !isUpdate) return;
 
       setRealtimeNote((current) => {
+        if (isDirtyRef.current) return current;
         const base = current || noteRef.current;
         return base ? { ...base, ...payload } : payload;
       });
@@ -418,12 +419,29 @@ export function NoteDetailSidebar({
     tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
   }), [liveNote, title, content, format, tags]);
 
-  const { isSaving: isAutosaving } = useAutosave(candidateNote, {
+  const candidateNoteRef = useRef(candidateNote);
+  candidateNoteRef.current = candidateNote;
+
+  const canEditNote = Boolean(liveNote.$id) && !shouldMaskEncrypted && !isLoading;
+
+  const { isSaving: isAutosaving, forceSave } = useAutosave(candidateNote, {
     onSave: (savedNote: Notes) => {
+      isDirtyRef.current = false;
+      lastAppliedServerTsRef.current = String(savedNote.updatedAt || savedNote.$updatedAt || '');
       updateLocalAndParentNote(savedNote);
     },
-    enabled: isEditing,
+    onError: () => {
+      showError('Save failed', 'Your changes are still on screen. We will retry automatically.');
+    },
+    enabled: canEditNote,
   });
+
+  useEffect(() => {
+    return () => {
+      if (!isDirtyRef.current || !candidateNoteRef.current.$id || shouldMaskEncrypted) return;
+      void forceSave(candidateNoteRef.current);
+    };
+  }, [forceSave, shouldMaskEncrypted]);
 
   // Handlers
   const handlePinToggle = useCallback(async () => {
@@ -508,43 +526,23 @@ export function NoteDetailSidebar({
   }, [onDelete, liveNote.$id]);
 
   const handleBackClick = useCallback(async () => {
-    const hasDiff = liveNote.title !== title ||
-                    liveNote.content !== content ||
-                    liveNote.format !== format ||
-                    liveNote.tags?.join(', ') !== tags;
-                    
-    if (hasDiff) {
-      const updated = {
-        ...liveNote,
-        title,
-        content,
-        format,
-        tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-      };
-      
-      updateLocalAndParentNote(updated);
-      
-      if (isEditing) {
-        try {
-          const { updateNote } = await import('@/lib/actions/client-ops');
-          await updateNote(liveNote.$id, {
-            title,
-            content,
-            format,
-            tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-          });
-        } catch (e) {
-          console.error('Failed to sync on back click:', e);
-        }
-      }
+    if (isDirtyRef.current && liveNote.$id && !shouldMaskEncrypted) {
+      await forceSave(candidateNote);
     }
-    
+
     if (onBack) {
       onBack();
     } else {
       closeSidebar();
     }
-  }, [onBack, closeSidebar, liveNote, title, content, format, tags, updateLocalAndParentNote, isEditing]);
+  }, [onBack, closeSidebar, liveNote.$id, shouldMaskEncrypted, forceSave, candidateNote]);
+
+  const handleDismiss = useCallback(async () => {
+    if (isDirtyRef.current && liveNote.$id && !shouldMaskEncrypted) {
+      await forceSave(candidateNote);
+    }
+    closeSidebar();
+  }, [closeSidebar, liveNote.$id, shouldMaskEncrypted, forceSave, candidateNote]);
 
   const handleCreateTaskFromNote = useCallback(async () => {
     setIsCreatingTaskFromNote(true);
@@ -580,37 +578,16 @@ export function NoteDetailSidebar({
   const handleDoodleSave = useCallback((doodleData: string) => {
     setContent(doodleData);
     setFormat('doodle');
+    markDirty();
     setShowDoodleEditor(false);
-  }, []);
-
-  const activateTitleEditing = useCallback(() => {
-    if (isEncryptedNote && !vaultUnlocked) {
-        promptSudo();
-        return;
-    }
-    setIsEditingTitle(true);
-  }, [isEncryptedNote, vaultUnlocked, promptSudo]);
-
-  const activateContentEditing = useCallback(() => {
-    if (isEncryptedNote && !vaultUnlocked) {
-        promptSudo();
-        return;
-    }
-    setIsEditingContent(true);
-  }, [isEncryptedNote, vaultUnlocked, promptSudo]);
+  }, [markDirty]);
 
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const shouldMaskEncrypted = useMemo(() => isEncryptedNote && !vaultUnlocked, [isEncryptedNote, vaultUnlocked]);
-  const displayTitle = useMemo(
-    () => (shouldMaskEncrypted ? 'Secure Note' : (title || liveNote.title || 'Untitled note')),
-    [shouldMaskEncrypted, title, liveNote.title],
-  );
   const displayContent = useMemo(
     () => (shouldMaskEncrypted ? '' : (content || liveNote.content || '')),
     [shouldMaskEncrypted, content, liveNote.content],
   );
-  const displayFormat = useMemo(() => (shouldMaskEncrypted ? 'text' : format), [shouldMaskEncrypted, format]);
   const displayTags = useMemo(() => tags.split(',').map((t: string) => t.trim()).filter(Boolean), [tags]);
 
   const currentAttachments = useMemo(() => {
@@ -697,9 +674,7 @@ export function NoteDetailSidebar({
       const end = textarea.selectionEnd;
       nextContent = content.substring(0, start) + text + content.substring(end);
       setContent(nextContent);
-      
-      const updatedNote = { ...liveNote, content: nextContent };
-      updateLocalAndParentNote(updatedNote);
+      markDirty();
 
       setTimeout(() => {
         textarea.focus();
@@ -708,25 +683,29 @@ export function NoteDetailSidebar({
     } else {
       nextContent = content + text;
       setContent(nextContent);
-      const updatedNote = { ...liveNote, content: nextContent };
-      updateLocalAndParentNote(updatedNote);
+      markDirty();
     }
 
     try {
       const { updateNote: apiUpdateNote } = await import('@/lib/actions/client-ops');
-      const saved = await apiUpdateNote(liveNote.$id, {
-        content: nextContent,
-        title: title.trim(),
-        format,
-        tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-      });
+      const saved = await apiUpdateNote(
+        liveNote.$id,
+        pickNoteAutosavePayload({
+          content: nextContent,
+          title,
+          format,
+          tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+        })
+      );
       if (saved) {
+        isDirtyRef.current = false;
+        lastAppliedServerTsRef.current = String(saved.updatedAt || saved.$updatedAt || '');
         updateLocalAndParentNote(saved as Notes);
       }
     } catch (err) {
       console.error('Failed to run immediate save on voice note insert:', err);
     }
-  }, [content, liveNote, updateLocalAndParentNote, title, format, tags]);
+  }, [content, liveNote.$id, updateLocalAndParentNote, title, format, tags, markDirty]);
 
   // --- RENDER ---
   return (
@@ -754,33 +733,31 @@ export function NoteDetailSidebar({
               </button>
             )}
             
-            {isEditingTitle ? (
-              <input 
-                type="text"
-                value={title} 
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setTitle(val);
-                  syncContent(val, content, tags, format);
-                }} 
-                onBlur={() => setIsEditingTitle(false)} 
-                autoFocus 
-                className="w-full bg-transparent text-white font-black text-xl font-space-grotesk tracking-wide uppercase border-none focus:outline-none placeholder-white/20"
-              />
-            ) : (
-              <h2 
-                onClick={activateTitleEditing}
-                className={`font-black font-space-grotesk text-[#6366F1] uppercase tracking-wide text-xl truncate flex-1 ${isEncryptedNote && !vaultUnlocked ? 'cursor-pointer' : 'cursor-text'}`}
+            {shouldMaskEncrypted ? (
+              <h2
+                onClick={() => promptSudo()}
+                className="font-black font-space-grotesk text-[#6366F1] uppercase tracking-wide text-xl truncate flex-1 cursor-pointer"
               >
-                {displayTitle}
+                Secure Note
               </h2>
+            ) : (
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  markDirty();
+                }}
+                className="w-full bg-transparent text-[#6366F1] font-black text-xl font-space-grotesk tracking-wide uppercase border-none focus:outline-none placeholder-white/20 flex-1 min-w-0"
+                placeholder="Untitled note"
+              />
             )}
           </div>
 
           {!onBack && (
             <button
               type="button"
-              onClick={closeSidebar}
+              onClick={handleDismiss}
               className="p-1.5 text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors hidden sm:inline-flex shrink-0"
               title="Close"
             >
@@ -886,10 +863,15 @@ export function NoteDetailSidebar({
         {/* Editor Box */}
         <div className="flex flex-col p-4 rounded-[20px] bg-[#0A0908] border border-white/[0.04] shadow-[0_8px_24px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/30 transition-all flex-shrink-0">
           <div className="flex justify-between items-center mb-3">
-            <span className="text-xs font-mono font-bold tracking-wider text-indigo-400 uppercase">Content</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold tracking-wider text-indigo-400 uppercase">Content</span>
+              {isAutosaving && (
+                <span className="text-[10px] font-mono font-bold text-white/35 uppercase tracking-wider">Saving…</span>
+              )}
+            </div>
             
             <div className="flex items-center gap-2">
-              {format === 'text' && (
+              {format === 'text' && !shouldMaskEncrypted && (
                 <button
                   type="button"
                   onClick={toggleRecording}
@@ -905,11 +887,14 @@ export function NoteDetailSidebar({
                 </button>
               )}
 
-              {isEditingContent && (
+              {!shouldMaskEncrypted && (
                 <div className="flex items-center bg-black/40 border border-white/5 rounded-xl p-0.5 font-mono text-xs">
                   <button
                     type="button"
-                    onClick={() => setFormat('text')}
+                    onClick={() => {
+                      setFormat('text');
+                      markDirty();
+                    }}
                     className={`px-2 py-0.5 rounded-lg transition-colors font-bold ${format === 'text' ? 'bg-indigo-500/20 text-indigo-400 font-extrabold' : 'text-white/50 hover:text-white'}`}
                   >
                     Text
@@ -918,20 +903,12 @@ export function NoteDetailSidebar({
                     type="button"
                     onClick={() => {
                       setFormat('doodle');
+                      markDirty();
                       setShowDoodleEditor(true);
                     }}
                     className={`px-2 py-0.5 rounded-lg transition-colors font-bold ${format === 'doodle' ? 'bg-indigo-500/20 text-indigo-400 font-extrabold' : 'text-white/50 hover:text-white'}`}
                   >
                     Doodle
-                  </button>
-                  
-                  <button 
-                    type="button"
-                    onClick={() => setIsEditingContent(false)}
-                    className="p-1 rounded-lg text-emerald-400 hover:text-white hover:bg-white/5 ml-1 editor-done-btn"
-                    title="Done Editing"
-                  >
-                    <CheckIcon className="w-3.5 h-3.5" />
                   </button>
                 </div>
               )}
@@ -939,58 +916,42 @@ export function NoteDetailSidebar({
           </div>
 
           <div className="flex-1 min-h-[240px] overflow-y-auto pr-1">
-            {isEditingContent ? (
-              format === 'text' ? (
-                <textarea 
-                  value={content} 
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setContent(val);
-                    syncContent(title, val, tags, format);
-                  }} 
-                  onBlur={(e) => {
-                    const target = e.relatedTarget as HTMLElement;
-                    if (target && (
-                      target.closest('.voice-recorder-btn') || 
-                      target.closest('.editor-done-btn') ||
-                      target.closest('.voice-note-player-container')
-                    )) {
-                      return;
-                    }
-                    setTimeout(() => {
-                      const activeEl = document.activeElement;
-                      if (activeEl && (
-                        activeEl.closest('.voice-recorder-btn') ||
-                        activeEl.closest('.editor-done-btn') ||
-                        activeEl.closest('.voice-note-player-container')
-                      )) {
-                        return;
-                      }
-                      setIsEditingContent(false);
-                    }, 150);
-                  }}
-                  autoFocus 
-                  ref={contentTextareaRef} 
-                  className="w-full min-h-[240px] bg-transparent text-white/90 text-lg leading-relaxed border-none focus:outline-none resize-none scrollbar-thin focus:ring-0 focus:ring-offset-0"
-                  placeholder="Write note contents..."
-                />
-              ) : (
-                <div onClick={() => setShowDoodleEditor(true)} className="h-[200px] border border-dashed border-white/10 rounded-xl flex items-center justify-center cursor-pointer hover:bg-white/[0.02]">
-                  <span className="text-xs text-white/40 font-mono">Open Sketchpad</span>
-                </div>
-              )
+            {shouldMaskEncrypted ? (
+              <button
+                type="button"
+                onClick={() => promptSudo()}
+                className="min-h-[200px] w-full text-left cursor-pointer"
+              >
+                <p className="text-xs italic font-bold text-white/40 leading-relaxed">
+                  Secure content hidden. Unlock your secure space to view and edit this note.
+                </p>
+              </button>
+            ) : format === 'text' ? (
+              <textarea
+                value={content}
+                onChange={(e) => {
+                  setContent(e.target.value);
+                  markDirty();
+                }}
+                ref={contentTextareaRef}
+                className="w-full min-h-[320px] bg-transparent text-white/90 text-lg leading-[1.75] border-none focus:outline-none resize-none scrollbar-thin focus:ring-0 focus:ring-offset-0 font-sans placeholder:text-white/25"
+                placeholder="Write in Markdown — headings, lists, links, and voice tags are supported."
+                spellCheck
+              />
             ) : (
-              <div onClick={activateContentEditing} className={`min-h-[200px] ${shouldMaskEncrypted ? 'cursor-pointer' : 'cursor-text'}`}>
-                 <NoteContentRenderer
-                   content={displayContent}
-                   format={displayFormat}
-                   emptyFallback={
-                     <p className="text-xs italic font-bold text-white/40 leading-relaxed">
-                       Secure content hidden. Unlock your secure space to view this note.
-                     </p>
-                   }
-                   onEditDoodle={displayFormat === 'doodle' ? activateContentEditing : undefined}
-                 />
+              <div
+                onClick={() => setShowDoodleEditor(true)}
+                className="min-h-[200px] border border-dashed border-white/10 rounded-xl flex items-center justify-center cursor-pointer hover:bg-white/[0.02]"
+              >
+                {displayContent ? (
+                  <NoteContentRenderer
+                    content={displayContent}
+                    format="doodle"
+                    onEditDoodle={() => setShowDoodleEditor(true)}
+                  />
+                ) : (
+                  <span className="text-xs text-white/40 font-mono">Open Sketchpad</span>
+                )}
               </div>
             )}
           </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { updateNote } from '@/lib/actions/client-ops';
+import { pickNoteAutosavePayload } from '@/lib/appwrite/note';
 import type { Notes } from '@/types/appwrite';
 
 interface AutosaveOptions {
@@ -50,7 +51,7 @@ async function defaultSave(note: Notes): Promise<Notes> {
   if (!note.$id) {
     throw new Error('Missing note id for autosave');
   }
-  return updateNote(note.$id, note);
+  return updateNote(note.$id, pickNoteAutosavePayload(note));
 }
 
 export function useAutosave(note: Notes | null, options: AutosaveOptions = {}) {

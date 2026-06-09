@@ -20,6 +20,7 @@ import { APPWRITE_CONFIG } from './config';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { sendKylrixEmailNotification } from '@/lib/email-notifications';
 import { createNoteCreationService } from '@/lib/sdk';
+import { buildAutoTitleFromContent } from '@/constants/noteTitle';
 import { buildSourceNoteTags } from '@/lib/sdk/crosslinks';
 import { hasPaidKylrixPlan } from '@/lib/utils';
 import { invalidateTablesDbRowCache } from '@/lib/ecosystem/tablesdb-row-cache';
@@ -288,6 +289,126 @@ function getNotePermissions(userId: string, isPublic: boolean) {
   return permissions;
 }
 
+/** Hydrated client-side fields that must never be written back on update. */
+const NOTE_VIRTUAL_ATTRIBUTE_KEYS = new Set([
+  'linkedTaskId',
+  'linkedTaskIds',
+  'linkedEventId',
+  'linkedEventIds',
+  'linkedCredentialId',
+  'linkedCredentialIds',
+  'linkedSource',
+  'isEncrypted',
+  'isArticle',
+  'clientDecrypted',
+  'decryptionKey',
+  'dek',
+  'isGuest',
+  'sharedFrom',
+  'keepPermission',
+  'source',
+]);
+
+const NOTE_UPDATE_FIELD_KEYS = [
+  'title',
+  'content',
+  'format',
+  'tags',
+  'isPublic',
+  'metadata',
+  'kind',
+] as const;
+
+const NOTE_UPDATE_BLOCKED_KEYS = new Set([
+  'attachments',
+  'comments',
+  'collaborators',
+  'extensions',
+  'userId',
+  'creatorId',
+  'id',
+  'createdAt',
+  'updatedAt',
+]);
+
+export function pickNoteUpdatePayload(
+  data: Partial<Notes> & Record<string, unknown>,
+  options?: { includeVisibility?: boolean; includeMetadata?: boolean }
+): Partial<Notes> {
+  const payload: Record<string, unknown> = {};
+
+  if (data.title !== undefined) {
+    payload.title = String(data.title).trim();
+  }
+  if (data.content !== undefined) {
+    payload.content = data.content;
+  }
+  if (data.format !== undefined) {
+    payload.format = data.format === 'doodle' ? 'doodle' : 'text';
+  }
+  if (data.tags !== undefined) {
+    payload.tags = Array.isArray(data.tags) ? data.tags.filter(Boolean) : [];
+  }
+  if (options?.includeVisibility && typeof data.isPublic === 'boolean') {
+    payload.isPublic = data.isPublic;
+  }
+  if (options?.includeMetadata && data.metadata !== undefined) {
+    payload.metadata = data.metadata;
+  }
+  if (data.kind !== undefined) {
+    payload.kind = data.kind;
+  }
+
+  return payload as Partial<Notes>;
+}
+
+/** Matches the create-note drawer write shape — never sends hydrated row baggage. */
+export function pickNoteAutosavePayload(data: {
+  title?: string | null;
+  content?: string | null;
+  format?: string | null;
+  tags?: string[] | null;
+}): Partial<Notes> {
+  const content = data.content ?? '';
+  const trimmedTitle = (data.title ?? '').trim();
+
+  return {
+    title: trimmedTitle || buildAutoTitleFromContent(content) || 'Untitled Thought',
+    content,
+    format: data.format === 'doodle' ? 'doodle' : 'text',
+    tags: Array.isArray(data.tags) ? data.tags.filter(Boolean) : [],
+  };
+}
+
+export function sanitizeNoteUpdatePatch(
+  data: Record<string, unknown>,
+  options?: { actorId?: string; noteOwnerId?: string }
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = { ...data };
+
+  for (const key of NOTE_UPDATE_BLOCKED_KEYS) {
+    delete patch[key];
+  }
+
+  for (const key of Object.keys(patch)) {
+    if (key.startsWith('$') || NOTE_VIRTUAL_ATTRIBUTE_KEYS.has(key)) {
+      delete patch[key];
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, 'isPinned') && options?.noteOwnerId && options?.actorId) {
+    if (options.noteOwnerId !== options.actorId) {
+      delete patch.isPinned;
+    }
+  }
+
+  if (typeof patch.isPublic !== 'boolean') {
+    delete patch.isPublic;
+  }
+
+  return patch;
+}
+
 function filterNoteData(data: Record<string, any>): Record<string, any> {
   const schemaKeys = [
     'id', 'createdAt', 'updatedAt', 'userId', 'isPublic', 'status', 
@@ -302,7 +423,11 @@ function filterNoteData(data: Record<string, any>): Record<string, any> {
   for (const [key, value] of Object.entries(data)) {
     if (schemaKeys.includes(key)) {
       filtered[key] = value;
-    } else if (!key.startsWith('$') && value !== undefined) {
+    } else if (
+      !key.startsWith('$') &&
+      value !== undefined &&
+      !NOTE_VIRTUAL_ATTRIBUTE_KEYS.has(key)
+    ) {
       // Extra fields go to metadata if they are not system fields
       extra[key] = value;
     }
