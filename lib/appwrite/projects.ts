@@ -4,6 +4,12 @@ import { APPWRITE_CONFIG } from './config';
 import type { Projects, ProjectObjects } from '@/types/appwrite';
 
 import { getNamedListCache } from '@/lib/services/list-cache';
+import {
+  clearSessionProjectsList,
+  clearSessionProjectDetail,
+  setSessionProjectsList,
+} from '@/lib/projects/projects-cache';
+import { invalidateCache } from '@/lib/ecosystem/nexus-fetcher';
 
 const DATABASE_ID = APPWRITE_CONFIG.DATABASES.CHAT;
 const PROJECTS_COLLECTION_ID = 'projects';
@@ -13,18 +19,30 @@ const projectsCache = getNamedListCache<any[]>('projects', 60000); // 1 minute c
 
 export const ProjectsService = {
   async listProjects(force = false) {
-    return {
-      rows: await projectsCache.fetch(async () => {
-        if (typeof window !== 'undefined') {
-          const { account } = await import('./client');
-          const { jwt } = await account.createJWT();
-          const { listProjectsWithCollaborationsSecure } = await import('@/lib/actions/secure-ops');
-          return await listProjectsWithCollaborationsSecure(jwt);
-        }
+    if (!force) {
+      const { getSessionProjectsList } = await import('@/lib/projects/projects-cache');
+      const warm = getSessionProjectsList();
+      if (warm?.length) {
+        return { rows: warm };
+      }
+    }
+
+    const rows = await projectsCache.fetch(async () => {
+      let result: any[];
+      if (typeof window !== 'undefined') {
+        const { account } = await import('./client');
+        const { jwt } = await account.createJWT();
         const { listProjectsWithCollaborationsSecure } = await import('@/lib/actions/secure-ops');
-        return await listProjectsWithCollaborationsSecure();
-      }, force)
-    };
+        result = await listProjectsWithCollaborationsSecure(jwt);
+      } else {
+        const { listProjectsWithCollaborationsSecure } = await import('@/lib/actions/secure-ops');
+        result = await listProjectsWithCollaborationsSecure();
+      }
+      setSessionProjectsList(result);
+      return result;
+    }, force);
+
+    return { rows };
   },
   async getProject(projectId: string) {
     return databases.getRow<any>(
