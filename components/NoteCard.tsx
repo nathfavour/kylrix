@@ -385,7 +385,11 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
                 isPublic={!!note.isPublic}
                 isGuest={!!note.isGuest}
                 accentColor="#EC4899"
-                onPublished={() => onUpdate?.(note)}
+                onPublished={({ isPublic, isGuest }) => {
+                  const updated = { ...note, isPublic, isGuest };
+                  upsertNote(updated);
+                  onUpdate?.(updated);
+                }}
                 canPublish={!isEncryptedNote}
                 blockReason="Unlock vault to share encrypted notes"
               />
