@@ -1,60 +1,72 @@
 import { PublicResourceType, PublicUrlOptions } from './resource-types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kylrix.space';
+const CANONICAL_SHARE_BASE_URL = 'https://www.kylrix.space';
 
 /**
- * Ruthless Sharing: Canonical URL Builder
- * 
- * Follows the "Public URL Law":
- * {appPrefix}/{singularNoun}/{id}
+ * Share-link base URL.
+ * - Browser: always the current page origin (localhost, staging, prod — no env vars).
+ * - Server-only (email, notifications): canonical www host.
  */
-export function buildPublicResourceUrl(
+export function resolveShareBaseUrl(): string {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin.replace(/\/$/, '');
+  }
+  return CANONICAL_SHARE_BASE_URL;
+}
+
+/**
+ * Path-only public guest URL (no origin).
+ * Law: {appPrefix}/{singularNoun}/{id}
+ */
+export function buildPublicResourcePath(
   type: PublicResourceType,
   id: string,
   options: PublicUrlOptions = {}
 ): string {
   const { projectId } = options;
 
-  // 1. Project-scoped hierarchy
   if (projectId) {
     const kind = getProjectKind(type);
-    return `${BASE_URL}/projects/${projectId}/${kind}/${id}`;
+    return `/projects/${projectId}/${kind}/${id}`;
   }
 
-  // 2. Standalone public guest URLs
   switch (type) {
-    case 'note': 
-      return `${BASE_URL}/note/${id}`;
-    
-    case 'credential': 
-      return `${BASE_URL}/vault/${id}`;
-    
-    case 'totp': 
-      return `${BASE_URL}/vault/totp/${id}`;
-    
+    case 'note':
+      return `/note/${id}`;
+    case 'credential':
+      return `/vault/${id}`;
+    case 'totp':
+      return `/vault/totp/${id}`;
     case 'goal':
-    case 'task': 
-      return `${BASE_URL}/flow/goal/${id}`;
-    
-    case 'form': 
-      return `${BASE_URL}/flow/form/${id}`;
-    
-    case 'event': 
-      return `${BASE_URL}/flow/event/${id}`;
-    
-    case 'project': 
-      return `${BASE_URL}/project/${id}`;
-    
+    case 'task':
+      return `/flow/goal/${id}`;
+    case 'form':
+      return `/flow/form/${id}`;
+    case 'event':
+      return `/flow/event/${id}`;
+    case 'project':
+      return `/project/${id}`;
     case 'huddle':
-    case 'call': 
-      return `${BASE_URL}/connect/call/${id}`;
-    
-    case 'moment': 
-      return `${BASE_URL}/connect/post/${id}`;
-    
-    default: 
-      return `${BASE_URL}/${type}/${id}`;
+    case 'call':
+      return `/connect/call/${id}`;
+    case 'moment':
+      return `/connect/post/${id}`;
+    default:
+      return `/${type}/${id}`;
   }
+}
+
+/**
+ * Full public guest URL for clipboard copy and outbound links.
+ */
+export function buildPublicResourceUrl(
+  type: PublicResourceType,
+  id: string,
+  options: PublicUrlOptions = {},
+  baseUrl?: string
+): string {
+  const base = (baseUrl ?? resolveShareBaseUrl()).replace(/\/$/, '');
+  return `${base}${buildPublicResourcePath(type, id, options)}`;
 }
 
 /**
@@ -64,10 +76,6 @@ export function buildInternalFlagshipUrl(app: 'note' | 'vault' | 'flow'): string
   return `/${app}`;
 }
 
-/**
- * Maps resource types to singular kinds used in project hierarchy routes.
- * /projects/[pid]/[kind]/[id]
- */
 function getProjectKind(type: PublicResourceType): string {
   switch (type) {
     case 'note': return 'note';
