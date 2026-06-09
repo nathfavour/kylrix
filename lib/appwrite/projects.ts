@@ -132,6 +132,11 @@ export const ProjectsService = {
   },
 
   async addObjectToProject(projectId: string, entityKind: string, entityId: string, role?: string, metadata?: any) {
+    clearSessionProjectDetail(projectId);
+    void invalidateCache(`project_detail_${projectId}`);
+    void invalidateCache(`project_objects_${projectId}`);
+    void invalidateCache(`project_entities_${projectId}_*`);
+    void invalidateCache(`project_tagged_${projectId}_*`);
     if (typeof window !== 'undefined') {
       const { addObjectToProject } = await import('@/lib/actions/client-ops');
       return await addObjectToProject(projectId, entityKind, entityId, role, metadata);

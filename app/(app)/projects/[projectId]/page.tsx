@@ -75,6 +75,22 @@ import { ProjectDiscussionSidebar } from '@/components/projects/ProjectDiscussio
 import { useLayout } from '@/context/LayoutContext';
 import { useOverlay } from '@/components/ui/OverlayContext';
 import { useDataNexus } from '@/context/DataNexusContext';
+import {
+  getSessionProjectDetail,
+  setSessionProjectDetail,
+  projectDetailCacheKey,
+  projectMetaCacheKey,
+  projectObjectsCacheKey,
+  projectTaggedCacheKey,
+  projectEntityCacheKey,
+  PROJECT_DETAIL_TTL,
+  PROJECT_META_TTL,
+  PROJECT_OBJECTS_TTL,
+  PROJECT_ENTITIES_TTL,
+  PROJECT_TAGGED_TTL,
+  EMPTY_TAGGED_RESOURCES,
+  type ProjectDetailCache,
+} from '@/lib/projects/projects-cache';
 import { MultiSectionContainer } from '@/context/SectionContext';
 import CredentialDialog from '@/components/app/dashboard/CredentialDialog';
 import FormDialog from '@/components/forms/FormDialog';
@@ -121,7 +137,7 @@ export default function ProjectDetailPage() {
   const { openSidebar, closeSidebar } = useDynamicSidebar();
   const { openSecondarySidebar } = useLayout();
   const { openOverlay, closeOverlay } = useOverlay();
-  const { fetchOptimized } = useDataNexus();
+  const { fetchOptimized, getCachedDataAsync, setCachedData } = useDataNexus();
 
   useEffect(() => {
       if (projectId) {
@@ -135,7 +151,9 @@ export default function ProjectDetailPage() {
 
   const [rawProject, setRawProject] = useState<Projects | null>(null);
   const [projectObjects, setProjectObjects] = useState<ProjectObjects[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(
+    () => !(projectId && getSessionProjectDetail(projectId as string)),
+  );
 
   const project = rawProject || (loading ? {
     title: 'Loading Project...',
@@ -295,55 +313,66 @@ export default function ProjectDetailPage() {
   });
   const [resolving, setResolving] = useState(false);
 
-  // Local Cache for Project Details to ensure instant back-and-forth navigation
+  const applyProjectDetailCache = useCallback((parsed: ProjectDetailCache) => {
+    setRawProject(parsed.project);
+    setProjectObjects(parsed.projectObjects || []);
+    setCollaborators(parsed.collaborators || []);
+    setNotes(parsed.notes || []);
+    setTasks(parsed.tasks || []);
+    setCredentials(parsed.credentials || []);
+    setSubProjects(parsed.subProjects || []);
+    setForms(parsed.forms || []);
+    setEvents(parsed.events || []);
+    setTags(parsed.tags || []);
+    setTotps(parsed.totps || []);
+    setMoments(parsed.moments || []);
+    setCalls(parsed.calls || []);
+    setTaggedResources(parsed.taggedResources || EMPTY_TAGGED_RESOURCES);
+    setOwnerProfile(parsed.ownerProfile || null);
+    setGitIntegration(parsed.gitIntegration || null);
+    setLoading(false);
+  }, []);
+
+  // Session + RxDB cold-start hydration before network sweep.
   useEffect(() => {
     if (!projectId) return;
-    const cachedData = sessionStorage.getItem(`project_cache_${projectId}`);
-    if (cachedData) {
-      try {
-        const parsed = JSON.parse(cachedData);
-        setRawProject(parsed.project);
-        setProjectObjects(parsed.projectObjects || []);
-        setCollaborators(parsed.collaborators || []);
-        setNotes(parsed.notes || []);
-        setTasks(parsed.tasks || []);
-        setCredentials(parsed.credentials || []);
-        setSubProjects(parsed.subProjects || []);
-        setForms(parsed.forms || []);
-        setEvents(parsed.events || []);
-        setTags(parsed.tags || []);
-        setTotps(parsed.totps || []);
-        setMoments(parsed.moments || []);
-        setCalls(parsed.calls || []);
-        setTaggedResources(parsed.taggedResources || {
-          notes: [],
-          tasks: [],
-          credentials: [],
-          totps: [],
-          events: [],
-          forms: [],
-          moments: []
-        });
-        setOwnerProfile(parsed.ownerProfile || null);
-        setGitIntegration(parsed.gitIntegration || null);
-        setLoading(false);
-      } catch (e) {
-        console.error('Failed to parse project details cache:', e);
-      }
+
+    const session = getSessionProjectDetail(projectId as string);
+    if (session) {
+      applyProjectDetailCache(session);
+      return;
     }
-  }, [projectId]);
+
+    let mounted = true;
+    void (async () => {
+      const nexusCached = await getCachedDataAsync<ProjectDetailCache>(
+        projectDetailCacheKey(projectId as string),
+        PROJECT_DETAIL_TTL,
+      );
+      if (!mounted || !nexusCached) return;
+      setSessionProjectDetail(projectId as string, nexusCached);
+      applyProjectDetailCache(nexusCached);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [projectId, getCachedDataAsync, applyProjectDetailCache]);
 
   const fetchProjectData = useCallback(async () => {
     if (!projectId) return;
     
-    // If we have cached data, don't trigger the heavy visual loading skeleton
-    const hasCache = sessionStorage.getItem(`project_cache_${projectId}`) !== null;
+    const hasCache = Boolean(getSessionProjectDetail(projectId as string));
     if (!hasCache) {
       setLoading(true);
     }
 
     try {
-      const p = await ProjectsService.getProject(projectId as string);
+      const p = await fetchOptimized(
+        projectMetaCacheKey(projectId as string),
+        () => ProjectsService.getProject(projectId as string),
+        PROJECT_META_TTL,
+      );
       setRawProject(p);
 
       // Resolve owner profile securely
@@ -372,9 +401,9 @@ export default function ProjectDetailPage() {
       }
 
       const objects = await fetchOptimized(
-        `project_objects_${projectId}`,
+        projectObjectsCacheKey(projectId as string),
         () => ProjectsService.listProjectObjects(projectId as string),
-        1000 * 60 * 5 // 5 minute TTL
+        PROJECT_OBJECTS_TTL,
       );
       setProjectObjects(objects.rows);
 
@@ -400,14 +429,15 @@ export default function ProjectDetailPage() {
         gitIntegration: resolvedGit,
         ...resolvedEntitiesData
       };
-      sessionStorage.setItem(`project_cache_${projectId}`, JSON.stringify(cachePayload));
+      setSessionProjectDetail(projectId as string, cachePayload);
+      void setCachedData(projectDetailCacheKey(projectId as string), cachePayload);
 
     } catch (err: any) {
       showError('Failed to load project', err.message);
     } finally {
       setLoading(false);
     }
-  }, [projectId, showError]);
+  }, [projectId, showError, fetchOptimized, setCachedData]);
 
   const resolveEntities = async (objects: ProjectObjects[]) => {
     setResolving(true);
@@ -423,16 +453,77 @@ export default function ProjectDetailPage() {
       const momentIds = objects.filter(o => o.entityKind === 'moment').map(o => o.entityId);
       const callIds = objects.filter(o => o.entityKind === 'call').map(o => o.entityId);
 
-      const notesPromise = noteIds.length ? listNotes([Query.equal('$id', noteIds)]).then(r => r.rows).catch(() => []) : Promise.resolve([]);
-      const tasksPromise = taskIds.length ? listFlowTasks([Query.equal('$id', taskIds)]).then(r => r.rows).catch(() => []) : Promise.resolve([]);
-      const credentialsPromise = credentialIds.length ? listKeepCredentials([Query.equal('$id', credentialIds)]).then(r => r.rows).catch(() => []) : Promise.resolve([]);
-      const subProjectsPromise = subProjectIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, 'projects', [Query.equal('$id', subProjectIds)]).then((r: any) => r.rows).catch(() => []) : Promise.resolve([]);
-      const formsPromise = formIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.FLOW, APPWRITE_CONFIG.TABLES.FLOW.FORMS, [Query.equal('$id', formIds)]).then((r: any) => r.rows).catch(() => []) : Promise.resolve([]);
-      const eventsPromise = eventIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.KYLRIXFLOW, 'events', [Query.equal('$id', eventIds)]).then((r: any) => r.rows).catch(() => []) : Promise.resolve([]);
-      const tagsPromise = tagIds.length ? listTags([Query.equal('$id', tagIds)]).then(r => r.rows).catch(() => []) : Promise.resolve([]);
-      const totpsPromise = totpIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER, 'totpSecrets', [Query.equal('$id', totpIds)]).then((r: any) => r.rows).catch(() => []) : Promise.resolve([]);
-      const momentsPromise = momentIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.MOMENTS, [Query.equal('$id', momentIds)]).then((r: any) => r.rows).catch(() => []) : Promise.resolve([]);
-      const callsPromise = callIds.length ? (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.CALL_LINKS, [Query.equal('$id', callIds)]).then((r: any) => r.rows).catch(() => []) : Promise.resolve([]);
+      const pid = projectId as string;
+      const notesPromise = noteIds.length
+        ? fetchOptimized(
+            projectEntityCacheKey(pid, 'notes', noteIds),
+            () => listNotes([Query.equal('$id', noteIds)]).then((r) => r.rows).catch(() => []),
+            PROJECT_ENTITIES_TTL,
+          )
+        : Promise.resolve([]);
+      const tasksPromise = taskIds.length
+        ? fetchOptimized(
+            projectEntityCacheKey(pid, 'tasks', taskIds),
+            () => listFlowTasks([Query.equal('$id', taskIds)]).then((r) => r.rows).catch(() => []),
+            PROJECT_ENTITIES_TTL,
+          )
+        : Promise.resolve([]);
+      const credentialsPromise = credentialIds.length
+        ? fetchOptimized(
+            projectEntityCacheKey(pid, 'credentials', credentialIds),
+            () => listKeepCredentials([Query.equal('$id', credentialIds)]).then((r) => r.rows).catch(() => []),
+            PROJECT_ENTITIES_TTL,
+          )
+        : Promise.resolve([]);
+      const subProjectsPromise = subProjectIds.length
+        ? fetchOptimized(
+            projectEntityCacheKey(pid, 'subprojects', subProjectIds),
+            () => (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, 'projects', [Query.equal('$id', subProjectIds)]).then((r: any) => r.rows).catch(() => []),
+            PROJECT_ENTITIES_TTL,
+          )
+        : Promise.resolve([]);
+      const formsPromise = formIds.length
+        ? fetchOptimized(
+            projectEntityCacheKey(pid, 'forms', formIds),
+            () => (databases as any).listRows(APPWRITE_CONFIG.DATABASES.FLOW, APPWRITE_CONFIG.TABLES.FLOW.FORMS, [Query.equal('$id', formIds)]).then((r: any) => r.rows).catch(() => []),
+            PROJECT_ENTITIES_TTL,
+          )
+        : Promise.resolve([]);
+      const eventsPromise = eventIds.length
+        ? fetchOptimized(
+            projectEntityCacheKey(pid, 'events', eventIds),
+            () => (databases as any).listRows(APPWRITE_CONFIG.DATABASES.KYLRIXFLOW, 'events', [Query.equal('$id', eventIds)]).then((r: any) => r.rows).catch(() => []),
+            PROJECT_ENTITIES_TTL,
+          )
+        : Promise.resolve([]);
+      const tagsPromise = tagIds.length
+        ? fetchOptimized(
+            projectEntityCacheKey(pid, 'tags', tagIds),
+            () => listTags([Query.equal('$id', tagIds)]).then((r) => r.rows).catch(() => []),
+            PROJECT_ENTITIES_TTL,
+          )
+        : Promise.resolve([]);
+      const totpsPromise = totpIds.length
+        ? fetchOptimized(
+            projectEntityCacheKey(pid, 'totps', totpIds),
+            () => (databases as any).listRows(APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER, 'totpSecrets', [Query.equal('$id', totpIds)]).then((r: any) => r.rows).catch(() => []),
+            PROJECT_ENTITIES_TTL,
+          )
+        : Promise.resolve([]);
+      const momentsPromise = momentIds.length
+        ? fetchOptimized(
+            projectEntityCacheKey(pid, 'moments', momentIds),
+            () => (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.MOMENTS, [Query.equal('$id', momentIds)]).then((r: any) => r.rows).catch(() => []),
+            PROJECT_ENTITIES_TTL,
+          )
+        : Promise.resolve([]);
+      const callsPromise = callIds.length
+        ? fetchOptimized(
+            projectEntityCacheKey(pid, 'calls', callIds),
+            () => (databases as any).listRows(APPWRITE_CONFIG.DATABASES.CHAT, APPWRITE_CONFIG.TABLES.CHAT.CALL_LINKS, [Query.equal('$id', callIds)]).then((r: any) => r.rows).catch(() => []),
+            PROJECT_ENTITIES_TTL,
+          )
+        : Promise.resolve([]);
 
       const [
         resolvedNotes,
@@ -463,9 +554,9 @@ export default function ProjectDetailPage() {
       if (tagIds.length > 0) {
         try {
           resolvedTagged = await fetchOptimized(
-            `project_tagged_${projectId}_${tagIds.join('_')}`,
+            projectTaggedCacheKey(projectId as string, tagIds),
             () => ProjectsService.listTaggedResources(tagIds),
-            1000 * 60 * 10 // 10 minute TTL for sweeping
+            PROJECT_TAGGED_TTL,
           );
           
           // Filter out items that are already explicitly linked as project objects
