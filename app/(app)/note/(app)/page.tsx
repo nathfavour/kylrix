@@ -50,6 +50,7 @@ import { NoteDetailSidebar } from '@/components/ui/NoteDetailSidebar';
 import { sidebarIgnoreProps } from '@/constants/sidebar';
 import { NotesErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { PinnedNotesSidebar } from '@/components/ui/PinnedNotesSidebar';
+import { isClientEncryptedNote, resolvePinnedNoteRows } from '@/lib/note/note-visibility';
 
 // Client-side persistence cache to resist reload flicker
 
@@ -158,22 +159,13 @@ export default function NotesPage() {
 
   const visibleNotes = useMemo(() => {
     const safeNotes = Array.isArray(allNotes) ? allNotes : [];
-    return safeNotes.filter((n: any) => {
-      try {
-        const meta = JSON.parse(n.metadata || '{}');
-        const isEncrypted = meta.isEncrypted === true || meta.isEncrypted === 'true' || n.isEncrypted === true;
-        return !isEncrypted;
-      } catch {
-        return !n.isEncrypted;
-      }
-    });
+    return safeNotes.filter((n) => !isClientEncryptedNote(n));
   }, [allNotes]);
 
-  // Pinned Notes are filtered cleanly using the native boolean column and preference/fallback checking
   const pinnedNotes = useMemo(() => {
     if (searchParams.get('query')) return [];
-    return visibleNotes.filter(n => isPinned(n.$id));
-  }, [visibleNotes, searchParams, isPinned]);
+    return resolvePinnedNoteRows(pinnedIds, visibleNotes);
+  }, [pinnedIds, visibleNotes, searchParams]);
 
   // Regular source notes exclude pinned notes when there is no active search query
   const regularSourceNotes = useMemo(() => {

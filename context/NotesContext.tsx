@@ -5,7 +5,8 @@ import { createContext, useContext, useState, useEffect, useRef, useCallback, Re
 import { Query } from 'appwrite';
 import { 
   listNotesPaginated, 
-  getPinnedNoteIds, 
+  getPinnedNoteIds,
+  getNote,
   updateNote,
   realtime,
   APPWRITE_DATABASE_ID,
@@ -132,41 +133,6 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     
     void hydrateFromCache();
   }, [user?.$id, isCacheLoaded, getCachedDataAsync, PINNED_CACHE_KEY, INITIAL_NOTES_CACHE_KEY]);
-
-  // Ensure pinned notes are present in the 'notes' array (smart hydration)
-  useEffect(() => {
-    if (!isAuthenticated || !user?.$id || !pinnedIds.length) return;
-
-    const missingIds = pinnedIds.filter(id => !notes.some(n => n.$id === id));
-    if (missingIds.length === 0) return;
-
-    const hydratePinnedNotes = async () => {
-      try {
-        const res = await listNotesPaginated({
-          limit: missingIds.length,
-          queries: [Query.equal('$id', missingIds), Query.equal('userId', user.$id)],
-          hydrateTags: true
-        });
-
-        if (res?.rows?.length > 0) {
-          const newDocs = res.rows as unknown as Notes[];
-
-          setNotes(prev => {
-            const existingIds = new Set(prev.map(n => n.$id));
-            const distinctNew = newDocs.filter(n => !existingIds.has(n.$id));
-            return [...prev, ...distinctNew];
-          });
-          
-          // Cache them individualy
-          newDocs.forEach(doc => setCachedData(`note_${doc.$id}`, doc));
-        }
-      } catch (e) {
-        console.error('[NotesContext] Failed to hydrate missing pinned notes:', e);
-      }
-    };
-
-    void hydratePinnedNotes();
-  }, [pinnedIds, isAuthenticated, user?.$id, setCachedData, notes]);
 
   // Refs to avoid unnecessary re-creations / dependency loops
   const isFetchingRef = useRef(false);
@@ -471,6 +437,77 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     setPinnedIds(effectivePinnedIds);
     setCachedData(PINNED_CACHE_KEY, effectivePinnedIds);
   }, [effectivePinnedIds, PINNED_CACHE_KEY, setCachedData]);
+
+  const missingPinnedKey = useMemo(
+    () => effectivePinnedIds.filter((id) => !notes.some((n) => n.$id === id)).join(','),
+    [effectivePinnedIds, notes],
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.$id || !missingPinnedKey) return;
+
+    const missingIds = missingPinnedKey.split(',').filter(Boolean);
+    if (!missingIds.length) return;
+
+    const mergeNotes = (incoming: Notes[]) => {
+      if (!incoming.length) return;
+      setNotes((prev) => {
+        const existingIds = new Set(prev.map((n) => n.$id));
+        const distinctNew = incoming.filter((n) => n.$id && !existingIds.has(n.$id));
+        return distinctNew.length ? [...prev, ...distinctNew] : prev;
+      });
+      incoming.forEach((doc) => {
+        if (doc?.$id) setCachedData(`note_${doc.$id}`, doc);
+      });
+    };
+
+    const hydratePinnedNotes = async () => {
+      try {
+        const fromCache: Notes[] = [];
+        for (const id of missingIds) {
+          const cached = await getCachedDataAsync<Notes>(`note_${id}`);
+          if (cached?.$id) fromCache.push(normalizeVisibility(cached));
+        }
+        mergeNotes(fromCache);
+
+        const stillMissing = missingIds.filter(
+          (id) =>
+            !fromCache.some((n) => n.$id === id) &&
+            !notesRef.current.some((n) => n.$id === id),
+        );
+        if (!stillMissing.length) return;
+
+        const res = await listNotesPaginated({
+          limit: Math.min(Math.max(stillMissing.length, 1), 100),
+          queries: [Query.equal('$id', stillMissing)],
+          hydrateTags: true,
+        });
+
+        let fetched = ((res?.rows || []) as Notes[]).map((note) => normalizeVisibility(note));
+
+        if (fetched.length < stillMissing.length) {
+          const fetchedIds = new Set(fetched.map((n) => n.$id));
+          const perNote = await Promise.all(
+            stillMissing
+              .filter((id) => !fetchedIds.has(id))
+              .map((id) => getNote(id).catch(() => null)),
+          );
+          fetched = [
+            ...fetched,
+            ...perNote
+              .filter((n): n is Notes => Boolean(n))
+              .map((note) => normalizeVisibility(note)),
+          ];
+        }
+
+        mergeNotes(fetched);
+      } catch (e) {
+        console.error('[NotesContext] Failed to hydrate missing pinned notes:', e);
+      }
+    };
+
+    void hydratePinnedNotes();
+  }, [missingPinnedKey, isAuthenticated, user?.$id, setCachedData, getCachedDataAsync]);
 
   const applyNotePin = useCallback(async (noteId: string, pinned: boolean) => {
     const note = notes.find(n => n.$id === noteId);

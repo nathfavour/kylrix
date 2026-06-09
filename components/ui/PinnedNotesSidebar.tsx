@@ -7,23 +7,17 @@ import { useNotes } from '@/context/NotesContext';
 import NoteCard from '@/components/ui/NoteCard';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { Notes } from '@/types/appwrite';
+import { resolvePinnedNoteRows } from '@/lib/note/note-visibility';
 
 export function PinnedNotesSidebar() {
   const theme = useTheme();
-  const { notes: allNotes, pinnedIds, upsertNote, removeNote, isPinned } = useNotes();
+  const { notes: allNotes, pinnedIds, upsertNote, removeNote } = useNotes();
   const { closeSidebar } = useDynamicSidebar();
 
-  const pinnedNotes = useMemo(() => {
-    return allNotes.filter((n: any) => {
-      try {
-        const meta = JSON.parse(n.metadata || '{}');
-        const isEncrypted = meta.isEncrypted === true || meta.isEncrypted === 'true' || n.isEncrypted === true;
-        return isPinned(n.$id) && !isEncrypted;
-      } catch {
-        return isPinned(n.$id) && !n.isEncrypted;
-      }
-    });
-  }, [allNotes, isPinned]);
+  const pinnedNotes = useMemo(
+    () => resolvePinnedNoteRows(pinnedIds, allNotes),
+    [pinnedIds, allNotes],
+  );
 
   const isHydrating = useMemo(() => {
     return pinnedIds.some(id => !allNotes.some(n => n.$id === id));
