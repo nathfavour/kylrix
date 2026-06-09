@@ -43,16 +43,16 @@ type TableUpdateData<T extends Models.Row> =
     ? Partial<Models.Row> & Record<string, unknown>
     : Partial<Models.Row> & Partial<Omit<T, keyof Models.Row>>;
 
-const queryCache = new Map<string, { data: any; expires: number }>();
-const CACHE_TTL = 30000;
+import { fetchOptimized, invalidateCache } from "@/lib/ecosystem/nexus-fetcher";
 
-const permissionRank: Record<CollaboratorPermission, number> = {
-    read: 1,
-    write: 2,
-    admin: 3,
-};
+const FLOW_TTL = 1000 * 60 * 15; // 15 mins
 
-const taskResourceKey = (taskId: string) => `${TASK_COLLABORATOR_RESOURCE_PREFIX}${taskId}`;
+async function listRows<T extends Models.Row>(tableId: string, queries: string[] = []): Promise<Models.RowList<T>> {
+    const key = `list:${tableId}:${JSON.stringify(queries)}`;
+    return await fetchOptimized(key, async () => {
+        return await tablesDB.listRows<T>({ databaseId: FLOW_DATABASE_ID, tableId, queries });
+    }, FLOW_TTL);
+}
 
 const taskPermissionForLevel = (level: CollaboratorPermission, userId: string) => {
     if (level === 'admin') {
@@ -114,15 +114,6 @@ export const buildTaskPermissions = (creatorId: string | null, assigneeIds: stri
     );
 };
 
-async function listRows<T extends Models.Row>(tableId: string, queries?: string[]): Promise<Models.RowList<T>> {
-    const key = `list:${tableId}:${JSON.stringify(queries)}`;
-    const cached = queryCache.get(key);
-    if (cached && cached.expires > Date.now()) return cached.data;
-
-    const res = await tablesDB.listRows<T>({ databaseId: FLOW_DATABASE_ID, tableId, queries });
-    queryCache.set(key, { data: res, expires: Date.now() + CACHE_TTL });
-    return res;
-}
 
 async function listTaskCollaborators(taskId: string): Promise<TaskCollaborator[]> {
     const res = await tablesDB.listRows<any>({
