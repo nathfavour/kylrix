@@ -472,7 +472,8 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
           <div className="flex items-end gap-4 md:gap-6">
             <div className="border-4 border-[#0F0E0D] rounded-[32px] overflow-hidden shadow-2xl bg-[#0F0E0D] -mt-12 md:-mt-16">
               <IdentityAvatar
-                fileId={profile?.isAvatar !== false ? profile?.avatar : null}
+                fileId={profile?.isAvatar !== false ? targetUserId : null}
+                userId={targetUserId}
                 alt={profile?.displayName || profile?.username || 'User'}
                 fallback={(profile?.displayName || profile?.username || 'U').slice(0, 1).toUpperCase()}
                 verified={identityFlags.verified}

@@ -154,17 +154,23 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                 setError('Only image files are allowed.');
                 return;
             }
-            if (file.size > 1024 * 1024) {
-                setError('Maximum file size of 1MB exceeded.');
-                return;
-            }
             setError('');
             try {
+                // Compress the image first
                 const compressed = await compressImage(file, 512, 512, 0.7);
+                if (compressed.size > 1024 * 1024) {
+                    setError('Maximum file size of 1MB exceeded after compression.');
+                    return;
+                }
                 setProfilePic(compressed);
                 setProfilePicUrl(URL.createObjectURL(compressed));
                 setRemovePicRequested(false);
             } catch (err) {
+                // If compression fails, verify the original file size
+                if (file.size > 1024 * 1024) {
+                    setError('Maximum file size of 1MB exceeded.');
+                    return;
+                }
                 setProfilePic(file);
                 setProfilePicUrl(URL.createObjectURL(file));
                 setRemovePicRequested(false);
@@ -223,6 +229,13 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                 await account.updatePrefs({ ...currentPrefs, profilePicId: uploadedFile.$id });
             }
 
+            let avatarVal = profile?.avatar;
+            if (removePicRequested) {
+                avatarVal = null;
+            } else if (profilePic) {
+                avatarVal = userId;
+            }
+
             // 2. Setup public key E2E identity if unlocked
             let publicKey: string | undefined;
             try {
@@ -238,6 +251,7 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                 username,
                 bio,
                 displayName,
+                avatar: avatarVal,
                 publicKey,
                 isPublic,
                 isGuest,

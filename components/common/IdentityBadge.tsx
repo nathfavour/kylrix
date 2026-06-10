@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, alpha } from '@/lib/mui-tailwind/material';
 import { CheckCircle as CheckCircleIcon } from '@/lib/mui-tailwind/icons';
+import { useAuth } from '@/lib/auth';
 import { UserPresenceState } from '@/lib/services/presence';
 import { storage } from '@/lib/appwrite/client';
 
@@ -123,6 +124,10 @@ export function IdentityAvatar({
   }, [userId]);
 
   // 2. Resolve visibilities dynamically using the fetched profile row
+  const { user: currentUser } = useAuth();
+  const currentUserId = currentUser?.$id;
+  const isOwner = Boolean(currentUserId && userId && currentUserId === userId);
+
   const resolvedIsAvatar = profileRecord ? profileRecord.isAvatar : isAvatar;
   const resolvedIsPublic = profileRecord ? profileRecord.isPublic : isPublic;
   const resolvedIsGuest = profileRecord ? profileRecord.isGuest : isGuest;
@@ -139,7 +144,7 @@ export function IdentityAvatar({
   const isPublicOrGuestSatisfied = resolvedIsPublic === null || resolvedIsPublic === undefined || resolvedIsPublic === true ||
                                     resolvedIsGuest === null || resolvedIsGuest === undefined || resolvedIsGuest === true;
   
-  const canFetchAvatar = isAvatarSatisfied && isPublicOrGuestSatisfied;
+  const canFetchAvatar = isOwner || (isAvatarSatisfied && isPublicOrGuestSatisfied);
 
   // 3. Retrieve the secure profile picture preview URL asynchronously
   useEffect(() => {
@@ -149,7 +154,7 @@ export function IdentityAvatar({
       return;
     }
 
-    const targetFileId = profileRecord?.avatar || fileId;
+    const targetFileId = profileRecord?.avatar || fileId || userId;
     if (!targetFileId) {
       setResolvedSrc(null);
       return;
