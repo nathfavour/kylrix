@@ -2871,7 +2871,7 @@
             "databaseId": "passwordManagerDb",
             "name": "billing_transactions",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "paymentId",
@@ -3016,7 +3016,7 @@
             "databaseId": "passwordManagerDb",
             "name": "billing_webhook_logs",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "paymentId",
@@ -3349,7 +3349,7 @@
             "databaseId": "passwordManagerDb",
             "name": "coupons",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "status",
@@ -3479,7 +3479,7 @@
             "databaseId": "passwordManagerDb",
             "name": "User Resource Pins",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "userId",
@@ -4094,7 +4094,7 @@
             "databaseId": "passwordManagerDb",
             "name": "Contacts",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "userId",
@@ -4233,7 +4233,7 @@
             "databaseId": "passwordManagerDb",
             "name": "Follows",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "followerId",
@@ -4426,7 +4426,7 @@
             "databaseId": "passwordManagerDb",
             "name": "Interactions",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "messageId",
@@ -4501,7 +4501,7 @@
             "databaseId": "passwordManagerDb",
             "name": "Moments",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "userId",
@@ -4705,7 +4705,7 @@
             "databaseId": "passwordManagerDb",
             "name": "Calls",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "userId",
@@ -6645,7 +6645,7 @@
             "databaseId": "passwordManagerDb",
             "name": "system_pulse",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "metricKey",
@@ -7094,7 +7094,7 @@
             "databaseId": "passwordManagerDb",
             "name": "source_control",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "projectId",
@@ -7180,7 +7180,7 @@
             "databaseId": "passwordManagerDb",
             "name": "Call Signals",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "callId",
@@ -7245,7 +7245,7 @@
             "databaseId": "passwordManagerDb",
             "name": "Account Events",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "type",
@@ -8780,7 +8780,7 @@
             "databaseId": "passwordManagerDb",
             "name": "user_keys",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "userId",
@@ -8852,7 +8852,7 @@
             "databaseId": "passwordManagerDb",
             "name": "compute_balances",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "userId",
@@ -8904,7 +8904,7 @@
             "databaseId": "passwordManagerDb",
             "name": "compute_ledger",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "userId",
@@ -8949,7 +8949,7 @@
             "databaseId": "passwordManagerDb",
             "name": "action_threads",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "threadId",
@@ -9070,7 +9070,7 @@
             "databaseId": "passwordManagerDb",
             "name": "app_activity_logs",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "userId",
@@ -9160,7 +9160,7 @@
             "databaseId": "passwordManagerDb",
             "name": "anonymized_telemetry",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "niche",
@@ -9252,7 +9252,7 @@
             "databaseId": "passwordManagerDb",
             "name": "notifications",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "originatorId",
@@ -9313,7 +9313,7 @@
             "databaseId": "passwordManagerDb",
             "name": "workflows",
             "enabled": true,
-            "rowSecurity": false,
+            "rowSecurity": true,
             "columns": [
                 {
                     "key": "workflowId",
