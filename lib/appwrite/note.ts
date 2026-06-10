@@ -1129,6 +1129,7 @@ export async function createTag(data: Partial<Tags>, jwt?: string) {
     };
 
     const doc = await createRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, payload);
+    invalidateCache('list:tags');
     return hydrateTagMetadata(doc as unknown as Tags);
   }
 
@@ -1194,6 +1195,7 @@ export async function updateTag(tagId: string, data: Partial<Tags>, jwt?: string
     };
 
     const doc = await updateRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tagId, payload);
+    invalidateCache('list:tags');
     return hydrateTagMetadata(doc as unknown as Tags);
   }
 

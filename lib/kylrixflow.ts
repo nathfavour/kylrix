@@ -253,6 +253,10 @@ function clearCache(tableId: string) {
             queryCache.delete(key);
         }
     }
+    if (typeof window !== 'undefined') {
+        void invalidateCache(`list:${tableId}*`);
+        void invalidateCache(`get:${tableId}*`);
+    }
 }
 
 async function updateRow<T extends Models.Row>(
