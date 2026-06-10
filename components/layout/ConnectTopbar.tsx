@@ -155,6 +155,7 @@ export default function ConnectTopbar({
   const [searchQuery, setSearchQuery] = useState('');
   const [peopleResults, setPeopleResults] = useState<any[]>([]);
   const [searchingPeople, setSearchingPeople] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const headerRef = useRef<HTMLDivElement | null>(null);
 
@@ -269,6 +270,7 @@ export default function ConnectTopbar({
     setSearchOpen(false);
     setNotificationsOpen(false);
     setNotifHint(null);
+    setShortcutsOpen(false);
   }, []);
 
   const toggleNotifications = useCallback(() => {
@@ -460,6 +462,94 @@ export default function ConnectTopbar({
     window.addEventListener('keydown', handleGlobalEscape, true);
     return () => window.removeEventListener('keydown', handleGlobalEscape, true);
   }, [handleCloseAll]);
+
+  useEffect(() => {
+    const handleGlobalShortcuts = (event: KeyboardEvent) => {
+      if (!event.ctrlKey) return;
+      
+      const key = event.key.toLowerCase();
+      
+      // Load user-defined custom shortcuts if any
+      let customShortcuts: any[] = [];
+      try {
+        const stored = localStorage.getItem('user-shortcuts');
+        if (stored) customShortcuts = JSON.parse(stored);
+      } catch (e) {
+        console.error('Failed to parse user-shortcuts:', e);
+      }
+
+      const customMatch = customShortcuts.find(
+        (s: any) => s.key.toLowerCase() === key && (s.ctrlKey ?? true)
+      );
+
+      if (customMatch) {
+        event.preventDefault();
+        handleCloseAll();
+        if (customMatch.action === 'navigate' && customMatch.targetUrl) {
+          router.push(customMatch.targetUrl);
+        } else if (customMatch.action === 'custom') {
+          window.dispatchEvent(new CustomEvent('custom-shortcut-triggered', { detail: customMatch }));
+        } else {
+          triggerBuiltInAction(customMatch.action);
+        }
+        return;
+      }
+
+      // Default system shortcuts
+      const builtInActions: Record<string, string> = {
+        f: 'search',
+        s: 'apps',
+        m: 'profile',
+        a: 'agent',
+        k: 'shortcuts',
+        p: '/projects',
+        n: '/note',
+        t: '/tags',
+        x: '/settings',
+        v: '/vault',
+        g: '/flow/goals',
+        q: '/flow/forms',
+        e: '/flow/events',
+        h: '/connect/calls',
+      };
+
+      const action = builtInActions[key];
+      if (action) {
+        event.preventDefault();
+        handleCloseAll();
+        if (action.startsWith('/')) {
+          router.push(action);
+        } else {
+          triggerBuiltInAction(action);
+        }
+      }
+    };
+
+    const triggerBuiltInAction = (action: string) => {
+      switch (action) {
+        case 'search':
+          openSearch();
+          break;
+        case 'apps':
+          setAppMenuAnchorEl(document.body);
+          break;
+        case 'profile':
+          setProfileMenuAnchorEl(document.body);
+          break;
+        case 'agent':
+          openAgenticDrawer();
+          break;
+        case 'shortcuts':
+          setShortcutsOpen(true);
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalShortcuts, true);
+    return () => window.removeEventListener('keydown', handleGlobalShortcuts, true);
+  }, [handleCloseAll, openSearch, openAgenticDrawer, router]);
 
   const renderNotificationDrawer = () => {
     return (
@@ -1864,6 +1954,97 @@ export default function ConnectTopbar({
     );
   };
 
+  const renderShortcutsPanel = () => {
+    if (!shortcutsOpen) return null;
+
+    const shortcutsList = [
+      { key: 'Ctrl + F', desc: 'Search Ecosystem / Notes' },
+      { key: 'Ctrl + S', desc: 'Ecosystem Apps Directory' },
+      { key: 'Ctrl + M', desc: 'Profile System Panel' },
+      { key: 'Ctrl + A', desc: 'Agentic Assistant' },
+      { key: 'Ctrl + K', desc: 'Keyboard Shortcuts Console' },
+      { key: 'Ctrl + P', desc: 'Navigate to Projects' },
+      { key: 'Ctrl + N', desc: 'Navigate to Notes' },
+      { key: 'Ctrl + T', desc: 'Navigate to Tags' },
+      { key: 'Ctrl + X', desc: 'Navigate to Settings' },
+      { key: 'Ctrl + V', desc: 'Navigate to Vault' },
+      { key: 'Ctrl + G', desc: 'Navigate to Goals' },
+      { key: 'Ctrl + Q', desc: 'Navigate to Forms' },
+      { key: 'Ctrl + E', desc: 'Navigate to Events' },
+      { key: 'Ctrl + H', desc: 'Navigate to Calls / Huddles' },
+    ];
+
+    return (
+      <Drawer
+        anchor="bottom"
+        open={shortcutsOpen}
+        onClose={handleCloseAll}
+        keepMounted={false}
+        disablePortal={false}
+        PaperProps={{
+          sx: {
+            bgcolor: '#161412',
+            backgroundImage: 'none',
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '28px 28px 0 0',
+            boxShadow: '0 -16px 42px rgba(0,0,0,0.5)',
+            maxHeight: '60vh',
+            width: isDesktop ? 600 : '100%',
+            mx: 'auto',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            p: 3,
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+          }
+        }}
+      >
+        {/* Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, pb: 1.5, borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+            <Box sx={{ width: 32, height: 32, borderRadius: '10px', display: 'grid', placeItems: 'center', bgcolor: 'rgba(99, 102, 241, 0.1)', color: '#6366F1' }}>
+              <Sparkles size={16} />
+            </Box>
+            <Typography sx={{ fontFamily: 'var(--font-clash)', fontWeight: 900, color: '#fff', fontSize: '1.1rem' }}>
+              System Shortcuts
+            </Typography>
+          </Box>
+          <IconButton onClick={handleCloseAll} sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: 'white' }, width: 32, height: 32 }}>
+            <CloseIcon size={16} />
+          </IconButton>
+        </Box>
+
+        {/* Shortcuts list */}
+        <Box sx={{ overflowY: 'auto', flex: 1, pr: 0.5 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+            {shortcutsList.map((item) => (
+              <Box 
+                key={item.key} 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  p: 1.5, 
+                  borderRadius: '14px', 
+                  bgcolor: 'rgba(255,255,255,0.01)', 
+                  border: '1px solid rgba(255,255,255,0.03)' 
+                }}
+              >
+                <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontWeight: 600, fontFamily: 'var(--font-satoshi)' }}>
+                  {item.desc}
+                </Typography>
+                <Typography sx={{ color: '#6366F1', fontSize: '0.74rem', fontWeight: 700, fontFamily: 'var(--font-mono)', bgcolor: 'rgba(99, 102, 241, 0.08)', px: 1, py: 0.5, borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.18)' }}>
+                  {item.key}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      </Drawer>
+    );
+  };
+
   return (
     <>
       <AppBar
@@ -2045,6 +2226,7 @@ export default function ConnectTopbar({
         {renderNotificationDrawer()}
         {renderAppPanel()}
         {renderProfilePanel()}
+        {renderShortcutsPanel()}
       </AppBar>
     </>
   );
