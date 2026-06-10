@@ -279,7 +279,7 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
             />
 
             {/* Custom Drawer */}
-            <div className="fixed bottom-0 left-0 right-0 max-h-[90vh] md:max-h-none md:top-0 md:right-0 md:left-auto md:w-[450px] bg-[#161412] border-t md:border-t-0 md:border-l border-white/8 rounded-t-[28px] md:rounded-t-none z-[1200] text-white flex flex-col animate-slide-up md:animate-slide-in">
+            <div className="fixed bottom-0 left-0 right-0 max-h-[60vh] md:max-h-none md:top-0 md:right-0 md:left-auto md:w-[450px] bg-[#161412] border-t md:border-t-0 md:border-l border-white/8 rounded-t-[28px] md:rounded-t-none z-[1200] text-white flex flex-col animate-slide-up md:animate-slide-in">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-white/8">
                     <div>
@@ -298,51 +298,55 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     {/* Profile Picture Uploader section */}
                     <div className="flex flex-col items-center gap-4 pb-2">
-                        <div className="relative w-24 h-24 rounded-3xl overflow-hidden border-2 border-white/10 bg-white/5 flex items-center justify-center">
-                            {profilePicUrl ? (
-                                <img src={profilePicUrl} alt="Preview" className="w-full h-full object-cover" />
-                            ) : (
-                                <span className="text-white/30 text-2xl font-bold">
-                                    {(displayName || username || 'U').slice(0, 1).toUpperCase()}
-                                </span>
-                            )}
-                            <label className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-all gap-1">
-                                <Camera size={18} className="text-white" />
-                                <span className="text-[10px] font-bold text-white uppercase tracking-wider">Change</span>
-                                <input hidden accept="image/*" type="file" onChange={handleFileChange} />
+                        <div className="relative group">
+                            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/10 bg-[#0F0E0D]">
+                                {profilePicUrl ? (
+                                    <img 
+                                        src={profilePicUrl} 
+                                        alt="Avatar Preview" 
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-white/20 text-3xl font-black">
+                                        {(displayName || username || 'U').slice(0, 1).toUpperCase()}
+                                    </div>
+                                )}
+                            </div>
+                            <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#6366F1] hover:bg-[#5254E8] text-white flex items-center justify-center cursor-pointer shadow-lg transition-all">
+                                <Camera size={14} />
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    onChange={handleFileChange} 
+                                    className="hidden" 
+                                />
                             </label>
                         </div>
-                        <div className="flex gap-2">
-                            <label className="py-1.5 px-3 rounded-lg border border-white/8 hover:bg-white/5 text-[11px] font-bold cursor-pointer transition-all">
-                                Upload Photo
-                                <input hidden accept="image/*" type="file" onChange={handleFileChange} />
-                            </label>
-                            {profilePicUrl && (
-                                <button
-                                    onClick={handleRemovePic}
-                                    className="py-1.5 px-3 rounded-lg border border-red-500/20 hover:bg-red-500/10 text-red-400 text-[11px] font-bold flex items-center gap-1 transition-all"
-                                >
-                                    <Trash2 size={12} />
-                                    <span>Remove</span>
-                                </button>
-                            )}
-                        </div>
+                        {profilePicUrl && (
+                            <button
+                                onClick={handleRemovePic}
+                                className="flex items-center gap-1.5 text-xs font-bold text-[#EF4444] hover:text-[#FF6B6B] transition-colors"
+                            >
+                                <Trash2 size={12} />
+                                <span>Remove Photo</span>
+                            </button>
+                        )}
                     </div>
 
                     {/* Username */}
                     <div className="space-y-2">
                         <label className="text-xs font-black tracking-wider text-white/40 uppercase">Ecosystem Handle</label>
                         <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00F0FF] font-black">@</span>
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6366F1] font-black">@</span>
                             <input
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                                className="w-full bg-white/4 border border-white/8 focus:border-[#00F0FF] rounded-xl pl-8 pr-12 py-3 text-sm font-semibold focus:outline-none transition-all"
+                                className="w-full bg-white/4 border border-white/8 focus:border-[#6366F1] rounded-xl pl-8 pr-12 py-3 text-sm font-semibold focus:outline-none transition-all"
                                 placeholder="handle"
                             />
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                                {isChecking && <div className="w-4 h-4 border-2 border-[#00F0FF] border-t-transparent rounded-full animate-spin" />}
+                                {isChecking && <div className="w-4 h-4 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />}
                                 {!isChecking && isAvailable === true && username !== profile?.username && <CheckCircle size={16} className="text-[#10B981]" />}
                                 {!isChecking && isAvailable === false && username !== profile?.username && <AlertCircle size={16} className="text-[#EF4444]" />}
                             </div>
@@ -361,7 +365,7 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                             type="text"
                             value={displayName}
                             onChange={(e) => setDisplayName(e.target.value)}
-                            className="w-full bg-white/4 border border-white/8 focus:border-[#00F0FF] rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none transition-all"
+                            className="w-full bg-white/4 border border-white/8 focus:border-[#6366F1] rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none transition-all"
                             placeholder="Name"
                         />
                     </div>
@@ -373,7 +377,7 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                             value={bio}
                             onChange={(e) => setBio(e.target.value)}
                             rows={4}
-                            className="w-full bg-white/4 border border-white/8 focus:border-[#00F0FF] rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none transition-all resize-none"
+                            className="w-full bg-white/4 border border-white/8 focus:border-[#6366F1] rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none transition-all resize-none"
                             placeholder="Tell the world about yourself..."
                         />
                     </div>
@@ -395,7 +399,7 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                                     type="checkbox"
                                     checked={isPublic}
                                     onChange={(e) => setIsPublic(e.target.checked)}
-                                    className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#00F0FF] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform"
+                                    className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#6366F1] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform"
                                 />
                             </div>
 
@@ -410,7 +414,7 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                                     checked={isGuest}
                                     disabled={!isPublic}
                                     onChange={(e) => setIsGuest(e.target.checked)}
-                                    className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#00F0FF] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
+                                    className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#6366F1] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
                                 />
                             </div>
 
@@ -424,7 +428,7 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                                     type="checkbox"
                                     checked={isAvatar}
                                     onChange={(e) => setIsAvatar(e.target.checked)}
-                                    className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#00F0FF] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform"
+                                    className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#6366F1] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform"
                                 />
                             </div>
 
@@ -438,7 +442,7 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                                     type="checkbox"
                                     checked={isContact}
                                     onChange={(e) => setIsContact(e.target.checked)}
-                                    className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#00F0FF] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform"
+                                    className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#6366F1] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform"
                                 />
                             </div>
                         </div>
@@ -463,9 +467,9 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                     <button
                         onClick={handleSave}
                         disabled={loading || (isAvailable === false && username !== profile?.username)}
-                        className="flex-1 py-3 px-4 rounded-xl bg-[#00F0FF] hover:bg-[#33f3ff] text-black text-sm font-black transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="flex-1 py-3 px-4 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-white text-sm font-black transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                        {loading ? <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" /> : 'Save Changes'}
+                        {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Save Changes'}
                     </button>
                 </div>
             </div>

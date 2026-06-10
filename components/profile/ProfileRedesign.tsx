@@ -453,7 +453,7 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
         </button>
 
         {isOwnProfile && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00F0FF]/5 border border-[#00F0FF]/20 text-[#00F0FF]">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#6366F1]/5 border border-[#6366F1]/20 text-[#6366F1]">
             <ShieldCheck size={14} />
             <span className="text-[10px] font-black uppercase tracking-widest leading-none">Your Private View</span>
           </div>
@@ -486,7 +486,7 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
               <h1 className="text-white text-2xl font-black tracking-tight leading-none">
                 {profile?.displayName || profile?.username}
               </h1>
-              <p className="text-[#00F0FF] font-mono text-sm tracking-wide">
+              <p className="text-[#6366F1] font-mono text-sm tracking-wide">
                 @{profile?.username}
               </p>
             </div>
@@ -497,7 +497,7 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
             {isOwnProfile ? (
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="w-full md:w-auto py-2.5 px-6 rounded-xl bg-[#00F0FF] hover:bg-[#33f3ff] text-black font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg"
+                className="w-full md:w-auto py-2.5 px-6 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-white font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg"
               >
                 <Edit3 size={15} />
                 <span>Edit Profile</span>
@@ -509,8 +509,8 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
                   disabled={followLoading || !currentUser}
                   className={`flex-1 md:flex-none py-2.5 px-6 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 ${
                     isFollowing
-                      ? 'border border-[#00F0FF] text-[#00F0FF] hover:bg-[#00F0FF]/10'
-                      : 'bg-[#00F0FF] hover:bg-[#33f3ff] text-black'
+                      ? 'border border-[#6366F1] text-[#6366F1] hover:bg-[#6366F1]/10'
+                      : 'bg-[#6366F1] hover:bg-[#5254E8] text-white'
                   }`}
                 >
                   <UserPlus size={15} />
@@ -600,11 +600,11 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
           </div>
 
           {isOwnProfile && (
-            <div className="bg-[#151311] border border-[#00F0FF]/10 rounded-[24px] p-6 space-y-5 shadow-xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-8 -mr-8 -mt-8 bg-[#00F0FF]/5 rounded-full blur-2xl group-hover:bg-[#00F0FF]/10 transition-colors" />
+            <div className="bg-[#151311] border border-[#6366F1]/10 rounded-[24px] p-6 space-y-5 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 -mr-8 -mt-8 bg-[#6366F1]/5 rounded-full blur-2xl group-hover:bg-[#6366F1]/10 transition-colors" />
               
               <div className="flex items-center gap-3 relative z-10">
-                <div className="p-2 rounded-lg bg-[#00F0FF]/10 text-[#00F0FF]">
+                <div className="p-2 rounded-lg bg-[#6366F1]/10 text-[#6366F1]">
                   <Zap size={16} />
                 </div>
                 <h3 className="text-xs font-black tracking-wider text-white uppercase">Profile Management</h3>
@@ -657,7 +657,7 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
                   onClick={() => updateTab(key)}
                   className={`flex-1 py-2 text-center text-xs font-black transition-all rounded-lg ${
                     active 
-                      ? 'bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30' 
+                      ? 'bg-[#6366F1]/15 text-[#6366F1] border border-[#6366F1]/30' 
                       : 'text-white/45 hover:text-white/80 border border-transparent'
                   }`}
                 >
@@ -701,7 +701,7 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
             </div>
           ) : (activeTabItems || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center bg-white/2 border border-dashed border-white/8 rounded-[20px] p-6">
-              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-[#00F0FF] mb-4">
+              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-[#6366F1] mb-4">
                 {selectedTab === 'moments' ? <Sparkles size={22} /> : selectedTab === 'replies' ? <MessageCircle size={22} /> : <Repeat2 size={22} />}
               </div>
               <h4 className="text-white text-sm font-black">{activeTabMeta.emptyTitle}</h4>
@@ -722,7 +722,7 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
                     className="p-4 bg-white/2 hover:bg-white/4 border border-white/8 rounded-2xl transition-all cursor-pointer flex flex-col gap-2.5"
                   >
                     <div className="flex justify-between items-center text-[10px] font-bold text-white/30">
-                      <span className="uppercase tracking-wider text-[#00F0FF]">{type}</span>
+                      <span className="uppercase tracking-wider text-[#6366F1]">{type}</span>
                       <span>{publishedAt}</span>
                     </div>
                     <p className="text-white/80 text-sm leading-relaxed">
