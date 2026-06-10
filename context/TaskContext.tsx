@@ -591,7 +591,7 @@ async function syncTaskAccess(taskId: string, creatorId: string, assigneeIds: st
   const collaboratorRows = await taskCollaborators.list(taskId);
   const collaboratorIds = new Set(collaboratorRows.map((row) => row.userId));
   const normalizedAssigneeIds = Array.from(new Set(assigneeIds.filter((id): id is string => Boolean(id) && id !== 'guest')));
-  const newlyAddedAssignees = normalizedAssigneeIds.filter((id) => !previousAssigneeIds.includes(id));
+  const newlyAddedAssignees = normalizedAssigneeIds.filter((id) => id !== creatorId && !previousAssigneeIds.includes(id));
 
   for (const assigneeId of normalizedAssigneeIds) {
     if (!collaboratorIds.has(assigneeId)) {

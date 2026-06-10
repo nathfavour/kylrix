@@ -110,16 +110,42 @@ export function DataNexusProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const invalidate = useCallback(async (key: string) => {
-        memoryCache.current.delete(key);
-        activeRequests.current.delete(key);
-        backgroundRefreshRequests.current.delete(key);
-        
-        try {
-            const db = await getRxDB();
-            const doc = await db.cache.findOne(key).exec();
-            if (doc) await doc.remove();
-        } catch (e) {
-            console.error(`[Nexus] RxDB Invalidate failed for ${key}:`, e);
+        if (key.includes("*")) {
+            const prefix = key.split("*")[0];
+            for (const cacheKey of memoryCache.current.keys()) {
+                if (cacheKey.startsWith(prefix)) {
+                    memoryCache.current.delete(cacheKey);
+                }
+            }
+            for (const reqKey of activeRequests.current.keys()) {
+                if (reqKey.startsWith(prefix)) {
+                    activeRequests.current.delete(reqKey);
+                }
+            }
+            for (const bgKey of backgroundRefreshRequests.current.keys()) {
+                if (bgKey.startsWith(prefix)) {
+                    backgroundRefreshRequests.current.delete(bgKey);
+                }
+            }
+            try {
+                const db = await getRxDB();
+                const docs = await db.cache.find({ selector: { id: { $regex: `^${prefix}` } } }).exec();
+                await Promise.all(docs.map(d => d.remove()));
+            } catch (e) {
+                console.error(`[Nexus] RxDB Wildcard Invalidate failed for ${key}:`, e);
+            }
+        } else {
+            memoryCache.current.delete(key);
+            activeRequests.current.delete(key);
+            backgroundRefreshRequests.current.delete(key);
+            
+            try {
+                const db = await getRxDB();
+                const doc = await db.cache.findOne(key).exec();
+                if (doc) await doc.remove();
+            } catch (e) {
+                console.error(`[Nexus] RxDB Invalidate failed for ${key}:`, e);
+            }
         }
     }, []);
 
