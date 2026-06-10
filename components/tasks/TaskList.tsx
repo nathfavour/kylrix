@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, ArrowUpDown, Filter, List, LayoutGrid, Calendar, ArrowUp, ArrowDown, CheckCircle2, Trash2, Sparkles, ChevronDown, ChevronUp, Tag, X } from 'lucide-react';
+import { Plus, ArrowUpDown, Filter, List, LayoutGrid, Calendar, ArrowUp, ArrowDown, CheckCircle2, Trash2, Sparkles, ChevronDown, ChevronUp, Tag, X, RefreshCw } from 'lucide-react';
 import TaskItem from './TaskItem';
 import { useRouter } from 'next/navigation';
 import { useTask } from '@/context/TaskContext';
@@ -26,6 +26,8 @@ export default function TaskList() {
     selectedProjectId,
     getTagFilterOptions,
     labels,
+    isLoading,
+    refreshTasks,
   } = useTask();
   const { setConfiguration, resetConfiguration } = useFAB();
   const { open } = useUnifiedDrawer();
@@ -306,6 +308,17 @@ export default function TaskList() {
                 )}
               </div>
             </div>
+
+            {/* Refresh Button */}
+            <button
+              type="button"
+              onClick={refreshTasks}
+              disabled={isLoading}
+              className="w-10 h-10 rounded-xl bg-white/3 border border-white/8 hover:border-white/15 flex items-center justify-center transition-all duration-300 disabled:opacity-40"
+              title="Refresh Goals"
+            >
+              <RefreshCw size={16} className={`transition-all ${isLoading ? 'animate-spin text-[#A855F7]' : 'text-white/60'}`} />
+            </button>
 
             {/* Add Task Button (Desktop) */}
             <button
