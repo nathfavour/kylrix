@@ -13,7 +13,10 @@ import {
   RefreshCw,
   Calendar,
   Lock,
-  Globe
+  Globe,
+  ArrowLeft,
+  ShieldCheck,
+  Zap
 } from 'lucide-react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
@@ -431,6 +434,25 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 md:py-8 space-y-6">
+      {/* Top Header Actions */}
+      <div className="flex items-center justify-between gap-4">
+        <button 
+          onClick={() => router.back()}
+          className="p-2.5 rounded-xl bg-white/2 hover:bg-white/5 text-white/50 hover:text-white transition-all border border-white/5 group flex items-center gap-2"
+          title="Go Back"
+        >
+          <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-0.5" />
+          <span className="text-xs font-black uppercase tracking-wider pr-1">Back</span>
+        </button>
+
+        {isOwnProfile && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00F0FF]/5 border border-[#00F0FF]/20 text-[#00F0FF]">
+            <ShieldCheck size={14} />
+            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Your Private View</span>
+          </div>
+        )}
+      </div>
+
       {/* Premium Profile Banner Header */}
       <div className="relative h-36 md:h-44 w-full rounded-[24px] overflow-hidden border border-white/8 bg-gradient-to-r from-[#6366F1]/40 via-[#FBBF24]/20 to-[#6366F1]/30">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
@@ -549,24 +571,71 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
       {/* Profile Details Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Card: Stats Details */}
-        <div className="lg:col-span-4 bg-[#151311] border border-white/8 rounded-[24px] p-6 space-y-4">
-          <h3 className="text-xs font-black tracking-wider text-white/40 uppercase">Ecosystem Connections</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={handleOpenFollowers}
-              className="bg-white/2 hover:bg-white/4 border border-white/8 rounded-xl p-4 text-left transition-all flex flex-col items-center justify-center"
-            >
-              <span className="text-white text-xl font-black leading-none">{stats.followers}</span>
-              <span className="text-[10px] font-black text-white/35 uppercase tracking-wider mt-2">Followers</span>
-            </button>
-            <button
-              onClick={handleOpenFollowing}
-              className="bg-white/2 hover:bg-white/4 border border-white/8 rounded-xl p-4 text-left transition-all flex flex-col items-center justify-center"
-            >
-              <span className="text-white text-xl font-black leading-none">{stats.following}</span>
-              <span className="text-[10px] font-black text-white/35 uppercase tracking-wider mt-2">Following</span>
-            </button>
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-[#151311] border border-white/8 rounded-[24px] p-6 space-y-4 shadow-xl">
+            <h3 className="text-xs font-black tracking-wider text-white/40 uppercase">Ecosystem Connections</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={handleOpenFollowers}
+                className="bg-white/2 hover:bg-white/4 border border-white/8 rounded-xl p-4 text-left transition-all flex flex-col items-center justify-center"
+              >
+                <span className="text-white text-xl font-black leading-none">{stats.followers}</span>
+                <span className="text-[10px] font-black text-white/35 uppercase tracking-wider mt-2">Followers</span>
+              </button>
+              <button
+                onClick={handleOpenFollowing}
+                className="bg-white/2 hover:bg-white/4 border border-white/8 rounded-xl p-4 text-left transition-all flex flex-col items-center justify-center"
+              >
+                <span className="text-white text-xl font-black leading-none">{stats.following}</span>
+                <span className="text-[10px] font-black text-white/35 uppercase tracking-wider mt-2">Following</span>
+              </button>
+            </div>
           </div>
+
+          {isOwnProfile && (
+            <div className="bg-[#151311] border border-[#00F0FF]/10 rounded-[24px] p-6 space-y-5 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 -mr-8 -mt-8 bg-[#00F0FF]/5 rounded-full blur-2xl group-hover:bg-[#00F0FF]/10 transition-colors" />
+              
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="p-2 rounded-lg bg-[#00F0FF]/10 text-[#00F0FF]">
+                  <Zap size={16} />
+                </div>
+                <h3 className="text-xs font-black tracking-wider text-white uppercase">Profile Management</h3>
+              </div>
+
+              <div className="space-y-3 relative z-10">
+                <button 
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="w-full p-3 rounded-xl bg-white/2 hover:bg-white/5 border border-white/5 hover:border-white/10 text-left transition-all flex items-center justify-between group/item"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/60">
+                      <Edit3 size={14} />
+                    </div>
+                    <div>
+                      <span className="block text-xs font-black text-white leading-tight">Edit Identity</span>
+                      <span className="block text-[10px] text-white/40">Update bio & visuals</span>
+                    </div>
+                  </div>
+                </button>
+
+                <button 
+                  onClick={() => router.push('/settings')}
+                  className="w-full p-3 rounded-xl bg-white/2 hover:bg-white/5 border border-white/5 hover:border-white/10 text-left transition-all flex items-center justify-between group/item"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/60">
+                      <RefreshCw size={14} />
+                    </div>
+                    <div>
+                      <span className="block text-xs font-black text-white leading-tight">Privacy Guard</span>
+                      <span className="block text-[10px] text-white/40">Manage visibility</span>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Card: Tabs & Feeds */}

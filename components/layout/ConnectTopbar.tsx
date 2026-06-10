@@ -41,7 +41,7 @@ import {
 import Logo from '@/components/common/Logo';
 import { useAuth } from '@/lib/auth';
 import { getProfilePicturePreview } from '@/lib/appwrite';
-import { getUserProfilePicId } from '@/lib/utils';
+import { getUserProfilePicId, hasPaidKylrixPlan } from '@/lib/utils';
 import { getEcosystemUrl, APP_BASE_PATHS } from '@/lib/constants';
 import { TOPBAR_LAYOUT, getAppTone, type KylrixApp } from '@/lib/sdk/design';
 import { createEcosystemPanelItems, createTopbarPanelMotion, createTopbarSearchSurface, isTopbarScrollAtBottom, isTopbarScrollAtTop } from '@/lib/sdk/topbar';
@@ -54,7 +54,7 @@ import { useAgenticDrawer } from '@/context/AgenticDrawerContext';
 import { useWalletOverlay } from '@/context/WalletOverlayContext';
 import { useProUpgrade } from '@/context/ProUpgradeContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
-import { hasPaidKylrixPlan } from '@/lib/utils';
+import { useSubscription } from '@/context/subscription/SubscriptionContext';
 import { useLocalContext } from '@/lib/context-engine';
 
 const BRAND_INDIGO = '#6366F1';
@@ -126,7 +126,8 @@ export default function ConnectTopbar({
   const { openAgenticDrawer } = useAgenticDrawer();
   const { open: openUnified } = useUnifiedDrawer();
   const { openProUpgrade } = useProUpgrade();
-  const isPro = hasPaidKylrixPlan(user);
+  const { currentTier } = useSubscription();
+  const isPro = hasPaidKylrixPlan(user) || currentTier === 'PRO';
   const router = useRouter();
   const pathname = usePathname();
   
@@ -1201,7 +1202,7 @@ export default function ConnectTopbar({
                   <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
                     <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
                       <Typography component="span" sx={{ color: 'white', fontWeight: 900, fontSize: '1.05rem', lineHeight: 1.15, minWidth: 0, flex: 1 }} noWrap>
-                        {profileName}
+                        {profileUsername ? `@${String(profileUsername).replace(/^@+/, '')}` : profileName}
                       </Typography>
                       <IconButton
                         onClick={handleOpenFullProfile}
@@ -1213,16 +1214,35 @@ export default function ConnectTopbar({
                           height: 28,
                           color: 'rgba(255, 255, 255, 0.5)',
                           '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.06)' },
-                          '&.Mui-disabled': { color: 'rgba(255,255,255,0.25)' }
+                          '&.Mui-disabled': { color: 'rgba(255, 255, 255, 0.25)' }
                         }}
                       >
                         <UserIcon size={16} />
                       </IconButton>
                     </Box>
                     <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-                      <Typography component="span" sx={{ color: alpha('#fff', 0.58), fontWeight: 700, fontSize: '0.82rem', lineHeight: 1.35, minWidth: 0, flex: 1 }} noWrap>
-                        {profileUsername ? `@${String(profileUsername).replace(/^@+/, '')}` : 'profile'}
-                      </Typography>
+                      {!isPro && (
+                        <Button
+                          onClick={() => {
+                            handleCloseAll();
+                            openProUpgrade();
+                          }}
+                          sx={{
+                            borderRadius: '10px',
+                            bgcolor: '#6366F1',
+                            color: 'white',
+                            fontWeight: 900,
+                            fontSize: '0.68rem',
+                            py: 0.5,
+                            px: 1.5,
+                            textTransform: 'uppercase',
+                            flexShrink: 0,
+                            '&:hover': { bgcolor: '#5254E8' }
+                          }}
+                        >
+                          Upgrade
+                        </Button>
+                      )}
                       {profileUsername && (
                         <IconButton
                           onClick={handleCopyUsername}
@@ -1392,12 +1412,14 @@ export default function ConnectTopbar({
             {/* User Profile Info Card */}
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 1.75, p: 2, borderRadius: '26px', bgcolor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)' }}>
               <Box sx={{ position: 'relative' }}>
-                <Avatar
-                  src={isRenderableImageSrc(profileAvatarUrl) ? profileAvatarUrl || undefined : undefined}
-                  sx={{ width: 88, height: 88, bgcolor: tone.secondary, color: '#fff', fontWeight: 900, fontSize: '1.75rem', borderRadius: '26px', border: `1.5px solid ${alpha(appAccent, 0.15)}` }}
-                >
-                  {profileName.slice(0, 1).toUpperCase()}
-                </Avatar>
+                <IdentityAvatar
+                  src={isRenderableImageSrc(profileAvatarUrl) ? profileAvatarUrl : null}
+                  userId={user?.$id}
+                  size={88}
+                  pro={isPro}
+                  fallback={profileName.slice(0, 1).toUpperCase()}
+                  borderRadius="26px"
+                />
                 {/* Active Indicator dot */}
                 <Box
                   sx={{
@@ -1414,53 +1436,53 @@ export default function ConnectTopbar({
               </Box>
 
               <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                <Typography component="span" sx={{ color: 'white', fontWeight: 900, fontSize: '1.15rem', lineHeight: 1.15 }}>
-                  {profileName}
-                </Typography>
-                
-                {profileUsername && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
                   <Box
-                    onClick={handleCopyUsername}
+                    onClick={profileUsername ? handleCopyUsername : undefined}
                     sx={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      alignSelf: 'center',
                       gap: 0.5,
                       px: 1.25,
                       py: 0.35,
                       borderRadius: '999px',
                       bgcolor: 'rgba(255,255,255,0.04)',
                       border: '1px solid rgba(255,255,255,0.06)',
-                      cursor: 'pointer',
+                      cursor: profileUsername ? 'pointer' : 'default',
                       transition: 'all 0.2s',
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
-                      mb: 1.5
+                      '&:hover': profileUsername ? { bgcolor: 'rgba(255,255,255,0.08)' } : {},
                     }}
                   >
                     <Typography component="span" sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: '0.78rem', lineHeight: 1.35 }}>
-                      @{String(profileUsername).replace(/^@+/, '')}
+                      {profileUsername ? `@${String(profileUsername).replace(/^@+/, '')}` : profileName}
                     </Typography>
-                    <CopyIcon size={11} style={{ color: copyState === 'copied-username' ? '#10B981' : 'rgba(255, 255, 255, 0.3)' }} />
+                    {profileUsername && (
+                      <CopyIcon size={11} style={{ color: copyState === 'copied-username' ? '#10B981' : 'rgba(255, 255, 255, 0.3)' }} />
+                    )}
                   </Box>
-                )}
+                </Box>
 
-                <Button
-                  component="a"
-                  href="/accounts/subscription/pro/checkout"
-                  sx={{
-                    width: '100%',
-                    py: 1,
-                    borderRadius: '12px',
-                    bgcolor: '#6366F1',
-                    color: 'white',
-                    fontWeight: 900,
-                    fontSize: '0.75rem',
-                    textTransform: 'uppercase',
-                    '&:hover': { bgcolor: '#5254E8' }
-                  }}
-                >
-                  Upgrade Pro
-                </Button>
+                {!isPro && (
+                  <Button
+                    onClick={() => {
+                      setProfileMenuAnchorEl(null);
+                      openProUpgrade();
+                    }}
+                    sx={{
+                      width: '100%',
+                      py: 1,
+                      borderRadius: '12px',
+                      bgcolor: '#6366F1',
+                      color: 'white',
+                      fontWeight: 900,
+                      fontSize: '0.75rem',
+                      textTransform: 'uppercase',
+                      '&:hover': { bgcolor: '#5254E8' }
+                    }}
+                  >
+                    Upgrade Pro
+                  </Button>
+                )}
               </Box>
             </Box>
 

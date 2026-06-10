@@ -1,3 +1,5 @@
+const webpack = require('webpack');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Standalone output produces a self-contained server in .next/standalone
@@ -13,6 +15,24 @@ const nextConfig = {
       'lucide-react',
       'lodash',
       'date-fns'],
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: false,
+        fs: false,
+        path: false,
+        stream: false,
+      };
+      // Strip 'node:' prefix from imports to prevent UnhandledSchemeError
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+          resource.request = resource.request.replace(/^node:/, '');
+        })
+      );
+    }
+    return config;
   },
   async redirects() {
     return [

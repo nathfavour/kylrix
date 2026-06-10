@@ -126,6 +126,12 @@ export function IdentityAvatar({
   const resolvedIsAvatar = profileRecord ? profileRecord.isAvatar : isAvatar;
   const resolvedIsPublic = profileRecord ? profileRecord.isPublic : isPublic;
   const resolvedIsGuest = profileRecord ? profileRecord.isGuest : isGuest;
+  const resolvedPro = profileRecord
+    ? String(profileRecord.tier || '').toUpperCase() === 'PRO'
+    : pro;
+  const resolvedVerified = profileRecord
+    ? computeIdentityFlags(profileRecord).verified
+    : verified;
 
   // Conditions for fetching the profile picture: isAvatar is null or true,
   // AND either isPublic or isGuest is null or true.
@@ -221,7 +227,7 @@ export function IdentityAvatar({
               backgroundColor: 'rgba(99, 102, 241, 0.05)',
               padding: '2px',
             }
-          : pro
+          : resolvedPro
           ? {
               padding: '2px',
               backgroundImage: RING_GRADIENT,
@@ -280,7 +286,7 @@ export function IdentityAvatar({
               }}
           />
       )}
-      {verified && (
+      {resolvedVerified && (
         <Box
           sx={{
             position: 'absolute',
@@ -300,8 +306,6 @@ export function IdentityAvatar({
       )}
     </Box>
   );
-
-  if (!pro) return avatar;
 
   return avatar;
 }
