@@ -35,6 +35,17 @@ export function DynamicSidebar() {
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeSidebar();
+      }
+    };
+    window.addEventListener('keydown', handleEscape, true);
+    return () => window.removeEventListener('keydown', handleEscape, true);
+  }, [isOpen, closeSidebar]);
+
   if (!isOpen && !mounted) return null;
 
   const isNoteDetail =
