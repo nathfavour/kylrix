@@ -94,6 +94,36 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
   const targetUserId = profile?.userId || profile?.$id || null;
   const isOwnProfile = Boolean(currentUser && targetUserId && currentUser.$id === targetUserId);
 
+  const tabMeta = {
+    moments: {
+      title: 'Moments',
+      description: 'Original thoughts, quotes, and signals.',
+      emptyTitle: 'No moments yet',
+      emptyBody: isOwnProfile ? 'Your first post will show up here.' : 'Nothing shared yet.',
+      emptyIcon: <Sparkles size={20} />,
+    },
+    replies: {
+      title: 'Replies',
+      description: 'Public responses and discussions.',
+      emptyTitle: 'No replies yet',
+      emptyBody: 'Conversations and feedback will land here.',
+      emptyIcon: <MessageCircle size={20} />,
+    },
+    pulses: {
+      title: 'Pulses',
+      description: 'Pulse bursts and boosts shared by this profile.',
+      emptyTitle: 'No pulses yet',
+      emptyBody: 'Republished posts will appear here.',
+      emptyIcon: <Repeat2 size={20} />,
+    },
+  };
+
+  const categorizedByTab = useMemo(() => ({
+    moments: categorized,
+    replies: [],
+    pulses: [],
+  }), [categorized]);
+
   const identityFlags = computeIdentityFlags({
     createdAt: profile?.$createdAt || profile?.createdAt || null,
     lastUsernameEdit: profile?.last_username_edit || profile?.preferences?.last_username_edit || null,
@@ -386,35 +416,6 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
     );
   }
 
-  const tabMeta = {
-    moments: {
-      title: 'Moments',
-      description: 'Original thoughts, quotes, and signals.',
-      emptyTitle: 'No moments yet',
-      emptyBody: isOwnProfile ? 'Your first post will show up here.' : 'Nothing shared yet.',
-      emptyIcon: <Sparkles size={20} />,
-    },
-    replies: {
-      title: 'Replies',
-      description: 'Public responses and discussions.',
-      emptyTitle: 'No replies yet',
-      emptyBody: 'Conversations and feedback will land here.',
-      emptyIcon: <MessageCircle size={20} />,
-    },
-    pulses: {
-      title: 'Pulses',
-      description: 'Pulse bursts and boosts shared by this profile.',
-      emptyTitle: 'No pulses yet',
-      emptyBody: 'Republished posts will appear here.',
-      emptyIcon: <Repeat2 size={20} />,
-    },
-  };
-
-  const categorizedByTab = useMemo(() => ({
-    moments: moments,
-    replies: [], // TODO: Add replies state if needed
-    pulses: [], // TODO: Add pulses state if needed
-  }), [moments]);
 
   const activeTabMeta = tabMeta[selectedTab];
   const activeTabItems = categorizedByTab[selectedTab];

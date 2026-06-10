@@ -1433,7 +1433,8 @@ export default function ConnectTopbar({
                       border: '1px solid rgba(255,255,255,0.06)',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' }
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
+                      mb: 1.5
                     }}
                   >
                     <Typography component="span" sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: '0.78rem', lineHeight: 1.35 }}>
@@ -1442,6 +1443,24 @@ export default function ConnectTopbar({
                     <CopyIcon size={11} style={{ color: copyState === 'copied-username' ? '#10B981' : 'rgba(255, 255, 255, 0.3)' }} />
                   </Box>
                 )}
+
+                <Button
+                  component="a"
+                  href="/accounts/subscription/pro/checkout"
+                  sx={{
+                    width: '100%',
+                    py: 1,
+                    borderRadius: '12px',
+                    bgcolor: '#6366F1',
+                    color: 'white',
+                    fontWeight: 900,
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    '&:hover': { bgcolor: '#5254E8' }
+                  }}
+                >
+                  Upgrade Pro
+                </Button>
               </Box>
             </Box>
 
