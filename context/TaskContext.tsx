@@ -706,42 +706,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const refreshTasks = useCallback(async () => {
-    if (!state.userId || state.userId === 'guest') return;
-    dispatch({ type: 'SET_LOADING', payload: true });
-    try {
-      const data = await fetchBatch(state.userId, true);
-      dispatchSyncedData(data);
-      await refreshEcosystemTags();
-    } catch (error) {
-      console.error('[TaskContext] Manual refresh failed:', error);
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
-    }
-  }, [state.userId, fetchBatch, dispatchSyncedData, refreshEcosystemTags]);
-
-  const dispatchSyncedData = useCallback((data: { tasks: Task[]; projects: Project[] }) => {
-    dispatch({
-      type: 'SET_DATA',
-      payload: {
-        tasks: applyPendingPatches(data.tasks),
-        projects: data.projects,
-      },
-    });
-  }, [applyPendingPatches]);
-
-  const fetchBatch = useCallback(async (uid: string, force = false) => {
-    const FLOW_WARM_TTL = 1000 * 60 * 30;
-    // ... (rest of fetchBatch implementation)
-    // Actually, I need to make sure I don't break the implementation.
-    // I will read the full implementation of fetchBatch first.
-
-  const invalidateTasksNexus = useCallback((uid: string) => invalidate(`f_tasks_${uid}`), [invalidate]);
-  const invalidateCalendarsNexus = useCallback((uid: string) => invalidate(`f_calendars_${uid}`), [invalidate]);
-
-  const pathname = usePathname();
-  const lastPathnameRef = useRef<string | null>(null);
-
   const fetchBatch = useCallback(async (uid: string, force = false) => {
     const FLOW_WARM_TTL = 1000 * 60 * 30;
     const tasksKey = `f_tasks_${uid}`;
@@ -766,6 +730,23 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     };
 
   }, [fetchOptimized]);
+
+  const refreshTasks = useCallback(async () => {
+    if (!state.userId || state.userId === 'guest') return;
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const data = await fetchBatch(state.userId, true);
+      dispatchSyncedData(data);
+      await refreshEcosystemTags();
+    } catch (error) {
+      console.error('[TaskContext] Manual refresh failed:', error);
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [state.userId, fetchBatch, dispatchSyncedData, refreshEcosystemTags]);
+  const invalidateTasksNexus = useCallback((uid: string) => invalidate(`f_tasks_${uid}`), [invalidate]);
+  const invalidateCalendarsNexus = useCallback((uid: string) => invalidate(`f_calendars_${uid}`), [invalidate]);
+
 
   // Initial Data Fetch & Cold Hydration
   useEffect(() => {
