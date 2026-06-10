@@ -444,7 +444,11 @@ const VAULT_TTL = 1000 * 60 * 60; // 1 hour
 
 // --- Secure CRUD Operations ---
 export class VaultService {
-  // ... (existing implementation)
+  private static credentialsListCache = new Map<string, Credentials[]>();
+  private static totpSecretsCache = new Map<string, TotpSecrets[]>();
+  private static credentialsListInflight = new Map<string, Promise<Credentials[]>>();
+  private static totpSecretsInflight = new Map<string, Promise<TotpSecrets[]>>();
+  private static runtimeHooksInitialized = false;
 
   static async listCredentials(userId: string, limit: number = 25, offset: number = 0): Promise<Credentials[]> {
     const key = `list:creds:${userId}:${limit}:${offset}`;
