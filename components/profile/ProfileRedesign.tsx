@@ -150,6 +150,9 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
     [pathname, router, searchParams],
   );
 
+  const currentUserId = currentUser?.$id;
+  const myProfileId = myProfile?.$id;
+
   const loadRelatedData = useCallback(
     async (data: any) => {
       if (!data) return;
@@ -181,9 +184,6 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
     },
     [currentUserId],
   );
-
-  const currentUserId = currentUser?.$id;
-  const myProfileId = myProfile?.$id;
 
   const loadProfile = useCallback(async () => {
     const stagedProfile = normalizedUsername ? (preloadedProfile || cachedUsernameProfile) : null;
