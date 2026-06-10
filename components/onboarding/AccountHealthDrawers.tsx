@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 import {
     Box,
     Typography,
@@ -20,15 +19,16 @@ import {
     Chip,
     Paper,
 } from '@/lib/mui-tailwind/material';
-import { X, ShieldAlert, Shield, User } from 'lucide-react';
-import toast from 'react-hot-toast';
-
+import { X, ShieldAlert, Shield, User, Fingerprint, Bell, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
+import { useSetup } from '@/context/SetupContext';
 import { UsersService, buildUsernameHandleSuggestions, invalidateUsersProfileRowCache } from '@/lib/services/users';
-import { KeychainService } from '@/lib/appwrite/keychain';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { account } from '@/lib/appwrite/client';
 import { TOPBAR_DRAWER_BACKDROP_SLOT } from '@/lib/ui/topbar-drawer-slot';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+import { PasskeySetup } from '@/components/overlays/PasskeySetup';
 
 const SURFACE = '#161412';
 const SURFACE_HOVER = '#1C1A18';
@@ -39,41 +39,10 @@ const AMBER = '#F59E0B';
 const normalizeHandleInput = (raw: string) =>
     raw.toLowerCase().trim().replace(/^@/, '').replace(/[^a-z0-9_]/g, '');
 
-const USERNAME_DISMISS_PREFIX = 'kylrix_username_health_dismissed_';
-const MP_DISMISS_PREFIX = 'kylrix_masterpass_health_dismissed_';
-
-function profileBasicsIncomplete(profile: unknown | null) {
-    if (!profile || typeof profile !== 'object') return true;
-    const row = profile as { username?: string };
-    const handle = normalizeHandleInput(String(row.username || ''));
-    return handle.length < 3;
-}
-
-function routeSuppressesHealthUi(pathname: string | null) {
-    if (!pathname) return true;
-    if (pathname.startsWith('/connect')) return true;
-    if (pathname.includes('/settings')) return true;
-    if (pathname.startsWith('/vault/masterpass')) return true;
-    if (pathname.startsWith('/vault/reset')) return true;
-    return false;
-}
-
-/**
- * Universal username picker + MasterPass setup prompts (bottom drawers).
- * Username gate runs first; MasterPass prompt waits until handle ≥ 3 chars.
- * Profile is loaded here (ProfileProvider is not wired app-wide).
- */
 export function AccountHealthDrawers() {
-    const pathname = usePathname();
     const router = useRouter();
     const { user } = useAuth();
-
-    const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
-    const [profileLoading, setProfileLoading] = useState(false);
-
-    const [hasMasterpass, setHasMasterpass] = useState<boolean | null>(null);
-    const [usernameDismissed, setUsernameDismissed] = useState(false);
-    const [mpDismissed, setMpDismissed] = useState(false);
+    const { currentStep, dismissStep, profile, triggerCheck } = useSetup();
 
     const [newHandle, setNewHandle] = useState('');
     const [displayName, setDisplayName] = useState('');
@@ -81,125 +50,20 @@ export function AccountHealthDrawers() {
     const [available, setAvailable] = useState<boolean | null>(null);
     const [savingProfile, setSavingProfile] = useState(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
-    const prevUsernameDrawer = useRef(false);
+    const [showPasskeySetup, setShowPasskeySetup] = useState(false);
 
-    const suppress = routeSuppressesHealthUi(pathname ?? null);
-
-    const profileFetchGen = useRef(0);
-
-    const reloadProfile = useCallback(async () => {
-        if (!user?.$id) {
-            setProfile(null);
-            setProfileLoading(false);
-            return;
-        }
-        const gen = ++profileFetchGen.current;
-        setProfileLoading(true);
-        try {
-            const p = await UsersService.getProfileById(user.$id);
-            if (gen !== profileFetchGen.current) return;
-            setProfile(p);
-        } catch {
-            if (gen !== profileFetchGen.current) return;
-            setProfile(null);
-        } finally {
-            if (gen === profileFetchGen.current) setProfileLoading(false);
-        }
-    }, [user?.$id]);
-
-    /** Profile + keychain: mount + user change only (not every pathname — avoids request storms on slow tunnels). */
-    useEffect(() => {
-        void reloadProfile();
-    }, [reloadProfile]);
-
-    const needsBasics = useMemo(() => profileBasicsIncomplete(profile), [profile]);
-    const suggestionList = useMemo(
+    const suggestionList = React.useMemo(
         () => (user ? buildUsernameHandleSuggestions(user) : []),
         [user]
     );
 
-    const canonicalSavedHandle = useMemo(() => {
+    const canonicalSavedHandle = React.useMemo(() => {
         const u = profile && typeof profile.username === 'string' ? profile.username : '';
         return normalizeHandleInput(u);
     }, [profile]);
 
-    useEffect(() => {
-        if (!user?.$id) {
-            setUsernameDismissed(false);
-            setMpDismissed(false);
-            return;
-        }
-        setUsernameDismissed(sessionStorage.getItem(`${USERNAME_DISMISS_PREFIX}${user.$id}`) === '1');
-        setMpDismissed(sessionStorage.getItem(`${MP_DISMISS_PREFIX}${user.$id}`) === '1');
-    }, [user?.$id]);
-
-    const refreshMasterpass = useCallback(() => {
-        if (!user?.$id) {
-            setHasMasterpass(null);
-            return;
-        }
-        KeychainService.hasMasterpass(user.$id)
-            .then((ok) => setHasMasterpass(ok))
-            .catch(() => setHasMasterpass(false));
-    }, [user?.$id]);
-
-    useEffect(() => {
-        refreshMasterpass();
-    }, [refreshMasterpass]);
-
-    useEffect(() => {
-        const onMasterpassUpdated = () => {
-            refreshMasterpass();
-        };
-
-        window.addEventListener('kylrix:masterpass-updated', onMasterpassUpdated as EventListener);
-        return () => {
-            window.removeEventListener('kylrix:masterpass-updated', onMasterpassUpdated as EventListener);
-        };
-    }, [refreshMasterpass]);
-
-    useEffect(() => {
-        if (!user?.$id) return;
-        let debounce: number | undefined;
-        const bump = () => {
-            if (debounce !== undefined) window.clearTimeout(debounce);
-            debounce = window.setTimeout(() => {
-                debounce = undefined;
-                void reloadProfile();
-                refreshMasterpass();
-            }, 400);
-        };
-        const onFocus = () => bump();
-        const onVis = () => {
-            if (document.visibilityState === 'visible') bump();
-        };
-        window.addEventListener('focus', onFocus);
-        document.addEventListener('visibilitychange', onVis);
-        return () => {
-            window.removeEventListener('focus', onFocus);
-            document.removeEventListener('visibilitychange', onVis);
-            if (debounce !== undefined) window.clearTimeout(debounce);
-        };
-    }, [user?.$id, reloadProfile, refreshMasterpass]);
-
-    const usernameDrawerOpen =
-        !!user &&
-        !profileLoading &&
-        !suppress &&
-        needsBasics &&
-        !usernameDismissed;
-
-    const masterpassDrawerOpen =
-        !!user &&
-        !profileLoading &&
-        !suppress &&
-        !needsBasics &&
-        !usernameDismissed &&
-        hasMasterpass === false &&
-        !mpDismissed;
-
-    useEffect(() => {
-        if (usernameDrawerOpen && !prevUsernameDrawer.current && user) {
+    React.useEffect(() => {
+        if (currentStep === 'username' && user) {
             setNewHandle(canonicalSavedHandle || suggestionList[0] || '');
             const dn =
                 (profile && typeof profile.displayName === 'string' ? profile.displayName : '') ||
@@ -208,16 +72,15 @@ export function AccountHealthDrawers() {
             setDisplayName(String(dn).trim());
             setAvailable(null);
         }
-        prevUsernameDrawer.current = usernameDrawerOpen;
-    }, [usernameDrawerOpen, user, profile, canonicalSavedHandle, suggestionList]);
+    }, [currentStep, user, profile, canonicalSavedHandle, suggestionList]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         const normalized = normalizeHandleInput(newHandle);
         if (
             !normalized ||
             normalized.length < 3 ||
             normalized === canonicalSavedHandle ||
-            !usernameDrawerOpen
+            currentStep !== 'username'
         ) {
             setAvailable(null);
             setCheckingAvailability(false);
@@ -241,21 +104,7 @@ export function AccountHealthDrawers() {
             cancelled = true;
             window.clearTimeout(id);
         };
-    }, [newHandle, canonicalSavedHandle, usernameDrawerOpen]);
-
-    const dismissUsername = () => {
-        if (user?.$id) {
-            sessionStorage.setItem(`${USERNAME_DISMISS_PREFIX}${user.$id}`, '1');
-        }
-        setUsernameDismissed(true);
-    };
-
-    const dismissMasterpass = () => {
-        if (user?.$id) {
-            sessionStorage.setItem(`${MP_DISMISS_PREFIX}${user.$id}`, '1');
-        }
-        setMpDismissed(true);
-    };
+    }, [newHandle, canonicalSavedHandle, currentStep]);
 
     const openVaultSetup = () => {
         const callback =
@@ -277,7 +126,7 @@ export function AccountHealthDrawers() {
                     if (pub) publicKey = pub;
                 }
             } catch {
-                // optional — mirror DiscoverabilitySettings
+                // Best effort
             }
 
             if (profile?.$id) {
@@ -300,15 +149,12 @@ export function AccountHealthDrawers() {
                 const currentPrefs = user.prefs || {};
                 await account.updatePrefs({ ...currentPrefs, username: normalizedHandle });
             } catch {
-                // prefs sync best-effort
+                // Best effort
             }
 
             invalidateUsersProfileRowCache(user.$id);
-            sessionStorage.removeItem(`${USERNAME_DISMISS_PREFIX}${user.$id}`);
-            setUsernameDismissed(false);
             setConfirmOpen(false);
-            await reloadProfile();
-            refreshMasterpass();
+            await triggerCheck();
             toast.success('Universal identity saved');
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : 'Could not save profile');
@@ -342,6 +188,11 @@ export function AccountHealthDrawers() {
         await commitUsername(normalized, displayTrim);
     };
 
+    const handleSetupPasskeySuccess = async () => {
+        setShowPasskeySetup(false);
+        await triggerCheck();
+    };
+
     const drawerPaperSx = {
         borderTopLeftRadius: '26px',
         borderTopRightRadius: '26px',
@@ -361,10 +212,75 @@ export function AccountHealthDrawers() {
 
     return (
         <>
+            {/* MasterPass Setup Drawer */}
             <Drawer
                 anchor="bottom"
-                open={usernameDrawerOpen}
-                onClose={dismissUsername}
+                open={currentStep === 'masterpass'}
+                onClose={() => dismissStep('masterpass', 3)}
+                slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
+                ModalProps={{ keepMounted: false, disableScrollLock: false }}
+                PaperProps={{ sx: { ...drawerPaperSx, maxHeight: 'min(380px, 88dvh)' } }}
+            >
+                <Box sx={{ maxWidth: 720, width: '100%', mx: 'auto', p: { xs: 2, sm: 2.75 }, pt: 2.25 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                px: 1.6,
+                                py: 1.25,
+                                borderRadius: '16px',
+                                bgcolor: SURFACE_HOVER,
+                                border: `1px solid ${EDGE}`,
+                                flex: 1,
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', gap: 1.35, alignItems: 'flex-start' }}>
+                                <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: SURFACE, border: `1px solid ${EDGE}`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                                    <Shield color={AMBER} size={21} strokeWidth={2.4} />
+                                </Box>
+                                <Box>
+                                    <Typography sx={{ fontWeight: 900, color: '#fff', fontSize: '1.06rem' }}>
+                                        Initialize MasterPass
+                                    </Typography>
+                                    <Typography sx={{ opacity: 0.66, mt: 0.45, fontSize: '0.88rem', lineHeight: 1.46 }}>
+                                        No Vault master-password marker found. Setup MasterPass to secure your account.
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </Paper>
+                        <IconButton onClick={() => dismissStep('masterpass', 3)} aria-label="Close" sx={{ color: 'text.secondary' }}>
+                            <X size={20} />
+                        </IconButton>
+                    </Box>
+
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{ mt: 2.5 }} justifyContent="flex-end">
+                        <Button variant="text" sx={{ color: 'text.secondary' }} onClick={() => dismissStep('masterpass', 3)}>
+                            Remind me in 3 days
+                        </Button>
+                        <Button
+                            variant="contained"
+                            onClick={openVaultSetup}
+                            sx={{
+                                borderRadius: '14px',
+                                py: 1.15,
+                                fontWeight: 900,
+                                textTransform: 'none',
+                                bgcolor: AMBER,
+                                color: '#000',
+                                '&:hover': { bgcolor: '#fbbf24' },
+                            }}
+                        >
+                            Open Vault setup
+                        </Button>
+                    </Stack>
+                </Box>
+            </Drawer>
+
+            {/* Username/Handle Setup Drawer */}
+            <Drawer
+                anchor="bottom"
+                open={currentStep === 'username'}
+                onClose={() => dismissStep('username', 7)}
                 slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
                 ModalProps={{ keepMounted: false, disableScrollLock: false }}
                 PaperProps={{ sx: drawerPaperSx }}
@@ -386,10 +302,10 @@ export function AccountHealthDrawers() {
                                 Set your ecosystem handle
                             </Typography>
                             <Typography sx={{ opacity: 0.72, mt: 0.45, fontSize: '0.88rem', lineHeight: 1.45 }}>
-                                Same rules as Settings · live availability check · unique across Kylrix.
+                                Create a unique lowercase handle to be discovered on Kylrix.
                             </Typography>
                         </Paper>
-                        <IconButton onClick={dismissUsername} aria-label="Close" sx={{ color: 'text.secondary', mt: 0.35 }}>
+                        <IconButton onClick={() => dismissStep('username', 7)} aria-label="Close" sx={{ color: 'text.secondary' }}>
                             <X size={20} />
                         </IconButton>
                     </Box>
@@ -398,15 +314,7 @@ export function AccountHealthDrawers() {
 
                     {suggestionList.length > 0 ? (
                         <Stack spacing={1} sx={{ mb: 2 }}>
-                            <Typography
-                                sx={{
-                                    fontWeight: 800,
-                                    fontSize: '0.65rem',
-                                    letterSpacing: '0.08em',
-                                    textTransform: 'uppercase',
-                                    color: 'rgba(255,255,255,0.45)',
-                                }}
-                            >
+                            <Typography sx={{ fontWeight: 800, fontSize: '0.65rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)' }}>
                                 Suggestions
                             </Typography>
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -475,13 +383,12 @@ export function AccountHealthDrawers() {
                             value={displayName}
                             onChange={(e) => setDisplayName(e.target.value)}
                             autoComplete="name"
-                            helperText="Defaults from your account name or handle if empty"
                         />
                     </Stack>
 
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{ mt: 2.75 }} justifyContent="flex-end">
-                        <Button variant="text" sx={{ color: 'text.secondary' }} onClick={dismissUsername}>
-                            Not now
+                        <Button variant="text" sx={{ color: 'text.secondary' }} onClick={() => dismissStep('username', 7)}>
+                            Remind me in a week
                         </Button>
                         <Button
                             variant="contained"
@@ -503,85 +410,70 @@ export function AccountHealthDrawers() {
                 </Box>
             </Drawer>
 
+            {/* Passkey Setup Reminder Drawer */}
             <Drawer
                 anchor="bottom"
-                open={masterpassDrawerOpen}
-                onClose={dismissMasterpass}
+                open={currentStep === 'passkey'}
+                onClose={() => dismissStep('passkey', 7)}
                 slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
                 ModalProps={{ keepMounted: false, disableScrollLock: false }}
-                PaperProps={{
-                    sx: {
-                        ...drawerPaperSx,
-                        maxHeight: 'min(380px, 88dvh)',
-                    },
-                }}
+                PaperProps={{ sx: { ...drawerPaperSx, maxHeight: 'min(400px, 90dvh)' } }}
             >
-                <Box sx={{ maxWidth: 720, width: '100%', mx: 'auto', p: { xs: 2, sm: 2.75 }, pt: 2.25 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                px: 1.6,
-                                py: 1.25,
-                                borderRadius: '16px',
-                                bgcolor: SURFACE_HOVER,
-                                border: `1px solid ${EDGE}`,
-                                flex: 1,
-                            }}
-                        >
-                            <Box sx={{ display: 'flex', gap: 1.35, alignItems: 'flex-start' }}>
-                                <Box
-                                    sx={{
-                                        width: 40,
-                                        height: 40,
-                                        borderRadius: '12px',
-                                        bgcolor: SURFACE,
-                                        border: `1px solid ${EDGE}`,
-                                        display: 'grid',
-                                        placeItems: 'center',
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    <Shield color={AMBER} size={21} strokeWidth={2.4} />
-                                </Box>
-                                <Box>
-                                    <Typography sx={{ fontWeight: 900, color: '#fff', fontSize: '1.06rem' }}>
-                                        Initialize MasterPass
-                                    </Typography>
-                                    <Typography sx={{ opacity: 0.66, mt: 0.45, fontSize: '0.88rem', lineHeight: 1.46 }}>
-                                        No Vault master-password marker found. Open{' '}
-                                        <Box component="span" sx={{ color: AMBER, fontWeight: 800 }}>
-                                            /vault/masterpass
-                                        </Box>{' '}
-                                        to finish setup (reset lives separately at /vault/reset).
-                                    </Typography>
-                                </Box>
+                <Box sx={{ p: 4, maxWidth: '600px', mx: 'auto', width: '100%' }}>
+                    <Stack spacing={3}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                            <Box sx={{ p: 1.5, bgcolor: '#1C1A18', border: '1px solid #34322F', borderRadius: '14px', display: 'grid', placeItems: 'center' }}>
+                                <Fingerprint color="#6366F1" size={24} />
                             </Box>
-                        </Paper>
-                        <IconButton onClick={dismissMasterpass} aria-label="Close" sx={{ color: 'text.secondary' }}>
-                            <X size={20} />
-                        </IconButton>
-                    </Box>
+                            <IconButton onClick={() => dismissStep('passkey', 7)} sx={{ color: '#9B9691' }}>
+                                <X size={20} />
+                            </IconButton>
+                        </Stack>
 
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{ mt: 2.5 }} justifyContent="flex-end">
-                        <Button variant="text" sx={{ color: 'text.secondary' }} onClick={dismissMasterpass}>
-                            Remind me later
-                        </Button>
-                        <Button
-                            variant="contained"
-                            onClick={openVaultSetup}
-                            sx={{
-                                borderRadius: '14px',
-                                py: 1.15,
-                                fontWeight: 900,
-                                textTransform: 'none',
-                                bgcolor: AMBER,
-                                color: '#000',
-                                '&:hover': { bgcolor: '#fbbf24' },
-                            }}
-                        >
-                            Open Vault setup
-                        </Button>
+                        <Box>
+                            <Typography variant="h5" sx={{ color: '#fff', fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', mb: 1 }}>
+                                Upgrade to Biometric Access
+                            </Typography>
+                            <Typography sx={{ color: '#9B9691', fontSize: '0.95rem', fontFamily: 'var(--font-satoshi)', lineHeight: 1.6 }}>
+                                Enable Face ID, Touch ID, or Windows Hello for a faster, more secure way to authenticate.
+                            </Typography>
+                        </Box>
+
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ pt: 1 }}>
+                            <Button
+                                fullWidth
+                                variant="contained"
+                                onClick={() => setShowPasskeySetup(true)}
+                                sx={{
+                                    bgcolor: '#6366F1',
+                                    color: '#fff',
+                                    fontWeight: 900,
+                                    borderRadius: '16px',
+                                    py: 1.75,
+                                    textTransform: 'none',
+                                    '&:hover': { bgcolor: '#575CF0' }
+                                }}
+                                startIcon={<ShieldCheck size={18} />}
+                            >
+                                Setup Passkey
+                            </Button>
+                            <Button
+                                fullWidth
+                                variant="text"
+                                onClick={() => dismissStep('passkey', 7)}
+                                sx={{
+                                    color: '#9B9691',
+                                    fontWeight: 700,
+                                    borderRadius: '16px',
+                                    py: 1.75,
+                                    textTransform: 'none',
+                                    '&:hover': { bgcolor: '#1C1A18', color: '#fff' }
+                                }}
+                                startIcon={<Bell size={18} />}
+                            >
+                                Remind me in a week
+                            </Button>
+                        </Stack>
                     </Stack>
                 </Box>
             </Drawer>
@@ -651,6 +543,15 @@ export function AccountHealthDrawers() {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {showPasskeySetup && user && (
+                <PasskeySetup
+                    open={showPasskeySetup}
+                    userId={user.$id}
+                    onClose={() => setShowPasskeySetup(false)}
+                    onSuccess={handleSetupPasskeySuccess}
+                />
+            )}
         </>
     );
 }

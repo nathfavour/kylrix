@@ -38,6 +38,7 @@ const DynamicSidebar = dynamic(() => import('./ui/DynamicSidebarPanel').then(m =
 const RightSidebar = dynamic(() => import('./layout/RightSidebar'), { ssr: false });
 const AgenticDrawer = dynamic(() => import('./overlays/AgenticDrawer').then(m => m.AgenticDrawer), { ssr: false });
 const UnifiedLeftSidebar = dynamic(() => import('./UnifiedLeftSidebar').then(m => m.UnifiedLeftSidebar), { ssr: false });
+const AccountHealthDrawers = dynamic(() => import('./onboarding/AccountHealthDrawers').then(m => m.AccountHealthDrawers), { ssr: false });
 
 export default function GlobalShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -236,9 +237,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
       {isDynamicSidebarOpen && !isAppRoute && <DynamicSidebar />}
       {secondarySidebar.isOpen && <RightSidebar />}
       {isAgenticDrawerOpen && <AgenticDrawer />}
-    <Suspense fallback={null}>
-      <PasskeyReminderDrawer />
-    </Suspense>
+      <AccountHealthDrawers />
     </Box>
     );
     };

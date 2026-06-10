@@ -24,6 +24,7 @@ import { SudoProvider } from '@/context/SudoContext';
 import { DrawerStateProvider } from '@/components/ui/DrawerStateContext';
 import { CallLauncherProvider } from '@/context/CallLauncherContext';
 import { LocalContextProvider } from '@/lib/context-engine';
+import { SetupProvider } from '@/context/SetupContext';
 
 const ClientToaster = dynamic(() => import('@/components/ClientToaster'), { ssr: false });
 
@@ -70,6 +71,7 @@ const rootProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   PresenceProvider,
   TokenOpsProvider,
   AIProvider,
+  SetupProvider,
 ];
 export function ClientProviders({ children }: { children: ReactNode }) {
   return (
