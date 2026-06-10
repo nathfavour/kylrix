@@ -94,36 +94,6 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
   const targetUserId = profile?.userId || profile?.$id || null;
   const isOwnProfile = Boolean(currentUser && targetUserId && currentUser.$id === targetUserId);
 
-  const tabMeta = {
-    moments: {
-      title: 'Moments',
-      description: 'Original thoughts, quotes, and signals.',
-      emptyTitle: 'No moments yet',
-      emptyBody: isOwnProfile ? 'Your first post will show up here.' : 'Nothing shared yet.',
-      emptyIcon: <Sparkles size={20} />,
-    },
-    replies: {
-      title: 'Replies',
-      description: 'Public responses and discussions.',
-      emptyTitle: 'No replies yet',
-      emptyBody: 'Conversations and feedback will land here.',
-      emptyIcon: <MessageCircle size={20} />,
-    },
-    pulses: {
-      title: 'Pulses',
-      description: 'Pulse bursts and boosts shared by this profile.',
-      emptyTitle: 'No pulses yet',
-      emptyBody: 'Republished posts will appear here.',
-      emptyIcon: <Repeat2 size={20} />,
-    },
-  };
-
-  const categorizedByTab = useMemo(() => ({
-    moments: categorized,
-    replies: [],
-    pulses: [],
-  }), [categorized]);
-
   const identityFlags = computeIdentityFlags({
     createdAt: profile?.$createdAt || profile?.createdAt || null,
     lastUsernameEdit: profile?.last_username_edit || profile?.preferences?.last_username_edit || null,
@@ -345,7 +315,7 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
         toast.success(`Following @${actor.username}`);
       } else {
         await SocialService.unfollowUser(currentUser.$id, actor.userId);
-        toast.success(`Unfollowed @${actor.username}`);
+        toast.success(`Unfollowed @actor.username`);
       }
       if (targetUserId) {
         const [statsUpdate, listUpdate] = await Promise.all([
@@ -416,134 +386,169 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
     );
   }
 
+  const tabMeta = {
+    moments: {
+      title: 'Moments',
+      description: 'Original thoughts, quotes, and signals.',
+      emptyTitle: 'No moments yet',
+      emptyBody: isOwnProfile ? 'Your first post will show up here.' : 'Nothing shared yet.',
+      emptyIcon: <Sparkles size={20} />,
+    },
+    replies: {
+      title: 'Replies',
+      description: 'Public responses and discussions.',
+      emptyTitle: 'No replies yet',
+      emptyBody: 'Conversations and feedback will land here.',
+      emptyIcon: <MessageCircle size={20} />,
+    },
+    pulses: {
+      title: 'Pulses',
+      description: 'Pulse bursts and boosts shared by this profile.',
+      emptyTitle: 'No pulses yet',
+      emptyBody: 'Republished posts will appear here.',
+      emptyIcon: <Repeat2 size={20} />,
+    },
+  };
 
   const activeTabMeta = tabMeta[selectedTab];
-  const activeTabItems = categorizedByTab[selectedTab];
+  const activeTabItems = categorized[selectedTab];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 md:py-8 space-y-6">
       {/* Premium Profile Banner Header */}
-      <div className="relative h-44 md:h-56 w-full rounded-[24px] overflow-hidden border border-white/8 bg-gradient-to-r from-[#6366F1]/40 via-[#FBBF24]/20 to-[#6366F1]/30">
+      <div className="relative h-36 md:h-44 w-full rounded-[24px] overflow-hidden border border-white/8 bg-gradient-to-r from-[#6366F1]/40 via-[#FBBF24]/20 to-[#6366F1]/30">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
-        
-        {/* Actions inside Banner */}
-        <div className="absolute top-6 right-6 flex gap-3 z-10">
-          {isOwnProfile ? (
-            <button
-              onClick={() => setIsEditModalOpen(true)}
-              className="py-2.5 px-5 rounded-xl bg-[#00F0FF] hover:bg-[#33f3ff] text-black font-black text-xs md:text-sm transition-all flex items-center gap-2 shadow-lg"
-            >
-              <Edit3 size={15} />
-              <span>Edit Profile</span>
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={handleFollow}
-                disabled={followLoading || !currentUser}
-                className={`py-2.5 px-5 rounded-xl text-xs md:text-sm font-black transition-all flex items-center gap-2 shadow-lg disabled:opacity-50 ${
-                  isFollowing
-                    ? 'border border-[#00F0FF] text-[#00F0FF] hover:bg-[#00F0FF]/10'
-                    : 'bg-[#00F0FF] hover:bg-[#33f3ff] text-black'
-                }`}
-              >
-                <UserPlus size={15} />
-                <span>{followLoading ? 'Updating...' : isFollowing ? 'Following' : 'Follow'}</span>
-              </button>
-              
-              <button
-                onClick={handleTip}
-                disabled={!currentUser}
-                className="py-2.5 px-5 rounded-xl bg-white/10 hover:bg-white/15 text-white border border-white/8 font-black text-xs md:text-sm transition-all disabled:opacity-50"
-              >
-                Tip
-              </button>
-
-              <button
-                onClick={() => setIsReportModalOpen(true)}
-                disabled={!currentUser}
-                className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 transition-all disabled:opacity-50"
-              >
-                <Flag size={15} />
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Profile Pic Floating/Hinging */}
-        <div className="absolute bottom-6 left-6 flex items-end gap-4 md:gap-6">
-          <div className="relative translate-y-2 border-4 border-[#0F0E0D] rounded-[32px] overflow-hidden shadow-2xl bg-[#0F0E0D]">
-            <IdentityAvatar
-              fileId={profile?.isAvatar !== false ? profile?.avatar : null}
-              alt={profile?.displayName || profile?.username || 'User'}
-              fallback={(profile?.displayName || profile?.username || 'U').slice(0, 1).toUpperCase()}
-              verified={identityFlags.verified}
-              pro={identityFlags.pro}
-              size={96}
-              verifiedSize={20}
-              borderRadius="24px"
-            />
-          </div>
-        </div>
       </div>
 
-      {/* Profile Info Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Card: Core Meta details */}
-        <div className="lg:col-span-4 bg-[#151311] border border-white/8 rounded-[24px] p-6 space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-white text-2xl font-black tracking-tight leading-none">
-              {profile?.displayName || profile?.username}
-            </h1>
-            <p className="text-[#00F0FF] font-mono text-sm tracking-wide">
-              @{profile?.username}
-            </p>
+      {/* Floating Header Actions / Info details Card */}
+      <div className="relative z-10 bg-[#151311] border border-white/8 rounded-[24px] p-6 -mt-16 md:-mt-20 shadow-xl space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          {/* Avatar Hinging */}
+          <div className="flex items-end gap-4 md:gap-6">
+            <div className="border-4 border-[#0F0E0D] rounded-[32px] overflow-hidden shadow-2xl bg-[#0F0E0D] -mt-12 md:-mt-16">
+              <IdentityAvatar
+                fileId={profile?.isAvatar !== false ? profile?.avatar : null}
+                alt={profile?.displayName || profile?.username || 'User'}
+                fallback={(profile?.displayName || profile?.username || 'U').slice(0, 1).toUpperCase()}
+                verified={identityFlags.verified}
+                pro={identityFlags.pro}
+                size={88}
+                verifiedSize={20}
+                borderRadius="24px"
+              />
+            </div>
+            <div className="space-y-1">
+              <h1 className="text-white text-2xl font-black tracking-tight leading-none">
+                {profile?.displayName || profile?.username}
+              </h1>
+              <p className="text-[#00F0FF] font-mono text-sm tracking-wide">
+                @{profile?.username}
+              </p>
+            </div>
           </div>
 
-          {profile?.bio && (
-            <p className="text-white/70 text-sm leading-relaxed whitespace-pre-wrap">
-              {profile.bio}
-            </p>
-          )}
+          {/* Quick Actions Container */}
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            {isOwnProfile ? (
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                className="w-full md:w-auto py-2.5 px-6 rounded-xl bg-[#00F0FF] hover:bg-[#33f3ff] text-black font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg"
+              >
+                <Edit3 size={15} />
+                <span>Edit Profile</span>
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleFollow}
+                  disabled={followLoading || !currentUser}
+                  className={`flex-1 md:flex-none py-2.5 px-6 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 ${
+                    isFollowing
+                      ? 'border border-[#00F0FF] text-[#00F0FF] hover:bg-[#00F0FF]/10'
+                      : 'bg-[#00F0FF] hover:bg-[#33f3ff] text-black'
+                  }`}
+                >
+                  <UserPlus size={15} />
+                  <span>{followLoading ? 'Updating...' : isFollowing ? 'Following' : 'Follow'}</span>
+                </button>
+                
+                <button
+                  onClick={handleTip}
+                  disabled={!currentUser}
+                  className="flex-1 md:flex-none py-2.5 px-6 rounded-xl bg-white/10 hover:bg-white/15 text-white border border-white/8 font-black text-sm transition-all disabled:opacity-50"
+                >
+                  Tip
+                </button>
 
-          <div className="space-y-3.5 border-t border-white/5 pt-4">
+                <button
+                  onClick={() => setIsReportModalOpen(true)}
+                  disabled={!currentUser}
+                  className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 transition-all disabled:opacity-50"
+                >
+                  <Flag size={15} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="h-px bg-white/5" />
+
+        {/* Bio, Joined date & Status */}
+        <div className="flex flex-col md:flex-row justify-between gap-6">
+          <div className="flex-1 max-w-xl">
+            {profile?.bio ? (
+              <p className="text-white/70 text-sm leading-relaxed whitespace-pre-wrap">
+                {profile.bio}
+              </p>
+            ) : (
+              <p className="text-white/30 text-xs italic">No bio configured yet.</p>
+            )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 text-xs text-white/50 shrink-0">
             {joinedAt && (
-              <div className="flex items-center gap-3 text-white/50 text-xs">
+              <div className="flex items-center gap-2">
                 <Calendar size={14} className="text-white/30" />
                 <span>Joined {joinedAt}</span>
               </div>
             )}
-            
-            <div className="flex items-center gap-3 text-white/50 text-xs">
+            <div className="flex items-center gap-2">
               {profile?.isPublic !== false ? (
                 <>
                   <Globe size={14} className="text-emerald-400" />
-                  <span>Discoverable publicly</span>
+                  <span>Discoverable</span>
                 </>
               ) : (
                 <>
                   <Lock size={14} className="text-amber-400" />
-                  <span>Private profile</span>
+                  <span>Private Profile</span>
                 </>
               )}
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Followers / Following counts */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
+      {/* Profile Details Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Card: Stats Details */}
+        <div className="lg:col-span-4 bg-[#151311] border border-white/8 rounded-[24px] p-6 space-y-4">
+          <h3 className="text-xs font-black tracking-wider text-white/40 uppercase">Ecosystem Connections</h3>
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={handleOpenFollowers}
-              className="bg-white/2 hover:bg-white/4 border border-white/8 rounded-xl p-3 text-left transition-all flex flex-col"
+              className="bg-white/2 hover:bg-white/4 border border-white/8 rounded-xl p-4 text-left transition-all flex flex-col items-center justify-center"
             >
-              <span className="text-white text-lg font-black leading-none">{stats.followers}</span>
-              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider mt-1">Followers</span>
+              <span className="text-white text-xl font-black leading-none">{stats.followers}</span>
+              <span className="text-[10px] font-black text-white/35 uppercase tracking-wider mt-2">Followers</span>
             </button>
             <button
               onClick={handleOpenFollowing}
-              className="bg-white/2 hover:bg-white/4 border border-white/8 rounded-xl p-3 text-left transition-all flex flex-col"
+              className="bg-white/2 hover:bg-white/4 border border-white/8 rounded-xl p-4 text-left transition-all flex flex-col items-center justify-center"
             >
-              <span className="text-white text-lg font-black leading-none">{stats.following}</span>
-              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider mt-1">Following</span>
+              <span className="text-white text-xl font-black leading-none">{stats.following}</span>
+              <span className="text-[10px] font-black text-white/35 uppercase tracking-wider mt-2">Following</span>
             </button>
           </div>
         </div>
@@ -551,24 +556,23 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
         {/* Right Card: Tabs & Feeds */}
         <div className="lg:col-span-8 bg-[#151311] border border-white/8 rounded-[24px] p-6 space-y-6">
           {/* Custom Navigation Tabs */}
-          <div className="flex border-b border-white/8 pb-1">
+          <div className="flex gap-2 border-b border-white/8 pb-2">
             {TAB_KEYS.map((key) => {
               const active = selectedTab === key;
               return (
                 <button
                   key={key}
                   onClick={() => updateTab(key)}
-                  className={`flex-1 pb-4 text-center text-sm font-black transition-all relative ${
-                    active ? 'text-[#00F0FF]' : 'text-white/45 hover:text-white/80'
+                  className={`flex-1 py-2 text-center text-xs font-black transition-all rounded-lg ${
+                    active 
+                      ? 'bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/30' 
+                      : 'text-white/45 hover:text-white/80 border border-transparent'
                   }`}
                 >
                   <span className="capitalize">{key}</span>
-                  <span className="ml-1.5 px-2 py-0.5 rounded-full bg-white/5 text-[10px] text-white/60">
+                  <span className="ml-2 px-1.5 py-0.5 rounded-md bg-white/5 text-[9px] font-bold text-white/60">
                     {tabCounts[key]}
                   </span>
-                  {active && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00F0FF] rounded-full" />
-                  )}
                 </button>
               );
             })}
@@ -577,10 +581,10 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
           {/* Description & Action details */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h3 className="text-white text-base font-black tracking-tight leading-none">
+              <h3 className="text-white text-sm font-black tracking-tight leading-none">
                 {activeTabMeta.title}
               </h3>
-              <p className="text-white/40 text-xs mt-1.5">{activeTabMeta.description}</p>
+              <p className="text-white/45 text-[11px] font-semibold mt-1">{activeTabMeta.description}</p>
             </div>
           </div>
 
@@ -606,7 +610,7 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
           ) : activeTabItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center bg-white/2 border border-dashed border-white/8 rounded-[20px] p-6">
               <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-[#00F0FF] mb-4">
-                {key === 'moments' ? <Sparkles size={22} /> : key === 'replies' ? <MessageCircle size={22} /> : <Repeat2 size={22} />}
+                {selectedTab === 'moments' ? <Sparkles size={22} /> : selectedTab === 'replies' ? <MessageCircle size={22} /> : <Repeat2 size={22} />}
               </div>
               <h4 className="text-white text-sm font-black">{activeTabMeta.emptyTitle}</h4>
               <p className="text-white/40 text-xs mt-1.5 max-w-sm">{activeTabMeta.emptyBody}</p>
