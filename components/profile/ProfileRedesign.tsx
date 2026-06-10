@@ -68,8 +68,12 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
   const searchParams = useSearchParams();
 
   const normalizedUsername = normalizeUsername(username);
-  const preloadedProfile = normalizedUsername ? getProfileView(normalizedUsername)?.profile || null : null;
-  const cachedUsernameProfile = normalizedUsername ? getCachedIdentityByUsername(normalizedUsername) : null;
+  const preloadedProfile = useMemo(() => {
+    return normalizedUsername ? getProfileView(normalizedUsername)?.profile || null : null;
+  }, [normalizedUsername]);
+  const cachedUsernameProfile = useMemo(() => {
+    return normalizedUsername ? getCachedIdentityByUsername(normalizedUsername) : null;
+  }, [normalizedUsername]);
 
   const [profile, setProfile] = useState<any>(() => initialProfile || preloadedProfile || cachedUsernameProfile);
   const [loading, setLoading] = useState(() => !normalizedUsername || !(initialProfile || preloadedProfile || cachedUsernameProfile));
@@ -156,9 +160,9 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
       setMomentsError(null);
       try {
         const [feedRes, followStats, followingStatus] = await Promise.all([
-          SocialService.getFeed(currentUser?.$id, targetId),
+          SocialService.getFeed(currentUserId, targetId),
           SocialService.getFollowStats(targetId),
-          currentUser ? SocialService.isFollowing(currentUser.$id, targetId) : Promise.resolve(false)
+          currentUserId ? SocialService.isFollowing(currentUserId, targetId) : Promise.resolve(false)
         ]);
 
         setMoments(feedRes.rows || []);
@@ -175,7 +179,7 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
         setMomentsLoading(false);
       }
     },
-    [currentUser],
+    [currentUserId],
   );
 
   const currentUserId = currentUser?.$id;
@@ -194,12 +198,11 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
         return stagedProfile;
       });
       setError(null);
-      setLoading(false);
       void loadRelatedData(stagedProfile);
-      return;
+    } else {
+      setLoading(true);
     }
 
-    setLoading(true);
     setError(null);
     setMoments([]);
     setMomentsError(null);
@@ -217,8 +220,10 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
       }
 
       if (!data) {
-        setProfile(null);
-        setError(`The user @${username} could not be found.`);
+        if (!stagedProfile) {
+          setProfile(null);
+          setError(`The user @${username} could not be found.`);
+        }
         return;
       }
 
@@ -233,8 +238,10 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
       void loadRelatedData(data);
     } catch (loadErr) {
       console.error('Failed to load profile:', loadErr);
-      setProfile(null);
-      setError('Could not load this profile right now.');
+      if (!stagedProfile) {
+        setProfile(null);
+        setError('Could not load this profile right now.');
+      }
     } finally {
       setLoading(false);
     }

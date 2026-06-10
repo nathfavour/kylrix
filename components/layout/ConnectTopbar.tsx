@@ -55,6 +55,7 @@ import { useWalletOverlay } from '@/context/WalletOverlayContext';
 import { useProUpgrade } from '@/context/ProUpgradeContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { useSubscription } from '@/context/subscription/SubscriptionContext';
+import { useProfile } from '@/components/providers/ProfileProvider';
 import { useLocalContext } from '@/lib/context-engine';
 
 const BRAND_INDIGO = '#6366F1';
@@ -198,8 +199,9 @@ export default function ConnectTopbar({
   const profilePicId = getUserProfilePicId(user) || getSdkUserProfilePicId(user);
   const tone = getAppTone(activeApp);
   const appAccent = getAppColor(activeApp);
+  const { profile: myProfile } = useProfile();
   const profileName = user?.name || user?.email || 'User';
-  const profileUsername = (user as any)?.username || (user as any)?.prefs?.username || null;
+  const profileUsername = myProfile?.username || (user as any)?.username || (user as any)?.prefs?.username || null;
   
   const [isClient, setIsClient] = useState(true);
   useEffect(() => setIsClient(true), []);
