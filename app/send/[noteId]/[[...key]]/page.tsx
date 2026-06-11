@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { SendReceiveClient } from '@/components/send/SendReceiveClient';
 import { validatePublicNoteAccess } from '@/lib/appwrite';
 import { parseSendGhostMetadata } from '@/lib/send/metadata';
+import { decryptGhostData } from '@/lib/encryption/ghost-crypto';
 
 export async function generateMetadata({
   params,
@@ -12,13 +13,6 @@ export async function generateMetadata({
     const { noteId, key } = await params;
     const keyParam = key?.join('/') || undefined;
 
-    if (keyParam) {
-      return {
-        title: 'Secure Sharing · Kylrix',
-        description: 'This shared link is private and secure.',
-      };
-    }
-
     const note = await validatePublicNoteAccess(noteId);
     if (!note) {
       return {
@@ -28,21 +22,36 @@ export async function generateMetadata({
     }
 
     const meta = parseSendGhostMetadata(note.metadata);
+    
+    let decryptedTitle = note.title || '';
+    let decryptedContent = note.content || '';
     const isEncrypted = note.isEncrypted === true || meta.isEncrypted === true;
 
     if (isEncrypted) {
-      return {
-        title: 'Secure Shared Note · Kylrix',
-        description: 'This is a private and secure note. Enter the key to view.',
-      };
+      if (!keyParam) {
+        return {
+          title: 'Secure Shared Note · Kylrix',
+          description: 'This is a private and secure note. Enter the key to view.',
+        };
+      }
+      try {
+        decryptedTitle = await decryptGhostData(note.title || '', keyParam);
+        decryptedContent = await decryptGhostData(note.content || '', keyParam);
+      } catch (err) {
+        console.warn('Failed server-side decryption of send metadata preview:', err);
+        return {
+          title: 'Secure Shared Note · Kylrix',
+          description: 'This is a private and secure note. Enter the key to view.',
+        };
+      }
     }
 
-    const titleText = note.title || 'Shared Note';
+    const titleText = decryptedTitle || 'Shared Note';
     const kind = meta.send_object?.kind || 'note';
 
     let displayTitle = `${titleText} · Kylrix`;
-    let displayDesc = note.content
-      ? note.content.substring(0, 160).trim() + '…'
+    let displayDesc = decryptedContent
+      ? decryptedContent.substring(0, 160).trim() + '…'
       : 'This is a secure note shared via Kylrix Send.';
 
     if (kind === 'file') {
@@ -50,9 +59,10 @@ export async function generateMetadata({
       displayDesc = 'Download this file shared securely via Kylrix Send.';
     } else if (kind === 'task') {
       displayTitle = `Shared Task: ${titleText} · Kylrix`;
-      displayDesc = note.content
-        ? note.content.substring(0, 160).trim() + '…'
+      displayDesc = decryptedContent
+        ? decryptedContent.substring(0, 160).trim() + '…'
         : 'View this task shared securely via Kylrix Send.';
+    }
     }
 
     const ogImage = `https://kylrix.space/note/api/og/note/${noteId}`;

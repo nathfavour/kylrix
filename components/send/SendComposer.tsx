@@ -329,16 +329,10 @@ export function SendComposer() {
   const [kind, setKind] = useState<SendKind>('note');
   const themeColor = KIND_COLORS[kind];
   const [expiryMs, setExpiryMs] = useState(SEND_EXPIRY_PRESETS[2].ms);
-  const [isSecureMode, setIsSecureMode] = useState(false);
-
-  const isMandatorySecure = useMemo(() => {
-    return kind === 'password' || kind === 'totp' || kind === 'file' || kind === 'discussion';
-  }, [kind]);
-
-  const effectiveSecureMode = useMemo(() => {
-    if (isMandatorySecure) return true;
-    return isSecureMode;
-  }, [isMandatorySecure, isSecureMode]);
+  
+  const isSecureMode = true;
+  const isMandatorySecure = true;
+  const effectiveSecureMode = true;
 
   const [taskPriority, setTaskPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [taskDuePreset, setTaskDuePreset] = useState<'none' | 'today' | 'tomorrow' | 'week'>('none');
@@ -350,19 +344,7 @@ export function SendComposer() {
   const [expiryDrawerOpen, setExpiryDrawerOpen] = useState(false);
   const [discreteDrawerOpen, setDiscreteDrawerOpen] = useState(false);
 
-  useEffect(() => {
-    const saved = localStorage.getItem(`send_sec_pref_${kind}`);
-    if (saved !== null) {
-      setIsSecureMode(saved === 'true');
-    } else {
-      setIsSecureMode(false);
-    }
-  }, [kind]);
-
-  const handleSelectSecureMode = (val: boolean) => {
-    setIsSecureMode(val);
-    localStorage.setItem(`send_sec_pref_${kind}`, String(val));
-  };
+  const handleSelectSecureMode = (val: boolean) => {};
 
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
