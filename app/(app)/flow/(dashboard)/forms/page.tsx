@@ -125,6 +125,8 @@ export default function FormsDashboard() {
         } finally {
             if (shouldShowLoading) setLoading(false);
         }
+    }, [user, fetchOptimized, isResourcePinned]);
+
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleManualRefresh = useCallback(async () => {
