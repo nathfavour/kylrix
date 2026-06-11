@@ -4,9 +4,9 @@ import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 
 // Helper to send messages back to the user on Telegram
 async function sendTelegramMessage(chatId: string | number, text: string) {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_API;
   if (!botToken) {
-    console.error('[telegram-webhook] TELEGRAM_BOT_TOKEN is missing');
+    console.error('[telegram-webhook] TELEGRAM_BOT_TOKEN / TELEGRAM_BOT_API is missing');
     return;
   }
   try {

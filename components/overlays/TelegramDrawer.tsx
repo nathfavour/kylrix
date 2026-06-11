@@ -291,7 +291,7 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
           maxHeight: '60vh',
           borderTopLeftRadius: '24px',
           borderTopRightRadius: '24px',
-          bgcolor: '#161412',
+          bgcolor: '#161514',
           borderTop: '1px solid rgba(255, 255, 255, 0.08)',
           color: 'white',
           boxShadow: '0 -12px 36px rgba(0, 0, 0, 0.5)',
