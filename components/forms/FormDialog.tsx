@@ -389,6 +389,26 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
     })
   );
 
+  const validateFieldsLogic = (currentFields: any[]) => {
+    return currentFields.map((field, idx) => {
+      if (field.logic?.enabled && field.logic.showIfFieldId) {
+        const parentIdx = currentFields.findIndex(f => f.id === field.logic.showIfFieldId);
+        if (parentIdx === -1 || parentIdx >= idx) {
+          return {
+            ...field,
+            logic: {
+              ...field.logic,
+              enabled: false,
+              showIfFieldId: '',
+              showIfValue: ''
+            }
+          };
+        }
+      }
+      return field;
+    });
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -396,10 +416,34 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
       setFields((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over?.id);
-
-        return arrayMove(items, oldIndex, newIndex);
+        const nextItems = arrayMove(items, oldIndex, newIndex);
+        return validateFieldsLogic(nextItems);
       });
     }
+  };
+
+  const moveFieldUp = (index: number) => {
+    if (index <= 0) return;
+    setFields(prev => {
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[index - 1];
+      next[index - 1] = temp;
+      return validateFieldsLogic(next);
+    });
+    setActiveSettingsFieldIndex(index - 1);
+  };
+
+  const moveFieldDown = (index: number) => {
+    if (index >= fields.length - 1) return;
+    setFields(prev => {
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[index + 1];
+      next[index + 1] = temp;
+      return validateFieldsLogic(next);
+    });
+    setActiveSettingsFieldIndex(index + 1);
   };
 
   // Initial load logic
@@ -506,7 +550,10 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
   };
 
   const removeField = (index: number) => {
-    setFields(fields.filter((_, i) => i !== index));
+    setFields(prev => {
+      const next = prev.filter((_, i) => i !== index);
+      return validateFieldsLogic(next);
+    });
   };
 
   const updateField = (index: number, updates: any) => {
@@ -1055,6 +1102,45 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
             </Box>
 
             <Stack spacing={3}>
+              <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
+                <Button
+                  variant="outlined"
+                  onClick={() => moveFieldUp(activeSettingsFieldIndex)}
+                  disabled={activeSettingsFieldIndex === 0}
+                  sx={{ 
+                    flex: 1, 
+                    borderRadius: '12px',
+                    borderColor: 'rgba(255,255,255,0.05)',
+                    color: activeSettingsFieldIndex === 0 ? 'rgba(255,255,255,0.15)' : 'white',
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    textTransform: 'none',
+                    py: 1.25,
+                    '&:hover': { borderColor: 'rgba(255,255,255,0.1)', bgcolor: 'rgba(255,255,255,0.02)' }
+                  }}
+                >
+                  Move Up
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => moveFieldDown(activeSettingsFieldIndex)}
+                  disabled={activeSettingsFieldIndex === fields.length - 1}
+                  sx={{ 
+                    flex: 1, 
+                    borderRadius: '12px',
+                    borderColor: 'rgba(255,255,255,0.05)',
+                    color: activeSettingsFieldIndex === fields.length - 1 ? 'rgba(255,255,255,0.15)' : 'white',
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    textTransform: 'none',
+                    py: 1.25,
+                    '&:hover': { borderColor: 'rgba(255,255,255,0.1)', bgcolor: 'rgba(255,255,255,0.02)' }
+                  }}
+                >
+                  Move Down
+                </Button>
+              </Stack>
+
               <FormControlLabel
                 control={
                   <Switch 
