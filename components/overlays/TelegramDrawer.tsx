@@ -289,332 +289,151 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
         sx: {
           height: 'auto',
           maxHeight: '60vh',
-          borderTopLeftRadius: '28px',
-          borderTopRightRadius: '28px',
+          borderTopLeftRadius: '24px',
+          borderTopRightRadius: '24px',
           bgcolor: '#161412',
           borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-          backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.05) 0%, transparent 75%)',
           color: 'white',
-          boxShadow: '0 -16px 48px rgba(0, 0, 0, 0.6)',
-          width: { xs: '100%', md: 620 },
+          boxShadow: '0 -12px 36px rgba(0, 0, 0, 0.5)',
+          width: { xs: '100%', md: 540 },
           mx: 'auto',
           left: '50%',
           transform: 'translateX(-50%)',
+          backgroundImage: 'radial-gradient(circle at 50% -20%, rgba(245, 158, 11, 0.08) 0%, transparent 60%)',
         },
       }}
     >
       {/* Header */}
-      <Box sx={{ p: 3, pb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Box sx={{ width: 36, height: 36, borderRadius: '10px', display: 'grid', placeItems: 'center', bgcolor: 'rgba(0, 136, 204, 0.1)', color: '#0088cc', border: '1px solid rgba(0, 136, 204, 0.2)' }}>
-            <TelegramIcon sx={{ fontSize: 18 }} />
-          </Box>
-          <Typography sx={{ fontSize: '1.15rem', fontWeight: 900, fontFamily: 'var(--font-clash)', tracking: 'tight' }}>
-            Telegram Connection
-          </Typography>
-        </Stack>
-        <IconButton onClick={onClose} sx={{ color: 'rgba(255, 255, 255, 0.3)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' }, width: 32, height: 32 }}>
-          <X size={18} />
-        </IconButton>
-      </Box>
+      <div className="px-5 py-4 flex justify-between items-center border-b border-white/5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20">
+            <TelegramIcon sx={{ fontSize: 16 }} />
+          </div>
+          <h2 className="text-white text-lg font-black tracking-tight font-clash">
+            Telegram Link
+          </h2>
+        </div>
+        <button 
+          onClick={onClose} 
+          className="p-2 rounded-lg bg-white/2 hover:bg-white/5 text-white/50 hover:text-white transition-all border border-white/5 flex items-center justify-center cursor-pointer"
+        >
+          <X size={14} />
+        </button>
+      </div>
 
       {/* Main Content */}
-      <Box sx={{ p: 3.5, flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+      <div className="p-5 flex flex-col gap-4 overflow-y-auto max-h-[calc(60vh-70px)]">
         {loading ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 8, flex: 1 }}>
-            <CircularProgress sx={{ color: '#6366F1' }} size={36} />
-            <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.5)', mt: 2.5, fontSize: '0.86rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}>
-              Generating secure handshake protocol...
-            </Typography>
-          </Box>
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <CircularProgress sx={{ color: '#F59E0B' }} size={28} />
+            <span className="text-white/60 text-xs font-semibold font-satoshi">
+              Connecting...
+            </span>
+          </div>
         ) : verifiedUsername ? (
           // Success State
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 5, flex: 1, textAlign: 'center' }}>
-            <Box
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: '20px',
-                bgcolor: 'rgba(16, 185, 129, 0.08)',
-                border: '1px solid rgb(16, 185, 129, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mb: 3,
-                boxShadow: '0 0 20px rgba(16, 185, 129, 0.15)',
-              }}
-            >
-              <CheckCircle2 size={32} color="#10B981" />
-            </Box>
-            <Typography component="span" sx={{ fontSize: '1.25rem', fontWeight: 900, fontFamily: 'var(--font-clash)', mb: 1, color: 'white' }}>
-              Connection Established
-            </Typography>
-            <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.58)', px: 2, fontSize: '0.9rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600, lineHeight: 1.45 }}>
-              Your account is now securely linked to Telegram as <b className="text-white">@{verifiedUsername}</b>. Alerts will arrive instantly.
-            </Typography>
-          </Box>
+          <div className="flex flex-col items-center justify-center py-8 text-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center">
+              <CheckCircle2 size={24} className="text-[#10B981]" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-white text-lg font-black tracking-tight font-clash">
+                Connected
+              </h3>
+              <p className="text-white/60 text-xs font-semibold font-satoshi max-w-sm mx-auto">
+                Linked to Telegram as <span className="text-[#F59E0B] font-bold">@{verifiedUsername}</span>.
+              </p>
+            </div>
+          </div>
         ) : (
           // Pairing State
-          <Stack spacing={3.25} sx={{ flex: 1 }}>
-            <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.55)', fontSize: '0.9rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600, lineHeight: 1.45 }}>
-              Sync your device to receive real-time push notifications for incoming calls, active huddle invitations, and direct mentions.
-            </Typography>
+          <div className="flex flex-col gap-4">
+            <p className="text-white/50 text-xs font-semibold font-satoshi leading-relaxed">
+              Enable instant notifications for incoming calls, invites, and mentions.
+            </p>
 
             {error && (
-              <Box
-                sx={{
-                  p: 2,
-                  bgcolor: 'rgba(239, 68, 68, 0.06)',
-                  border: '1px solid rgba(239, 68, 68, 0.18)',
-                  borderRadius: '12px',
-                }}
-              >
-                <Typography component="span" sx={{ color: '#EF4444', fontSize: '0.82rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600, lineHeight: 1.4 }}>
+              <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-lg">
+                <span className="text-red-400 text-xs font-semibold font-satoshi">
                   {error}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             )}
 
             {pairCode && deepLink && (
-              <>
-                {/* Step 1: Start the Telegram Bot */}
-                <Box
-                  sx={{
-                    p: 3,
-                    bgcolor: '#0B0A09',
-                    borderRadius: '24px',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2.5,
-                  }}
-                >
-                  {/* Top section: Icon + Text Column */}
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                    {/* Left: fixed icon slot */}
-                    <Box
-                      sx={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: '12px',
-                        display: 'grid',
-                        placeItems: 'center',
-                        bgcolor: 'rgba(0, 136, 204, 0.08)',
-                        color: '#0088cc',
-                        border: '1px solid rgba(0, 136, 204, 0.18)',
-                        flexShrink: 0,
-                      }}
+              <div className="flex flex-col gap-4">
+                <div className="p-4 bg-[#0B0A09] border border-white/5 rounded-xl flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white text-xs font-bold font-satoshi">1. Open Assistant</span>
+                    <a
+                      href={deepLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-1.5 px-3 rounded-lg bg-[#F59E0B] hover:bg-[#D97706] text-black font-extrabold text-xs transition-all flex items-center gap-1 shadow-md cursor-pointer font-satoshi"
                     >
-                      <TelegramIcon sx={{ fontSize: 20 }} />
-                    </Box>
+                      <span>Start Bot</span>
+                      <ExternalLink size={12} />
+                    </a>
+                  </div>
 
-                    {/* Right: Stacked text column */}
-                    <Box
-                      sx={{
-                        minWidth: 0,
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 0.5,
-                      }}
-                    >
-                      <Typography component="span" sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#6366F1', fontWeight: 800, letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-                        Step 1
-                      </Typography>
-                      <Typography component="span" sx={{ fontWeight: 800, fontSize: '0.94rem', color: 'white', fontFamily: 'var(--font-clash)', lineHeight: 1.25 }}>
-                        Start Telegram Assistant
-                      </Typography>
-                      <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.82rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600, lineHeight: 1.45, mt: 0.5 }}>
-                        Launch the helper bot to establish a secure, encrypted notification bridge for real-time updates.
-                      </Typography>
-                    </Box>
-                  </Box>
+                  <div className="h-px bg-white/5" />
 
-                  {/* Bottom: Action Button */}
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    href={deepLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    endIcon={<ExternalLink size={13} />}
-                    sx={{
-                      bgcolor: '#0088cc',
-                      color: 'white',
-                      fontFamily: 'var(--font-satoshi)',
-                      fontWeight: 700,
-                      py: 1.5,
-                      borderRadius: '14px',
-                      textTransform: 'none',
-                      boxShadow: '0 4px 14px rgba(0, 136, 204, 0.2)',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        bgcolor: '#0077b5',
-                        transform: 'translateY(-1px)',
-                        boxShadow: '0 6px 20px rgba(0, 136, 204, 0.3)',
-                      },
-                    }}
-                  >
-                    Open Telegram Assistant
-                  </Button>
-                </Box>
-
-                {/* Step 2: Verification Code Display */}
-                <Box
-                  sx={{
-                    p: 3,
-                    bgcolor: '#0B0A09',
-                    borderRadius: '24px',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2.5,
-                  }}
-                >
-                  {/* Top section: Icon + Text Column */}
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                    {/* Left: fixed icon slot */}
-                    <Box
-                      sx={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: '12px',
-                        display: 'grid',
-                        placeItems: 'center',
-                        bgcolor: 'rgba(99, 102, 241, 0.08)',
-                        color: '#6366F1',
-                        border: '1px solid rgba(99, 102, 241, 0.18)',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <CheckCircle2 size={20} />
-                    </Box>
-
-                    {/* Right: Stacked text column */}
-                    <Box
-                      sx={{
-                        minWidth: 0,
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 0.5,
-                      }}
-                    >
-                      <Typography component="span" sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#6366F1', fontWeight: 800, letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
-                        Step 2
-                      </Typography>
-                      <Typography component="span" sx={{ fontWeight: 800, fontSize: '0.94rem', color: 'white', fontFamily: 'var(--font-clash)', lineHeight: 1.25 }}>
-                        Authenticate Connection
-                      </Typography>
-                      <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.42)', fontSize: '0.82rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600, lineHeight: 1.45, mt: 0.5 }}>
-                        Provide this authorization code if requested by the assistant bot. Code expires in 3 minutes.
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Bottom: Code display & Copy action */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      bgcolor: '#110F0E',
-                      px: 2.5,
-                      py: 1.5,
-                      borderRadius: '16px',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <Typography component="span" sx={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.15em', color: '#6366F1', pl: 1 }}>
-                      {pairCode}
-                    </Typography>
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <Typography component="span" sx={{ 
-                          fontSize: '0.74rem', 
-                          fontWeight: 800, 
-                          fontFamily: 'var(--font-mono)',
-                          color: timeLeft === 'Expired' ? '#EF4444' : (timeLeft.startsWith('00:') ? '#F59E0B' : '#10B981'),
-                          bgcolor: 'rgba(255, 255, 255, 0.02)',
-                          px: 1.25,
-                          py: 0.5,
-                          borderRadius: '8px',
-                          border: '1px solid rgba(255,255,255,0.04)'
-                      }}>
-                        {timeLeft}
-                      </Typography>
-                      <Button
-                        size="small"
+                  <div className="flex items-center justify-between">
+                    <span className="text-white text-xs font-bold font-satoshi">2. Verify Code</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-base font-bold tracking-wider text-[#F59E0B]">
+                        {pairCode}
+                      </span>
+                      <button
                         onClick={handleCopyCode}
-                        sx={{ 
-                          color: 'rgba(255, 255, 255, 0.5)', 
-                          textTransform: 'none',
-                          minWidth: 0,
-                          p: 1,
-                          borderRadius: '8px',
-                          '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' } 
-                        }}
+                        className="text-white/45 hover:text-white p-1 hover:bg-white/5 rounded transition-all cursor-pointer font-satoshi"
                       >
-                        {copied ? <Typography component="span" sx={{ fontSize: '0.74rem', color: '#10B981', fontWeight: 800 }}>Copied</Typography> : <Copy size={15} />}
-                      </Button>
-                    </Stack>
-                  </Box>
-                </Box>
+                        {copied ? <span className="text-[#10B981] font-bold text-xs">Copied</span> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-white/5" />
+
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-white/45">Code Expires in:</span>
+                    <span className={`font-mono font-bold ${
+                      timeLeft === 'Expired' ? 'text-red-400' : 'text-white/60'
+                    }`}>
+                      {timeLeft}
+                    </span>
+                  </div>
+                </div>
 
                 {/* Handshake/Waiting Indicator */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 1 }}>
-                  <CircularProgress size={13} sx={{ color: 'rgba(255,255,255,0.3)' }} />
-                  <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.42)', fontSize: '0.78rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}>
-                    Listening for secure sync broadcast...
-                  </Typography>
-                </Box>
+                <div className="flex items-center justify-center gap-2 py-0.5">
+                  <CircularProgress size={10} sx={{ color: 'rgba(255,255,255,0.3)' }} />
+                  <span className="text-white/40 text-[11px] font-semibold font-satoshi">
+                    Awaiting connection sync...
+                  </span>
+                </div>
 
-                <Box sx={{ mt: 'auto', pt: 1.5 }}>
-                  <Stack direction="row" spacing={2}>
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      onClick={handleManualCheck}
-                      disabled={isVerifying}
-                      sx={{
-                        color: 'white',
-                        borderColor: 'rgba(255,255,255,0.08)',
-                        borderRadius: '14px',
-                        py: 1.25,
-                        textTransform: 'none',
-                        fontFamily: 'var(--font-satoshi)',
-                        fontWeight: 700,
-                        '&:hover': {
-                          borderColor: 'rgba(255,255,255,0.22)',
-                          bgcolor: 'rgba(255,255,255,0.02)',
-                        },
-                      }}
-                    >
-                      {isVerifying ? 'Checking...' : 'Check Status'}
-                    </Button>
-                    <Button
-                      fullWidth
-                      variant="text"
-                      onClick={() => handleInitialize(true)}
-                      sx={{
-                        color: 'rgba(255,255,255,0.45)',
-                        borderRadius: '14px',
-                        py: 1.25,
-                        textTransform: 'none',
-                        fontFamily: 'var(--font-satoshi)',
-                        fontWeight: 700,
-                        '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
-                      }}
-                    >
-                      Regenerate
-                    </Button>
-                  </Stack>
-                </Box>
-              </>
+                {/* Buttons block */}
+                <div className="flex gap-3 mt-1">
+                  <button
+                    onClick={handleManualCheck}
+                    disabled={isVerifying}
+                    className="flex-1 py-2.5 px-4 rounded-lg border border-white/8 text-white hover:bg-white/2 hover:border-white/20 transition-all font-extrabold text-xs font-satoshi disabled:opacity-50 cursor-pointer"
+                  >
+                    {isVerifying ? 'Checking...' : 'Check Status'}
+                  </button>
+                  <button
+                    onClick={() => handleInitialize(true)}
+                    className="flex-1 py-2.5 px-4 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all font-extrabold text-xs font-satoshi cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
             )}
-          </Stack>
+          </div>
         )}
-      </Box>
+      </div>
     </Drawer>
   );
 }
