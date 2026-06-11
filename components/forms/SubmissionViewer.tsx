@@ -12,6 +12,7 @@ import {
 import { FormsService } from '@/lib/services/forms';
 import { FormSubmissions } from '@/generated/appwrite/types';
 import ResponseDetailSidebar from './ResponseDetailSidebar';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 
 const SubmissionViewerTable = ({ submissions, headers, schemaMap, parsePayload, renderValue, onToggleRead, onToggleFlag, onRowClick }: any) => (
   <div className="overflow-x-auto rounded-[24px] border border-white/5 bg-[#161412] shadow-xl">
@@ -98,10 +99,17 @@ const SubmissionViewerTable = ({ submissions, headers, schemaMap, parsePayload, 
 );
 
 export default function SubmissionViewer({ formId, formSchema }: { formId: string, formSchema?: string }) {
+  const { open: openDrawer } = useUnifiedDrawer();
   const [submissions, setSubmissions] = useState<FormSubmissions[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmissions | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleRowClick = (sub: FormSubmissions) => {
+    openDrawer('form-response-detail', {
+      submission: sub,
+      schemaMap
+    });
+  };
 
   // Map of field IDs to labels
   const schemaMap = React.useMemo(() => {

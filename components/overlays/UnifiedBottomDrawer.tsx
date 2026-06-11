@@ -25,6 +25,7 @@ const ProjectInviteDrawer = dynamic(() => import('./ProjectInviteDrawer').then(m
 const UnifiedFormContent = dynamic(() => import('../forms/UnifiedFormContent').then(mod => mod.UnifiedFormContent), { ssr: false });
 const GithubIntegrationDrawer = dynamic(() => import('./GithubIntegrationDrawer').then(mod => mod.GithubIntegrationDrawer), { ssr: false });
 const TaskAddToProjectDrawerHost = dynamic(() => import('./TaskAddToProjectDrawer').then(mod => mod.TaskAddToProjectDrawerHost), { ssr: false });
+const ResponseDetailDrawer = dynamic(() => import('../forms/ResponseDetailDrawer').then(mod => mod.ResponseDetailDrawer), { ssr: false });
 
 export function UnifiedBottomDrawer() {
   const { activeContent, drawerData, close } = useUnifiedDrawer();
@@ -91,6 +92,13 @@ export function UnifiedBottomDrawer() {
                 formId={drawerData?.formId} 
                 onClose={close} 
             />;
+        case 'form-response-detail':
+            return <ResponseDetailDrawer 
+                isOpen={true}
+                onClose={close}
+                submission={drawerData?.submission}
+                schemaMap={drawerData?.schemaMap}
+            />;
         case 'github-integration':
             return <GithubIntegrationDrawer isOpen={true} onClose={close} {...drawerData} />;
         default: return null;
@@ -101,7 +109,7 @@ export function UnifiedBottomDrawer() {
   if (!content) return null;
 
   // Authoritative Drawer Wrapper with Rigid Viewport Isolation
-  if (['secure-chat-setup', 'passkey-setup', 'delete-confirm', 'project-invite'].includes(activeContent)) {
+  if (['secure-chat-setup', 'passkey-setup', 'delete-confirm', 'project-invite', 'form-response-detail'].includes(activeContent)) {
     return (
         <>
             {/* Mobile-Only Authoritative Bottom Drawer */}
@@ -116,7 +124,7 @@ export function UnifiedBottomDrawer() {
                             bgcolor: '#161412',
                             borderTop: '1px solid rgba(255,255,255,0.08)',
                             borderRadius: '32px 32px 0 0',
-                            maxHeight: activeContent === 'form' ? '60dvh' : '90dvh',
+                            maxHeight: activeContent === 'form-response-detail' ? '90dvh' : '90dvh',
                             overflow: 'hidden'
                         }
                     }}
