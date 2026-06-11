@@ -1,30 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { account, AppwriteService, client } from '@/lib/appwrite';
-import { useColors } from '@/lib/theme-context';
-import { Storage, ID } from 'appwrite';
-import {
-  Box,
-  Typography,
-  Button,
-  TextField,
-  CircularProgress,
-  Alert,
-  Stack,
-  alpha,
-  IconButton,
-  Switch,
-  FormControlLabel,
-  Paper
-} from '@/lib/mui-tailwind/material';
-import {
-  Delete as DeleteIcon,
-  Save as SaveIcon,
-  InfoOutlined as InfoIcon,
-  PhotoCamera as PhotoCameraIcon
-} from '@/lib/mui-tailwind/icons';
-import { IdentityAvatar, IdentityName, computeIdentityFlags } from './IdentityBadge';
+import React, { useState, useEffect } from 'react';
+import { Camera, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
+import { UsersService } from '@/lib/services/users';
+import { account, client } from '@/lib/appwrite/client';
+import { Storage } from 'appwrite';
+import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { secureUploadFile } from '@/lib/actions/client-ops';
 
 const storage = new Storage(client);
@@ -86,81 +67,96 @@ const compressImage = (file: File, maxWidth = 512, maxHeight = 512, quality = 0.
 };
 
 interface ProfileManagerProps {
-  onProfileUpdate?: (data: { name?: string; username?: string; profilePicId?: string | null }) => void;
+  onProfileUpdate?: (data: any) => void;
 }
 
 export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps) {
-  const dynamicColors = useColors();
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [username, setUsername] = useState('');
+  const [bio, setBio] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [isPublic, setIsPublic] = useState<boolean>(true);
+  const [isGuest, setIsGuest] = useState<boolean>(true);
+  const [isAvatar, setIsAvatar] = useState<boolean>(true);
+  const [isContact, setIsContact] = useState<boolean>(true);
+  const [isChecking, setIsChecking] = useState(false);
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Profile picture local state
   const [profilePic, setProfilePic] = useState<File | null>(null);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
-  const [isRemovingPic, setIsRemovingPic] = useState(false);
-  const [profileRecord, setProfileRecord] = useState<any>(null);
-  const [isOnlineVisible, setIsOnlineVisible] = useState(true);
+  const [removePicRequested, setRemovePicRequested] = useState(false);
 
   useEffect(() => {
-    loadUser();
+    loadUserAndProfile();
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-    const loadProfileRecord = async () => {
-      if (!user?.$id) return;
-      try {
-        const status = await AppwriteService.getGlobalProfileStatus(user.$id);
-        if (!mounted) return;
-        setProfileRecord(status?.profile || null);
-        if (status?.profile) {
-            setIsOnlineVisible(status.profile.isOnlineVisible !== false);
-        }
-      } catch (_err) {
-        // keep local render working if profile lookup fails
-      }
-    };
-    loadProfileRecord();
-    return () => { mounted = false; };
-  }, [user?.$id]);
-
-  const identitySignals = computeIdentityFlags({
-    createdAt: user?.$createdAt || user?.createdAt || null,
-    lastUsernameEdit: user?.prefs?.last_username_edit || profileRecord?.last_username_edit || null,
-    profilePicId: user?.prefs?.profilePicId || profileRecord?.profilePicId || null,
-    username: user?.prefs?.username || profileRecord?.username || null,
-    bio: user?.prefs?.bio || profileRecord?.bio || null,
-    tier: profileRecord?.tier || user?.prefs?.tier || null,
-    publicKey: profileRecord?.publicKey || null,
-    emailVerified: Boolean(user?.emailVerification),
-  });
-
-  const loadUser = async () => {
+  const loadUserAndProfile = async () => {
     try {
-      setLoading(true);
+      setLoading(false);
       const userData = await account.get();
       setUser(userData);
-      setName(userData.name || '');
-      setUsername(userData.prefs?.username || '');
       
-      const picId = userData.prefs?.profilePicId;
-      if (picId) {
-        try {
-          const url = storage.getFilePreview(AVATAR_BUCKET_ID, picId, 320, 320);
-          setProfilePicUrl(url.toString());
-        } catch (_e: unknown) {
-          console.warn('Failed to load avatar preview');
+      const prof = await UsersService.getProfileById(userData.$id);
+      setProfile(prof);
+      
+      if (prof) {
+        setUsername(prof.username || '');
+        setBio(prof.bio || '');
+        setDisplayName(prof.displayName || '');
+        setIsPublic(prof.isPublic ?? true);
+        setIsGuest(prof.isGuest ?? true);
+        setIsAvatar(prof.isAvatar ?? true);
+        setIsContact(prof.isContact ?? true);
+        
+        const targetAvatarId = prof.userId || prof.$id;
+        if (targetAvatarId) {
+          try {
+            const url = storage.getFilePreview(AVATAR_BUCKET_ID, targetAvatarId, 160, 160);
+            setProfilePicUrl(url.toString());
+          } catch (err) {
+            console.warn('Failed to fetch initial profile preview:', err);
+          }
         }
       }
-    } catch (err: unknown) {
-      setError((err as Error).message);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load identity data');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const checkUsername = async () => {
+      if (!username || username === profile?.username) {
+        setIsAvailable(null);
+        return;
+      }
+
+      if (username.length < 3) {
+        setIsAvailable(false);
+        return;
+      }
+
+      setIsChecking(true);
+      try {
+        const available = await UsersService.isUsernameAvailable(username);
+        setIsAvailable(available);
+      } catch (err: unknown) {
+        console.error('Failed to check username:', err);
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    const timer = setTimeout(checkUsername, 500);
+    return () => clearTimeout(timer);
+  }, [username, profile?.username]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -169,154 +165,117 @@ export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps)
         setError('Only image files are allowed.');
         return;
       }
-      if (file.size > 1024 * 1024) {
-        setError('Maximum file size of 1MB exceeded.');
-        return;
-      }
-      setError(null);
+      setError('');
       try {
         const compressed = await compressImage(file, 512, 512, 0.7);
+        if (compressed.size > 1024 * 1024) {
+          setError('Maximum file size of 1MB exceeded after compression.');
+          return;
+        }
         setProfilePic(compressed);
         setProfilePicUrl(URL.createObjectURL(compressed));
-      } catch (err: any) {
-        console.warn('Instant compression failed, using original:', err);
+        setRemovePicRequested(false);
+      } catch (err) {
+        if (file.size > 1024 * 1024) {
+          setError('Maximum file size of 1MB exceeded.');
+          return;
+        }
         setProfilePic(file);
         setProfilePicUrl(URL.createObjectURL(file));
+        setRemovePicRequested(false);
       }
     }
   };
 
-  const handleRemovePic = async () => {
-    if (!user?.prefs?.profilePicId) return;
-    
-    setIsRemovingPic(true);
-    setError(null);
-    try {
-      const oldId = user.prefs.profilePicId;
-      
-      // Update prefs first
-      const newPrefs = { ...user.prefs, profilePicId: null };
-      await account.updatePrefs(newPrefs);
-      
-      // Attempt to delete from storage (best effort)
-      try {
-        await storage.deleteFile(AVATAR_BUCKET_ID, oldId);
-      } catch (_e: unknown) {
-        console.warn('Failed to delete old avatar from storage');
-      }
-      
-      setProfilePicUrl(null);
-      setProfilePic(null);
-      setUser({ ...user, prefs: newPrefs });
-      setSuccess('Profile picture removed');
-      
-      if (onProfileUpdate) {
-        onProfileUpdate({ profilePicId: null });
-      }
-
-      // Sync to global directory
-      await AppwriteService.ensureGlobalProfile({ ...user, prefs: newPrefs }, true);
-    } catch (_err: unknown) {
-      setError('Failed to remove profile picture');
-    } finally {
-      setIsRemovingPic(false);
-    }
+  const handleRemovePic = () => {
+    setProfilePic(null);
+    setProfilePicUrl(null);
+    setRemovePicRequested(true);
   };
 
   const handleSave = async () => {
+    if (!user?.$id) return;
+    
+    if (username !== profile?.username && isAvailable === false) {
+      setError('Please pick an available username');
+      return;
+    }
+
     setSaving(true);
-    setError(null);
-    setSuccess(null);
+    setError('');
+    setSuccess('');
     try {
-      const currentPrefs = { ...(user.prefs || {}) };
-      const updatedUser = { ...user };
+      const userId = user.$id;
+      
+      if (removePicRequested) {
+        const currentPrefs = user?.prefs || {};
+        await account.updatePrefs({ ...currentPrefs, profilePicId: null });
+      }
 
-      // 1. Handle Profile Picture Upload
       if (profilePic) {
-        try {
-          // Strict check on the raw selected file size first: must be <= 1MB
-          if (profilePic.size > 1024 * 1024) {
-            throw new Error('Maximum file size of 1MB exceeded.');
-          }
-          const formData = new FormData();
-          formData.append('file', profilePic);
-          formData.append('bucketId', AVATAR_BUCKET_ID);
-          const uploadedFile = await secureUploadFile(formData);
-          const oldId = currentPrefs.profilePicId;
-          
-          currentPrefs.profilePicId = uploadedFile.$id;
-          await account.updatePrefs(currentPrefs);
-          
-          if (oldId) {
-            try { await storage.deleteFile(AVATAR_BUCKET_ID, oldId); } catch (_e: unknown) {}
-          }
-        } catch (_e: unknown) {
-          const errMsg = _e instanceof Error ? _e.message : 'Failed to upload profile picture';
-          throw new Error(errMsg);
+        const formData = new FormData();
+        formData.append('file', profilePic);
+        formData.append('bucketId', AVATAR_BUCKET_ID);
+        formData.append('fileId', userId);
+        
+        const uploadedFile = await secureUploadFile(formData);
+        const currentPrefs = user?.prefs || {};
+        await account.updatePrefs({ ...currentPrefs, profilePicId: uploadedFile.$id });
+      }
+
+      let avatarVal = profile?.avatar;
+      if (removePicRequested) {
+        avatarVal = null;
+      } else if (profilePic) {
+        avatarVal = userId;
+      }
+
+      let publicKey: string | undefined;
+      try {
+        if (ecosystemSecurity.status.isUnlocked) {
+          const pub = await ecosystemSecurity.ensureE2EIdentity(userId);
+          if (pub) publicKey = pub;
         }
+      } catch (e) {
+        console.warn("Could not sync public key during profile update", e);
       }
 
-      // 2. Handle Name Update
-      if (name !== user.name) {
-        await account.updateName(name);
-        updatedUser.name = name;
-      }
-
-      // 3. Handle Username Update
-      const cleanUsername = username.toLowerCase().trim().replace(/[^a-z0-9_-]/g, '');
-      let prefsUpdated = false;
-      
-      if (cleanUsername !== (user.prefs?.username || '')) {
-        currentPrefs.username = cleanUsername;
-        currentPrefs.last_username_edit = new Date().toISOString();
-        prefsUpdated = true;
-      }
-      if (currentPrefs.isOnlineVisible !== isOnlineVisible) {
-        currentPrefs.isOnlineVisible = isOnlineVisible;
-        prefsUpdated = true;
-      }
-      if (prefsUpdated) {
-        await account.updatePrefs(currentPrefs);
-      }
-
-      const finalUser = { ...updatedUser, prefs: currentPrefs };
-      setUser(finalUser);
-      setProfilePic(null);
-
-      const syncType = name !== user.name || username !== (user.prefs?.username || '')
-        ? 'username_change'
-        : 'profile_sync';
-      await AppwriteService.recordProfileEvent({
-        type: syncType,
-        userId: user.$id,
-        newUsername: username ? username.toLowerCase().trim() : undefined,
-        profilePatch: {
-          username: username ? username.toLowerCase().trim() : undefined,
-          displayName: name || updatedUser.name,
-          bio: user.prefs?.bio || '',
-          profilePicId: currentPrefs.profilePicId || null,
-          isOnlineVisible: isOnlineVisible,
-        },
-        metadata: {
-          source: 'accounts.profile-manager',
-        },
+      await UsersService.updateProfile(userId, {
+        username,
+        bio,
+        displayName,
+        avatar: avatarVal,
+        publicKey,
+        isPublic,
+        isGuest,
+        isAvatar,
+        isContact
       });
-      
+
+      try {
+        if (displayName || username) {
+          if (displayName) await account.updateName(displayName);
+          const currentPrefs = user?.prefs || {};
+          await account.updatePrefs({
+            ...currentPrefs,
+            username: username.toLowerCase().trim()
+          });
+        }
+      } catch (prefErr) {
+        console.warn('Failed to sync display name or username to account prefs', prefErr);
+      }
+
+      setSuccess('Ecosystem profile updated successfully.');
       if (onProfileUpdate) {
-        onProfileUpdate({ 
-          name: updatedUser.name, 
-          username: cleanUsername, 
-          profilePicId: currentPrefs.profilePicId 
+        onProfileUpdate({
+          name: displayName,
+          username,
+          profilePicId: profilePic ? userId : (removePicRequested ? null : user?.prefs?.profilePicId)
         });
       }
-
-      // 4. Force sync to global directory (Kylrix Connect)
-      await AppwriteService.ensureGlobalProfile(finalUser, true);
-      
-      setSuccess('Profile updated successfully');
-    } catch (_err: unknown) {
-      const err = _err as any;
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update profile';
+      setError(message);
     } finally {
       setSaving(false);
     }
@@ -324,269 +283,194 @@ export default function ProfileManager({ onProfileUpdate }: ProfileManagerProps)
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress size={40} sx={{ color: dynamicColors.primary }} />
-      </Box>
+      <div className="flex justify-center items-center py-12">
+        <div className="w-8 h-8 border-4 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
+      </div>
     );
   }
 
-  const initials = name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : user?.email?.[0].toUpperCase();
-  const brandIndigo = '#6366F1';
-
   return (
-    <Box>
-       {error && (
-        <Alert 
-          severity="error" 
-          sx={{ 
-            mb: 4, 
-            borderRadius: '12px', 
-            backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-            color: '#ef4444',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            '& .MuiAlert-icon': { color: '#ef4444' }
-          }}
-        >
-          {error}
-        </Alert>
-      )}
-      {success && (
-        <Alert 
-          severity="success" 
-          sx={{ 
-            mb: 4, 
-            borderRadius: '12px', 
-            backgroundColor: 'rgba(34, 197, 94, 0.1)', 
-            color: '#22c55e',
-            border: '1px solid rgba(34, 197, 94, 0.2)',
-            '& .MuiAlert-icon': { color: '#22c55e' }
-          }}
-        >
-          {success}
-        </Alert>
-      )}
+    <div className="w-full text-white flex flex-col">
+      <div className="pb-6 mb-6 border-b border-white/8">
+        <h3 className="text-white text-lg font-black tracking-tight leading-tight">Edit Profile</h3>
+        <p className="text-white/40 text-[11px] font-bold mt-1">Configure your public handle & visibility</p>
+      </div>
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={6} alignItems={{ xs: 'center', md: 'flex-start' }}>
-        <Box sx={{ textAlign: 'center' }}>
-          {!profilePic && (
-            <>
-              <Box sx={{ position: 'relative', mb: 3 }}>
-                <IdentityAvatar
-                  src={user?.prefs?.profilePicId ? profilePicUrl : undefined}
-                  alt={name || user?.email || 'profile'}
-                  fallback={initials || 'U'}
-                  verified={identitySignals.verified}
-                  pro={identitySignals.pro}
-                  size={160}
-                  verifiedSize={26}
-                  borderRadius="28px"
+      <div className="space-y-6">
+        {/* Profile Picture Uploader */}
+        <div className="flex flex-col items-center gap-4 pb-2">
+          <div className="relative group">
+            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/10 bg-[#0F0E0D]">
+              {profilePicUrl ? (
+                <img 
+                  src={profilePicUrl} 
+                  alt="Avatar Preview" 
+                  className="w-full h-full object-cover"
                 />
-                <IconButton
-                  component="label"
-                  sx={{
-                    position: 'absolute',
-                    bottom: 8,
-                    right: 8,
-                    bgcolor: brandIndigo,
-                    color: 'white',
-                    '&:hover': { bgcolor: '#4f46e5' },
-                    boxShadow: '0 8px 16px rgba(0,0,0,0.4)',
-                    width: 40,
-                    height: 40,
-                    border: '2px solid #000'
-                  }}
-                >
-                  <input hidden accept="image/*" type="file" onChange={handleFileChange} />
-                  <PhotoCameraIcon sx={{ fontSize: 20 }} />
-                </IconButton>
-              </Box>
-
-              <Stack direction="row" spacing={1} justifyContent="center">
-                {user?.prefs?.profilePicId && (
-                  <Button
-                    size="small"
-                    variant="text"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={handleRemovePic}
-                    disabled={isRemovingPic || saving}
-                    sx={{ 
-                      borderRadius: '12px', 
-                      textTransform: 'none', 
-                      fontWeight: 700,
-                      '&:hover': { backgroundColor: 'rgba(239, 68, 68, 0.1)' }
-                    }}
-                  >
-                    Remove Photo
-                  </Button>
-                )}
-              </Stack>
-            </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white/20 text-3xl font-black">
+                  {(displayName || username || 'U').slice(0, 1).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#6366F1] hover:bg-[#5254E8] text-white flex items-center justify-center cursor-pointer shadow-lg transition-all">
+              <Camera size={14} />
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleFileChange} 
+                className="hidden" 
+              />
+            </label>
+          </div>
+          {profilePicUrl && (
+            <button
+              onClick={handleRemovePic}
+              className="flex items-center gap-1.5 text-xs font-bold text-[#EF4444] hover:text-[#FF6B6B] transition-colors bg-transparent border-none cursor-pointer"
+            >
+              <Trash2 size={12} />
+              <span>Remove Photo</span>
+            </button>
           )}
+        </div>
 
-          {profilePic && profilePicUrl && (
-            <>
-              <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 700, textTransform: 'uppercase', mb: 1.5, fontFamily: '"JetBrains Mono", monospace' }}>
-                Preview
-              </Typography>
-              <Box sx={{ position: 'relative', mb: 3, display: 'inline-block' }}>
-                <IdentityAvatar
-                  src={profilePicUrl}
-                  alt={name || user?.email || 'profile'}
-                  fallback={initials || 'U'}
-                  isPreview={true}
-                  size={160}
-                  verifiedSize={26}
-                  borderRadius="28px"
-                />
-              </Box>
-              <Typography sx={{ fontSize: '0.75rem', color: 'rgba(99, 102, 241, 0.7)', mb: 2, fontFamily: '"JetBrains Mono", monospace', fontStyle: 'italic' }}>
-                Click &quot;Update Ecosystem Identity&quot; to save
-              </Typography>
-              <Button
-                size="small"
-                variant="text"
-                color="inherit"
-                onClick={() => {
-                  setProfilePic(null);
-                  setProfilePicUrl(null);
-                }}
-                disabled={saving}
-                sx={{ 
-                  borderRadius: '12px', 
-                  textTransform: 'none', 
-                  fontWeight: 700,
-                  color: 'rgba(255, 255, 255, 0.6)',
-                  '&:hover': { 
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                    color: 'rgba(255, 255, 255, 0.8)'
-                  }
-                }}
-              >
-                Discard Selected
-              </Button>
-            </>
-          )}
-        </Box>
-
-        <Stack spacing={4} sx={{ flex: 1, width: '100%' }}>
-          <Box>
-            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 700, textTransform: 'uppercase', mb: 1, ml: 1, fontFamily: '"JetBrains Mono", monospace' }}>Display Name</Typography>
-            <TextField
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              fullWidth
-              variant="outlined"
-              placeholder="Your full name"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  color: 'white',
-                  borderRadius: '16px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                  fontFamily: '"Space Grotesk", sans-serif',
-                  fontWeight: 600,
-                  fontSize: '1.1rem',
-                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.05)' },
-                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                  '&.Mui-focused fieldset': { borderColor: brandIndigo },
-                }
-              }}
-            />
-          </Box>
-
-          <Box>
-            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 700, textTransform: 'uppercase', mb: 1, ml: 1, fontFamily: '"JetBrains Mono", monospace' }}>Ecosystem Handle</Typography>
-            <TextField
+        {/* Username */}
+        <div className="space-y-2">
+          <label className="text-xs font-black tracking-wider text-white/40 uppercase">Ecosystem Handle</label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6366F1] font-black">@</span>
+            <input
+              type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
-              fullWidth
-              variant="outlined"
-              placeholder="username"
-              InputProps={{
-                startAdornment: <Typography sx={{ color: brandIndigo, mr: 0.5, fontWeight: 900, fontSize: '1.2rem' }}>@</Typography>
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  color: 'white',
-                  borderRadius: '16px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                  fontFamily: '"JetBrains Mono", monospace',
-                  fontSize: '1rem',
-                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.05)' },
-                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                  '&.Mui-focused fieldset': { borderColor: brandIndigo },
-                }
-              }}
+              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+              className="w-full bg-white/4 border border-white/8 focus:border-[#6366F1] rounded-xl pl-8 pr-12 py-3 text-sm font-semibold focus:outline-none transition-all text-white"
+              placeholder="handle"
             />
-            {user?.prefs?.last_username_edit && (
-              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.3)', mt: 1.5, ml: 1, display: 'flex', alignItems: 'center', gap: 0.75, fontFamily: '"JetBrains Mono", monospace', fontSize: '0.7rem' }}>
-                <InfoIcon sx={{ fontSize: '0.9rem', color: brandIndigo }} />
-                IDENTITY LAST SYNCED: {new Date(user.prefs.last_username_edit).toLocaleDateString().toUpperCase()}
-              </Typography>
-            )}
-          </Box>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+              {isChecking && <div className="w-4 h-4 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />}
+              {!isChecking && isAvailable === true && username !== profile?.username && <CheckCircle size={16} className="text-[#10B981]" />}
+              {!isChecking && isAvailable === false && username !== profile?.username && <AlertCircle size={16} className="text-[#EF4444]" />}
+            </div>
+          </div>
+          <p className="text-[10px] font-bold text-white/40">
+            {isAvailable === false && username !== profile?.username 
+              ? 'Username is already taken' 
+              : 'Only lowercase letters, numbers, and underscores allowed'}
+          </p>
+        </div>
 
-          <Box>
-            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 700, textTransform: 'uppercase', mb: 1, ml: 1, fontFamily: '"JetBrains Mono", monospace' }}>Privacy Settings</Typography>
-            <Paper sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.02)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                <FormControlLabel
-                    control={
-                        <Switch 
-                            checked={isOnlineVisible}
-                            onChange={(e) => setIsOnlineVisible(e.target.checked)}
-                            sx={{
-                                '& .MuiSwitch-switchBase.Mui-checked': { color: brandIndigo },
-                                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: brandIndigo },
-                            }}
-                        />
-                    }
-                    label={
-                        <Box>
-                            <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.9rem' }}>Show Online Status</Typography>
-                            <Typography variant="caption" sx={{ color: '#9B9691', display: 'block' }}>Allow others to see when you are active in the ecosystem.</Typography>
-                        </Box>
-                    }
-                />
-            </Paper>
-          </Box>
+        {/* Display Name */}
+        <div className="space-y-2">
+          <label className="text-xs font-black tracking-wider text-white/40 uppercase">Display Name</label>
+          <input
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            className="w-full bg-white/4 border border-white/8 focus:border-[#6366F1] rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none transition-all text-white"
+            placeholder="Name"
+          />
+        </div>
 
-          <Button
-            variant="contained"
-            startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-            onClick={handleSave}
-            disabled={saving || (name === user.name && username === (user.prefs?.username || '') && isOnlineVisible === (profileRecord?.isOnlineVisible !== false) && !profilePic)}
-            sx={{
-              py: 2,
-              borderRadius: '16px',
-              bgcolor: brandIndigo,
-              color: 'white',
-              fontWeight: 800,
-              fontSize: '1rem',
-              textTransform: 'none',
-              boxShadow: `0 8px 24px ${alpha(brandIndigo, 0.2)}`,
-              '&:hover': { 
-                bgcolor: '#4f46e5',
-                boxShadow: `0 12px 32px ${alpha(brandIndigo, 0.3)}`,
-              },
-              '&.Mui-disabled': {
-                bgcolor: 'rgba(255, 255, 255, 0.03)',
-                color: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.05)'
-              }
-            }}
-          >
-            {saving ? 'Synchronizing Profile...' : 'Update Ecosystem Identity'}
-          </Button>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IdentityName verified={identitySignals.verified} sx={{ color: 'white', fontWeight: 800 }}>
-              {name || user?.email}
-            </IdentityName>
-            {identitySignals.pro && (
-              <Typography sx={{ color: '#6366F1', fontWeight: 800, fontSize: '0.8rem' }}>PRO</Typography>
-            )}
-          </Box>
-        </Stack>
-      </Stack>
-    </Box>
+        {/* Bio */}
+        <div className="space-y-2">
+          <label className="text-xs font-black tracking-wider text-white/40 uppercase">Bio</label>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            rows={4}
+            className="w-full bg-white/4 border border-white/8 focus:border-[#6366F1] rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none transition-all resize-none text-white"
+            placeholder="Tell the world about yourself..."
+          />
+        </div>
+
+        <div className="h-px bg-white/8" />
+
+        {/* Privacy & Visibility */}
+        <div className="space-y-4">
+          <h4 className="text-xs font-black tracking-wider text-[#F59E0B] uppercase">Privacy & Visibility</h4>
+          
+          <div className="space-y-4">
+            {/* Public Profile */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-white">Public Profile</p>
+                <p className="text-xs text-white/40 font-semibold">Allow anyone to find your profile</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={isPublic}
+                onChange={(e) => setIsPublic(e.target.checked)}
+                className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#6366F1] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform"
+              />
+            </div>
+
+            {/* Guest Visibility */}
+            <div className="flex items-center justify-between opacity-80">
+              <div>
+                <p className="text-sm font-bold text-white">Guest Visibility</p>
+                <p className="text-xs text-white/40 font-semibold">Allow non-logged in users to view details</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={isGuest}
+                disabled={!isPublic}
+                onChange={(e) => setIsGuest(e.target.checked)}
+                className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#6366F1] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            {/* Show Avatar */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-white">Show Avatar</p>
+                <p className="text-xs text-white/40 font-semibold">Make your profile picture visible</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={isAvatar}
+                onChange={(e) => setIsAvatar(e.target.checked)}
+                className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#6366F1] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform"
+              />
+            </div>
+
+            {/* Allow Contact */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-white">Allow Contact</p>
+                <p className="text-xs text-white/40 font-semibold">Allow direct messages</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={isContact}
+                onChange={(e) => setIsContact(e.target.checked)}
+                className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#6366F1] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform"
+              />
+            </div>
+          </div>
+        </div>
+
+        {error && (
+          <p className="text-xs font-bold text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/20 p-3 rounded-xl">
+            {error}
+          </p>
+        )}
+
+        {success && (
+          <p className="text-xs font-bold text-[#10B981] bg-[#10B981]/10 border border-[#10B981]/20 p-3 rounded-xl">
+            {success}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-8 pt-6 border-t border-white/8 flex gap-3">
+        <button
+          onClick={handleSave}
+          disabled={saving || (isAvailable === false && username !== profile?.username)}
+          className="w-full py-3.5 px-4 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-white text-sm font-black transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer border-none"
+        >
+          {saving ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Save Changes'}
+        </button>
+      </div>
+    </div>
   );
 }

@@ -88,6 +88,27 @@ export async function secureUploadFile(formData: FormData, jwt?: string) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // Delete existing file with the same ID if the actor owns it or if it matches user's eponymous ID
+    if (fileId && actor?.$id) {
+      try {
+        let shouldDelete = false;
+        if (fileId === actor.$id) {
+          shouldDelete = true;
+        } else {
+          const { storage: adminStorage } = createSystemClient();
+          const existing = await adminStorage.getFile(bucketId, fileId);
+          if (existing && existing.permissions) {
+            shouldDelete = existing.permissions.some((p: string) => p.includes(`user:${actor.$id}`));
+          }
+        }
+        if (shouldDelete) {
+          await Registry.getStorage().deleteFile(bucketId, fileId);
+        }
+      } catch (err) {
+        // File may not exist or deletion failed, proceed with upload
+      }
+    }
+
     const permissions: string[] = [];
     if (actor?.$id) {
       permissions.push(Permission.read(Role.user(actor.$id)));

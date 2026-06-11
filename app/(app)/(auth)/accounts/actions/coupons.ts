@@ -107,7 +107,21 @@ export async function createCouponAction(input: {
       } catch (err) {
         console.warn('[Admin] Failed to send coupon email to target:', err);
       }
-    }
   }
   return { count: created.length, coupons: created };
+}
+
+export async function getMyCouponsAction(jwt?: string) {
+  const user = await getActor(jwt);
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+  const systemClient = createSystemClient();
+  const { databases } = systemClient;
+  const result = await databases.listDocuments(NOTE_DB_ID, COUPONS_TABLE_ID, [
+    Query.equal('targetUserId', user.$id),
+    Query.orderDesc('$createdAt'),
+    Query.limit(50)
+  ]);
+  return result.documents;
 }

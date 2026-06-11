@@ -21,8 +21,10 @@ import {
   LogOut,
   LayoutGrid,
   Bell,
-  Clock
+  Clock,
+  Copy
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { account, AppwriteService } from '@/lib/appwrite';
 import { useAuth } from '@/context/auth/AuthContext';
 import { fetchProfilePreview, getCachedProfilePreview } from '@/lib/profile-preview';
@@ -379,6 +381,31 @@ export const AppHeader = () => {
               <ListItemText primary="Settings" primaryTypographyProps={{ variant: 'caption', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'white' }} />
             </MenuItem>
           </Box>
+          {referralLink && (
+            <>
+              <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.05)' }} />
+              <Box sx={{ px: 3, py: 2, bgcolor: '#161514' }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: 'rgba(255, 255, 255, 0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', mb: 1 }}>
+                  Referral Link
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', p: 1 }}>
+                  <Typography noWrap sx={{ flex: 1, color: 'white', opacity: 0.8, fontSize: '0.7rem', fontFamily: 'monospace' }}>
+                    {referralLink}
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(referralLink);
+                      toast.success('Referral link copied');
+                    }}
+                    sx={{ color: '#6366F1', p: 0.5 }}
+                  >
+                    <Copy size={14} />
+                  </IconButton>
+                </Box>
+              </Box>
+            </>
+          )}
           <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.05)' }} />
           <MenuItem onClick={handleLogout} sx={{ py: 2, px: 3, color: '#FF4D4D', '&:hover': { bgcolor: alpha('#FF4D4D', 0.05) } }}>
             <ListItemIcon><LogOut size={18} strokeWidth={1.5} color="#FF4D4D" /></ListItemIcon>

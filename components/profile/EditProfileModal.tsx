@@ -212,12 +212,6 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                 if (profilePic.size > 1024 * 1024) {
                     throw new Error('Maximum file size of 1MB exceeded.');
                 }
-                // Try deleting any existing file under the userId first
-                try {
-                    await storage.deleteFile(AVATAR_BUCKET_ID, userId);
-                } catch (e) {
-                    // best effort
-                }
                 
                 const formData = new FormData();
                 formData.append('file', profilePic);

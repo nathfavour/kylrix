@@ -392,139 +392,44 @@ export default function SubSettingsPage(props: { params: Promise<{ subsettings: 
 
           <div id="identifiers" className="space-y-4">
             <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
-              Identifiers
+              Account Email
             </h2>
-            <div className="space-y-3.5">
-              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <span className="text-[10px] text-[#9B9691] font-bold font-mono uppercase tracking-wider block mb-1">
-                    Primary Mail Relay
-                  </span>
-                  <span className="text-lg text-white font-extrabold tracking-tight">
-                    {user.email}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(user.email);
-                    toast.success('Email copied');
-                  }}
-                  className="py-2 px-4 rounded-xl border border-white/10 text-white font-bold text-xs hover:border-[#6366F1] hover:bg-[#6366F1]/5 transition-all cursor-pointer flex-shrink-0"
-                >
-                  Copy ID
-                </button>
-              </div>
-
-              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex-1 min-w-0">
-                  <span className="text-[10px] text-[#9B9691] font-bold font-mono uppercase tracking-wider block mb-1">
-                    Unique Node Signature
-                  </span>
-                  <span className="text-sm text-white/80 font-mono break-all leading-normal">
-                    {user.userId}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(user.userId);
-                    toast.success('Signature copied');
-                  }}
-                  className="py-2 px-4 rounded-xl border border-white/10 text-white font-bold text-xs hover:border-[#6366F1] hover:bg-[#6366F1]/5 transition-all cursor-pointer flex-shrink-0"
-                >
-                  Copy Signature
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div id="pulse" className="space-y-4">
-            <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
-              Pulse
-            </h2>
-            <div className="bg-[#6366F1]/[0.02] border border-[#6366F1]/10 rounded-[28px] p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-3.5 h-3.5 rounded-full animate-pulse flex-shrink-0" 
-                  style={{ 
-                    backgroundColor: profileStatus?.color || '#6366F1',
-                    boxShadow: `0 0 12px ${profileStatus?.color || '#6366F1'}`
-                  }} 
-                />
-                <span className="text-base font-extrabold text-white">
-                  Global Directory Synchrony
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <span className="text-[10px] text-[#9B9691] font-bold font-mono uppercase tracking-wider block mb-1">
+                  Primary Mail Relay
+                </span>
+                <span className="text-lg text-white font-extrabold tracking-tight">
+                  {user.email}
                 </span>
               </div>
-              
-              {profileStatus && (
-                <p className="text-sm text-[#9B9691] leading-relaxed font-satoshi">
-                  {profileStatus.label}
-                </p>
-              )}
-
-              {!profileStatus?.label.includes('Correctly linked') && (
-                <div className="space-y-4">
-                  <p className="text-xs text-[#9B9691]/70 leading-relaxed font-satoshi">
-                    Ensure your identity is broadcasted across all nodes to enable seamless interaction in Note, Flow, and Connect.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleFixDiscoverability}
-                    disabled={syncing}
-                    className="px-6 py-3.5 rounded-xl bg-[#6366F1] hover:bg-[#5458E8] text-black font-black text-sm transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    {syncing && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />}
-                    <span>{syncSuccess ? 'IDENTITY SYNCED' : 'INITIALIZE SYNC'}</span>
-                  </button>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(user.email);
+                  toast.success('Email copied');
+                }}
+                className="py-2 px-4 rounded-xl border border-white/10 text-white font-bold text-xs hover:border-[#6366F1] hover:bg-[#6366F1]/5 transition-all cursor-pointer flex-shrink-0"
+              >
+                Copy Email
+              </button>
             </div>
           </div>
 
           <div className="bg-white/[0.02] border border-white/5 rounded-[28px] p-6 md:p-8 space-y-4">
             <h3 className="text-lg font-black font-clash text-white">
-              Gift Pro
+              Billing & Subscriptions
             </h3>
             <p className="text-xs text-[#9B9691] leading-relaxed font-satoshi">
-              Send a subscription gift to another Kylrix account. The recipient will claim it automatically on login.
+              Manage your premium subscription plans, active coupons, regional parameters, and gift subscriptions to other network nodes.
             </p>
-
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Recipient username"
-                value={giftUsername}
-                onChange={(e) => setGiftUsername(e.target.value)}
-                className="w-full bg-[#161412] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1]"
-              />
-              <input
-                type="number"
-                placeholder="Months"
-                min={1}
-                value={giftMonths}
-                onChange={(e) => setGiftMonths(e.target.value)}
-                className="w-full bg-[#161412] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1]"
-              />
-              {giftError && (
-                <p className="text-xs text-red-500 font-satoshi">{giftError}</p>
-              )}
-              <button
-                type="button"
-                onClick={() => void handleGiftCheckout()}
-                disabled={giftLoading}
-                className="px-5 py-3 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-extrabold text-xs transition-colors cursor-pointer"
-              >
-                {giftLoading ? 'Preparing Gift...' : 'Gift Subscription'}
-              </button>
-            </div>
-          </div>
-
-          <div id="referrals" className="space-y-4">
-            <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
-              Referrals
-            </h2>
-            <ReferralManager />
+            <button
+              type="button"
+              onClick={() => router.push('/accounts/billing')}
+              className="px-6 py-3.5 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-white font-black text-sm transition-all cursor-pointer border-none"
+            >
+              Go to Billing Settings
+            </button>
           </div>
         </div>
       )}
