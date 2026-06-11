@@ -3925,6 +3925,36 @@ async function verifyEventPermission(eventId: string, actorId: string, minLevel:
   return false;
 }
 
+function sanitizeEventData(data: any) {
+  if (!data || typeof data !== 'object') return {};
+  const allowedKeys = [
+    'title',
+    'description',
+    'startTime',
+    'endTime',
+    'location',
+    'meetingUrl',
+    'visibility',
+    'status',
+    'coverImageId',
+    'recurrenceRule',
+    'calendarId',
+    'userId',
+    'isPublic',
+    'isPinned',
+    'isGuest',
+    'keepPermission',
+    'source'
+  ];
+  const sanitized: any = {};
+  for (const key of allowedKeys) {
+    if (key in data) {
+      sanitized[key] = data[key];
+    }
+  }
+  return sanitized;
+}
+
 export async function createEventSecure(data: any, jwt?: string) {
   const actor = await getActor(jwt);
   if (!actor || !actor.$id) {
@@ -3952,14 +3982,16 @@ export async function createEventSecure(data: any, jwt?: string) {
   const permissions = [
     Permission.read(Role.user(actor.$id))];
 
+  const sanitizedData = sanitizeEventData({
+    ...data,
+    userId: actor.$id,
+  });
+
   const event = await tables.createRow({
       databaseId: APPWRITE_CONFIG.DATABASES.FLOW,
       tableId: APPWRITE_CONFIG.TABLES.FLOW.EVENTS,
       rowId: ID.unique(),
-      data: {
-      ...data,
-      userId: actor.$id,
-    },
+      data: sanitizedData,
       permissions: permissions,
     });
 
@@ -4006,11 +4038,13 @@ export async function updateEventSecure(eventId: string, data: any, jwt?: string
     console.error('Failed to query manager physical read permissions in updateEventSecure', err);
   }
 
+  const sanitizedData = sanitizeEventData(data);
+
   const updatedEvent = await tables.updateRow({
       databaseId: APPWRITE_CONFIG.DATABASES.FLOW,
       tableId: APPWRITE_CONFIG.TABLES.FLOW.EVENTS,
       rowId: eventId,
-      data: data,
+      data: sanitizedData,
       permissions: permissions,
     });
 

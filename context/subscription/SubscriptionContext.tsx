@@ -30,6 +30,7 @@ interface SubscriptionState {
   exchangeRates: Record<string, number>;
   tokenBalance: { amount: string; symbol: string } | null;
   wallets: WalletSummary[];
+  expiresAt: string | null;
   setPaymentMethod: (method: PaymentMethod) => void;
   setRegion: (countryCode: string) => void;
   refreshPrices: () => void;
@@ -44,6 +45,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const { user, isLoading: authLoading } = useAuth();
 
   const [currentTier, setCurrentTier] = useState<BillingUiTier>('FREE');
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [regionCode, setRegionCode] = useState<string>('DEFAULT');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CRYPTO');
   const [tierLoading, setTierLoading] = useState(true);
@@ -109,10 +111,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     try {
       if ((user as { isPulse?: boolean }).isPulse) {
         setCurrentTier('FREE');
+        setExpiresAt(null);
         return;
       }
       const ent = await BillingCacheService.getEntitlement(user.$id, force);
       setCurrentTier(ent.uiTier);
+      setExpiresAt(ent.expiresAt);
     } catch (err) {
       console.warn('[SubscriptionContext] Failed to refresh entitlement:', err);
     } finally {
@@ -137,8 +141,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [user?.$id, authLoading]);
 
-  const checkSubscriptionExpiry = useCallback(async (expiresAt: string | null, active: boolean) => {
-    if (!active || !expiresAt || !user?.$id) return;
+  const checkSubscriptionExpiry = useCallback(async (expiresAtVal: string | null, active: boolean) => {
+    if (!active || !expiresAtVal || !user?.$id) return;
 
     const lastCheckKey = `kylrix_expiry_reminder_check_${user.$id}`;
     const lastCheck = localStorage.getItem(lastCheckKey);
@@ -149,7 +153,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       return;
     }
 
-    const expiryTime = new Date(expiresAt).getTime();
+    const expiryTime = new Date(expiresAtVal).getTime();
     const twoDaysFromNow = nowMs + 2 * 24 * 60 * 60 * 1000;
 
     // Send expiry reminder email 2 days before actual expiry
@@ -177,6 +181,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         setCurrentTier('FREE');
         setTokenBalance(null);
         setWallets([]);
+        setExpiresAt(null);
         return;
       }
 
@@ -187,6 +192,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             setTokenBalance({ amount: serverData.billing.balance.amount, symbol: serverData.billing.balance.symbol });
             setWallets(serverData.billing.wallets);
             setCurrentTier(serverData.billing.tier);
+            setExpiresAt(serverData.billing.expiresAt);
             void checkSubscriptionExpiry(serverData.billing.expiresAt, serverData.billing.active);
             return;
         }
@@ -196,6 +202,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setTokenBalance(bal);
       setWallets(w);
       setCurrentTier(ent.uiTier);
+      setExpiresAt(ent.expiresAt);
       void checkSubscriptionExpiry(ent.expiresAt, ent.active);
     } catch (err) {
       console.warn('[SubscriptionContext] Failed to hydrate subscription state:', err);
@@ -239,6 +246,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       exchangeRates,
       tokenBalance,
       wallets,
+      expiresAt,
       setPaymentMethod,
       setRegion: setRegionCode,
       refreshPrices: () => {},
@@ -254,6 +262,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       exchangeRates,
       tokenBalance,
       wallets,
+      expiresAt,
       refreshEntitlement,
       refreshBalances],
   );

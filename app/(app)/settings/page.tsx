@@ -30,12 +30,13 @@ import { TelegramDrawer } from '@/components/overlays/TelegramDrawer';
 import { checkTelegramConnection } from '@/lib/actions/telegram';
 import { MultiSectionContainer } from '@/context/SectionContext';
 import { useAppwriteVault } from '@/context/appwrite-context';
-import { hasPaidKylrixPlan, getUserSubscriptionTier, getUserSubscriptionExpiresAt, getUserProfilePicId, getEffectiveDisplayName, getEffectiveUsername } from '@/lib/utils';
+import { getUserProfilePicId, getEffectiveDisplayName, getEffectiveUsername } from '@/lib/utils';
 import { IdentityAvatar } from '@/components/common/IdentityBadge';
 import { getComputeBalanceAction } from '@/lib/actions/ai';
 import { getProfilePicturePreview } from '@/lib/appwrite';
 import { getCachedProfilePreview } from '@/lib/profile-preview';
 import { getUserProfilePicId as getSdkUserProfilePicId } from '@/lib/user-utils';
+import { useSubscription } from '@/context/subscription/SubscriptionContext';
 
 // Inline Custom Telegram Icon SVG for lucide alignment
 function TelegramIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -67,6 +68,7 @@ function Switch({ checked, onChange }: { checked: boolean; onChange: () => void 
 
 export default function SettingsPage() {
     const { user, refreshUser } = useAuth();
+    const { currentTier, expiresAt, refreshEntitlement } = useSubscription();
     const { usePasskeysByDefault, setUsePasskeysByDefault } = useAppwriteVault();
     const router = useRouter();
     const { requestSudo } = useSudo();
@@ -122,10 +124,11 @@ export default function SettingsPage() {
         return () => { mounted = false; };
     }, [profilePicId]);
 
+    const isPro = currentTier === 'PRO' || currentTier === 'LIFETIME' || currentTier === 'ORG';
+
     // Initialize with optimistic default based on client-side tier
     useEffect(() => {
         if (user && !computeBalance) {
-            const isPro = hasPaidKylrixPlan(user);
             setComputeBalance({
                 balance: isPro ? 100000 : 0,
                 maxBalance: isPro ? 100000 : 10000,
@@ -133,7 +136,7 @@ export default function SettingsPage() {
                 percent: isPro ? 100 : 0
             });
         }
-    }, [user]);
+    }, [user, isPro, computeBalance]);
 
     useEffect(() => {
         const fetchCompute = async () => {
@@ -157,6 +160,7 @@ export default function SettingsPage() {
             await account.updatePrefs({ ...currentPrefs, demo_mode: nextVal });
             invalidateCurrentUserCache();
             await refreshUser(true);
+            await refreshEntitlement(true);
             setDemoModeEnabled(nextVal);
             toast.success(`Demo Mode ${nextVal ? "activated" : "deactivated"}`);
         } catch (err: any) {
@@ -315,7 +319,7 @@ export default function SettingsPage() {
                     <div className="flex-shrink-0">
                         <IdentityAvatar 
                             src={profileAvatarUrl}
-                            pro={hasPaidKylrixPlan(user)}
+                            pro={isPro}
                             size={56}
                             fallback={getEffectiveDisplayName(user).slice(0, 1).toUpperCase()}
                         />
@@ -328,11 +332,11 @@ export default function SettingsPage() {
                         </h1>
                         <div className="flex items-center justify-center md:justify-start gap-2 mt-1">
                             <span className="text-[10px] font-black text-[#EC4899] uppercase tracking-wider">
-                                {getUserSubscriptionTier(user)} PLAN
+                                {currentTier} PLAN
                             </span>
-                            {hasPaidKylrixPlan(user) && getUserSubscriptionExpiresAt(user) && (
+                            {isPro && expiresAt && (
                                 <span className="text-[10px] font-bold text-white/20 uppercase font-mono">
-                                    • Ends {new Date(getUserSubscriptionExpiresAt(user)!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                    • Ends {new Date(expiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                 </span>
                             )}
                         </div>

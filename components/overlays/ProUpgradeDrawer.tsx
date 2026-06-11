@@ -37,28 +37,29 @@ export function ProUpgradeDrawer() {
           backgroundImage: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(236, 72, 153, 0.02) 100%)',
           borderTop: isMobile ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(255, 255, 255, 0.1)',
           borderLeft: !isMobile ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-          maxHeight: isMobile ? '85vh' : '100vh',
+          maxHeight: isMobile ? '60vh' : '100vh',
           width: isMobile ? '100%' : 420,
         },
       }}
     >
       <Box
         sx={{
-          p: { xs: 2, md: 3 },
+          p: { xs: 2.5, md: 3.5 },
           display: 'flex',
           flexDirection: 'column',
           height: '100%',
           maxWidth: 420,
           mx: 'auto',
+          justifyContent: 'space-between',
         }}
       >
         {/* Header */}
-        <Box sx={{ mb: 3 }}>
+        <Box>
           <Box
             sx={{
-              width: 48,
-              height: 48,
-              borderRadius: '14px',
+              width: 44,
+              height: 44,
+              borderRadius: '12px',
               bgcolor: alpha('#6366F1', 0.1),
               border: '1px solid rgba(99, 102, 241, 0.3)',
               display: 'flex',
@@ -67,71 +68,48 @@ export function ProUpgradeDrawer() {
               mb: 2,
             }}
           >
-            <Zap size={24} color="#6366F1" />
+            <Zap size={22} color="#6366F1" />
           </Box>
           <Typography
             sx={{
-              fontSize: '1.5rem',
+              fontSize: '1.35rem',
               fontWeight: 900,
               color: '#fff',
-              mb: 1,
+              mb: 1.5,
               letterSpacing: '-0.02em',
+              fontFamily: 'monospace',
             }}
           >
             Upgrade to Pro
           </Typography>
           <Typography
             sx={{
-              fontSize: '0.95rem',
+              fontSize: '0.9rem',
               color: 'rgba(255, 255, 255, 0.6)',
-              lineHeight: 1.6,
+              lineHeight: 1.5,
+              mb: 2.5,
             }}
           >
-            {featureName ? `${featureName} is a Pro feature.` : 'This feature is available in Pro.'} Unlock premium capabilities
-            and take full control of your digital life.
+            {featureName ? `${featureName} is a Pro feature.` : 'This feature requires a Pro subscription.'} Unlock full premium capabilities.
           </Typography>
-        </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)', my: 2 }} />
-
-        {/* Benefits */}
-        <Box sx={{ mb: 3, flex: 1 }}>
-          <Typography
-            sx={{
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              color: 'rgba(255, 255, 255, 0.5)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              mb: 1.5,
-            }}
-          >
-            With Pro, You Get
-          </Typography>
-          <Stack spacing={1.5}>
+          <Stack spacing={1.5} sx={{ mb: 2 }}>
             {[
-              'Unlimited file uploads & attachments',
-              'AI-powered features across all apps',
-              'Advanced task automation',
-              'Priority support',
-              'Advanced encryption options'].map((benefit) => (
-              <Box key={benefit} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+              'Unlimited storage & file uploads',
+              'Ecosystem AI access & advanced automation',
+              'Temporal masterpass encryption options'
+            ].map((benefit) => (
+              <Box key={benefit} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Box
                   sx={{
-                    width: 20,
-                    height: 20,
+                    width: 6,
+                    height: 6,
                     borderRadius: '50%',
-                    bgcolor: alpha('#6366F1', 0.2),
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    bgcolor: '#6366F1',
                     flexShrink: 0,
-                    mt: 0.25,
                   }}
-                >
-                  <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#6366F1' }} />
-                </Box>
-                <Typography sx={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '0.95rem' }}>
+                />
+                <Typography sx={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: '0.85rem', fontWeight: 600 }}>
                   {benefit}
                 </Typography>
               </Box>
@@ -140,7 +118,7 @@ export function ProUpgradeDrawer() {
         </Box>
 
         {/* CTA */}
-        <Stack spacing={2}>
+        <Stack spacing={1.5} sx={{ mt: 'auto' }}>
           <Button
             fullWidth
             variant="contained"
@@ -148,8 +126,8 @@ export function ProUpgradeDrawer() {
               bgcolor: '#6366F1',
               color: '#fff',
               fontWeight: 900,
-              py: 1.5,
-              fontSize: '0.95rem',
+              py: 1.25,
+              fontSize: '0.9rem',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               borderRadius: '12px',
@@ -159,9 +137,9 @@ export function ProUpgradeDrawer() {
             }}
             onClick={() => {
               closeProUpgrade();
-              router.push('/accounts/settings/billing');
+              router.push('/pricing');
             }}
-            endIcon={<ExternalLink size={18} />}
+            endIcon={<ExternalLink size={16} />}
           >
             Upgrade Now
           </Button>
@@ -169,10 +147,10 @@ export function ProUpgradeDrawer() {
             fullWidth
             variant="text"
             sx={{
-              color: 'rgba(255, 255, 255, 0.7)',
+              color: 'rgba(255, 255, 255, 0.5)',
               fontWeight: 700,
               py: 1,
-              fontSize: '0.9rem',
+              fontSize: '0.85rem',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               '&:hover': {

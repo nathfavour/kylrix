@@ -62,3 +62,9 @@ export async function getVerifiedProEntitlementForUser(userId: string): Promise<
     uiTier: 'FREE',
   };
 }
+
+export async function hasPaidKylrixPlanServer(userId: string): Promise<boolean> {
+  const ent = await getVerifiedProEntitlementForUser(userId).catch(() => null);
+  return !!(ent && ent.active && ent.uiTier !== 'FREE');
+}
+

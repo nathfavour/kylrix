@@ -58,15 +58,7 @@ export function getUserSubscriptionTier(user: any): string {
     }
   }
 
-  const base = user.prefs && typeof user.prefs === 'object' ? { ...(user.prefs as object) } : {};
-  const merged: Record<string, unknown> = { ...base };
-  const sub = getUserField<string>(user, 'subscriptionTier');
-  const tg = getUserField<string>(user, 'tier');
-  const exp = getUserField<string>(user, 'subscriptionExpiresAt');
-  if (sub) merged.subscriptionTier = sub;
-  if (tg) merged.tier = tg;
-  if (exp) merged.subscriptionExpiresAt = exp;
-  return normalizeBillingPrefsTier(merged);
+  return 'FREE';
 }
 
 /** Prefer this over comparing to PRO only — includes ORG/LIFETIME. */
@@ -75,7 +67,17 @@ export function hasPaidKylrixPlan(user: any): boolean {
 }
 
 export function getUserSubscriptionExpiresAt(user: any): string | null {
-  return getUserField<string>(user, 'subscriptionExpiresAt');
+  if (!user) return null;
+  if (typeof window !== 'undefined') {
+    const cached = localStorage.getItem(`kylrix_entitlement_${user.$id}`);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        return parsed.expiresAt || null;
+      } catch {}
+    }
+  }
+  return null;
 }
 
 // Get list of OAuth identity providers connected to the account
