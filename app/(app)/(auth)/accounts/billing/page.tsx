@@ -75,7 +75,7 @@ export default function BillingPage() {
         });
         const resolvedCountry = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
         if (resolvedCountry) {
-          setRegion(resolvedCountry);
+          setRegion(resolvedCountry.toUpperCase());
           setLoadingRegion(false);
           return;
         }
@@ -85,7 +85,7 @@ export default function BillingPage() {
       if (topIp && topIp !== '127.0.0.1' && topIp !== '::1') {
         const geoRes = await fetch(`https://ipapi.co/${topIp}/json/`).then(r => r.json()).catch(() => null);
         if (geoRes && geoRes.country_code) {
-          setRegion(geoRes.country_code);
+          setRegion(geoRes.country_code.toUpperCase());
           setLoadingRegion(false);
           return;
         }
@@ -305,26 +305,21 @@ export default function BillingPage() {
 
               <div className="space-y-4">
                 <label className="text-xs font-black text-white/40 uppercase tracking-wider block">Country / Territory</label>
-                <div className="relative">
-                  <select
-                    value={region}
-                    onChange={handleSaveRegion}
-                    disabled={savingRegion || loadingRegion}
-                    className="w-full bg-white/4 border border-white/8 focus:border-[#6366F1] rounded-xl px-4 py-3.5 text-sm font-semibold text-white focus:outline-none appearance-none cursor-pointer"
-                  >
-                    {loadingRegion ? (
-                      <option value="" disabled>Loading secure billing region...</option>
-                    ) : (
-                      Object.entries(require('@/lib/subscription/ppp').PPP_DATA).map(([code, data]: [string, any]) => (
-                        <option key={code} value={code}>
-                          {data.name} ({code}) — Multiplier: {data.multiplier}x
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-white/30">
-                    ▼
-                  </div>
+                <div className="w-full bg-white/4 border border-white/8 rounded-xl px-4 py-3.5 text-sm font-semibold text-white/90">
+                  {loadingRegion ? (
+                    <span className="text-white/40">Resolving secure region...</span>
+                  ) : (() => {
+                    const pppData = require('@/lib/subscription/ppp').PPP_DATA;
+                    const data = pppData[region] || pppData.DEFAULT;
+                    return (
+                      <div className="flex justify-between items-center">
+                        <span>{data.name} ({region})</span>
+                        <span className="text-xs font-mono text-[#F59E0B] bg-[#F59E0B]/10 px-2 py-0.5 rounded">
+                          {data.multiplier}x Multiplier
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
