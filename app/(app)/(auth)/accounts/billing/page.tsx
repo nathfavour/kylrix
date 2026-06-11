@@ -56,13 +56,19 @@ export default function BillingPage() {
     try {
       setLoadingRegion(true);
       
-      // Try to determine country from client-side logs first
       const logList = await account.listLogs();
       const logs = logList.logs || [];
-      const validLogs = logs.filter(l => l.countryCode && l.countryCode !== '—');
       
+      // Get the primary IP used
+      const ipCounts: Record<string, number> = {};
+      logs.forEach(l => {
+        if (l.ip) ipCounts[l.ip] = (ipCounts[l.ip] || 0) + 1;
+      });
+      const topIp = Object.entries(ipCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+      // Try finding countryCode directly from logs first
+      const validLogs = logs.filter(l => l.countryCode && l.countryCode !== '—');
       if (validLogs.length > 0) {
-        // Find the most frequent country code in logs
         const counts: Record<string, number> = {};
         validLogs.forEach(l => {
           counts[l.countryCode] = (counts[l.countryCode] || 0) + 1;
@@ -70,6 +76,16 @@ export default function BillingPage() {
         const resolvedCountry = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
         if (resolvedCountry) {
           setRegion(resolvedCountry);
+          setLoadingRegion(false);
+          return;
+        }
+      }
+
+      // If logs have an IP but no country code (e.g. Appwrite geoip database missing or outdated), query a public API
+      if (topIp && topIp !== '127.0.0.1' && topIp !== '::1') {
+        const geoRes = await fetch(`https://ipapi.co/${topIp}/json/`).then(r => r.json()).catch(() => null);
+        if (geoRes && geoRes.country_code) {
+          setRegion(geoRes.country_code);
           setLoadingRegion(false);
           return;
         }
