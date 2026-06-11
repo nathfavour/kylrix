@@ -891,9 +891,9 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
             boxShadow: `0 8px 32px ${alpha('#6366F1', 0.3)}`,
             '&:hover': { bgcolor: alpha('#6366F1', 0.9) },
             '&.Mui-disabled': {
-              bgcolor: 'rgba(255, 255, 255, 0.05)',
-              color: 'rgba(255, 255, 255, 0.2)',
-              boxShadow: 'none'
+              bgcolor: 'rgba(255, 255, 255, 0.04) !important',
+              color: 'rgba(255, 255, 255, 0.15) !important',
+              boxShadow: 'none !important'
             }
           }}
         >
