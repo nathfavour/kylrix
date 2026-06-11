@@ -9,7 +9,11 @@ if (typeof window !== 'undefined') {
     const stored = sessionStorage.getItem(PREVIEW_STORE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      Object.entries(parsed).forEach(([k, v]) => previewCache.set(k, v as string | null));
+      Object.entries(parsed).forEach(([k, v]) => {
+        if (v !== null && v !== undefined) {
+          previewCache.set(k, v as string | null);
+        }
+      });
     }
   } catch (_e: any) { }
 }
@@ -40,7 +44,7 @@ export async function fetchProfilePreview(fileId?: string | null, width: number 
 
   // 2. Pulse Cache (Instant Base64 if it's the current user)
   const pulse = getKylrixPulse();
-  if (pulse?.profilePicId === fileId && pulse?.avatarBase64) {
+  if ((pulse?.profilePicId === fileId || pulse?.$id === fileId) && pulse?.avatarBase64) {
       previewCache.set(fileId, pulse.avatarBase64);
       return pulse.avatarBase64;
   }
@@ -53,11 +57,15 @@ export async function fetchProfilePreview(fileId?: string | null, width: number 
     if (!url) throw new Error('Failed to generate preview URL');
     const str = url;
     
-    // Background: Convert to Base64 and save to Pulse if it's the current user
-    if (pulse?.profilePicId === fileId) {
-        convertUrlToBase64(str).then(base64 => {
-            setKylrixPulse({ $id: pulse.$id, name: pulse.name, prefs: { profilePicId: fileId } }, base64);
-        }).catch(() => {});
+    // Background: Save to Pulse directly if it is already a base64 data url, otherwise convert
+    if (pulse?.profilePicId === fileId || pulse?.$id === fileId) {
+        if (str.startsWith('data:')) {
+            setKylrixPulse({ $id: pulse.$id, name: pulse.name, prefs: { profilePicId: fileId } }, str);
+        } else {
+            convertUrlToBase64(str).then(base64 => {
+                setKylrixPulse({ $id: pulse.$id, name: pulse.name, prefs: { profilePicId: fileId } }, base64);
+            }).catch(() => {});
+        }
     }
 
     previewCache.set(fileId, str);
@@ -65,7 +73,6 @@ export async function fetchProfilePreview(fileId?: string | null, width: number 
     return str;
   } catch (err) {
     previewCache.set(fileId, null);
-    persistCache();
     return null;
   }
 }
@@ -75,7 +82,7 @@ export function getCachedProfilePreview(fileId?: string | null): string | null |
   
   // Pulse takes precedence for current user for instant load
   const pulse = getKylrixPulse();
-  if (pulse?.profilePicId === fileId && pulse?.avatarBase64) return pulse.avatarBase64;
+  if ((pulse?.profilePicId === fileId || pulse?.$id === fileId) && pulse?.avatarBase64) return pulse.avatarBase64;
 
   return previewCache.get(fileId);
 }

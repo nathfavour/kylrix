@@ -5273,7 +5273,17 @@ export async function getFilePreviewSecure(bucketId: string, fileId: string, wid
   const { storage } = createSystemClient();
   try {
     const url = storage.getFilePreview(bucketId, fileId, width, height);
-    return url.toString();
+    // Fetch preview content from the server-side context where we have full credentials
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      console.warn('[getFilePreviewSecure] Failed to fetch url:', url.toString(), 'status:', res.status);
+      return null;
+    }
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString('base64');
+    const contentType = res.headers.get('content-type') || 'image/png';
+    return `data:${contentType};base64,${base64}`;
   } catch (error: any) {
     console.warn('[getFilePreviewSecure] Failed:', error?.message);
     return null;
