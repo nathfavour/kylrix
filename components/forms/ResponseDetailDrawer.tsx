@@ -176,7 +176,7 @@ export function ResponseDetailDrawer({ isOpen, onClose, submission, schemaMap }:
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#000] text-[#F2F2F2] font-satoshi justify-between">
+    <div className="flex flex-col h-dvh md:h-full bg-[#000] text-[#F2F2F2] font-satoshi justify-between overflow-hidden">
       {/* Header */}
       <div className="p-5 flex items-center justify-between border-b border-white/5 bg-[linear-gradient(to_bottom,rgba(16,185,129,0.05),transparent)] shrink-0">
         <div className="flex items-center gap-3">

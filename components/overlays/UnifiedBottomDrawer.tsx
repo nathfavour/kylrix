@@ -109,7 +109,7 @@ export function UnifiedBottomDrawer() {
   if (!content) return null;
 
   // Authoritative Drawer Wrapper with Rigid Viewport Isolation
-  if (['secure-chat-setup', 'passkey-setup', 'delete-confirm', 'project-invite', 'form-response-detail'].includes(activeContent)) {
+  if (['secure-chat-setup', 'passkey-setup', 'delete-confirm', 'project-invite'].includes(activeContent)) {
     return (
         <>
             {/* Mobile-Only Authoritative Bottom Drawer */}
@@ -131,6 +131,37 @@ export function UnifiedBottomDrawer() {
                 >
                     {content}
                 </Drawer>
+            </Box>
+
+            {/* Desktop-Only Authoritative Right Sidepanel */}
+            <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                <Drawer
+                    anchor="right"
+                    open={true}
+                    onClose={close}
+                    ModalProps={{ keepMounted: false }}
+                    PaperProps={{
+                        sx: {
+                            bgcolor: '#161412',
+                            borderLeft: '1px solid rgba(255,255,255,0.08)',
+                            height: '100%',
+                            maxWidth: 480,
+                            width: '100%',
+                            overflowY: 'auto'
+                        }
+                    }}
+                >
+                    {content}
+                </Drawer>
+            </Box>
+        </>
+    );
+  } else if (activeContent === 'form-response-detail') {
+    return (
+        <>
+            {/* Mobile-Only Full Screen Overlay View */}
+            <Box sx={{ display: { xs: 'block', md: 'none' }, position: 'fixed', inset: 0, zIndex: 10001, bgcolor: '#000', overflowY: 'auto' }}>
+                {content}
             </Box>
 
             {/* Desktop-Only Authoritative Right Sidepanel */}
