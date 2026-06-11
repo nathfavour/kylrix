@@ -11,10 +11,12 @@ import {
   Check, 
   ArrowRight,
   Sparkles,
-  Ticket
+  Ticket,
+  Clock
 } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
 import { account, AppwriteService } from '@/lib/appwrite';
+import { getMyCouponsAction } from '../../actions/coupons';
 import toast from 'react-hot-toast';
 
 export default function BillingPage() {
@@ -31,8 +33,8 @@ export default function BillingPage() {
   const [savingRegion, setSavingRegion] = useState(false);
 
   // Coupon states
-  const [couponCode, setCouponCode] = useState('');
-  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(true);
 
   // Gift states
   const [giftUsername, setGiftUsername] = useState('');
@@ -42,13 +44,11 @@ export default function BillingPage() {
 
   useEffect(() => {
     if (user) {
-      // Set initial region from user preferences
       if (user.prefs?.region) {
         setRegion(user.prefs.region);
       }
-      
-      // Load current subscription plan status
       loadSubscriptionStatus();
+      loadCoupons();
     }
   }, [user]);
 
@@ -69,6 +69,20 @@ export default function BillingPage() {
     }
   };
 
+  const loadCoupons = async () => {
+    if (!user?.$id) return;
+    try {
+      setLoadingCoupons(true);
+      const jwtRes = await account.createJWT().then(res => res.jwt).catch(() => undefined);
+      const list = await getMyCouponsAction(jwtRes);
+      setCoupons(list || []);
+    } catch (err) {
+      console.warn('Failed to load user coupons:', err);
+    } finally {
+      setLoadingCoupons(false);
+    }
+  };
+
   const handleSaveRegion = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = e.target.value;
     setRegion(selected);
@@ -83,15 +97,6 @@ export default function BillingPage() {
     } finally {
       setSavingRegion(false);
     }
-  };
-
-  const handleApplyCoupon = () => {
-    const code = couponCode.trim();
-    if (!code) {
-      toast.error('Please enter a coupon code.');
-      return;
-    }
-    router.push(`/accounts/coupon/${encodeURIComponent(code)}`);
   };
 
   const handleGiftCheckout = useCallback(async () => {
@@ -199,7 +204,7 @@ export default function BillingPage() {
                 {!isPro && !loadingPlan && (
                   <button
                     onClick={() => router.push('/pricing')}
-                    className="px-6 py-3 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-white font-black text-xs transition-all flex items-center gap-2 border-none cursor-pointer"
+                    className="px-6 py-3 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-white font-black text-xs transition-all flex items-center gap-2 border-none cursor-pointer animate-pulse"
                   >
                     <span>Upgrade to Pro</span>
                     <ArrowRight size={14} />
@@ -248,34 +253,74 @@ export default function BillingPage() {
               </div>
             </div>
 
-            {/* Apply Coupons */}
+            {/* Passive Coupons List */}
             <div className="bg-[#161412] border border-white/5 rounded-[32px] p-6 md:p-8 space-y-6">
               <div className="flex items-center gap-3 border-b border-white/8 pb-4">
                 <div className="w-10 h-10 rounded-xl bg-[#10B981]/10 flex items-center justify-center text-[#10B981]">
                   <Ticket size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-tight">Ecosystem Coupons</h3>
-                  <p className="text-xs text-white/40 font-bold">Apply active promotional code tags to unlock tiers</p>
+                  <h3 className="text-lg font-black tracking-tight">Your Coupons</h3>
+                  <p className="text-xs text-white/40 font-bold">Coupons and gift promotions sent directly to you</p>
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  placeholder="Coupon code (e.g. ALPHA_USER)"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase().trim())}
-                  className="flex-1 bg-white/4 border border-white/8 focus:border-[#6366F1] rounded-xl px-4 py-3 text-sm font-semibold text-white focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={handleApplyCoupon}
-                  className="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs transition-colors cursor-pointer"
-                >
-                  Apply Code
-                </button>
-              </div>
+              {loadingCoupons ? (
+                <div className="flex justify-center items-center py-6">
+                  <div className="w-6 h-6 border-2 border-[#10B981] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : coupons.length === 0 ? (
+                <div className="text-center py-8 text-white/30">
+                  <Ticket size={24} className="mx-auto opacity-20 mb-2" />
+                  <p className="text-xs font-bold font-mono uppercase">No Coupons Received</p>
+                  <p className="text-[11px] text-white/20 mt-1">Coupons sent by other users or admins will appear here passively.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {coupons.map((coupon) => {
+                    const isRedeemed = coupon.redemptionCount >= coupon.redemptionLimit || coupon.status === 'redeemed';
+                    const isExpired = coupon.expiresAt && new Date(coupon.expiresAt) < new Date();
+                    const isActive = coupon.status === 'active' && !isRedeemed && !isExpired;
+
+                    return (
+                      <div key={coupon.$id} className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-extrabold text-white">
+                              {coupon.title || 'Kylrix Promo Coupon'}
+                            </span>
+                            <span className="text-[10px] font-black font-mono text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded">
+                              {coupon.discountPercent}% OFF
+                            </span>
+                          </div>
+                          {coupon.note && (
+                            <p className="text-xs text-white/50 mt-1">{coupon.note}</p>
+                          )}
+                          {coupon.expiresAt && (
+                            <span className="text-[10px] text-white/30 font-mono block mt-1.5 uppercase">
+                              Expires: {new Date(coupon.expiresAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+
+                        {isActive ? (
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/accounts/coupon/${coupon.$id}`)}
+                            className="py-2 px-4 rounded-xl bg-[#10B981] hover:bg-[#0D9F6E] text-black font-black text-xs transition-colors cursor-pointer border-none flex-shrink-0"
+                          >
+                            Activate Coupon
+                          </button>
+                        ) : (
+                          <span className="text-xs font-bold text-white/20 uppercase tracking-wider flex-shrink-0">
+                            {isRedeemed ? 'Redeemed' : isExpired ? 'Expired' : coupon.status}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
           </div>
