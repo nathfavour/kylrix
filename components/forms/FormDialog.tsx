@@ -157,7 +157,7 @@ function SortableField({
                 </Tooltip>
             </Box>
             
-            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexGrow: 1 }}>
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexGrow: 1, minWidth: 0 }}>
                 <TextField
                     fullWidth
                     variant="standard"
@@ -178,6 +178,7 @@ function SortableField({
                         '&::placeholder': { color: 'rgba(255,255,255,0.25)' }
                       } 
                     }}
+                    sx={{ flex: 1, minWidth: 0 }}
                 />
                 
                 <Tooltip title="Remove Field">
@@ -400,7 +401,7 @@ function SortableField({
                 </Typography>
                 <Stack spacing={1}>
                     {(field.options || []).map((opt: string, oIdx: number) => (
-                        <Stack key={oIdx} direction="row" spacing={1.5} alignItems="center">
+                        <Stack key={oIdx} direction="row" spacing={1.5} alignItems="center" sx={{ width: '100%', minWidth: 0 }}>
                             <IconButton 
                               size="small" 
                               onClick={() => removeOption(fIdx, oIdx)} 
@@ -423,12 +424,13 @@ function SortableField({
                                     fontSize: '0.85rem', 
                                     color: 'white',
                                     bgcolor: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid rgba(255,255,255,0.05)',
+                                    border: '1px solid rgba(255, 255, 255, 0.05)',
                                     borderRadius: '8px',
                                     px: 1.5,
                                     py: 0.5
                                   } 
                                 }}
+                                sx={{ flex: 1, minWidth: 0 }}
                             />
                         </Stack>
                     ))}
@@ -817,7 +819,7 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
         </Box>
       </Box>
 
-      <Box sx={{ p: 4, pt: 1, flex: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 180px)' }}>
+      <Box sx={{ p: 4, pt: 1, flex: 1, overflowY: 'auto', overflowX: 'hidden', maxHeight: 'calc(100vh - 180px)' }}>
         <Stack spacing={5}>
           {isRestored && (
             <Alert 
