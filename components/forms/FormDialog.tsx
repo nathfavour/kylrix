@@ -135,12 +135,11 @@ function SortableField({
       }}
     >
       <Stack spacing={3}>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ width: '100%' }}>
             <Box 
               {...attributes} 
               {...listeners}
               sx={{ 
-                pt: 1, 
                 display: { xs: 'none', md: 'block' }, 
                 cursor: 'grab',
                 '&:active': { cursor: 'grabbing' },
@@ -157,7 +156,7 @@ function SortableField({
                 </Tooltip>
             </Box>
             
-            <Stack spacing={2.5} sx={{ flexGrow: 1, width: '100%' }}>
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexGrow: 1 }}>
                 <TextField
                     fullWidth
                     variant="standard"
@@ -170,73 +169,87 @@ function SortableField({
                         fontSize: '1rem', 
                         fontWeight: 900, 
                         color: 'white',
-                        '&::placeholder': { color: 'rgba(255,255,255,0.2)' }
+                        px: 2,
+                        py: 1.25,
+                        borderRadius: '12px',
+                        bgcolor: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                        '&::placeholder': { color: 'rgba(255,255,255,0.25)' }
                       } 
                     }}
                 />
                 
-                <Stack direction="row" spacing={2} alignItems="center">
-                    {/* Bottom Drawer Select Trigger */}
-                    <Button
-                        variant="text"
-                        onClick={() => openSelectorDrawer(fIdx)}
-                        sx={{
-                            bgcolor: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid rgba(255, 255, 255, 0.05)',
-                            borderRadius: '12px',
-                            px: 2,
-                            py: 1,
-                            color: 'rgba(255, 255, 255, 0.7)',
-                            fontSize: '0.8rem',
-                            fontWeight: 700,
-                            textTransform: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1.5,
-                            '&:hover': {
-                                bgcolor: 'rgba(255, 255, 255, 0.06)',
-                                borderColor: 'rgba(255, 255, 255, 0.1)'
-                            }
-                        }}
+                <Tooltip title="Remove Field">
+                    <IconButton 
+                      size="small" 
+                      sx={{ 
+                        color: 'rgba(255, 255, 255, 0.3)', 
+                        bgcolor: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                        borderRadius: '12px',
+                        p: 1.25,
+                        '&:hover': { color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)' } 
+                      }} 
+                      onClick={() => removeField(fIdx)}
                     >
-                        {FIELD_TYPES.find(t => t.value === field.type)?.icon}
-                        <span>{FIELD_TYPES.find(t => t.value === field.type)?.label}</span>
-                    </Button>
-                    
-                    <FormControlLabel
-                        control={
-                            <Switch 
-                                size="small" 
-                                checked={field.required} 
-                                onChange={(e) => updateField(fIdx, { required: e.target.checked })} 
-                            />
-                        }
-                        label={<Typography variant="caption" sx={{ fontWeight: 800, opacity: 0.6 }}>REQUIRED</Typography>}
-                    />
-
-                    <Tooltip title="Field Settings">
-                        <IconButton 
-                            size="small" 
-                            onClick={() => updateField(fIdx, { showSettings: !field.showSettings })}
-                            sx={{ 
-                                color: field.showSettings ? 'var(--color-primary)' : 'rgba(255,255,255,0.3)',
-                                bgcolor: field.showSettings ? alpha('#6366F1', 0.1) : 'transparent',
-                                '&:hover': { bgcolor: alpha('#6366F1', 0.1) } 
-                            }}
-                        >
-                            <SettingsIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-
-                    <Box sx={{ flexGrow: 1 }} />
-                    
-                    <Tooltip title="Remove Field">
-                        <IconButton size="small" sx={{ color: alpha('#ef4444', 0.5), '&:hover': { color: '#ef4444', bgcolor: alpha('#ef4444', 0.1) } }} onClick={() => removeField(fIdx)}>
-                            <DeleteIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                </Stack>
+                        <CloseIcon style={{ fontSize: 16 }} />
+                    </IconButton>
+                </Tooltip>
             </Stack>
+        </Stack>
+
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ pl: { md: 5 } }}>
+            {/* Bottom Drawer Select Trigger */}
+            <Button
+                variant="text"
+                onClick={() => openSelectorDrawer(fIdx)}
+                sx={{
+                    bgcolor: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px',
+                    px: 2.5,
+                    py: 1.25,
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    textTransform: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    '&:hover': {
+                        bgcolor: 'rgba(255, 255, 255, 0.06)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)'
+                    }
+                }}
+            >
+                {FIELD_TYPES.find(t => t.value === field.type)?.icon}
+                <span>{FIELD_TYPES.find(t => t.value === field.type)?.label}</span>
+            </Button>
+            
+            <FormControlLabel
+                control={
+                    <Switch 
+                        size="small" 
+                        checked={field.required} 
+                        onChange={(e) => updateField(fIdx, { required: e.target.checked })} 
+                    />
+                }
+                label={<Typography variant="caption" sx={{ fontWeight: 800, opacity: 0.6 }}>REQUIRED</Typography>}
+            />
+
+            <Tooltip title="Field Settings">
+                <IconButton 
+                    size="small" 
+                    onClick={() => updateField(fIdx, { showSettings: !field.showSettings })}
+                    sx={{ 
+                        color: field.showSettings ? 'var(--color-primary)' : 'rgba(255,255,255,0.3)',
+                        bgcolor: field.showSettings ? alpha('#6366F1', 0.1) : 'transparent',
+                        '&:hover': { bgcolor: alpha('#6366F1', 0.1) } 
+                    }}
+                >
+                    <SettingsIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>
         </Stack>
 
         {field.showSettings && (
@@ -825,67 +838,91 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
           )}
 
           <Box>
-            <Stack spacing={2.5}>
-              <TextField
-                fullWidth
-                label="Identity Label"
-                variant="filled"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Nexus Registration"
-                InputProps={{ 
-                  disableUnderline: true, 
-                  sx: { 
-                    borderRadius: '16px', 
-                    fontWeight: 800, 
-                    fontSize: '1.1rem',
-                    bgcolor: '#0B0A09',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    '&:hover': { bgcolor: '#0B0A09' },
-                    '&.Mui-focused': { bgcolor: '#0B0A09', borderColor: 'var(--color-primary)' }
-                  } 
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Mission Brief"
-                variant="filled"
-                multiline
-                rows={2}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Briefly describe the objective..."
-                InputProps={{ 
-                  disableUnderline: true, 
-                  sx: { 
-                    borderRadius: '16px',
-                    bgcolor: '#0B0A09',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    '&:hover': { bgcolor: '#0B0A09' },
-                    '&.Mui-focused': { bgcolor: '#0B0A09', borderColor: 'var(--color-primary)' }
-                  } 
-                }}
-              />
-              <FormControl fullWidth variant="filled">
-                <InputLabel sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-focused': { color: 'var(--color-primary)' } }}>Deployment Status</InputLabel>
+            <Stack spacing={3}>
+              <Stack spacing={1}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '0.05em', ml: 1 }}>
+                  IDENTITY LABEL
+                </Typography>
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Nexus Registration"
+                  InputProps={{ 
+                    disableUnderline: true, 
+                    sx: { 
+                      borderRadius: '16px', 
+                      fontWeight: 800, 
+                      fontSize: '1.1rem',
+                      bgcolor: '#0B0A09',
+                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      px: 2.5,
+                      py: 1.5,
+                      color: 'white',
+                      '&:hover': { bgcolor: '#0B0A09' },
+                      '&.Mui-focused': { bgcolor: '#0B0A09', borderColor: 'var(--color-primary)' }
+                    } 
+                  }}
+                />
+              </Stack>
+
+              <Stack spacing={1}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '0.05em', ml: 1 }}>
+                  MISSION BRIEF
+                </Typography>
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  multiline
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Briefly describe the objective..."
+                  InputProps={{ 
+                    disableUnderline: true, 
+                    sx: { 
+                      borderRadius: '16px',
+                      bgcolor: '#0B0A09',
+                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      px: 2.5,
+                      py: 1.5,
+                      color: 'white',
+                      '&:hover': { bgcolor: '#0B0A09' },
+                      '&.Mui-focused': { bgcolor: '#0B0A09', borderColor: 'var(--color-primary)' }
+                    } 
+                  }}
+                />
+              </Stack>
+
+              <Stack spacing={1}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '0.05em', ml: 1 }}>
+                  DEPLOYMENT STATUS
+                </Typography>
                 <Select
                   value={status}
-                  label="Deployment Status"
                   onChange={(e) => setStatus(e.target.value as any)}
                   disableUnderline
                   sx={{ 
                     borderRadius: '16px',
                     bgcolor: '#0B0A09',
                     border: '1px solid rgba(255, 255, 255, 0.05)',
+                    px: 2.5,
+                    py: 1.5,
+                    color: 'white',
                     '&:hover': { bgcolor: '#0B0A09' },
-                    '&.Mui-focused': { bgcolor: '#0B0A09', borderColor: 'var(--color-primary)' }
+                    '&.Mui-focused': { bgcolor: '#0B0A09', borderColor: 'var(--color-primary)' },
+                    '& .MuiSelect-select': {
+                      py: 0,
+                      px: 0,
+                    }
                   }}
                 >
                   <MenuItem value="draft">DRAFT (INTERNAL)</MenuItem>
                   <MenuItem value="published">PUBLISHED (PUBLIC ACCESS)</MenuItem>
                   <MenuItem value="archived">ARCHIVED (READ-ONLY)</MenuItem>
                 </Select>
-              </FormControl>
+              </Stack>
             </Stack>
           </Box>
 
