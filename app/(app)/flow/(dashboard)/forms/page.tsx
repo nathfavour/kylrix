@@ -15,7 +15,8 @@ import {
     Share2, 
     FolderKanban,
     Lock,
-    Link as LinkIcon
+    Link as LinkIcon,
+    RefreshCw
 } from 'lucide-react';
 import { FormsService } from '@/lib/services/forms';
 import { DraftsService, FormDraft } from '@/lib/services/drafts';
@@ -124,7 +125,20 @@ export default function FormsDashboard() {
         } finally {
             if (shouldShowLoading) setLoading(false);
         }
-    }, [user, fetchOptimized, isResourcePinned]);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleManualRefresh = useCallback(async () => {
+        if (!user) return;
+        setIsRefreshing(true);
+        try {
+            // Invalidate the cache to ensure we get fresh data
+            invalidate(`f_user_forms_${user.$id}`);
+            await fetchForms(true);
+        } finally {
+            // Force a minimum roll animation duration of 600ms
+            setTimeout(() => setIsRefreshing(false), 600);
+        }
+    }, [user, fetchForms, invalidate]);
 
     const handleCreate = () => {
         setSelectedForm(null);
@@ -241,14 +255,25 @@ export default function FormsDashboard() {
                             Design data collection workflows for the ecosystem.
                         </p>
                     </div>
-                    <button 
-                        type="button"
-                        onClick={handleCreate}
-                        className="flex items-center gap-1.5 px-5 py-2.5 font-bold rounded-xl bg-[#6366F1] text-black font-satoshi hover:bg-[#575CF0] transition-colors cursor-pointer text-sm"
-                    >
-                        <Plus className="h-4 w-4" />
-                        <span>Create Form</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={handleManualRefresh}
+                            disabled={isRefreshing}
+                            className="w-10 h-10 rounded-xl bg-white/3 border border-white/8 hover:border-white/15 flex items-center justify-center transition-all duration-300 disabled:opacity-40 cursor-pointer"
+                            title="Refresh Forms"
+                        >
+                            <RefreshCw size={16} className={`transition-all ${isRefreshing ? 'animate-spin text-[#6366F1]' : 'text-white/60'}`} />
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={handleCreate}
+                            className="flex items-center gap-1.5 px-5 py-2.5 font-bold rounded-xl bg-[#6366F1] text-black font-satoshi hover:bg-[#575CF0] transition-colors cursor-pointer text-sm"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span>Create Form</span>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Custom Tab Switcher */}

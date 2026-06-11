@@ -79,8 +79,12 @@ export const DraftsService = {
         if (typeof window === 'undefined') return;
         
         const db = await getRxDB();
-        const doc = await db.cache.findOne(`${STORAGE_PREFIX}${id}`).exec();
-        if (doc) await doc.remove();
+        try {
+            const doc = await db.cache.findOne(`${STORAGE_PREFIX}${id}`).exec();
+            if (doc) await doc.remove();
+        } catch (err) {
+            console.warn("[Drafts] Deletion conflict during clearDraft:", err);
+        }
 
         const manifest = await this.getManifest();
         if (manifest[id]) {
@@ -115,13 +119,21 @@ export const DraftsService = {
         const manifest = await this.getManifest();
         
         const purgeActions = Object.keys(manifest).map(async (id) => {
-            const doc = await db.cache.findOne(`${STORAGE_PREFIX}${id}`).exec();
-            if (doc) await doc.remove();
+            try {
+                const doc = await db.cache.findOne(`${STORAGE_PREFIX}${id}`).exec();
+                if (doc) await doc.remove();
+            } catch (err) {
+                console.warn("[Drafts] Deletion conflict during clearAll for id:", id, err);
+            }
         });
         
         await Promise.all(purgeActions);
         
-        const manifestDoc = await db.cache.findOne(MANIFEST_KEY).exec();
-        if (manifestDoc) await manifestDoc.remove();
+        try {
+            const manifestDoc = await db.cache.findOne(MANIFEST_KEY).exec();
+            if (manifestDoc) await manifestDoc.remove();
+        } catch (err) {
+            console.warn("[Drafts] Deletion conflict for manifestDoc:", err);
+        }
     }
 };
