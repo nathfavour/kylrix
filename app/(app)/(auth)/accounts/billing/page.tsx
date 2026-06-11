@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
 import { account, AppwriteService } from '@/lib/appwrite';
-import { listCouponsAction as getMyCouponsAction } from '../actions/coupons';
+import { getMyCouponsAction } from '../actions/coupons';
+import { getUserBillingRegionAction } from '../actions/billing';
 import toast from 'react-hot-toast';
 
 export default function BillingPage() {
@@ -44,13 +45,27 @@ export default function BillingPage() {
 
   useEffect(() => {
     if (user) {
-      if (user.prefs?.region) {
-        setRegion(user.prefs.region);
-      }
+      resolveUserRegion();
       loadSubscriptionStatus();
       loadCoupons();
     }
   }, [user]);
+
+  const resolveUserRegion = async () => {
+    try {
+      const jwtRes = await account.createJWT().then(res => res.jwt).catch(() => undefined);
+      const secureRegion = await getUserBillingRegionAction(jwtRes);
+      if (secureRegion) {
+        setRegion(secureRegion);
+        return;
+      }
+    } catch (err) {
+      console.warn('Failed to resolve secure billing region:', err);
+    }
+    if (user?.prefs?.region) {
+      setRegion(user.prefs.region);
+    }
+  };
 
   const loadSubscriptionStatus = async () => {
     if (!user?.$id) return;

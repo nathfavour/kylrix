@@ -70,29 +70,75 @@ async function resolveSecureCountryCode(userId: string, clientCountryCode?: stri
 
   const { users } = createSystemClient();
   try {
-    // 2. Fetch the user's historical account session activity logs
-    const logsRes = await users.listLogs(userId);
+    // 2. Fetch as many logs as possible (up to 100)
+    const logsRes = await users.listLogs(userId, [Query.limit(100)]);
     const logs = logsRes.logs || [];
 
-    // Reliability threshold: consensus requires at least 5 logs
-    if (logs.length >= 5) {
-      const counts: Record<string, number> = {};
+    if (logs.length > 0) {
+      // Group by IP
+      const ipCounts: Record<string, { count: number; countryCode: string }> = {};
       logs.forEach((log: any) => {
-        if (log.countryCode && log.countryCode !== '—') {
-          counts[log.countryCode] = (counts[log.countryCode] || 0) + 1;
+        if (log.ip && log.countryCode && log.countryCode !== '—') {
+          if (!ipCounts[log.ip]) {
+            ipCounts[log.ip] = { count: 0, countryCode: log.countryCode };
+          }
+          ipCounts[log.ip].count++;
         }
       });
 
-      // Sort logs by regional popularity
-      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-      if (sorted.length > 0) {
-        const topCountry = sorted[0][0];
-        const topCount = sorted[0][1];
+      // Sort IPs by count desc
+      const sortedIps = Object.entries(ipCounts).sort((a, b) => b[1].count - a[1].count);
 
-        // 40% majority consensus required to regard this as their canonical home country
-        if (topCount >= logs.length * 0.4) {
-          console.log(`[Billing Location] SECURE CONSENSUS: Resolved ${topCountry} from ${topCount}/${logs.length} activity entries.`);
-          return topCountry;
+      if (sortedIps.length > 0) {
+        const totalLogCount = logs.length;
+        const top1Ip = sortedIps[0];
+        const top1IpCount = top1Ip[1].count;
+
+        let candidateCountries: string[] = [];
+
+        // If top 1 IP is a stark majority (>= 50%)
+        if (top1IpCount >= totalLogCount * 0.5) {
+          candidateCountries.push(top1Ip[1].countryCode);
+        } else {
+          // Check top 2-3 IPs if they together make a stark majority (>= 60%)
+          const top2Ip = sortedIps[1];
+          const top3Ip = sortedIps[2];
+          
+          let combinedCount = top1IpCount;
+          candidateCountries.push(top1Ip[1].countryCode);
+
+          if (top2Ip) {
+            combinedCount += top2Ip[1].count;
+            candidateCountries.push(top2Ip[1].countryCode);
+          }
+          if (top3Ip) {
+            combinedCount += top3Ip[1].count;
+            candidateCountries.push(top3Ip[1].countryCode);
+          }
+
+          // If not making a stark majority, check all unique countries present in logs
+          if (combinedCount < totalLogCount * 0.6) {
+            candidateCountries = Array.from(new Set(logs.map((l: any) => l.countryCode).filter((c: string) => c && c !== '—')));
+          }
+        }
+
+        const uniqueCandidates = Array.from(new Set(candidateCountries)).filter(Boolean);
+
+        if (uniqueCandidates.length > 0) {
+          const { PPP_DATA } = await import('@/lib/subscription/ppp');
+          let highestCountry = uniqueCandidates[0];
+          let highestMultiplier = (PPP_DATA[highestCountry] || PPP_DATA.DEFAULT).multiplier;
+
+          for (const c of uniqueCandidates) {
+            const m = (PPP_DATA[c] || PPP_DATA.DEFAULT).multiplier;
+            if (m > highestMultiplier) {
+              highestMultiplier = m;
+              highestCountry = c;
+            }
+          }
+
+          console.log(`[Billing Location] SECURE CONSENSUS: Resolved ${highestCountry} (multiplier: ${highestMultiplier}) from candidates ${uniqueCandidates.join(', ')}.`);
+          return highestCountry;
         }
       }
     }
@@ -102,6 +148,13 @@ async function resolveSecureCountryCode(userId: string, clientCountryCode?: stri
 
   // 3. Fallback path: Edge Location -> Client Input -> US default
   return edgeCountry || 'US';
+}
+
+export async function getUserBillingRegionAction(jwt?: string) {
+  const user = await getAuthenticatedUserForBillingAction({ jwt: jwt ?? undefined });
+  if (!user) throw new Error('Authentication required');
+  const code = await resolveSecureCountryCode(user.$id);
+  return code;
 }
 
 async function calculateStackedPeriod(databases: ReturnType<typeof createSystemClient>['databases'], userId: string, planId: string, months: number) {
