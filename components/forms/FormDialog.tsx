@@ -97,7 +97,8 @@ function SortableField({
   removeOption,
   isChoiceType,
   user,
-  openProUpgrade
+  openProUpgrade,
+  openSelectorDrawer
 }: any) {
   const {
     attributes,
@@ -156,45 +157,51 @@ function SortableField({
                 </Tooltip>
             </Box>
             
-            <Stack spacing={2} sx={{ flexGrow: 1, width: '100%' }}>
+            <Stack spacing={2.5} sx={{ flexGrow: 1, width: '100%' }}>
                 <TextField
                     fullWidth
                     variant="standard"
                     placeholder="Question Label"
                     value={field.label}
                     onChange={(e) => updateField(fIdx, { label: e.target.value })}
-                    InputProps={{ disableUnderline: true, sx: { fontSize: '1rem', fontWeight: 800 } }}
+                    InputProps={{ 
+                      disableUnderline: true, 
+                      sx: { 
+                        fontSize: '1rem', 
+                        fontWeight: 900, 
+                        color: 'white',
+                        '&::placeholder': { color: 'rgba(255,255,255,0.2)' }
+                      } 
+                    }}
                 />
                 
                 <Stack direction="row" spacing={2} alignItems="center">
-                    <FormControl variant="filled" size="small" sx={{ minWidth: 200 }}>
-                        <Select
-                            value={field.type}
-                            onChange={(e) => {
-                                const newType = e.target.value;
-                                if (newType === 'file' && !hasPaidKylrixPlan(user)) {
-                                    openProUpgrade('Form File Uploads');
-                                    return;
-                                }
-                                updateField(fIdx, { type: newType });
-                            }}
-                            disableUnderline
-                            sx={{ borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700 }}
-                            renderValue={(selected) => (
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                    {FIELD_TYPES.find(t => t.value === selected)?.icon}
-                                    {FIELD_TYPES.find(t => t.value === selected)?.label}
-                                </Box>
-                            )}
-                        >
-                            {FIELD_TYPES.map(t => (
-                            <MenuItem key={t.value} value={t.value} sx={{ fontSize: '0.85rem', gap: 1.5, py: 1.5 }}>
-                                {t.icon}
-                                {t.label}
-                            </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                    {/* Bottom Drawer Select Trigger */}
+                    <Button
+                        variant="text"
+                        onClick={() => openSelectorDrawer(fIdx)}
+                        sx={{
+                            bgcolor: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.05)',
+                            borderRadius: '12px',
+                            px: 2,
+                            py: 1,
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            textTransform: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            '&:hover': {
+                                bgcolor: 'rgba(255, 255, 255, 0.06)',
+                                borderColor: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }}
+                    >
+                        {FIELD_TYPES.find(t => t.value === field.type)?.icon}
+                        <span>{FIELD_TYPES.find(t => t.value === field.type)?.label}</span>
+                    </Button>
                     
                     <FormControlLabel
                         control={
@@ -234,7 +241,7 @@ function SortableField({
 
         {field.showSettings && (
             <Box sx={{ pl: { md: 5 }, pr: 2 }}>
-                <Paper sx={{ p: 2, bgcolor: alpha('#fff', 0.02), borderRadius: '14px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                <Paper sx={{ p: 2, bgcolor: '#161412', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)' }}>
                     <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 900, mb: 2, display: 'block', letterSpacing: '0.05em' }}>
                         VALIDATION CONSTRAINTS
                     </Typography>
@@ -363,19 +370,33 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
   const { openProUpgrade } = useProUpgrade();
   const { invalidate } = useDataNexus();
   const { setIsDrawerOpen } = useDrawerState();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<'draft' | 'published' | 'archived'>('draft');
   const [fields, setFields] = useState<any[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isRestored, setIsRestored] = useState(false);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [activeFieldIndex, setActiveFieldIndex] = useState<number | null>(null);
+  
+  const openSelectorDrawer = (fIdx: number) => {
+    setActiveFieldIndex(fIdx);
+    setSelectorOpen(true);
+  };
   
   const initialLoadRef = useRef(true);
 
-  // Sync isDrawerOpen global state when open
+  // Sync isDrawerOpen global state and body class when open
   useEffect(() => {
     setIsDrawerOpen(open);
+    if (typeof window !== 'undefined') {
+      if (open) {
+        document.body.classList.add('drawer-expanded');
+      } else {
+        document.body.classList.remove('drawer-expanded');
+      }
+    }
     return () => {
       setIsDrawerOpen(false);
       if (typeof window !== 'undefined') {
@@ -624,72 +645,61 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
       ModalProps={{ keepMounted: false, disablePortal: true }}
       PaperProps={{
         sx: { 
-          width: '100%',
-          maxWidth: 720,
-          mx: 'auto',
-          height: isExpanded ? '92dvh' : '60dvh',
-          transition: 'height 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          width: '100vw',
+          maxWidth: '100vw',
+          height: '100dvh',
           bgcolor: '#161412', 
-          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-          borderLeft: '1px solid rgba(255, 255, 255, 0.05)',
-          borderRight: '1px solid rgba(255, 255, 255, 0.05)',
-          borderRadius: '28px 28px 0 0',
+          border: 'none',
+          borderRadius: 0,
           backgroundImage: 'none',
-          boxShadow: '0 -12px 48px rgba(0,0,0,0.6)',
+          boxShadow: 'none',
           display: 'flex',
           flexDirection: 'column',
-          pointerEvents: 'auto'
+          pointerEvents: 'auto',
+          zIndex: 1300
         }
       }}
     >
-      {/* Expand Handle bar */}
-      <Box 
-        sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            py: 1.5, 
-            cursor: 'pointer',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-            flexShrink: 0,
-            pointerEvents: 'auto'
-        }}
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: 'rgba(255, 255, 255, 0.15)' }} aria-hidden />
-      </Box>
 
       <Box sx={{ 
         px: 4, 
-        py: 2.5, 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
+        py: 3, 
         borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
         flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2.5
       }}>
-        <Box>
-            <Stack direction="row" spacing={1.5} alignItems="center">
-                <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', fontSize: '1.1rem' }}>
-                {form ? 'Edit Form' : 'New Form'}
-                </Typography>
-                {hasUnsavedChanges && (
-                    <Chip 
-                        label="UNSYNCED" 
-                        size="small" 
-                        icon={<WarningIcon style={{ fontSize: 12, color: '#FFB020' }} />}
-                        sx={{ 
-                            height: 20, 
-                            fontSize: '9px', 
-                            fontWeight: 900, 
-                            bgcolor: alpha('#FFB020', 0.1), 
-                            color: '#FFB020',
-                            border: '1px solid rgba(255, 176, 32, 0.2)'
-                        }} 
-                    />
-                )}
-            </Stack>
+        {/* Row 1: Header title and dismiss */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', fontSize: '1.4rem' }}>
+            {form ? 'Edit Form' : 'New Form'}
+          </Typography>
+          <IconButton onClick={handleClose} size="small" sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' } }}>
+              <CloseIcon fontSize="small" />
+          </IconButton>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+
+        {/* Row 2: Metadata / Secondary Action Bar */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {hasUnsavedChanges && (
+                <Chip 
+                    label="UNSYNCED" 
+                    size="small" 
+                    icon={<WarningIcon style={{ fontSize: 12, color: '#FFB020' }} />}
+                    sx={{ 
+                        height: 20, 
+                        fontSize: '9px', 
+                        fontWeight: 900, 
+                        bgcolor: alpha('#FFB020', 0.1), 
+                        color: '#FFB020',
+                        border: '1px solid rgba(255, 176, 32, 0.2)'
+                    }} 
+                />
+            )}
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
             <Button 
                 variant="outlined" 
                 size="small" 
@@ -710,9 +720,7 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
             >
                 Insert
             </Button>
-            <IconButton onClick={handleClose} size="small" sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' } }}>
-                <CloseIcon fontSize="small" />
-            </IconButton>
+          </Box>
         </Box>
       </Box>
 
@@ -840,6 +848,7 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
                       isChoiceType={isChoiceType}
                       user={user}
                       openProUpgrade={openProUpgrade}
+                      openSelectorDrawer={openSelectorDrawer}
                     />
                   ))}
                 </SortableContext>
@@ -878,5 +887,73 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
         </Button>
       </Box>
     </Drawer>
+
+    {/* Bottom Drawer Input Type Selector */}
+    <Drawer
+      anchor="bottom"
+      open={selectorOpen}
+      onClose={() => setSelectorOpen(false)}
+      ModalProps={{ keepMounted: false, disablePortal: true }}
+      PaperProps={{
+        sx: {
+          width: '100%',
+          maxWidth: 720,
+          mx: 'auto',
+          borderRadius: '28px 28px 0 0',
+          bgcolor: '#161412',
+          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+          borderLeft: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRight: '1px solid rgba(255, 255, 255, 0.05)',
+          backgroundImage: 'none',
+          p: 4,
+          pb: 6,
+          zIndex: 1400
+        }
+      }}
+    >
+      <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: 'white', mb: 3, letterSpacing: '-0.01em' }}>
+        Select Input Type
+      </Typography>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
+        {FIELD_TYPES.map((t) => (
+          <Button
+            key={t.value}
+            variant="text"
+            onClick={() => {
+              if (activeFieldIndex !== null) {
+                if (t.value === 'file' && !hasPaidKylrixPlan(user)) {
+                  openProUpgrade('Form File Uploads');
+                  return;
+                }
+                updateField(activeFieldIndex, { type: t.value });
+              }
+              setSelectorOpen(false);
+            }}
+            sx={{
+              justifyContent: 'flex-start',
+              px: 2.5,
+              py: 2,
+              borderRadius: '16px',
+              bgcolor: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255, 255, 255, 0.04)',
+              color: 'white',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              gap: 2,
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 0.06)',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                transform: 'translateY(-1px)'
+              }
+            }}
+          >
+            {t.icon}
+            {t.label}
+          </Button>
+        ))}
+      </Box>
+    </Drawer>
+    </>
   );
 }
