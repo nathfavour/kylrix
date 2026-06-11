@@ -292,78 +292,84 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
           borderTopLeftRadius: '28px',
           borderTopRightRadius: '28px',
           bgcolor: '#161412',
-          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-          backgroundImage: 'none',
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.05) 0%, transparent 75%)',
           color: 'white',
+          boxShadow: '0 -16px 48px rgba(0, 0, 0, 0.6)',
+          width: { xs: '100%', md: 620 },
+          mx: 'auto',
+          left: '50%',
+          transform: 'translateX(-50%)',
         },
       }}
     >
       {/* Header */}
-      <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ p: 3, pb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
-            <TelegramIcon sx={{ color: '#0088cc', fontSize: 28 }} />
-            <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}>
-              Telegram Notifications
-            </Typography>
+          <Box sx={{ width: 36, height: 36, borderRadius: '10px', display: 'grid', placeItems: 'center', bgcolor: 'rgba(0, 136, 204, 0.1)', color: '#0088cc', border: '1px solid rgba(0, 136, 204, 0.2)' }}>
+            <TelegramIcon sx={{ fontSize: 18 }} />
+          </Box>
+          <Typography sx={{ fontSize: '1.15rem', fontWeight: 900, fontFamily: 'var(--font-clash)', tracking: 'tight' }}>
+            Telegram Connection
+          </Typography>
         </Stack>
-        <IconButton onClick={onClose} sx={{ color: 'rgba(255, 255, 255, 0.4)', '&:hover': { color: 'white' } }}>
-          <X size={20} />
+        <IconButton onClick={onClose} sx={{ color: 'rgba(255, 255, 255, 0.3)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' }, width: 32, height: 32 }}>
+          <X size={18} />
         </IconButton>
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.06)' }} />
-
       {/* Main Content */}
-      <Box sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ p: 3.5, flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         {loading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 8, flex: 1 }}>
-            <CircularProgress sx={{ color: '#6366F1' }} size={40} />
-            <Typography sx={{ color: 'rgba(255, 255, 255, 0.6)', mt: 2, fontSize: '0.9rem' }}>
-              Preparing secure pairing code...
+            <CircularProgress sx={{ color: '#6366F1' }} size={36} />
+            <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.5)', mt: 2.5, fontSize: '0.86rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}>
+              Generating secure handshake protocol...
             </Typography>
           </Box>
         ) : verifiedUsername ? (
           // Success State
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 6, flex: 1, textAlign: 'center' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 5, flex: 1, textAlign: 'center' }}>
             <Box
               sx={{
                 width: 64,
                 height: 64,
-                borderRadius: '50%',
-                bgcolor: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid rgb(16, 185, 129)',
+                borderRadius: '20px',
+                bgcolor: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgb(16, 185, 129, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 mb: 3,
+                boxShadow: '0 0 20px rgba(16, 185, 129, 0.15)',
               }}
             >
               <CheckCircle2 size={32} color="#10B981" />
             </Box>
-            <Typography sx={{ fontSize: '1.3rem', fontWeight: 700, mb: 1 }}>
-              Successfully Connected!
+            <Typography component="span" sx={{ fontSize: '1.25rem', fontWeight: 900, fontFamily: 'var(--font-clash)', mb: 1, color: 'white' }}>
+              Connection Established
             </Typography>
-            <Typography sx={{ color: 'rgba(255, 255, 255, 0.6)', px: 2, fontSize: '0.9rem', lineHeight: 1.5 }}>
-              Your account is now securely linked to Telegram as <b>@{verifiedUsername}</b>. You will receive instant notifications.
+            <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.58)', px: 2, fontSize: '0.9rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600, lineHeight: 1.45 }}>
+              Your account is now securely linked to Telegram as <b className="text-white">@{verifiedUsername}</b>. Alerts will arrive instantly.
             </Typography>
           </Box>
         ) : (
           // Pairing State
-          <Stack spacing={3} sx={{ flex: 1 }}>
-            <Typography sx={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem', lineHeight: 1.6 }}>
-              Pair this device with your Telegram app to receive secure push notifications for calls, active chat threads, and mentions.
+          <Stack spacing={3.25} sx={{ flex: 1 }}>
+            <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.55)', fontSize: '0.9rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600, lineHeight: 1.45 }}>
+              Sync your device to receive real-time push notifications for incoming calls, active huddle invitations, and direct mentions.
             </Typography>
 
             {error && (
               <Box
                 sx={{
                   p: 2,
-                  bgcolor: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                  borderRadius: '8px',
+                  bgcolor: 'rgba(239, 68, 68, 0.06)',
+                  border: '1px solid rgba(239, 68, 68, 0.18)',
+                  borderRadius: '12px',
                 }}
               >
-                <Typography sx={{ color: '#EF4444', fontSize: '0.85rem', lineHeight: 1.4 }}>
+                <Typography component="span" sx={{ color: '#EF4444', fontSize: '0.82rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600, lineHeight: 1.4 }}>
                   {error}
                 </Typography>
               </Box>
@@ -371,35 +377,72 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
 
             {pairCode && deepLink && (
               <>
-                {/* Step 1: Deep Link Button */}
+                {/* Step 1: Start the Telegram Bot */}
                 <Box
                   sx={{
-                    p: 2.5,
-                    bgcolor: '#1E1B18',
-                    borderRadius: '12px',
+                    p: 3,
+                    bgcolor: '#0B0A09',
+                    borderRadius: '24px',
                     border: '1px solid rgba(255, 255, 255, 0.05)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2.25,
                   }}
                 >
-                  <Typography sx={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.4)', fontWeight: 700, mb: 1.5, letterSpacing: '0.05em' }}>
-                    Step 1: Start the Telegram Bot
+                  {/* Top: Icon + Title */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box
+                      sx={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: '12px',
+                        display: 'grid',
+                        placeItems: 'center',
+                        bgcolor: 'rgba(0, 136, 204, 0.08)',
+                        color: '#0088cc',
+                        border: '1px solid rgba(0, 136, 204, 0.18)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <TelegramIcon sx={{ fontSize: 20 }} />
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                      <Typography component="span" sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#6366F1', fontWeight: 800, letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                        Step 1
+                      </Typography>
+                      <Typography component="span" sx={{ fontWeight: 800, fontSize: '0.94rem', color: 'white', fontFamily: 'var(--font-clash)', lineHeight: 1.25 }}>
+                        Start Telegram Assistant
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Middle: Description */}
+                  <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.82rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600, lineHeight: 1.45 }}>
+                    Launch the helper bot to establish a secure, encrypted notification bridge for real-time updates.
                   </Typography>
+
+                  {/* Bottom: Action Button */}
                   <Button
                     variant="contained"
                     fullWidth
                     href={deepLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    startIcon={<TelegramIcon />}
-                    endIcon={<ExternalLink size={14} />}
+                    endIcon={<ExternalLink size={13} />}
                     sx={{
                       bgcolor: '#0088cc',
                       color: 'white',
-                      fontWeight: 600,
-                      py: 1.25,
-                      borderRadius: '8px',
+                      fontFamily: 'var(--font-satoshi)',
+                      fontWeight: 700,
+                      py: 1.5,
+                      borderRadius: '14px',
                       textTransform: 'none',
+                      boxShadow: '0 4px 14px rgba(0, 136, 204, 0.2)',
+                      transition: 'all 0.2s ease',
                       '&:hover': {
                         bgcolor: '#0077b5',
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 6px 20px rgba(0, 136, 204, 0.3)',
                       },
                     }}
                   >
@@ -410,62 +453,105 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
                 {/* Step 2: Verification Code Display */}
                 <Box
                   sx={{
-                    p: 2.5,
-                    bgcolor: '#1E1B18',
-                    borderRadius: '12px',
+                    p: 3,
+                    bgcolor: '#0B0A09',
+                    borderRadius: '24px',
                     border: '1px solid rgba(255, 255, 255, 0.05)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2.25,
                   }}
                 >
-                  <Typography sx={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.4)', fontWeight: 700, mb: 1, letterSpacing: '0.05em' }}>
-                    Step 2: Verification Code
-                  </Typography>
-                  <Typography sx={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem', mb: 2 }}>
-                    If the bot requests a code, provide the one below. The link expires in 3 minutes.
+                  {/* Top: Icon + Title */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box
+                      sx={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: '12px',
+                        display: 'grid',
+                        placeItems: 'center',
+                        bgcolor: 'rgba(99, 102, 241, 0.08)',
+                        color: '#6366F1',
+                        border: '1px solid rgba(99, 102, 241, 0.18)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <CheckCircle2 size={20} />
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                      <Typography component="span" sx={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#6366F1', fontWeight: 800, letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                        Step 2
+                      </Typography>
+                      <Typography component="span" sx={{ fontWeight: 800, fontSize: '0.94rem', color: 'white', fontFamily: 'var(--font-clash)', lineHeight: 1.25 }}>
+                        Authenticate Connection
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Middle: Description */}
+                  <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.42)', fontSize: '0.82rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600, lineHeight: 1.45 }}>
+                    Provide this authorization code if requested by the assistant bot. Code expires in 3 minutes.
                   </Typography>
 
+                  {/* Bottom: Code display & Copy action */}
                   <Box
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       bgcolor: '#110F0E',
-                      p: 1.5,
-                      borderRadius: '8px',
+                      px: 2.5,
+                      py: 1.5,
+                      borderRadius: '16px',
                       border: '1px solid rgba(255, 255, 255, 0.06)',
+                      boxSizing: 'border-box',
                     }}
                   >
-                    <Typography sx={{ fontFamily: 'monospace', fontSize: '1.5rem', fontWeight: 700, letterSpacing: '0.15em', color: '#6366F1', pl: 1 }}>
+                    <Typography component="span" sx={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.15em', color: '#6366F1', pl: 1 }}>
                       {pairCode}
                     </Typography>
                     <Stack direction="row" spacing={1.5} alignItems="center">
-                      <Typography sx={{ 
-                          fontSize: '0.8rem', 
-                          fontWeight: 700, 
+                      <Typography component="span" sx={{ 
+                          fontSize: '0.74rem', 
+                          fontWeight: 800, 
+                          fontFamily: 'var(--font-mono)',
                           color: timeLeft === 'Expired' ? '#EF4444' : (timeLeft.startsWith('00:') ? '#F59E0B' : '#10B981'),
                           bgcolor: 'rgba(255, 255, 255, 0.02)',
                           px: 1.25,
                           py: 0.5,
-                          borderRadius: '6px',
+                          borderRadius: '8px',
                           border: '1px solid rgba(255,255,255,0.04)'
                       }}>
                         {timeLeft}
                       </Typography>
-                      <IconButton onClick={handleCopyCode} sx={{ color: 'rgba(255, 255, 255, 0.5)', '&:hover': { color: 'white' } }}>
-                        {copied ? <Typography sx={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 600 }}>Copied</Typography> : <Copy size={16} />}
-                      </IconButton>
+                      <Button
+                        size="small"
+                        onClick={handleCopyCode}
+                        sx={{ 
+                          color: 'rgba(255, 255, 255, 0.5)', 
+                          textTransform: 'none',
+                          minWidth: 0,
+                          p: 1,
+                          borderRadius: '8px',
+                          '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' } 
+                        }}
+                      >
+                        {copied ? <Typography component="span" sx={{ fontSize: '0.74rem', color: '#10B981', fontWeight: 800 }}>Copied</Typography> : <Copy size={15} />}
+                      </Button>
                     </Stack>
                   </Box>
                 </Box>
 
-                {/* Waiting State spinner */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 2 }}>
-                  <CircularProgress size={16} sx={{ color: 'rgba(255,255,255,0.4)' }} />
-                  <Typography sx={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.85rem' }}>
-                    Waiting for Bot verification...
+                {/* Handshake/Waiting Indicator */}
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, py: 1 }}>
+                  <CircularProgress size={13} sx={{ color: 'rgba(255,255,255,0.3)' }} />
+                  <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.42)', fontSize: '0.78rem', fontFamily: 'var(--font-satoshi)', fontWeight: 600 }}>
+                    Listening for secure sync broadcast...
                   </Typography>
                 </Box>
 
-                <Box sx={{ mt: 'auto', pt: 2 }}>
+                <Box sx={{ mt: 'auto', pt: 1.5 }}>
                   <Stack direction="row" spacing={2}>
                     <Button
                       fullWidth
@@ -474,10 +560,14 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
                       disabled={isVerifying}
                       sx={{
                         color: 'white',
-                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderColor: 'rgba(255,255,255,0.08)',
+                        borderRadius: '14px',
+                        py: 1.25,
                         textTransform: 'none',
+                        fontFamily: 'var(--font-satoshi)',
+                        fontWeight: 700,
                         '&:hover': {
-                          borderColor: 'rgba(255,255,255,0.3)',
+                          borderColor: 'rgba(255,255,255,0.22)',
                           bgcolor: 'rgba(255,255,255,0.02)',
                         },
                       }}
@@ -489,12 +579,16 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
                       variant="text"
                       onClick={() => handleInitialize(true)}
                       sx={{
-                        color: 'rgba(255,255,255,0.5)',
+                        color: 'rgba(255,255,255,0.45)',
+                        borderRadius: '14px',
+                        py: 1.25,
                         textTransform: 'none',
-                        '&:hover': { color: 'white' },
+                        fontFamily: 'var(--font-satoshi)',
+                        fontWeight: 700,
+                        '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
                       }}
                     >
-                      Regenerate Link
+                      Regenerate
                     </Button>
                   </Stack>
                 </Box>
