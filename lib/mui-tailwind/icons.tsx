@@ -96,7 +96,6 @@ export const VideoOffIcon = createIcon(Lucide.VideoOff);
 export const FolderIcon = createIcon(Lucide.Folder);
 export const FileIcon = createIcon(Lucide.File);
 export const ListIcon = createIcon(Lucide.List);
-export const List = ListIcon;
 export const GridIcon = createIcon(Lucide.Grid);
 export const Sliders = createIcon(Lucide.Sliders);
 export const FilterIcon = createIcon(Lucide.Filter);
