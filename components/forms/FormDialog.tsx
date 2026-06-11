@@ -39,6 +39,7 @@ import {
   Warning as WarningIcon,
   Settings as SettingsIcon,
   UploadFile as FileUploadIcon,
+  ChevronDownIcon,
 } from '@/lib/mui-tailwind/icons';
 import { FormsService } from '@/lib/services/forms';
 import { DraftsService, FormDraft } from '@/lib/services/drafts';
@@ -464,6 +465,7 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<'draft' | 'published' | 'archived'>('draft');
+  const [statusDrawerOpen, setStatusDrawerOpen] = useState(false);
   const [fields, setFields] = useState<any[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isRestored, setIsRestored] = useState(false);
@@ -899,29 +901,29 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '0.05em', ml: 1 }}>
                   DEPLOYMENT STATUS
                 </Typography>
-                <Select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as any)}
-                  disableUnderline
+                <Button
+                  onClick={() => setStatusDrawerOpen(true)}
                   sx={{ 
                     borderRadius: '16px',
                     bgcolor: '#0B0A09',
                     border: '1px solid rgba(255, 255, 255, 0.05)',
                     px: 2.5,
-                    py: 1.5,
+                    py: 2,
                     color: 'white',
-                    '&:hover': { bgcolor: '#0B0A09' },
-                    '&.Mui-focused': { bgcolor: '#0B0A09', borderColor: 'var(--color-primary)' },
-                    '& .MuiSelect-select': {
-                      py: 0,
-                      px: 0,
-                    }
+                    justifyContent: 'space-between',
+                    textTransform: 'none',
+                    fontWeight: 800,
+                    width: '100%',
+                    '&:hover': { bgcolor: '#0B0A09', borderColor: 'var(--color-primary)' }
                   }}
                 >
-                  <MenuItem value="draft">DRAFT (INTERNAL)</MenuItem>
-                  <MenuItem value="published">PUBLISHED (PUBLIC ACCESS)</MenuItem>
-                  <MenuItem value="archived">ARCHIVED (READ-ONLY)</MenuItem>
-                </Select>
+                  <span>
+                    {status === 'draft' && 'DRAFT (INTERNAL)'}
+                    {status === 'published' && 'PUBLISHED (PUBLIC ACCESS)'}
+                    {status === 'archived' && 'ARCHIVED (READ-ONLY)'}
+                  </span>
+                  <ChevronDownIcon fontSize="small" sx={{ opacity: 0.5 }} />
+                </Button>
               </Stack>
             </Stack>
           </Box>
@@ -1065,6 +1067,78 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
           >
             {t.icon}
             {t.label}
+          </Button>
+        ))}
+      </Box>
+    </Drawer>
+
+    {/* Bottom Drawer Deployment Status Selector */}
+    <Drawer
+      anchor="bottom"
+      open={statusDrawerOpen}
+      onClose={() => setStatusDrawerOpen(false)}
+      ModalProps={{ keepMounted: false, disablePortal: true }}
+      PaperProps={{
+        sx: {
+          width: '100%',
+          maxWidth: 720,
+          mx: 'auto',
+          borderRadius: '28px 28px 0 0',
+          bgcolor: '#161412',
+          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+          borderLeft: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRight: '1px solid rgba(255, 255, 255, 0.05)',
+          backgroundImage: 'none',
+          p: 4,
+          pb: 6,
+          zIndex: 1400
+        }
+      }}
+    >
+      <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: 'white', mb: 3, letterSpacing: '-0.01em' }}>
+        Select Deployment Status
+      </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {[
+          { value: 'draft', label: 'DRAFT (INTERNAL)', desc: 'Only visible to form creators and workspace collaborators' },
+          { value: 'published', label: 'PUBLISHED (PUBLIC ACCESS)', desc: 'Open to public submission and response collection' },
+          { value: 'archived', label: 'ARCHIVED (READ-ONLY)', desc: 'Closed to new submissions, keeping existing records intact' }
+        ].map((s) => (
+          <Button
+            key={s.value}
+            variant="text"
+            onClick={() => {
+              setStatus(s.value as any);
+              setStatusDrawerOpen(false);
+            }}
+            sx={{
+              justifyContent: 'flex-start',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              px: 2.5,
+              py: 2,
+              borderRadius: '16px',
+              bgcolor: status === s.value ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid',
+              borderColor: status === s.value ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.04)',
+              color: 'white',
+              gap: 0.5,
+              textTransform: 'none',
+              transition: 'all 0.2s ease',
+              width: '100%',
+              '&:hover': {
+                bgcolor: status === s.value ? 'rgba(99, 102, 241, 0.12)' : 'rgba(255, 255, 255, 0.06)',
+                borderColor: status === s.value ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.1)',
+                transform: 'translateY(-1px)'
+              }
+            }}
+          >
+            <Typography sx={{ fontWeight: 900, fontSize: '0.9rem', color: status === s.value ? 'var(--color-primary)' : 'white' }}>
+              {s.label}
+            </Typography>
+            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+              {s.desc}
+            </Typography>
           </Button>
         ))}
       </Box>
