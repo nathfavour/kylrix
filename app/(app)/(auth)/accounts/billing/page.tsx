@@ -294,9 +294,6 @@ export default function BillingPage() {
                     return (
                       <div className="flex justify-between items-center">
                         <span>{data.name} ({region})</span>
-                        <span className="text-xs font-mono text-[#F59E0B] bg-[#F59E0B]/10 px-2 py-0.5 rounded">
-                          {data.multiplier}x Multiplier
-                        </span>
                       </div>
                     );
                   })()}

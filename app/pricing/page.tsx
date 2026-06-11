@@ -146,9 +146,6 @@ export default function PricingPage() {
                   <span className="text-[#6366F1] font-black text-xs">
                     Regional Price Applied ({detectedRegion.name})
                   </span>
-                  <span className="text-[10px] text-white/40 font-semibold">
-                    Prices are adjusted to be fair everywhere.
-                  </span>
                 </div>
               )}
 
