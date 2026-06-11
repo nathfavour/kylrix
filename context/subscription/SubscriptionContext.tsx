@@ -89,14 +89,49 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     setRegionLoading(true);
     try {
       const prefs = await account.getPrefs().catch(() => null);
-      if (prefs?.region && PPP_DATA[prefs.region as string]) {
-        setRegionCode(prefs.region as string);
+      if (prefs?.region && PPP_DATA[String(prefs.region).toUpperCase()]) {
+        setRegionCode(String(prefs.region).toUpperCase());
         return;
       }
+      
+      const logList = await account.listLogs().catch(() => null);
+      const logs = logList?.logs || [];
+      const ipCounts: Record<string, number> = {};
+      logs.forEach(l => {
+        if (l.ip) ipCounts[l.ip] = (ipCounts[l.ip] || 0) + 1;
+      });
+      const topIp = Object.entries(ipCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+      // Try logs first
+      const validLogs = logs.filter(l => l.countryCode && l.countryCode !== '—');
+      if (validLogs.length > 0) {
+        const counts: Record<string, number> = {};
+        validLogs.forEach(l => {
+          counts[l.countryCode] = (counts[l.countryCode] || 0) + 1;
+        });
+        const resolvedCountry = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+        if (resolvedCountry && PPP_DATA[resolvedCountry.toUpperCase()]) {
+          setRegionCode(resolvedCountry.toUpperCase());
+          return;
+        }
+      }
+
+      // GeoIP fallback for logs with unresolved IPs
+      if (topIp && topIp !== '127.0.0.1' && topIp !== '::1') {
+        const geoRes = await fetch(`https://ipapi.co/${topIp}/json/`).then(r => r.json()).catch(() => null);
+        if (geoRes && geoRes.country_code && PPP_DATA[geoRes.country_code.toUpperCase()]) {
+          setRegionCode(geoRes.country_code.toUpperCase());
+          return;
+        }
+      }
+
+      // Final fallback to general client lookup
       try {
         const res = await fetch('https://ipapi.co/json/');
         const data = await res.json();
-        if (data.country_code && PPP_DATA[data.country_code]) setRegionCode(data.country_code);
+        if (data.country_code && PPP_DATA[data.country_code.toUpperCase()]) {
+          setRegionCode(data.country_code.toUpperCase());
+        }
       } catch {
         // leave DEFAULT
       }

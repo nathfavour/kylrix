@@ -282,26 +282,6 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              {/* Detected IP location */}
-              {(() => {
-                // Find primary IP from logs if cached on page (implied since we read logs in resolveUserRegion)
-                const [detectedIp, setDetectedIp] = React.useState<string | null>(null);
-                React.useEffect(() => {
-                  account.listLogs()
-                    .then(res => {
-                      const firstWithIp = res.logs?.find(l => l.ip);
-                      if (firstWithIp) setDetectedIp(firstWithIp.ip);
-                    })
-                    .catch(() => {});
-                }, []);
-                
-                return detectedIp && (
-                  <div className="px-4 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-white/50 flex items-center justify-between">
-                    <span>Detected IP Address:</span>
-                    <span className="font-mono text-white font-bold">{detectedIp}</span>
-                  </div>
-                );
-              })()}
 
               <div className="space-y-4">
                 <label className="text-xs font-black text-white/40 uppercase tracking-wider block">Country / Territory</label>
