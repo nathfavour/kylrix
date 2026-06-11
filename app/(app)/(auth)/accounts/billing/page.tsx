@@ -266,6 +266,27 @@ export default function BillingPage() {
                 </div>
               </div>
 
+              {/* Detected IP location */}
+              {(() => {
+                // Find primary IP from logs if cached on page (implied since we read logs in resolveUserRegion)
+                const [detectedIp, setDetectedIp] = React.useState<string | null>(null);
+                React.useEffect(() => {
+                  account.listLogs()
+                    .then(res => {
+                      const firstWithIp = res.logs?.find(l => l.ip);
+                      if (firstWithIp) setDetectedIp(firstWithIp.ip);
+                    })
+                    .catch(() => {});
+                }, []);
+                
+                return detectedIp && (
+                  <div className="px-4 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-white/50 flex items-center justify-between">
+                    <span>Detected IP Address:</span>
+                    <span className="font-mono text-white font-bold">{detectedIp}</span>
+                  </div>
+                );
+              })()}
+
               <div className="space-y-4">
                 <label className="text-xs font-black text-white/40 uppercase tracking-wider block">Country / Territory</label>
                 <div className="relative">
@@ -278,19 +299,11 @@ export default function BillingPage() {
                     {loadingRegion ? (
                       <option value="" disabled>Loading secure billing region...</option>
                     ) : (
-                      <>
-                        <option value="US">United States</option>
-                        <option value="GB">United Kingdom</option>
-                        <option value="CA">Canada</option>
-                        <option value="DE">Germany</option>
-                        <option value="FR">France</option>
-                        <option value="AU">Australia</option>
-                        <option value="SG">Singapore</option>
-                        <option value="CH">Switzerland</option>
-                        <option value="NL">Netherlands</option>
-                        <option value="ZA">South Africa</option>
-                        <option value="NG">Nigeria</option>
-                      </>
+                      Object.entries(require('@/lib/subscription/ppp').PPP_DATA).map(([code, data]: [string, any]) => (
+                        <option key={code} value={code}>
+                          {data.name} ({code}) — Multiplier: {data.multiplier}x
+                        </option>
+                      ))
                     )}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-white/30">
