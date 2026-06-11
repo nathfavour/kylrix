@@ -1528,6 +1528,11 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
     const isMobile = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true });
 
     useEffect(() => {
+        const handleOpenComposer = () => {
+            mobileComposerDockRef.current?.open();
+        };
+        window.addEventListener('kylrix:open-moment-composer', handleOpenComposer);
+        
         if (isMobile) {
             setConfiguration({
                 isVisible: true,
@@ -1535,8 +1540,11 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
                 mainIcon: <Plus size={32} strokeWidth={2} />,
                 onMainClick: () => mobileComposerDockRef.current?.open()
             });
-            return () => resetConfiguration();
         }
+        return () => {
+            window.removeEventListener('kylrix:open-moment-composer', handleOpenComposer);
+            if (isMobile) resetConfiguration();
+        };
     }, [isMobile, setConfiguration, resetConfiguration]);
 
     useEffect(() => {
