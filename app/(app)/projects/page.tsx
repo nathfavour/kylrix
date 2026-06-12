@@ -49,6 +49,7 @@ import {
   LayoutGrid,
   Play,
   RotateCcw,
+  RefreshCw,
   UserCheck,
   FileText
   } from 'lucide-react';
@@ -407,6 +408,7 @@ export default function ProjectsPage() {
   }, []);
 
   const { projects, loading, refetch: fetchProjects, setProjects, syncProjects } = useProjectsList();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [teams, setTeams] = useState<Models.Team[]>([]);
   const [showAllTemplates, setShowAllTemplates] = useState(false);
 
