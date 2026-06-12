@@ -24,11 +24,6 @@ export default function PricingPage() {
   const [region, setRegion] = useState('US');
   const [loadingRegion, setLoadingRegion] = useState(true);
 
-  React.useEffect(() => {
-    resolveUserRegion();
-    checkPendingTransactions();
-  }, [user]);
-
   const checkPendingTransactions = async () => {
     if (!user) return;
     try {
@@ -99,6 +94,11 @@ export default function PricingPage() {
     }
     setLoadingRegion(false);
   };
+
+  React.useEffect(() => {
+    resolveUserRegion();
+    checkPendingTransactions();
+  }, [user]);
 
   const detectedRegion = useMemo(() => {
     return PPP_DATA[region] || PPP_DATA.DEFAULT;
