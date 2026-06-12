@@ -101,9 +101,9 @@ function renderMessageText(text: string): React.ReactNode {
         key={`${start}-${username}`}
         component="span"
         sx={{
-          color: '#6366F1',
+          color: '#818CF8',
           fontWeight: 800,
-          bgcolor: 'rgba(99, 102, 241, 0.08)',
+          bgcolor: 'rgba(129, 140, 248, 0.08)',
           px: 0.5,
           py: 0.25,
           borderRadius: '4px',
@@ -127,28 +127,31 @@ function renderMessageText(text: string): React.ReactNode {
   );
 }
 
-/** Exact secret-chat bubble shell from Connect `ChatWindow`. */
 function secretChatBubbleSx(isOutgoing: boolean) {
   return {
     p: 1.5,
-    px: 2.25,
+    px: 2,
     width: 'fit-content',
     maxWidth: '100%',
     alignSelf: isOutgoing ? 'flex-end' : 'flex-start',
     borderRadius: isOutgoing ? '20px 4px 20px 20px' : '4px 20px 20px 20px',
-    bgcolor: '#161412',
+    bgcolor: isOutgoing ? '#1C1A18' : '#0B0A09',
     backgroundImage: 'none',
-    border: '1px solid #23211F',
-    borderRight: isOutgoing ? '3px solid #6366F1' : '1px solid #23211F',
-    borderLeft: !isOutgoing ? '3px solid #34322F' : '1px solid #23211F',
-    color: isOutgoing ? '#FFFFFF' : '#F5F2ED',
-    boxShadow: '0 4px 12px -4px rgba(0,0,0,0.8)',
+    border: '1px solid',
+    borderColor: isOutgoing ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+    color: '#FFFFFF',
+    boxShadow: isOutgoing 
+      ? '0 4px 16px rgba(99, 102, 241, 0.04), 0 1px 3px rgba(99, 102, 241, 0.08)' 
+      : '0 4px 12px rgba(0, 0, 0, 0.4)',
     position: 'relative' as const,
     zIndex: 2,
-    transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
     '&:hover': {
       transform: 'translateY(-1px)',
-      boxShadow: '0 6px 16px -4px rgba(0,0,0,0.9)',
+      boxShadow: isOutgoing 
+        ? '0 6px 20px rgba(99, 102, 241, 0.08)' 
+        : '0 6px 16px rgba(0, 0, 0, 0.5)',
+      borderColor: isOutgoing ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255, 255, 255, 0.1)',
     },
   };
 }
@@ -346,12 +349,13 @@ export function ProjectDiscussionSidebar({
           let senderName = 'Collaborator';
           let senderAvatar: string | null = null;
           if (doc.userId === user?.$id) {
-            senderName = user.name || 'You';
+            senderName = user?.username ? `@${user.username}` : (user?.displayName || user?.name || 'You');
+            senderAvatar = user?.avatar || user?.profilePicId || null;
           } else {
             try {
               const profile = await AppwriteService.getProfile(doc.userId);
               if (profile) {
-                senderName = profile.name || 'Collaborator';
+                senderName = profile.username ? `@${profile.username}` : (profile.displayName || profile.name || 'Collaborator');
                 senderAvatar = profile.avatar || profile.profilePicId || null;
               }
             } catch {
@@ -570,15 +574,15 @@ export function ProjectDiscussionSidebar({
       >
         <Stack
           direction={isOutgoing ? 'row-reverse' : 'row'}
-          spacing={1}
+          spacing={1.25}
           alignItems="flex-end"
-          sx={{ width: '100%', maxWidth: '80%' }}
+          sx={{ width: '100%', maxWidth: '85%' }}
         >
           <IdentityAvatar
             fileId={msg.senderAvatar}
             alt={msg.senderName}
-            fallback={msg.senderName.slice(0, 1).toUpperCase()}
-            size={30}
+            fallback={msg.senderName.replace(/^@/, '').slice(0, 1).toUpperCase()}
+            size={32}
             borderRadius="50%"
           />
           <Box
@@ -596,12 +600,11 @@ export function ProjectDiscussionSidebar({
                 variant="caption"
                 sx={{
                   fontSize: '0.72rem',
-                  fontWeight: 800,
+                  fontWeight: 900,
                   color: '#9B9691',
                   pl: 0.5,
                   mb: 0.25,
                   fontFamily: 'var(--font-mono)',
-                  textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                 }}
               >
@@ -678,7 +681,7 @@ export function ProjectDiscussionSidebar({
             )}
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, alignSelf: isOutgoing ? 'flex-end' : 'flex-start', px: 0.5, position: 'relative', zIndex: 2 }}>
-              <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.72)', fontWeight: 700 }}>
+              <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
                 {formatTime(new Date(msg.timestamp), { hour: 'numeric', minute: '2-digit', hour12: true })}
               </Typography>
             </Box>
@@ -689,7 +692,10 @@ export function ProjectDiscussionSidebar({
   };
 
   return (
-    <Box sx={{ bgcolor: '#0A0908', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+    <Box sx={{ bgcolor: '#161412', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+      {/* Top Spotlight Gradient */}
+      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 160, pointerEvents: 'none', background: 'radial-gradient(ellipse at top, rgba(99, 102, 241, 0.06), transparent 70%)', zIndex: 1 }} />
+
       {/* Fixed top command rail — opaque, no mural bleed */}
       <AppBar
         position="static"
@@ -698,17 +704,16 @@ export function ProjectDiscussionSidebar({
         sx={{
           bgcolor: '#161412',
           backgroundImage: 'none',
-          borderBottom: '1px solid #1C1A18',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
           zIndex: 10,
           flexShrink: 0,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
         }}
       >
         <Toolbar sx={{ gap: 1, minHeight: '68px !important', px: 2 }}>
           {activeThreadParent ? (
             <IconButton
               onClick={() => setActiveThreadParent(null)}
-              sx={{ color: 'rgba(255,255,255,0.55)', bgcolor: '#0A0908', border: '1px solid #1C1A18', '&:hover': { color: '#fff', bgcolor: '#1C1A18' } }}
+              sx={{ color: 'rgba(255,255,255,0.55)', bgcolor: '#0B0A09', border: '1px solid rgba(255,255,255,0.05)', '&:hover': { color: '#fff', bgcolor: '#1C1A18' } }}
             >
               <ChevronLeft size={20} strokeWidth={2} />
             </IconButton>
@@ -743,7 +748,7 @@ export function ProjectDiscussionSidebar({
           </Box>
           <IconButton
             onClick={closeSidebar}
-            sx={{ color: 'rgba(255,255,255,0.55)', bgcolor: '#0A0908', border: '1px solid #1C1A18', '&:hover': { color: '#fff', bgcolor: '#1C1A18' } }}
+            sx={{ color: 'rgba(255,255,255,0.55)', bgcolor: '#0B0A09', border: '1px solid rgba(255, 255, 255, 0.05)', '&:hover': { color: '#fff', bgcolor: '#1C1A18' } }}
           >
             <X size={18} strokeWidth={2} />
           </IconButton>
@@ -753,7 +758,7 @@ export function ProjectDiscussionSidebar({
       {/* Middle lane — mural + scroll only (header/footer stay solid) */}
       <Box sx={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {loading && !messages.length && (
-          <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', bgcolor: 'rgba(10,9,8,0.7)', zIndex: 30 }}>
+          <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', bgcolor: 'rgba(22,20,18,0.7)', zIndex: 30 }}>
             <CircularProgress sx={{ color: '#6366F1' }} size={28} />
           </Box>
         )}
@@ -763,13 +768,13 @@ export function ProjectDiscussionSidebar({
             <Paper
               elevation={0}
               sx={{
-                p: 3,
+                p: 3.5,
                 maxWidth: 340,
                 width: '100%',
                 textAlign: 'center',
-                bgcolor: '#161412',
+                bgcolor: '#0B0A09',
                 backgroundImage: 'none',
-                border: '1px solid #34322F',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
                 borderRadius: '28px',
                 boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
               }}
@@ -780,7 +785,7 @@ export function ProjectDiscussionSidebar({
               <Typography component="span" sx={{ display: 'block', fontWeight: 900, color: '#F5F2ED', mb: 1, fontFamily: 'var(--font-clash)', fontSize: '1rem', lineHeight: 1.25 }}>
                 Start project discussion
               </Typography>
-              <Typography component="span" sx={{ display: 'block', color: 'rgba(255,255,255,0.48)', fontSize: '0.85rem', lineHeight: 1.6, mb: 2.5 }}>
+              <Typography component="span" sx={{ display: 'block', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', lineHeight: 1.6, mb: 2.5 }}>
                 Spin up a team huddle for this project. Messages auto-clean after 7 days.
               </Typography>
               <Button
@@ -817,9 +822,9 @@ export function ProjectDiscussionSidebar({
                   sx={{
                     p: 2,
                     mb: 0.5,
-                    bgcolor: '#161412',
+                    bgcolor: '#0B0A09',
                     backgroundImage: 'none',
-                    border: '1px solid #34322F',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
                     borderRadius: '20px',
                   }}
                 >
@@ -832,7 +837,7 @@ export function ProjectDiscussionSidebar({
 
               {visibleMessages.length === 0 ? (
                 <Box sx={{ flex: 1, display: 'grid', placeItems: 'center', py: 8 }}>
-                  <Typography component="span" sx={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.85rem', lineHeight: 1.45, fontStyle: 'italic' }}>
+                  <Typography component="span" sx={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem', lineHeight: 1.45, fontStyle: 'italic' }}>
                     {activeThreadParent ? 'No replies yet.' : 'No messages yet. Say hello!'}
                   </Typography>
                 </Box>
@@ -854,14 +859,13 @@ export function ProjectDiscussionSidebar({
                 pt: 1.5,
                 bgcolor: '#161412',
                 backgroundImage: 'none',
-                borderTop: '1px solid #1C1A18',
-                borderRadius: '28px 28px 0 0',
-                boxShadow: '0 -8px 32px rgba(0,0,0,0.55)',
+                borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                boxShadow: '0 -12px 36px rgba(0, 0, 0, 0.5), 0 16px 48px rgba(0, 0, 0, 0.7)',
                 zIndex: 20,
               }}
             >
               {mentionAnchorEl && mentionResults.length > 0 && (
-                <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '16px', bgcolor: '#1C1A18', border: '1px solid #34322F', maxHeight: 180, overflowY: 'auto' }}>
+                <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '16px', bgcolor: '#0B0A09', border: '1px solid rgba(255,255,255,0.05)', maxHeight: 180, overflowY: 'auto' }}>
                   <Typography variant="caption" sx={{ fontWeight: 900, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1, display: 'block' }}>
                     Mention
                   </Typography>
@@ -870,7 +874,7 @@ export function ProjectDiscussionSidebar({
                       <Button
                         key={item.id}
                         onClick={() => replaceActiveMention(item)}
-                        sx={{ justifyContent: 'flex-start', gap: 1.5, py: 1, px: 1.5, borderRadius: '12px', color: '#fff', textTransform: 'none' }}
+                        sx={{ justifyContent: 'flex-start', gap: 1.5, py: 1, px: 1.5, borderRadius: '12px', color: '#fff', textTransform: 'none', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' } }}
                       >
                         <IdentityAvatar fileId={item.avatar} alt={item.title} fallback={item.title[0]?.toUpperCase()} size={28} />
                         <Box sx={{ minWidth: 0, textAlign: 'left' }}>
@@ -894,9 +898,9 @@ export function ProjectDiscussionSidebar({
                       width: 44,
                       height: 44,
                       flexShrink: 0,
-                      bgcolor: '#161412',
-                      border: '1px solid #1C1A18',
-                      '&:hover': { bgcolor: '#1C1A18', borderColor: '#6366F1', color: '#fff' },
+                      bgcolor: '#0B0A09',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                      '&:hover': { bgcolor: '#1C1A18', borderColor: 'rgba(99, 102, 241, 0.4)', color: '#fff' },
                     }}
                   >
                     {isRecording ? <Square size={18} fill="#ff4d4d" /> : <Mic size={20} strokeWidth={2} />}
@@ -905,7 +909,7 @@ export function ProjectDiscussionSidebar({
 
                 <Box sx={{ flex: 1, position: 'relative' }}>
                   {isRecording && (
-                    <Box sx={{ position: 'absolute', inset: 0, bgcolor: '#0A0908', borderRadius: '18px', border: '1px solid #ff4d4d', display: 'flex', alignItems: 'center', px: 2, gap: 1, zIndex: 3 }}>
+                    <Box sx={{ position: 'absolute', inset: 0, bgcolor: '#0B0A09', borderRadius: '18px', border: '1px solid #ff4d4d', display: 'flex', alignItems: 'center', px: 2, gap: 1, zIndex: 3 }}>
                       <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#ff4d4d', animation: 'pulse 1.5s infinite' }} />
                       <Typography sx={{ flex: 1, fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.6)' }}>
                         Recording… tap stop to send
@@ -942,14 +946,14 @@ export function ProjectDiscussionSidebar({
                       sx: {
                         px: 2,
                         py: 1.5,
-                        bgcolor: '#161412',
+                        bgcolor: '#0B0A09',
                         borderRadius: '18px',
-                        border: '1px solid #1C1A18',
+                        border: '1px solid rgba(255,255,255,0.05)',
                         color: '#fff',
                         fontWeight: 600,
                         fontFamily: 'var(--font-satoshi)',
                         fontSize: '0.95rem',
-                        '&:focus-within': { borderColor: '#6366F1', bgcolor: '#1C1A18' },
+                        '&:focus-within': { borderColor: '#6366F1', bgcolor: '#0B0A09' },
                       },
                     }}
                   />
@@ -959,14 +963,14 @@ export function ProjectDiscussionSidebar({
                   disabled={!draftText.trim() || sending || isRecording}
                   onClick={() => void submitMessage()}
                   sx={{
-                    color: draftText.trim() ? '#6366F1' : 'rgba(255,255,255,0.1)',
+                    color: draftText.trim() ? '#818CF8' : 'rgba(255,255,255,0.1)',
                     width: 44,
                     height: 44,
                     flexShrink: 0,
-                    bgcolor: draftText.trim() ? '#161412' : 'transparent',
+                    bgcolor: draftText.trim() ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
                     border: '1px solid',
-                    borderColor: draftText.trim() ? '#1C1A18' : 'transparent',
-                    '&:hover': { bgcolor: '#1C1A18', borderColor: '#6366F1' },
+                    borderColor: draftText.trim() ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+                    '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.2)', borderColor: '#6366F1' },
                   }}
                 >
                   {sending ? <RefreshCw className="animate-spin" size={20} /> : <Send size={20} strokeWidth={2.5} />}
