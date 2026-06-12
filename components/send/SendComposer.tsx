@@ -407,7 +407,7 @@ export function SendComposer() {
       // Ignored
     }
     setSendSparks(next);
-    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new Event('kylrix:storage-update'));
   }, []);
 
   useEffect(() => {
@@ -426,10 +426,10 @@ export function SendComposer() {
     };
     loadSparks();
 
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === SEND_SPARK_STORAGE_KEY) loadSparks();
+    const handleStorage = (e: Event) => {
+      loadSparks();
     };
-    window.addEventListener('storage', handleStorage);
+    window.addEventListener('kylrix:storage-update' as any, handleStorage);
 
     if (searchParams.get('claimOpen') === '1') {
       const pendingId = peekEphemeralClaimResume('send');
@@ -453,7 +453,7 @@ export function SendComposer() {
       }
     }
 
-    return () => window.removeEventListener('storage', handleStorage);
+    return () => window.removeEventListener('kylrix:storage-update' as any, handleStorage);
   }, [searchParams]);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -913,63 +913,61 @@ export function SendComposer() {
         </motion.div>
 
         {!createdUrl ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_320px] gap-8 items-start">
-            {/* Desktop Sidebar / Mobile Trigger buttons */}
-            <div className="flex flex-col gap-4">
-              {/* Mobile trigger button (hidden on desktop) */}
-              <div className="flex gap-3 lg:hidden flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setKindDrawerOpen(true)}
-                  className="bg-white/[0.02] border rounded-xl px-5 py-3.5 text-white text-sm font-black font-clash flex items-center gap-2 hover:bg-[#1C1A18] transition duration-200"
-                  style={{ borderColor: `${KIND_COLORS[kind]}40` }}
-                >
-                  {React.createElement(KINDS.find(k => k.id === kind)?.Icon || FileText, { size: 18, color: KIND_COLORS[kind] })}
-                  <span>{KINDS.find(k => k.id === kind)?.label || 'Note'}</span>
-                  <ChevronDown size={14} className="opacity-60 ml-1" />
-                </button>
-              </div>
-
-              {/* Desktop Sidebar panel (hidden on mobile) */}
-              <div className="hidden lg:flex flex-col gap-2 p-5 bg-[#161412] border border-[#34322F] rounded-3xl">
-                <span className="text-[10px] font-black text-white/30 tracking-widest uppercase mb-3 block">
-                  Select Format
-                </span>
-                <div className="flex flex-col gap-1.5">
-                  {KINDS.map(({ id, label, blurb, Icon }) => {
-                    const selected = kind === id;
-                    const itemColor = KIND_COLORS[id];
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => {
-                          setKind(id);
-                          if (id !== 'file') {
-                            setSendFile(null);
-                            setFileName(null);
-                          }
-                        }}
-                        className="p-3 rounded-xl border text-left flex items-center gap-3 transition duration-200 w-full cursor-pointer hover:bg-white/[0.02]"
-                        style={{
-                          borderColor: selected ? itemColor : 'transparent',
-                          backgroundColor: selected ? `${itemColor}14` : 'transparent',
-                        }}
-                      >
-                        <div style={{ color: itemColor }}>
-                          <Icon size={18} />
-                        </div>
-                        <div>
-                          <p className={`text-xs font-black font-clash ${selected ? 'text-white' : 'text-white/60'}`}>{label}</p>
-                          <p className="text-[10px] text-white/30 font-satoshi truncate mt-0.5 max-w-[190px]">{blurb}</p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-[240px_1fr_280px] lg:grid-cols-[260px_1fr_320px] gap-8 items-start">
+            {/* Left Column: Selector sidebar (hidden on mobile) */}
+            <div className="hidden md:flex flex-col gap-2 p-5 bg-[#161412] border border-[#34322F] rounded-3xl">
+              <span className="text-[10px] font-black text-white/30 tracking-widest uppercase mb-3 block">
+                Select Format
+              </span>
+              <div className="flex flex-col gap-1.5">
+                {KINDS.map(({ id, label, blurb, Icon }) => {
+                  const selected = kind === id;
+                  const itemColor = KIND_COLORS[id];
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        setKind(id);
+                        if (id !== 'file') {
+                          setSendFile(null);
+                          setFileName(null);
+                        }
+                      }}
+                      className="p-3 rounded-xl border text-left flex items-center gap-3 transition duration-200 w-full cursor-pointer hover:bg-white/[0.02]"
+                      style={{
+                        borderColor: selected ? itemColor : 'transparent',
+                        backgroundColor: selected ? `${itemColor}14` : 'transparent',
+                      }}
+                    >
+                      <div style={{ color: itemColor }}>
+                        <Icon size={18} />
+                      </div>
+                      <div>
+                        <p className={`text-xs font-black font-clash ${selected ? 'text-white' : 'text-white/60'}`}>{label}</p>
+                        <p className="text-[10px] text-white/30 font-satoshi truncate mt-0.5 max-w-[190px]">{blurb}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
+            {/* Mobile trigger button (hidden on desktop) */}
+            <div className="flex gap-3 md:hidden flex-wrap mb-4">
+              <button
+                type="button"
+                onClick={() => setKindDrawerOpen(true)}
+                className="bg-white/[0.02] border rounded-xl px-5 py-3.5 text-white text-sm font-black font-clash flex items-center gap-2 hover:bg-[#1C1A18] transition duration-200"
+                style={{ borderColor: `${KIND_COLORS[kind]}40` }}
+              >
+                {React.createElement(KINDS.find(k => k.id === kind)?.Icon || FileText, { size: 18, color: KIND_COLORS[kind] })}
+                <span>{KINDS.find(k => k.id === kind)?.label || 'Note'}</span>
+                <ChevronDown size={14} className="opacity-60 ml-1" />
+              </button>
+            </div>
+
+            {/* Center Column: Card content */}
             <div className="flex flex-col gap-6">
               {kind === 'note' && (
                 <NoteComposerCard
@@ -1332,11 +1330,9 @@ export function SendComposer() {
             </div>
 
             {/* Desktop Sidebar Stash (hidden on mobile) */}
-            {sendSparks.length > 0 && (
-              <div className="hidden lg:block bg-[#161412] border border-[#34322F] rounded-3xl p-5 w-full">
-                <SendSparkShelf sparks={sendSparks} onSaveSparks={saveSendSparks} onClaim={handleClaimSendSpark} />
-              </div>
-            )}
+            <div className="hidden md:block bg-[#161412] border border-[#34322F] rounded-3xl p-5 w-full">
+              <SendSparkShelf sparks={sendSparks} onSaveSparks={saveSendSparks} onClaim={handleClaimSendSpark} />
+            </div>
           </div>
         ) : (
           <div className="p-8 md:p-12 rounded-[40px] bg-[#161412] border border-[#34322F] text-center shadow-[0_32px_80px_rgba(0,0,0,0.6)]">

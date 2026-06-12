@@ -321,15 +321,15 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
       setSendSparksLoaded(true);
     };
     load();
-    window.addEventListener('storage', load);
-    return () => window.removeEventListener('storage', load);
+    window.addEventListener('kylrix:storage-update' as any, load);
+    return () => window.removeEventListener('kylrix:storage-update' as any, load);
   }, [panels]);
 
   const saveSendSparks = (next: any[]) => {
     try {
       localStorage.setItem('send_sparks', JSON.stringify(next));
       setSendSparks(next);
-      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new Event('kylrix:storage-update'));
     } catch (e) {
       console.error(e);
     }

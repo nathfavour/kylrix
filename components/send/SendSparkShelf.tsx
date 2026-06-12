@@ -143,8 +143,6 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
     }
   };
 
-  if (sparks.length === 0) return null;
-
   const renderCard = (spark: SendSparkRef, staleRow: boolean) => {
     const sparkColor = KIND_COLORS[spark.kind] || PRIMARY;
     const Icon = (() => {
@@ -232,19 +230,28 @@ export function SendSparkShelf({ sparks, onSaveSparks, onClaim }: Props) {
         </h3>
       </div>
 
-      {active.length > 0 && (
-        <div className="flex flex-col gap-3">
-          {active.map((s) => renderCard(s, false))}
+      {sparks.length === 0 ? (
+        <div className="text-center py-8 text-white/20 border border-[#34322F] border-dashed rounded-[20px] p-4">
+          <p className="text-xs font-bold font-mono uppercase">Stash Empty</p>
+          <p className="text-[10px] text-white/30 mt-1">Generated links will appear here on this device.</p>
         </div>
-      )}
+      ) : (
+        <>
+          {active.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {active.map((s) => renderCard(s, false))}
+            </div>
+          )}
 
-      {stale.length > 0 && (
-        <div className="flex flex-col gap-3 mt-4">
-          <span className="text-[10px] font-black tracking-widest uppercase text-white/30 font-mono block">
-            EXPIRED
-          </span>
-          {stale.map((s) => renderCard(s, true))}
-        </div>
+          {stale.length > 0 && (
+            <div className="flex flex-col gap-3 mt-4">
+              <span className="text-[10px] font-black tracking-widest uppercase text-white/30 font-mono block">
+                EXPIRED
+              </span>
+              {stale.map((s) => renderCard(s, true))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Floating Context Menu */}
