@@ -142,7 +142,7 @@ export default function ProjectVisibilityDrawer({
                 if (visibility !== 'public') {
                   setVisibility('public');
                   setIsGuest(true);
-                  setIsExpanded(true);
+                  setIsExpanded(false);
                 }
               }}
               className={`p-4 rounded-2xl border text-left transition duration-200 flex items-start gap-4 w-full ${

@@ -583,7 +583,7 @@ export function NewProjectDrawer() {
                   setVisibility(opt.id as any);
                   if (opt.id === 'public') {
                     setIsGuest(true);
-                    setIsGuestExpanded(true);
+                    setIsGuestExpanded(false);
                   } else {
                     setIsVisibilityDrawerOpen(false);
                   }
