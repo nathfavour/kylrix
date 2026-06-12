@@ -496,6 +496,7 @@ export type Tags = Models.Row & {
     metadata: string | null;
     isPublic: boolean;
     isGuest: boolean;
+    usageCount: number;
 }
 
 export type ResourceTags = Models.Row & {
