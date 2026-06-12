@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Info, Coins } from 'lucide-react';
-import { createCryptoInvoiceAction, checkCryptoTransactionStatusAction, getActivePendingCryptoInvoiceAction } from '@/app/(app)/(auth)/accounts/actions/checkout';
+import { createCryptoInvoiceAction, checkCryptoTransactionStatusAction, getActivePendingCryptoInvoiceAction, getActiveBlockBeeCoinsAction } from '@/app/(app)/(auth)/accounts/actions/checkout';
 import { account } from '@/lib/appwrite/client';
 import toast from 'react-hot-toast';
 
@@ -13,20 +13,13 @@ interface CryptoPaymentDrawerProps {
   planId: string;
 }
 
-const SUPPORTED_COINS = [
-  { id: 'ltc', name: 'Litecoin', symbol: 'LTC' },
-  { id: 'btc', name: 'Bitcoin', symbol: 'BTC' },
-  { id: 'eth', name: 'Ethereum', symbol: 'ETH' },
-  { id: 'trx_usdt', name: 'Tether (TRC20)', symbol: 'USDT' },
-  { id: 'doge', name: 'Dogecoin', symbol: 'DOGE' }
-];
-
 export const CryptoPaymentDrawer: React.FC<CryptoPaymentDrawerProps> = ({
   onClose,
   months,
   countryCode,
   planId
 }) => {
+  const [coins, setCoins] = useState<Array<{ id: string; name: string; symbol: string }>>([]);
   const [selectedCoin, setSelectedCoin] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -35,10 +28,18 @@ export const CryptoPaymentDrawer: React.FC<CryptoPaymentDrawerProps> = ({
   const [paymentStatus, setPaymentStatus] = useState<string>('pending');
 
   useEffect(() => {
-    const restorePendingInvoice = async () => {
+    const initializeDrawer = async () => {
       try {
         setLoading(true);
         const jwt = await account.createJWT().then((res: any) => res?.jwt || '').catch(() => undefined);
+        
+        // Fetch active merchant coins from BlockBee
+        const coinsRes = await getActiveBlockBeeCoinsAction({ jwt });
+        if (coinsRes.success && coinsRes.coins) {
+          setCoins(coinsRes.coins);
+        }
+
+        // Restore pending invoice if exists
         const pending = await getActivePendingCryptoInvoiceAction({ jwt });
         if (pending && pending.success) {
           setSelectedCoin(pending.ticker?.toLowerCase() === 'usdt' ? 'trx_usdt' : pending.ticker?.toLowerCase() || null);
@@ -49,7 +50,7 @@ export const CryptoPaymentDrawer: React.FC<CryptoPaymentDrawerProps> = ({
       }
     };
 
-    restorePendingInvoice();
+    initializeDrawer();
   }, []);
 
   const handleSelectCoin = async (coinId: string) => {
@@ -166,7 +167,7 @@ export const CryptoPaymentDrawer: React.FC<CryptoPaymentDrawerProps> = ({
                 Select Network Asset
               </span>
               <div className="flex flex-col gap-3">
-                {SUPPORTED_COINS.map(coin => (
+                {coins.map(coin => (
                   <button
                     key={coin.id}
                     onClick={() => handleSelectCoin(coin.id)}
