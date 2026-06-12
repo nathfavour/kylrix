@@ -1290,11 +1290,9 @@ export function SendComposer() {
               </p>
             </div>
 
-            {/* Stash / Sparks shelf: flows below on mobile, right column on desktop */}
             <div className="bg-[#161412] border border-[#34322F] rounded-[24px] p-5 w-full">
               <SendSparkShelf sparks={sendSparks} onSaveSparks={saveSendSparks} onClaim={handleClaimSendSpark} />
             </div>
-          </div>/div>
           </div>
         ) : (
           <div className="p-8 md:p-12 rounded-[40px] bg-[#161412] border border-[#34322F] text-center shadow-[0_32px_80px_rgba(0,0,0,0.6)]">
@@ -1343,14 +1341,7 @@ export function SendComposer() {
           </div>
         )}
 
-        {/* Spark shelf / history shelf */}
-        {sendSparks.length > 0 && (
-          <div className="mt-8 md:hidden">
-            <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)]">
-              <SendSparkShelf sparks={sendSparks} onSaveSparks={saveSendSparks} onClaim={handleClaimSendSpark} />
-            </div>
-          </div>
-        )}
+
 
         <div className="mt-16 border-t border-[#34322F] pt-8 text-center">
           <span className="text-[10px] text-white/20 font-black tracking-widest uppercase font-clash">
@@ -1361,14 +1352,14 @@ export function SendComposer() {
 
       {/* Sharing Format Selection Sheet */}
       {kindDrawerOpen && (
-        <div className="fixed inset-0 z-[1500] flex items-end justify-center">
+        <div className="fixed inset-0 z-[1500] flex items-end md:items-stretch justify-center md:justify-end">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setKindDrawerOpen(false)} />
-          <div className="relative w-full max-w-2xl bg-[#161412] border-t border-[#34322F] rounded-t-3xl p-6 text-white max-h-[80vh] overflow-y-auto z-10 shadow-[0_-8px_32px_rgba(0,0,0,0.5)]">
+          <div className="relative w-full md:w-[460px] bg-[#161412] border-t md:border-t-0 md:border-l border-[#34322F] rounded-t-3xl md:rounded-t-none md:rounded-l-3xl p-6 text-white h-[80vh] md:h-[calc(100vh-88px)] md:top-[88px] overflow-y-auto z-10 shadow-2xl flex flex-col">
             <div className="flex items-center justify-between mb-6">
               <h6 className="text-xl font-bold font-clash">Select Sharing Format</h6>
               <button onClick={() => setKindDrawerOpen(false)} className="text-white/40 hover:text-white text-sm">Close</button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {KINDS.map(({ id, label, blurb, Icon }) => {
                 const selected = kind === id;
                 const itemColor = KIND_COLORS[id];
