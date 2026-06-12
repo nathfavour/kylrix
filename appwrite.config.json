@@ -3179,6 +3179,15 @@
                     "required": false,
                     "array": false,
                     "default": false
+                },
+                {
+                    "key": "usageCount",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": 0,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807
                 }
             ],
             "indexes": [

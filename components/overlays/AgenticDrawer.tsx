@@ -15,14 +15,17 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
+  Send,
+  Sparkles,
 } from 'lucide-react';
 
 import { useAgenticDrawer } from '@/context/AgenticDrawerContext';
 import { useAuth } from '@/context/auth/AuthContext';
 import { AgenticService } from '@/lib/services/agentic';
-import { runMyAgent } from '@/lib/actions/agentic';
+import { runMyAgent, executeInstantRequestAction } from '@/lib/actions/agentic';
 import { useProUpgrade } from '@/context/ProUpgradeContext';
 import { hasPaidKylrixPlan } from '@/lib/utils';
+import { account } from '@/lib/appwrite';
 
 type AgentFramework = 'kylrix' | 'openclaw' | 'hermes';
 
@@ -138,6 +141,12 @@ export function AgenticDrawer() {
   const [updatingAgentId, setUpdatingAgentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Instant command states
+  const [instantPrompt, setInstantPrompt] = useState('');
+  const [instantResponse, setInstantResponse] = useState<string | null>(null);
+  const [executingInstant, setExecutingInstant] = useState(false);
+  const [instantError, setInstantError] = useState<string | null>(null);
+
   useEffect(() => {
     const handleResize = () => {
       setIsDesktop(window.innerWidth >= 768);
@@ -157,6 +166,9 @@ export function AgenticDrawer() {
       setAgentGoal('');
       setError(null);
       setIsExpanded(false);
+      setInstantPrompt('');
+      setInstantResponse(null);
+      setInstantError(null);
     }
   }, [isOpen]);
 
@@ -329,7 +341,7 @@ export function AgenticDrawer() {
           </div>
 
           {/* Stats Bar */}
-          <div className="mb-4 p-4 rounded-2xl bg-[#0A0908] border border-[#34322F] flex-shrink-0">
+          <div className="mb-4 p-4 rounded-2xl bg-[#0B0A09] border border-white/5 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${runSummary.working > 0 ? 'bg-[#F59E0B]' : 'bg-[#10B981]'}`} />
@@ -343,6 +355,99 @@ export function AgenticDrawer() {
             </div>
           </div>
 
+          {/* Instant System Command Box (OpenBricks 3.0 Refinement) */}
+          <div className="mb-5 flex flex-shrink-0 flex-col gap-3.5 p-5 rounded-2xl bg-[#0B0A09] border border-white/5 relative overflow-hidden group transition-all duration-300 hover:border-[#6366F1]/30">
+            {/* Top Spotlight Ambient Gradient */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-radial-gradient from-[#6366F1]/5 to-transparent rounded-full blur-2xl pointer-events-none group-hover:from-[#6366F1]/10 transition-all duration-300" />
+            
+            <div className="flex items-center gap-2 relative z-10">
+              <Sparkles size={13} className="text-[#6366F1] animate-pulse" />
+              <span className="text-white text-xs font-black uppercase tracking-wider font-clash">
+                Instant System Request
+              </span>
+              {!isPro && (
+                <span className="ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-500">
+                  PRO
+                </span>
+              )}
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!instantPrompt.trim()) return;
+                
+                if (!isPro) {
+                  openProUpgrade('Instant System Request');
+                  return;
+                }
+
+                setExecutingInstant(true);
+                setInstantError(null);
+                setInstantResponse(null);
+                try {
+                  const jwt = await account.createJWT().then((res: any) => res?.jwt || '').catch(() => undefined);
+                  const res = await executeInstantRequestAction(instantPrompt.trim(), jwt);
+                  if (res.success) {
+                    setInstantResponse(res.response);
+                  }
+                } catch (err: any) {
+                  setInstantError(err.message || 'Execution failed.');
+                } finally {
+                  setExecutingInstant(false);
+                }
+              }}
+              className="relative flex items-center gap-2 z-10"
+            >
+              <input
+                type="text"
+                value={instantPrompt}
+                onChange={(e) => setInstantPrompt(e.target.value)}
+                placeholder="Ask the system to summarize, analyze, or draft..."
+                disabled={executingInstant}
+                className="w-full pl-3.5 pr-12 py-3 rounded-xl bg-[#161412] border border-white/5 text-xs text-white font-semibold placeholder:text-[#9B9691]/40 focus:outline-none focus:border-[#6366F1]/50 focus:shadow-[0_0_12px_rgba(99,102,241,0.15)] transition-all duration-300 disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={executingInstant || !instantPrompt.trim()}
+                className="absolute right-1.5 p-2 rounded-lg text-white hover:text-white/80 bg-[#6366F1] hover:bg-[#575CF0] disabled:bg-white/5 disabled:text-[#9B9691]/40 transition-all duration-300 cursor-pointer"
+              >
+                {executingInstant ? (
+                  <RefreshCw size={12} className="animate-spin" />
+                ) : (
+                  <Send size={12} />
+                )}
+              </button>
+            </form>
+
+            {/* Instant Error */}
+            {instantError && (
+              <div className="mt-1 flex items-center gap-2 text-[10px] text-red-400 relative z-10">
+                <AlertCircle size={12} className="flex-shrink-0" />
+                <span className="font-semibold">{instantError}</span>
+              </div>
+            )}
+
+            {/* Instant Response Panel */}
+            {instantResponse && (
+              <div className="mt-1 p-3.5 rounded-xl bg-[#161412] border border-white/5 max-h-[160px] overflow-y-auto relative z-10">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[10px] text-[#9B9691] font-bold uppercase tracking-wider">System Output</span>
+                  <button
+                    type="button"
+                    onClick={() => setInstantResponse(null)}
+                    className="text-[10px] text-[#6366F1] hover:text-[#575CF0] font-bold transition-colors cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <p className="text-white/95 text-xs font-mono whitespace-pre-wrap leading-relaxed">
+                  {instantResponse}
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Main List */}
           <div className="flex-1 min-h-0 flex flex-col gap-4">
             {error && <span className="text-[#FCA5A5] text-xs px-1">{error}</span>}
@@ -353,7 +458,7 @@ export function AgenticDrawer() {
                   <RefreshCw className="w-6 h-6 text-[#6366F1] animate-spin" />
                 </div>
               ) : parsedAgents.length === 0 ? (
-                <div className="p-6 rounded-2xl bg-[#0A0908] border border-[#34322F] text-center">
+                <div className="p-6 rounded-2xl bg-[#0B0A09] border border-white/5 text-center">
                   <h3 className="text-white font-extrabold text-sm mb-1">
                     No Smart Systems
                   </h3>
@@ -368,7 +473,7 @@ export function AgenticDrawer() {
                     <div
                       key={agent.$id}
                       onClick={() => setSelectedAgentId(agent.$id)}
-                      className="p-4 rounded-2xl bg-[#0A0908] border border-[#34322F] cursor-pointer transition hover:bg-[#1C1A18] hover:-translate-y-0.5 hover:shadow-[0_8px_10px_-8px_rgba(0,0,0,1)]"
+                      className="p-4 rounded-2xl bg-[#0B0A09] border border-white/5 cursor-pointer transition hover:bg-[#1C1A18] hover:-translate-y-0.5 hover:shadow-[0_8px_10px_-8px_rgba(0,0,0,1)]"
                     >
                       <div className="flex items-center justify-between gap-4">
                         <div className="min-w-0 flex-1 flex flex-col gap-1">

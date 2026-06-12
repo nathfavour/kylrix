@@ -209,3 +209,23 @@ export async function runMyAgent(agentId: string, jwt?: string): Promise<{ summa
     throw error;
   }
 }
+
+export async function executeInstantRequestAction(prompt: string, jwt?: string): Promise<{ success: boolean; response: string }> {
+  const user = await requireUser(jwt);
+  const apiKey = process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    throw new Error('Gemini is not configured on this deployment.');
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({
+    model: process.env.GEMINI_MODEL_NAME || 'gemini-2.0-flash',
+    systemInstruction: 'You are the core Kylrix Smart System assistant. Help the user accomplish tasks, manage notes, or answer queries instantly with concise and actionable responses.',
+  });
+
+  const response = await model.generateContent(prompt);
+  return {
+    success: true,
+    response: response.response.text().trim()
+  };
+}
