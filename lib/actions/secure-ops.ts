@@ -6180,7 +6180,7 @@ export async function listGhostNoteChatsSecure(jwt?: string) {
   if (collabResourceIds.length > 0) {
       // Chunk into groups of 100 to respect Appwrite Query.equal array limits if needed
       // but for simplicity here we assume < 100 for now.
-      authOrFilters.push(Query.equal('resourceId', collabResourceIds.slice(0, 100)));
+      authOrFilters.push(Query.equal('$id', collabResourceIds.slice(0, 100)));
   }
 
   // Use the system client to manually enforce our visibility logic
