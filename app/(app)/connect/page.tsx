@@ -30,16 +30,6 @@ function ConnectHomeContent() {
 
   const { projects, loading: projectsLoading } = useProjectsList();
 
-  const [isDesktop, setIsDesktop] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia("(min-width: 1024px)");
-    setIsDesktop(media.matches);
-    const listener = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    media.addEventListener("change", listener);
-    return () => media.removeEventListener("change", listener);
-  }, []);
-
   useEffect(() => {
     setConfiguration({
       isVisible: true,
@@ -116,176 +106,169 @@ function ConnectHomeContent() {
     router.replace(next ? `${pathname}?${next}` : pathname);
   }, [pathname, router, searchParams, shouldCompose]);
 
-  if (isDesktop) {
-    return (
-      <div className="max-w-[1600px] mx-auto py-4 px-4 md:px-6 pointer-events-auto">
-        <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] lg:grid-cols-[320px_1fr_360px] gap-6 lg:gap-8 items-start">
-          
-          {/* Left Column: Secure Chats & Huddles */}
-          <div className="max-h-[calc(100vh-140px)] overflow-y-auto scrollbar-none pr-1 flex flex-col gap-6 md:sticky md:top-[108px]">
-            {/* Section 1: Secure Chats */}
-            <div className="bg-[#161412] rounded-3xl border border-white/5 p-5 flex flex-col overflow-hidden h-[380px]">
-              <h3 className="text-lg font-black font-clash text-white mb-4">
-                Secure Chats
-              </h3>
-              <div className="flex-1 overflow-y-auto pr-1">
-                <ChatList activeTab="secure" hideTabs={true} />
-              </div>
-            </div>
-
-            {/* Section 2: Huddles */}
-            <div className="bg-[#161412] rounded-3xl border border-white/5 p-5 flex flex-col overflow-hidden h-[380px]">
-              <h3 className="text-lg font-black font-clash text-white mb-4">
-                Huddles
-              </h3>
-              <div className="flex-1 overflow-y-auto pr-1">
-                <CallHistory />
-              </div>
-            </div>
-          </div>
-
-          {/* Center Column: Moments Feed */}
-          <div>
-            <h2 className="text-2xl font-black font-clash text-white mb-6">
-              Moments
-            </h2>
-            <Feed view="personal" composeIntent={composeIntent} />
-          </div>
-
-          {/* Right Column: Public Threads & Projects */}
-          <div className="max-h-[calc(100vh-140px)] overflow-y-auto scrollbar-none pr-1 flex flex-col gap-6 lg:sticky lg:top-[108px]">
-            
-            {/* Section 1: Huddle Threads */}
-            <div 
-              className="bg-[#161412] rounded-3xl border border-white/5 p-5 flex flex-col overflow-hidden transition-[height,max-height] duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]"
-              style={{
-                flex: '0 0 auto',
-                height: threadsOpen ? 'auto' : '68px',
-                maxHeight: threadsOpen ? '380px' : '68px',
-              }}
-            >
-              {/* Threads Header */}
-              <div className={`flex justify-between items-center ${threadsOpen ? 'mb-4' : 'mb-0'}`}>
-                <h3 className="text-lg font-black font-clash text-white">
-                  Threads
-                </h3>
-                <div className="flex gap-1">
-                  <button 
-                    onClick={() => setThreadsOpen(!threadsOpen)} 
-                    className="p-1.5 text-white/40 hover:text-white rounded-lg transition-colors"
-                  >
-                    {threadsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </button>
-                  <button 
-                    onClick={() => router.push('/connect/chats')} 
-                    className="p-1.5 text-white/40 hover:text-[#F59E0B] rounded-lg transition-colors"
-                  >
-                    <Maximize2 size={14} />
-                  </button>
-                </div>
-              </div>
-
-              {threadsOpen && (
-                <div className="flex-1 overflow-y-auto pr-1">
-                  <ChatList activeTab="public" hideTabs={true} />
-                </div>
-              )}
-            </div>
-
-            {/* Section 2: Projects Accordion */}
-            <div 
-              className="bg-[#161412] rounded-3xl border border-white/5 p-5 flex flex-col overflow-hidden transition-[height,max-height] duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]"
-              style={{
-                flex: '0 0 auto',
-                height: projectsOpen ? 'auto' : '68px',
-                maxHeight: projectsOpen ? '380px' : '68px',
-              }}
-            >
-              {/* Projects Header */}
-              <div className={`flex justify-between items-center ${projectsOpen ? 'mb-4' : 'mb-0'}`}>
-                <h3 className="text-lg font-black font-clash text-white">
-                  Projects
-                </h3>
-                <div className="flex gap-1">
-                  <button 
-                    onClick={() => setProjectsOpen(!projectsOpen)} 
-                    className="p-1.5 text-white/40 hover:text-white rounded-lg transition-colors"
-                  >
-                    {projectsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </button>
-                  <button 
-                    onClick={() => router.push('/projects')} 
-                    className="p-1.5 text-white/40 hover:text-[#F59E0B] rounded-lg transition-colors"
-                  >
-                    <Maximize2 size={14} />
-                  </button>
-                </div>
-              </div>
-
-              {projectsOpen && (
-                <div className="flex-1 overflow-y-auto pr-1">
-                  {projectsLoading ? (
-                    <div className="flex flex-col gap-3.5">
-                      {[1, 2, 3].map((n) => (
-                        <div key={n} className="flex gap-3.5 p-3.5 rounded-2xl bg-white/[0.01] border border-white/[0.03]">
-                          <div className="w-9 h-9 rounded-lg bg-white/5 animate-pulse" />
-                          <div className="flex-1 flex flex-col gap-1 justify-center">
-                            <div className="h-4 bg-white/5 rounded w-2/3 animate-pulse" />
-                            <div className="h-3 bg-white/5 rounded w-1/2 animate-pulse" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : projects.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-sm text-white/40">
-                        No active projects.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-3">
-                      {projects.map((proj) => (
-                        <div
-                          key={proj.$id}
-                          onClick={() => router.push(`/projects/${proj.$id}`)}
-                          className="flex gap-3.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.03] cursor-pointer hover:bg-white/[0.04] hover:border-white/[0.08] hover:translate-x-1 transition-all duration-200"
-                        >
-                          <div 
-                            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{
-                              backgroundColor: `${proj.color || '#6366F1'}1F`,
-                              color: proj.color || '#6366F1'
-                            }}
-                          >
-                            <FolderKanban size={18} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-extrabold text-white truncate">
-                              {proj.name}
-                            </div>
-                            <div className="text-[10px] text-white/40 font-mono uppercase truncate mt-0.5">
-                              STATUS: {(proj.status || 'Active').toUpperCase()}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-3xl mx-auto py-4 px-4 sm:px-6 pointer-events-auto">
-      <Feed view="personal" composeIntent={composeIntent} />
+    <div className="w-full mx-auto py-4 px-4 md:px-6 pointer-events-auto">
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] lg:grid-cols-[1fr_320px_360px] gap-6 lg:gap-8 items-start">
+        
+        {/* Center Column: Moments Feed (Positioned first/left visually & sequentially) */}
+        <div className="min-w-0 w-full">
+          <h2 className="text-2xl font-black font-clash text-white mb-6 md:hidden">
+            Moments
+          </h2>
+          <Feed view="personal" composeIntent={composeIntent} />
+        </div>
+
+        {/* Left Column: Secure Chats & Huddles */}
+        <div className="hidden md:flex max-h-[calc(100vh-140px)] overflow-y-auto scrollbar-none pr-1 flex-col gap-6 md:sticky md:top-[108px] w-full">
+          {/* Section 1: Secure Chats */}
+          <div className="bg-[#161412] rounded-3xl border border-white/5 p-5 flex flex-col overflow-hidden h-[380px]">
+            <h3 className="text-lg font-black font-clash text-white mb-4">
+              Secure Chats
+            </h3>
+            <div className="flex-1 overflow-y-auto pr-1">
+              <ChatList activeTab="secure" hideTabs={true} />
+            </div>
+          </div>
+
+          {/* Section 2: Huddles */}
+          <div className="bg-[#161412] rounded-3xl border border-white/5 p-5 flex flex-col overflow-hidden h-[380px]">
+            <h3 className="text-lg font-black font-clash text-white mb-4">
+              Huddles
+            </h3>
+            <div className="flex-1 overflow-y-auto pr-1">
+              <CallHistory />
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Public Threads & Projects */}
+        <div className="hidden lg:flex max-h-[calc(100vh-140px)] overflow-y-auto scrollbar-none pr-1 flex-col gap-6 lg:sticky lg:top-[108px] w-full">
+          
+          {/* Section 1: Huddle Threads */}
+          <div 
+            className="bg-[#161412] rounded-3xl border border-white/5 p-5 flex flex-col overflow-hidden transition-[height,max-height] duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{
+              flex: '0 0 auto',
+              height: threadsOpen ? 'auto' : '68px',
+              maxHeight: threadsOpen ? '380px' : '68px',
+            }}
+          >
+            {/* Threads Header */}
+            <div className={`flex justify-between items-center ${threadsOpen ? 'mb-4' : 'mb-0'}`}>
+              <h3 className="text-lg font-black font-clash text-white">
+                Threads
+              </h3>
+              <div className="flex gap-1">
+                <button 
+                  onClick={() => setThreadsOpen(!threadsOpen)} 
+                  className="p-1.5 text-white/40 hover:text-white rounded-lg transition-colors"
+                >
+                  {threadsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+                <button 
+                  onClick={() => router.push('/connect/chats')} 
+                  className="p-1.5 text-white/40 hover:text-[#F59E0B] rounded-lg transition-colors"
+                >
+                  <Maximize2 size={14} />
+                </button>
+              </div>
+            </div>
+
+            {threadsOpen && (
+              <div className="flex-1 overflow-y-auto pr-1">
+                <ChatList activeTab="public" hideTabs={true} />
+              </div>
+            )}
+          </div>
+
+          {/* Section 2: Projects Accordion */}
+          <div 
+            className="bg-[#161412] rounded-3xl border border-white/5 p-5 flex flex-col overflow-hidden transition-[height,max-height] duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{
+              flex: '0 0 auto',
+              height: projectsOpen ? 'auto' : '68px',
+              maxHeight: projectsOpen ? '380px' : '68px',
+            }}
+          >
+            {/* Projects Header */}
+            <div className={`flex justify-between items-center ${projectsOpen ? 'mb-4' : 'mb-0'}`}>
+              <h3 className="text-lg font-black font-clash text-white">
+                Projects
+              </h3>
+              <div className="flex gap-1">
+                <button 
+                  onClick={() => setProjectsOpen(!projectsOpen)} 
+                  className="p-1.5 text-white/40 hover:text-white rounded-lg transition-colors"
+                >
+                  {projectsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+                <button 
+                  onClick={() => router.push('/projects')} 
+                  className="p-1.5 text-white/40 hover:text-[#F59E0B] rounded-lg transition-colors"
+                >
+                  <Maximize2 size={14} />
+                </button>
+              </div>
+            </div>
+
+            {projectsOpen && (
+              <div className="flex-1 overflow-y-auto pr-1">
+                {projectsLoading ? (
+                  <div className="flex flex-col gap-3.5">
+                    {[1, 2, 3].map((n) => (
+                      <div key={n} className="flex gap-3.5 p-3.5 rounded-2xl bg-white/[0.01] border border-white/[0.03]">
+                        <div className="w-9 h-9 rounded-lg bg-white/5 animate-pulse" />
+                        <div className="flex-1 flex flex-col gap-1 justify-center">
+                          <div className="h-4 bg-white/5 rounded w-2/3 animate-pulse" />
+                          <div className="h-3 bg-white/5 rounded w-1/2 animate-pulse" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : projects.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-white/40">
+                      No active projects.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {projects.map((proj) => (
+                      <div
+                        key={proj.$id}
+                        onClick={() => router.push(`/projects/${proj.$id}`)}
+                        className="flex gap-3.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.03] cursor-pointer hover:bg-white/[0.04] hover:border-white/[0.08] hover:translate-x-1 transition-all duration-200"
+                      >
+                        <div 
+                          className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{
+                            backgroundColor: `${proj.color || '#6366F1'}1F`,
+                            color: proj.color || '#6366F1'
+                          }}
+                        >
+                          <FolderKanban size={18} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-extrabold text-white truncate">
+                            {proj.name}
+                          </div>
+                          <div className="text-[10px] text-white/40 font-mono uppercase truncate mt-0.5">
+                            STATUS: {(proj.status || 'Active').toUpperCase()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
     </div>
   );
+}
 }
 
 export default function Home() {
