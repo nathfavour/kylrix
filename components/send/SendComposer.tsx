@@ -913,62 +913,23 @@ export function SendComposer() {
         </motion.div>
 
         {!createdUrl ? (
-          <div className="grid grid-cols-1 md:grid-cols-[240px_1fr_280px] lg:grid-cols-[260px_1fr_320px] gap-8 items-start">
-            {/* Left Column: Selector sidebar (hidden on mobile) */}
-            <div className="hidden md:flex flex-col gap-2 p-5 bg-[#161412] border border-[#34322F] rounded-3xl">
-              <span className="text-[10px] font-black text-white/30 tracking-widest uppercase mb-3 block">
-                Select Format
-              </span>
-              <div className="flex flex-col gap-1.5">
-                {KINDS.map(({ id, label, blurb, Icon }) => {
-                  const selected = kind === id;
-                  const itemColor = KIND_COLORS[id];
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => {
-                        setKind(id);
-                        if (id !== 'file') {
-                          setSendFile(null);
-                          setFileName(null);
-                        }
-                      }}
-                      className="p-3 rounded-xl border text-left flex items-center gap-3 transition duration-200 w-full cursor-pointer hover:bg-white/[0.02]"
-                      style={{
-                        borderColor: selected ? itemColor : 'transparent',
-                        backgroundColor: selected ? `${itemColor}14` : 'transparent',
-                      }}
-                    >
-                      <div style={{ color: itemColor }}>
-                        <Icon size={18} />
-                      </div>
-                      <div>
-                        <p className={`text-xs font-black font-clash ${selected ? 'text-white' : 'text-white/60'}`}>{label}</p>
-                        <p className="text-[10px] text-white/30 font-satoshi truncate mt-0.5 max-w-[190px]">{blurb}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Mobile trigger button (hidden on desktop) */}
-            <div className="flex gap-3 md:hidden flex-wrap mb-4">
-              <button
-                type="button"
-                onClick={() => setKindDrawerOpen(true)}
-                className="bg-white/[0.02] border rounded-xl px-5 py-3.5 text-white text-sm font-black font-clash flex items-center gap-2 hover:bg-[#1C1A18] transition duration-200"
-                style={{ borderColor: `${KIND_COLORS[kind]}40` }}
-              >
-                {React.createElement(KINDS.find(k => k.id === kind)?.Icon || FileText, { size: 18, color: KIND_COLORS[kind] })}
-                <span>{KINDS.find(k => k.id === kind)?.label || 'Note'}</span>
-                <ChevronDown size={14} className="opacity-60 ml-1" />
-              </button>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8 items-start">
             {/* Center Column: Card content */}
             <div className="flex flex-col gap-6">
+              {/* Format selector trigger button */}
+              <div className="flex gap-3 flex-wrap mb-4">
+                <button
+                  type="button"
+                  onClick={() => setKindDrawerOpen(true)}
+                  className="bg-white/[0.02] border rounded-xl px-5 py-3.5 text-white text-sm font-black font-clash flex items-center gap-2 hover:bg-[#1C1A18] transition duration-200"
+                  style={{ borderColor: `${KIND_COLORS[kind]}40` }}
+                >
+                  {React.createElement(KINDS.find(k => k.id === kind)?.Icon || FileText, { size: 18, color: KIND_COLORS[kind] })}
+                  <span>{KINDS.find(k => k.id === kind)?.label || 'Note'}</span>
+                  <ChevronDown size={14} className="opacity-60 ml-1" />
+                </button>
+              </div>
+
               {kind === 'note' && (
                 <NoteComposerCard
                   noteTitle={noteTitle}
@@ -1003,336 +964,337 @@ export function SendComposer() {
                 />
               )}
 
-            {kind === 'password' && (
-              <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] focus-within:border-[#10B981]/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(16,185,129,0.15)] transition duration-200">
-                {/* Vault Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] flex items-center justify-center">
-                      <KeyRound size={16} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-base font-clash text-white">Hardware Credential Vault</p>
-                      <span className="text-[10px] text-white/40 font-satoshi">Locked on this device</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 bg-[#10B981]/10 border border-[#10B981]/20 px-2.5 py-1 rounded-lg">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981]" />
-                      <span className="text-[10px] font-black text-[#10B981] tracking-wider">LOCKED</span>
-                    </div>
-                    {renderHeaderActions("Enter a password to share")}
-                  </div>
-                </div>
-
-                {/* Interactive Card/SIM representation */}
-                <div className="p-6 rounded-2xl bg-black border border-[#34322F] mb-3 relative overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.08)_0%,_transparent_60%)]">
-                  <div className="w-10 h-8 rounded-md bg-gradient-to-br from-[#F59E0B] to-[#D97706] border border-[#B45309] absolute top-5 right-5 opacity-80 after:content-[''] after:absolute after:inset-1 after:border after:border-white/20 after:rounded-sm" />
-
-                  <div className="flex flex-col gap-4 max-w-[80%] relative z-10">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Vault Identity</label>
-                      <input
-                        type="text"
-                        placeholder="Username, Email, or Client ID"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="w-full bg-transparent text-sm font-mono text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#10B981] focus:outline-none placeholder-white/20"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1 my-1">
-                      <PasswordGenerator onPasswordSelect={(pwd) => setPassword(pwd)} currentPassword={password} />
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Credential Key</label>
-                      <div className="flex items-center border-b border-dashed border-[#34322F] focus-within:border-[#10B981]">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Secret Password or Key Phrase"
-                          required
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="w-full bg-transparent text-sm font-mono text-white py-1 focus:outline-none placeholder-white/20"
-                        />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-white/40 hover:text-white p-1">
-                          {showPassword ? <Unlock size={16} /> : <Lock size={16} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Bundled TOTP Secret (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="JBSWY3DPEHPK3PXP"
-                        value={passwordTotpBundle}
-                        onChange={(e) => setPasswordTotpBundle(e.target.value)}
-                        className="w-full bg-transparent text-sm font-mono text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#10B981] focus:outline-none placeholder-white/20"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {kind === 'totp' && (
-              <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] focus-within:border-[#10B981]/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(16,185,129,0.15)] transition duration-200">
-                {/* Authenticator Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] flex items-center justify-center">
-                      <Shield size={16} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-base font-clash text-white">Authenticator Generator</p>
-                      <span className="text-[10px] text-white/40 font-satoshi">Secure 2FA token seeds</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 bg-[#10B981]/10 border border-[#10B981]/20 px-2.5 py-1 rounded-lg">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981]" />
-                      <span className="text-[10px] font-black text-[#10B981] tracking-wider">ACTIVE</span>
-                    </div>
-                    {renderHeaderActions("Enter a secret key to share")}
-                  </div>
-                </div>
-
-                {/* Digital LCD screen representation */}
-                <div className="p-6 rounded-2xl bg-black border border-[#34322F] mb-3 relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.05)_0%,_transparent_60%)]">
-                  <div className="flex justify-between items-center border border-[#1C1A18] bg-[#0A0908] rounded-xl p-4 mb-6">
-                    <div>
-                      <span className="text-[10px] text-white/30 font-black tracking-wider uppercase block">
-                        {totpIssuer.trim() ? totpIssuer.trim() : 'DEFAULT TOKEN'}
-                      </span>
-                      <span className="text-3xl font-mono font-black text-[#10B981] tracking-wider mt-1 block">
-                        {totpSecret.trim() ? '••• •••' : '000 000'}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[9px] text-white/30 font-black">TIME REMAINING</span>
-                      <span className="text-lg font-mono font-black text-white/70 mt-1 block">30s</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Token Issuer (e.g. Google, AWS, GitHub)</label>
-                      <input
-                        type="text"
-                        placeholder="Google, AWS, GitHub"
-                        value={totpIssuer}
-                        onChange={(e) => setTotpIssuer(e.target.value)}
-                        className="w-full bg-transparent text-sm text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#10B981] focus:outline-none placeholder-white/20"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Secret Authenticator Key</label>
-                      <input
-                        type="text"
-                        placeholder="JBSWY3DPEHPK3PXP"
-                        required
-                        value={totpSecret}
-                        onChange={(e) => setTotpSecret(e.target.value)}
-                        className="w-full bg-transparent text-sm font-mono text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#10B981] focus:outline-none placeholder-white/20"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {kind === 'task' && (
-              <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] focus-within:border-[#A855F7]/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(168,85,247,0.15)] transition duration-200">
-                {/* Task Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#A855F7]/10 border border-[#A855F7]/30 text-[#A855F7] flex items-center justify-center">
-                      <ListTodo size={16} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-base font-clash text-white">Execution Goal Planner</p>
-                      <span className="text-[10px] text-white/40 font-satoshi">Action items & milestones</span>
-                    </div>
-                  </div>
-                  {renderHeaderActions("Enter a goal title to share")}
-                </div>
-
-                {/* Goals Metadata Schema board */}
-                <div className="p-6 rounded-2xl bg-black border border-[#34322F] mb-3 relative overflow-hidden bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.03)_0%,_transparent_80%)]">
-                  <div className="flex flex-col gap-6">
-                    <div className="flex flex-col gap-4">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Goal / Objective</label>
-                        <input
-                          key="task-title-input"
-                          type="text"
-                          placeholder="What needs to be achieved?"
-                          required
-                          value={taskTitle}
-                          autoComplete="off"
-                          onChange={(e) => setTaskTitle(e.target.value)}
-                          onKeyDown={() => setIsTaskTitleManuallyEdited(true)}
-                          onMouseDown={() => setIsTaskTitleManuallyEdited(true)}
-                          onPaste={() => setIsTaskTitleManuallyEdited(true)}
-                          className="w-full bg-transparent text-lg font-bold font-clash text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#A855F7] focus:outline-none placeholder-white/20"
-                        />
-                      </div>
- 
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Execution Details / Sub-steps</label>
-                        <textarea
-                          key="task-body-textarea"
-                          placeholder="Add context, specifications, or step-by-step checklist..."
-                          rows={3}
-                          value={taskDetail}
-                          onChange={(e) => setTaskDetail(e.target.value)}
-                          className="w-full bg-transparent text-sm text-white/80 py-1 leading-normal border-b border-dashed border-[#34322F] focus:border-[#A855F7] focus:outline-none placeholder-white/20 resize-y"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Goal Priority Selector */}
-                    <div>
-                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase block mb-2">Goal Priority</label>
-                      <div className="flex flex-wrap gap-2">
-                        {(['low', 'medium', 'high', 'urgent'] as const).map((p) => {
-                          const isSelected = taskPriority === p;
-                          const color = p === 'low' ? '#A1A1AA' : p === 'medium' ? '#A855F7' : p === 'high' ? '#F59E0B' : '#EF4444';
-                          return (
-                            <button
-                              key={p}
-                              type="button"
-                              onClick={() => setTaskPriority(p)}
-                              className="text-[10px] font-black uppercase px-4 py-2 rounded-lg border transition duration-200"
-                              style={{
-                                borderColor: isSelected ? color : '#34322F',
-                                backgroundColor: isSelected ? `${color}26` : 'transparent',
-                                color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.4)',
-                              }}
-                            >
-                              {p}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Goal Deadline Selector */}
-                    <div>
-                      <label className="text-[10px] font-black text-white/30 tracking-wider uppercase block mb-2">Goal Target Deadline</label>
-                      <div className="flex flex-wrap gap-2">
-                        {(['none', 'today', 'tomorrow', 'week'] as const).map((preset) => {
-                          const isSelected = taskDuePreset === preset;
-                          const label = preset === 'none' ? 'No Due Date' : preset === 'today' ? 'Today' : preset === 'tomorrow' ? 'Tomorrow' : '1 Week';
-                          return (
-                            <button
-                              key={preset}
-                              type="button"
-                              onClick={() => setTaskDuePreset(preset)}
-                              className="text-xs font-bold px-4 py-2 rounded-lg border transition duration-200"
-                              style={{
-                                borderColor: '#A855F7',
-                                backgroundColor: isSelected ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
-                                color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.4)',
-                              }}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {kind === 'file' && (
-              <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] focus-within:border-[#6366F1]/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(99,102,241,0.15)] transition duration-200">
-                {/* File Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#6366F1]/10 border border-[#6366F1]/30 text-[#6366F1] flex items-center justify-center">
-                      <Upload size={16} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-base font-clash text-white">Secure File Drop</p>
-                      <span className="text-[10px] text-white/40 font-satoshi">Vanishing secure file storage</span>
-                    </div>
-                  </div>
-                  {renderHeaderActions("Choose a file to share")}
-                </div>
-
-                <div
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-xl p-8 text-center transition duration-200 ${
-                    dragActive ? 'border-[#6366F1] bg-[#6366F1]/5' : 'border-[#34322F] bg-white/[0.01]'
-                  }`}
-                >
-                  <input
-                    type="file"
-                    id="send-file-input"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <label htmlFor="send-file-input" className="cursor-pointer block">
-                    <div className="flex flex-col gap-4 items-center">
-                      <div className="w-12 h-12 rounded-full bg-[#161412] border border-[#34322F] text-[#6366F1] flex items-center justify-center">
-                        <Upload size={24} />
+              {kind === 'password' && (
+                <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] focus-within:border-[#10B981]/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(16,185,129,0.15)] transition duration-200">
+                  {/* Vault Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] flex items-center justify-center">
+                        <KeyRound size={16} />
                       </div>
                       <div>
-                        <p className="font-bold text-white font-satoshi">{fileName || 'Click or drag file to share'}</p>
-                        <span className="text-xs text-white/40 block mt-1">Max {activeMaxLabel} · Securely encrypted</span>
+                        <p className="font-bold text-base font-clash text-white">Hardware Credential Vault</p>
+                        <span className="text-[10px] text-white/40 font-satoshi">Locked on this device</span>
                       </div>
-                      {fileName && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setSendFile(null);
-                            setFileName(null);
-                          }}
-                          className="text-[#FF453A] font-bold text-xs hover:underline mt-2"
-                        >
-                          Remove File
-                        </button>
-                      )}
                     </div>
-                  </label>
-                </div>
-              </div>
-            )}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 bg-[#10B981]/10 border border-[#10B981]/20 px-2.5 py-1 rounded-lg">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981]" />
+                        <span className="text-[10px] font-black text-[#10B981] tracking-wider">LOCKED</span>
+                      </div>
+                      {renderHeaderActions("Enter a password to share")}
+                    </div>
+                  </div>
 
-            <button
-              disabled={!draftValid || isCreating}
-              onClick={() => void handleCreateLink()}
-              className="w-full py-4 rounded-2xl font-black text-sm text-black transition duration-300 hover:brightness-110 active:scale-[0.99] flex items-center justify-center gap-2 font-clash disabled:bg-white/5 disabled:text-white/15 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: draftValid && !isCreating ? themeColor : undefined,
-              }}
-            >
-              {isCreating ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-current" />
-              ) : (
-                <span>Create {effectiveSecureMode ? 'Secure' : 'Send'} Link</span>
+                  {/* Interactive Card/SIM representation */}
+                  <div className="p-6 rounded-2xl bg-black border border-[#34322F] mb-3 relative overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.08)_0%,_transparent_60%)]">
+                    <div className="w-10 h-8 rounded-md bg-gradient-to-br from-[#F59E0B] to-[#D97706] border border-[#B45309] absolute top-5 right-5 opacity-80 after:content-[''] after:absolute after:inset-1 after:border after:border-white/20 after:rounded-sm" />
+
+                    <div className="flex flex-col gap-4 max-w-[80%] relative z-10">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Vault Identity</label>
+                        <input
+                          type="text"
+                          placeholder="Username, Email, or Client ID"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          className="w-full bg-transparent text-sm font-mono text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#10B981] focus:outline-none placeholder-white/20"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1 my-1">
+                        <PasswordGenerator onPasswordSelect={(pwd) => setPassword(pwd)} currentPassword={password} />
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Credential Key</label>
+                        <div className="flex items-center border-b border-dashed border-[#34322F] focus-within:border-[#10B981]">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Secret Password or Key Phrase"
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full bg-transparent text-sm font-mono text-white py-1 focus:outline-none placeholder-white/20"
+                          />
+                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-white/40 hover:text-white p-1">
+                            {showPassword ? <Unlock size={16} /> : <Lock size={16} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Bundled TOTP Secret (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="JBSWY3DPEHPK3PXP"
+                          value={passwordTotpBundle}
+                          onChange={(e) => setPasswordTotpBundle(e.target.value)}
+                          className="w-full bg-transparent text-sm font-mono text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#10B981] focus:outline-none placeholder-white/20"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
-            </button>
-            <p className="text-center text-xs text-[#9B9691] px-4 leading-relaxed mt-4">
-              {effectiveSecureMode ? 'Securely stored' : 'Stored'} for this link — they clear automatically after 7 days.
-              {effectiveSecureMode && ' The key stays in the link fragment only.'}
-            </p>
+
+              {kind === 'totp' && (
+                <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] focus-within:border-[#10B981]/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(16,185,129,0.15)] transition duration-200">
+                  {/* Authenticator Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] flex items-center justify-center">
+                        <Shield size={16} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-base font-clash text-white">Authenticator Generator</p>
+                        <span className="text-[10px] text-white/40 font-satoshi">Secure 2FA token seeds</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 bg-[#10B981]/10 border border-[#10B981]/20 px-2.5 py-1 rounded-lg">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981]" />
+                        <span className="text-[10px] font-black text-[#10B981] tracking-wider">ACTIVE</span>
+                      </div>
+                      {renderHeaderActions("Enter a secret key to share")}
+                    </div>
+                  </div>
+
+                  {/* Digital LCD screen representation */}
+                  <div className="p-6 rounded-2xl bg-black border border-[#34322F] mb-3 relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.05)_0%,_transparent_60%)]">
+                    <div className="flex justify-between items-center border border-[#1C1A18] bg-[#0A0908] rounded-xl p-4 mb-6">
+                      <div>
+                        <span className="text-[10px] text-white/30 font-black tracking-wider uppercase block">
+                          {totpIssuer.trim() ? totpIssuer.trim() : 'DEFAULT TOKEN'}
+                        </span>
+                        <span className="text-3xl font-mono font-black text-[#10B981] tracking-wider mt-1 block">
+                          {totpSecret.trim() ? '••• •••' : '000 000'}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[9px] text-white/30 font-black">TIME REMAINING</span>
+                        <span className="text-lg font-mono font-black text-white/70 mt-1 block">30s</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Token Issuer (e.g. Google, AWS, GitHub)</label>
+                        <input
+                          type="text"
+                          placeholder="Google, AWS, GitHub"
+                          value={totpIssuer}
+                          onChange={(e) => setTotpIssuer(e.target.value)}
+                          className="w-full bg-transparent text-sm text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#10B981] focus:outline-none placeholder-white/20"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Secret Authenticator Key</label>
+                        <input
+                          type="text"
+                          placeholder="JBSWY3DPEHPK3PXP"
+                          required
+                          value={totpSecret}
+                          onChange={(e) => setTotpSecret(e.target.value)}
+                          className="w-full bg-transparent text-sm font-mono text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#10B981] focus:outline-none placeholder-white/20"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {kind === 'task' && (
+                <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] focus-within:border-[#A855F7]/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(168,85,247,0.15)] transition duration-200">
+                  {/* Task Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[#A855F7]/10 border border-[#A855F7]/30 text-[#A855F7] flex items-center justify-center">
+                        <ListTodo size={16} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-base font-clash text-white">Execution Goal Planner</p>
+                        <span className="text-[10px] text-white/40 font-satoshi">Action items & milestones</span>
+                      </div>
+                    </div>
+                    {renderHeaderActions("Enter a goal title to share")}
+                  </div>
+
+                  {/* Goals Metadata Schema board */}
+                  <div className="p-6 rounded-2xl bg-black border border-[#34322F] mb-3 relative overflow-hidden bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.03)_0%,_transparent_80%)]">
+                    <div className="flex flex-col gap-6">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Goal / Objective</label>
+                          <input
+                            key="task-title-input"
+                            type="text"
+                            placeholder="What needs to be achieved?"
+                            required
+                            value={taskTitle}
+                            autoComplete="off"
+                            onChange={(e) => setTaskTitle(e.target.value)}
+                            onKeyDown={() => setIsTaskTitleManuallyEdited(true)}
+                            onMouseDown={() => setIsTaskTitleManuallyEdited(true)}
+                            onPaste={() => setIsTaskTitleManuallyEdited(true)}
+                            className="w-full bg-transparent text-lg font-bold font-clash text-white py-1 border-b border-dashed border-[#34322F] focus:border-[#A855F7] focus:outline-none placeholder-white/20"
+                          />
+                        </div>
+   
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-black text-white/30 tracking-wider uppercase">Execution Details / Sub-steps</label>
+                          <textarea
+                            key="task-body-textarea"
+                            placeholder="Add context, specifications, or step-by-step checklist..."
+                            rows={3}
+                            value={taskDetail}
+                            onChange={(e) => setTaskDetail(e.target.value)}
+                            className="w-full bg-transparent text-sm text-white/80 py-1 leading-normal border-b border-dashed border-[#34322F] focus:border-[#A855F7] focus:outline-none placeholder-white/20 resize-y"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Goal Priority Selector */}
+                      <div>
+                        <label className="text-[10px] font-black text-white/30 tracking-wider uppercase block mb-2">Goal Priority</label>
+                        <div className="flex flex-wrap gap-2">
+                          {(['low', 'medium', 'high', 'urgent'] as const).map((p) => {
+                            const isSelected = taskPriority === p;
+                            const color = p === 'low' ? '#A1A1AA' : p === 'medium' ? '#A855F7' : p === 'high' ? '#F59E0B' : '#EF4444';
+                            return (
+                              <button
+                                key={p}
+                                type="button"
+                                onClick={() => setTaskPriority(p)}
+                                className="text-[10px] font-black uppercase px-4 py-2 rounded-lg border transition duration-200"
+                                style={{
+                                  borderColor: isSelected ? color : '#34322F',
+                                  backgroundColor: isSelected ? `${color}26` : 'transparent',
+                                  color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.4)',
+                                }}
+                              >
+                                {p}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Goal Deadline Selector */}
+                      <div>
+                        <label className="text-[10px] font-black text-white/30 tracking-wider uppercase block mb-2">Goal Target Deadline</label>
+                        <div className="flex flex-wrap gap-2">
+                          {(['none', 'today', 'tomorrow', 'week'] as const).map((preset) => {
+                            const isSelected = taskDuePreset === preset;
+                            const label = preset === 'none' ? 'No Due Date' : preset === 'today' ? 'Today' : preset === 'tomorrow' ? 'Tomorrow' : '1 Week';
+                            return (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => setTaskDuePreset(preset)}
+                                className="text-xs font-bold px-4 py-2 rounded-lg border transition duration-200"
+                                style={{
+                                  borderColor: '#A855F7',
+                                  backgroundColor: isSelected ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
+                                  color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.4)',
+                                }}
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {kind === 'file' && (
+                <div className="rounded-[24px] bg-[#161412] border border-[#34322F] p-6 shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9),_0_2px_3px_-3px_rgba(37,35,33,0.9)] focus-within:border-[#6366F1]/50 focus-within:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),_0_0_15px_rgba(99,102,241,0.15)] transition duration-200">
+                  {/* File Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[#6366F1]/10 border border-[#6366F1]/30 text-[#6366F1] flex items-center justify-center">
+                        <Upload size={16} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-base font-clash text-white">Secure File Drop</p>
+                        <span className="text-[10px] text-white/40 font-satoshi">Vanishing secure file storage</span>
+                      </div>
+                    </div>
+                    {renderHeaderActions("Choose a file to share")}
+                  </div>
+
+                  <div
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-xl p-8 text-center transition duration-200 ${
+                      dragActive ? 'border-[#6366F1] bg-[#6366F1]/5' : 'border-[#34322F] bg-white/[0.01]'
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      id="send-file-input"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <label htmlFor="send-file-input" className="cursor-pointer block">
+                      <div className="flex flex-col gap-4 items-center">
+                        <div className="w-12 h-12 rounded-full bg-[#161412] border border-[#34322F] text-[#6366F1] flex items-center justify-center">
+                          <Upload size={24} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-white font-satoshi">{fileName || 'Click or drag file to share'}</p>
+                          <span className="text-xs text-white/40 block mt-1">Max {activeMaxLabel} · Securely encrypted</span>
+                        </div>
+                        {fileName && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setSendFile(null);
+                              setFileName(null);
+                            }}
+                            className="text-[#FF453A] font-bold text-xs hover:underline mt-2"
+                          >
+                            Remove File
+                          </button>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              <button
+                disabled={!draftValid || isCreating}
+                onClick={() => void handleCreateLink()}
+                className="w-full py-4 rounded-2xl font-black text-sm text-black transition duration-300 hover:brightness-110 active:scale-[0.99] flex items-center justify-center gap-2 font-clash disabled:bg-white/5 disabled:text-white/15 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: draftValid && !isCreating ? themeColor : undefined,
+                }}
+              >
+                {isCreating ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-current" />
+                ) : (
+                  <span>Create {effectiveSecureMode ? 'Secure' : 'Send'} Link</span>
+                )}
+              </button>
+              <p className="text-center text-xs text-[#9B9691] px-4 leading-relaxed mt-4">
+                {effectiveSecureMode ? 'Securely stored' : 'Stored'} for this link — they clear automatically after 7 days.
+                {effectiveSecureMode && ' The key stays in the link fragment only.'}
+              </p>
             </div>
 
-            {/* Desktop Sidebar Stash (hidden on mobile) */}
-            <div className="hidden md:block bg-[#161412] border border-[#34322F] rounded-3xl p-5 w-full">
+            {/* Stash / Sparks shelf: flows below on mobile, right column on desktop */}
+            <div className="bg-[#161412] border border-[#34322F] rounded-[24px] p-5 w-full">
               <SendSparkShelf sparks={sendSparks} onSaveSparks={saveSendSparks} onClaim={handleClaimSendSpark} />
             </div>
+          </div>/div>
           </div>
         ) : (
           <div className="p-8 md:p-12 rounded-[40px] bg-[#161412] border border-[#34322F] text-center shadow-[0_32px_80px_rgba(0,0,0,0.6)]">
