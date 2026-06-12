@@ -423,7 +423,7 @@ export const Profile = ({ username }: ProfileProps) => {
                     <Box sx={{ flexShrink: 0, textAlign: 'center' }}>
                         <Box onClick={handleNavigateToPublic} sx={{ cursor: 'pointer', mb: 2 }}>
                             <IdentityAvatar
-                                fileId={profile?.avatar}
+                                fileId={profile?.avatar || (isOwnProfile ? targetUserId : null)}
                                 alt={profile.displayName || profile.username || 'profile'}
                                 fallback={(profile.displayName || profile.username || 'U').charAt(0).toUpperCase()}
                                 verified={identityFlags.verified}

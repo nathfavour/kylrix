@@ -84,7 +84,19 @@ export function IdentityAvatar({
   email?: string | null;
 }) {
   const [profileRecord, setProfileRecord] = useState<any>(null);
-  const [resolvedSrc, setResolvedSrc] = useState<string | null>(src || null);
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(() => {
+    if (src) return src;
+    const targetFileId = fileId || userId;
+    if (targetFileId) {
+      try {
+        const { getCachedProfilePreview } = require('@/lib/profile-preview');
+        return getCachedProfilePreview(targetFileId) || null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
   const [imageError, setImageError] = useState(false);
 
   // 1. Fetch the user's profile status row securely using Identity Cache if userId is provided
@@ -165,6 +177,17 @@ export function IdentityAvatar({
       setResolvedSrc(null);
       return;
     }
+
+    // Check memory cache first
+    try {
+      const { getCachedProfilePreview } = require('@/lib/profile-preview');
+      const cached = getCachedProfilePreview(targetFileId);
+      if (cached) {
+        setResolvedSrc(cached);
+        setImageError(false);
+        return;
+      }
+    } catch {}
 
     if (!canFetchAvatar) {
       setResolvedSrc(null);
