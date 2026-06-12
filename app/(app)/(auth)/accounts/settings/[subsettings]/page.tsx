@@ -163,6 +163,30 @@ export default function SubSettingsPage(props: { params: Promise<{ subsettings: 
                 : 'unknown');
           setLoading(false);
           checkInitialStatus(userData.$id, userData.email);
+
+          // Force-repair profile preview cache when viewing profile tab
+          const fileId = userData.prefs?.profilePicId || userData.$id;
+          if (fileId && subsettings === 'profile') {
+            (async () => {
+              try {
+                const { fetchProfilePreview } = await import('@/lib/profile-preview');
+                const PREVIEW_STORE_KEY = 'kylrix_avatar_cache_v2';
+                if (typeof window !== 'undefined') {
+                  try {
+                    const stored = sessionStorage.getItem(PREVIEW_STORE_KEY);
+                    if (stored) {
+                      const parsed = JSON.parse(stored);
+                      delete parsed[fileId];
+                      sessionStorage.setItem(PREVIEW_STORE_KEY, JSON.stringify(parsed));
+                    }
+                  } catch {}
+                }
+                await fetchProfilePreview(fileId);
+              } catch (err) {
+                console.warn('Failed to repair profile preview cache:', err);
+              }
+            })();
+          }
         }
       } catch (_err) {
         if (mounted) router.push('/accounts/login');
