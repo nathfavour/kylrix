@@ -210,3 +210,60 @@ export async function getActivePendingCryptoInvoiceAction(input: {
     return null;
   }
 }
+
+export async function getActiveBlockBeeCoinsAction(input: { jwt?: string }): Promise<{
+  success: boolean;
+  coins?: Array<{ id: string; name: string; symbol: string }>;
+  error?: string;
+}> {
+  try {
+    const user = await getAuthenticatedUserForBillingAction({ jwt: input.jwt });
+    if (!user) throw new Error('Unauthenticated');
+
+    const blockbeeApiKey = process.env.BLOCKBEE_API;
+    if (!blockbeeApiKey) {
+      throw new Error('Payment gateway configuration is missing');
+    }
+
+    const infoRes = await fetch(
+      `https://api.blockbee.io/info/?apikey=${blockbeeApiKey}`
+    ).then(r => r.json()).catch(() => null);
+
+    if (!infoRes || infoRes.status === 'error') {
+      // Fallback if API fails
+      return {
+        success: true,
+        coins: [
+          { id: 'ltc', name: 'Litecoin', symbol: 'LTC' },
+          { id: 'btc', name: 'Bitcoin', symbol: 'BTC' },
+          { id: 'trx_usdt', name: 'Tether (TRC20)', symbol: 'USDT' }
+        ]
+      };
+    }
+
+    const symbolMap: Record<string, string> = {
+      btc: 'BTC',
+      ltc: 'LTC',
+      eth: 'ETH',
+      trx_usdt: 'USDT (TRC20)',
+      erc20_usdt: 'USDT (ERC20)',
+      bep20_usdt: 'USDT (BEP20)',
+      trx: 'TRX',
+      doge: 'DOGE',
+      bch: 'BCH',
+      usdc: 'USDC'
+    };
+
+    const coins = Object.entries(infoRes)
+      .filter(([key, val]: [string, any]) => val && typeof val === 'object' && val.coin)
+      .map(([key, val]: [string, any]) => ({
+        id: key,
+        name: val.coin,
+        symbol: symbolMap[key.toLowerCase()] || key.toUpperCase()
+      }));
+
+    return { success: true, coins };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
