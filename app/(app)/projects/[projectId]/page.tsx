@@ -193,6 +193,21 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleSaveVisibility = async (visibility: 'public' | 'private', isGuest: boolean) => {
+    if (!project) return;
+    try {
+      await ProjectsService.updateProject(project.$id, {
+        visibility,
+        isGuest
+      });
+      showSuccess('Project visibility updated successfully!');
+      fetchProjectData();
+    } catch (err: any) {
+      console.error('Failed to update project visibility:', err);
+      showError('Failed to update visibility', err.message);
+    }
+  };
+
   const tabLongPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const tabTouchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -1407,13 +1422,21 @@ export default function ProjectDetailPage() {
                     </p>
                     
                     <div className="flex flex-col gap-3">
-                        <div className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 flex flex-col gap-1.5">
-                            <span className="text-[9px] text-white/30 font-black uppercase tracking-wider">Visibility</span>
-                            <div className="flex items-center gap-2 text-[#6366F1]">
-                                <Globe size={14} />
-                                <span className="text-sm font-black capitalize">{project.visibility}</span>
+                        <button
+                            onClick={() => openUnified('project-visibility', { project, onSave: handleSaveVisibility })}
+                            className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 hover:border-[#6366F1]/30 transition-all flex flex-col gap-1.5 text-left w-full cursor-pointer group"
+                        >
+                            <span className="text-[9px] text-white/30 font-black uppercase tracking-wider group-hover:text-[#6366F1] transition-colors">Visibility</span>
+                            <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2 text-[#6366F1]">
+                                    <Globe size={14} />
+                                    <span className="text-sm font-black capitalize">
+                                        {project.visibility}{project.visibility === 'public' && (project.isGuest ? ' (Guest Access)' : ' (Authenticated Only)')}
+                                    </span>
+                                </div>
+                                <ChevronDown size={14} className="text-white/40 group-hover:text-white transition-colors" />
                             </div>
-                        </div>
+                        </button>
                         <div className="p-3 rounded-[16px] bg-[#0A0908] border border-white/4 flex flex-col gap-1.5">
                             <span className="text-[9px] text-white/30 font-black uppercase tracking-wider">Last Update</span>
                             <div className="flex items-center gap-2 text-white/60">
