@@ -24,15 +24,17 @@ export interface Web3Balance {
 }
 
 export const Web3WalletService = {
-  /** Create a viem public client for a specified chain using DRPC endpoint */
   getPublicClient(chain: SupportedWalletChain) {
-    const config = DRPC_CONFIGS[chain];
-    if (!config) {
+    const chainConfig = DRPC_CHAINS[chain];
+    const networkName = DRPC_NETWORK_NAMES[chain];
+    if (!chainConfig || !networkName) {
       throw new Error(`DRPC/Viem integration is not configured for chain: ${chain}`);
     }
+    const apiKey = process.env.DRPC_API || 'an_drpc_key_placeholder';
+    const rpcUrl = `https://lb.drpc.org/ogrpc?network=${networkName}&dkey=${apiKey}`;
     return createPublicClient({
-      chain: config.chain,
-      transport: http(config.rpcUrl)
+      chain: chainConfig,
+      transport: http(rpcUrl)
     });
   },
 
