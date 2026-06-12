@@ -1,16 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Stack,
-  Button,
-  CircularProgress,
-  IconButton,
-  alpha,
-  Paper,
-} from '@/lib/mui-tailwind/material';
 import { Trash2, AlertTriangle, X } from 'lucide-react';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 
@@ -49,147 +39,140 @@ export function DeleteConfirmDrawer() {
   };
 
   return (
-    <Box sx={{ p: { xs: 3, md: 4 }, bgcolor: 'transparent', color: '#fff' }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: alpha('#EF4444', 0.1), color: '#EF4444' }}>
-            <AlertTriangle size={24} />
-          </Box>
-          <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', lineHeight: 1.2 }}>
-            Confirm Deletion
-          </Typography>
-        </Stack>
-        <IconButton onClick={close} sx={{ color: 'rgba(255,255,255,0.3)' }}>
-          <X size={20} />
-        </IconButton>
-      </Stack>
+    <div className="p-6 md:p-8 text-white font-satoshi flex flex-col gap-6 relative select-none">
+      {/* Red Spotlight Ambient Gradient */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-36 pointer-events-none opacity-20"
+        style={{ backgroundImage: 'radial-gradient(circle at top, rgba(239, 68, 68, 0.25) 0%, transparent 70%)' }}
+      />
 
-      <Box sx={{ mb: 4 }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 700, fontSize: '1.1rem', mb: 1 }}>
+      {/* Header */}
+      <div className="flex justify-between items-center relative z-10 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 shadow-[0_0_12px_rgba(239,68,68,0.2)]">
+            <AlertTriangle size={20} />
+          </div>
+          <div>
+            <h3 className="font-extrabold text-lg text-white font-clash tracking-tight">
+              Confirm Deletion
+            </h3>
+            <p className="text-[10px] text-white/45 font-bold uppercase tracking-wider font-clash mt-0.5">
+              Destructive Action
+            </p>
+          </div>
+        </div>
+        <button 
+          onClick={close} 
+          className="p-1.5 text-white/50 hover:text-white transition rounded-lg hover:bg-white/5 border border-white/5"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* Content description */}
+      <div className="flex flex-col gap-2 relative z-10">
+        <h4 className="font-extrabold text-sm text-white/90 leading-tight font-satoshi">
           {data.title}
-        </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+        </h4>
+        <p className="text-xs text-white/40 leading-relaxed font-satoshi">
           {data.description || `This action is permanent and cannot be undone. All data associated with ${data.resourceName || 'this resource'} will be wiped from the ecosystem.`}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
+      {/* Project Deletion options */}
       {data.isProject && (
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 2, display: 'block' }}>
+        <div className="flex flex-col gap-3 relative z-10">
+          <span className="text-[10px] font-black text-white/35 tracking-wider uppercase block font-clash">
             Choose Deletion Mode
-          </Typography>
-          <Stack spacing={2}>
+          </span>
+          <div className="flex flex-col gap-2.5">
             {[
               {
                 value: 'detach',
                 title: 'Detach resources untouched (Safe)',
                 desc: 'Keep all associated notes, tasks, and credentials intact. Only unlink and delete the project wrapper.',
-                color: '#10B981'
+                color: '#10B981',
+                bgActive: 'bg-[#10B981]/5',
+                borderActive: 'border-[#10B981]/30'
               },
               {
                 value: 'created_within',
                 title: 'Delete project-created resources only',
                 desc: 'Delete only resources that were created directly inside this project workspace. External linked resources remain untouched.',
-                color: '#F59E0B'
+                color: '#F59E0B',
+                bgActive: 'bg-[#F59E0B]/5',
+                borderActive: 'border-[#F59E0B]/30'
               },
               {
                 value: 'all',
                 title: 'Delete all cascading resources (Dangerous)',
                 desc: 'Permanently wipe all linked resources and their sub-objects (including comment reactions, chats, and physical voice notes).',
-                color: '#EF4444'
+                color: '#EF4444',
+                bgActive: 'bg-[#EF4444]/5',
+                borderActive: 'border-[#EF4444]/30'
               }
             ].map((option) => {
               const selected = deleteMode === option.value;
               return (
-                <Paper
+                <button
+                  type="button"
                   key={option.value}
-                  variant="outlined"
                   onClick={() => setDeleteMode(option.value as any)}
-                  sx={{
-                    p: 2,
-                    borderRadius: '16px',
-                    bgcolor: selected ? alpha(option.color, 0.05) : 'rgba(255,255,255,0.01)',
-                    borderColor: selected ? option.color : 'rgba(255,255,255,0.06)',
-                    borderWidth: selected ? '2px' : '1px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 0.5,
-                    '&:hover': {
-                      borderColor: selected ? option.color : 'rgba(255,255,255,0.15)',
-                      bgcolor: selected ? alpha(option.color, 0.07) : 'rgba(255,255,255,0.02)'
-                    }
-                  }}
+                  className={`p-4 rounded-2xl border text-left transition duration-200 flex flex-col gap-1.5 w-full cursor-pointer hover:translate-y-[-1px] ${
+                    selected 
+                      ? `${option.bgActive} ${option.borderActive}` 
+                      : 'bg-[#0B0A09] border-white/5 hover:border-white/10'
+                  }`}
+                  style={selected ? { boxShadow: `0 0 12px ${option.color}15` } : undefined}
                 >
-                  <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
-                    <Typography variant="body2" sx={{ fontWeight: 900, color: selected ? option.color : 'white' }}>
-                      {option.title}
-                    </Typography>
-                    <Box
-                      sx={{
-                        width: 16,
-                        height: 16,
-                        borderRadius: '50%',
-                        border: `2px solid ${selected ? option.color : 'rgba(255,255,255,0.3)'}`,
-                        display: 'grid',
-                        placeItems: 'center',
-                        bgcolor: selected ? option.color : 'transparent'
-                      }}
+                  <div className="flex items-center justify-between w-full">
+                    <span 
+                      style={{ color: selected ? option.color : undefined }}
+                      className="font-extrabold text-xs text-white font-satoshi"
                     >
-                      {selected && <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#000' }} />}
-                    </Box>
-                  </Stack>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>
+                      {option.title}
+                    </span>
+                    <div 
+                      style={{ borderColor: selected ? option.color : undefined, backgroundColor: selected ? option.color : undefined }}
+                      className="w-4 h-4 rounded-full border border-white/30 flex items-center justify-center transition-colors shrink-0"
+                    >
+                      {selected && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-white/40 leading-relaxed font-satoshi">
                     {option.desc}
-                  </Typography>
-                </Paper>
+                  </p>
+                </button>
               );
             })}
-          </Stack>
-        </Box>
+          </div>
+        </div>
       )}
 
-      <Stack spacing={2}>
-        <Button
-          fullWidth
-          variant="contained"
+      {/* Buttons */}
+      <div className="flex flex-col gap-3 mt-4 relative z-10 shrink-0">
+        <button
           onClick={handleConfirm}
           disabled={loading}
-          startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <Trash2 size={18} />}
-          sx={{
-            py: 2,
-            borderRadius: '16px',
-            fontWeight: 900,
-            textTransform: 'none',
-            fontSize: '1rem',
-            bgcolor: '#EF4444',
-            color: '#fff',
-            '&:hover': { bgcolor: '#DC2626', transform: 'translateY(-2px)' },
-            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-            boxShadow: '0 8px 16px rgba(239, 68, 68, 0.15)'
-          }}
+          className="w-full py-4 rounded-2xl font-extrabold text-sm bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 transition duration-200 cursor-pointer shadow-[0_8px_16px_rgba(239,68,68,0.15)] flex items-center justify-center gap-2 hover:scale-[1.01]"
         >
-          {loading ? 'Processing...' : data.confirmLabel || 'Delete Permanently'}
-        </Button>
-        
-        <Button
-          fullWidth
-          variant="text"
+          {loading ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <>
+              <Trash2 size={16} />
+              <span>{data.confirmLabel || 'Delete Permanently'}</span>
+            </>
+          )}
+        </button>
+        <button
           onClick={close}
           disabled={loading}
-          sx={{
-            py: 1.5,
-            borderRadius: '12px',
-            fontWeight: 800,
-            textTransform: 'none',
-            color: 'rgba(255,255,255,0.4)',
-            '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.04)' }
-          }}
+          className="w-full py-3.5 rounded-xl font-bold text-xs text-white/45 hover:text-white transition duration-200 hover:bg-white/5"
         >
           Cancel
-        </Button>
-      </Stack>
-    </Box>
+        </button>
+      </div>
+    </div>
   );
 }
