@@ -152,6 +152,7 @@ export default function ConnectTopbar({
     if (pathname?.startsWith('/connect')) return 'connect';
     if (pathname?.startsWith('/accounts')) return 'accounts';
     if (pathname?.startsWith('/send')) return 'send';
+    if (pathname?.startsWith('/projects')) return 'projects';
     return 'kylrix';
   }, [pathname]);
 
@@ -443,12 +444,17 @@ export default function ConnectTopbar({
   }, [profileSeed, handleCloseAll, router]);
 
   const connectApps = useMemo(
-    () =>
-      createEcosystemPanelItems(activeApp).map((item) => ({
+    () => {
+      const items = createEcosystemPanelItems(activeApp).map((item) => ({
         ...item,
         href: getEcosystemUrl(item.app),
-      })),
-    [activeApp],
+      }));
+      if (!isDesktop) {
+        return items.filter(item => item.id !== 'projects');
+      }
+      return items;
+    },
+    [activeApp, isDesktop],
   );
 
   const appPanelMotion = useMemo(() => createTopbarPanelMotion(), []);

@@ -3,7 +3,7 @@
  * Keep this package framework-agnostic and pure.
  */
 
-export type KylrixApp = 'root' | 'accounts' | 'kylrix' | 'vault' | 'flow' | 'note' | 'connect' | 'send';
+export type KylrixApp = 'root' | 'accounts' | 'kylrix' | 'vault' | 'flow' | 'note' | 'connect' | 'send' | 'projects';
 
 export const KYLRIX_COLORS = {
   ecosystemPrimary: '#6366F1',
@@ -29,6 +29,7 @@ export const KYLRIX_APP_TONES: Record<KylrixApp, { primary: string; secondary: s
   note: { primary: KYLRIX_COLORS.ecosystemPrimary, secondary: '#EC4899', label: 'Note' },
   connect: { primary: KYLRIX_COLORS.ecosystemPrimary, secondary: '#F59E0B', label: 'Connect' },
   send: { primary: KYLRIX_COLORS.ecosystemPrimary, secondary: '#EC4899', label: 'Send' },
+  projects: { primary: KYLRIX_COLORS.ecosystemPrimary, secondary: '#6366F1', label: 'Projects' },
 };
 
 export const KYLRIX_THEME = {
