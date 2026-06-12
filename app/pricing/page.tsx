@@ -13,7 +13,7 @@ import { useSubscription } from '@/context/subscription/SubscriptionContext';
 export default function PricingPage() {
   const router = useRouter();
   const { isAuthenticated, openIDMWindow } = useAuth();
-  const { prices, detectedRegion } = useSubscription();
+  const { prices, detectedRegion, isLoading } = useSubscription();
   const [months, setMonths] = useState(1);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false);
@@ -131,35 +131,44 @@ export default function PricingPage() {
             </div>
 
             {/* Right Pricing Summary Box */}
-            <div className="p-6 rounded-[24px] bg-[#1F1D1B] border border-white/8 text-center flex flex-col items-center justify-center gap-4">
-              <div>
-                <span className="text-white/40 text-[11px] font-bold block mb-1">
-                  Total Amount
-                </span>
-                <span className="text-4xl md:text-5xl font-black text-white font-mono leading-none tracking-tight">
-                  ${totalPrice.toFixed(2)}
-                </span>
-              </div>
-
-              {detectedRegion.countryCode !== 'US' && (
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-[#6366F1] font-black text-xs">
-                    Regional Price Applied ({detectedRegion.name})
-                  </span>
+            <div className="p-6 rounded-[24px] bg-[#1F1D1B] border border-white/8 text-center flex flex-col items-center justify-center gap-4 min-h-[200px]">
+              {isLoading ? (
+                <div className="flex flex-col items-center gap-2 py-8">
+                  <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  <span className="text-white/40 text-xs font-bold font-mono">Resolving Regional Rate...</span>
                 </div>
-              )}
+              ) : (
+                <>
+                  <div>
+                    <span className="text-white/40 text-[11px] font-bold block mb-1">
+                      Total Amount
+                    </span>
+                    <span className="text-4xl md:text-5xl font-black text-white font-mono leading-none tracking-tight">
+                      ${totalPrice.toFixed(2)}
+                    </span>
+                  </div>
 
-              <button 
-                onClick={handleSubscribe}
-                disabled={isRedirecting}
-                className="w-full py-3.5 mt-4 bg-white hover:bg-neutral-200 disabled:opacity-40 text-black font-black text-sm md:text-base rounded-[16px] transition-all shadow-[0_4px_12px_rgba(255,255,255,0.05)]"
-              >
-                {isRedirecting ? 'Redirecting...' : 'Continue to Checkout'}
-              </button>
-              
-              <p className="text-[10px] text-white/30 font-medium leading-normal px-2 mt-2">
-                Your subscription time is calculated based on your contribution. Any payment amount is automatically converted into active Pro time.
-              </p>
+                  {detectedRegion.countryCode !== 'US' && (
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-[#6366F1] font-black text-xs">
+                        Regional Price Applied ({detectedRegion.name})
+                      </span>
+                    </div>
+                  )}
+
+                  <button 
+                    onClick={handleSubscribe}
+                    disabled={isRedirecting}
+                    className="w-full py-3.5 mt-4 bg-white hover:bg-neutral-200 disabled:opacity-40 text-black font-black text-sm md:text-base rounded-[16px] transition-all shadow-[0_4px_12px_rgba(255,255,255,0.05)]"
+                  >
+                    {isRedirecting ? 'Redirecting...' : 'Continue to Checkout'}
+                  </button>
+                  
+                  <p className="text-[10px] text-white/30 font-medium leading-normal px-2 mt-2">
+                    Your subscription time is calculated based on your contribution. Any payment amount is automatically converted into active Pro time.
+                  </p>
+                </>
+              )}
             </div>
 
           </div>
