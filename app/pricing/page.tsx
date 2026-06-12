@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Info, Sparkles, Globe, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
 
 import Logo from '@/components/Logo';
-import PaymentMethodDrawer from '@/components/PaymentMethodDrawer';
+import { CryptoPaymentDrawer } from '@/components/CryptoPaymentDrawer';
 import { useAuth } from '@/context/auth/AuthContext';
 import { getEcosystemUrl } from '@/lib/ecosystem';
 import { useSubscription } from '@/context/subscription/SubscriptionContext';
@@ -17,7 +17,6 @@ export default function PricingPage() {
   const router = useRouter();
   const { isAuthenticated, openIDMWindow, user } = useAuth();
   const [months, setMonths] = useState(1);
-  const [isRedirecting, setIsRedirecting] = useState(false);
   const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false);
 
   // Match account billing page logic precisely
@@ -106,20 +105,13 @@ export default function PricingPage() {
   }, [months, basePrice]);
 
   const handleSubscribe = () => {
-    setPaymentDrawerOpen(true);
-  };
-
-  const handlePaymentMethodSelect = (method: 'kylrix' | 'external') => {
-    const planId = months >= 12 ? 'PRO_YEAR' : 'PRO_MONTH';
-    const checkoutUrl = `${getEcosystemUrl('accounts')}/subscription/pro/checkout?planId=${planId}&months=${months}&countryCode=${region}&paymentMethod=${method}&source=${encodeURIComponent(window.location.href)}`;
-    
     if (!isAuthenticated) {
+      const planId = months >= 12 ? 'PRO_YEAR' : 'PRO_MONTH';
+      const checkoutUrl = `${getEcosystemUrl('accounts')}/subscription/pro/checkout?planId=${planId}&months=${months}&countryCode=${region}&paymentMethod=CRYPTO&source=${encodeURIComponent(window.location.href)}`;
       openIDMWindow(checkoutUrl);
       return;
     }
-    
-    setIsRedirecting(true);
-    router.push(checkoutUrl);
+    setPaymentDrawerOpen(true);
   };
 
   return (
@@ -127,11 +119,11 @@ export default function PricingPage() {
       
       {/* Conditionally Render Drawer (Global Unmount Policy) */}
       {paymentDrawerOpen && (
-        <PaymentMethodDrawer
+        <CryptoPaymentDrawer
           onClose={() => setPaymentDrawerOpen(false)}
           months={months}
-          totalPrice={totalPrice}
-          onPaymentMethodSelect={handlePaymentMethodSelect}
+          countryCode={region}
+          planId={months >= 12 ? 'PRO_YEAR' : 'PRO_MONTH'}
         />
       )}
 
@@ -232,10 +224,9 @@ export default function PricingPage() {
 
                   <button 
                     onClick={handleSubscribe}
-                    disabled={isRedirecting}
-                    className="w-full py-3.5 mt-4 bg-white hover:bg-neutral-200 disabled:opacity-40 text-black font-black text-sm md:text-base rounded-[16px] transition-all shadow-[0_4px_12px_rgba(255,255,255,0.05)]"
+                    className="w-full py-3.5 mt-4 bg-white hover:bg-neutral-200 text-black font-black text-sm md:text-base rounded-[16px] transition-all shadow-[0_4px_12px_rgba(255,255,255,0.05)]"
                   >
-                    {isRedirecting ? 'Redirecting...' : 'Continue to Checkout'}
+                    Continue to Checkout
                   </button>
                   
                   <p className="text-[10px] text-white/30 font-medium leading-normal px-2 mt-2">
