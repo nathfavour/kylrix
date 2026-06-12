@@ -227,26 +227,40 @@ export default function ProjectDetailPage() {
     });
   };
 
-  const handleApproveJoinRequest = async (targetUserId: string) => {
+  const handleApproveJoinRequest = (req: any) => {
     if (!projectId) return;
-    try {
-      await ProjectsService.approveJoinRequest(projectId as string, targetUserId, 'viewer');
-      showSuccess('Access request granted successfully!');
-      fetchProjectData();
-    } catch (err: any) {
-      showError('Failed to grant request', err.message);
-    }
+    openUnified('project-join-request-confirm', {
+      action: 'grant',
+      requesterName: req.displayName || req.name || req.email || 'Collaborator',
+      projectName: project?.title || 'this project',
+      onConfirm: async (selectedRole?: 'viewer' | 'editor' | 'admin') => {
+        try {
+          await ProjectsService.approveJoinRequest(projectId as string, req.userId || req.$id, selectedRole || 'viewer');
+          showSuccess('Access request granted successfully!');
+          fetchProjectData();
+        } catch (err: any) {
+          showError('Failed to grant request', err.message);
+        }
+      }
+    });
   };
 
-  const handleRejectJoinRequest = async (targetUserId: string) => {
+  const handleRejectJoinRequest = (req: any) => {
     if (!projectId) return;
-    try {
-      await ProjectsService.removeCollaborator(projectId as string, targetUserId);
-      showSuccess('Access request denied.');
-      fetchProjectData();
-    } catch (err: any) {
-      showError('Failed to deny request', err.message);
-    }
+    openUnified('project-join-request-confirm', {
+      action: 'deny',
+      requesterName: req.displayName || req.name || req.email || 'Collaborator',
+      projectName: project?.title || 'this project',
+      onConfirm: async () => {
+        try {
+          await ProjectsService.removeCollaborator(projectId as string, req.userId || req.$id);
+          showSuccess('Access request denied.');
+          fetchProjectData();
+        } catch (err: any) {
+          showError('Failed to deny request', err.message);
+        }
+      }
+    });
   };
 
   const tabLongPressTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -1498,13 +1512,13 @@ export default function ProjectDetailPage() {
                                         </div>
                                         <div className="flex gap-1.5 shrink-0">
                                             <button
-                                                onClick={() => handleApproveJoinRequest(req.userId || req.$id)}
+                                                onClick={() => handleApproveJoinRequest(req)}
                                                 className="px-2.5 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#10B981]/80 text-black text-[10px] font-black transition cursor-pointer"
                                             >
                                                 Grant
                                             </button>
                                             <button
-                                                onClick={() => handleRejectJoinRequest(req.userId || req.$id)}
+                                                onClick={() => handleRejectJoinRequest(req)}
                                                 className="px-2.5 py-1.5 rounded-lg bg-red-950/20 border border-red-900/30 hover:border-red-500/20 text-red-400 text-[10px] font-black transition cursor-pointer"
                                             >
                                                 Deny

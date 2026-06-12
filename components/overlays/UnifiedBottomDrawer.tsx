@@ -28,6 +28,7 @@ const TaskAddToProjectDrawerHost = dynamic(() => import('./TaskAddToProjectDrawe
 const ResponseDetailDrawer = dynamic(() => import('../forms/ResponseDetailDrawer').then(mod => mod.ResponseDetailDrawer), { ssr: false });
 const ProjectSettingsDrawer = dynamic(() => import('../projects/ProjectSettingsDrawer'), { ssr: false });
 const ProjectVisibilityDrawer = dynamic(() => import('../projects/ProjectVisibilityDrawer'), { ssr: false });
+const JoinRequestConfirmDrawer = dynamic(() => import('./JoinRequestConfirmDrawer').then(mod => mod.JoinRequestConfirmDrawer), { ssr: false });
 
 export function UnifiedBottomDrawer() {
   const { activeContent, drawerData, close } = useUnifiedDrawer();
@@ -107,6 +108,8 @@ export function UnifiedBottomDrawer() {
             return <ProjectSettingsDrawer isOpen={true} onClose={close} project={drawerData?.project} onSave={drawerData?.onSave} />;
         case 'project-visibility':
             return <ProjectVisibilityDrawer isOpen={true} onClose={close} project={drawerData?.project} onSave={drawerData?.onSave} />;
+        case 'project-join-request-confirm':
+            return <JoinRequestConfirmDrawer />;
         default: return null;
     }
   };
@@ -115,7 +118,7 @@ export function UnifiedBottomDrawer() {
   if (!content) return null;
 
   // Authoritative Drawer Wrapper with Rigid Viewport Isolation
-  if (['secure-chat-setup', 'passkey-setup', 'delete-confirm', 'project-invite'].includes(activeContent)) {
+  if (['secure-chat-setup', 'passkey-setup', 'delete-confirm', 'project-invite', 'project-join-request-confirm'].includes(activeContent)) {
     return (
         <>
             {/* Mobile-Only Authoritative Bottom Drawer */}

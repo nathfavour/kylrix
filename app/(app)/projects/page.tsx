@@ -728,9 +728,41 @@ export default function ProjectsPage() {
 
   const projectsListElement = (
     <Box>
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', mb: 3, display: 'block' }}>
-          Projects ({projects.length})
-        </Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+              Projects ({projects.length})
+            </Typography>
+            <Button
+              size="small"
+              onClick={async () => {
+                try {
+                  await fetchProjects();
+                  showSuccess('Projects list updated');
+                } catch (err: any) {
+                  showError('Failed to refresh projects', err.message);
+                }
+              }}
+              startIcon={<RotateCcw size={12} />}
+              sx={{
+                color: 'rgba(255,255,255,0.4)',
+                fontWeight: 800,
+                textTransform: 'none',
+                fontSize: '0.7rem',
+                border: '1px solid rgba(255,255,255,0.06)',
+                bgcolor: 'rgba(255,255,255,0.02)',
+                borderRadius: '8px',
+                px: 1.5,
+                py: 0.5,
+                '&:hover': {
+                  color: '#fff',
+                  bgcolor: 'rgba(255,255,255,0.05)',
+                  borderColor: 'rgba(255,255,255,0.12)',
+                }
+              }}
+            >
+              Refresh
+            </Button>
+        </Stack>
         
         {loading ? (
           <Grid container spacing={3}>
