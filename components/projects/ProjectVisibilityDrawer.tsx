@@ -138,7 +138,13 @@ export default function ProjectVisibilityDrawer({
             {/* Public option card */}
             <button
               type="button"
-              onClick={() => setVisibility('public')}
+              onClick={() => {
+                if (visibility !== 'public') {
+                  setVisibility('public');
+                  setIsGuest(true);
+                  setIsExpanded(true);
+                }
+              }}
               className={`p-4 rounded-2xl border text-left transition duration-200 flex items-start gap-4 w-full ${
                 visibility === 'public'
                   ? 'border-[#6366F1] bg-[#6366F1]/5'
