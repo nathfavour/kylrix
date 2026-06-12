@@ -8,6 +8,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useFAB } from '@/context/FABContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { MessageSquare, Phone, Plus, ChevronDown, ChevronUp, Maximize2, FolderKanban } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 function ConnectHomeContent() {
   const searchParams = useSearchParams();
@@ -217,31 +218,48 @@ function ConnectHomeContent() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {projects.map((proj) => (
-                      <div
-                        key={proj.$id}
-                        onClick={() => router.push(`/projects/${proj.$id}`)}
-                        className="flex gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03] cursor-pointer hover:bg-white/[0.04] hover:border-white/[0.08] hover:translate-x-1 transition-all duration-200"
-                      >
-                        <div 
-                          className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
-                          style={{
-                            backgroundColor: `${(proj as any).color || '#6366F1'}1F`,
-                            color: (proj as any).color || '#6366F1'
+                    {projects.map((proj) => {
+                      const isPending = (proj as any).isPending;
+                      const isRequested = (proj as any).isRequested;
+                      return (
+                        <div
+                          key={proj.$id}
+                          onClick={() => {
+                            if (isPending) {
+                              openUnified('project-invite', {
+                                project: proj,
+                                onAccepted: () => {
+                                  router.push(`/projects/${proj.$id}`);
+                                }
+                              });
+                            } else if (isRequested) {
+                              toast.success('Your request to join this project is pending approval. You will gain access once accepted.');
+                            } else {
+                              router.push(`/projects/${proj.$id}`);
+                            }
                           }}
+                          className="flex gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03] cursor-pointer hover:bg-white/[0.04] hover:border-white/[0.08] hover:translate-x-1 transition-all duration-200"
                         >
-                          <FolderKanban size={16} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs font-bold text-white truncate">
-                            {proj.title}
+                          <div 
+                            className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
+                            style={{
+                              backgroundColor: `${(proj as any).color || '#6366F1'}1F`,
+                              color: (proj as any).color || '#6366F1'
+                            }}
+                          >
+                            <FolderKanban size={16} />
                           </div>
-                          <div className="text-[9px] text-white/40 font-mono uppercase truncate mt-0.5">
-                            STATUS: {(proj.status || 'Active').toUpperCase()}
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-bold text-white truncate">
+                              {proj.title}
+                            </div>
+                            <div className="text-[9px] text-white/40 font-mono uppercase truncate mt-0.5">
+                              STATUS: {isPending ? 'INVITED' : (isRequested ? 'REQUESTED' : (proj.status || 'Active').toUpperCase())}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

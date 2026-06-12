@@ -595,7 +595,7 @@ export default function ProjectsPage() {
         }
       });
     } else if (selectedProj && (selectedProj as any).isRequested) {
-      router.push(`/project/${projectId}`);
+      showSuccess('Your request to join this project is pending approval. You will gain access once accepted.');
     } else {
       router.push(`/projects/${projectId}`);
     }

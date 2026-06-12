@@ -3239,8 +3239,12 @@ export async function requestProjectAccessSecure(projectId: string, jwt?: string
   });
 
   if (existingCollab.rows.length > 0) {
+    const col = existingCollab.rows[0];
+    if (col.status === 'declined') {
+      throw new Error('Forbidden: Your request to join this project was declined.');
+    }
     // If already exists, return success
-    return { success: true, status: existingCollab.rows[0].status };
+    return { success: true, status: col.status };
   }
 
   // Create a collaborator row with status: 'pending'
@@ -3587,13 +3591,26 @@ export async function removeProjectCollaboratorSecure(projectId: string, targetU
       ] as any
     });
     await Promise.all(
-      collabsRes.rows.map((row) =>
-        tables.deleteRow({
-          databaseId: FLOW_DATABASE_ID,
-          tableId: COLLABORATORS_TABLE,
-          rowId: row.$id
-        })
-      )
+      collabsRes.rows.map((row) => {
+        const isJoinRequest = row.status === 'pending' && (!row.inviterId || row.inviterId === '');
+        if (isJoinRequest) {
+          return tables.updateRow({
+            databaseId: FLOW_DATABASE_ID,
+            tableId: COLLABORATORS_TABLE,
+            rowId: row.$id,
+            data: {
+              status: 'declined',
+              accepted: false,
+            }
+          });
+        } else {
+          return tables.deleteRow({
+            databaseId: FLOW_DATABASE_ID,
+            tableId: COLLABORATORS_TABLE,
+            rowId: row.$id
+          });
+        }
+      })
     );
   } catch (err) {
     console.error('[removeProjectCollaboratorSecure] Polymorphic collaborators cleanup failed:', err);
