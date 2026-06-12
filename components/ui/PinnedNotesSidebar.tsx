@@ -48,7 +48,7 @@ export function PinnedNotesSidebar() {
   const theme = useTheme();
   const { notes: allNotes, pinnedIds, upsertNote, removeNote } = useNotes();
   const { closeSidebar } = useDynamicSidebar();
-  const safePinnedIds = pinnedIds ?? [];
+  const safePinnedIds = useMemo(() => pinnedIds ?? [], [pinnedIds]);
 
   const contextPinned = useMemo(
     () => resolvePinnedNoteRows(safePinnedIds, allNotes ?? []),
