@@ -1953,7 +1953,7 @@ export async function getResourceCollaboratorsSecure(input: {
                 filteredCollabs = collabsRes.rows.map(c => ({
                     userId: c.userId,
                     level: c.permission === 'admin' ? 'admin' : (c.permission === 'write' ? 'editor' : 'viewer'),
-                    status: c.status || 'pending',
+                    status: (c.status === 'pending' && (!c.inviterId || c.inviterId === '')) ? 'requested' : (c.status || 'pending'),
                     accepted: c.accepted ?? false
                 }));
             } else {
@@ -3042,7 +3042,8 @@ export async function addProjectCollaboratorSecure(projectId: string, targetUser
         permission: permissionLevel === 'admin' ? 'admin' : (permissionLevel === 'editor' ? 'write' : 'read'),
         status: 'pending',
         accepted: false,
-        role: 'collaborator'
+        role: 'collaborator',
+        inviterId: actor.$id
       }
     });
   } else {
@@ -3058,7 +3059,8 @@ export async function addProjectCollaboratorSecure(projectId: string, targetUser
         invitedAt: new Date().toISOString(),
         accepted: false,
         status: 'pending',
-        role: 'collaborator'
+        role: 'collaborator',
+        inviterId: actor.$id
       }
     });
   }
@@ -3143,7 +3145,7 @@ export async function getProjectInviteDetailsSecure(projectId: string, jwt?: str
       });
       if (collabsRes.rows.length > 0) {
         const c = collabsRes.rows[0];
-        status = c.status || 'pending';
+        status = (c.status === 'pending' && (!c.inviterId || c.inviterId === '')) ? 'requested' : (c.status || 'pending');
         role = c.permission === 'admin' ? 'admin' : (c.permission === 'write' ? 'editor' : 'viewer');
         isCollaborator = true;
       }
@@ -3238,7 +3240,7 @@ export async function requestProjectAccessSecure(projectId: string, jwt?: string
     return { success: true, status: existingCollab.rows[0].status };
   }
 
-  // Create a collaborator row with status: 'requested'
+  // Create a collaborator row with status: 'pending'
   await tables.createRow({
     databaseId: FLOW_DATABASE_ID,
     tableId: COLLABORATORS_TABLE,
@@ -3247,11 +3249,12 @@ export async function requestProjectAccessSecure(projectId: string, jwt?: string
       resourceId: projectId,
       resourceType: 'project',
       userId: actor.$id,
-      permission: 'viewer', // default request permission
+      permission: 'read', // default request permission
       invitedAt: new Date().toISOString(),
       accepted: false,
-      status: 'requested',
-      role: 'collaborator'
+      status: 'pending',
+      role: 'collaborator',
+      inviterId: ''
     }
   });
 

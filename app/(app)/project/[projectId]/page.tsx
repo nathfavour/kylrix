@@ -3,12 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Box, Typography, Button, Paper, Stack, CircularProgress, alpha, Chip, Container } from '@/lib/mui-tailwind/material';
-import { ShieldAlert, CheckCircle, ArrowRight, LogIn, ExternalLink } from 'lucide-react';
+import { ShieldAlert, ArrowRight, LogIn } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
 import { account } from '@/lib/appwrite/client';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { getProjectInviteDetailsSecure, acceptProjectInviteSecure } from '@/lib/actions/secure-ops';
-import { IdentityAvatar } from '@/components/common/IdentityBadge';
 import { AppwriteService } from '@/lib/appwrite';
 import { ProjectsService } from '@/lib/appwrite/projects';
 import toast from 'react-hot-toast';
@@ -101,8 +100,31 @@ export default function ProjectInvitePage() {
   };
 
   const renderShell = (content: React.ReactNode) => (
-    <Box sx={{ minHeight: '85vh', bgcolor: '#0A0908', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
-      <Container maxWidth="xs" sx={{ p: 0 }}>
+    <Box 
+      sx={{ 
+        minHeight: '90vh', 
+        bgcolor: '#0A0908', 
+        color: '#fff', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        p: 3,
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+    >
+      {/* Background Spotlight glow overlay */}
+      <Box 
+        sx={{ 
+          position: 'absolute', 
+          top: -200, 
+          width: 600, 
+          height: 600, 
+          background: 'radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, transparent 70%)', 
+          pointerEvents: 'none' 
+        }} 
+      />
+      <Container maxWidth="xs" sx={{ p: 0, position: 'relative', zIndex: 2 }}>
         {content}
       </Container>
     </Box>
@@ -112,9 +134,9 @@ export default function ProjectInvitePage() {
   if (authLoading || loading) {
     return renderShell(
       <Stack spacing={3} alignItems="center" justifyContent="center" sx={{ py: 8 }}>
-        <CircularProgress size={40} sx={{ color: '#6366F1' }} />
-        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, fontFamily: 'var(--font-satoshi)' }}>
-          Authenticating secure workspace connection...
+        <CircularProgress size={36} sx={{ color: '#6366F1' }} />
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, fontFamily: 'var(--font-satoshi)', letterSpacing: '0.02em' }}>
+          Establishing secure connection...
         </Typography>
       </Stack>
     );
@@ -123,9 +145,19 @@ export default function ProjectInvitePage() {
   // 2. Error / Access Denied States
   if (error) {
     return renderShell(
-      <Paper elevation={0} sx={{ p: 4, borderRadius: '28px', bgcolor: '#161412', border: '1px solid #1C1A18', textAlign: 'center' }}>
-        <ShieldAlert size={48} style={{ color: '#FF453A', marginBottom: '16px' }} />
-        <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', mb: 1.5, letterSpacing: '-0.02em' }}>
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 4, 
+          borderRadius: '28px', 
+          bgcolor: '#161412', 
+          border: '1px solid rgba(255, 255, 255, 0.05)', 
+          textAlign: 'center',
+          boxShadow: '0 -12px 36px rgba(0, 0, 0, 0.5), 0 16px 48px rgba(0, 0, 0, 0.7)'
+        }}
+      >
+        <ShieldAlert size={44} style={{ color: '#FF453A', marginBottom: '20px' }} />
+        <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', mb: 1.5, letterSpacing: '-0.02em', color: '#fff' }}>
           Access Denied
         </Typography>
         <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-satoshi)', lineHeight: 1.6, mb: 4 }}>
@@ -135,7 +167,16 @@ export default function ProjectInvitePage() {
           variant="outlined"
           fullWidth
           onClick={() => router.push('/projects')}
-          sx={{ borderRadius: '14px', py: 1.5, borderColor: '#1C1A18', color: 'rgba(255,255,255,0.6)', fontWeight: 800, fontFamily: 'var(--font-satoshi)', textTransform: 'none', '&:hover': { borderColor: 'rgba(255,255,255,0.15)' } }}
+          sx={{ 
+            borderRadius: '14px', 
+            py: 1.5, 
+            borderColor: 'rgba(255, 255, 255, 0.08)', 
+            color: 'rgba(255,255,255,0.6)', 
+            fontWeight: 800, 
+            fontFamily: 'var(--font-satoshi)', 
+            textTransform: 'none', 
+            '&:hover': { borderColor: 'rgba(255,255,255,0.15)', bgcolor: 'rgba(255,255,255,0.02)' } 
+          }}
         >
           Return to Dashboard
         </Button>
@@ -146,20 +187,40 @@ export default function ProjectInvitePage() {
   // 3. Unauthenticated State (Private project only)
   if (!user && inviteData?.project?.visibility !== 'public') {
     return renderShell(
-      <Paper elevation={0} sx={{ p: 4, borderRadius: '28px', bgcolor: '#161412', border: '1px solid #1C1A18', textAlign: 'center' }}>
-        <ShieldAlert size={48} style={{ color: '#F59E0B', marginBottom: '16px' }} />
-        <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', mb: 1, letterSpacing: '-0.02em' }}>
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 4, 
+          borderRadius: '28px', 
+          bgcolor: '#161412', 
+          border: '1px solid rgba(255, 255, 255, 0.05)', 
+          textAlign: 'center',
+          boxShadow: '0 -12px 36px rgba(0, 0, 0, 0.5), 0 16px 48px rgba(0, 0, 0, 0.7)'
+        }}
+      >
+        <ShieldAlert size={44} style={{ color: '#F59E0B', marginBottom: '20px' }} />
+        <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', mb: 1, letterSpacing: '-0.02em', color: '#fff' }}>
           Secure Workspace
         </Typography>
         <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-satoshi)', lineHeight: 1.6, mb: 4 }}>
-          This project details page is private and secure. Please log in or pair your account to view the invitation.
+          This project details page is private and secure. Please sign in to view the invitation.
         </Typography>
         <Button
           variant="contained"
           fullWidth
           startIcon={<LogIn size={18} />}
           onClick={() => openUnified('login')}
-          sx={{ borderRadius: '14px', py: 1.75, bgcolor: '#6366F1', color: '#000', fontWeight: 900, fontFamily: 'var(--font-satoshi)', textTransform: 'none', '&:hover': { bgcolor: alpha('#6366F1', 0.9) } }}
+          sx={{ 
+            borderRadius: '14px', 
+            py: 1.75, 
+            bgcolor: '#6366F1', 
+            color: '#000', 
+            fontWeight: 900, 
+            fontFamily: 'var(--font-satoshi)', 
+            textTransform: 'none', 
+            boxShadow: '0 4px 16px rgba(99, 102, 241, 0.2)',
+            '&:hover': { bgcolor: alpha('#6366F1', 0.9) } 
+          }}
         >
           Sign In to Join
         </Button>
@@ -170,41 +231,74 @@ export default function ProjectInvitePage() {
   // 4. Public Project Preview Screen
   if (inviteData?.isPublicPreview) {
     const hasRequested = inviteData.status === 'requested';
+    const projectTitle = inviteData.project?.title || 'Project Workspace';
+    const projectInitial = projectTitle.charAt(0).toUpperCase();
+
     return renderShell(
-      <Paper elevation={0} sx={{ p: 4, borderRadius: '28px', bgcolor: '#161412', border: '1px solid #1C1A18', textAlign: 'center' }}>
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 4, 
+          borderRadius: '28px', 
+          bgcolor: '#161412', 
+          border: '1px solid rgba(255, 255, 255, 0.05)', 
+          textAlign: 'center',
+          boxShadow: '0 -12px 36px rgba(0, 0, 0, 0.5), 0 16px 48px rgba(0, 0, 0, 0.7)'
+        }}
+      >
         <Stack spacing={3} alignItems="center" sx={{ mb: 4 }}>
-          {/* Owner Identity Badge */}
-          <Box sx={{ position: 'relative' }}>
-            <IdentityAvatar
-              size={64}
-              fileId={ownerProfile?.profilePicId || ownerProfile?.avatar || null}
-              alt={ownerProfile?.displayName || ownerProfile?.name || 'Owner'}
-              fallback={(ownerProfile?.displayName || ownerProfile?.name || 'O').charAt(0).toUpperCase()}
-              verified={ownerProfile?.verified ?? true}
-            />
+          {/* Project Minimalist Badge using Project Name First Character */}
+          <Box
+            sx={{
+              width: 64,
+              height: 64,
+              borderRadius: '18px',
+              bgcolor: 'rgba(99, 102, 241, 0.08)',
+              border: '1px solid rgba(99, 102, 241, 0.22)',
+              color: '#818CF8',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.8rem',
+              fontWeight: 900,
+              fontFamily: 'var(--font-clash)',
+              boxShadow: '0 0 16px rgba(99, 102, 241, 0.08)',
+            }}
+          >
+            {projectInitial}
           </Box>
           <Box>
             <Chip 
               label="Public Preview" 
               size="small" 
-              sx={{ height: 20, fontSize: '0.65rem', fontWeight: 900, fontFamily: 'var(--font-satoshi)', bgcolor: 'rgba(99, 102, 241, 0.1)', color: '#6366F1', border: '1px solid rgba(99, 102, 241, 0.15)', mb: 1.5 }} 
+              sx={{ 
+                height: 20, 
+                fontSize: '0.65rem', 
+                fontWeight: 900, 
+                fontFamily: 'var(--font-satoshi)', 
+                bgcolor: 'rgba(99, 102, 241, 0.1)', 
+                color: '#6366F1', 
+                border: '1px solid rgba(99, 102, 241, 0.15)', 
+                mb: 1.5,
+                letterSpacing: '0.04em'
+              }} 
             />
-            <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', mb: 1 }}>
-              {inviteData.project?.title || 'Project Workspace'}
+            <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', mb: 1, color: '#fff' }}>
+              {projectTitle}
             </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-satoshi)', lineHeight: 1.5 }}>
-              This project is public. You can read its metadata details, or request full access to participate.
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-satoshi)', lineHeight: 1.5 }}>
+              Collaborate and request full access to participate.
             </Typography>
           </Box>
         </Stack>
 
         {/* Project Summary Preview Box */}
         {inviteData.project?.summary && (
-          <Box sx={{ p: 2, borderRadius: '16px', bgcolor: '#0A0908', border: '1px solid #1C1A18', textAlign: 'left', mb: 4 }}>
-            <Typography variant="caption" sx={{ display: 'block', fontSize: '0.65rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', mb: 1, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-satoshi)' }}>
+          <Box sx={{ p: 2.5, borderRadius: '16px', bgcolor: '#0B0A09', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'left', mb: 4 }}>
+            <Typography variant="caption" sx={{ display: 'block', fontSize: '0.65rem', fontWeight: 900, color: 'rgba(255,255,255,0.35)', mb: 1, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
               Project Scope
             </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-satoshi)', fontSize: '0.82rem', lineHeight: 1.5 }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-satoshi)', fontSize: '0.85rem', lineHeight: 1.55 }}>
               {inviteData.project.summary}
             </Typography>
           </Box>
@@ -227,7 +321,17 @@ export default function ProjectInvitePage() {
               onClick={handleRequestAccess}
               disabled={requesting}
               endIcon={requesting ? <CircularProgress size={18} color="inherit" /> : <ArrowRight size={18} />}
-              sx={{ borderRadius: '14px', py: 1.75, bgcolor: '#6366F1', color: '#000', fontWeight: 900, fontFamily: 'var(--font-satoshi)', textTransform: 'none', '&:hover': { bgcolor: alpha('#6366F1', 0.9) } }}
+              sx={{ 
+                borderRadius: '14px', 
+                py: 1.75, 
+                bgcolor: '#6366F1', 
+                color: '#000', 
+                fontWeight: 900, 
+                fontFamily: 'var(--font-satoshi)', 
+                textTransform: 'none', 
+                boxShadow: '0 4px 16px rgba(99, 102, 241, 0.2)',
+                '&:hover': { bgcolor: alpha('#6366F1', 0.9) } 
+              }}
             >
               {requesting ? 'Submitting...' : 'Request Access to Project'}
             </Button>
@@ -237,7 +341,17 @@ export default function ProjectInvitePage() {
               fullWidth
               startIcon={<LogIn size={18} />}
               onClick={() => openUnified('login')}
-              sx={{ borderRadius: '14px', py: 1.75, bgcolor: '#6366F1', color: '#000', fontWeight: 900, fontFamily: 'var(--font-satoshi)', textTransform: 'none', '&:hover': { bgcolor: alpha('#6366F1', 0.9) } }}
+              sx={{ 
+                borderRadius: '14px', 
+                py: 1.75, 
+                bgcolor: '#6366F1', 
+                color: '#000', 
+                fontWeight: 900, 
+                fontFamily: 'var(--font-satoshi)', 
+                textTransform: 'none', 
+                boxShadow: '0 4px 16px rgba(99, 102, 241, 0.2)',
+                '&:hover': { bgcolor: alpha('#6366F1', 0.9) } 
+              }}
             >
               Sign In to Request Access
             </Button>
@@ -246,7 +360,16 @@ export default function ProjectInvitePage() {
             variant="outlined"
             fullWidth
             onClick={() => router.push('/projects')}
-            sx={{ borderRadius: '14px', py: 1.5, borderColor: '#1C1A18', color: 'rgba(255,255,255,0.6)', fontWeight: 800, fontFamily: 'var(--font-satoshi)', textTransform: 'none', '&:hover': { borderColor: 'rgba(255,255,255,0.15)', bgcolor: 'rgba(255,255,255,0.01)' } }}
+            sx={{ 
+              borderRadius: '14px', 
+              py: 1.5, 
+              borderColor: 'rgba(255, 255, 255, 0.08)', 
+              color: 'rgba(255,255,255,0.6)', 
+              fontWeight: 800, 
+              fontFamily: 'var(--font-satoshi)', 
+              textTransform: 'none', 
+              '&:hover': { borderColor: 'rgba(255,255,255,0.15)', bgcolor: 'rgba(255,255,255,0.02)' } 
+            }}
           >
             Return to Dashboard
           </Button>
@@ -257,29 +380,62 @@ export default function ProjectInvitePage() {
 
   // 5. Pending Invitation Screen (Private/Public Invited)
   if (inviteData?.isPending) {
+    const projectTitle = inviteData.project?.title || 'Project Workspace';
+    const projectInitial = projectTitle.charAt(0).toUpperCase();
+
     return renderShell(
-      <Paper elevation={0} sx={{ p: 4, borderRadius: '28px', bgcolor: '#161412', border: '1px solid #1C1A18', textAlign: 'center' }}>
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 4, 
+          borderRadius: '28px', 
+          bgcolor: '#161412', 
+          border: '1px solid rgba(255, 255, 255, 0.05)', 
+          textAlign: 'center',
+          boxShadow: '0 -12px 36px rgba(0, 0, 0, 0.5), 0 16px 48px rgba(0, 0, 0, 0.7)'
+        }}
+      >
         <Stack spacing={3} alignItems="center" sx={{ mb: 4 }}>
-          {/* Owner Identity Badge */}
-          <Box sx={{ position: 'relative' }}>
-            <IdentityAvatar
-              size={64}
-              fileId={ownerProfile?.profilePicId || ownerProfile?.avatar || null}
-              alt={ownerProfile?.displayName || ownerProfile?.name || 'Owner'}
-              fallback={(ownerProfile?.displayName || ownerProfile?.name || 'O').charAt(0).toUpperCase()}
-              verified={ownerProfile?.verified ?? true}
-            />
+          {/* Project Minimalist Badge using Project Name First Character */}
+          <Box
+            sx={{
+              width: 64,
+              height: 64,
+              borderRadius: '18px',
+              bgcolor: 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid rgba(245, 158, 11, 0.22)',
+              color: '#F59E0B',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.8rem',
+              fontWeight: 900,
+              fontFamily: 'var(--font-clash)',
+              boxShadow: '0 0 16px rgba(245, 158, 11, 0.08)',
+            }}
+          >
+            {projectInitial}
           </Box>
           <Box>
             <Chip 
               label="Pending Invitation" 
               size="small" 
-              sx={{ height: 20, fontSize: '0.65rem', fontWeight: 900, fontFamily: 'var(--font-satoshi)', bgcolor: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B', border: '1px solid rgba(245, 158, 11, 0.15)', mb: 1.5 }} 
+              sx={{ 
+                height: 20, 
+                fontSize: '0.65rem', 
+                fontWeight: 900, 
+                fontFamily: 'var(--font-satoshi)', 
+                bgcolor: 'rgba(245, 158, 11, 0.1)', 
+                color: '#F59E0B', 
+                border: '1px solid rgba(245, 158, 11, 0.15)', 
+                mb: 1.5,
+                letterSpacing: '0.04em'
+              }} 
             />
-            <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', mb: 1 }}>
-              {inviteData.project?.title || 'Project Workspace'}
+            <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', mb: 1, color: '#fff' }}>
+              {projectTitle}
             </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-satoshi)', lineHeight: 1.5 }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-satoshi)', lineHeight: 1.5 }}>
               <b>{ownerProfile?.displayName || ownerProfile?.name || 'A teammate'}</b> has invited you to collaborate as an <b>{inviteData.role}</b>.
             </Typography>
           </Box>
@@ -287,11 +443,11 @@ export default function ProjectInvitePage() {
 
         {/* Project Summary Preview Box */}
         {inviteData.project?.summary && (
-          <Box sx={{ p: 2, borderRadius: '16px', bgcolor: '#0A0908', border: '1px solid #1C1A18', textAlign: 'left', mb: 4 }}>
-            <Typography variant="caption" sx={{ display: 'block', fontSize: '0.65rem', fontWeight: 900, color: 'rgba(255,255,255,0.4)', mb: 1, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-satoshi)' }}>
+          <Box sx={{ p: 2.5, borderRadius: '16px', bgcolor: '#0B0A09', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'left', mb: 4 }}>
+            <Typography variant="caption" sx={{ display: 'block', fontSize: '0.65rem', fontWeight: 900, color: 'rgba(255,255,255,0.35)', mb: 1, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
               Project Scope
             </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-satoshi)', fontSize: '0.82rem', lineHeight: 1.5 }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-satoshi)', fontSize: '0.85rem', lineHeight: 1.55 }}>
               {inviteData.project.summary}
             </Typography>
           </Box>
@@ -304,7 +460,17 @@ export default function ProjectInvitePage() {
             onClick={handleAccept}
             disabled={accepting}
             endIcon={accepting ? <CircularProgress size={18} color="inherit" /> : <ArrowRight size={18} />}
-            sx={{ borderRadius: '14px', py: 1.75, bgcolor: '#6366F1', color: '#000', fontWeight: 900, fontFamily: 'var(--font-satoshi)', textTransform: 'none', '&:hover': { bgcolor: alpha('#6366F1', 0.9) } }}
+            sx={{ 
+              borderRadius: '14px', 
+              py: 1.75, 
+              bgcolor: '#6366F1', 
+              color: '#000', 
+              fontWeight: 900, 
+              fontFamily: 'var(--font-satoshi)', 
+              textTransform: 'none', 
+              boxShadow: '0 4px 16px rgba(99, 102, 241, 0.2)',
+              '&:hover': { bgcolor: alpha('#6366F1', 0.9) } 
+            }}
           >
             {accepting ? 'Connecting...' : 'Accept & Join Project'}
           </Button>
@@ -312,7 +478,16 @@ export default function ProjectInvitePage() {
             variant="outlined"
             fullWidth
             onClick={() => router.push('/projects')}
-            sx={{ borderRadius: '14px', py: 1.5, borderColor: '#1C1A18', color: 'rgba(255,255,255,0.6)', fontWeight: 800, fontFamily: 'var(--font-satoshi)', textTransform: 'none', '&:hover': { borderColor: 'rgba(255,255,255,0.15)', bgcolor: 'rgba(255,255,255,0.01)' } }}
+            sx={{ 
+              borderRadius: '14px', 
+              py: 1.5, 
+              borderColor: 'rgba(255, 255, 255, 0.08)', 
+              color: 'rgba(255,255,255,0.6)', 
+              fontWeight: 800, 
+              fontFamily: 'var(--font-satoshi)', 
+              textTransform: 'none', 
+              '&:hover': { borderColor: 'rgba(255, 255, 255, 0.15)', bgcolor: 'rgba(255, 255, 255, 0.02)' } 
+            }}
           >
             Decline
           </Button>
@@ -321,7 +496,7 @@ export default function ProjectInvitePage() {
     );
   }
 
-  // 5. Active Collaborator redirect fallback
+  // 6. Active Collaborator redirect fallback
   return renderShell(
     <Stack spacing={2} alignItems="center" justifyContent="center" sx={{ py: 8 }}>
       <CircularProgress size={30} sx={{ color: '#6366F1' }} />
