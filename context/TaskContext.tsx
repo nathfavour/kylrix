@@ -1584,7 +1584,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     getTaskStats,
     getSelectedTask,
     getSelectedProject,
-    state.ecosystemTags,
     refreshEcosystemTags,
     getTagFilterOptions,
     refreshTasks]);
