@@ -49,8 +49,8 @@ import {
     Phone,
     Video,
     Pin,
-    Lock,
-    Link as LinkIcon
+    Link as LinkIcon,
+    RefreshCw
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -2474,6 +2474,23 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
 
     return (
         <Box sx={{ maxWidth: 640, mx: 'auto', p: { xs: 2, sm: 2.5 }, position: 'relative' }}>
+            {/* Feed manual reload toolbar */}
+            <div className="flex justify-between items-center mb-6">
+                <span className="text-[10px] text-white/30 font-black tracking-widest uppercase font-clash">
+                    {loading ? 'SYNCING FEED...' : 'FEED UP TO DATE'}
+                </span>
+                <button
+                    onClick={() => {
+                        void loadFeed();
+                    }}
+                    disabled={loading}
+                    className="w-10 h-10 rounded-xl bg-white/3 border border-white/8 hover:border-white/15 flex items-center justify-center transition-all duration-300 disabled:opacity-40"
+                    title="Reload feed"
+                >
+                    <RefreshCw size={16} className={`transition-all ${loading ? 'animate-spin text-[#F59E0B]' : 'text-white/60'}`} />
+                </button>
+            </div>
+
             {showNewPosts && pendingMoments.length > 0 && (
                 // Exclude user's own direct posts from the new posts widget
                 <NewPostsWidget 
