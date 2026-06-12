@@ -1901,6 +1901,34 @@ export type Workflows = Models.Row & {
     "isGuest"?: boolean | null;
 }
 
+export type ObjectsCreate = {
+    "parentId": string;
+    "parentKind": string;
+    "childId": string;
+    "childKind": string;
+    "metadata"?: string | null;
+    "userId": string;
+    "createdAt"?: string | null;
+    "updatedAt"?: string | null;
+    "isPublic"?: boolean;
+    "isGuest"?: boolean;
+    "isGeneral"?: boolean;
+}
+
+export type Objects = Models.Row & {
+    "parentId": string;
+    "parentKind": string;
+    "childId": string;
+    "childKind": string;
+    "metadata"?: string | null;
+    "userId": string;
+    "createdAt"?: string | null;
+    "updatedAt"?: string | null;
+    "isPublic"?: boolean;
+    "isGuest"?: boolean;
+    "isGeneral"?: boolean;
+}
+
 declare const __roleStringBrand: unique symbol;
 export type RoleString = string & { readonly [__roleStringBrand]: never };
 
@@ -3858,6 +3886,37 @@ export type DatabaseTableMap = {
       }>, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<Workflows>;
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
       list: (options?: { queries?: (q: { equal: <K extends QueryableKeys<Workflows>>(field: K, value: QueryableFieldValue<Workflows, K>) => string; notEqual: <K extends QueryableKeys<Workflows>>(field: K, value: QueryableFieldValue<Workflows, K>) => string; lessThan: <K extends QueryableKeys<Workflows>>(field: K, value: QueryableFieldValue<Workflows, K>) => string; lessThanEqual: <K extends QueryableKeys<Workflows>>(field: K, value: QueryableFieldValue<Workflows, K>) => string; greaterThan: <K extends QueryableKeys<Workflows>>(field: K, value: QueryableFieldValue<Workflows, K>) => string; greaterThanEqual: <K extends QueryableKeys<Workflows>>(field: K, value: QueryableFieldValue<Workflows, K>) => string; contains: <K extends QueryableKeys<Workflows>>(field: K, value: QueryableFieldValue<Workflows, K>) => string; search: <K extends QueryableKeys<Workflows>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<Workflows>>(field: K) => string; isNotNull: <K extends QueryableKeys<Workflows>>(field: K) => string; startsWith: <K extends QueryableKeys<Workflows>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<Workflows>>(field: K, value: string) => string; between: <K extends QueryableKeys<Workflows>>(field: K, start: QueryableFieldValue<Workflows, K>, end: QueryableFieldValue<Workflows, K>) => string; select: <K extends keyof Workflows>(fields: K[]) => string; orderAsc: <K extends keyof Workflows>(field: K) => string; orderDesc: <K extends keyof Workflows>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[] }) => Promise<{ total: number; rows: Workflows[] }>;
+    };
+    "objects": {
+      create: (data: {
+        "parentId": string;
+        "parentKind": string;
+        "childId": string;
+        "childKind": string;
+        "metadata"?: string | null;
+        "userId": string;
+        "createdAt"?: string | null;
+        "updatedAt"?: string | null;
+        "isPublic"?: boolean;
+        "isGuest"?: boolean;
+        "isGeneral"?: boolean;
+      }, options?: { rowId?: string; permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<Objects>;
+      get: (id: string) => Promise<Objects>;
+      update: (id: string, data: Partial<{
+        "parentId": string;
+        "parentKind": string;
+        "childId": string;
+        "childKind": string;
+        "metadata"?: string | null;
+        "userId": string;
+        "createdAt"?: string | null;
+        "updatedAt"?: string | null;
+        "isPublic"?: boolean;
+        "isGuest"?: boolean;
+        "isGeneral"?: boolean;
+      }>, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<Objects>;
+      delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
+      list: (options?: { queries?: (q: { equal: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; notEqual: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; lessThan: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; lessThanEqual: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; greaterThan: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; greaterThanEqual: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; contains: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; search: <K extends QueryableKeys<Objects>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<Objects>>(field: K) => string; isNotNull: <K extends QueryableKeys<Objects>>(field: K) => string; startsWith: <K extends QueryableKeys<Objects>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<Objects>>(field: K, value: string) => string; between: <K extends QueryableKeys<Objects>>(field: K, start: QueryableFieldValue<Objects, K>, end: QueryableFieldValue<Objects, K>) => string; select: <K extends keyof Objects>(fields: K[]) => string; orderAsc: <K extends keyof Objects>(field: K) => string; orderDesc: <K extends keyof Objects>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[] }) => Promise<{ total: number; rows: Objects[] }>;
     }
   }
 };

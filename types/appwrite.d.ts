@@ -1054,3 +1054,17 @@ export type Workflows = Models.Row & {
     metadata: string | null;
     isGuest: boolean | null;
 }
+
+export type Objects = Models.Row & {
+    parentId: string;
+    parentKind: string;
+    childId: string;
+    childKind: string;
+    metadata: string | null;
+    userId: string;
+    createdAt: string | null;
+    updatedAt: string | null;
+    isPublic: boolean;
+    isGuest: boolean;
+    isGeneral: boolean;
+}

@@ -93,6 +93,7 @@ tableIdMap["passwordManagerDb"]["app_activity_logs"] = "app_activity_logs";
 tableIdMap["passwordManagerDb"]["anonymized_telemetry"] = "anonymized_telemetry";
 tableIdMap["passwordManagerDb"]["notifications"] = "notifications";
 tableIdMap["passwordManagerDb"]["workflows"] = "workflows";
+tableIdMap["passwordManagerDb"]["objects"] = "objects";
 
 const tablesWithRelationships = new Set<string>();
 
