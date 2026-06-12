@@ -64,6 +64,9 @@ import { useLocalContext } from '@/lib/context-engine';
 import { useAuth } from '@/lib/auth';
 import { useResourcePins } from '@/context/ResourcePinContext';
 import { hasPaidKylrixPlan } from '@/lib/utils';
+import { ShareLockButton } from '@/components/share/ShareLockButton';
+import { useAccessControlMenuItems } from '@/components/share/AccessControlMenuItems';
+import { useContextMenu } from '@/components/ui/ContextMenuContext';
 import { useProUpgrade } from '@/context/ProUpgradeContext';
 import { anonymizeWorkflow, negateWorkflow, WorkflowChain } from '@/lib/workflow-engine';
 import { 
@@ -239,14 +242,43 @@ function TemplateCard({ template, onSelect }: { template: typeof projectTemplate
     );
 }
 
-function LocalProjectCard({ project, onClick, onDelete, onTogglePin }: {
+function LocalProjectCard({ project, onClick, onDelete, onTogglePin, onUpdate }: {
   project: Projects;
   onClick: (projectId: string) => void;
   onDelete: (projectId: string) => void;
   onTogglePin?: (projectId: string) => void;
+  onUpdate?: (updated: Projects) => void;
 }) {
   const { isPinned: isResourcePinned } = useResourcePins();
   const pinned = isResourcePinned('project', project.$id, project.ownerId, project.isPinned);
+  const { openMenu } = useContextMenu();
+
+  const accessControlItems = useAccessControlMenuItems({
+    resourceType: 'project',
+    resourceId: project.$id,
+    isPublic: project.visibility === 'public',
+    isGuest: project.visibility === 'shared',
+    resourceTitle: project.title || 'Untitled Project',
+    onUpdate: () => {
+      ProjectsService.getProject(project.$id).then(updated => {
+        if (updated && onUpdate) {
+          onUpdate(updated);
+        }
+      }).catch(() => {});
+    }
+  });
+
+  const handleRightClick = (e: React.MouseEvent) => {
+    if ((project as any).isPending || (project as any).isRequested || project.$id.startsWith('skeleton-')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: accessControlItems,
+      appType: 'project',
+    });
+  };
 
   const getVisibilityIcon = () => {
     switch (project.visibility) {
@@ -273,6 +305,7 @@ function LocalProjectCard({ project, onClick, onDelete, onTogglePin }: {
   return (
     <div
       onClick={() => onClick(project.$id)}
+      onContextMenu={handleRightClick}
       className="relative flex flex-col justify-between gap-5 p-6 w-full min-h-[196px] rounded-[28px] bg-[#161412] border transition-all duration-300 ease-out cursor-pointer overflow-hidden group select-none max-w-full"
       style={{
         borderColor: 'rgba(255, 255, 255, 0.06)',
@@ -326,6 +359,21 @@ function LocalProjectCard({ project, onClick, onDelete, onTogglePin }: {
         {/* Top-Right Inline Actions (Pin, Delete) */}
         {!(project as any).isPending && !(project as any).isRequested ? (
           <div className="flex items-center gap-1 flex-shrink-0">
+            <ShareLockButton 
+              resourceType="project"
+              resourceId={project.$id}
+              isPublic={project.visibility === 'public'}
+              isGuest={project.visibility === 'shared'}
+              accentColor={projColor}
+              onPublished={(res) => {
+                if (onUpdate) {
+                  onUpdate({
+                    ...project,
+                    visibility: res.isPublic ? 'public' : res.isGuest ? 'shared' : 'private'
+                  });
+                }
+              }}
+            />
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -408,6 +456,9 @@ export default function ProjectsPage() {
   }, []);
 
   const { projects, loading, refetch: fetchProjects, setProjects, syncProjects } = useProjectsList();
+  const handleUpdateProject = useCallback((updated: Projects) => {
+    setProjects(prev => prev.map(p => p.$id === updated.$id ? updated : p));
+  }, [setProjects]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [teams, setTeams] = useState<Models.Team[]>([]);
   const [showAllTemplates, setShowAllTemplates] = useState(false);
@@ -816,6 +867,7 @@ export default function ProjectsPage() {
                             onClick={handleProjectClick}
                             onDelete={() => handleDeleteProject(project)}
                             onTogglePin={handleTogglePin}
+                            onUpdate={handleUpdateProject}
                         />
                     </Grid>
                 ))}

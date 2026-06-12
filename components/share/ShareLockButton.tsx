@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Lock, Link, Loader2 } from 'lucide-react';
+import { Share2, Loader2 } from 'lucide-react';
 import { toggleResourcePublicGuest } from '@/lib/actions/client-ops';
 import { buildPublicResourceUrl } from '@/lib/share/public-url';
 import { PublicResourceType } from '@/lib/share/resource-types';
@@ -21,8 +21,7 @@ interface ShareLockButtonProps {
 }
 
 /**
- * Ruthless Sharing: One-tap publish button.
- * Transforms from Lock (private) to Link (public).
+ * Ruthless Sharing: One-tap publish button using a unified share icon.
  */
 export function ShareLockButton({
   resourceType,
@@ -146,10 +145,8 @@ export function ShareLockButton({
       >
         {loading ? (
           <Loader2 size={14} className="animate-spin" />
-        ) : isActive ? (
-          <Link size={14} />
         ) : (
-          <Lock size={14} />
+          <Share2 size={14} />
         )}
       </IconButton>
     </Tooltip>

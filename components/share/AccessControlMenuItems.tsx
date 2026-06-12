@@ -6,6 +6,7 @@ import {
   ShieldX, 
   ShieldCheck, 
   Lock,
+  Globe,
   Users,
   Settings2
 } from 'lucide-react';
@@ -26,8 +27,7 @@ interface AccessControlMenuItemsProps {
 }
 
 /**
- * Ruthless Sharing: Context menu items for public resources.
- * Provides granular control over guest access and unpublishing.
+ * Ruthless Sharing: Context menu items for public resources and collaborators.
  */
 export function useAccessControlMenuItems({
   resourceType,
@@ -40,9 +40,6 @@ export function useAccessControlMenuItems({
 }: AccessControlMenuItemsProps) {
   const { showSuccess, showError } = useToast();
   const { open: openUnified } = useUnifiedDrawer();
-
-  // Only show Access Control for public/guest resources
-  if (!isPublic && !isGuest) return [];
 
   const handleCopyLink = async () => {
     try {
@@ -75,41 +72,49 @@ export function useAccessControlMenuItems({
     }
   };
 
-  const handleMakePrivate = async () => {
-    // Open confirmation drawer first
-    openUnified('delete-confirm', {
-        title: 'Make Private?',
-        description: 'This will invalidate all public links. Only you and explicitly invited collaborators will have access.',
-        resourceName: resourceTitle || 'this resource',
-        confirmLabel: 'Make Private',
-        onConfirm: async () => {
-            try {
-                const res = await toggleResourcePublicGuest({
-                    resourceType,
-                    resourceId,
-                    mode: 'make_private',
-                    projectId
-                });
-                if (res.success) {
-                    showSuccess('Resource is now private', 'All public links are invalidated');
-                    if (onUpdate) onUpdate();
-                }
-            } catch (err: any) {
-                showError('Failed to make private', err.message);
-            }
-        }
-    });
+  const handleTogglePublic = async (enable: boolean) => {
+    try {
+      const res = await toggleResourcePublicGuest({
+        resourceType,
+        resourceId,
+        mode: enable ? 'publish' : 'make_private',
+        projectId
+      });
+      if (res.success) {
+        showSuccess(
+          enable ? 'Public access enabled' : 'Public access disabled',
+          enable ? 'Anyone with the link can view' : 'All public links are now invalidated'
+        );
+        if (onUpdate) onUpdate();
+      }
+    } catch (err: any) {
+      showError('Failed to update access', err.message);
+    }
   };
+
+  const isActive = isPublic || isGuest;
 
   return [
     {
       label: 'Access Control',
       icon: <Settings2 size={16} />,
       submenu: [
-        {
-          label: 'Copy public link',
-          icon: <Link size={16} />,
-          onClick: handleCopyLink
+        ...(isActive ? [
+          {
+            label: 'Copy public link',
+            icon: <Link size={16} />,
+            onClick: handleCopyLink
+          }
+        ] : []),
+        isPublic ? {
+          label: 'Disable public access',
+          icon: <Lock size={16} />,
+          variant: 'destructive' as const,
+          onClick: () => handleTogglePublic(false)
+        } : {
+          label: 'Enable public access',
+          icon: <Globe size={16} />,
+          onClick: () => handleTogglePublic(true)
         },
         isGuest ? {
           label: 'Disable guest access',
@@ -121,7 +126,7 @@ export function useAccessControlMenuItems({
           onClick: () => handleToggleGuest(true)
         },
         {
-          label: 'Manage collaborators',
+          label: 'Collaborators',
           icon: <Users size={16} />,
           onClick: () => openUnified('share-note', { 
             noteId: resourceId, 
@@ -129,12 +134,6 @@ export function useAccessControlMenuItems({
             noteTitle: resourceTitle,
             onUpdate 
           })
-        },
-        {
-          label: 'Make private',
-          icon: <Lock size={16} />,
-          variant: 'destructive',
-          onClick: handleMakePrivate
         }
       ]
     }
