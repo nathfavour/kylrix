@@ -56,7 +56,10 @@ async function buildAlreadyClaimedCouponResponse(userId: string, coupon: any, me
  * Edge header fallbacks, and a threshold-gated historical account IP consensus check.
  */
 async function resolveSecureCountryCode(userId: string, clientCountryCode?: string): Promise<string> {
-  let edgeCountry: string | null = clientCountryCode || null;
+  if (clientCountryCode) {
+    return clientCountryCode.toUpperCase();
+  }
+  let edgeCountry: string | null = null;
   
   // 1. Edge/CDN Geolocation Fallback check
   try {
@@ -64,7 +67,6 @@ async function resolveSecureCountryCode(userId: string, clientCountryCode?: stri
     const headerStore = await headers();
     edgeCountry = headerStore.get('x-vercel-ip-country') || 
                   headerStore.get('cf-ipcountry') || 
-                  clientCountryCode || 
                   null;
   } catch {}
 
