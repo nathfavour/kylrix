@@ -82,7 +82,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
   const isEncryptedNote = !!noteMeta?.isEncrypted && noteMeta?.encryptionVersion === 'T4' && !noteMeta?.clientDecrypted;
   const pinned = isPinned(note.$id);
 
-  const handleAIAction = async (action: 'summarize' | 'grammar' | 'expand') => {
+  const handleAIAction = useCallback(async (action: 'summarize' | 'grammar' | 'expand') => {
     if (isAIProcessing) return;
     setIsAIProcessing(true);
     showInfo(`AI is ${action === 'grammar' ? 'fixing' : action + 'ing'} your note...`);
@@ -99,9 +99,9 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
     } finally {
       setIsAIProcessing(false);
     }
-  };
+  }, [note, isAIProcessing, showInfo, showSuccess, showError, upsertNote]);
 
-  const handleCreateTodo = async () => {
+  const handleCreateTodo = useCallback(async () => {
     if (isAIProcessing) return;
     setIsAIProcessing(true);
     showInfo('Converting note to task in Kylrix Flow...');
@@ -113,9 +113,9 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
     } finally {
       setIsAIProcessing(false);
     }
-  };
+  }, [note, isAIProcessing, showInfo, showSuccess, showError]);
 
-  const handlePinToggle = async (e?: React.MouseEvent) => {
+  const handlePinToggle = useCallback(async (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     try {
       if (pinned) {
@@ -133,9 +133,9 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
       }
       showError(err.message || 'Failed to update pin status');
     }
-  };
+  }, [note.$id, pinned, unpinNote, pinNote, showSuccess, showError, openProUpgrade]);
 
-  const handleDuplicate = async () => {
+  const handleDuplicate = useCallback(async () => {
     try {
       const { $id: _id, $createdAt: _ca, $updatedAt: _ua, $permissions: _p, $databaseId: _db, $tableId: _coll, ...rest } = note as any;
       const duplicatedNote = await createNote({
@@ -147,7 +147,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
     } catch (err: any) {
       showError(err.message || 'Failed to duplicate note');
     }
-  };
+  }, [note, upsertNote, showSuccess, showError]);
 
   const handleTogglePublic = async () => {
     const handleToggle = async () => {

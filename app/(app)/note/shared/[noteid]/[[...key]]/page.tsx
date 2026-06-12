@@ -41,13 +41,13 @@ export async function generateMetadata({
         openGraph: {
           title: 'Protected Note · Kylrix',
           description: 'This note is secure and password-protected.',
-          images: [{ url: `https://kylrix.space/note/api/og/note/${noteid}`, width: 1200, height: 630 }],
+          images: [{ url: `/note/shared/${noteid}/opengraph-image`, width: 1200, height: 630 }],
         },
         twitter: {
           card: 'summary_large_image',
           title: 'Protected Note · Kylrix',
           description: 'This note is secure and password-protected.',
-          images: [`https://kylrix.space/note/api/og/note/${noteid}`],
+          images: [`/note/shared/${noteid}/opengraph-image`],
         },
       };
     }
@@ -57,7 +57,7 @@ export async function generateMetadata({
     const displayDesc = note.content
       ? note.content.substring(0, 160).trim() + '…'
       : 'View this note shared securely via Kylrix Note.';
-    const ogImage = `https://kylrix.space/note/api/og/note/${noteid}`;
+    const ogImage = `/note/shared/${noteid}/opengraph-image`;
 
     return {
       title: displayTitle,
