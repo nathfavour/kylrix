@@ -12,6 +12,15 @@ interface CryptoPaymentDrawerProps {
   countryCode: string;
   planId: string;
 }
+const getCoinLogoUrl = (ticker: string) => {
+  let cleanTicker = ticker.toLowerCase();
+  if (cleanTicker.includes('usdt')) {
+    cleanTicker = 'usdt';
+  } else if (cleanTicker.includes('usdc')) {
+    cleanTicker = 'usdc';
+  }
+  return `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${cleanTicker}.png`;
+};
 
 export const CryptoPaymentDrawer: React.FC<CryptoPaymentDrawerProps> = ({
   onClose,
@@ -174,8 +183,20 @@ export const CryptoPaymentDrawer: React.FC<CryptoPaymentDrawerProps> = ({
                     className="w-full p-5 rounded-[20px] border border-white/5 hover:border-[#6366F1]/40 bg-[#161412] hover:bg-[#6366F1]/5 flex items-center justify-between transition-all duration-300 hover:scale-[1.02] shadow-sm hover:shadow-[0_0_16px_rgba(99,102,241,0.15)] group"
                   >
                     <div className="flex items-center gap-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:text-white transition-all">
-                        <Coins size={20} />
+                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/30 group-hover:text-white transition-all overflow-hidden relative">
+                        <img
+                          src={getCoinLogoUrl(coin.id)}
+                          alt={coin.symbol}
+                          className="w-7 h-7 object-contain"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.nextElementSibling;
+                            if (fallback) fallback.classList.remove('hidden');
+                          }}
+                        />
+                        <div className="coin-fallback hidden">
+                          <Coins size={20} />
+                        </div>
                       </div>
                       <span className="text-sm font-extrabold">{coin.name}</span>
                     </div>
