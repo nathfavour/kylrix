@@ -59,6 +59,7 @@ import {
   attachObjectSecure,
   detachObjectSecure,
   detachObjectByRelationSecure,
+  getObjectsByParentSecure,
 } from './secure-ops';
 import { PublicResourceType } from '@/lib/share/resource-types';
 
@@ -424,6 +425,11 @@ export async function detachObjectByRelation(params: {
 }) {
   const jwt = await getJwt();
   return detachObjectByRelationSecure({ ...params, jwt });
+}
+
+export async function getObjectsByParent(parentId: string, parentKind: string) {
+  const jwt = await getJwt();
+  return getObjectsByParentSecure(parentId, parentKind, jwt);
 }
 
 

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Notes } from '@/types/appwrite';
 
 import NoteContentRenderer from '@/components/NoteContentRenderer';
+import { VoiceNotePlayer } from '@/components/LinkRenderer';
 
 import {
   Mic,
@@ -185,6 +186,7 @@ export function NoteDetailSidebar({
   const [crossSuggestions, setCrossSuggestions] = useState<any[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isLocallyDecrypted, setIsLocallyDecrypted] = useState(false);
+  const [attachedObjects, setAttachedObjects] = useState<any[]>([]);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -342,6 +344,31 @@ export function NoteDetailSidebar({
     fetchCollaborators();
     return () => { active = false; };
   }, [liveNote.$id]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchObjects = async () => {
+      if (!liveNote.$id) return;
+      try {
+        const { getObjectsByParent } = await import('@/lib/actions/client-ops');
+        const rows = await getObjectsByParent(liveNote.$id, 'note');
+        if (active) setAttachedObjects(rows);
+      } catch (err) {
+        console.warn('[NoteDetailSidebar] Failed to load attached objects:', err);
+      }
+    };
+    fetchObjects();
+    return () => { active = false; };
+  }, [liveNote.$id]);
+
+  const getCursorLineNumber = useCallback(() => {
+    const textarea = contentTextareaRef.current;
+    if (!textarea) return 1;
+    const value = textarea.value;
+    const selectionStart = textarea.selectionStart;
+    const beforeCursor = value.substring(0, selectionStart);
+    return beforeCursor.split('\n').length;
+  }, []);
 
   const hasCollaborators = useMemo(() => {
     return collaboratorProfiles.length > 0;
@@ -622,6 +649,7 @@ export function NoteDetailSidebar({
             
             // AUTHORITATIVE SYNC: Wire into objects table to prevent zombie attachments
             try {
+              const line = getCursorLineNumber();
               await attachObject({
                 parentId: liveNote.$id,
                 parentKind: 'note',
@@ -631,15 +659,19 @@ export function NoteDetailSidebar({
                   filename: audioFile.name,
                   mimeType: audioFile.type,
                   size: audioFile.size,
-                  duration: recordingDuration
+                  duration: recordingDuration,
+                  insertLine: line
                 }
               });
-            } catch (attachErr) {
+              // Refresh local objects list
+              const { getObjectsByParent } = await import('@/lib/actions/client-ops');
+              const rows = await getObjectsByParent(liveNote.$id, 'note');
+              setAttachedObjects(rows);
+              showSuccess('Voice note recorded', 'Attached to this note.');
+            } catch (attachErr: any) {
               console.warn('[NoteDetailSidebar] Failed to register attachment in objects table:', attachErr);
+              showError('Recording limit reached', attachErr.message || 'Could not attach voice note.');
             }
-
-            insertTextAtCursor(` [voice:${uploaded.$id}] `);
-            showSuccess('Voice note recorded', 'Inserted into your note content.');
           } catch (error) {
             console.error('Failed to upload voice note:', error);
             showError('Recording failed', 'Could not save voice note.');
@@ -970,6 +1002,41 @@ export function NoteDetailSidebar({
             </div>
           ) : (
             <span className="text-xs font-mono text-white/30 italic">No attachments</span>
+          )}
+        </div>
+
+        {/* Voice Notes */}
+        <div className="px-1.5 shrink-0">
+          <span className="text-xs font-mono font-bold tracking-wider text-pink-400 uppercase block mb-2">Voice Notes</span>
+          {attachedObjects.filter(obj => obj.childKind === 'voice').length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {attachedObjects.filter(obj => obj.childKind === 'voice').map((obj) => (
+                <div key={obj.$id} className="p-3 rounded-xl bg-[#0A0908] border border-white/[0.04] flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono text-white/45">Line {obj.metadata ? JSON.parse(obj.metadata).insertLine || 1 : 1}</span>
+                    <button 
+                      type="button" 
+                      onClick={async () => {
+                        try {
+                          const { detachObject } = await import('@/lib/actions/client-ops');
+                          await detachObject(obj.$id);
+                          setAttachedObjects(prev => prev.filter(o => o.$id !== obj.$id));
+                          showSuccess('Voice note removed');
+                        } catch (err: any) {
+                          showError('Failed to remove', err.message);
+                        }
+                      }}
+                      className="text-xs text-red-500 hover:text-red-400 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                  <VoiceNotePlayer fileId={obj.childId} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <span className="text-xs font-mono text-white/30 italic">No voice notes</span>
           )}
         </div>
 

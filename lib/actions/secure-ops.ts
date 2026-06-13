@@ -6812,7 +6812,7 @@ export async function attachObjectSecure(params: {
   const databaseId = APPWRITE_CONFIG.DATABASES.FLOW;
   const tableId = APPWRITE_CONFIG.TABLES.FLOW.OBJECTS || 'objects';
 
-  // Enforce 3-object limit for FREE tier
+  // Enforce object limit for FREE tier (10 for projects, 5 for other resources)
   if (!hasPaidKylrixPlan(actor)) {
     const existing = await tables.listRows({
       databaseId,
@@ -6822,8 +6822,9 @@ export async function attachObjectSecure(params: {
         Query.equal('parentKind', params.parentKind)
       ] as any
     });
-    if (existing.rows.length >= 3) {
-      throw new Error('Attachment limit reached: Free plan allows up to 3 attached objects. Upgrade to PRO for unlimited attachments.');
+    const limit = params.parentKind === 'project' ? 10 : 5;
+    if (existing.rows.length >= limit) {
+      throw new Error(`Attachment limit reached: Free plan allows up to ${limit} attached objects for ${params.parentKind === 'project' ? 'projects' : 'this resource'}. Upgrade to PRO for unlimited attachments.`);
     }
   }
 
@@ -6918,6 +6919,27 @@ export async function getProfilePicturePreviewSecure(fileId: string): Promise<st
     console.error('[secure-ops] getProfilePicturePreviewSecure failed:', err);
     return null;
   }
+}
+
+export async function getObjectsByParentSecure(parentId: string, parentKind: string, jwt?: string) {
+  const actor = await getActor(jwt);
+  if (!actor?.$id) throw new Error('Unauthorized');
+
+  const tables = createSystemTablesDB();
+  const databaseId = APPWRITE_CONFIG.DATABASES.FLOW;
+  const tableId = APPWRITE_CONFIG.TABLES.FLOW.OBJECTS || 'objects';
+
+  const res = await tables.listRows({
+    databaseId,
+    tableId,
+    queries: [
+      Query.equal('parentId', parentId),
+      Query.equal('parentKind', parentKind),
+      Query.limit(100)
+    ] as any
+  });
+
+  return JSON.parse(JSON.stringify(res.rows));
 }
 
 
