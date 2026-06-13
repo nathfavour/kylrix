@@ -65,7 +65,11 @@ export async function createCryptoInvoiceAction(input: {
     if (expectedCrypto < minimumLimit) {
       return { 
         success: false, 
-        error: `The total amount (${expectedCrypto} ${ticker.toUpperCase()}) falls below BlockBee's minimum transaction limit of ${minimumLimit} ${ticker.toUpperCase()}. Please try choosing another asset, or extend your plan duration to meet the minimum.` 
+        error: `The total amount (${expectedCrypto} ${ticker.toUpperCase()}) falls below BlockBee's minimum transaction limit of ${minimumLimit} ${ticker.toUpperCase()}. Please try choosing another asset, or extend your plan duration to meet the minimum.`,
+        minimum_transaction_coin: minimumLimit,
+        expected_crypto: expectedCrypto,
+        expected_usd: usdAmount,
+        ticker: ticker.toUpperCase()
       };
     }
 
