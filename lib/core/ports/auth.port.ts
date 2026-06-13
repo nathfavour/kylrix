@@ -5,6 +5,7 @@ export interface Actor {
   emailVerification: boolean;
   isAdmin: boolean;
   labels?: string[];
+  prefs?: Record<string, any>;
 }
 
 export interface AuthPort {

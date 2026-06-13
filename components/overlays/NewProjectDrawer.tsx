@@ -41,6 +41,8 @@ import { useToast } from '@/components/ui/Toast';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { useAuth } from '@/context/auth/AuthContext';
 import { FormsService } from '@/lib/services/forms';
+import { useProUpgrade } from '@/context/ProUpgradeContext';
+import { hasPaidKylrixPlan } from '@/lib/utils';
 import { listNotesByUser } from '@/lib/appwrite/note';
 import { tasks } from '@/lib/kylrixflow';
 import { ID } from 'appwrite';
@@ -66,9 +68,32 @@ export function NewProjectDrawer() {
   const isOpen = activeContent === 'new-project';
   const { showSuccess, showError } = useToast();
   const { user } = useAuth();
+  const { openProUpgrade } = useProUpgrade();
 
   const template = drawerData?.template;
   const onSuccess = drawerData?.onCreated as ((project: any) => void) | undefined;
+
+  const [ownedProjectsCount, setOwnedProjectsCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (isOpen && user?.$id) {
+      ProjectsService.listProjects(true).then((res) => {
+        const owned = (res.rows || []).filter((p: any) => p.ownerId === user.$id).length;
+        setOwnedProjectsCount(owned);
+      }).catch(() => {});
+    } else if (!isOpen) {
+      setOwnedProjectsCount(null);
+    }
+  }, [isOpen, user?.$id]);
+
+  useEffect(() => {
+    if (isOpen && user?.$id && ownedProjectsCount !== null) {
+      if (!hasPaidKylrixPlan(user) && ownedProjectsCount >= 1) {
+        close();
+        openProUpgrade('New Project');
+      }
+    }
+  }, [isOpen, user?.$id, ownedProjectsCount, close, openProUpgrade, user]);
 
   const [step, setStep] = useState(1);
   const [isExpanded, setIsExpanded] = useState(false);
