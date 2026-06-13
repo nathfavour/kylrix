@@ -775,3 +775,21 @@ export async function sendSubscriptionExpiryReminderAction(jwtInput?: string) {
   }
 }
 
+export async function listBillingTransactionsAction(jwtInput?: string) {
+  const user = await getAuthenticatedUserForBillingAction({ jwt: jwtInput });
+  if (!user) throw new Error('Authentication required');
+
+  const { databases } = createSystemClient();
+  try {
+    const list = await databases.listDocuments(NOTE_DB_ID, 'billing_transactions', [
+      Query.equal('userId', user.$id),
+      Query.orderDesc('createdAt'),
+      Query.limit(100),
+    ]);
+    return { success: true, transactions: list.rows };
+  } catch (error: any) {
+    console.error('[Billing] Failed to list billing transactions:', error?.message);
+    return { success: false, error: error?.message || 'Failed to list transactions' };
+  }
+}
+
