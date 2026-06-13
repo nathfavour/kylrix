@@ -295,14 +295,14 @@ export async function POST(req: Request) {
   let expectedPrice = calculateSubscriptionPrice(meta.planId, meta.countryCode, 'CRYPTO', meta.months);
   if (meta.couponId) {
     const { databases } = createSystemClient();
-    const coupon = await databases.getDocument(CHAT_DATABASE_ID, ACCOUNT_EVENTS_TABLE_ID, meta.couponId).catch(() => null);
+    const coupon = await databases.getRow(CHAT_DATABASE_ID, ACCOUNT_EVENTS_TABLE_ID, meta.couponId).catch(() => null);
     if (!coupon || String(coupon.type || '').toLowerCase() !== 'coupon') {
       console.warn('[BlockBee IPN] Pending checkout referenced invalid coupon');
       return new Response('*ok*', { status: 200 });
     }
     const md = parseMetadata(coupon.metadata);
     const couponMeta = parseMetadata(md.coupon);
-    const couponDiscount = Number(coupon.discountPercent ?? couponMeta.discountPercent ?? 0);
+    const couponDiscount = Number(coupon.discountPercent ?? coupon.discountPercentage ?? couponMeta.discountPercent ?? couponMeta.discountPercentage ?? 0);
     if (Number.isFinite(couponDiscount) && couponDiscount >= 0 && couponDiscount <= 100) {
       expectedPrice = expectedPrice * (1 - couponDiscount / 100);
     }

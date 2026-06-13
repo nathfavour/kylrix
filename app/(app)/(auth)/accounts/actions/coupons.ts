@@ -64,6 +64,7 @@ export async function createCouponAction(input: {
       ID.unique(),
       {
         discountPercent: Number(input.discountPercent),
+        discountPercentage: Number(input.discountPercent),
         status: String(input.status || 'active').toLowerCase(),
         expiresAt: input.expiresAt || null,
         redemptionLimit: targetUserId ? 1 : Math.max(1, Number(input.redemptionLimit || 1)),
@@ -118,11 +119,11 @@ async function getMyCouponsAction(jwt?: string) {
   }
   const systemClient = createSystemClient();
   const { databases } = systemClient;
-  const result = await databases.listDocuments(NOTE_DB_ID, COUPONS_TABLE_ID, [
+  const result = await databases.listRows(NOTE_DB_ID, COUPONS_TABLE_ID, [
     Query.equal('targetUserId', user.$id),
     Query.orderDesc('$createdAt'),
     Query.limit(50)
   ]);
-  return result.documents;
+  return result.rows;
 }
 }

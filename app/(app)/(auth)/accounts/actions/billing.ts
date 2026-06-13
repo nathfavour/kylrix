@@ -220,14 +220,14 @@ export async function createBillingCheckoutSessionAction(input: {
 
   if (couponId) {
     const { databases } = createSystemClient();
-    couponRow = await databases.getDocument(NOTE_DB_ID, COUPONS_TABLE_ID, String(couponId).trim()).catch(() => null);
+    couponRow = await databases.getRow(NOTE_DB_ID, COUPONS_TABLE_ID, String(couponId).trim()).catch(() => null);
     if (!couponRow) throw new Error('Coupon not found');
     const metadata = parseMetadata(couponRow.metadata);
     const claimedBy = metadata.claimedBy || null;
     const targetUserId = couponRow.targetUserId || null;
     const status = String(couponRow.status || '').toLowerCase();
     
-    couponDiscountPercent = Number(couponRow.discountPercent);
+    couponDiscountPercent = Number(couponRow.discountPercent ?? couponRow.discountPercentage);
     if (!Number.isFinite(couponDiscountPercent) || couponDiscountPercent < 0 || couponDiscountPercent > 100) throw new Error('Invalid coupon discount');
     if (status === 'revoked' || status === 'expired' || status === 'depleted') throw new Error('Coupon is no longer valid');
     
@@ -515,7 +515,7 @@ export async function claimCouponAction(couponIdInput?: string, jwtInput?: strin
   const payerName = String(metadata.payerName || '');
   const giftMessage = String(metadata.giftMessage || coupon.note || 'Your gift subscription has been claimed.');
   const targetUserId = String(coupon.targetUserId || '').trim();
-  const discountPercent = Number(coupon.discountPercent);
+  const discountPercent = Number(coupon.discountPercent ?? coupon.discountPercentage);
   
   if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100) throw new Error('Invalid coupon discount');
   if (targetUserId && targetUserId !== user.$id) throw new Error('Coupon is reserved for another account');
