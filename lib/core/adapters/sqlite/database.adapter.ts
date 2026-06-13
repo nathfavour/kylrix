@@ -1,6 +1,7 @@
 import { DatabasePort, QueryExpression, ListRowsResult } from '../../ports/database.port';
-import * as fs from 'fs';
-import * as path from 'path';
+
+const fs = typeof window === 'undefined' ? eval('require')('fs') : null;
+const path = typeof window === 'undefined' ? eval('require')('path') : null;
 
 export class SqliteDatabaseAdapter implements DatabasePort {
   private getDbPath(): string {

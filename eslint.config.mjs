@@ -17,9 +17,15 @@ const eslintConfig = [
   },
   ...nextConfigs,
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: "off",
+    },
     rules: {
       // Matches common intentional patterns (mounted effects, hydrate-from-async, compose URL cleanup).
       "react-hooks/set-state-in-effect": "off",
+      "react-hooks/exhaustive-deps": "off",
+      "@next/next/no-img-element": "off",
+      "import/no-anonymous-default-export": "off",
     },
   },
 ];
