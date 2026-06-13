@@ -8,7 +8,8 @@ import {
   Lock,
   Globe,
   Users,
-  Settings2
+  Settings2,
+  Check
 } from 'lucide-react';
 import { toggleResourcePublicGuest } from '@/lib/actions/client-ops';
 import { buildPublicResourceUrl } from '@/lib/share/public-url';
@@ -106,24 +107,15 @@ export function useAccessControlMenuItems({
             onClick: handleCopyLink
           }
         ] : []),
-        isPublic ? {
-          label: 'Disable public access',
-          icon: <Lock size={16} />,
-          variant: 'destructive' as const,
-          onClick: () => handleTogglePublic(false)
-        } : {
-          label: 'Enable public access',
-          icon: <Globe size={16} />,
-          onClick: () => handleTogglePublic(true)
+        {
+          label: 'Public access',
+          icon: isPublic ? <Check size={16} className="text-[#10B981]" /> : <Globe size={16} />,
+          onClick: () => handleTogglePublic(!isPublic)
         },
-        isGuest ? {
-          label: 'Disable guest access',
-          icon: <ShieldX size={16} />,
-          onClick: () => handleToggleGuest(false)
-        } : {
-          label: 'Enable guest access',
-          icon: <ShieldCheck size={16} />,
-          onClick: () => handleToggleGuest(true)
+        {
+          label: 'Guest access',
+          icon: isGuest ? <Check size={16} className="text-[#10B981]" /> : <ShieldCheck size={16} />,
+          onClick: () => handleToggleGuest(!isGuest)
         }
       ]
     }

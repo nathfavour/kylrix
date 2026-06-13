@@ -42,3 +42,10 @@ To prevent 'Unauthorized' errors in privileged tasks (Sharing, Minting):
 - **Memoized Providers**: All high-level context values must be wrapped in `useMemo`.
 - **Stable Callbacks**: Functions passed to list items (e.g., `NoteCard`) must have stable identities to prevent list-wide re-render storms.
 - **Kill DOM Polling**: Zero tolerance for `MutationObserver` or `setInterval` for UI state reconciliation.
+
+## Declarative Toggle Menu Design
+To make toggles intuitive and clean:
+- **Avoid action-based verbs** (e.g., *Enable public access*, *Disable guest access*) in menu lists.
+- **Use simple nouns** representing the option itself (e.g., *Public access*, *Guest access*).
+- **Favor checkmark ticks** (`Check` icon) prefixing the option to indicate the current state (lit up/green check when enabled, and standard/grey category icon when disabled).
+- **Allow clicking to toggle** the state seamlessly without mutating the menu labels.
