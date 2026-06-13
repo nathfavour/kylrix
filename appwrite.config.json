@@ -3478,6 +3478,15 @@
                     "default": 0,
                     "min": 0,
                     "max": 9223372036854775807
+                },
+                {
+                    "key": "seats",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": 1,
+                    "min": 1,
+                    "max": 9223372036854775807
                 }
             ],
             "indexes": [
