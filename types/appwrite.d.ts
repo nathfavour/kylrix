@@ -524,6 +524,8 @@ export type Coupons = Models.Row & {
     updatedAt: string | null;
     discountPercent: number | null;
     discountPercentage: number | null;
+    redemptionLimit: number;
+    redemptionCount: number;
 }
 
 export type UserResourcePins = Models.Row & {
