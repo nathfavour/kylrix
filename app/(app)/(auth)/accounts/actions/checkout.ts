@@ -229,7 +229,7 @@ export async function getActiveBlockBeeCoinsAction(input: { jwt?: string }): Pro
       `https://api.blockbee.io/info/?apikey=${blockbeeApiKey}`
     ).then(r => r.json()).catch(() => null);
 
-    const allowedTickers = new Set(['btc', 'ltc', 'sol', 'eth', 'trx_usdt', 'trc20_usdt', 'trc20/usdt']);
+    const allowedTickers = new Set(['btc', 'ltc', 'sol', 'sol/sol', 'eth', 'trx_usdt', 'trc20_usdt', 'trc20/usdt']);
 
     if (!infoRes || infoRes.status === 'error') {
       // Fallback if API fails
@@ -238,7 +238,7 @@ export async function getActiveBlockBeeCoinsAction(input: { jwt?: string }): Pro
         coins: [
           { id: 'btc', name: 'Bitcoin', symbol: 'BTC' },
           { id: 'ltc', name: 'Litecoin', symbol: 'LTC' },
-          { id: 'sol', name: 'Solana', symbol: 'SOL' },
+          { id: 'sol/sol', name: 'Solana', symbol: 'SOL' },
           { id: 'eth', name: 'Ethereum', symbol: 'ETH' },
           { id: 'trc20/usdt', name: 'Tether (TRC20)', symbol: 'USDT' }
         ]
@@ -249,6 +249,7 @@ export async function getActiveBlockBeeCoinsAction(input: { jwt?: string }): Pro
       btc: 'BTC',
       ltc: 'LTC',
       sol: 'SOL',
+      'sol/sol': 'SOL',
       eth: 'ETH',
       trx_usdt: 'USDT (TRC20)',
       trc20_usdt: 'USDT (TRC20)',
@@ -285,7 +286,7 @@ export async function getActiveBlockBeeCoinsAction(input: { jwt?: string }): Pro
     }
 
     // Sort according to user preference sequence (BTC, LTC, SOL, ETH, USDT)
-    const order = ['btc', 'ltc', 'sol', 'eth', 'trc20/usdt', 'trc20_usdt', 'trx_usdt'];
+    const order = ['btc', 'ltc', 'sol/sol', 'sol', 'eth', 'trc20/usdt', 'trc20_usdt', 'trx_usdt'];
     coins.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 
     return { success: true, coins };

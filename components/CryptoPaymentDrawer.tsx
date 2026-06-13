@@ -14,6 +14,7 @@ interface CryptoPaymentDrawerProps {
 }
 const getCoinLogoUrl = (ticker: string) => {
   let cleanTicker = ticker.toLowerCase();
+  cleanTicker = cleanTicker.split('/').pop() || cleanTicker;
   if (cleanTicker.includes('usdt')) {
     cleanTicker = 'usdt';
   } else if (cleanTicker.includes('usdc')) {
@@ -51,7 +52,7 @@ export const CryptoPaymentDrawer: React.FC<CryptoPaymentDrawerProps> = ({
         const pending = await getActivePendingCryptoInvoiceAction({ jwt });
         if (pending && pending.success) {
           const tick = pending.ticker?.toLowerCase() || '';
-          setSelectedCoin(tick.includes('usdt') ? 'trc20/usdt' : tick || null);
+          setSelectedCoin(tick.includes('usdt') ? 'trc20/usdt' : (tick.includes('sol') ? 'sol/sol' : tick || null));
           setInvoice(pending);
         }
       } catch {} finally {
