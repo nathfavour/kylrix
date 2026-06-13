@@ -117,7 +117,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       // 1. Get from cache first (very fast)
-      const session = await getCurrentUser(false);
+      const session = await getCurrentUser(forceRefresh || isOAuthSuccess);
       if (session) {
         setUser(session as any);
         setKylrixPulse(session);
