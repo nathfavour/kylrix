@@ -255,13 +255,34 @@ export async function getActiveBlockBeeCoinsAction(input: { jwt?: string }): Pro
       'trc20/usdt': 'USDT (TRC20)'
     };
 
-    const coins = Object.entries(infoRes)
-      .filter(([key, val]: [string, any]) => allowedTickers.has(key.toLowerCase()) && val && typeof val === 'object')
-      .map(([key, val]: [string, any]) => ({
-        id: key.toLowerCase(),
-        name: val.coin || symbolMap[key.toLowerCase()] || key.toUpperCase(),
-        symbol: symbolMap[key.toLowerCase()] || key.toUpperCase()
-      }));
+    const coins: Array<{ id: string; name: string; symbol: string }> = [];
+
+    for (const [key, val] of Object.entries(infoRes)) {
+      if (!val || typeof val !== 'object') continue;
+      const lowerKey = key.toLowerCase();
+
+      if ('coin' in val) {
+        if (allowedTickers.has(lowerKey)) {
+          coins.push({
+            id: lowerKey,
+            name: (val as any).coin || symbolMap[lowerKey] || key.toUpperCase(),
+            symbol: symbolMap[lowerKey] || key.toUpperCase()
+          });
+        }
+      } else {
+        for (const [tokenKey, tokenVal] of Object.entries(val)) {
+          if (!tokenVal || typeof tokenVal !== 'object') continue;
+          const compositeTicker = `${lowerKey}/${tokenKey.toLowerCase()}`;
+          if (allowedTickers.has(compositeTicker)) {
+            coins.push({
+              id: compositeTicker,
+              name: (tokenVal as any).coin || symbolMap[compositeTicker] || tokenKey.toUpperCase(),
+              symbol: symbolMap[compositeTicker] || tokenKey.toUpperCase()
+            });
+          }
+        }
+      }
+    }
 
     // Sort according to user preference sequence (BTC, LTC, SOL, ETH, USDT)
     const order = ['btc', 'ltc', 'sol', 'eth', 'trc20/usdt', 'trc20_usdt', 'trx_usdt'];
