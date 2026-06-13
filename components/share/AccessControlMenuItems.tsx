@@ -124,16 +124,6 @@ export function useAccessControlMenuItems({
           label: 'Enable guest access',
           icon: <ShieldCheck size={16} />,
           onClick: () => handleToggleGuest(true)
-        },
-        {
-          label: 'Collaborators',
-          icon: <Users size={16} />,
-          onClick: () => openUnified('share-note', { 
-            noteId: resourceId, 
-            resourceType, 
-            noteTitle: resourceTitle,
-            onUpdate 
-          })
         }
       ]
     }
