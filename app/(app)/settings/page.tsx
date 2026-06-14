@@ -707,25 +707,40 @@ export default function SettingsPage() {
                                 </div>
                             </div>
 
-                        </div>
                     </div>
-
                 </div>
-
             </div>
+        </div>
 
-            {/* Conditionally unmounted overlays/drawers mathematically preventing click blocking */}
-            {tgDrawerOpen && (
-                <TelegramDrawer
-                    open={tgDrawerOpen}
-                    onClose={() => setTgDrawerOpen(false)}
-                    onSuccess={() => {
-                        setTgDrawerOpen(false);
-                    }}
-                />
-            )}
+        {/* TOS & Privacy Policy Links */}
+        <footer className="mt-12 pt-6 border-t border-white/5 flex items-center justify-center gap-4 text-xs font-semibold text-white/30 select-none">
+            <button 
+                onClick={() => router.push('/terms-of-service')}
+                className="hover:text-white/60 transition-colors cursor-pointer"
+            >
+                Terms of Service
+            </button>
+            <span>•</span>
+            <button 
+                onClick={() => router.push('/privacy-policy')}
+                className="hover:text-white/60 transition-colors cursor-pointer"
+            >
+                Privacy Policy
+            </button>
+        </footer>
 
-            </div>
-        </MultiSectionContainer>
-    );
+        </div>
+
+        {/* Conditionally unmounted overlays/drawers mathematically preventing click blocking */}
+        {tgDrawerOpen && (
+            <TelegramDrawer
+                open={tgDrawerOpen}
+                onClose={() => setTgDrawerOpen(false)}
+                onSuccess={() => {
+                    setTgDrawerOpen(false);
+                }}
+            />
+        )}
+    </MultiSectionContainer>
+  );
 }

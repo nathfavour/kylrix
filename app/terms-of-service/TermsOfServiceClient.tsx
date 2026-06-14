@@ -26,7 +26,8 @@ import {
   RefreshCw,
   Link as LinkIcon,
   Copy,
-  Share2
+  Share2,
+  Coins
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -356,10 +357,25 @@ export default function TermsOfServiceClient() {
           </LegalCard>
 
           <LegalCard 
+            id="billing"
+            accent="linear-gradient(90deg, #10B981 0%, #F59E0B 100%)" 
+            icon={<Coins size={22} />} 
+            title="6. Billing, Payments & Refunds"
+            activeHash={activeHash}
+            onContextMenu={handleContextMenuOpen}
+          >
+            <Typography component="div">
+              <strong>Subscriptions & Fees:</strong> We may offer optional paid subscriptions or features (such as Kylrix Pro). By subscribing, you agree to pay the specified fees.
+              <br /><br />
+              <strong>No Refunds & Irreversible Transactions:</strong> All payments made to Kylrix are processed via irreversible cryptocurrency transactions. Consequently, all payments and subscription fees are strictly <strong>non-refundable</strong>. We cannot reverse, refund, or charge back any blockchain transactions.
+            </Typography>
+          </LegalCard>
+
+          <LegalCard 
             id="responsibilities"
             accent="linear-gradient(90deg, #10B981 0%, #3B82F6 100%)" 
             icon={<Terminal size={22} />} 
-            title="6. Your Responsibilities"
+            title="7. Your Responsibilities"
             activeHash={activeHash}
             onContextMenu={handleContextMenuOpen}
           >
@@ -380,7 +396,7 @@ export default function TermsOfServiceClient() {
             id="suspension"
             accent="linear-gradient(90deg, #EC4899 0%, #F59E0B 100%)" 
             icon={<Ban size={22} />} 
-            title="7. Account Suspension & Service Changes"
+            title="8. Account Suspension & Service Changes"
             activeHash={activeHash}
             onContextMenu={handleContextMenuOpen}
           >
@@ -395,7 +411,7 @@ export default function TermsOfServiceClient() {
             id="disputes"
             accent="linear-gradient(90deg, #818CF8 0%, #6366F1 100%)" 
             icon={<Gavel size={22} />} 
-            title="8. Disputes & Governing Law"
+            title="9. Disputes & Governing Law"
             activeHash={activeHash}
             onContextMenu={handleContextMenuOpen}
           >
@@ -410,7 +426,7 @@ export default function TermsOfServiceClient() {
             id="changes"
             accent="linear-gradient(90deg, #3B82F6 0%, #10B981 100%)" 
             icon={<RefreshCw size={22} />} 
-            title="9. Changes to These Terms"
+            title="10. Changes to These Terms"
             activeHash={activeHash}
             onContextMenu={handleContextMenuOpen}
           >
