@@ -9,6 +9,7 @@ import { getEcosystemUrl } from '@/lib/constants';
 import { useAuth } from '@/lib/auth';
 import { useProfile } from '@/components/providers/ProfileProvider';
 import { useFAB } from '@/context/FABContext';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import {
     Box,
     Avatar,
@@ -1140,6 +1141,7 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
     const { profile: myProfile } = useProfile();
     const { setActiveDetail } = useSection();
     const { setConfiguration, resetConfiguration } = useFAB();
+    const { open: openUnified } = useUnifiedDrawer();
     const replyInputRef = useRef<HTMLInputElement>(null);
     const hasPreviewRef = React.useRef(Boolean(getCachedMomentPreview(momentId)));
     const [moment, setMoment] = useState<any>(() => getCachedMomentPreview(momentId) || null);
@@ -1470,20 +1472,27 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
         }
     };
 
-    const handleDeleteFromMenu = async (id: string) => {
+    const handleDeleteFromMenu = (id: string) => {
         setActionMenuAnchor(null);
-        if (!confirm('Are you sure you want to delete this moment? This will also recursively delete all replies and interactions.')) return;
-        try {
-            await SocialService.deleteMoment(id);
-            toast.success('Moment deleted');
-            if (id === momentId) {
-                router.push('/connect');
-            } else {
-                loadMoment();
+        openUnified('delete-confirm', {
+            title: 'Delete Moment?',
+            description: 'This action is permanent and will recursively delete all replies, likes, reactions, and associated data.',
+            resourceName: 'this moment',
+            confirmLabel: 'Delete Moment',
+            onConfirm: async () => {
+                try {
+                    await SocialService.deleteMoment(id);
+                    toast.success('Moment deleted');
+                    if (id === momentId) {
+                        router.push('/connect');
+                    } else {
+                        loadMoment();
+                    }
+                } catch (_e) {
+                    toast.error('Failed to delete moment');
+                }
             }
-        } catch (_e) {
-            toast.error('Failed to delete moment');
-        }
+        });
     };
 
     const handleToggleLike = async (targetMoment?: any) => {
@@ -2391,6 +2400,7 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                         </Box>
                     )}
                 </Drawer>
+
 
                 {user && !isMobile && <Box sx={{ mt: 0.5 }} />}
                 <ActorsListDrawer

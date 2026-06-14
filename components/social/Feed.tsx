@@ -87,6 +87,7 @@ import toast from 'react-hot-toast';
 
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { useFAB } from '@/context/FABContext';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 
 const CACHE_KEY = 'kylrix_feed_cache';
 const profileRegistry = new Map<string, any>();
@@ -1497,6 +1498,7 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
     const { openSidebar } = useDynamicSidebar();
     const { setActiveDetail } = useSection();
     const { setConfiguration, resetConfiguration } = useFAB();
+    const { open: openUnified } = useUnifiedDrawer();
     const initialFeedCache = getInitialFeedCache(view);
     const [moments, setMoments] = useState<any[]>(() => initialFeedCache?.rows || []);
     const [loading, setLoading] = useState<boolean>(() => !initialFeedCache);
@@ -1649,20 +1651,27 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
     };
 
     const handleDeletePost = async (momentId: string) => {
-        if (!confirm('Are you sure you want to delete this moment?')) return;
-        try {
-            await SocialService.deleteMoment(momentId);
-            setMoments(prev => {
-                const next = prev.filter(m => m.$id !== momentId);
-                momentsRef.current = next;
-                saveToCache(next);
-                return next;
-            });
-            toast.success('Moment deleted');
-            setPostMenuAnchorEl(null);
-        } catch (_e) {
-            toast.error('Failed to delete moment');
-        }
+        openUnified('delete-confirm', {
+            title: 'Delete Moment?',
+            description: 'This action is permanent and will recursively delete all replies, likes, reactions, and associated data.',
+            resourceName: 'this moment',
+            confirmLabel: 'Delete Moment',
+            onConfirm: async () => {
+                try {
+                    await SocialService.deleteMoment(momentId);
+                    setMoments(prev => {
+                        const next = prev.filter(m => m.$id !== momentId);
+                        momentsRef.current = next;
+                        saveToCache(next);
+                        return next;
+                    });
+                    toast.success('Moment deleted');
+                    setPostMenuAnchorEl(null);
+                } catch (_e) {
+                    toast.error('Failed to delete moment');
+                }
+            }
+        });
     };
 
     const loadFeed = useCallback(async (force?: boolean) => {
