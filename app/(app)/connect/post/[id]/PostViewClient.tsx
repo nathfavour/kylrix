@@ -1526,7 +1526,7 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                 maxWidth: 600,
                 mx: 'auto',
                 pt: { xs: 1.5, sm: 2.5 },
-                pb: { xs: 3, sm: 4 },
+                pb: { xs: 'calc(110px + env(safe-area-inset-bottom))', sm: 4 },
                 px: 0,
                 borderLeft: '1px solid rgba(255,255,255,0.08)',
                 borderRight: '1px solid rgba(255,255,255,0.08)',
@@ -1880,7 +1880,25 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                 </Menu>
 
                 {user && (
-                    <Box id="reply-box" sx={{ mt: 2, p: 1.5, bgcolor: '#161412', borderRadius: '18px', border: '1px solid #34322F', boxShadow: 'none' }}>
+                    <Box
+                        id="reply-box"
+                        sx={{
+                            bgcolor: '#161412',
+                            boxShadow: 'none',
+                            p: 1.5,
+                            position: { xs: 'fixed', md: 'static' },
+                            bottom: { xs: 0, md: 'auto' },
+                            left: { xs: 0, md: 'auto' },
+                            right: { xs: 0, md: 'auto' },
+                            zIndex: { xs: 1100, md: 'auto' },
+                            borderTop: { xs: '1px solid rgba(255,255,255,0.08)', md: 'none' },
+                            border: { xs: 'none', md: '1px solid #34322F' },
+                            borderRadius: { xs: '24px 24px 0 0', md: '18px' },
+                            pb: { xs: 'calc(1.5rem + env(safe-area-inset-bottom))', md: 1.5 },
+                            mt: { xs: 0, md: 2 },
+                            boxShadow: { xs: '0 -10px 30px rgba(0, 0, 0, 0.55)', md: 'none' }
+                        }}
+                    >
                         <Stack direction="row" spacing={2}>
                             <Avatar src={userAvatarUrl || undefined} sx={{ width: 30, height: 30, borderRadius: '8px' }}>
                                 {user.name?.charAt(0)}
