@@ -1399,6 +1399,88 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
         return () => resetConfiguration();
     }, [setConfiguration, resetConfiguration, replyDrawerOpen]);
 
+    const handleActionMenu = (event: any, momentData: any) => {
+        if (event.preventDefault) event.preventDefault();
+        if (event.stopPropagation) event.stopPropagation();
+
+        setActionMenuAnchor({
+            x: event.clientX || 0,
+            y: event.clientY || 0,
+            moment: {
+                id: momentData.$id || momentData.id,
+                creatorId: momentData.userId || momentData.creatorId,
+                caption: momentData.caption || '',
+                isLiked: momentData.isLiked || false,
+            }
+        });
+    };
+
+    const handleCopyText = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast.success('Text copied to clipboard!');
+        setActionMenuAnchor(null);
+    };
+
+    const handleCopyLink = (id: string) => {
+        navigator.clipboard.writeText(`${window.location.origin}/connect/post/${id}`);
+        toast.success('Moment link copied!');
+        setActionMenuAnchor(null);
+    };
+
+    const handlePulseFromMenu = async (id: string) => {
+        setActionMenuAnchor(null);
+        if (!user) {
+            toast.error('You must be logged in to pulse');
+            return;
+        }
+        try {
+            await SocialService.createMoment(user.$id, '', 'pulse', [], 'public', undefined, undefined, id);
+            toast.success('Pulsed moment!');
+            loadMoment();
+        } catch (_e) {
+            toast.error('Failed to pulse moment');
+        }
+    };
+
+    const handleQuoteFromMenu = (id: string) => {
+        setActionMenuAnchor(null);
+        setReplyDrawerOpen(true);
+    };
+
+    const handleStartEdit = (id: string, caption: string) => {
+        setActionMenuAnchor(null);
+        setEditingMoment({ id, caption });
+        setEditContent(caption);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingMoment) return;
+        try {
+            await SocialService.updateMoment(editingMoment.id, editContent);
+            toast.success('Moment updated');
+            setEditingMoment(null);
+            loadMoment();
+        } catch (_e) {
+            toast.error('Failed to update moment');
+        }
+    };
+
+    const handleDeleteFromMenu = async (id: string) => {
+        setActionMenuAnchor(null);
+        if (!confirm('Are you sure you want to delete this moment? This will also recursively delete all replies and interactions.')) return;
+        try {
+            await SocialService.deleteMoment(id);
+            toast.success('Moment deleted');
+            if (id === momentId) {
+                router.push('/connect');
+            } else {
+                loadMoment();
+            }
+        } catch (_e) {
+            toast.error('Failed to delete moment');
+        }
+    };
+
     const handleToggleLike = async (targetMoment?: any) => {
         if (!user) {
             toast.error('Please login to like this post');
@@ -1738,6 +1820,8 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                                         toast.success('Moment link copied!');
                                     }}
                                     liked={ancestor.isLiked}
+                                    onActionMenu={handleActionMenu}
+                                    momentData={ancestor}
                                 />
                             );
                         })}
