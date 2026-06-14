@@ -14,17 +14,20 @@
     --desktop-px: 32px;
     
     padding-left: var(--mobile-px) !important;
-    transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-right: var(--mobile-px) !important;
+    transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Mathematically guaranteed desktop-only offset */
 @media (min-width: 900px) {
     .kylrix-main-content.with-sidebar {
         padding-left: calc(var(--sidebar-width) + var(--sidebar-gap)) !important;
+        padding-right: var(--desktop-px) !important;
     }
     
     .kylrix-main-content:not(.with-sidebar) {
         padding-left: var(--desktop-px) !important;
+        padding-right: var(--desktop-px) !important;
     }
 }
 

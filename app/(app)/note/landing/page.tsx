@@ -356,11 +356,11 @@ function LiveHuddlePanel() {
       </div>
 
       {/* Participant Grid */}
-      <div className="grid grid-cols-2 gap-3 p-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 p-2 sm:p-4">
         {DUMMY_HUDDLE_PARTICIPANTS.map((p, i) => (
           <div
             key={p.name}
-            className={`relative rounded-2xl border transition-all duration-500 flex flex-col items-center justify-center py-6 px-3 ${
+            className={`relative rounded-2xl border transition-all duration-500 flex flex-col items-center justify-center py-4 px-2 sm:py-6 sm:px-3 ${
               activeSpeaker === i
                 ? 'bg-[#F59E0B]/5 border-[#F59E0B]/30'
                 : 'bg-[#0B0A09] border-[#1C1A18]'
@@ -368,12 +368,12 @@ function LiveHuddlePanel() {
             style={activeSpeaker === i ? { boxShadow: '0 0 16px rgba(245, 158, 11, 0.15)' } : undefined}
           >
             {/* Avatar */}
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-clash font-bold text-sm mb-2 transition-all duration-500 ${
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-clash font-bold text-sm mb-2 transition-all duration-500 ${
               activeSpeaker === i ? 'ring-2 ring-[#F59E0B]/40 scale-105' : ''
             }`} style={{ backgroundColor: activeSpeaker === i ? '#F59E0B' : '#34322F', color: activeSpeaker === i ? '#0A0908' : '#9B9691' }}>
               {p.initials}
             </div>
-            <span className="font-satoshi text-xs text-[#9B9691] font-bold truncate w-full text-center">{p.name.split(' ')[0]}</span>
+            <span className="font-satoshi text-[10px] sm:text-xs text-[#9B9691] font-bold truncate w-full text-center">{p.name.split(' ')[0]}</span>
 
             {/* Audio wave indicator */}
             {activeSpeaker === i && (
@@ -552,17 +552,17 @@ export default function LandingPage() {
       {/* ═══════════════════ HERO ═══════════════════ */}
       <motion.section
         style={{ opacity: heroOpacity, scale: heroScale }}
-        className="relative min-h-[100vh] flex flex-col items-center justify-center px-6 py-20"
+        className="relative min-h-svh flex flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-20"
       >
         <OrbitingParticles />
 
         {/* Ambient gradient */}
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] pointer-events-none opacity-30"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[600px] pointer-events-none opacity-30"
           style={{ backgroundImage: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 60%)' }}
         />
 
-        <div className="relative z-10 max-w-4xl mx-auto text-center flex flex-col items-center gap-8">
+        <div className="relative z-10 max-w-4xl mx-auto text-center flex flex-col items-center gap-6 sm:gap-8">
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -580,7 +580,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35, duration: 0.6 }}
-            className="text-4xl sm:text-6xl md:text-8xl font-black font-clash leading-[1.05] sm:leading-[0.95] tracking-tight px-4 sm:px-0"
+            className="text-3xl sm:text-6xl md:text-8xl font-black font-clash leading-[1.1] sm:leading-[0.95] tracking-tight px-2 sm:px-0 text-balance"
           >
             <span className="bg-gradient-to-b from-white via-white/90 to-white/50 bg-clip-text text-transparent">
               your productivity tools and agent...
@@ -596,7 +596,7 @@ export default function LandingPage() {
             transition={{ delay: 0.6 }}
             className="h-8 flex items-center justify-center px-4"
           >
-            <span className="font-mono text-sm md:text-lg text-white/40 text-center">
+            <span className="font-mono text-xs sm:text-sm md:text-lg text-white/40 text-center text-balance">
               {typedText}
               <span className="inline-block w-0.5 h-4 md:h-5 bg-[#6366F1] ml-0.5 align-middle animate-pulse" />
             </span>
@@ -607,7 +607,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
-            className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4 w-full max-w-xs sm:max-w-md px-4 sm:px-0"
+            className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-2 sm:mt-4 w-full max-w-[280px] sm:max-w-md px-2 sm:px-0"
           >
             <button
               onClick={() => openIDMWindow()}
@@ -642,15 +642,15 @@ export default function LandingPage() {
       </motion.section>
 
       {/* ═══════════════════ LIVE COMPONENTS SHOWCASE ═══════════════════ */}
-      <Section className="py-20 md:py-32 px-6 relative" id="showcase">
+      <Section className="py-16 md:py-32 px-4 sm:px-6 relative" id="showcase">
         <div className="max-w-7xl mx-auto">
           {/* Section header */}
-          <div className="text-center mb-20 flex flex-col gap-4">
+          <div className="text-center mb-12 md:mb-20 flex flex-col gap-4">
             <span className="text-[10px] font-black uppercase tracking-widest text-[#F59E0B] font-clash">LIVE PREVIEW</span>
-            <h2 className="text-3xl md:text-6xl font-black font-clash text-white leading-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-6xl font-black font-clash text-white leading-tight text-balance">
               See it breathing.
             </h2>
-            <p className="text-base text-white/40 max-w-2xl mx-auto font-satoshi">
+            <p className="text-sm sm:text-base text-white/40 max-w-2xl mx-auto font-satoshi text-balance">
               These are real components from inside Kylrix. Not mockups. Not screenshots. Alive.
             </p>
           </div>
@@ -658,7 +658,7 @@ export default function LandingPage() {
           {/* ── Note + Tasks Row ── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             {/* Notes Panel */}
-            <div className="rounded-[28px] bg-[#0B0A09] border border-white/5 p-6 md:p-8 relative overflow-hidden">
+            <div className="rounded-[28px] bg-[#0B0A09] border border-white/5 p-4 sm:p-6 md:p-8 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-24 pointer-events-none opacity-40" style={{ backgroundImage: 'radial-gradient(circle at top, rgba(245,158,11,0.1) 0%, transparent 70%)' }} />
 
               <div className="flex items-center justify-between mb-6 relative z-10">
@@ -685,7 +685,7 @@ export default function LandingPage() {
             </div>
 
             {/* Tasks Panel */}
-            <div className="rounded-[28px] bg-[#0B0A09] border border-white/5 p-6 md:p-8 relative overflow-hidden">
+            <div className="rounded-[28px] bg-[#0B0A09] border border-white/5 p-4 sm:p-6 md:p-8 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-24 pointer-events-none opacity-40" style={{ backgroundImage: 'radial-gradient(circle at top, rgba(16,185,129,0.1) 0%, transparent 70%)' }} />
 
               <div className="flex items-center justify-between mb-6 relative z-10">
@@ -714,7 +714,7 @@ export default function LandingPage() {
           {/* ── Connect + Huddle Row ── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Social Feed */}
-            <div className="rounded-[28px] bg-[#0B0A09] border border-white/5 p-6 md:p-8 relative overflow-hidden">
+            <div className="rounded-[28px] bg-[#0B0A09] border border-white/5 p-4 sm:p-6 md:p-8 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-24 pointer-events-none opacity-40" style={{ backgroundImage: 'radial-gradient(circle at top, rgba(244,63,94,0.08) 0%, transparent 70%)' }} />
 
               <div className="flex items-center justify-between mb-6 relative z-10">
@@ -737,7 +737,7 @@ export default function LandingPage() {
             </div>
 
             {/* Live Huddle */}
-            <div className="rounded-[28px] bg-[#0B0A09] border border-white/5 p-6 md:p-8 relative overflow-hidden">
+            <div className="rounded-[28px] bg-[#0B0A09] border border-white/5 p-4 sm:p-6 md:p-8 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-24 pointer-events-none opacity-40" style={{ backgroundImage: 'radial-gradient(circle at top, rgba(245,158,11,0.1) 0%, transparent 70%)' }} />
 
               <div className="flex items-center justify-between mb-6 relative z-10">
@@ -765,15 +765,15 @@ export default function LandingPage() {
       </Section>
 
       {/* ═══════════════════ VAULT SECTION ═══════════════════ */}
-      <Section className="py-20 md:py-32 px-6 border-t border-white/[0.03]" id="vault">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <Section className="py-16 md:py-32 px-4 sm:px-6 border-t border-white/[0.03]" id="vault">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-16 items-center">
           <div className="flex flex-col gap-8">
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest text-[#A855F7] font-clash block mb-3">VAULT</span>
-              <h2 className="text-3xl md:text-5xl font-black font-clash text-white leading-tight mb-4">
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-black font-clash text-white leading-tight mb-4 text-balance">
                 Secrets stay sealed.
               </h2>
-              <p className="text-base text-white/40 leading-relaxed font-satoshi">
+              <p className="text-sm sm:text-base text-white/40 leading-relaxed font-satoshi text-balance">
                 Passwords, 2FA codes, and cryptographic keys — all protected behind your master passphrase. Zero-knowledge means we can never see your data. Even if we wanted to.
               </p>
             </div>
@@ -802,7 +802,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="rounded-[28px] bg-[#0B0A09] border border-white/5 p-6 md:p-8 relative overflow-hidden">
+          <div className="rounded-[28px] bg-[#0B0A09] border border-white/5 p-4 sm:p-6 md:p-8 relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-24 pointer-events-none opacity-30" style={{ backgroundImage: 'radial-gradient(circle at top, rgba(168,85,247,0.12) 0%, transparent 70%)' }} />
             <div className="relative z-10">
               <LiveVaultPreview />
@@ -812,14 +812,14 @@ export default function LandingPage() {
       </Section>
 
       {/* ═══════════════════ ECOSYSTEM GRID ═══════════════════ */}
-      <Section className="py-20 md:py-32 px-6 border-t border-white/[0.03]" id="ecosystem">
+      <Section className="py-16 md:py-32 px-4 sm:px-6 border-t border-white/[0.03]" id="ecosystem">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16 flex flex-col gap-4">
+          <div className="text-center mb-12 md:mb-16 flex flex-col gap-4">
             <span className="text-[10px] font-black uppercase tracking-widest text-[#6366F1] font-clash">THE ECOSYSTEM</span>
-            <h2 className="text-3xl md:text-6xl font-black font-clash text-white">
+            <h2 className="text-2xl sm:text-3xl md:text-6xl font-black font-clash text-white text-balance">
               Four apps. One session.
             </h2>
-            <p className="text-base text-white/40 max-w-xl mx-auto font-satoshi">
+            <p className="text-sm sm:text-base text-white/40 max-w-xl mx-auto font-satoshi text-balance">
               Every app shares one identity, one encryption layer, one design system. No fragmentation.
             </p>
           </div>
@@ -863,22 +863,22 @@ export default function LandingPage() {
       </Section>
 
       {/* ═══════════════════ CTA BANNER ═══════════════════ */}
-      <Section className="px-6 py-20 md:py-32" id="cta">
+      <Section className="px-4 sm:px-6 py-16 md:py-32" id="cta">
         <div className="max-w-5xl mx-auto">
-          <div className="p-8 md:p-16 rounded-[36px] bg-[#161412] border border-white/5 relative overflow-hidden text-center"
+          <div className="p-8 md:p-16 rounded-[32px] md:rounded-[36px] bg-[#161412] border border-white/5 relative overflow-hidden text-center"
             style={{ boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}
           >
             {/* Ambient */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] pointer-events-none opacity-20" style={{ backgroundImage: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 60%)' }} />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[600px] h-[300px] pointer-events-none opacity-20" style={{ backgroundImage: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 60%)' }} />
 
             <div className="relative z-10 flex flex-col items-center gap-6">
-              <h3 className="text-3xl md:text-5xl font-black font-clash text-white leading-tight px-2">
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-black font-clash text-white leading-tight px-2 text-balance">
                 Ready to own your workflow?
-              </h3>
-              <p className="text-sm md:text-base text-white/40 max-w-xl font-satoshi px-4">
+              </h2>
+              <p className="text-sm md:text-base text-white/40 max-w-xl font-satoshi px-4 text-balance">
                 Free forever. No credit card. No tracking. Just tools that respect you.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4 w-full max-w-xs sm:max-w-md">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4 w-full max-w-[280px] sm:max-w-md">
                 <button
                   onClick={() => openIDMWindow()}
                   disabled={isAuthenticating}
@@ -899,7 +899,7 @@ export default function LandingPage() {
       </Section>
 
       {/* ═══════════════════ FOOTER ═══════════════════ */}
-      <footer className="border-t border-white/[0.03] py-12 bg-[#0A0908] px-6">
+      <footer className="border-t border-white/[0.03] py-12 bg-[#0A0908] px-4 sm:px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <span className="text-[10px] font-black tracking-widest uppercase text-white/40 block font-clash">KYLRIX.SPACE</span>
