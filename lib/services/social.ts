@@ -732,6 +732,45 @@ export const SocialService = {
     },
 
     async deleteMoment(momentId: string) {
+        // 1. Find and delete all child moments (replies, pulses, quotes) in parallel
+        try {
+            const childMoments = await tablesDB.listRows(DB_ID, MOMENTS_TABLE, [
+                Query.equal('sourceId', momentId),
+                Query.limit(1000)
+            ]);
+            if (childMoments.rows && childMoments.rows.length > 0) {
+                await Promise.all(
+                    childMoments.rows.map((child: any) =>
+                        this.deleteMoment(child.$id).catch((err) =>
+                            console.warn(`[Cascade Delete] Failed to delete child moment ${child.$id}:`, err?.message)
+                        )
+                    )
+                );
+            }
+        } catch (err: any) {
+            console.warn(`[Cascade Delete] Failed to list/delete child moments for parent ${momentId}:`, err?.message);
+        }
+
+        // 2. Find and delete all interactions (likes, reactions) in parallel
+        try {
+            const interactions = await tablesDB.listRows(DB_ID, INTERACTIONS_TABLE, [
+                Query.equal('messageId', momentId),
+                Query.limit(1000)
+            ]);
+            if (interactions.rows && interactions.rows.length > 0) {
+                await Promise.all(
+                    interactions.rows.map((item: any) =>
+                        tablesDB.deleteRow(DB_ID, INTERACTIONS_TABLE, item.$id).catch((err) =>
+                            console.warn(`[Cascade Delete] Failed to delete interaction ${item.$id}:`, err?.message)
+                        )
+                    )
+                );
+            }
+        } catch (err: any) {
+            console.warn(`[Cascade Delete] Failed to list/delete interactions for moment ${momentId}:`, err?.message);
+        }
+
+        // 3. Delete the parent moment itself
         return await tablesDB.deleteRow(DB_ID, MOMENTS_TABLE, momentId);
     },
 
