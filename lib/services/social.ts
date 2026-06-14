@@ -12,7 +12,7 @@ const DB_ID = APPWRITE_CONFIG.DATABASES.CHAT;
 const MOMENTS_TABLE = APPWRITE_CONFIG.TABLES.CHAT.MOMENTS;
 const FOLLOWS_TABLE = APPWRITE_CONFIG.TABLES.CHAT.FOLLOWS;
 const INTERACTIONS_TABLE = APPWRITE_CONFIG.TABLES.CHAT.INTERACTIONS;
-const MOMENT_LIST_SELECT = ['$id', 'userId', 'caption', 'fileId', 'momentKind', 'sourceId', 'searchTitle', 'createdAt', 'expiresAt'];
+const MOMENT_LIST_SELECT = ['$id', 'userId', 'caption', 'fileId', 'momentKind', 'sourceId', 'searchTitle', 'createdAt', 'expiresAt', 'isPublic', 'isGuest'];
 const INTERACTION_LIST_SELECT = ['$id', 'userId', 'messageId', 'emoji', 'createdAt'];
 
 export interface MomentMetadata {
