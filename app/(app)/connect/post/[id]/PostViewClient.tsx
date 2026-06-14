@@ -39,6 +39,8 @@ import {
     Edit,
     X,
     Image as ImageIcon,
+    Trash2,
+    Copy,
     Download,
     BarChart3,
     SlidersHorizontal,
@@ -757,6 +759,7 @@ const ThreadPostView = ({
                 </Box>
             </Box>
         </Box>
+    </Box>
     );
 };
 
@@ -1421,7 +1424,7 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
         setActionMenuAnchor(null);
     };
 
-    const handleCopyLink = (id: string) => {
+    const handleCopyLinkFromMenu = (id: string) => {
         navigator.clipboard.writeText(`${window.location.origin}/connect/post/${id}`);
         toast.success('Moment link copied!');
         setActionMenuAnchor(null);
@@ -1891,6 +1894,8 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                                     toast.success('Moment link copied!');
                                 }}
                                 liked={moment.isLiked}
+                                onActionMenu={handleActionMenu}
+                                momentData={moment}
                             />
                         )}
                     </Box>
@@ -1991,6 +1996,8 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                                             toast.success('Moment link copied!');
                                         }}
                                         liked={reply.isLiked}
+                                        onActionMenu={handleActionMenu}
+                                        momentData={reply}
                                     />
                                 );
                             })}
@@ -2227,6 +2234,137 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                             />
                         </ListItemButton>
                     </Box>
+                </Drawer>
+
+                <Menu
+                    open={Boolean(actionMenuAnchor)}
+                    onClose={() => setActionMenuAnchor(null)}
+                    anchorReference="anchorPosition"
+                    anchorPosition={
+                        actionMenuAnchor
+                            ? { top: actionMenuAnchor.y, left: actionMenuAnchor.x }
+                            : undefined
+                    }
+                    PaperProps={{
+                        sx: {
+                            borderRadius: '16px',
+                            bgcolor: '#1F1D1B',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            minWidth: 180,
+                            backgroundImage: 'none',
+                        }
+                    }}
+                >
+                    {actionMenuAnchor && (
+                        <>
+                            <MenuItem 
+                                onClick={() => handleCopyText(actionMenuAnchor.moment.caption)}
+                                sx={{ gap: 1.5, py: 1.2, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                            >
+                                <Copy size={16} /> Copy Text
+                            </MenuItem>
+                            <MenuItem 
+                                onClick={() => handleCopyLinkFromMenu(actionMenuAnchor.moment.id)}
+                                sx={{ gap: 1.5, py: 1.2, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                            >
+                                <Link2 size={16} /> Copy Link
+                            </MenuItem>
+                            <MenuItem 
+                                onClick={() => handlePulseFromMenu(actionMenuAnchor.moment.id)}
+                                sx={{ gap: 1.5, py: 1.2, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#10B981' }}
+                            >
+                                <Repeat2 size={16} /> Pulse
+                            </MenuItem>
+                            <MenuItem 
+                                onClick={() => handleQuoteFromMenu(actionMenuAnchor.moment.id)}
+                                sx={{ gap: 1.5, py: 1.2, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                            >
+                                <MessageCircle size={16} /> Quote / Reply
+                            </MenuItem>
+                            {user && user.$id === actionMenuAnchor.moment.creatorId && (
+                                <>
+                                    <MenuItem 
+                                        onClick={() => handleStartEdit(actionMenuAnchor.moment.id, actionMenuAnchor.moment.caption)}
+                                        sx={{ gap: 1.5, py: 1.2, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#3B82F6' }}
+                                    >
+                                        <Edit size={16} /> Edit Moment
+                                    </MenuItem>
+                                    <MenuItem 
+                                        onClick={() => handleDeleteFromMenu(actionMenuAnchor.moment.id)}
+                                        sx={{ gap: 1.5, py: 1.2, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#EF4444' }}
+                                    >
+                                        <Trash2 size={16} /> Delete Moment
+                                    </MenuItem>
+                                </>
+                            )}
+                        </>
+                    )}
+                </Menu>
+
+                <Drawer
+                    anchor="bottom"
+                    open={Boolean(editingMoment)}
+                    onClose={() => setEditingMoment(null)}
+                    PaperProps={{
+                        sx: {
+                            bgcolor: '#161514',
+                            borderTopLeftRadius: '24px',
+                            borderTopRightRadius: '24px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            backgroundImage: 'none',
+                            maxWidth: 600,
+                            mx: 'auto',
+                            width: '100%',
+                            boxShadow: '0 -10px 40px rgba(0,0,0,0.8)',
+                            pb: 'calc(16px + env(safe-area-inset-bottom))',
+                        }
+                    }}
+                >
+                    {editingMoment && (
+                        <Box sx={{ p: 2 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography sx={{ fontWeight: 900, fontSize: '0.95rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: 'white' }}>
+                                    Edit Moment
+                                </Typography>
+                                <IconButton onClick={() => setEditingMoment(null)} sx={{ color: 'rgba(255,255,255,0.3)' }}>
+                                    <X size={20} />
+                                </IconButton>
+                            </Box>
+                            <TextField
+                                fullWidth
+                                autoFocus
+                                placeholder="Edit your moment..."
+                                variant="standard"
+                                multiline
+                                rows={4}
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                InputProps={{
+                                    disableUnderline: true,
+                                    sx: { color: 'white', py: 0.5, fontSize: '0.95rem' }
+                                }}
+                            />
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1.5, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                                <Button
+                                    onClick={handleSaveEdit}
+                                    disabled={!editContent.trim()}
+                                    sx={{
+                                        px: 3,
+                                        py: 1,
+                                        bgcolor: '#F59E0B',
+                                        color: 'black',
+                                        fontWeight: 800,
+                                        borderRadius: '30px',
+                                        textTransform: 'none',
+                                        '&:hover': { bgcolor: alpha('#F59E0B', 0.8) },
+                                        '&.Mui-disabled': { bgcolor: 'rgba(245, 158, 11, 0.2)', color: 'rgba(0,0,0,0.3)' }
+                                    }}
+                                >
+                                    Save
+                                </Button>
+                            </Box>
+                        </Box>
+                    )}
                 </Drawer>
 
                 {user && !isMobile && <Box sx={{ mt: 0.5 }} />}
