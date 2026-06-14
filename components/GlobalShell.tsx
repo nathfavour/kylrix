@@ -82,6 +82,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
   const isNoteFullPageDetail = useMemo(() => Boolean(pathname?.match(/^\/note\/[^/]+$/)), [pathname]);
   const isConnectCallDetail = useMemo(() => Boolean(pathname?.match(/^\/connect\/call\/[^/]+$/)), [pathname]);
   const isConnectChatPage = useMemo(() => Boolean(pathname?.startsWith('/connect/chats') || pathname?.match(/^\/connect\/chat\/[^/]+$/)), [pathname]);
+  const isSpecificPostPage = useMemo(() => Boolean(pathname?.startsWith('/connect/post/')), [pathname]);
   const isProjectDetailPage = useMemo(() => Boolean(pathname?.match(/^\/projects\/[^/]+$/)), [pathname]);
 
   const isTagsPage = pathname?.startsWith('/tags');
@@ -93,6 +94,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     !isLandingPage &&
     !isProjectsPage &&
     !isConnectChatPage &&
+    !isSpecificPostPage &&
     !isTagsPage &&
     !pathname?.includes('/settings') &&
     unifiedDrawerActive === 'navbar' &&
@@ -109,6 +111,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     isLandingPage,
     isProjectsPage,
     isConnectChatPage,
+    isSpecificPostPage,
     isTagsPage,
     pathname,
     unifiedDrawerActive,
@@ -197,21 +200,23 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
       </Box>
 
       {/* --- LAYER 1: CHROME --- */}
-      <Box 
-        sx={{ 
-            position: 'fixed', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            zIndex: TOPBAR_Z, 
-            pointerEvents: 'none',
-            willChange: 'transform'
-        }}
-      >
-        <Box sx={{ pointerEvents: 'auto' }}>
-            <ConnectTopbar />
+      {!isSpecificPostPage && (
+        <Box 
+          sx={{ 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              zIndex: TOPBAR_Z, 
+              pointerEvents: 'none',
+              willChange: 'transform'
+          }}
+        >
+          <Box sx={{ pointerEvents: 'auto' }}>
+              <ConnectTopbar />
+          </Box>
         </Box>
-      </Box>
+      )}
 
       {isAppRoute && !isSharedPage && !isVaultResetRoute && !isLandingPage && !isTagsPage && (
         <UnifiedBottomBar />
