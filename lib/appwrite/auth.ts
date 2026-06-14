@@ -3,9 +3,9 @@ import { account, databases, tablesDB, getCurrentUser } from './client';
 import { APPWRITE_CONFIG } from './config';
 
 export const CONNECT_DATABASE_ID = APPWRITE_CONFIG.DATABASES.CHAT;
-export const CONNECT_COLLECTION_ID_USERS = APPWRITE_CONFIG.TABLES.CHAT.PROFILES;
+export const CONNECT_TABLE_ID_USERS = APPWRITE_CONFIG.TABLES.CHAT.PROFILES;
 export const VAULT_DATABASE_ID = APPWRITE_CONFIG.DATABASES.VAULT;
-export const VAULT_COLLECTION_ID_KEYCHAIN = APPWRITE_CONFIG.TABLES.VAULT.KEYCHAIN;
+export const VAULT_TABLE_ID_KEYCHAIN = APPWRITE_CONFIG.TABLES.VAULT.KEYCHAIN;
 export const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
 
 type ProfileRow = Models.Row & {
@@ -78,9 +78,9 @@ export class AppwriteService {
       };
 
       if (!profile) {
-        await databases.createRow(CONNECT_DATABASE_ID, CONNECT_COLLECTION_ID_USERS, ID.unique(), baseData, [Permission.read(Role.any())]);
+        await databases.createRow(CONNECT_DATABASE_ID, CONNECT_TABLE_ID_USERS, ID.unique(), baseData, [Permission.read(Role.any())]);
       } else if (profile.username !== derivedUsername || profile.tier !== baseData.tier) {
-        await databases.updateRow(CONNECT_DATABASE_ID, CONNECT_COLLECTION_ID_USERS, profile.$id, baseData);
+        await databases.updateRow(CONNECT_DATABASE_ID, CONNECT_TABLE_ID_USERS, profile.$id, baseData);
       }
 
       localStorage.setItem(SYNC_CACHE_KEY, Date.now().toString());
@@ -94,7 +94,7 @@ export class AppwriteService {
 
   static async getGlobalProfileStatus(userId: string) {
     try {
-      const res = await databases.listRows(CONNECT_DATABASE_ID, CONNECT_COLLECTION_ID_USERS, [
+      const res = await databases.listRows(CONNECT_DATABASE_ID, CONNECT_TABLE_ID_USERS, [
         Query.equal('userId', userId),
         Query.limit(1)
       ]);
@@ -132,7 +132,7 @@ export class AppwriteService {
     try {
       const response = await databases.listRows(
         VAULT_DATABASE_ID,
-        VAULT_COLLECTION_ID_KEYCHAIN,
+        VAULT_TABLE_ID_KEYCHAIN,
         [Query.equal("userId", userId)],
       );
       return response.rows;
@@ -145,7 +145,7 @@ export class AppwriteService {
   static async createKeychainEntry(data: any): Promise<any> {
     return await databases.createRow(
       VAULT_DATABASE_ID,
-      VAULT_COLLECTION_ID_KEYCHAIN,
+      VAULT_TABLE_ID_KEYCHAIN,
       ID.unique(),
       data
     );
@@ -154,7 +154,7 @@ export class AppwriteService {
   static async updateKeychainEntry(id: string, data: any): Promise<any> {
     return await databases.updateRow(
       VAULT_DATABASE_ID,
-      VAULT_COLLECTION_ID_KEYCHAIN,
+      VAULT_TABLE_ID_KEYCHAIN,
       id,
       data
     );
@@ -163,7 +163,7 @@ export class AppwriteService {
   static async deleteKeychainEntry(id: string): Promise<void> {
     await databases.deleteRow(
       VAULT_DATABASE_ID,
-      VAULT_COLLECTION_ID_KEYCHAIN,
+      VAULT_TABLE_ID_KEYCHAIN,
       id
     );
   }
