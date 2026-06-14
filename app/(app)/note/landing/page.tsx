@@ -583,10 +583,10 @@ export default function LandingPage() {
             className="text-5xl sm:text-6xl md:text-8xl font-black font-clash leading-[0.95] tracking-tight"
           >
             <span className="bg-gradient-to-b from-white via-white/90 to-white/50 bg-clip-text text-transparent">
-              Build in private.
+              your productivity tools and agent...
             </span>
             <br />
-            <span className="text-[#6366F1]">Ship in public.</span>
+            <span className="text-[#6366F1]">all in one workspace</span>
           </motion.h1>
 
           {/* Typing line */}
