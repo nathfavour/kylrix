@@ -5,6 +5,7 @@ import { storage } from '@/lib/appwrite/client';
 import { resolveIdentity } from '@/lib/identity-format';
 import { SocialService } from '@/lib/services/social';
 import { UsersService } from '@/lib/services/users';
+import { createSystemTablesDB } from '@/lib/appwrite-admin';
 
 export const MOMENT_OG_SIZE = { width: 1200, height: 630 } as const;
 
@@ -123,9 +124,19 @@ function fallbackOg() {
 
 export async function createMomentOpenGraphImage(momentId: string) {
     try {
-        const moment = await SocialService.getMomentById(momentId);
+        const adminTables = createSystemTablesDB();
+        const rawMoment = await adminTables.getRow(
+            APPWRITE_CONFIG.DATABASES.CHAT,
+            APPWRITE_CONFIG.TABLES.CHAT.MOMENTS,
+            momentId
+        );
+        const moment = await SocialService.enrichMoment(rawMoment);
         const creatorId = moment?.userId || moment?.creatorId;
-        const profile = creatorId ? await UsersService.getProfileById(creatorId) : null;
+        const profile = creatorId ? await adminTables.getRow(
+            APPWRITE_CONFIG.DATABASES.CHAT,
+            APPWRITE_CONFIG.TABLES.CHAT.PROFILES,
+            creatorId
+        ).catch(() => null) : null;
         const identity = resolveIdentity(profile, creatorId);
 
         const captionRaw =

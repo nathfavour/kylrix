@@ -653,6 +653,8 @@ export const SocialService = {
             sourceId: sourceId || null,
             searchTitle: searchTitleRow,
             fileId: effectiveFileId, 
+            isPublic: true,
+            isGuest: true,
             createdAt: new Date().toISOString(),
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() 
         }, permissions);
