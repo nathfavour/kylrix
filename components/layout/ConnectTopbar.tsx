@@ -2238,40 +2238,14 @@ export default function ConnectTopbar({
                       style={{ position: 'relative', maxWidth: '100%' }}
                     >
                       <Paper elevation={0} sx={{ height: 44, display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, border: '1px solid rgba(99, 102, 241, 0.25)', bgcolor: '#161412', color: 'white', borderRadius: '24px', boxShadow: '0 0 26px rgba(99, 102, 241, 0.08), 0 0 0 4px rgba(99, 102, 241, 0.12)', overflow: 'hidden' }}>
-                        {notifHint ? (
-                            <Box 
-                                onClick={toggleNotifications}
-                                sx={{ 
-                                    flex: 1, 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: 1.5, 
-                                    cursor: 'pointer',
-                                    px: 0.5,
-                                    animation: 'fadeIn 0.4s ease'
-                                }}
-                            >
-                                <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: `${notifHint.accent}12`, color: notifHint.accent, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                                    <Sparkles size={16} strokeWidth={2.5} />
-                                </Box>
-                                <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                    <Typography component="span" sx={{ color: 'white', fontWeight: 900, fontSize: '0.82rem', lineHeight: 1.1, textTransform: 'uppercase' }} noWrap>{notifHint.title}</Typography>
-                                    <Typography component="span" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.72rem', lineHeight: 1.2 }} noWrap>{notifHint.description}</Typography>
-                                </Box>
-                                <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
-                            </Box>
-                        ) : (
-                            <>
-                                <Search size={16} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
-                                <InputBase 
-                                    inputRef={searchInputRef} 
-                                    value={searchQuery} 
-                                    onChange={(e) => setSearchQuery(e.target.value)} 
-                                    placeholder="Search ecosystem..." 
-                                    sx={{ flex: 1, color: 'white', fontWeight: 800, fontSize: '0.9rem', '& input::placeholder': { color: 'white/20' } }} 
-                                />
-                            </>
-                        )}
+                        <Search size={16} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
+                        <InputBase 
+                            inputRef={searchInputRef} 
+                            value={searchQuery} 
+                            onChange={(e) => setSearchQuery(e.target.value)} 
+                            placeholder="Search ecosystem..." 
+                            sx={{ flex: 1, color: 'white', fontWeight: 800, fontSize: '0.9rem', '& input::placeholder': { color: 'white/20' } }} 
+                        />
                         
                         {/* 🔔 Notifications CTA - The Island Extension */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
@@ -2298,7 +2272,7 @@ export default function ConnectTopbar({
 
                         <Box sx={{ width: 1, height: 20, bgcolor: 'white/10', mx: 0.5 }} />
                         
-                        <IconButton size="small" onClick={() => setSearchOpen(false)} sx={{ color: 'white/40' }}><CloseIcon size={16} /></IconButton>
+                        <IconButton size="small" onClick={() => { setSearchOpen(false); setSearchQuery(''); }} sx={{ color: 'white/40' }}><CloseIcon size={16} /></IconButton>
                       </Paper>
                     </motion.div>
                   ) : isMounted ? (
@@ -2306,19 +2280,20 @@ export default function ConnectTopbar({
                       key="island-rest"
                       initial={{ scale: 0.8, opacity: 0 }} 
                       animate={{ scale: 1, opacity: 1 }} 
-                      whileHover={{ scale: 1.05 }} 
-                      onClick={openSearch} 
+                      whileHover={{ scale: 1.02 }} 
+                      onClick={notifHint ? toggleNotifications : openSearch} 
                       style={{ cursor: 'pointer' }}
                     >
                       <Box sx={{ 
-                        width: { xs: 44, md: 160 }, 
+                        width: notifHint ? { xs: 'calc(100vw - 32px)', md: 380 } : { xs: 44, md: 160 }, 
                         height: 44, 
                         borderRadius: '999px', 
-                        bgcolor: 'rgba(255,255,255,0.02)', 
-                        border: '1px solid rgba(255,255,255,0.08)', 
+                        bgcolor: notifHint ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255,255,255,0.02)', 
+                        border: notifHint ? '1px solid rgba(99, 102, 241, 0.25)' : '1px solid rgba(255,255,255,0.08)', 
                         display: 'flex', 
                         alignItems: 'center', 
-                        justifyContent: 'center', 
+                        justifyContent: notifHint ? 'flex-start' : 'center', 
+                        px: notifHint ? 2 : 0,
                         gap: 1.25, 
                         color: 'white', 
                         boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
@@ -2329,25 +2304,51 @@ export default function ConnectTopbar({
                           boxShadow: '0 0 20px rgba(99, 102, 241, 0.15)'
                         }
                       }}>
-                        <Search size={18} strokeWidth={2.5} />
-                        <Typography sx={{ display: { xs: 'none', md: 'block' }, fontFamily: 'var(--font-satoshi)', fontWeight: 600, fontSize: '0.8rem' }}>Search</Typography>
-                        {unreadNotifCount > 0 && <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#EC4899', ml: -0.5 }} />}
+                        {notifHint ? (
+                          <>
+                            <Box sx={{ width: 24, height: 24, borderRadius: '6px', bgcolor: `${notifHint.accent}22`, color: notifHint.accent, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                              <Sparkles size={12} strokeWidth={2.5} />
+                            </Box>
+                            <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                              <Typography component="span" sx={{ color: 'white', fontWeight: 900, fontSize: '0.75rem', lineHeight: 1.1, textTransform: 'uppercase' }} noWrap>{notifHint.title}</Typography>
+                              <Typography component="span" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.68rem', lineHeight: 1.2 }} noWrap>{notifHint.description}</Typography>
+                            </Box>
+                            <IconButton 
+                              size="small" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDismissedHintId(notifHint.id);
+                                setNotifHint(null);
+                              }}
+                              sx={{ color: 'rgba(255,255,255,0.3)', p: 0.5, '&:hover': { color: 'white' } }}
+                            >
+                              <CloseIcon size={12} />
+                            </IconButton>
+                          </>
+                        ) : (
+                          <>
+                            <Search size={18} strokeWidth={2.5} />
+                            <Typography sx={{ display: { xs: 'none', md: 'block' }, fontFamily: 'var(--font-satoshi)', fontWeight: 600, fontSize: '0.8rem' }}>Search</Typography>
+                            {unreadNotifCount > 0 && <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#EC4899', ml: -0.5 }} />}
+                          </>
+                        )}
                       </Box>
                     </motion.div>
                   ) : (
                     <div 
-                      onClick={openSearch} 
+                      onClick={notifHint ? toggleNotifications : openSearch} 
                       style={{ cursor: 'pointer' }}
                     >
                       <Box sx={{ 
-                        width: { xs: 44, md: 160 }, 
+                        width: notifHint ? { xs: 'calc(100vw - 32px)', md: 380 } : { xs: 44, md: 160 }, 
                         height: 44, 
                         borderRadius: '999px', 
-                        bgcolor: 'rgba(255,255,255,0.02)', 
-                        border: '1px solid rgba(255,255,255,0.08)', 
+                        bgcolor: notifHint ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255,255,255,0.02)', 
+                        border: notifHint ? '1px solid rgba(99, 102, 241, 0.25)' : '1px solid rgba(255,255,255,0.08)', 
                         display: 'flex', 
                         alignItems: 'center', 
-                        justifyContent: 'center', 
+                        justifyContent: notifHint ? 'flex-start' : 'center', 
+                        px: notifHint ? 2 : 0,
                         gap: 1.25, 
                         color: 'white', 
                         boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
@@ -2358,9 +2359,34 @@ export default function ConnectTopbar({
                           boxShadow: '0 0 20px rgba(99, 102, 241, 0.15)'
                         }
                       }}>
-                        <Search size={18} strokeWidth={2.5} />
-                        <Typography sx={{ display: { xs: 'none', md: 'block' }, fontFamily: 'var(--font-satoshi)', fontWeight: 600, fontSize: '0.8rem' }}>Search</Typography>
-                        {unreadNotifCount > 0 && <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#EC4899', ml: -0.5 }} />}
+                        {notifHint ? (
+                          <>
+                            <Box sx={{ width: 24, height: 24, borderRadius: '6px', bgcolor: `${notifHint.accent}22`, color: notifHint.accent, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                              <Sparkles size={12} strokeWidth={2.5} />
+                            </Box>
+                            <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                              <Typography component="span" sx={{ color: 'white', fontWeight: 900, fontSize: '0.75rem', lineHeight: 1.1, textTransform: 'uppercase' }} noWrap>{notifHint.title}</Typography>
+                              <Typography component="span" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.68rem', lineHeight: 1.2 }} noWrap>{notifHint.description}</Typography>
+                            </Box>
+                            <IconButton 
+                              size="small" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDismissedHintId(notifHint.id);
+                                setNotifHint(null);
+                              }}
+                              sx={{ color: 'rgba(255,255,255,0.3)', p: 0.5, '&:hover': { color: 'white' } }}
+                            >
+                              <CloseIcon size={12} />
+                            </IconButton>
+                          </>
+                        ) : (
+                          <>
+                            <Search size={18} strokeWidth={2.5} />
+                            <Typography sx={{ display: { xs: 'none', md: 'block' }, fontFamily: 'var(--font-satoshi)', fontWeight: 600, fontSize: '0.8rem' }}>Search</Typography>
+                            {unreadNotifCount > 0 && <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#EC4899', ml: -0.5 }} />}
+                          </>
+                        )}
                       </Box>
                     </div>
                   )}
