@@ -255,6 +255,7 @@ export default function ConnectTopbar({
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifHint, setNotifHint] = useState<{ id: string; title: string; description: string; accent: string } | null>(null);
+  const [dismissedHintId, setDismissedHintId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [peopleResults, setPeopleResults] = useState<any[]>([]);
   const [searchingPeople, setSearchingPeople] = useState(false);
@@ -306,21 +307,21 @@ export default function ConnectTopbar({
   useEffect(() => {
     if (suggestions.length > 0) {
       const latest = suggestions[0];
-      // Only show hint if it's new (not already the hint or unread)
-      if (!notifHint || notifHint.id !== latest.id) {
+      // Only show hint if it's new, not already the hint, and not dismissed
+      if (latest.id !== dismissedHintId && (!notifHint || notifHint.id !== latest.id)) {
         setNotifHint({
           id: latest.id,
           title: latest.title,
           description: latest.description,
           accent: latest.niche === 'intelligence' ? '#6366F1' : '#10B981'
         });
-        setSearchOpen(true);
         // Clear hint after 8 seconds to return to standard search expansion
         const timer = setTimeout(() => setNotifHint(null), 8000);
         return () => clearTimeout(timer);
       }
     }
-  }, [suggestions, notifHint]);
+  }, [suggestions, notifHint, dismissedHintId]);
+
   const [notifications, setNotifications] = useState([
     { id: 'notif-1', title: 'Workspace Sync Complete', message: 'All local action workflows and workspace logs successfully synchronized.', time: 'Just now', read: false, accent: '#10B981' },
     { id: 'notif-2', title: 'Workflows Negations Active', message: 'Action chain engine generated valid inversions for 3 private notes.', time: '2 hours ago', read: false, accent: '#6366F1' },
