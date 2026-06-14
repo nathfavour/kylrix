@@ -1522,36 +1522,56 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
             toast.error('Please login to pulse this post');
             return;
         }
-        if (!moment) return;
+        const target = pulseTarget || moment;
+        if (!target) return;
         try {
-            await SocialService.createMoment(user.$id, '', 'pulse', [], 'public', undefined, undefined, moment.$id);
+            await SocialService.createMoment(user.$id, '', 'pulse', [], 'public', undefined, undefined, target.$id);
             toast.success('Pulsed to your feed');
-            // optimistically mark pulsed on the current moment
-            setMoment((prev: any) => {
-                if (!prev) return prev;
-                const next = { ...prev, isPulsed: true, stats: { ...prev.stats, pulses: (prev.stats?.pulses || 0) + 1 } };
-                seedMomentThread(momentId, {
-                    moment: next,
-                    replies,
-                    ancestors: showAncestors ? threadAncestors : [],
+            
+            if (target.$id === moment?.$id) {
+                setMoment((prev: any) => {
+                    if (!prev) return prev;
+                    const next = { ...prev, isPulsed: true, stats: { ...prev.stats, pulses: (prev.stats?.pulses || 0) + 1 } };
+                    seedMomentThread(momentId, {
+                        moment: next,
+                        replies,
+                        ancestors: showAncestors ? threadAncestors : [],
+                    });
+                    return next;
                 });
-                return next;
-            });
+            } else {
+                setReplies((prev: any[]) => prev.map(r => r.$id === target.$id ? {
+                    ...r,
+                    isPulsed: true,
+                    stats: { ...r.stats, pulses: (r.stats?.pulses || 0) + 1 }
+                } : r));
+            }
             setPulseMenuAnchorEl(null);
+            setPulseTarget(null);
         } catch (_e) {
             toast.error('Failed to pulse');
         }
     };
 
     const handleQuote = () => {
-        if (!user || !moment) return;
+        if (!user) return;
+        const target = pulseTarget || moment;
+        if (!target) return;
+        setReplyTargetId(target.$id);
+        const targetCreatorId = target.userId || target.creatorId;
+        const targetHandle = resolveIdentity(target.creator, targetCreatorId).handle;
         setPulseMenuAnchorEl(null);
-        // UI logic to switch to quote mode
-        // For now, we scroll to the reply box and could potentially change its label/behavior
-        const replyBox = document.getElementById('reply-box');
-        if (replyBox) {
-            replyBox.scrollIntoView({ behavior: 'smooth' });
-            setReplyContent(`Quoting ${resolveIdentity(moment.creator, creatorId).handle}: `);
+        
+        if (isMobile) {
+            setReplyContent(`Quoting ${targetHandle}: `);
+            setReplyDrawerOpen(true);
+        } else {
+            const replyBox = document.getElementById('reply-box');
+            if (replyBox) {
+                replyBox.scrollIntoView({ behavior: 'smooth' });
+                setReplyContent(`Quoting ${targetHandle}: `);
+                if (replyInputRef.current) replyInputRef.current.focus();
+            }
         }
     };
 
@@ -1567,7 +1587,7 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                 'public', 
                 undefined, 
                 undefined, 
-                moment.$id
+                replyTargetId
             );
             const enrichedReply = await hydrateMoment(createdReply);
             seedMomentPreview(enrichedReply);
@@ -1585,6 +1605,7 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
             });
             setReplies(nextReplies);
             setReplyContent('');
+            setReplyTargetId(momentId);
             toast.success('Reply posted!');
             setReplyDrawerOpen(false);
         } catch (e) {
@@ -2092,7 +2113,7 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                     <Drawer
                         anchor="bottom"
                         open={replyDrawerOpen}
-                        onClose={() => setReplyDrawerOpen(false)}
+                        onClose={() => { setReplyDrawerOpen(false); setReplyTargetId(momentId); }}
                         PaperProps={{
                             sx: {
                                 bgcolor: '#161514',
@@ -2111,7 +2132,7 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                         <Box sx={{ p: 2 }}>
                             {/* Close button row */}
                             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-                                <IconButton onClick={() => setReplyDrawerOpen(false)} sx={{ color: 'rgba(255,255,255,0.3)' }}>
+                                <IconButton onClick={() => { setReplyDrawerOpen(false); setReplyTargetId(momentId); }} sx={{ color: 'rgba(255,255,255,0.3)' }}>
                                     <X size={20} />
                                 </IconButton>
                             </Box>
