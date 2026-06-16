@@ -32,9 +32,7 @@ export default function BillingPage() {
   const [loadingPlan, setLoadingPlan] = useState(true);
 
   // Region states
-  const [region, setRegion] = useState('');
-  const [loadingRegion, setLoadingRegion] = useState(true);
-  const [savingRegion, setSavingRegion] = useState(false);
+  const region = 'DEFAULT';
 
   // Coupon states
   const [coupons, setCoupons] = useState<any[]>([]);
@@ -69,69 +67,11 @@ export default function BillingPage() {
 
   useEffect(() => {
     if (user) {
-      resolveUserRegion();
       loadSubscriptionStatus();
       loadCoupons();
       loadTransactions();
     }
   }, [user]);
-
-  const resolveUserRegion = async () => {
-    try {
-      setLoadingRegion(true);
-      
-      const logList = await account.listLogs();
-      const logs = logList.logs || [];
-      
-      // Get the primary IP used
-      const ipCounts: Record<string, number> = {};
-      logs.forEach(l => {
-        if (l.ip) ipCounts[l.ip] = (ipCounts[l.ip] || 0) + 1;
-      });
-      const topIp = Object.entries(ipCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
-
-      // Try finding countryCode directly from logs first
-      const validLogs = logs.filter(l => l.countryCode && l.countryCode !== '—');
-      if (validLogs.length > 0) {
-        const counts: Record<string, number> = {};
-        validLogs.forEach(l => {
-          counts[l.countryCode] = (counts[l.countryCode] || 0) + 1;
-        });
-        const resolvedCountry = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
-        if (resolvedCountry) {
-          setRegion(resolvedCountry.toUpperCase());
-          setLoadingRegion(false);
-          return;
-        }
-      }
-
-      // If logs have an IP but no country code (e.g. Appwrite geoip database missing or outdated), query a public API
-      if (topIp && topIp !== '127.0.0.1' && topIp !== '::1') {
-        const geoRes = await fetch(`https://ipapi.co/${topIp}/json/`).then(r => r.json()).catch(() => null);
-        if (geoRes && geoRes.country_code) {
-          setRegion(geoRes.country_code.toUpperCase());
-          setLoadingRegion(false);
-          return;
-        }
-      }
-
-      const jwtRes = await account.createJWT().then(res => res.jwt).catch(() => undefined);
-      const secureRegion = await getUserBillingRegionAction(jwtRes);
-      if (secureRegion) {
-        setRegion(secureRegion);
-        setLoadingRegion(false);
-        return;
-      }
-    } catch (err) {
-      console.warn('Failed to resolve secure billing region:', err);
-    }
-    if (user?.prefs?.region) {
-      setRegion(user.prefs.region);
-    } else {
-      setRegion('US');
-    }
-    setLoadingRegion(false);
-  };
 
   const loadSubscriptionStatus = async () => {
     if (!user?.$id) return;
@@ -161,22 +101,6 @@ export default function BillingPage() {
       console.warn('Failed to load user coupons:', err);
     } finally {
       setLoadingCoupons(false);
-    }
-  };
-
-  const handleSaveRegion = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = e.target.value;
-    setRegion(selected);
-    if (!user) return;
-    setSavingRegion(true);
-    try {
-      const currentPrefs = user.prefs || {};
-      await account.updatePrefs({ ...currentPrefs, region: selected });
-      toast.success(`Billing region updated to ${selected}`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update billing region');
-    } finally {
-      setSavingRegion(false);
     }
   };
 
