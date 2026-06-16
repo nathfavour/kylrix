@@ -53,20 +53,296 @@ Kylrix operates a zero-trust database permission model:
 
 ## II. HYBRID DATA INFRASTRUCTURE
 
-### 1. Data Nexus Local Caching
-To achieve snappiness and eliminate the "thundering herd" network problem on page load, `context/DataNexusContext.tsx` establishes a hybrid in-memory `Map` ref cache:
+### 1. Data Nexus Local Caching (3-Tier Hierarchy)
+To achieve snappiness and eliminate the "thundering herd" network problem on page load, `context/DataNexusContext.tsx` establishes a **3-tier caching hierarchy**:
+1. **Tier 1 — In-Memory Map Ref**: Ephemeral JavaScript `Map` for instant reads within the current tab session.
+2. **Tier 2 — RxDB (IndexedDB)**: Persistent local database via `lib/webrtc/RxDBManager.ts`. Creates `kylrix_nexus_db_v2` with 6 collections (`notes`, `tags`, `tasks`, `forms`, `events`, `cache`). Uses the CRDT plugin for conflict-free replication. Legacy `localStorage` keys are auto-migrated to RxDB on cold start.
+3. **Tier 3 — Appwrite Network**: Remote fetch only when Tier 1 and Tier 2 miss.
 - **Deduplication**: Merges concurrent identical in-flight promises into a single request, executing a single network fetch and distributing the resolved data to all waiting widgets.
 - **Temporal TTL**: Caches read-only queries with customizable time-to-live parameters, serving data instantly from local cache while fetching fresh updates in the background.
+- **SimpleListCache**: A secondary named TTL cache (`lib/services/list-cache.ts`) provides per-list deduplication and debounce on force-refresh, used alongside the primary Data Nexus for high-frequency list views.
 
-### 2. Localized Draft Autosaves
-Accidental page refreshes or network drops do not result in data loss. The drafts system inside `lib/services/drafts.ts` segregates form metadata from heavy content:
+### 2. RxDB CRDT Replication Layer
+The offline-first architecture uses RxDB with the CRDT plugin to replicate data between the local IndexedDB substrate and Appwrite:
+- **Replication Engine**: `lib/services/collaboration.ts` uses `replicateRxCollection` for bidirectional Appwrite-to-RxDB CRDT replication. Pull/push handlers are defined in `lib/actions/secure-ops.ts` (lines ~1380-1422).
+- **Collaborative Notes**: `hooks/useCollaborativeNote.ts` implements character-level CRDT sync, enabling multiple users to edit the same note concurrently without conflicts.
+- **Cold-Start Hydration**: Both `context/NotesContext.tsx` and `context/TaskContext.tsx` hydrate from the RxDB substrate on page load before hitting the network, providing instant offline-accessible state.
+- **Auth-Triggered Sync**: `context/auth/AuthContext.tsx` triggers RxDB replication re-initialization upon successful authentication.
+
+### 3. Client SDK Proxy Write Interception
+A critical but invisible architectural pattern in `lib/appwrite/client.ts`: all client-side database mutation calls (`createRow`, `updateRow`, `deleteRow`, `listRows` on `databases` and `tablesDB`) are intercepted via JavaScript `Proxy` and silently redirected through Server Actions (`createRowSecure`, etc.) via dynamic `import()`. This means client code writes naturally against the Appwrite SDK interface, but all mutations automatically route through the verified Server Action layer without the caller knowing. This enforces the Least Privilege mandate transparently.
+
+### 4. Localized Draft Autosaves
+Accidental page refreshes or network drops do not result in data loss. The drafts system inside `lib/services/drafts.ts` uses the **RxDB substrate** (not just localStorage) for persistent draft storage:
 - **Draft Manifest**: A lightweight map (`kylrix_flow_drafts_manifest`) containing only draft IDs, titles, and update times.
-- **Draft Content**: Full JSON draft states cached under unique keys (`kylrix_flow_draft_id`).
-- **SSR Safety**: All localStorage calls are wrapped in runtime guards (`typeof window === 'undefined'`) to prevent server-side rendering crashes during Next.js hydration.
+- **Draft Content**: Full JSON draft states cached under unique keys in RxDB/IndexedDB.
+- **SSR Safety**: All storage calls are wrapped in runtime guards (`typeof window === 'undefined'`) to prevent server-side rendering crashes during Next.js hydration.
+
+### 5. KylrixPulse Session Cookie
+`lib/appwrite/client.ts` implements a `KylrixPulse` cookie-based session hint mechanism. This lightweight cookie signals authentication state to the middleware and client-side routing logic without exposing session tokens. The middleware reads `kylrix_pulse_v2` and `a_session_*` cookies to detect authenticated sessions and route users to their last active path.
+
+### 6. Multi-Layer User Cache
+`getCurrentUser` in `lib/appwrite/client.ts` implements a 3-layer user resolution strategy:
+1. **In-memory pointer** (instant, zero-latency).
+2. **localStorage snapshot** (survives page refresh, hydrated on cold start).
+3. **Network fetch with 30s TTL** (fallback, with promise deduplication to prevent thundering herds).
+This ensures the user identity is always available instantly without redundant network calls.
 
 ---
 
-## III. THE UNIFIED APPS SUITE
+## III. SDK ABSTRACTION LAYER
+
+The codebase implements a modular SDK facade (`lib/sdk/`, 48 files) that wraps all core services into testable, isolated modules. This layer sits between the UI components and the raw service/action implementations.
+
+- **Domain Modules**: `vault.ts`, `flow.ts`, `connect.ts`, `note.ts`, `social.ts`, `messaging/`, `calls/`, `huddles/`, `wallet/`, `identity/`.
+- **Security SDK**: `lib/sdk/security/` — master password operations, passkey management.
+- **Token SDK**: `lib/sdk/token/` — token contract, client, operations for the in-app economy.
+- **UI SDK**: `lib/sdk/design/`, `lib/sdk/topbar/`, `lib/sdk/bottombar/`, `lib/sdk/fab/` — design system and chrome component abstractions.
+- **Infrastructure SDK**: `lib/sdk/appwrite/`, `lib/sdk/ecosystem/`, `lib/sdk/api/`, `lib/sdk/routing/`.
+- **Cross-Cutting SDK**: `lib/sdk/crosslinks/`, `lib/sdk/extensions/`, `lib/sdk/orchestration/`, `lib/sdk/forward/`.
+- **Testing**: Each SDK module has co-located `.test.ts` files (14 total). The `vitest.config.ts` targets `lib/sdk/**` and `utils/**` with 85% statement/function/line thresholds and 80% branch coverage.
+
+---
+
+## IV. MIDDLEWARE DEFENSE MECHANISMS
+
+`middleware.ts` (158 lines) implements multiple defense layers beyond simple auth routing:
+
+1. **Reload Storm Defense**: Cookie-based `k_rld` counter tracks rapid page reloads. If 30 reloads occur within a 5-second window, the middleware returns a `429` status with an HTML retry page and `Retry-After` header. Prevents accidental or malicious reload floods.
+2. **Redirect Loop Circuit Breaker**: Cookie-based `_rd` parameter counter detects chained redirects. If 5 consecutive redirects are detected, the circuit breaks and returns the user to the root path, preventing infinite redirect loops.
+3. **Legacy Route Migration**: Permanent 301 redirects for deprecated URL patterns: `/note/notes/*` → `/note/*`, `/vault/dashboard/*` → `/vault/*`, `/flow/tasks/*` and `/flow/goals/*` → `/flow/*`.
+4. **Authenticated Session Detection**: Reads `kylrix_pulse_v2` cookie and `a_session_*` cookies to determine auth state. Authenticated users are routed to their last active path (stored in a cookie); unauthenticated users stay on the current route.
+5. **Static Asset Bypass**: Skips middleware processing for `/_next`, `/api`, `/favicon`, and files with extensions.
+
+---
+
+## V. APPWRITE FUNCTIONS ECOSYSTEM
+
+16 Appwrite serverless functions handle background jobs, cleanup, notifications, and orchestration:
+
+| Function | Purpose |
+|---|---|
+| `ghost-cleanup` | Daily automated purge of expired Ghost Notes (7-day lifecycle), cascading to storage files, comments, reactions, and voice files. |
+| `flow-agent-orchestrator` | AI agent task orchestration with guardrail integration and context aggregation. |
+| `agent-action-guardrail` | Safety gate for AI agent actions — protects privileged tables, gates vault deletion, controls email spam. |
+| `ecosystem-context-aggregator` | Fetches notes + tasks to build context payloads for AI operations. |
+| `data-porter` | Full import/export function (1,269 lines) with Bitwarden support, V2 workspace format, batch processing, dedup, rate limiting, and security logging. |
+| `permission-updater` | Grant/revoke ACL propagation, epoch rotation, ghost note pinning. |
+| `notify-on-share` | Permission updates + push/email notifications on share events. |
+| `sync-user-profile` | Profile creation and synchronization across tables, welcome email dispatch with HTML templates. |
+| `connect-call-cleanup` | Stale call link cleanup and state reset. |
+| `account-cleanup` | Multi-database scrubbing on user account deletion. |
+| `notify-on-social-activity` | Message, follow, and reaction notification dispatch. |
+| `search-users` | Directory search with authentication fallback. |
+| `log-security-event` | Security audit trail and activity log entries. |
+| `flow-event-sync` | Event invitation notifications and synchronization. |
+| `sync-subscription-status` | Auth label synchronization and subscription activity notifications. |
+
+---
+
+## VI. INTERNAL RUNTIME JOBS SYSTEM
+
+`app/api/internal/runtime-functions/route.ts` exposes a secret-protected HTTP endpoint for cron-triggered system jobs. Protected by `KYLRIX_INTERNAL_JOBS_SECRET` (minimum 32 characters) bearer authentication with timing-safe string comparison. Dispatches system jobs (ghost cleanup, subscription sync, etc.) on schedule.
+
+---
+
+## VII. SUBSCRIPTION & BILLING TIER SYSTEM
+
+- **Tier Resolution**: `lib/subscription/tier-resolution.ts` normalizes subscription states across `FREE`, `PRO`, `TEAMS`, `ORG`, and `LIFETIME` tiers with expiry validation.
+- **Purchasing Power Parity (PPP)**: `lib/subscription/ppp.ts` and `lib/subscription/context/SubscriptionContext.tsx` implement geo-adjusted pricing.
+- **Payment Providers**: BlockBee (cryptocurrency payments via `lib/services/internal/blockbee-pending-checkout.ts`) and Stripe.
+- **Entitlement Resolution**: `lib/services/internal/subscription-entitlement.ts` maps subscription tiers to feature entitlements.
+- **Prefs Merging**: `lib/services/internal/subscription-prefs-merge.ts` merges subscription preferences across user profile updates.
+- **UI Components**: `SubscriptionBadge` and `PaywallWrapper` gate premium features visually.
+- **Coupon System**: Full coupon management with redemption limits in the admin console.
+
+---
+
+## VIII. IN-APP TOKEN ECONOMY
+
+A complete internal token ledger system powers merit-based distributions and micropayments:
+
+- **Client Ledger**: `lib/services/token.ts` — balance tracking, transaction history, mint/burn/transfer operations.
+- **Server Operations**: `lib/services/internal/kylrix-token.ts` (700 lines) — mint, transfer, fine, request operations with thermal scoring, risk escalation, and email notifications.
+- **SDK Layer**: `lib/sdk/token/` — contract definitions, client abstraction, operation interfaces.
+- **React Context**: `context/TokenOpsContext.tsx` — exposes `mint`, `send`, `request`, `fine` actions to the UI.
+- **Thermal Scoring**: `lib/services/internal/thermal-score-service.ts` computes activity-based thermal scores with half-life decay, modulating token distribution rates.
+- **Risk Levels**: Token operations are classified by risk level, with high-risk operations requiring additional verification.
+- **Idempotency**: All token operations use idempotency keys to prevent double-spending on network retries.
+- **Database Table**: `kylrix_token_ledger` stores append-only transaction records.
+
+---
+
+## IX. AI SUBSYSTEM
+
+- **Context Provider**: `context/AIContext.tsx` — BYOK (Bring Your Own Key) manager, privacy filter, analysis modes, and `generateAIContent` Server Action integration.
+- **Local Context Engine**: Builds context payloads from the user's notes, tasks, and vault metadata to ground AI responses.
+- **Server Action**: `lib/actions/ai.ts` — server-side AI content generation with privacy sanitization.
+- **Hooks**: `hooks/useAI.ts` — client-side AI interaction hook.
+- **Agentic Layer**: `lib/services/agentic.ts` and `lib/actions/agentic.ts` — AI agent management and action execution.
+- **Drawer Context**: `context/AgenticDrawerContext.tsx` — manages the AI agent drawer UI state.
+- **Guardrails**: The `agent-action-guardrail` Appwrite function enforces safety boundaries on AI agent actions (privileged table protection, vault deletion gates, email spam control).
+
+---
+
+## X. ECOSYSTEM MESH PROTOCOL
+
+`hooks/useEcosystemNode.ts` implements a `BroadcastChannel`-based inter-tab mesh network:
+- **PULSE Heartbeats**: Each tab broadcasts periodic PULSE signals to announce its presence to sibling tabs.
+- **Neighbor Health Tracking**: The mesh tracks which tabs are alive and their health status.
+- **Global Lock Commands**: The mesh can broadcast lock/unlock commands across all tabs (connected to WESP).
+- **Ecosystem Bridge**: `hooks/useEcosystemIntents.ts` parses URL intents (e.g., `create_task`) via `EcosystemBridge` to enable cross-tab action dispatching.
+
+---
+
+## XI. SERVICE WORKER VOLATILE CONTEXT
+
+`public/sw.js` (v1.0.2) implements a specialized Service Worker for volatile cryptographic context preservation:
+- **Zero-Interception Policy**: The SW does not intercept fetch requests — it exists solely for MEK context management.
+- **Context Store/Recover/Wipe**: `hooks/useServiceWorker.ts` communicates with the SW via `postMessage` to store, recover, and wipe the volatile MEK context. This allows the MEK to survive page reloads within the same browser session without touching persistent storage.
+- **Integration**: Used by `lib/masterpass-crypto.ts` for MEK context preservation during navigation.
+- **No PWA Manifest**: The app does not use a `manifest.json` — this is not a full PWA.
+
+---
+
+## XII. PRESENCE & REAL-TIME SERVICE
+
+`lib/services/presence.ts` implements real-time presence tracking via Appwrite Realtime subscriptions:
+- **Typing Indicators**: Broadcasts typing start/stop events to conversation participants.
+- **Focus Status**: Tracks which resource (note, task, project) a user is currently viewing.
+- **Cursor Positions**: Supports collaborative cursor position sharing for concurrent editing.
+- **App Activity**: `app_activity` table stores user online/offline status and current app location.
+- **Live Call Reconciliation**: `lib/services/internal/live-call-presence-reconcile.ts` synchronizes call participant state with the presence system.
+
+---
+
+## XIII. ENGAGEMENT ANALYTICS ENGINE
+
+A privacy-respecting analytics system tracks content engagement:
+- **View Tracking**: `lib/services/internal/engagement-views.ts` records content views with fingerprinting, idempotency keys, and daily/monthly bucketing.
+- **Signal Analysis**: `lib/services/internal/engagement-analyzer.ts` computes engagement signals: velocity, like-comment ratio, save rate, anomaly detection, and nerf coefficients.
+- **Feed Ranking**: `lib/services/internal/feed-ranker.ts` uses engagement signals to rank Moment Feed content.
+- **Database Tables**: `engagement_views` stores individual view records; `engagement_view_rollups` stores aggregated metrics.
+- **Privacy**: Viewer identities are hashed (SHA-256 with salt) — no raw IP addresses or user agents are stored.
+
+---
+
+## XIV. NOTIFICATION DISPATCH SYSTEM
+
+A multi-channel notification orchestration layer:
+- **In-App**: `context/NotificationContext.tsx` with Appwrite Realtime subscription for live notification delivery.
+- **Email**: `lib/unorganic-email-api.ts` (1,075 lines) — priority scoring (source + event priority → low/medium/high/critical), multi-layer anti-spam (rapid succession 10min block, token transfer rate limit 1/hr, project invite dedup 24hr, repeated action threshold 2/day), quota system (5 ordinary emails/month, 2/week; bypassed events: 3/week), in-memory `EmailQueueCache` for deduplication, HTML template builder with per-source themes.
+- **Telegram**: `lib/services/internal/telegram-dispatch.ts` — push notifications via Telegram Bot API, bypassing Apple APNs and Google FCM.
+- **Dispatcher**: `lib/services/internal/notification-dispatcher.ts` orchestrates channel selection and delivery.
+- **Toast**: `react-hot-toast` library with `position="top-center"` and dark theme styling (`#161412` background), configured in `components/ClientToaster.tsx`.
+
+---
+
+## XV. INPUT VALIDATION LAYER
+
+`lib/validations/schemas.ts` defines comprehensive Zod schemas for all Server Action inputs:
+- **Core Schemas**: `IDSchema`, `DatabaseIDSchema`, `TableIDSchema`, `JWTSchema`, `CRUDParamsSchema`, `ListParamsSchema`.
+- **Mutation Schemas**: `CreateRowSchema`, `UpdateRowSchema`, `MutatePermissionsSchema`.
+- **Domain Schemas**: `NoteSchema`, `ProjectSchema`, `EventSchema`, `FormSchema`, `CallParamsSchema`, `DiscussionParamsSchema`, `ChatMessageSchema`, `ReactionSchema`, `JoinRequestSchema`.
+- **Token Schemas**: `TokenOperationSchema`, `TelemetrySchema`.
+- **Ephemeral Schemas**: `EphemeralNoteSchema`, `SuggestionParamsSchema`.
+- **Usage**: Schemas validate inputs at Server Action boundaries before any database operations execute.
+
+---
+
+## XVI. UI/UX ARCHITECTURE
+
+### 1. Layout Shell
+`components/GlobalShell.tsx` orchestrates the primary application layout:
+- **UnifiedLeftSidebar**: `components/UnifiedLeftSidebar.tsx` — primary left navigation with conditional visibility.
+- **DynamicSidebar**: Context-driven right panel system (`DynamicSidebarContext`, `DynamicSidebarPanel`, `useDynamicSidebar` hook) that can host any component (NoteDetailSidebar, ProjectDiscussionSidebar, PinnedNotesSidebar, PostDetailSidebar, TaskDetails, etc.).
+- **UnifiedBottomBar**: `components/UnifiedBottomBar.tsx` — mobile bottom navigation bar.
+- **Responsive Breakpoints**: `showLeftSidebar` logic adapts layout for mobile/desktop.
+- **CSS Containment**: Layout wrappers use `contain: layout size style` for rendering performance (`chrome.css`).
+
+### 2. CSS Token System
+- **globals.css**: Tailwind v4 `@theme` block defining CSS custom properties (`--color-background`, `--color-surface`, `--color-foreground`, font families). Includes UI mood variants (`body[data-ui-mood="focus"]`, `body[data-ui-mood="serious"]`).
+- **chrome.css**: Layout containment rules (`.kylrix-sidebar`, `.kylrix-topbar`, `.kylrix-main-content`) with responsive padding, skeleton pulse animations (`.nexus-skeleton-pulse`), and static surface utilities.
+- **Auth CSS**: `app/(app)/(auth)/accounts/globals.css` — auth-specific token set (`--color-void`, `--color-titanium`, `--color-electric`) and glass-panel styling.
+- **brand.md**: Openbricks 2.0 design tokens (`--ob-shell`, `--ob-surface`, `--ob-border`), typography (Clash, Satoshi, mono), chrome rules (no transparent chrome, pure black shell, deep-ash surfaces).
+
+### 3. Animation System
+Framer Motion is used extensively (112+ usages) for:
+- Entrance/exit animations on drawers, modals, and overlays.
+- Scroll-driven parallax and section reveals on the landing page.
+- Micro-interactions on UI chrome (DynamicIsland, Logo, status indicators).
+- Reduced-motion awareness via `useReducedMotion()` hook — all animations gracefully degrade.
+
+### 4. Error Boundaries
+- `components/ui/ErrorBoundary.tsx` — Class-based `ErrorBoundary` with `getDerivedStateFromError` + `componentDidCatch`, custom fallback, retry, and error detail display. Exports `NotesErrorBoundary` and `AuthErrorBoundary`.
+- `components/RouteErrorBoundary.tsx` — Route-level error UI with retry/reload buttons.
+- `app/(app)/note/error.tsx` — Next.js App Router `error.tsx` for the note route with dev-only error details.
+- **No global root-level `error.tsx`** exists — unhandled errors outside the note route will white-screen.
+
+### 5. Loading & Suspense
+- No `loading.tsx` files exist anywhere in the app directory tree.
+- `<Suspense>` is used in 20+ locations with fallbacks: `null`, inline spinners (`animate-spin rounded-full`), and page-level centered spinners.
+- `.nexus-skeleton-pulse` CSS class provides hardware-accelerated skeleton loading animations.
+
+### 6. Toast Notifications
+`react-hot-toast` (490+ usages) configured in `components/ClientToaster.tsx` with `position="top-center"` and dark theme styling. Used for `toast.success()`, `toast.error()`, `toast.loading()` across all modules.
+
+### 7. Global Keyboard Shortcuts
+`components/GlobalShortcuts.tsx` registers system-wide keyboard shortcuts:
+- `Cmd/Ctrl + Space` — Open Ecosystem Portal.
+- `Cmd/Ctrl + K` — Focus topbar search.
+- `Cmd/Ctrl + N` — Create new note.
+- `Cmd/Ctrl + /` or `Cmd/Ctrl + ?` — Open keyboard shortcuts dialog.
+- `Cmd/Ctrl + Shift + S` — Drawer Spark-to-Ghost Relay Snapshot (Feature 56).
+- `Ctrl + G` (in chat) — Ghost Note upgrade (Feature 44).
+- Smart typing detection avoids interfering with input fields.
+- `components/KeyboardShortcuts.tsx` — Dialog showing shortcuts organized by category, platform-aware (Mac/Windows key symbols).
+
+### 8. Custom Error Pages
+- `app/(app)/not-found.tsx` — Generic 404 with "Lost in the flow?" messaging.
+- `app/(app)/vault/not-found.tsx` — Vault-specific 404.
+- `app/(app)/note/not-found.tsx` — Animated "4🤔4" with floating decorative notes.
+- `app/(app)/note/error.tsx` — Route-level error page with dev-only details.
+- **Missing**: No global `error.tsx` or 500 page at the root app level.
+
+### 9. SEO & Metadata
+- **No `robots.ts`** or `sitemap.ts` exists.
+- 12+ pages use `generateMetadata()` for dynamic SEO (notes, shared notes, events, goals, projects, forms, user profiles, posts, send links, privacy policy, terms of service).
+
+### 10. Open Graph Image Generation
+`lib/connect/moment-og.tsx` generates dynamic OG images for Moments using `next/og` `ImageResponse`. Renders branded cards with avatar, caption excerpt, and engagement stats.
+
+---
+
+## XVII. DUAL CRYPTOGRAPHIC LAYER
+
+The codebase implements two distinct cryptographic layers:
+1. **Client-Side (SubtleCrypto)**: `lib/masterpass-crypto.ts` — Web Crypto API for MEK generation, PBKDF2/Argon2id key stretching, AES-GCM encryption/decryption. Runs entirely in the browser.
+2. **Server-Side (Node crypto)**: `lib/encryption/ghost-crypto.ts` — Node.js `crypto` module for server-side AES-256-GCM encryption of Ghost Notes and Send URLs. Functions: `encryptGhostData`, `decryptGhostData`, `encryptGhostBinaryToBytes`, `decryptGhostBinaryFromBytes`. URL-safe base64 key format.
+3. **Hybrid RSA Module**: `lib/encryption/crypto.ts` — RSA-4096 + AES-256-GCM hybrid encryption for note-level encryption. Contains stubs for Shamir's Secret Sharing (`generateKeyShares`, `reconstructKey`) and PBKDF2 derivation (`deriveKey`) that are not yet implemented and not called from any code path.
+
+---
+
+## XVIII. APPWRITE CLIENT FACTORY ARCHITECTURE
+
+### Server Client (`lib/appwrite/server.ts`)
+Centralized server-side Appwrite client factory using React's `cache()` for request-scoped deduplication. Cookie discovery iterates 4 fallback cookie names (`a_session_${projectId}`, `session`, etc.) to propagate user sessions. JWT propagation via `Authorization: Bearer` headers for stateless cross-origin operations.
+
+### Admin Client (`createAdminClient`, `createAdminTablesDB`)
+Elevated-privilege clients that mandate a non-empty `actorEmail` parameter. Instantly throw if the email is not in the `ADMINS` environment variable. Used exclusively by admin console Server Actions.
+
+### Configuration Hub (`lib/appwrite/config.ts`)
+Central registry of all database IDs, table IDs, bucket IDs, and function IDs. Single consolidated database `passwordManagerDb` for all apps. Domain constants and relying party configuration.
+
+### Keychain Service (`lib/appwrite/keychain.ts`)
+`KeychainService` with deduplication guard that blocks duplicate master password entries, preventing keychain bloat from repeated setup calls.
+
+### Discovery Engine Migration (`lib/appwrite/migrations/001-discovery-engine.ts`)
+Database migration system for `system_pulse` metrics substrate.
+
+---
+
+## XIX. THE UNIFIED APPS SUITE
 
 The mono-app is partitioned into four core workspaces that share the centralized WESP and identity frameworks:
 
@@ -77,13 +353,27 @@ The mono-app is partitioned into four core workspaces that share the centralized
 
 ---
 
-## IV. TECHNICAL STACK & INTERACTIVITY SAFETY
+## XX. TECHNICAL STACK & INTERACTIVITY SAFETY
 
 ### 1. Technical Stack
 - **Frontend Framework**: Next.js 16 (Turbopack), React 19, TypeScript.
-- **BaaS Substrate**: Appwrite (Authentication, Database, Buckets, Functions).
-- **Styling & Theme**: Tailwind CSS and Vanilla CSS. MUI and its co-dependencies are deprecated.
+- **BaaS Substrate**: Appwrite (Authentication, Database with Tables DB, Buckets, Functions, Realtime).
+- **Styling & Theme**: Tailwind CSS 4 and Vanilla CSS. MUI and its co-dependencies are deprecated.
 - **Package Management**: PNPM only.
+- **Offline-First**: RxDB (with CRDT plugin) on Dexie/IndexedDB storage backend. RxJS for reactive streams.
+- **Validation**: Zod 4 for input schema validation at Server Action boundaries.
+- **Animation**: Framer Motion with reduced-motion awareness.
+- **Notifications**: react-hot-toast for in-app toasts.
+- **DnD**: @dnd-kit (core, sortable, modifiers, utilities) for drag-and-drop interactions.
+- **Markdown**: marked + DOMPurify for safe markdown rendering.
+- **WebAuthn**: @simplewebauthn/browser for biometric authentication.
+- **Cryptography**: @noble/ed25519, @noble/hashes, @noble/secp256k1, @scure/base, @scure/bip32, @scure/bip39, hash-wasm.
+- **Web3**: viem for EVM blockchain interactions.
+- **AI**: @google/generative-ai for AI content generation.
+- **Rate Limiting**: @upstash/ratelimit + @upstash/redis for server-side rate limiting.
+- **Export**: html-to-image for visual exports.
+- **Build**: `output: 'standalone'` for Docker-optimized builds. `experimental.taint: true` for React Taint API. `optimizePackageImports` for tree-shaking (lucide-react, lodash, date-fns). Webpack fallbacks disable client-side `crypto`, `fs`, `path`, `stream`.
+- **License**: AGPL-3.0.
 
 ### 2. Stacking Context & Interactivity Safety
 To prevent 'Non-Responsive UI' locks caused by hidden DOM structures capturing clicks:
@@ -93,24 +383,36 @@ To prevent 'Non-Responsive UI' locks caused by hidden DOM structures capturing c
 
 ---
 
-## V. VERIFIED DIRECTORY LAYOUT
+## XXI. VERIFIED DIRECTORY LAYOUT
 
 - `app/`: Next.js App Router mapping path-based routes (e.g. `/note`, `/vault`, `/flow`, `/connect`, `/accounts`).
-- `components/`: Specialized React UI widgets and dashboard elements grouped by workspace (e.g. `notes/`, `vault/`, `flow/`, `chat/`).
-- `context/`: Centralized React Context providers coordinating state (e.g. `AuthContext.tsx`, `DataNexusContext.tsx`, `SectionContext.tsx`, `TaskContext.tsx`).
-- `hooks/`: Custom state helpers and listeners (e.g. `useAutosave.ts`, `useRealtimeTable.ts`, `useWebRTC.ts`).
+- `components/`: 80+ specialized React UI widgets and dashboard elements grouped by function (e.g. `tasks/`, `chat/`, `calendar/`, `call/`, `projects/`, `social/`, `send/`, `ai/`, `ui/`, `overlays/`, `layout/`, `onboarding/`).
+- `context/`: 27+ centralized React Context providers coordinating state (e.g. `AuthContext.tsx`, `DataNexusContext.tsx`, `SudoContext.tsx`, `TaskContext.tsx`, `NotesContext.tsx`, `AIContext.tsx`, `TokenOpsContext.tsx`, `NotificationContext.tsx`).
+- `hooks/`: 16 custom state helpers and listeners (e.g. `useAutosave.ts`, `useRealtimeTable.ts`, `useWebRTC.ts`, `useCollaborativeNote.ts`, `useServiceWorker.ts`, `useEcosystemNode.ts`, `useEcosystemIntents.ts`).
 - `lib/`: Core service logic and server-side utilities:
-  - `lib/actions/`: High-privilege Server Actions (e.g. `secure-ops.ts`, `cascade-delete.ts`, `telegram.ts`).
-  - `lib/ecosystem/`: Centralized WESP security, broadcast channels, and identity contexts.
-  - `lib/masterpass-crypto.ts`: Key derivation, wrapping, and PBKDF2/Argon2id algorithms.
-  - `lib/appwrite/`: Client-side Appwrite database and storage adapters.
-- `public/`: Static brand assets and SVG illustrations.
+  - `lib/actions/`: High-privilege Server Actions (e.g. `secure-ops.ts`, `cascade-delete.ts`, `telegram.ts`, `chat.ts`, `call.ts`, `workflows.ts`, `ai.ts`, `permissions.ts`).
+  - `lib/appwrite/`: Client/server Appwrite SDK factories, configuration hub, keychain service, auth helpers, and database migrations.
+  - `lib/sdk/`: 48-file modular SDK abstraction layer over all core services.
+  - `lib/services/`: Domain services (social, chat, drafts, billing, forms, collaboration, presence, contacts, wallets, storage, telemetry, tokens, activity, ecosystem).
+  - `lib/services/internal/`: Server-side internal services (admin, billing, chat, calls, telegram, join requests, engagement views/analyzers, notification dispatcher, token operations, thermal scoring, feed ranking, email dispatch, permissions).
+  - `lib/encryption/`: Dual cryptographic layer — `masterpass-crypto.ts` (client-side SubtleCrypto), `ghost-crypto.ts` (server-side Node crypto), `crypto.ts` (RSA-4096 hybrid).
+  - `lib/ecosystem/`: Centralized WESP security, broadcast channels, identity contexts, and nexus fetcher.
+  - `lib/subscription/`: Subscription tier resolution, PPP pricing, entitlement management.
+  - `lib/connect/`: Identity services and OG image generation.
+  - `lib/validations/`: Zod schema library for Server Action input validation.
+- `functions/`: 16 Appwrite serverless functions for background jobs, cleanup, notifications, and orchestration.
+- `theme/`: Theme tokens and ThemeProvider.
+- `public/`: Static brand assets, SVG illustrations, and Service Worker (`sw.js`).
+- `selfhost/`: Self-hosting infrastructure (Caddyfile, setup wizard, health checks).
+- `scripts/`: Maintenance and deployment scripts.
+- `types/`: 9 TypeScript type definition files.
+- `__tests__/`: Vitest test suite (14 test files targeting SDK layer).
 
 ---
 
-## VI. COMPLETE FEATURE MANIFEST & FLOW BLUEPRINTS
+## XXII. COMPLETE FEATURE MANIFEST & FLOW BLUEPRINTS
 
-The following catalog provides a highly detailed engineering breakdown of the 56 active features, cryptographic systems, and integrations within the Kylrix suite.
+The following catalog provides a highly detailed engineering breakdown of the active features, cryptographic systems, and integrations within the Kylrix suite.
 
 ---
 
@@ -241,14 +543,17 @@ The following catalog provides a highly detailed engineering breakdown of the 56
 *   **Next-Gen Optimizations**: Fully encrypted offline HTML vault exports containing a mini WASM decryption engine, allowing users to unlock and read their backup directly in any offline browser.
 
 #### 11. Progressive Rate Limiting
-*   **Mechanics & Substrate**: exponential backoff algorithms inside `lib/auth-rate-limit.ts` and `lib/rate-limiter.ts`.
-*   **Zero-Knowledge Boundary**: Tracks failed login and unlock attempts in memory (client-side) and via database logs (server-side). Successive failures increase cooldowns (2s, 4s, 8s... up to 1 hour).
-*   **Acute Architectural Rationale**: Protects accounts from high-speed dictionary/brute-force attacks. Limits are bypassed only if the user verifies a temporal link sent to their registered, verified email address.
+*   **Mechanics & Substrate**: Dual-layer rate limiting — client-side (`lib/rate-limiter.ts`) and server-side (`lib/auth-rate-limit.ts`).
+    *   **Client-Side**: In-memory `Map`-based limiter with 5 attempts per 15-minute window and 30-minute block. Periodic cleanup of expired entries.
+    *   **Server-Side**: Intelligent per-user rate limiter stored in Appwrite user preferences. Implements a progressive state machine (`normal` → `warning` → `caution` → `limited`) with violation clustering within 5-minute escalation windows. Configurable via environment variables. Email verification gating bypasses limits.
+*   **Zero-Knowledge Boundary**: Tracks failed login and unlock attempts in memory (client-side) and via database logs (server-side). Successive failures trigger progressive state escalation.
+*   **Acute Architectural Rationale**: Protects accounts from high-speed dictionary/brute-force attacks. The server-side progressive state machine learns user patterns and escalates restrictions based on violation clustering rather than simple counters.
 *   **Vivid End-to-End Execution Flow**:
     1.  User enters an incorrect password.
-    2.  `AuthRateLimit` records the failure against their account identifier.
-    3.  A 4-second lock is set.
+    2.  Client-side `rate-limiter.ts` records the failure and enforces the 15-minute window.
+    3.  Server-side `auth-rate-limit.ts` updates the user's violation state in Appwrite preferences.
     4.  Subsequent fast attempts return immediate errors before querying cryptographic layers.
+    5.  If the user verifies their email, the server-side limit is bypassed.
 *   **Ecosystem Synergy**: Forms the core defense shield against credential stuffing.
 *   **Next-Gen Optimizations**: Network-wide coordinate-based heuristics that detect distributed bruteforce attempts targeting an account from multiple distinct IP addresses.
 
@@ -277,15 +582,16 @@ The following catalog provides a highly detailed engineering breakdown of the 56
 *   **Next-Gen Optimizations**: Graphical node visualizer inside the workspace, rendering all cross-linked tags as interactive, draggable 3D networks.
 
 #### 14. Data Nexus Caching
-*   **Mechanics & Substrate**: In-memory `Map` refs and an encrypted `localStorage` persistence layer managed by `context/DataNexusContext.tsx`.
+*   **Mechanics & Substrate**: 3-tier caching hierarchy managed by `context/DataNexusContext.tsx`: Tier 1 (in-memory `Map` ref), Tier 2 (RxDB/IndexedDB persistent substrate via `lib/webrtc/RxDBManager.ts`), Tier 3 (Appwrite network fetch). Legacy `localStorage` keys are auto-migrated to RxDB on cold start.
 *   **Zero-Knowledge Boundary**: Encrypts cached assets locally using keys derived from the active session context.
-*   **Acute Architectural Rationale**: Merges concurrent identical in-flight promises into a single request, eliminating the "thundering herd" network problem on page load, and making the mono-app highly responsive.
+*   **Acute Architectural Rationale**: Merges concurrent identical in-flight promises into a single request, eliminating the "thundering herd" network problem on page load, and making the mono-app highly responsive. The RxDB substrate provides offline-first persistence with CRDT conflict resolution.
 *   **Vivid End-to-End Execution Flow**:
     1.  Three dashboard widgets request the active user profile simultaneously.
     2.  `DataNexusContext` intercepts the calls.
-    3.  A single fetch promise is dispatched.
-    4.  All widgets resolve their data from the single completed request.
-*   **Ecosystem Synergy**: Drives the high performance of all dashboard UI surfaces.
+    3.  Tier 1 (memory) is checked first; on miss, Tier 2 (RxDB) is queried.
+    4.  A single fetch promise is dispatched to Tier 3 (network) only if both local tiers miss.
+    5.  All widgets resolve their data from the single completed request.
+*   **Ecosystem Synergy**: Drives the high performance of all dashboard UI surfaces. A secondary `SimpleListCache` (`lib/services/list-cache.ts`) provides per-list TTL caching for high-frequency list views.
 *   **Next-Gen Optimizations**: Offline mutation queueing with background reconciliation, allowing the app to queue writes during network drops and sync seamlessly when online.
 
 ---
@@ -523,7 +829,7 @@ The following catalog provides a highly detailed engineering breakdown of the 56
 
 ---
 
-## V. KYLRIX CONNECT (COMMUNICATION & SOCIAL)
+### V. KYLRIX CONNECT (COMMUNICATION & SOCIAL)
 
 #### 34. Secure Messaging
 *   **Mechanics & Substrate**: End-to-end encrypted messaging engine inside `lib/services/internal/chat.ts` and `lib/actions/chat.ts`.
@@ -582,14 +888,21 @@ The following catalog provides a highly detailed engineering breakdown of the 56
 *   **Next-Gen Optimizations**: Real-time, browser-based voice pitch visualization and offline voice note speed controllers.
 
 #### 39. Unorganic Email Dispatch
-*   **Mechanics & Substrate**: Queue-based notification engine located in `lib/unorganic-email-api.ts`.
+*   **Mechanics & Substrate**: Full-featured notification email dispatch system in `lib/unorganic-email-api.ts` (1,075 lines).
+*   **Priority Scoring**: Source priority + event priority mapped to low/medium/high/critical delivery tiers.
+*   **Multi-Layer Anti-Spam**: Rapid succession blocking (10-minute cooldown), token transfer rate limiting (1/hour), project invite deduplication (24-hour window), repeated action threshold (2/day).
+*   **Quota System**: 5 ordinary emails per month, 2 per week. Bypassed events (invites, transfers, reminders): 3 per week. In-memory `EmailQueueCache` for deduplication.
+*   **Template System**: HTML email template builder with per-source themes and recipient resolution (userId or email lookup).
+*   **Queue Tracking**: Status lifecycle: `queued` → `sending` → `sent` / `suppressed` / `failed`.
 *   **Zero-Knowledge Boundary**: Mapped to clean email templates, logging transactions securely in the internal ledger.
-*   **Acute Architectural Rationale**: Enforces strict anti-spam limits (max 1 alert per 30 minutes) to keep communications organic and prevent inbox spamming.
+*   **Acute Architectural Rationale**: Enforces nuanced, multi-layer anti-spam rules to keep communications organic and prevent inbox spamming while ensuring critical notifications (invites, security events) are never silently dropped.
 *   **Vivid End-to-End Execution Flow**:
-    1.  System generates a notification.
-    2.  `UnorganicEmail` checks the dispatch queue.
-    3.  If the cooldown cap is clear, the email is dispatched.
-*   **Ecosystem Synergy**: Alerts users of collaborative changes safely.
+    1.  System generates a notification event.
+    2.  `UnorganicEmail` computes priority score and checks quota.
+    3.  Anti-spam filters run (rapid succession, dedup, rate limits).
+    4.  If all gates pass, the email is dispatched via the template builder.
+    5.  Transaction is logged in the internal ledger.
+*   **Ecosystem Synergy**: Alerts users of collaborative changes safely. Works with the Telegram notification bridge for multi-channel delivery.
 *   **Next-Gen Optimizations**: Zero-Knowledge notifications, sending encrypted emails that the user can decrypt locally inside their email client using their MEK.
 
 #### 40. Moment Feed
@@ -699,15 +1012,17 @@ The following catalog provides a highly detailed engineering breakdown of the 56
 *   **Ecosystem Synergy**: Incentivizes workspace agents dynamically.
 *   **Next-Gen Optimizations**: Programmable payment contracts, allowing users to set daily funding limits or performance milestones for active workspace agents.
 
-#### 49. Zero-Idle Redirect
-*   **Mechanics & Substrate**: Route middleware redirecting anonymous traffic to `/send`, located in `middleware.ts`.
-*   **Zero-Knowledge Boundary**: Minimizes friction during onboarding.
-*   **Acute Architectural Rationale**: Converts passive traffic into active users instantly by allowing them to experience E2EE sharing before signing up.
+#### 49. Zero-Idle Redirect & Auth Resume
+*   **Mechanics & Substrate**: Route middleware in `middleware.ts` handles authenticated user routing and legacy path migration.
+*   **Authenticated Resume**: When an authenticated user visits `/`, the middleware reads their last active route from a cookie (`LAST_ROUTE_COOKIE`) validated by `lib/ecosystem/resume-route.ts` and redirects them there. Guests stay on the landing page.
+*   **Legacy Route Migration**: Permanent 301 redirects for deprecated URL patterns: `/note/notes/*` → `/note/*`, `/vault/dashboard/*` → `/vault/*`, `/flow/tasks/*` and `/flow/goals/*` → `/flow/*`.
+*   **Acute Architectural Rationale**: Eliminates friction for returning authenticated users while maintaining clean URL hygiene through legacy redirects.
 *   **Vivid End-to-End Execution Flow**:
-    1.  Anonymous user visits the landing domain.
-    2.  Middleware redirects the traffic to `/send`.
-    3.  User immediately shares a secure file.
-*   **Ecosystem Synergy**: Optimizes user acquisition.
+    1.  Authenticated user visits the root domain.
+    2.  Middleware checks `kylrix_pulse_v2` and `a_session_*` cookies.
+    3.  Last route cookie is read and validated.
+    4.  User is redirected to their previous workspace location.
+*   **Ecosystem Synergy**: Works with KylrixPulse session cookie for seamless session continuity.
 *   **Next-Gen Optimizations**: Single-keystroke onboarding, instantly generating a temporary guest account when a visitor types their first note on `/send`.
 
 #### 50. Recursive Ghost Cleanup
