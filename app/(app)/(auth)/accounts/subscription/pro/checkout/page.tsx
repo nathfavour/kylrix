@@ -36,8 +36,7 @@ function CheckoutContent() {
   const giftRecipientName = searchParams.get('giftRecipientName') || '';
   const giftMessage = searchParams.get('giftMessage') || '';
   const couponId = searchParams.get('couponId') || '';
-  const countryCode = searchParams.get('countryCode') || (user?.prefs as any)?.region || 'US';
-  const region = PPP_DATA[countryCode] || PPP_DATA.DEFAULT;
+  const countryCode = 'US';
 
   const expectedPrice = useMemo(() => {
     return calculateSubscriptionPrice(planId, countryCode, 'CRYPTO', months);
@@ -131,9 +130,9 @@ function CheckoutContent() {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     <Globe size={18} className="text-[#6366F1]" />
-                    <span className="text-sm font-semibold">Regional Price</span>
+                    <span className="text-sm font-semibold">Territory Rate</span>
                   </div>
-                  <span className="text-sm text-white/80">{region.name}</span>
+                  <span className="text-sm text-white/80">Universal Global</span>
                 </div>
 
                 {months > 1 && (
