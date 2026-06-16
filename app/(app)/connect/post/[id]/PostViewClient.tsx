@@ -1689,7 +1689,11 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
         if (onBack) {
             onBack();
         } else {
-            router.push('/');
+            if (typeof window !== 'undefined' && window.history.length > 2) {
+                router.back();
+            } else {
+                router.push('/connect');
+            }
         }
     };
 

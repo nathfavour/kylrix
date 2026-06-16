@@ -308,7 +308,13 @@ export function PublicCall({ id }: { id: string }) {
                 <Button 
                     variant="outlined" 
                     startIcon={<ArrowLeft size={18} />} 
-                    onClick={() => router.push('/')}
+                    onClick={() => {
+                        if (typeof window !== 'undefined' && window.history.length > 2) {
+                            router.back();
+                        } else {
+                            router.push('/connect');
+                        }
+                    }}
                     sx={{ borderColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: 3, px: 4 }}
                 >
                     Back to Feed
