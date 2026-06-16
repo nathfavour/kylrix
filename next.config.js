@@ -7,7 +7,7 @@ const nextConfig = {
   output: 'standalone',
   typescript: {
     tsconfigPath: './tsconfig.json',
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   experimental: {
     taint: true,
