@@ -2,17 +2,14 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Info, Sparkles, Globe, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Sparkles, Globe, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
 
-import Logo from '@/components/Logo';
 import { CryptoPaymentDrawer } from '@/components/CryptoPaymentDrawer';
 import { useAuth } from '@/context/auth/AuthContext';
 import { getEcosystemUrl } from '@/lib/ecosystem';
-import { useSubscription } from '@/context/subscription/SubscriptionContext';
 import { account } from '@/lib/appwrite';
-import { getUserBillingRegionAction } from '@/app/(app)/(auth)/accounts/actions/billing';
 import { getActivePendingCryptoInvoiceAction } from '@/app/(app)/(auth)/accounts/actions/checkout';
-import { PPP_DATA, calculateSubscriptionPrice } from '@/lib/subscription/ppp';
+import { calculateSubscriptionPrice } from '@/lib/subscription/ppp';
 
 export default function PricingPage() {
   const router = useRouter();
@@ -41,7 +38,7 @@ export default function PricingPage() {
   const [selectedTier, setSelectedTier] = useState<'PRO' | 'TEAMS'>('PRO');
 
   const basePrice = useMemo(() => {
-    return calculateSubscriptionPrice(selectedTier, 'DEFAULT', 'CRYPTO');
+    return calculateSubscriptionPrice(selectedTier, 'US', 'CRYPTO');
   }, [selectedTier]);
 
   const isYearly = months >= 12;
