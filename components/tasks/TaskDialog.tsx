@@ -601,9 +601,9 @@ export default function TaskDialog() {
                 <ListItem key={tag.$id} disablePadding sx={{ mb: 0.5 }}>
                   <ListItemButton 
                     onClick={() => {
-                      if (!isSelected) {
-                        setSelectedLabels(prev => [...prev, tag.name]);
-                      } else {
+                      if (!isSelected && tag.name) {
+                        setSelectedLabels(prev => [...prev, tag.name as string]);
+                      } else if (isSelected && tag.name) {
                         setSelectedLabels(prev => prev.filter(n => n !== tag.name));
                       }
                       setIsTagSelectorOpen(false);
