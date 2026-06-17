@@ -31,7 +31,7 @@ export const LoadingProvider = ({ children }: { children: ReactNode }) => {
       <Backdrop
         sx={{ 
           color: '#6366F1', 
-          zIndex: (theme) => theme.zIndex.drawer + 2000,
+          zIndex: (theme: { zIndex: { drawer: number } }) => theme.zIndex.drawer + 2000,
           bgcolor: 'rgba(0, 0, 0, 0.8)',
           backdropFilter: 'blur(10px)',
           flexDirection: 'column',

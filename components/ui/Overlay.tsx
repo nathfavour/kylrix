@@ -116,7 +116,7 @@ const Overlay: React.FC = () => {
           onMouseDown={isMobile ? handleMouseDown : undefined}
           onMouseMove={isMobile ? handleMouseMove : undefined}
           onMouseUp={isMobile ? handleMouseUp : undefined}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >
           {React.isValidElement(content)
             ? React.cloneElement(content as React.ReactElement<any>, {

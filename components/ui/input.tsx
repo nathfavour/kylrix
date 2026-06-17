@@ -43,7 +43,7 @@ const Input = React.forwardRef<HTMLDivElement, InputProps>(
               color: '#6366F1',
             },
           },
-          ...sx,
+          ...(typeof sx === 'object' && sx ? sx : {}),
         }}
         {...props}
       />

@@ -1191,8 +1191,8 @@ export async function updateTag(tagId: string, data: Partial<Tags & { isPublic?:
       name,
       nameLower: name?.toLowerCase(),
       metadata: JSON.stringify(metadata),
-      isPublic: data.isPublic !== undefined ? !!data.isPublic : existing.isPublic,
-      isGuest: data.isGuest !== undefined ? !!data.isGuest : existing.isGuest,
+      isPublic: data.isPublic !== undefined ? !!data.isPublic : !!(existing as Tags & { isPublic?: boolean }).isPublic,
+      isGuest: data.isGuest !== undefined ? !!data.isGuest : !!(existing as Tags & { isGuest?: boolean }).isGuest,
     };
 
     const doc = await updateRow(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tagId, payload);
@@ -1218,8 +1218,8 @@ export async function updateTag(tagId: string, data: Partial<Tags & { isPublic?:
     name,
     nameLower: name?.toLowerCase(),
     metadata: JSON.stringify(metadata),
-    isPublic: data.isPublic !== undefined ? !!data.isPublic : existing.isPublic,
-    isGuest: data.isGuest !== undefined ? !!data.isGuest : existing.isGuest,
+    isPublic: data.isPublic !== undefined ? !!data.isPublic : !!(existing as Tags & { isPublic?: boolean }).isPublic,
+    isGuest: data.isGuest !== undefined ? !!data.isGuest : !!(existing as Tags & { isGuest?: boolean }).isGuest,
   };
 
   const doc = await updateRowSecure(APPWRITE_DATABASE_ID, APPWRITE_TABLE_ID_TAGS, tagId, payload, undefined, jwt);

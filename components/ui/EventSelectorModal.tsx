@@ -101,7 +101,7 @@ export function EventSelectorModal({ isOpen, onClose, onSelect }: EventSelectorM
           size="small"
           placeholder="Search events..."
           value={search}
-          onChange={ (e) => setSearch(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
           sx={{
             mb: 2,
             '& .ob-input-root': {

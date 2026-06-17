@@ -32,12 +32,12 @@ export const CollaborationService = {
                         }, jwt.jwt);
                         
                         return {
-                            rows: result.rows as any[],
+                            documents: result.documents as any[],
                             checkpoint: result.checkpoint
                         };
                     } catch (err) {
                         console.error('[Replication] Pull failed:', err);
-                        return { rows: [], checkpoint: lastCheckpoint };
+                        return { documents: [], checkpoint: lastCheckpoint };
                     }
                 }
             },

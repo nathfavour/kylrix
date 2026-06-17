@@ -1500,10 +1500,10 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     return state.projects.find(p => p.id === state.selectedProjectId) || null;
   }, [state.projects, state.selectedProjectId]);
 
-  const getTagFilterOptions = useCallback(() => {
+  const getTagFilterOptions = useCallback((): string[] => {
     const fromTasks = state.tasks.flatMap((task) => task.labels || []);
     const fromEcosystem = state.ecosystemTags.map((tag) => tag.name);
-    return Array.from(new Set([...fromEcosystem, ...fromTasks])).sort((a, b) =>
+    return Array.from(new Set([...fromEcosystem, ...fromTasks].filter((name): name is string => Boolean(name)))).sort((a, b) =>
       a.localeCompare(b, undefined, { sensitivity: 'base' }),
     );
   }, [state.tasks, state.ecosystemTags]);

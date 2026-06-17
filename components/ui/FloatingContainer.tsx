@@ -114,7 +114,7 @@ export function FloatingContainer({
           }}>
             {title}
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }} onMouseDown={(e) => e.stopPropagation()}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }} onMouseDown={(e: React.MouseEvent) => e.stopPropagation()}>
             <IconButton 
               size="small" 
               onClick={toggleMinimize} 

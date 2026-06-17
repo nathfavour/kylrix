@@ -388,7 +388,7 @@ export function TokenOpsProvider({ children }: { children: React.ReactNode }) {
               autoFocus
               placeholder="Search @username"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
               size="small"
               sx={{ mb: 2 }}
             />
@@ -435,7 +435,7 @@ export function TokenOpsProvider({ children }: { children: React.ReactNode }) {
           label="Amount ($KYLRIX)"
           placeholder="0.00"
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmount(e.target.value)}
           size="small"
           autoFocus={!!selectedUser}
           sx={{ mb: 3 }}

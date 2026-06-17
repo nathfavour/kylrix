@@ -716,7 +716,7 @@ export class MasterPassCrypto {
       const passwordEntries = entries.filter((e: any) => e.type === "password");
       return passwordEntries.some((e: any) => e.isPending);
     } catch (err) {
-      logError("Failed to check vault migration status", err);
+      logError("Failed to check vault migration status", err as Error);
       return false;
     }
   }
