@@ -9,7 +9,7 @@ export async function generateMetadata({
   params: Promise<{ noteid: string; key?: string[] }>;
 }) {
   try {
-    const { noteid } = await params;
+    const { noteid, key } = await params;
     const note = await validatePublicNoteAccess(noteid);
     const fallbackImage = 'https://kylrix.space/logo_social.png';
 
