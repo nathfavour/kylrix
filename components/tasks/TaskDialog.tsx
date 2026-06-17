@@ -102,7 +102,7 @@ export default function TaskDialog() {
   const [status, setStatus] = useState<TaskStatus>('todo');
   const [projectId, setProjectId] = useState(selectedProjectId || 'inbox');
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
-  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = useState<User[]>([]);
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [estimatedTime, setEstimatedTime] = useState('');
   const [isHydrated, setIsHydrated] = useState(false);
@@ -220,7 +220,7 @@ export default function TaskDialog() {
       reminders: [],
       timeEntries: [],
       assigneeIds: selectedAssignees.length > 0
-        ? selectedAssignees.filter((id): id is string => id !== null)
+        ? selectedAssignees.map(u => u.id).filter((id): id is string => id !== null)
         : creatorId && creatorId !== 'guest'
           ? [creatorId]
           : [],
@@ -266,7 +266,7 @@ export default function TaskDialog() {
       reminders: [],
       timeEntries: [],
       assigneeIds: selectedAssignees.length > 0
-        ? selectedAssignees.filter((id): id is string => id !== null)
+        ? selectedAssignees.map(u => u.id).filter((id): id is string => id !== null)
         : creatorId && creatorId !== 'guest'
           ? [creatorId]
           : [],
@@ -594,7 +594,7 @@ export default function TaskDialog() {
             </ListItem>
 
             {ecosystemTags.map((tag) => {
-              const isSelected = selectedLabels.includes(tag.name);
+              const isSelected = selectedLabels.includes(tag.name || '');
               const color = (tag as any).color || '#9B9691';
 
               return (
