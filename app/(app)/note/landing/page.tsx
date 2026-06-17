@@ -463,27 +463,38 @@ function LiveVaultPreview() {
 // ─── ORBITING PARTICLES ─────────────────────────────────────────
 
 function OrbitingParticles() {
+  const particles = React.useMemo(() => 
+    Array.from({ length: 20 }).map((_, i) => ({
+      color: ['#6366F1', '#F59E0B', '#10B981', '#EC4899', '#A855F7'][i % 5],
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      yOffset: Math.random() * 20 - 10,
+      duration: 4 + Math.random() * 4,
+      delay: Math.random() * 3,
+    })),
+  []);
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {Array.from({ length: 20 }).map((_, i) => (
+      {particles.map((p, i) => (
         <motion.div
           key={i}
           className="absolute w-1 h-1 rounded-full"
           style={{
-            backgroundColor: ['#6366F1', '#F59E0B', '#10B981', '#EC4899', '#A855F7'][i % 5],
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
+            backgroundColor: p.color,
+            left: `${p.left}%`,
+            top: `${p.top}%`,
           }}
           animate={{
             y: [0, -30, 0],
-            x: [0, Math.random() * 20 - 10, 0],
+            x: [0, p.yOffset, 0],
             opacity: [0.1, 0.5, 0.1],
             scale: [0.5, 1.2, 0.5],
           }}
           transition={{
-            duration: 4 + Math.random() * 4,
+            duration: p.duration,
             repeat: Infinity,
-            delay: Math.random() * 3,
+            delay: p.delay,
             ease: 'easeInOut',
           }}
         />

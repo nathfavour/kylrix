@@ -236,7 +236,7 @@ export default function NoteEditor({
           placeholder="Note Title"
           variant="standard"
           value={title}
-          onChange={ (e) => handleTitleChange(e.target.value)}
+          onChange={ (e: React.ChangeEvent<HTMLInputElement>) => handleTitleChange(e.target.value)}
           disabled={isSaving}
           InputProps={{
             disableUnderline: true,
