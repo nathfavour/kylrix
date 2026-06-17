@@ -220,7 +220,7 @@ export default function TaskDialog() {
       reminders: [],
       timeEntries: [],
       assigneeIds: selectedAssignees.length > 0
-        ? selectedAssignees.map(u => u.id).filter((id): id is string => id !== null)
+        ? selectedAssignees.filter((id): id is string => id !== null)
         : creatorId && creatorId !== 'guest'
           ? [creatorId]
           : [],
@@ -266,7 +266,7 @@ export default function TaskDialog() {
       reminders: [],
       timeEntries: [],
       assigneeIds: selectedAssignees.length > 0
-        ? selectedAssignees.map(u => u.id).filter((id): id is string => id !== null)
+        ? selectedAssignees.filter((id): id is string => id !== null)
         : creatorId && creatorId !== 'guest'
           ? [creatorId]
           : [],

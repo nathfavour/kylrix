@@ -98,6 +98,7 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
     tasks,
     updateTask,
     completeTask,
+    deleteTask,
     addSubtask,
     toggleSubtask,
     deleteSubtask,
