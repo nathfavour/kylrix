@@ -10,25 +10,20 @@ const NOTE_DB_ID = APPWRITE_CONFIG.DATABASES.NOTE;
 
 export interface CryptoInvoiceResponse {
   success: boolean;
-  address_in?: string;
-  minimum_transaction_coin?: number;
-  expected_crypto?: number;
-  expected_usd?: number;
+  paymentUrl?: string;
   paymentId?: string;
-  ticker?: string;
-  months?: number;
   error?: string;
 }
 
 export async function createCryptoInvoiceAction(input: {
-  ticker: string;
+  ticker?: string;
   planId: string;
   months: number;
   countryCode: string;
   jwt?: string;
   baseUrl?: string;
 }): Promise<CryptoInvoiceResponse> {
-  const { ticker, planId, months, countryCode, jwt, baseUrl } = input;
+  const { planId, months, countryCode, jwt, baseUrl } = input;
   
   try {
     const user = await getAuthenticatedUserForBillingAction({ jwt });
@@ -44,51 +39,24 @@ export async function createCryptoInvoiceAction(input: {
     const normalizedMonths = Math.max(1, Math.floor(months || 1));
     const usdAmount = calculateSubscriptionPrice(planId, countryCode, 'CRYPTO', normalizedMonths);
 
-    // 1. Get Crypto Conversion
-    const convertRes = await fetch(
-      `https://api.blockbee.io/${ticker.toLowerCase()}/convert/?value=${usdAmount}&from=USD&apikey=${blockbeeApiKey}`
-    ).then(r => r.json()).catch(() => null);
-
-    if (!convertRes || convertRes.status !== 'success') {
-      return { success: false, error: `Failed to calculate conversion rate for ${ticker.toUpperCase()}` };
-    }
-
-    const expectedCrypto = parseFloat(convertRes.value_coin);
-
-    // 2. Fetch Ticker info / limits
-    const infoRes = await fetch(
-      `https://api.blockbee.io/${ticker.toLowerCase()}/info/?apikey=${blockbeeApiKey}`
-    ).then(r => r.json()).catch(() => null);
-
-    const minimumLimit = infoRes && infoRes.status === 'success' ? parseFloat(infoRes.minimum_transaction_coin) : 0;
-
-    if (expectedCrypto < minimumLimit) {
-      return { 
-        success: false, 
-        error: `The total amount (${expectedCrypto} ${ticker.toUpperCase()}) falls below BlockBee's minimum transaction limit of ${minimumLimit} ${ticker.toUpperCase()}. Please try choosing another asset, or extend your plan duration to meet the minimum.`,
-        minimum_transaction_coin: minimumLimit,
-        expected_crypto: expectedCrypto,
-        expected_usd: usdAmount,
-        ticker: ticker.toUpperCase()
-      };
-    }
-
-    // 3. Request input address
+    // Request Hosted Checkout
     const paymentId = `invoice_${user.$id}_${Date.now()}`;
     const resolvedBaseUrl = String(baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://accounts.kylrix.space').replace(/\/+$/, '');
     const callbackUrl = encodeURIComponent(`${resolvedBaseUrl}/accounts/api/pro/notify?payment_id=${paymentId}&order_id=${user.$id}&plan_id=${planId}&months=${normalizedMonths}`);
+    const returnUrl = encodeURIComponent(`${resolvedBaseUrl}/accounts?payment=success`);
+    const cancelUrl = encodeURIComponent(`${resolvedBaseUrl}/accounts?payment=cancelled`);
 
     const createRes = await fetch(
-      `https://api.blockbee.io/${ticker.toLowerCase()}/create/?callback=${callbackUrl}&apikey=${blockbeeApiKey}&pending=1&post=1&json=1`
+      `https://api.blockbee.io/checkout/request/?notify_url=${callbackUrl}&return_url=${returnUrl}&cancel_url=${cancelUrl}&apikey=${blockbeeApiKey}&value=${usdAmount}&custom=${paymentId}`
     ).then(r => r.json()).catch(() => null);
 
     if (!createRes || createRes.status !== 'success') {
-      return { success: false, error: 'Failed to generate payment address' };
+      return { success: false, error: 'Failed to generate checkout session' };
     }
 
-    const addressIn = createRes.address_in;
+    const paymentUrl = createRes.payment_url;
 
-    // Register inside BlockBee pending checkout registry for the webhook notify endpoint
+    // Register inside BlockBee pending checkout registry
     const { registerBlockBeePendingCheckout } = await import('@/lib/services/internal/blockbee-pending-checkout');
     await registerBlockBeePendingCheckout({
       paymentId: paymentId,
@@ -99,7 +67,7 @@ export async function createCryptoInvoiceAction(input: {
       expectedAmountUsd: usdAmount,
     });
 
-    // 4. Record pending transaction in Appwrite database
+    // Record pending transaction in Appwrite database
     const { databases } = createSystemClient();
     await databases.createRow(
       NOTE_DB_ID,
@@ -113,9 +81,7 @@ export async function createCryptoInvoiceAction(input: {
         status: 'pending',
         provider: 'blockbee',
         metadata: JSON.stringify({
-          ticker: ticker.toUpperCase(),
-          address_in: addressIn,
-          expected_crypto: expectedCrypto,
+          paymentUrl: paymentUrl,
           countryCode: countryCode,
           months: normalizedMonths,
           amountCents: Math.round(usdAmount * 100),
@@ -127,13 +93,8 @@ export async function createCryptoInvoiceAction(input: {
 
     return {
       success: true,
-      address_in: addressIn,
-      minimum_transaction_coin: minimumLimit,
-      expected_crypto: expectedCrypto,
-      expected_usd: usdAmount,
-      paymentId: paymentId,
-      ticker: ticker.toUpperCase(),
-      months: normalizedMonths
+      paymentUrl: paymentUrl,
+      paymentId: paymentId
     };
 
   } catch (err: any) {
