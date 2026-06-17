@@ -732,7 +732,7 @@ export default function Topbar({
       >
         <Box sx={{ width: '100%', bgcolor: '#161412', overflow: 'hidden' }}>
           <Box
-            onWheel={(event) => {
+            onWheel={(event: React.WheelEvent<HTMLDivElement>) => {
               const node = event.currentTarget;
               if (event.deltaY < 0 && isTopbarScrollAtTop(node)) {
                 event.preventDefault();

@@ -533,7 +533,7 @@ function LoginContent() {
               {otpRequested && emailValid && (
                 <TextField
                   value={otp}
-                  onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="6-digit code"
                   fullWidth
                   sx={{ '& .MuiOutlinedInput-root': { color: 'white', height: 56, borderRadius: '16px', bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid #6366F1', '& fieldset': { border: 'none' }, textAlign: 'center' }, '& .MuiOutlinedInput-input': { textAlign: 'center', letterSpacing: '0.5em', fontSize: '1.2rem' } }}

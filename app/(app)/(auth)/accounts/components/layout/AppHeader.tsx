@@ -250,7 +250,7 @@ export const AppHeader = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1.5 }, flexShrink: 0 }}>
           <Tooltip title="activity (Coming Soon)">
             <IconButton 
-              onClick={(e) => setAnchorElNotifications(e.currentTarget)}
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => setAnchorElNotifications(e.currentTarget)}
               sx={{ 
                 color: 'rgba(255, 255, 255, 0.4)',
                 bgcolor: '#1F1D1B',
@@ -299,7 +299,7 @@ export const AppHeader = () => {
 
           {user ? (
             <IconButton 
-              onClick={(e) => setAnchorElAccount(e.currentTarget)}
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => setAnchorElAccount(e.currentTarget)}
               sx={{ 
                 p: 0.5,
                 '&:hover': { transform: 'scale(1.05)' },
