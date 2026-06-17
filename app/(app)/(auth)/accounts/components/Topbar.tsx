@@ -361,7 +361,7 @@ export default function Topbar({
                 ) : null,
               }}
               sx={{ flex: 1, minWidth: { xs: '100%', md: 320 } }}
-              onKeyDown={(event) => {
+              onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
                 if (event.key === 'Escape') {
                   handleCloseAll();
                 }
@@ -822,7 +822,7 @@ export default function Topbar({
               role="button"
               tabIndex={0}
               onClick={openAppMenu}
-              onKeyDown={(event) => {
+              onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
                   setSearchOpen(false);
