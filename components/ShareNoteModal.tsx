@@ -420,7 +420,7 @@ export function ShareNoteModal({ isOpen, onOpenChange, noteId, noteTitle }: Shar
                 fullWidth
                 placeholder="Name or email address"
                 value={query}
-                onChange={ (e) => { setQuery(e.target.value); setSelectedUser(null); resetMessages(); }}
+                onChange={ (e: React.ChangeEvent<HTMLInputElement>) => { setQuery(e.target.value); setSelectedUser(null); resetMessages(); }}
                 slotProps={{
                   input: {
                     startAdornment: (
@@ -527,7 +527,7 @@ export function ShareNoteModal({ isOpen, onOpenChange, noteId, noteTitle }: Shar
             <FormControl sx={{ minWidth: 140 }}>
               <Select
                 value={permission}
-                onChange={ (e) => setPermission(e.target.value as 'read' | 'write' | 'admin')}
+                onChange={ (e: any) => setPermission(e.target.value as 'read' | 'write' | 'admin')}
                 sx={{
                   borderRadius: '12px',
                   bgcolor: '#0A0908',
