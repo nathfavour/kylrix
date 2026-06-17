@@ -162,7 +162,7 @@ export default function PinManager() {
                 type="password"
                 placeholder="••••"
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 inputProps={{ maxLength: 4, inputMode: 'numeric', style: { textAlign: 'center', letterSpacing: '0.5em' } }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
