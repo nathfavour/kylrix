@@ -1285,7 +1285,7 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
                       control={
                         <Switch 
                           checked={!!field.logic?.enabled} 
-                          onChange={(e) => {
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             const enabled = e.target.checked;
                             updateField(activeSettingsFieldIndex, {
                               logic: {
@@ -1309,7 +1309,7 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
                         
                         <Select
                           value={field.logic.showIfFieldId || precedingChoiceFields[0].id}
-                          onChange={(e) => {
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             const targetId = e.target.value;
                             const targetField = precedingChoiceFields.find(f => f.id === targetId);
                             updateField(activeSettingsFieldIndex, {
@@ -1349,7 +1349,7 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
                           return (
                             <Select
                               value={field.logic.showIfValue || options[0] || ''}
-                              onChange={(e) => {
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                 updateField(activeSettingsFieldIndex, {
                                   logic: {
                                     ...field.logic,
