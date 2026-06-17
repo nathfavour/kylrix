@@ -1,5 +1,7 @@
 # BlockBee Custom Payment Flow Integration Guide
 
+> **Status: RETIRED for Pro/Teams billing.** Production checkout uses **BlockBee Hosted Checkout** — see `.agents/skills/blockbee.hosted-checkout/SKILL.md` and `ARCHITECTURE.md` § VII.A. This document is kept for historical context only.
+
 Procedural specification for constructing a fully in-app, multi-chain cryptocurrency payment experience. 
 
 ## Architectural Protocol

@@ -149,12 +149,93 @@ The codebase implements a modular SDK facade (`lib/sdk/`, 48 files) that wraps a
 ## VII. SUBSCRIPTION & BILLING TIER SYSTEM
 
 - **Tier Resolution**: `lib/subscription/tier-resolution.ts` normalizes subscription states across `FREE`, `PRO`, `TEAMS`, `ORG`, and `LIFETIME` tiers with expiry validation.
-- **Purchasing Power Parity (PPP)**: `lib/subscription/ppp.ts` and `lib/subscription/context/SubscriptionContext.tsx` implement geo-adjusted pricing.
-- **Payment Providers**: BlockBee (cryptocurrency payments via `lib/services/internal/blockbee-pending-checkout.ts`) and Stripe.
+- **Pricing Engine**: `lib/subscription/ppp.ts` — fixed global USD pricing with a bundled yearly discount (see below). `calculateSubscriptionPrice` is the single canonical charge calculator for UI, BlockBee, and IPN verification.
+- **Purchasing Power Parity (PPP)**: Geo multipliers are deprecated; pricing is a flat global rate surfaced through `SubscriptionContext`.
+- **Payment Providers**: BlockBee (cryptocurrency via hosted checkout) and Stripe.
 - **Entitlement Resolution**: `lib/services/internal/subscription-entitlement.ts` maps subscription tiers to feature entitlements.
 - **Prefs Merging**: `lib/services/internal/subscription-prefs-merge.ts` merges subscription preferences across user profile updates.
 - **UI Components**: `SubscriptionBadge` and `PaywallWrapper` gate premium features visually.
 - **Coupon System**: Full coupon management with redemption limits in the admin console.
+
+### VII.A. BlockBee Hosted Checkout (Current Architecture)
+
+We **migrated from the BlockBee Custom Payment Flow** (`/{ticker}/create/` with in-app address + QR modals) to **BlockBee Hosted Checkout** (`GET https://api.blockbee.io/checkout/request/`). The legacy custom-flow spec remains in `.agents/skills/blockbee.custom-flow.md` for historical reference only.
+
+#### Why hosted checkout
+
+| Custom flow (retired for Pro billing) | Hosted checkout (current) |
+|---|---|
+| App renders per-chain address, QR, and minimum-coin math | BlockBee renders coin picker, address, and receipt |
+| Client must poll status and handle chain volatility | User pays on `pay.blockbee.io`; we fulfill on IPN |
+| More UI surface (`CryptoPaymentDrawer`, ticker selection) | One redirect; fewer moving parts at checkout time |
+| Each chain integrated separately | BlockBee maintains supported assets centrally |
+
+**Product rationale**: Pro/Teams checkout should be as fast as possible. The only in-app intercept before payment is **login** (auth drawer). After authentication, the user goes **straight to BlockBee** — no intermediate “you are about to pay” drawer.
+
+#### Checkout flow (canonical)
+
+```
+/pricing (or /accounts/subscription/pro/checkout)
+  → createBillingCheckoutSessionAction (billing.ts)
+  → CryptoPaymentProvider.createCheckoutSession (crypto-provider.ts)
+  → BlockBee returns payment_url
+  → window.location.href = payment_url
+  → user pays on BlockBee
+  → POST IPN → /accounts/api/pro/notify
+  → registerBlockBeePendingCheckout consumed; subscription stacked via meta.months
+  → redirect_uri → https://www.kylrix.space/accounts/pro/success
+```
+
+**Auth gate on `/pricing`**: If the user is not logged in, cache checkout intent in `sessionStorage` (`kylrix_pricing_checkout_v1`), open the **Unified auth drawer** (`openUnified('login')`), then auto-resume checkout after session is established. Do **not** use `openIDMWindow` or popup windows for billing.
+
+**Server entry points**:
+- `app/(app)/(auth)/accounts/actions/billing.ts` — `createBillingCheckoutSessionAction` (primary)
+- `app/(app)/(auth)/accounts/actions/checkout.ts` — thin wrapper delegating to billing for legacy callers
+- `lib/billing/providers/crypto-provider.ts` — BlockBee API call
+- `lib/services/internal/blockbee-pending-checkout.ts` — pending registry rows before IPN fulfillment
+
+#### BlockBee URL whitelist & canonical origins
+
+BlockBee dashboard URIs are **fixed production URLs** (not per-request localhost). Callback construction is centralized in `lib/billing/blockbee-urls.ts`:
+
+| Purpose | Canonical URI |
+|---|---|
+| Notify / payout webhook | `https://www.kylrix.space/accounts/api/pro/notify` |
+| Post-payment redirect | `https://www.kylrix.space/accounts/pro/success` |
+
+**Rules learned from production bugs**:
+1. **Never pass `window.location.origin` to BlockBee** — localhost is rejected as a malformed/unregistered redirect URI.
+2. **Always append `/accounts`** when resolving from `NEXT_PUBLIC_APP_URL` (`https://www.kylrix.space` → `https://www.kylrix.space/accounts`). Omitting `/accounts` produced invalid paths like `/pro/success` instead of `/accounts/pro/success`.
+3. **Use BlockBee’s hosted-checkout parameter names**: `redirect_url`, `notify_url`, `currency`, `post=1`. Do **not** use `return_url`, `cancel_url`, or ad-hoc `custom` fields from older integrations.
+4. Query parameters on notify/redirect (e.g. `order_id`, `plan_id`, `months`) are allowed and echoed in IPN payloads for correlation.
+
+Overrides: `BLOCKBEE_NOTIFY_URL`, `BLOCKBEE_REDIRECT_URL`, `BLOCKBEE_BILLING_BASE_URL`.
+
+#### Yearly discount vs. subscription months (do not conflate)
+
+Pricing uses a **10-for-12 bundle** per full year: pay for 10 months, receive 12.
+
+- **Charged USD** (`calculateSubscriptionPrice` / `calculateTotalSubscriptionPrice`): e.g. 12 months → $100 Pro / $500 Teams.
+- **Granted months** (`months` in notify URL, pending checkout metadata, `calculateStackedSubscriptionCredit`): still the **actual slider value** (12, 24, …).
+- **Free months copy**: `getBundledFreeMonths(months)` → `floor(months / 12) * 2` (12 → 2 free, 24 → 4 free).
+
+A common bug was charging `monthly × months` on BlockBee while the UI showed the discounted total. **All charge paths must call the same `ppp.ts` calculator** so BlockBee `value`, pending `expectedAmountUsd`, and IPN floor checks agree.
+
+#### Appwrite row access on the server
+
+Server-side billing rows (`billing_transactions`, pending checkout events) use **TablesDB row APIs**, not legacy `Databases` document methods.
+
+- `createSystemTablesDB()` — direct TablesDB for new server code (see token minting in `kylrix-token.ts`).
+- `createSystemClient().databases` — proxied in `lib/appwrite-admin.ts` so `listRows` / `createRow` / `getRow` delegate to TablesDB with positional args for older call sites.
+
+Calling `target.listRows` on a raw `Databases` instance throws (`listRows is not a function`) and breaks checkout session persistence.
+
+#### IPN security
+
+- Route: `app/(app)/(auth)/accounts/api/pro/notify/route.ts`
+- Verify webhook signatures (`lib/billing/blockbee-webhook-verify.ts`) unless `BLOCKBEE_ALLOW_UNSIGNED_WEBHOOKS=true` (dev only).
+- Require a matching `blockbee-pending-checkout` registry row before fulfillment.
+- Respond `*ok*` to stop retries; use `payment_id` idempotency locks.
 
 ---
 
