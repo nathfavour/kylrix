@@ -1369,7 +1369,7 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
                                 fontWeight: 700
                               }}
                             >
-                              {options.map(opt => (
+                              {options.map((opt: string) => (
                                 <MenuItem key={opt} value={opt} sx={{ fontSize: '0.85rem' }}>
                                   {opt}
                                 </MenuItem>

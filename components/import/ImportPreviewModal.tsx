@@ -18,11 +18,7 @@ import {
   Chip
 } from '@/lib/mui-tailwind/material';
 import { ImportItem, DeduplicationEngine } from '@/lib/import/deduplication';
-import CheckIcon from '@/lib/mui-tailwind/icons';
-import CloseIcon from '@/lib/mui-tailwind/icons';
-import ArrowForwardIcon from '@/lib/mui-tailwind/icons';
-import StorageIcon from '@/lib/mui-tailwind/icons';
-import MergeIcon from '@/lib/mui-tailwind/icons';
+import { Close as CloseIcon, Search as SearchIcon, Folder as StorageIcon, ArrowForward as ArrowForwardIcon, Check as CheckIcon } from '@/lib/mui-tailwind/icons';
 
 interface ImportPreviewModalProps {
   isOpen: boolean;
@@ -164,7 +160,7 @@ export function ImportPreviewModal({
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <MergeIcon sx={{ fontSize: 18, color: "#6366F1" }} />
+                    {/* MergeIcon removed as it is not available */}
                     <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'white' }}>
                       Smart Merge
                     </Typography>

@@ -105,7 +105,7 @@ export default function EventCard({ event, onClick, onDelete }: EventCardProps) 
     resourceType: 'event',
     resourceId: event.id,
     isPublic: !!event.isPublic,
-    isGuest: !!event.isGuest,
+    isGuest: !!(event as any).isGuest,
     resourceTitle: event.title,
     onUpdate: () => {
       // Re-render handled by parent/realtime
@@ -195,7 +195,7 @@ export default function EventCard({ event, onClick, onDelete }: EventCardProps) 
                 resourceType="event"
                 resourceId={event.id}
                 isPublic={!!event.isPublic}
-                isGuest={!!event.isGuest}
+                isGuest={!!(event as any).isGuest}
                 accentColor="#6366F1"
                 onPublished={() => {}}
              />

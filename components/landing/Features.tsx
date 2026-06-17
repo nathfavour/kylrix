@@ -1,11 +1,6 @@
 "use client";
 
-import Box from '@/lib/mui-tailwind/material';
-import Container from '@/lib/mui-tailwind/material';
-import Typography from '@/lib/mui-tailwind/material';
-import Grid from '@/lib/mui-tailwind/material';
-import Paper from '@/lib/mui-tailwind/material';
-import { alpha } from '@/lib/mui-tailwind/material';
+import { Box, Container, Typography, Grid, Paper, alpha } from '@/lib/mui-tailwind/material';
 
 const VAULT_PRIMARY = "#10B981";
 import ShieldIcon from '@/lib/mui-tailwind/icons';
@@ -92,7 +87,11 @@ export default function Features() {
                   justifyContent: 'center',
                   mb: 3
                 }}>
-                  <feature.icon sx={{ fontSize: 28 }} />
+const IconWrapper = ({ icon: Icon, sx }: { icon: any, sx?: any }) => <Icon sx={sx} />;
+
+...
+
+                  <IconWrapper icon={feature.icon} sx={{ fontSize: 28 }} />
                 </Box>
                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 1.5 }}>{feature.title}</Typography>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', lineHeight: 1.6 }}>{feature.description}</Typography>

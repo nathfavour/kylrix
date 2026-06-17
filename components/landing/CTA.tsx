@@ -2,7 +2,7 @@
 
 import { Box, Container, Typography, Button, CircularProgress } from '@/lib/mui-tailwind/material';
 import { alpha } from '@/lib/mui-tailwind/material';
-import ChevronRightIcon from '@/lib/mui-tailwind/icons';
+import { ChevronRight } from '@/lib/mui-tailwind/icons';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { useRouter } from 'next/navigation';
 
@@ -37,7 +37,7 @@ export default function CTA() {
           variant="contained"
           size="large"
           style={{ backgroundColor: VAULT_SECONDARY, color: '#000' }}
-          endIcon={isAuthenticating ? <CircularProgress size={20} color="inherit" /> : <ChevronRightIcon sx={{ fontSize: 20 }} />}
+          endIcon={isAuthenticating ? <CircularProgress size={20} color="inherit" /> : <ChevronRight sx={{ fontSize: 20 }} />}
           onClick={() => {
             if (user) {
               router.push("/vault");

@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, Container, Typography, Stack, Accordion, AccordionSummary, AccordionDetails } from '@/lib/mui-tailwind/material';
-import ExpandMoreIcon from '@/lib/mui-tailwind/icons';
+import { ExpandMore } from '@/lib/mui-tailwind/icons';
 
 const faqs = [
   {
@@ -48,7 +48,7 @@ export default function FAQ() {
               '&::before': { display: 'none' },
               overflow: 'hidden'
             }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: "rgba(255, 255, 255, 0.3)" }} />}>
+              <AccordionSummary expandIcon={<ExpandMore sx={{ color: "rgba(255, 255, 255, 0.3)" }} />}>
                 <Typography sx={{ fontWeight: 700, py: 1 }}>{faq.question}</Typography>
               </AccordionSummary>
               <AccordionDetails sx={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', pt: 3 }}>
