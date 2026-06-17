@@ -19,9 +19,7 @@ import {
     Tab,
     alpha as _alpha
 } from '@/lib/mui-tailwind/material';
-import KeyIcon from '@/lib/mui-tailwind/icons';
-import ShieldIcon from '@/lib/mui-tailwind/icons';
-import SearchIcon from '@/lib/mui-tailwind/icons';
+import { Search, Shield, Key } from '@/lib/mui-tailwind/icons';
 import { EcosystemService } from '@/lib/services/ecosystem';
 import { useAuth } from '@/lib/auth';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
@@ -121,7 +119,7 @@ export const SecretSelectorModal = ({ open, onClose, onSelect, isSelf }: SecretS
                 <DialogTitle sx={{ fontWeight: 800, fontFamily: 'var(--font-space-grotesk)', pb: 0 }}>
                     Attach Secret
                 </DialogTitle>
-                <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 3, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                <Tabs value={tab} onChange={(_: React.SyntheticEvent, v: any) => setTab(v)} sx={{ px: 3, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
                     <Tab label="Credentials" sx={{ fontWeight: 700, fontSize: '0.8rem' }} />
                     <Tab label="TOTP" sx={{ fontWeight: 700, fontSize: '0.8rem' }} />
                 </Tabs>
@@ -131,10 +129,10 @@ export const SecretSelectorModal = ({ open, onClose, onSelect, isSelf }: SecretS
                         size="small"
                         placeholder={`Search ${tab === 0 ? 'credentials' : 'TOTP'}...`}
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                         sx={{ mb: 2, mt: 2 }}
                         InputProps={{
-                            startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />,
+                            startAdornment: <Search sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />,
                             sx: { borderRadius: '12px', bgcolor: 'rgba(255, 255, 255, 0.05)' }
                         }}
                     />
@@ -164,7 +162,7 @@ export const SecretSelectorModal = ({ open, onClose, onSelect, isSelf }: SecretS
                                         }}
                                     >
                                         <ListItemIcon>
-                                            {tab === 0 ? <ShieldIcon sx={{ color: 'primary.main' }} /> : <KeyIcon sx={{ color: '#6366F1' }} />}
+                                            {tab === 0 ? <Shield sx={{ color: 'primary.main' }} /> : <Key sx={{ color: '#6366F1' }} />}
                                         </ListItemIcon>
                                         <ListItemText
                                             primary={tab === 0 ? (item.name || 'Unnamed') : (item.issuer || 'Unknown')}

@@ -203,8 +203,8 @@ export const InCallChat = ({
                     maxRows={3}
                     placeholder="Send a message to everyone"
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
+                    onKeyDown={(e: React.KeyboardEvent) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
                             handleSend();

@@ -15,9 +15,7 @@ import {
     IconButton,
     Divider
 } from '@/lib/mui-tailwind/material';
-import NoteIcon from '@/lib/mui-tailwind/icons';
-import SearchIcon from '@/lib/mui-tailwind/icons';
-import CloseIcon from '@/lib/mui-tailwind/icons';
+import { Close as CloseIcon, Search as SearchIcon, Notes as NoteIcon } from '@/lib/mui-tailwind/icons';
 import { useNotes } from '@/context/NotesContext';
 
 interface NoteSelectorModalProps {
@@ -53,7 +51,7 @@ export const NoteSelectorModal = ({ open, onClose, onSelect }: NoteSelectorModal
                     <IconButton onClick={onClose} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.55)' }}><CloseIcon /></IconButton>
                 </Box>
                 <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
-                <TextField fullWidth size="small" placeholder="Search notes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '12px', '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' }, '&:hover fieldset': { borderColor: 'rgba(99,102,241,0.3)' }, '&.Mui-focused fieldset': { borderColor: '#6366F1' } } }} InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 20 }} /></InputAdornment>) }} />
+                <TextField fullWidth size="small" placeholder="Search notes..." value={searchTerm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '12px', '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' }, '&:hover fieldset': { borderColor: 'rgba(99,102,241,0.3)' }, '&.Mui-focused fieldset': { borderColor: '#6366F1' } } }} InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 20 }} /></InputAdornment>) }} />
                 {loading ? (<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={24} /></Box>) : (<List sx={{ maxHeight: '400px', overflowY: 'auto' }}>{filteredNotes.length === 0 ? (<Typography variant="body2" sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>No notes found.</Typography>) : (filteredNotes.map((note: any) => (<ListItemButton key={note.$id} onClick={() => handleSelect(note)} sx={{ borderRadius: '12px', mb: 1, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}><ListItemIcon><NoteIcon sx={{ color: 'primary.main' }} /></ListItemIcon><ListItemText primary={note.title || 'Untitled Note'} secondary={new Date(note.updatedAt).toLocaleDateString()} primaryTypographyProps={{ fontWeight: 600 }} /></ListItemButton>)))}</List>)}
             </Box>
         </Drawer>

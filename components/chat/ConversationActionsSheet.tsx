@@ -708,7 +708,7 @@ export default function ConversationActionsSheet({
           <Box sx={{ px: 2.5, pt: 1.5, position: 'sticky', top: 0, zIndex: 2, bgcolor: '#161412' }}>
             <Tabs
               value={isAdmin ? memberTab : 'members'}
-              onChange={(_, value) => setMemberTab(value as 'invite' | 'members' | 'add' | 'remove')}
+              onChange={(_: React.SyntheticEvent, value: any) => setMemberTab(value as 'invite' | 'members' | 'add' | 'remove')}
               textColor="inherit"
               indicatorColor="secondary"
               variant="fullWidth"
@@ -857,7 +857,7 @@ export default function ConversationActionsSheet({
                         size="small"
                         label="Hangout name"
                         value={groupNameDraft}
-                        onChange={(e) => setGroupNameDraft(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGroupNameDraft(e.target.value)}
                       />
                       <TextField
                         fullWidth
@@ -865,7 +865,7 @@ export default function ConversationActionsSheet({
                         minRows={3}
                         label="Description"
                         value={groupDescriptionDraft}
-                        onChange={(e) => setGroupDescriptionDraft(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGroupDescriptionDraft(e.target.value)}
                       />
                     <Button
                       variant="contained"
@@ -1037,7 +1037,7 @@ export default function ConversationActionsSheet({
                 <TextField
                   fullWidth
                   value={memberQuery}
-                  onChange={(e) => setMemberQuery(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMemberQuery(e.target.value)}
                   placeholder="Search people to add..."
                   InputProps={{
                     startAdornment: (

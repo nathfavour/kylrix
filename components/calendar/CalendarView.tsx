@@ -132,7 +132,7 @@ const DayCell = React.memo(function DayCell({
               fontWeight: today ? 700 : isCurrentMonth ? 500 : 400,
               backgroundColor: today ? '#10B981' : 'transparent',
               color: today
-                ? theme.palette.primary.contrastText
+                ? '#FFFFFF'
                 : isCurrentMonth
                 ? 'text.primary'
                 : 'text.disabled',
@@ -157,7 +157,7 @@ const DayCell = React.memo(function DayCell({
             <Box
               component="span"
               title={`${totalCellParticipants} active huddle participant(s) (double-click to jump)`}
-              onDoubleClick={(e) => {
+              onDoubleClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
                 if (tasksWithPresence[0]) {
@@ -252,7 +252,7 @@ const DayCell = React.memo(function DayCell({
                 <Box
                   component="span"
                   title={`${activeTeammates.length} active participant(s) in huddle (double-click to jump)`}
-                  onDoubleClick={(e) => {
+                  onDoubleClick={(e: React.MouseEvent) => {
                     e.preventDefault();
                     e.stopPropagation();
                     onHuddleDoubleClick(task);

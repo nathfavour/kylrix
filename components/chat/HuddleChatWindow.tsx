@@ -707,12 +707,12 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                       
                       <Paper 
                         elevation={0}
-                        onContextMenu={(e) => {
+                        onContextMenu={(e: React.MouseEvent) => {
                           e.preventDefault();
-                          setMessageAnchorEl({ el: e.currentTarget, msg });
+                          setMessageAnchorEl({ el: e.currentTarget as HTMLElement, msg });
                         }}
-                        onClick={(e) => handleMessageClick(e, msg)}
-                        onTouchStart={(e) => handleTouchStart(e, msg)}
+                        onClick={(e: React.MouseEvent) => handleMessageClick(e, msg)}
+                        onTouchStart={(e: React.TouchEvent) => handleTouchStart(e, msg)}
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}
                         sx={{
@@ -760,7 +760,7 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                                 key={emoji}
                                 label={`${emoji} ${(userIds as any[]).length}`}
                                 size="small"
-                                onClick={(e) => {
+                                onClick={(e: React.MouseEvent) => {
                                   e.stopPropagation();
                                   handleReact(msg.id, emoji);
                                 }}
@@ -787,7 +787,7 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                         <Button
                           size="small"
                           startIcon={<MessageSquare size={12} />}
-                          onClick={(e) => {
+                          onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
                             setActiveThreadParent(msg);
                           }}
@@ -853,7 +853,7 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                       fullWidth
                       size="small"
                       value={editInputText}
-                      onChange={(e) => setEditInputText(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditInputText(e.target.value)}
                       variant="standard"
                       InputProps={{
                         disableUnderline: true,
@@ -966,11 +966,11 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     <Paper
                       elevation={0}
-                      onContextMenu={(e) => {
+                      onContextMenu={(e: React.MouseEvent) => {
                         e.preventDefault();
-                        setMessageAnchorEl({ el: e.currentTarget, msg: activeThreadParent });
+                        setMessageAnchorEl({ el: e.currentTarget as HTMLElement, msg: activeThreadParent });
                       }}
-                      onTouchStart={(e) => handleTouchStart(e, activeThreadParent)}
+                      onTouchStart={(e: React.TouchEvent) => handleTouchStart(e, activeThreadParent)}
                       onTouchMove={handleTouchMove}
                       onTouchEnd={handleTouchEnd}
                       sx={{
@@ -1014,7 +1014,7 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                               key={emoji}
                               label={`${emoji} ${(userIds as any[]).length}`}
                               size="small"
-                              onClick={(e) => {
+                              onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation();
                                 handleReact(activeThreadParent.id, emoji);
                               }}
@@ -1053,11 +1053,11 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                         </Typography>
                         <Paper
                           elevation={0}
-                          onContextMenu={(e) => {
+                          onContextMenu={(e: React.MouseEvent) => {
                             e.preventDefault();
-                            setMessageAnchorEl({ el: e.currentTarget, msg: reply });
+                            setMessageAnchorEl({ el: e.currentTarget as HTMLElement, msg: reply });
                           }}
-                          onTouchStart={(e) => handleTouchStart(e, reply)}
+                          onTouchStart={(e: React.TouchEvent) => handleTouchStart(e, reply)}
                           onTouchMove={handleTouchMove}
                           onTouchEnd={handleTouchEnd}
                           sx={{
@@ -1102,7 +1102,7 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                                   key={emoji}
                                   label={`${emoji} ${(userIds as any[]).length}`}
                                   size="small"
-                                  onClick={(e) => {
+                                  onClick={(e: React.MouseEvent) => {
                                     e.stopPropagation();
                                     handleReact(reply.id, emoji);
                                   }}
@@ -1416,9 +1416,9 @@ function HuddleMainInput({
             size="small"
             value={inputText}
             disabled={isRecording}
-            onChange={(e) => setInputText(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
             placeholder={isRecording ? "Recording..." : "Type unencrypted huddle message..."}
-            onKeyDown={async (e) => {
+            onKeyDown={async (e: React.KeyboardEvent) => {
               if (e.key === 'g' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
                 const val = inputText.trim();
@@ -1560,9 +1560,9 @@ function HuddleThreadInput({
             fullWidth
             size="small"
             value={threadInputText}
-            onChange={(e) => setThreadInputText(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setThreadInputText(e.target.value)}
             placeholder="Reply in thread..."
-            onKeyDown={async (e) => {
+            onKeyDown={async (e: React.KeyboardEvent) => {
               if (e.key === 'g' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
                 const val = threadInputText.trim();
@@ -1655,7 +1655,7 @@ function HuddleThreadInput({
             <Checkbox
               size="small"
               checked={sendToGeneralChecked}
-              onChange={(e) => setSendToGeneralChecked(e.target.checked)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSendToGeneralChecked(e.target.checked)}
               sx={{
                 color: 'rgba(255,255,255,0.3)',
                 p: 0.5,

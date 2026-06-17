@@ -1376,7 +1376,7 @@ export const CallInterface = ({
 
                             <Tooltip title="More Options">
                                 <IconButton 
-                                    onClick={(e) => setMoreMenuAnchor(e.currentTarget)}
+                                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => setMoreMenuAnchor(e.currentTarget)}
                                     sx={{ 
                                         width: 40, height: 40,
                                         bgcolor: Boolean(moreMenuAnchor) ? '#6366F1' : 'rgba(255,255,255,0.05)', 
@@ -1535,7 +1535,7 @@ export const CallInterface = ({
                     <ListItemIcon><Minimize2 size={16} color="white" /></ListItemIcon>
                     <ListItemText primary="Picture-in-Picture" />
                 </MenuItem>
-                <MenuItem onClick={(e) => { setMoreMenuAnchor(null); handleDeviceMenuOpen(e); }} sx={{ fontSize: '0.85rem', py: 1 }}>
+                <MenuItem onClick={(e: React.MouseEvent<HTMLLIElement>) => { setMoreMenuAnchor(null); handleDeviceMenuOpen(e); }} sx={{ fontSize: '0.85rem', py: 1 }}>
                     <ListItemIcon><ChevronUp size={16} color="white" /></ListItemIcon>
                     <ListItemText primary="Audio/Video Devices" />
                 </MenuItem>

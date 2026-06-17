@@ -44,8 +44,8 @@ import {
   Info as _InfoIcon, 
   Warning as _WarningIcon, 
   Star as _ProIcon,
-  EmojiObjects as _IdeaIcon,
-  Message as _ConnectIcon,
+  LightbulbOutlined as _IdeaIcon,
+  MessageSquare as _ConnectIcon,
 } from '@/lib/mui-tailwind/icons';
 import {
   Search as _SearchIcon,

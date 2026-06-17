@@ -107,7 +107,7 @@ export default function DesignToolbar({
         <FormControl size="small">
           <Select
             value={selectedFormat}
-            onChange={(event) => onFormatChange(event.target.value as DesignExportFormat)}
+            onChange={(event: any) => onFormatChange(event.target.value as DesignExportFormat)}
             sx={{
               minWidth: 100,
               color: 'white',

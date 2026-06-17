@@ -182,7 +182,7 @@ export function EcosystemPortal({ open: controlledOpen, onClose: controlledOnClo
                                 placeholder="Jump to app or search..."
                                 fullWidth
                                 value={search}
-                                onChange={(_e) => setSearch(_e.target.value)}
+                                onChange={(_e: React.ChangeEvent<HTMLInputElement>) => setSearch(_e.target.value)}
                                 sx={{
                                     color: 'white',
                                     fontSize: '1rem',

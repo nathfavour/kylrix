@@ -99,7 +99,7 @@ export function SecretSelectorModal({ isOpen, onClose, onSelect }: SecretSelecto
             size="small"
             placeholder="Search credentials..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
             variant="filled"
             InputProps={{
               disableUnderline: true,

@@ -328,7 +328,7 @@ const ChatDraftInput = React.memo(function ChatDraftInput({
                         maxRows={4}
                         placeholder="Encrypted payload..."
                         value={draft}
-                        onChange={(e) => {
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             setDraft(e.target.value);
                             
                             // Broadcast typing status
@@ -347,7 +347,7 @@ const ChatDraftInput = React.memo(function ChatDraftInput({
                                 }, 3000);
                             }
                         }}
-                        onKeyDown={async (e) => {
+                        onKeyDown={async (e: React.KeyboardEvent) => {
                             if (e.key === 'g' && (e.ctrlKey || e.metaKey)) {
                                 e.preventDefault();
                                 const val = draft.trim();
@@ -1894,7 +1894,7 @@ export const ChatWindow = ({ conversationId, onBack }: { conversationId: string;
                         <ChevronLeft size={20} strokeWidth={2} />
                     </IconButton>
                     <Box
-                        onClick={(e) => setAnchorEl(e.currentTarget)}
+                        onClick={(e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget)}
                         sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
                     >
                         <IdentityAvatar 
@@ -1954,7 +1954,7 @@ export const ChatWindow = ({ conversationId, onBack }: { conversationId: string;
                                 <Phone size={20} strokeWidth={1.5} />
                             </IconButton>
                         )}
-                        <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ color: 'text.secondary' }}>
+                        <IconButton onClick={(e: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(e.currentTarget)} sx={{ color: 'text.secondary' }}>
                             <MoreVertical size={20} strokeWidth={1.5} />
                         </IconButton>
                     </Stack>
@@ -2189,7 +2189,7 @@ export const ChatWindow = ({ conversationId, onBack }: { conversationId: string;
                                                 </IdentityName>
                                             )}
                                             <Paper
-                                                onContextMenu={(e) => handleMessageContextMenu(e, msg)}
+                                                onContextMenu={(e: React.MouseEvent) => handleMessageContextMenu(e, msg)}
                                                 sx={{
                                                     p: 1.5,
                                                     px: 2.25,
@@ -2289,7 +2289,7 @@ export const ChatWindow = ({ conversationId, onBack }: { conversationId: string;
                                                                 key={reaction.emoji}
                                                                 component="button"
                                                                 type="button"
-                                                                onClick={(e) => openReactionPopover(e, msg.$id)}
+                                                                onClick={(e: React.MouseEvent<HTMLButtonElement>) => openReactionPopover(e, msg.$id)}
                                                                 sx={{
                                                                     p: 0,
                                                                     m: 0,

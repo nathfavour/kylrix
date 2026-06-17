@@ -354,9 +354,9 @@ export default function VaultTopbar({
       >
         <Box sx={{ width: '100%', bgcolor: '#161412', overflow: 'hidden' }}>
           <Box
-            onWheel={(event) => {
+            onWheel={(event: React.WheelEvent) => {
               const node = event.currentTarget;
-              if (event.deltaY < 0 && isTopbarScrollAtTop(node)) {
+              if (event.deltaY < 0 && isTopbarScrollAtTop(node as HTMLElement)) {
                 event.preventDefault();
                 handleCloseAll();
               }
@@ -445,7 +445,7 @@ export default function VaultTopbar({
               role="button"
               tabIndex={0}
               onClick={openAppMenu}
-              onKeyDown={(event) => {
+              onKeyDown={(event: React.KeyboardEvent) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
                   setAppMenuAnchorEl(event.currentTarget as HTMLElement);

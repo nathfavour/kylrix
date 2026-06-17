@@ -39,7 +39,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({ text, variant = 'b
                                 href={part}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={(e: React.MouseEvent) => e.stopPropagation()}
                                 sx={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
@@ -78,7 +78,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({ text, variant = 'b
                             href={part} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
                             sx={{ 
                                 color: '#6366F1', 
                                 textDecoration: 'none',

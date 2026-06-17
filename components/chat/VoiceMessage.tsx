@@ -56,7 +56,7 @@ export const VoiceMessage: React.FC<VoiceMessageProps> = ({ url }) => {
 
   return (
     <Box 
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e: React.MouseEvent) => e.stopPropagation()}
       sx={{ 
         display: 'flex', 
         alignItems: 'center', 

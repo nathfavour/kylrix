@@ -364,7 +364,7 @@ export default function DesignStudio({ slug = DESIGN_DEFAULT_SLUG }: DesignStudi
                 </IconButton>
 
                 <IconButton
-                  onClick={(event) => setFormatMenuAnchor(event.currentTarget)}
+                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => setFormatMenuAnchor(event.currentTarget)}
                   sx={{
                     color: 'white',
                     flex: 1,
