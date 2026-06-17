@@ -13,6 +13,12 @@ export interface CryptoInvoiceResponse {
   paymentUrl?: string;
   paymentId?: string;
   error?: string;
+  address_in?: string;
+  minimum_transaction_coin?: number;
+  expected_crypto?: string;
+  expected_usd?: number;
+  ticker?: string;
+  months?: number;
 }
 
 export async function createCryptoInvoiceAction(input: {
