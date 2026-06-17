@@ -9,7 +9,7 @@ import { useAuth } from '@/context/auth/AuthContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { account } from '@/lib/appwrite/client';
 import { createBillingCheckoutSessionAction } from '@/app/(app)/(auth)/accounts/actions/billing';
-import { calculateSubscriptionPrice } from '@/lib/subscription/ppp';
+import { calculateTotalSubscriptionPrice, getYearlyDiscountedPrice, getYearlyListPrice } from '@/lib/subscription/ppp';
 
 const CHECKOUT_CACHE_KEY = 'kylrix_pricing_checkout_v1';
 
@@ -29,20 +29,14 @@ export default function PricingPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const resumeAttemptedRef = useRef(false);
 
-  const basePrice = useMemo(() => {
-    return calculateSubscriptionPrice(selectedTier, 'US', 'CRYPTO');
-  }, [selectedTier]);
+  const yearlyListPrice = useMemo(() => getYearlyListPrice(selectedTier), [selectedTier]);
+  const yearlyDiscountedPrice = useMemo(() => getYearlyDiscountedPrice(selectedTier), [selectedTier]);
 
   const isYearly = months >= 12;
 
   const totalPrice = useMemo(() => {
-    if (months >= 12) {
-      const years = Math.floor(months / 12);
-      const remainingMonths = months % 12;
-      return years * 10 * basePrice + remainingMonths * basePrice;
-    }
-    return months * basePrice;
-  }, [months, basePrice]);
+    return calculateTotalSubscriptionPrice(selectedTier, months, 'CRYPTO');
+  }, [months, selectedTier]);
 
   const proceedToBlockBee = useCallback(async (planId: string, checkoutMonths: number, countryCode: string) => {
     setCheckoutLoading(true);
@@ -171,12 +165,9 @@ export default function PricingPage() {
                 />
 
                 {isYearly && (
-                  <div className="mt-4 p-3 rounded-[12px] bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2 inline-flex">
-                    <Sparkles size={16} className="text-emerald-400 flex-shrink-0" />
-                    <span className="text-emerald-400 text-xs font-black">
-                      Yearly Discount: 2 Months Free applied
-                    </span>
-                  </div>
+                  <p className="mt-3 text-[11px] font-bold text-emerald-400/80">
+                    2 months free included in your total
+                  </p>
                 )}
               </div>
 
@@ -204,18 +195,22 @@ export default function PricingPage() {
               </div>
             </div>
 
-            <div className="p-6 rounded-[24px] bg-[#1F1D1B] border border-white/8 text-center flex flex-col items-center justify-center gap-4 min-h-[200px]">
+            <div className="p-6 rounded-[24px] bg-[#1F1D1B] border border-white/8 text-center flex flex-col items-center justify-center gap-3 min-h-[200px]">
               <div>
                 <span className="text-white/40 text-[11px] font-bold block mb-1">
-                  Total Amount ({selectedTier})
+                  Total for {months} {months === 1 ? 'month' : 'months'}
                 </span>
                 <span className="text-4xl md:text-5xl font-black text-white font-mono leading-none tracking-tight">
                   ${totalPrice.toFixed(2)}
                 </span>
               </div>
 
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-[#6366F1] font-black text-xs">Universal Global Rate</span>
+              <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-[11px] font-semibold leading-tight">
+                <span className="line-through text-white/25 font-mono">${yearlyListPrice}</span>
+                <span className="text-white/55 font-mono">${yearlyDiscountedPrice}</span>
+                <span className="text-white/35">/year</span>
+                <span className="text-white/20">·</span>
+                <span className="text-emerald-400/75">2 mo. free</span>
               </div>
 
               <button
