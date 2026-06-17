@@ -14,7 +14,7 @@ import {
   TextField,
   Typography,
   alpha,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { masterPassCrypto } from '@/lib/masterpass-crypto';
 import { AppwriteService, setMasterpassFlag } from '@/lib/appwrite';
 import toast from 'react-hot-toast';
@@ -284,12 +284,12 @@ function MasterPassPageInner() {
                     autoFocus
                     autoComplete="new-password"
                     sx={{
-                        '& .MuiOutlinedInput-root': {
+                        '& .ob-input-root': {
                             bgcolor: '#0A0908',
                             borderRadius: '14px',
                             '& fieldset': { borderColor: '#23211F' },
                             '&:hover fieldset': { borderColor: '#34322F' },
-                            '&.Mui-focused fieldset': { borderColor: '#6366F1' },
+                            '&.ob-focused fieldset': { borderColor: '#6366F1' },
                         },
                         '& input': { color: '#fff', fontFamily: 'var(--font-mono)', py: 1.75 }
                     }}
@@ -302,12 +302,12 @@ function MasterPassPageInner() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setConfirmPassword(e.target.value)}
                     autoComplete="new-password"
                     sx={{
-                        '& .MuiOutlinedInput-root': {
+                        '& .ob-input-root': {
                             bgcolor: '#0A0908',
                             borderRadius: '14px',
                             '& fieldset': { borderColor: '#23211F' },
                             '&:hover fieldset': { borderColor: '#34322F' },
-                            '&.Mui-focused fieldset': { borderColor: '#6366F1' },
+                            '&.ob-focused fieldset': { borderColor: '#6366F1' },
                         },
                         '& input': { color: '#fff', fontFamily: 'var(--font-mono)', py: 1.75 }
                     }}

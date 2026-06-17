@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, ButtonBase, Stack, Typography, alpha } from '@/lib/mui-tailwind/material';
+import { Box, ButtonBase, Stack, Typography, alpha } from '@/lib/openbricks/primitives';
 import { DESIGN_FLYERS } from './flyers';
 
 interface DesignSidebarProps {

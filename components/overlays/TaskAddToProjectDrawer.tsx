@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, FolderKanban, LayoutGrid, Search, X } from 'lucide-react';
-import { useMediaQuery } from '@/lib/mui-tailwind/material';
+import { useMediaQuery } from '@/lib/openbricks/primitives';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { useAuth } from '@/context/auth/AuthContext';

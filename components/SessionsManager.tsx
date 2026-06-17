@@ -18,11 +18,11 @@ import {
   Stack,
   Chip,
   IconButton,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   Delete as DeleteIcon,
   PhoneIcon,
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { Laptop, Tablet, RefreshCw } from 'lucide-react';
 import { Models } from 'appwrite';
 

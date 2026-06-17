@@ -10,7 +10,7 @@ import {
     Drawer,
     useMediaQuery,
     useTheme
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { Fingerprint, Bell, X, ArrowRight, ShieldCheck } from 'lucide-react';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { PasskeySetup } from './PasskeySetup';

@@ -9,8 +9,8 @@ import {
   LinearProgress, 
   IconButton,
   alpha
-} from '@/lib/mui-tailwind/material';
-import { CloudUpload as UploadIcon, Close as CloseIcon } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { CloudUpload as UploadIcon, Close as CloseIcon } from '@/lib/openbricks/icons';
 import { addAttachmentToNote } from '@/lib/appwrite';
 
 interface AttachmentsManagerProps {
@@ -83,7 +83,7 @@ export default function AttachmentsManager({ noteId, onAttachmentAdded }: Attach
             height: 4, 
             borderRadius: 2, 
             bgcolor: '#0A0908',
-            '& .MuiLinearProgress-bar': { bgcolor: '#EC4899' }
+            '& .ob-linear-progress-bar': { bgcolor: '#EC4899' }
           }} />
         </Box>
       )}

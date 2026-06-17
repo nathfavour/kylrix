@@ -19,8 +19,8 @@ import {
   TableRow,
   TablePagination,
   TextField,
-} from '@/lib/mui-tailwind/material';
-import { Refresh as RefreshIcon } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Refresh as RefreshIcon } from '@/lib/openbricks/icons';
 import { Models } from 'appwrite';
 
 interface Log extends Models.Log {
@@ -171,7 +171,7 @@ export default function ActivityLogs({ onLogsLoaded }: ActivityLogsProps) {
               size="small"
               sx={{
                 flex: 1,
-                '& .MuiOutlinedInput-root': {
+                '& .ob-input-root': {
                   backgroundColor: '#161514',
                   color: 'white',
                   borderRadius: '8px',
@@ -181,11 +181,11 @@ export default function ActivityLogs({ onLogsLoaded }: ActivityLogsProps) {
                   '&:hover fieldset': {
                     borderColor: 'rgba(255, 255, 255, 0.3)',
                   },
-                  '&.Mui-focused fieldset': {
+                  '&.ob-focused fieldset': {
                     borderColor: '#6366F1',
                   },
                 },
-                '& .MuiOutlinedInput-input::placeholder': {
+                '& .ob-outlined-input::placeholder': {
                   color: 'rgba(255, 255, 255, 0.4)',
                   opacity: 1,
                 },
@@ -287,13 +287,13 @@ export default function ActivityLogs({ onLogsLoaded }: ActivityLogsProps) {
               borderTop: '1px solid rgba(255, 255, 255, 0.1)',
               borderBottomLeftRadius: '12px',
               borderBottomRightRadius: '12px',
-              '& .MuiTablePagination-toolbar': {
+              '& .ob-table-pagination-toolbar': {
                 color: 'rgba(255, 255, 255, 0.7)',
               },
-              '& .MuiIconButton-root': {
+              '& .ob-icon-button': {
                 color: 'rgba(255, 255, 255, 0.7)',
               },
-              '& .MuiIconButton-root:hover': {
+              '& .ob-icon-button:hover': {
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
               },
             }}

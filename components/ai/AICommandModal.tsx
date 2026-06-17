@@ -11,14 +11,14 @@ import {
   CircularProgress,
   alpha,
   Paper
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   AutoAwesome as WandIcon, 
   Close as CloseIcon,
   Send as SendIcon,
   SmartToy as RobotIcon,
   Person as PersonIcon
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { useAI, AIChatMessage } from '@/hooks/useAI';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -235,14 +235,14 @@ export const AICommandModal: React.FC<AICommandModalProps> = ({ isOpen, onClose 
                 }
               }}
               sx={{
-                '& .MuiOutlinedInput-root': {
+                '& .ob-input-root': {
                   bgcolor: 'rgba(255, 255, 255, 0.02)',
                   borderRadius: '16px',
                   color: 'white',
                   pr: 1,
                   '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
                   '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                  '&.Mui-focused fieldset': { borderColor: '#F59E0B' }
+                  '&.ob-focused fieldset': { borderColor: '#F59E0B' }
                 }
               }}
               InputProps={{
@@ -252,7 +252,7 @@ export const AICommandModal: React.FC<AICommandModalProps> = ({ isOpen, onClose 
                     type="submit"
                     sx={{ 
                       color: '#F59E0B',
-                      '&.Mui-disabled': { color: 'rgba(255, 255, 255, 0.1)' }
+                      '&.ob-disabled': { color: 'rgba(255, 255, 255, 0.1)' }
                     }}
                   >
                     <SendIcon />

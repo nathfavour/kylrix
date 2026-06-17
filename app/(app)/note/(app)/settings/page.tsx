@@ -20,7 +20,7 @@ import {
     ListItemIcon,
     ListItemText,
     IconButton
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
     Lock,
     Shield,
@@ -413,7 +413,7 @@ export default function SettingsPage() {
                     }}>
                         <Stack spacing={1}>
                             <FormControlLabel
-                                control={<Switch defaultChecked sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#EC4899' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#EC4899' } }} />}
+                                control={<Switch defaultChecked sx={{ '& .ob-switch-thumb.ob-checked': { color: '#EC4899' }, '& .ob-switch-thumb.ob-checked + .ob-switch-track': { bgcolor: '#EC4899' } }} />}
                                 label={
                                     <Box sx={{ ml: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
                                         <Box sx={{ p: 1, borderRadius: '10px', bgcolor: 'rgba(236, 72, 153, 0.05)', display: 'flex', border: '1px solid rgba(236, 72, 153, 0.1)' }}>
@@ -429,7 +429,7 @@ export default function SettingsPage() {
                             />
                             <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.05)' }} />
                             <FormControlLabel
-                                control={<Switch sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#EC4899' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#EC4899' } }} />}
+                                control={<Switch sx={{ '& .ob-switch-thumb.ob-checked': { color: '#EC4899' }, '& .ob-switch-thumb.ob-checked + .ob-switch-track': { bgcolor: '#EC4899' } }} />}
                                 label={
                                     <Box sx={{ ml: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
                                         <Box sx={{ p: 1, borderRadius: '10px', bgcolor: 'rgba(236, 72, 153, 0.05)', display: 'flex', border: '1px solid rgba(236, 72, 153, 0.1)' }}>

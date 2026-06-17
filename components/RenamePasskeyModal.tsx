@@ -9,7 +9,7 @@ import {
   CircularProgress,
   useTheme,
   useMediaQuery,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { AppwriteService } from '@/lib/appwrite';
 import toast from 'react-hot-toast';
 

@@ -1,13 +1,13 @@
 ---
 name: ui.tailwind-fix
-description: Row and card text layout fixes after Tailwind v4 + MUI-shim migration. Use when list rows, cards, or drawer items have clipped text, crushed line-height, or copy touching container edges. Pattern derived from ConnectTopbar Contextual Quick Actions.
+description: Row and card text layout fixes after Tailwind v4 + OpenBricks migration. Use when list rows, cards, or drawer items have clipped text, crushed line-height, or copy touching container edges. Pattern derived from ConnectTopbar Contextual Quick Actions.
 ---
 
 # ui.tailwind-fix
 
 ## When to use
 
-Apply this skill when fixing UI that uses `@/lib/mui-tailwind/material` (`Box`, `Typography`, `Paper`, `Stack`) and text looks like thin slivers, overlaps, or sits flush against borders—especially after the Tailwind v4 migration.
+Apply this skill when fixing UI that uses `@/lib/openbricks/primitives` (`Box`, `Typography`, `Paper`, `Stack`) and text looks like thin slivers, overlaps, or sits flush against borders—especially after the Tailwind v4 migration.
 
 Pair with `ui.tailwind-v4` for token/config rules; this skill is **layout and typography structure only**.
 
@@ -273,14 +273,14 @@ Match the quick-actions row structure (not a single crushed `Stack`):
 
 ## Icon imports (migration pitfall)
 
-**Never** default-import from `@/lib/mui-tailwind/icons`:
+**Never** default-import from `@/lib/openbricks/icons`:
 
 ```tsx
 // BAD — default export is a Proxy object, not a component → "Element type is invalid"
-import ContentCopyIcon from '@/lib/mui-tailwind/icons';
+import ContentCopyIcon from '@/lib/openbricks/icons';
 
 // GOOD
-import { ContentCopy as ContentCopyIcon } from '@/lib/mui-tailwind/icons';
+import { ContentCopy as ContentCopyIcon } from '@/lib/openbricks/icons';
 ```
 
 ## Context menus (three-dot / right-click)

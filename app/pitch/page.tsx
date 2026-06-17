@@ -14,7 +14,7 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,

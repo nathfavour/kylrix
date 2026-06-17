@@ -12,8 +12,8 @@ import {
   Stack,
   Drawer,
   IconButton,
-} from '@/lib/mui-tailwind/material';
-import { Delete as DeleteIcon } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Delete as DeleteIcon } from '@/lib/openbricks/icons';
 import { Models } from 'appwrite';
 
 type Identity = Models.Identity;

@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Button, Container, Paper, Stack, Typography } from '@/lib/mui-tailwind/material';
+import { Box, Button, Container, Paper, Stack, Typography } from '@/lib/openbricks/primitives';
 import { CheckCircle2, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { HuddleChatWindow } from '@/components/chat/HuddleChatWindow';
 import { useParams, useRouter } from 'next/navigation';
-import { Box, CircularProgress } from '@/lib/mui-tailwind/material';
+import { Box, CircularProgress } from '@/lib/openbricks/primitives';
 import { getNote } from '@/lib/appwrite/note';
 import { useAuth } from '@/context/auth/AuthContext';
 

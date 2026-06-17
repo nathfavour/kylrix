@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Box, Typography, Button, Paper } from '@/lib/mui-tailwind/material';
-import { ErrorOutline as ErrorIcon, Refresh as RefreshIcon } from '@/lib/mui-tailwind/icons';
+import { Box, Typography, Button, Paper } from '@/lib/openbricks/primitives';
+import { ErrorOutline as ErrorIcon, Refresh as RefreshIcon } from '@/lib/openbricks/icons';
 
 export default function Error({
   error,

@@ -22,7 +22,7 @@ import {
     alpha,
     Stack, Menu, MenuItem, ListItemIcon, ListItemText, Divider,
     useMediaQuery
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
     PhoneOff,
     Mic,

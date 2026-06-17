@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography, TextField, alpha } from '@/lib/mui-tailwind/material';
+import { Box, Typography, TextField, alpha } from '@/lib/openbricks/primitives';
 
 interface NoteContentProps {
   content: string;
@@ -26,7 +26,7 @@ export default function NoteContent({
         fullWidth
         inputProps={{ maxLength: 65000 }}
         sx={{
-          '& .MuiOutlinedInput-root': {
+          '& .ob-input-root': {
             borderRadius: '24px',
             bgcolor: 'rgba(255, 255, 255, 0.03)',
             p: 3,
@@ -40,12 +40,12 @@ export default function NoteContent({
             '&:hover fieldset': {
               borderColor: 'rgba(255, 255, 255, 0.15)',
             },
-            '&.Mui-focused fieldset': {
+            '&.ob-focused fieldset': {
               borderColor: alpha('#6366F1', 0.3),
               borderWidth: '1px',
             },
           },
-          '& .MuiInputBase-input::placeholder': {
+          '& .ob-input::placeholder': {
             color: 'rgba(255, 255, 255, 0.2)',
             opacity: 1,
           },

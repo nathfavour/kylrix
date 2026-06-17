@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, IconButton, Button, Stack, Select, MenuItem, FormControl, alpha, CircularProgress } from '@/lib/mui-tailwind/material';
+import { Box, Typography, IconButton, Button, Stack, Select, MenuItem, FormControl, alpha, CircularProgress } from '@/lib/openbricks/primitives';
 import { X, ArrowLeft, Trash2 } from 'lucide-react';
-import { Drawer } from '@/lib/mui-tailwind/material';
+import { Drawer } from '@/lib/openbricks/primitives';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { grantPermissionSecure, getResourceCollaboratorsSecure, revokePermissionSecure, PermissionLevel } from '@/lib/actions/secure-ops';
@@ -203,7 +203,7 @@ export function CollaboratorManager({ isOpen, onClose, resourceId, resourceType,
                                 bgcolor: '#0A0908',
                                 color: 'white',
                                 borderRadius: '12px',
-                                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.05)' }
+                                '& .ob-input-outline': { borderColor: 'rgba(255, 255, 255, 0.05)' }
                             }}
                         >
                             <MenuItem value="viewer">Viewer</MenuItem>
@@ -326,7 +326,7 @@ export function CollaboratorManager({ isOpen, onClose, resourceId, resourceType,
                         bgcolor: '#0A0908',
                         color: 'white',
                         borderRadius: '12px',
-                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.05)' }
+                        '& .ob-input-outline': { borderColor: 'rgba(255, 255, 255, 0.05)' }
                     }}
                 >
                     <MenuItem value="viewer">Viewer</MenuItem>

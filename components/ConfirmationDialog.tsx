@@ -8,7 +8,7 @@ import {
   Box,
   useTheme,
   useMediaQuery,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 
 interface ConfirmationDialogProps {
   open: boolean;

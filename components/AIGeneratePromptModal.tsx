@@ -16,14 +16,14 @@ import {
   CircularProgress,
   useTheme,
   useMediaQuery
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   Close as CloseIcon, 
   AutoAwesome as SparklesIcon, 
   LightbulbOutlined as LightBulbIcon, 
   Search as MagnifyingGlassIcon, 
   Edit as PencilIcon 
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 
 interface AIGeneratePromptModalProps {
   onClose: () => void;
@@ -241,13 +241,13 @@ export function AIGeneratePromptModal({ onClose, onGenerate, isGenerating = fals
               placeholder={selectedTypeData.placeholder}
               disabled={isGenerating}
               sx={{
-                '& .MuiOutlinedInput-root': {
+                '& .ob-input-root': {
                   bgcolor: 'rgba(0, 0, 0, 0.2)',
                   borderRadius: '20px',
                   color: 'white',
                   '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
                   '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                  '&.Mui-focused fieldset': { borderColor: '#6366F1' }
+                  '&.ob-focused fieldset': { borderColor: '#6366F1' }
                 }
               }}
             />
@@ -325,7 +325,7 @@ export function AIGeneratePromptModal({ onClose, onGenerate, isGenerating = fals
               borderRadius: '14px',
               px: 3,
               '&:hover': { bgcolor: '#00D1DA' },
-              '&.Mui-disabled': { bgcolor: 'rgba(99, 102, 241, 0.2)', color: 'rgba(0, 0, 0, 0.3)' }
+              '&.ob-disabled': { bgcolor: 'rgba(99, 102, 241, 0.2)', color: 'rgba(0, 0, 0, 0.3)' }
             }}
           >
             {isGenerating ? 'Generating...' : 'Generate Note'}

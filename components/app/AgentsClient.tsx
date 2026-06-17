@@ -12,7 +12,7 @@ import {
     Grid,
     Paper,
     Chip
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
     ArrowLeft,
     Settings,

@@ -17,7 +17,7 @@ import {
     Paper,
     Switch,
     FormControlLabel,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
     X,
     Wallet as WalletIcon,
@@ -911,8 +911,8 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                     }}
                                     size="small"
                                     sx={{
-                                        '& .MuiSwitch-switchBase.Mui-checked': { color: ACCENT },
-                                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: `${ACCENT} !important`, opacity: 0.38 },
+                                        '& .ob-switch-thumb.ob-checked': { color: ACCENT },
+                                        '& .ob-switch-thumb.ob-checked + .ob-switch-track': { bgcolor: `${ACCENT} !important`, opacity: 0.38 },
                                     }}
                                 />
                             )}

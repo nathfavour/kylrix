@@ -13,7 +13,7 @@ import {
   Alert,
   useTheme,
   useMediaQuery,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 
 interface EditUsernameModalProps {
   isOpen: boolean;
@@ -138,7 +138,7 @@ export default function EditUsernameModal({
             disabled={loading}
             autoFocus
             sx={{
-              '& .MuiOutlinedInput-root': {
+              '& .ob-input-root': {
                 color: 'white',
                 '& fieldset': {
                   borderColor: 'rgba(255, 255, 255, 0.2)',
@@ -146,13 +146,13 @@ export default function EditUsernameModal({
                 '&:hover fieldset': {
                   borderColor: 'rgba(255, 255, 255, 0.3)',
                 },
-                '&.Mui-focused fieldset': {
+                '&.ob-focused fieldset': {
                   borderColor: dynamicColors.primary,
                 },
               },
-              '& .MuiInputLabel-root': {
+              '& .ob-input-label': {
                 color: dynamicColors.foreground,
-                '&.Mui-focused': {
+                '&.ob-focused': {
                   color: dynamicColors.primary,
                 },
               },
@@ -182,7 +182,7 @@ export default function EditUsernameModal({
             borderRadius: '0.5rem',
             px: 3,
             '&:hover': { backgroundColor: '#00D1DA' },
-            '&.Mui-disabled': {
+            '&.ob-disabled': {
               backgroundColor: 'rgba(99, 102, 241, 0.3)',
               color: 'rgba(0, 0, 0, 0.3)',
             },

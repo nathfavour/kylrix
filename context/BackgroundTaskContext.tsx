@@ -1,9 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useMemo, useState, useCallback, ReactNode } from 'react';
-import { Box, Typography, LinearProgress, Button, alpha, CircularProgress } from '@/lib/mui-tailwind/material';
-import CheckCircleIcon from '@/lib/mui-tailwind/icons';
-import WarningIcon from '@/lib/mui-tailwind/icons';
+import { Box, Typography, LinearProgress, Button, alpha, CircularProgress } from '@/lib/openbricks/primitives';
+import CheckCircleIcon from '@/lib/openbricks/icons';
+import WarningIcon from '@/lib/openbricks/icons';
 import { FloatingContainer } from '@/components/ui/FloatingContainer';
 import { ImportService, type ImportProgress, type ImportResult } from '@/utils/import/import-service';
 
@@ -159,7 +159,7 @@ export function BackgroundTaskProvider({ children }: { children: ReactNode }) {
                         height: 6,
                         borderRadius: 3,
                         bgcolor: 'rgba(255, 255, 255, 0.05)',
-                        '& .MuiLinearProgress-bar': { borderRadius: 3 }
+                        '& .ob-linear-progress-bar': { borderRadius: 3 }
                       }}
                     />
                     {importProgress.itemsTotal > 0 && (

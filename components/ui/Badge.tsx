@@ -1,5 +1,5 @@
 import React from 'react';
-import { Chip } from '@/lib/mui-tailwind/material';
+import { Chip } from '@/lib/openbricks/primitives';
 
 interface BadgeProps {
   children: React.ReactNode;

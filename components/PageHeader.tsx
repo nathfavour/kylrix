@@ -1,10 +1,10 @@
 'use client';
 
-import { Box, Paper, IconButton } from '@/lib/mui-tailwind/material';
+import { Box, Paper, IconButton } from '@/lib/openbricks/primitives';
 import GlobalSearch from './GlobalSearch';
 import KeyboardShortcuts from './KeyboardShortcuts';
 import { useState } from 'react';
-import { Keyboard as KeyboardIcon } from '@/lib/mui-tailwind/icons';
+import { Keyboard as KeyboardIcon } from '@/lib/openbricks/icons';
 
 export default function PageHeader() {
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);

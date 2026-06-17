@@ -12,13 +12,13 @@ import {
   alpha, 
   Tooltip,
   CircularProgress
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   Delete as DeleteIcon, 
   Download as DownloadIcon, 
   InsertDriveFile as FileIcon,
   Visibility as ViewIcon
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { getNoteAttachment, deleteNoteAttachment, storage, APPWRITE_BUCKET_NOTES_ATTACHMENTS } from '@/lib/appwrite';
 import type { Models } from 'appwrite';
 

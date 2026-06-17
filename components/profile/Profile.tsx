@@ -13,7 +13,7 @@ import {
     
     Stack,
     alpha
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
     Edit3 as EditIcon, 
     UserPlus as PersonAddIcon, 

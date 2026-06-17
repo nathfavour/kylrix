@@ -18,7 +18,7 @@ import {
   TextField,
   Tooltip,
   Typography,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   ChevronDown,
   Search,

@@ -1,19 +1,19 @@
 ---
 name: tailwind-fix-v2
-description: Advanced techniques for migrating heavy MUI interactive widgets (Drawers, Menus, Grid, Slider) to native Tailwind CSS. Includes implementing unmount policies, backdrop click-aways, custom context menus, slider replacements, and page margin overrides.
+description: Advanced techniques for migrating heavy OpenBricks interactive widgets (Drawers, Menus, Grid, Slider) to native Tailwind CSS. Includes implementing unmount policies, backdrop click-aways, custom context menus, slider replacements, and page margin overrides.
 ---
 
-# tailwind-fix-v2 (MUI to Tailwind Migration - Phase II)
+# tailwind-fix-v2 (OpenBricks to Tailwind Migration - Phase II)
 
 ## When to use
 
-Use this skill when refactoring pages/components to completely remove MUI (`@/lib/mui-tailwind/material` dependencies) and transition to pure Tailwind CSS + React. It specializes in interactive elements (drawers, sliders, grids, and context menus) where layouts need to remain premium, clean, and highly performant.
+Use this skill when refactoring pages/components to remove OpenBricks primitive wrappers (`@/lib/openbricks/primitives`) and transition to pure Tailwind CSS + React. It specializes in interactive elements (drawers, sliders, grids, and context menus) where layouts need to remain premium, clean, and highly performant.
 
 ---
 
 ## 🏗️ 1. Drawer/Modal Removal (The Slide-up Sheet Pattern)
 
-Instead of relying on MUI `<Drawer>` components, use standard Tailwind blocks triggered by React conditional rendering.
+Instead of relying on OpenBricks `<Drawer>` components, use standard Tailwind blocks triggered by React conditional rendering.
 
 ### The Rule
 Always prefer conditional rendering (`{isOpen && <Drawer onClose={...} />}`) rather than visibility props (`<Drawer open={isOpen} />`). This physically mounts and unmounts the drawer and its backdrop from the DOM, ensuring hidden overlays never block clicks or freeze screen interactivity.

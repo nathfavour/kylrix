@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Box, Typography, Container, Button } from '@/lib/mui-tailwind/material';
+import { Box, Typography, Container, Button } from '@/lib/openbricks/primitives';
 
 export default function NotFound() {
   return (

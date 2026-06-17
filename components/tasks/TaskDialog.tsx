@@ -31,7 +31,7 @@ import {
   ListItemButton, 
   ListItemText,
   alpha 
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 
 const SURFACE_ASH = '#161412';
@@ -531,7 +531,7 @@ export default function TaskDialog() {
         ModalProps={{ keepMounted: false, disableScrollLock: false }}
         sx={{
           zIndex: 2000,
-          '& .MuiDrawer-paper': {
+          '& .ob-drawer-panel': {
             bgcolor: SURFACE_ASH,
             borderTopLeftRadius: RADIUS_LARGE,
             borderTopRightRadius: RADIUS_LARGE,

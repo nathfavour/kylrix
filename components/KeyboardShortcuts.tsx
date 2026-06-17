@@ -10,8 +10,8 @@ import {
   IconButton,
   Divider,
   alpha
-} from '@/lib/mui-tailwind/material';
-import { Close as CloseIcon, Keyboard as KeyboardIcon } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Close as CloseIcon, Keyboard as KeyboardIcon } from '@/lib/openbricks/icons';
 
 interface ShortcutProps {
   keys: string[];

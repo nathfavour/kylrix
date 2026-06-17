@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button as MuiButton, CircularProgress } from '@/lib/mui-tailwind/material';
+import { Button as ObButton, CircularProgress } from '@/lib/openbricks/primitives';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
@@ -57,7 +57,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     return (
-      <MuiButton
+      <ObButton
         ref={ref}
         variant={variant as any}
         size={size}
@@ -72,7 +72,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {children}
-      </MuiButton>
+      </ObButton>
     );
   }
 );

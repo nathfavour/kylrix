@@ -28,7 +28,7 @@ import {
     Fab,
     useMediaQuery,
     useTheme
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
     Heart,
     MessageCircle,
@@ -929,7 +929,7 @@ const handleRightClick = (e: React.MouseEvent) => {
 return (
     <Card onContextMenu={handleRightClick} sx={{ ...momentCardSx, mb: { xs: 2.5, md: 3 } }} elevation={0}>
         <CardHeader
-            sx={{ px: 2, pt: 2, pb: 0.75, '& .MuiCardHeader-content': { minWidth: 0 } }}
+            sx={{ px: 2, pt: 2, pb: 0.75, '& .ob-card-header-content': { minWidth: 0 } }}
             avatar={
                 <Avatar
                     src={creatorAvatar}
@@ -2478,7 +2478,7 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
                                         >
                                             <CardHeader
                             avatar={<Avatar onClick={(e: React.MouseEvent) => { e.stopPropagation(); const username = resolveIdentityUsername(moment.creator || cachedCreator, creatorId); if (username) router.push(`/u/${username}`); }} src={creatorAvatar} sx={{ ...feedAvatarSx, width: 36, height: 36, cursor: 'pointer' }} />}
-                                                sx={{ px: 2, pt: 2, pb: 0.5, '& .MuiCardHeader-content': { minWidth: 0 } }}
+                                                sx={{ px: 2, pt: 2, pb: 0.5, '& .ob-card-header-content': { minWidth: 0 } }}
                                                 title={<Typography sx={feedTitleSx}>{creatorName}</Typography>}
                                                 subheader={<Typography sx={feedSubheaderSx}>{new Date(moment.createdAt).toLocaleDateString()}</Typography>}
                                             />

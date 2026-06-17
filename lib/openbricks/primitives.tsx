@@ -233,7 +233,7 @@ Box.displayName = 'Box';
 export const Button = React.forwardRef(({ children, className, sx, variant = 'text', color = 'primary', size = 'medium', disabled, startIcon, endIcon, fullWidth, disableElevation, disableRipple, disableFocusRipple, disableTouchRipple, component, ...props }: any, ref) => {
   let baseClass = "inline-flex items-center justify-center font-bold font-clash rounded-xl px-5 py-2.5 transition-all duration-300 border border-[#23211F] text-sm active:scale-95";
   if (disabled) {
-    baseClass += " opacity-50 cursor-not-allowed bg-stone-900 text-stone-500 border-stone-800";
+    baseClass += " ob-disabled opacity-50 cursor-not-allowed bg-stone-900 text-stone-500 border-stone-800";
   } else if (variant === 'contained') {
     if (color === 'secondary') {
       baseClass += " bg-pink-600 text-white hover:bg-pink-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:shadow-lg hover:-translate-y-0.5";
@@ -406,9 +406,9 @@ export const Tabs = React.forwardRef(({
   ...props
 }: any, ref) => {
   const { root, nested } = splitSx(sx);
-  const tabRootSx = cleanSx(nested['& .ob-tab'] || nested['& .MuiTab-root'] || {});
-  const tabSelectedSx = cleanSx((nested['& .ob-tab'] || nested['& .MuiTab-root'] || {})['&.ob-selected'] || (nested['& .ob-tab'] || nested['& .MuiTab-root'] || {})['&.Mui-selected'] || {});
-  const tabHoverSx = cleanSx((nested['& .ob-tab'] || nested['& .MuiTab-root'] || {})['&:hover:not(.ob-selected)'] || (nested['& .ob-tab'] || nested['& .MuiTab-root'] || {})['&:hover:not(.Mui-selected)'] || {});
+  const tabRootSx = cleanSx(nested['& .ob-tab'] || nested['& .ob-tab'] || {});
+  const tabSelectedSx = cleanSx((nested['& .ob-tab'] || nested['& .ob-tab'] || {})['&.ob-selected'] || (nested['& .ob-tab'] || nested['& .ob-tab'] || {})['&.ob-selected'] || {});
+  const tabHoverSx = cleanSx((nested['& .ob-tab'] || nested['& .ob-tab'] || {})['&:hover:not(.ob-selected)'] || (nested['& .ob-tab'] || nested['& .ob-tab'] || {})['&:hover:not(.ob-selected)'] || {});
   
   const isScrollable = variant === 'scrollable';
   const scrollableClass = isScrollable ? 'overflow-x-auto flex-nowrap' : 'flex-wrap';
@@ -984,7 +984,7 @@ export const Drawer = React.forwardRef(({ open, onClose, anchor = 'right', child
   const posClass = anchor === 'left' ? 'left-0' : anchor === 'bottom' ? 'bottom-0 left-0 right-0' : 'right-0';
   
   const drawerRootSx = sx || {};
-  const nestedPaperSx = drawerRootSx?.['& .ob-drawer-panel'] || drawerRootSx?.['& .MuiDrawer-paper'] || {};
+  const nestedPaperSx = drawerRootSx?.['& .ob-drawer-panel'] || drawerRootSx?.['& .ob-drawer-panel'] || {};
   const paperSx = { ...(PaperProps?.sx || {}), ...nestedPaperSx };
   const paperStyle = cleanSx(paperSx);
   
@@ -1036,7 +1036,7 @@ export const Switch = ({ checked, onChange, disabled, ...props }: any) => (
   <button
     onClick={() => !disabled && onChange?.({ target: { checked: !checked } })}
     disabled={disabled}
-    className={`ob-switch-track w-11 h-6 rounded-full transition-all relative ${checked ? 'bg-[#6366F1]' : 'bg-[#23211F]'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    className={`ob-switch-track w-11 h-6 rounded-full transition-all relative ${checked ? 'ob-checked bg-[#6366F1]' : 'bg-[#23211F]'} ${disabled ? 'ob-disabled opacity-50 cursor-not-allowed' : ''}`}
     {...props}
   >
     <span className={`ob-switch-thumb absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all ${checked ? 'ob-checked translate-x-5' : ''}`} />
@@ -1048,7 +1048,7 @@ export const Checkbox = ({ checked, onChange, disabled, ...props }: any) => (
   <button
     onClick={() => !disabled && onChange?.({ target: { checked: !checked } })}
     disabled={disabled}
-    className={`w-5 h-5 rounded-md border border-[#23211F] bg-[#0A0908] flex items-center justify-center transition-all ${checked ? 'bg-[#6366F1] border-indigo-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    className={`w-5 h-5 rounded-md border border-[#23211F] bg-[#0A0908] flex items-center justify-center transition-all ${checked ? 'ob-checked bg-[#6366F1] border-indigo-500' : ''} ${disabled ? 'ob-disabled opacity-50 cursor-not-allowed' : ''}`}
     {...props}
   >
     {checked && <span className="w-2.5 h-2.5 bg-white rounded-sm" />}
@@ -1950,7 +1950,7 @@ export const SpeedDial = React.forwardRef(
       React.isValidElement(icon) ? React.cloneElement(icon as any, { open }) : icon;
 
     const { root: rootSx, nested } = splitSx(sx);
-    const fabSx = cleanSx(nested['& .ob-fab-primary'] || nested['& .MuiFab-primary']);
+    const fabSx = cleanSx(nested['& .ob-fab-primary'] || nested['& .ob-fab-primary']);
 
     return (
       <div
@@ -1994,7 +1994,7 @@ export const SpeedDial = React.forwardRef(
           >
             {React.Children.map(children, (child) => {
               if (!React.isValidElement(child)) return child;
-              return React.cloneElement(child as any, { open, __muiSx: sx });
+              return React.cloneElement(child as any, { open, __obSx: sx });
             })}
           </div>
         ) : null}
@@ -2024,14 +2024,14 @@ export const SpeedDialAction = React.forwardRef(
       disabled,
       className,
       sx,
-      __muiSx,
+      __obSx,
       ...props
     }: any,
     ref
   ) => {
-    const { root: rootSx, nested } = splitSx(__muiSx || sx);
-    const actionFabSx = cleanSx(nested['& .ob-speed-dial-action'] || nested['& .MuiSpeedDialAction-fab']);
-    const tooltipLabelSx = cleanSx(nested['& .ob-speed-dial-tooltip'] || nested['& .MuiSpeedDialAction-staticTooltipLabel']);
+    const { root: rootSx, nested } = splitSx(__obSx || sx);
+    const actionFabSx = cleanSx(nested['& .ob-speed-dial-action'] || nested['& .ob-speed-dial-action']);
+    const tooltipLabelSx = cleanSx(nested['& .ob-speed-dial-tooltip'] || nested['& .ob-speed-dial-tooltip']);
 
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

@@ -13,12 +13,12 @@ import {
     Drawer,
     IconButton,
     Divider
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
     Search as SearchIcon,
     Description as NoteIcon,
     Close as CloseIcon,
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { useNotes } from '@/context/NotesContext';
 
 interface NoteSelectorModalProps {
@@ -46,7 +46,7 @@ export function NoteSelectorModal({ isOpen, onClose, onSelect }: NoteSelectorMod
                     <IconButton onClick={onClose} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.55)' }}><CloseIcon /></IconButton>
                 </Box>
                 <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
-                <TextField fullWidth size="small" placeholder="Search notes..." value={search} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)} variant="outlined" sx={{ mb: 1, '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '12px', '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' }, '&:hover fieldset': { borderColor: 'rgba(99,102,241,0.3)' }, '&.Mui-focused fieldset': { borderColor: '#6366F1' } } }} InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.3)', fontSize: 20 }} /></InputAdornment>) }} />
+                <TextField fullWidth size="small" placeholder="Search notes..." value={search} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)} variant="outlined" sx={{ mb: 1, '& .ob-input-root': { bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '12px', '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' }, '&:hover fieldset': { borderColor: 'rgba(99,102,241,0.3)' }, '&.ob-focused fieldset': { borderColor: '#6366F1' } } }} InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.3)', fontSize: 20 }} /></InputAdornment>) }} />
                 {loading ? (<Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress size={32} sx={{ color: '#6366F1' }} /></Box>) : filtered.length === 0 ? (<Typography variant="body2" sx={{ textAlign: 'center', opacity: 0.5, py: 4 }}>No notes found</Typography>) : (<List sx={{ maxHeight: '400px', overflowY: 'auto' }}>{filtered.map((note: any) => (<ListItemButton key={note.$id} onClick={() => onSelect(note.$id)} sx={{ borderRadius: '12px', mb: 1, border: '1px solid rgba(255,255,255,0.05)', '&:hover': { bgcolor: 'rgba(99,102,241,0.05)', borderColor: 'rgba(99,102,241,0.2)' } }}><Box sx={{ mr: 2, display: 'flex', color: '#6366F1' }}><NoteIcon fontSize="small" /></Box><ListItemText primary={note.title || 'Untitled Note'} secondary={new Date(note.$createdAt).toLocaleDateString()} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 600 }} secondaryTypographyProps={{ fontSize: '0.75rem', sx: { opacity: 0.5 } }} /></ListItemButton>))}</List>)}
             </Box>
         </Drawer>

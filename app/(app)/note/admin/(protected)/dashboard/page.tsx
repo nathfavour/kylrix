@@ -5,12 +5,12 @@ import {
   Typography, 
   Grid, 
   Paper 
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import Link from 'next/link';
 import { 
   Campaign as BroadcastIcon, 
   Construction as ToolsIcon 
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 
 export default function AdminDashboard() {
   return (

@@ -14,8 +14,8 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
-} from '@/lib/mui-tailwind/material';
-import { Close as CloseIcon } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Close as CloseIcon } from '@/lib/openbricks/icons';
 import { AuthenticationFactor } from 'appwrite';
 import { account } from '@/lib/appwrite';
 import toast from 'react-hot-toast';
@@ -207,7 +207,7 @@ export function MfaChallengeDrawer({ open, onClose, loginMethod, onSuccess }: Pr
                 fullWidth
                 autoFocus
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  '& .ob-input-root': {
                     color: 'white',
                     borderRadius: '16px',
                     bgcolor: '#161514',

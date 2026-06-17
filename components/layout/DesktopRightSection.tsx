@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Typography, Stack, Button, IconButton,  alpha, useTheme, Chip } from '@/lib/mui-tailwind/material';
+import { Box, Typography, Stack, Button, IconButton,  alpha, useTheme, Chip } from '@/lib/openbricks/primitives';
 import { 
   ChevronDown, 
   ChevronUp, 

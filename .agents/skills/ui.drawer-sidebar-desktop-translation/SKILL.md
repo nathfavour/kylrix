@@ -37,11 +37,11 @@ Just as mobile layouts can overlay multiple drawers sequentially (e.g. stacking 
 
 ---
 
-### 4. Implementation Example (MUI / Tailwind / Custom CSS)
-Always use responsive media hooks or media queries to compute the `anchor` and `PaperProps` dynamically.
+### 4. Implementation Example (OpenBricks / Tailwind)
+Always use responsive media hooks or media queries to compute the `anchor` and drawer panel styles dynamically.
 
 ```tsx
-import { useMediaQuery, useTheme } from '@mui/material';
+import { useMediaQuery, useTheme } from '@/lib/openbricks/primitives';
 
 const theme = useTheme();
 const isDesktop = useMediaQuery(theme.breakpoints.up('md'));

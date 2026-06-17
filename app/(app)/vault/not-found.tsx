@@ -1,4 +1,4 @@
-import { Button, Box, Typography, Container } from '@/lib/mui-tailwind/material';
+import { Button, Box, Typography, Container } from '@/lib/openbricks/primitives';
 
 export default function NotFound() {
   return (

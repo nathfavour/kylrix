@@ -23,7 +23,7 @@ import {
   Chip,
   useTheme,
   useMediaQuery,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
@@ -40,7 +40,7 @@ import {
   Settings as SettingsIcon,
   UploadFile as FileUploadIcon,
   ChevronDownIcon,
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { FormsService } from '@/lib/services/forms';
 import { DraftsService, FormDraft } from '@/lib/services/drafts';
 import { Forms, FormsStatus } from '@/generated/appwrite/types';
@@ -782,7 +782,7 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
                       py: 1.5,
                       color: 'white',
                       '&:hover': { bgcolor: '#0B0A09' },
-                      '&.Mui-focused': { bgcolor: '#0B0A09', borderColor: 'var(--color-primary)' }
+                      '&.ob-focused': { bgcolor: '#0B0A09', borderColor: 'var(--color-primary)' }
                     } 
                   }}
                 />
@@ -890,7 +890,7 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
             color: 'white',
             boxShadow: `0 8px 32px ${alpha('#6366F1', 0.3)}`,
             '&:hover': { bgcolor: alpha('#6366F1', 0.9) },
-            '&.Mui-disabled': {
+            '&.ob-disabled': {
               bgcolor: 'rgba(255, 255, 255, 0.04) !important',
               color: 'rgba(255, 255, 255, 0.15) !important',
               boxShadow: 'none !important'

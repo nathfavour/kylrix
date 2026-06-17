@@ -13,7 +13,7 @@ import {
   Drawer,
   IconButton,
   Divider
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   Search as SearchIcon,
   VpnKey as KeyIcon,
@@ -21,7 +21,7 @@ import {
   CreditCard as CardIcon,
   Security as SecurityIcon,
   Close as CloseIcon
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { listKeepCredentials } from '@/lib/appwrite';
 import { useToast } from './Toast';
 
@@ -121,12 +121,12 @@ export function CredentialSelectorModal({ isOpen, onClose, onSelect }: Credentia
           onChange={ (e) => setSearch(e.target.value)}
           sx={{
             mb: 2,
-            '& .MuiOutlinedInput-root': {
+            '& .ob-input-root': {
               bgcolor: 'rgba(255, 255, 255, 0.03)',
               borderRadius: '12px',
               '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
               '&:hover fieldset': { borderColor: 'rgba(99, 102, 241, 0.3)' },
-              '&.Mui-focused fieldset': { borderColor: '#6366F1' },
+              '&.ob-focused fieldset': { borderColor: '#6366F1' },
             }
           }}
           InputProps={{

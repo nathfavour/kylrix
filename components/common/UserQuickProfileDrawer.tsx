@@ -14,7 +14,7 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { Copy, MessageCircle, Send, Wallet, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { KylrixApp } from '@/lib/sdk/design';

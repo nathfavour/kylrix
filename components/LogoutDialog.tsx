@@ -10,7 +10,7 @@ import {
   CircularProgress,
   useTheme,
   useMediaQuery,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { account } from '@/lib/appwrite';
 
 interface LogoutDialogProps {

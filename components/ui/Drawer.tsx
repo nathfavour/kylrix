@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import { Drawer as MuiDrawer, IconButton, useTheme, useMediaQuery, Box } from '@/lib/mui-tailwind/material';
-import { Close as CloseIcon } from '@/lib/mui-tailwind/icons';
+import { Drawer as ObDrawer, IconButton, useTheme, useMediaQuery, Box } from '@/lib/openbricks/primitives';
+import { Close as CloseIcon } from '@/lib/openbricks/icons';
 import { TOPBAR_DRAWER_BACKDROP_SLOT } from '@/lib/ui/topbar-drawer-slot';
 
 export function Drawer({
@@ -18,7 +18,7 @@ export function Drawer({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   return (
-    <MuiDrawer
+    <ObDrawer
       anchor={isMobile ? 'bottom' : 'right'}
       open={open}
       onClose={onClose}
@@ -41,7 +41,7 @@ export function Drawer({
         }
       }}
       sx={{
-        '& .MuiBackdrop-root': {
+        '& .ob-backdrop': {
           bgcolor: 'rgba(0, 0, 0, 0.7)',
           backdropFilter: 'blur(4px)'
         }
@@ -85,6 +85,6 @@ export function Drawer({
       }}>
         {children}
       </Box>
-    </MuiDrawer>
+    </ObDrawer>
   );
 }

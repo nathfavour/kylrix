@@ -9,7 +9,7 @@ import {
   Stack,
   Typography,
   alpha,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { Copy, Link as LinkIcon, Users, X } from 'lucide-react';
 
 interface ReferralInfoDrawerProps {

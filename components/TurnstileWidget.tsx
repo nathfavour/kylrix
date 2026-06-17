@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { TURNSTILE_SITE_KEY } from '@/lib/turnstile';
-import { Box } from '@/lib/mui-tailwind/material';
+import { Box } from '@/lib/openbricks/primitives';
 
 declare global {
   interface Window {

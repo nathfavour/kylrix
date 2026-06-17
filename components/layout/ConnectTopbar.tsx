@@ -23,7 +23,7 @@ import {
   Drawer,
   useMediaQuery,
   useTheme,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   Bot,
   ChevronDown,
@@ -87,7 +87,7 @@ function searchOnPage(query: string): PageMatch[] {
         if (
           parent.closest('.kylrix-topbar') || 
           parent.closest('[data-note-search-surface]') || 
-          parent.closest('.MuiDrawer-root')
+          parent.closest('.ob-drawer-root')
         ) {
           return NodeFilter.FILTER_REJECT;
         }
@@ -1560,7 +1560,7 @@ export default function ConnectTopbar({
                           height: 28,
                           color: 'rgba(255, 255, 255, 0.5)',
                           '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.06)' },
-                          '&.Mui-disabled': { color: 'rgba(255, 255, 255, 0.25)' }
+                          '&.ob-disabled': { color: 'rgba(255, 255, 255, 0.25)' }
                         }}
                       >
                         <UserIcon size={16} />

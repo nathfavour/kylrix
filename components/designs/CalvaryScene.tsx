@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, alpha } from '@/lib/mui-tailwind/material';
+import { Box, alpha } from '@/lib/openbricks/primitives';
 
 export default function CalvaryScene() {
   return (

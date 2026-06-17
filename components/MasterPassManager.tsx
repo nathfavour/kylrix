@@ -9,8 +9,8 @@ import {
   Stack, 
   Alert, 
   CircularProgress,
-} from '@/lib/mui-tailwind/material';
-import { Lock, Shield, CheckCircle } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Lock, Shield, CheckCircle } from '@/lib/openbricks/icons';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { AppwriteService } from '@/lib/appwrite';
 import { useTheme } from '@/lib/theme-context';
@@ -116,7 +116,7 @@ export default function MasterPassManager({ userId }: { userId: string }) {
                   color: '#22c55e',
                   border: '1px solid rgba(34, 197, 94, 0.2)',
                   borderRadius: '12px',
-                  '& .MuiAlert-icon': { color: '#22c55e' }
+                  '& .ob-alert-icon': { color: '#22c55e' }
               }}
           >
               Vault is currently unlocked for this session.
@@ -131,7 +131,7 @@ export default function MasterPassManager({ userId }: { userId: string }) {
                 onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPassword(e.target.value)}
                 disabled={loading}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  '& .ob-input-root': {
                     bgcolor: '#161514',
                     borderRadius: '8px',
                     '& fieldset': {
@@ -140,11 +140,11 @@ export default function MasterPassManager({ userId }: { userId: string }) {
                     '&:hover fieldset': {
                       borderColor: 'rgba(255, 255, 255, 0.2)',
                     },
-                    '&.Mui-focused fieldset': {
+                    '&.ob-focused fieldset': {
                       borderColor: '#6366F1',
                     },
                   },
-                  '& .MuiOutlinedInput-input::placeholder': {
+                  '& .ob-outlined-input::placeholder': {
                     color: 'rgba(255, 255, 255, 0.4)',
                     opacity: 1,
                   },

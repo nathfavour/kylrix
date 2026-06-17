@@ -12,7 +12,7 @@ import {
   Stack,
   Typography,
   alpha,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { Users, ShieldCheck, ArrowRight } from 'lucide-react';
 
 import { account } from '@/lib/appwrite/client';

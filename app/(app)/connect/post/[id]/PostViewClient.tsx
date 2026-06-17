@@ -28,7 +28,7 @@ import {
     useTheme,
     
     Paper, TextField, InputAdornment, Alert, Menu, MenuItem 
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import ActorsListDrawer from '@/components/social/ActorsListDrawer';
 import {
     Heart,
@@ -1762,7 +1762,7 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                             bgcolor: 'rgba(99, 102, 241, 0.1)', 
                             color: '#6366F1',
                             border: '1px solid rgba(99, 102, 241, 0.2)',
-                            '& .MuiAlert-icon': { color: '#6366F1' }
+                            '& .ob-alert-icon': { color: '#6366F1' }
                         }}
                     >
                         You are viewing this post as a guest. Login to like or reply.
@@ -2113,7 +2113,7 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                                                     bgcolor: '#F59E0B', 
                                                     color: 'black',
                                                     '&:hover': { bgcolor: alpha('#F59E0B', 0.8) },
-                                                    '&.Mui-disabled': { bgcolor: 'rgba(245, 158, 11, 0.2)', color: 'rgba(0,0,0,0.3)' }
+                                                    '&.ob-disabled': { bgcolor: 'rgba(245, 158, 11, 0.2)', color: 'rgba(0,0,0,0.3)' }
                                                 }}
                                             >
                                                 {replying ? <CircularProgress size={16} color="inherit" /> : <Send size={16} />}
@@ -2197,7 +2197,7 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                                         borderRadius: '30px',
                                         textTransform: 'none',
                                         '&:hover': { bgcolor: alpha('#F59E0B', 0.8) },
-                                        '&.Mui-disabled': { bgcolor: 'rgba(245, 158, 11, 0.2)', color: 'rgba(0,0,0,0.3)' }
+                                        '&.ob-disabled': { bgcolor: 'rgba(245, 158, 11, 0.2)', color: 'rgba(0,0,0,0.3)' }
                                     }}
                                 >
                                     {replying ? <CircularProgress size={16} color="inherit" /> : 'Reply'}
@@ -2400,7 +2400,7 @@ export function PostViewClient({ id: propId, onBack }: { id?: string; onBack?: (
                                         borderRadius: '30px',
                                         textTransform: 'none',
                                         '&:hover': { bgcolor: alpha('#F59E0B', 0.8) },
-                                        '&.Mui-disabled': { bgcolor: 'rgba(245, 158, 11, 0.2)', color: 'rgba(0,0,0,0.3)' }
+                                        '&.ob-disabled': { bgcolor: 'rgba(245, 158, 11, 0.2)', color: 'rgba(0,0,0,0.3)' }
                                     }}
                                 >
                                     Save

@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Client, Account, OAuthProvider, ID } from 'appwrite';
-import { Box, Typography, Stack, TextField, Button, Alert, CircularProgress, alpha, InputAdornment } from '@/lib/mui-tailwind/material';
+import { Box, Typography, Stack, TextField, Button, Alert, CircularProgress, alpha, InputAdornment } from '@/lib/openbricks/primitives';
 import { safeDeleteCurrentSession } from '@/lib/safe-session';
 import { useSource } from '@/lib/source-context';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
@@ -479,13 +479,13 @@ function LoginContent() {
               fullWidth
               autoFocus
               sx={{
-                '& .MuiOutlinedInput-root': {
+                '& .ob-input-root': {
                   color: 'white', height: 56, borderRadius: '16px', bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.1)',
-                  '&.Mui-focused': { borderColor: '#6366F1', bgcolor: 'rgba(99, 102, 241, 0.02)' },
+                  '&.ob-focused': { borderColor: '#6366F1', bgcolor: 'rgba(99, 102, 241, 0.02)' },
                   '& fieldset': { border: 'none' },
                   pr: 1,
                 },
-                '& .MuiOutlinedInput-input': {
+                '& .ob-outlined-input': {
                   '&::placeholder': { color: 'rgba(255, 255, 255, 0.2)' }
                 }
               }}
@@ -536,7 +536,7 @@ function LoginContent() {
                   onChange={(event: React.ChangeEvent<HTMLInputElement>) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="6-digit code"
                   fullWidth
-                  sx={{ '& .MuiOutlinedInput-root': { color: 'white', height: 56, borderRadius: '16px', bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid #6366F1', '& fieldset': { border: 'none' }, textAlign: 'center' }, '& .MuiOutlinedInput-input': { textAlign: 'center', letterSpacing: '0.5em', fontSize: '1.2rem' } }}
+                  sx={{ '& .ob-input-root': { color: 'white', height: 56, borderRadius: '16px', bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid #6366F1', '& fieldset': { border: 'none' }, textAlign: 'center' }, '& .ob-outlined-input': { textAlign: 'center', letterSpacing: '0.5em', fontSize: '1.2rem' } }}
                 />
               )}
             </Stack>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Container, Typography, IconButton, Stack, Link as MuiLink } from '@/lib/mui-tailwind/material';
+import { Box, Container, Typography, IconButton, Stack, Link as ObLink } from '@/lib/openbricks/primitives';
 import Link from 'next/link';
 import { Github, Twitter, Linkedin, Facebook } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -66,7 +66,7 @@ export default function Footer() {
                 </Typography>
                 <Stack spacing={1.5}>
                   {links.map((link) => (
-                    <MuiLink
+                    <ObLink
                       key={link.name}
                       href={link.href}
                       component={Link}
@@ -82,7 +82,7 @@ export default function Footer() {
                       }}
                     >
                       {link.name}
-                    </MuiLink>
+                    </ObLink>
                   ))}
                 </Stack>
               </Box>

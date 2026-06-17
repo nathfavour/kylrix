@@ -18,7 +18,7 @@ import {
     InputBase,
     useTheme,
     useMediaQuery,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
     Calendar,
     Search,
@@ -156,7 +156,7 @@ export const EventSelectorModal = ({ open, onClose, onSelect }: EventSelectorMod
                             color: 'white',
                             fontSize: '0.95rem',
                             fontWeight: 500,
-                            '& .MuiInputBase-input::placeholder': {
+                            '& .ob-input::placeholder': {
                                 color: 'rgba(255, 255, 255, 0.3)',
                                 opacity: 1,
                             },

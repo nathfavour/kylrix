@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Box, TextField, InputAdornment, IconButton, CircularProgress } from '@/lib/mui-tailwind/material';
-import { Search as SearchIcon, Close as CloseIcon } from '@/lib/mui-tailwind/icons';
+import { Box, TextField, InputAdornment, IconButton, CircularProgress } from '@/lib/openbricks/primitives';
+import { Search as SearchIcon, Close as CloseIcon } from '@/lib/openbricks/icons';
 
 interface SearchBarProps {
   searchQuery: string;
@@ -60,7 +60,7 @@ export function SearchBar({
           },
         }}
         sx={{
-          '& .MuiOutlinedInput-root': {
+          '& .ob-input-root': {
             borderRadius: '16px',
             bgcolor: 'rgba(255, 255, 255, 0.03)',
             backdropFilter: 'blur(10px)',
@@ -71,13 +71,13 @@ export function SearchBar({
             '&:hover fieldset': {
               borderColor: 'rgba(255, 255, 255, 0.2)',
             },
-            '&.Mui-focused fieldset': {
+            '&.ob-focused fieldset': {
               borderColor: '#F59E0B',
               borderWidth: '1px',
               boxShadow: '0 0 15px rgba(245, 158, 11, 0.2)',
             },
           },
-          '& .MuiInputBase-input': {
+          '& .ob-input': {
             color: '#FFFFFF',
             fontFamily: 'var(--font-satoshi), sans-serif',
             '&::placeholder': {

@@ -15,14 +15,14 @@ import {
   alpha,
   CircularProgress,
   Breadcrumbs,
-  Link as MuiLink
-} from '@/lib/mui-tailwind/material';
+  Link as ObLink
+} from '@/lib/openbricks/primitives';
 import { 
   ArrowBack as ArrowLeftIcon, 
   Download as ArrowDownTrayIcon,
   OpenInNew as OpenIcon,
   Description as FileIcon
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { formatFileSize } from '@/lib/utils';
 
 interface AttachmentMeta {
@@ -103,12 +103,12 @@ export default function AttachmentPage() {
             </IconButton>
             <Box>
               <Breadcrumbs sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 0.5 }}>
-                <MuiLink component={Link} href="/note" underline="hover" color="inherit">
+                <ObLink component={Link} href="/note" underline="hover" color="inherit">
                   Notes
-                </MuiLink>
-                <MuiLink component={Link} href={`/note/${noteId}`} underline="hover" color="inherit">
+                </ObLink>
+                <ObLink component={Link} href={`/note/${noteId}`} underline="hover" color="inherit">
                   Note
-                </MuiLink>
+                </ObLink>
                 <Typography color="white">Attachment</Typography>
               </Breadcrumbs>
               <Typography 

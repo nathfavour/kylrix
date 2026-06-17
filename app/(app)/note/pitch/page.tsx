@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, Stack, IconButton, Container } from '@/lib/mui-tailwind/material';
+import { Box, Typography, Stack, IconButton, Container } from '@/lib/openbricks/primitives';
 import { 
   ArrowBackIosNew as ArrowLeftIcon, 
   ArrowForwardIos as ArrowRightIcon 
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 
 const slides = [
   {
@@ -688,7 +688,7 @@ export default function PitchPage() {
           color: 'white',
           zIndex: 20,
           '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)', transform: 'translateY(-50%) scale(1.1)' },
-          '&.Mui-disabled': { opacity: 0.2 }
+          '&.ob-disabled': { opacity: 0.2 }
         }}
       >
         <ArrowLeftIcon />
@@ -710,7 +710,7 @@ export default function PitchPage() {
           color: 'white',
           zIndex: 20,
           '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)', transform: 'translateY(-50%) scale(1.1)' },
-          '&.Mui-disabled': { opacity: 0.2 }
+          '&.ob-disabled': { opacity: 0.2 }
         }}
       >
         <ArrowRightIcon />

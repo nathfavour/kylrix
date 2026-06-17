@@ -22,7 +22,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   X, 
   Search, 
@@ -133,13 +133,13 @@ function CreateMomentDialog({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCaption(e.target.value)}
             required
             sx={{
-              '& .MuiOutlinedInput-root': {
+              '& .ob-input-root': {
                 borderRadius: '16px',
                 bgcolor: '#0A0908',
                 color: 'white',
                 '& fieldset': { borderColor: '#1C1A18' },
                 '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                '&.Mui-focused fieldset': { borderColor: '#10B981' }
+                '&.ob-focused fieldset': { borderColor: '#10B981' }
               }
             }}
           />
@@ -166,7 +166,7 @@ function CreateMomentDialog({
   );
 }
 
-import { DialogActions } from '@/lib/mui-tailwind/material';
+import { DialogActions } from '@/lib/openbricks/primitives';
 
 export default function ProjectAddObjectModal({ open, onClose, projectId, onAdded, initialTab = 0 }: ProjectAddObjectModalProps) {
   const theme = useTheme();
@@ -494,7 +494,7 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
       ModalProps={{ keepMounted: false, disablePortal: true }}
       sx={{
         zIndex: 1300,
-        '& .MuiDrawer-paper': {
+        '& .ob-drawer-panel': {
           height: '60dvh',
           maxHeight: '60dvh',
           borderTopLeftRadius: '28px',
@@ -526,7 +526,7 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
           allowScrollButtonsMobile
           sx={{
             px: 1,
-            '& .MuiTab-root': {
+            '& .ob-tab': {
               minWidth: 'auto',
               px: 2,
               py: 1,
@@ -534,7 +534,7 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
               textTransform: 'none',
               fontWeight: 700,
               color: 'rgba(255,255,255,0.4)',
-              '&.Mui-selected': { color: theme.palette.primary.main }
+              '&.ob-selected': { color: theme.palette.primary.main }
             }
           }}
         >

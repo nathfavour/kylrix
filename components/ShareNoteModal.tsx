@@ -24,12 +24,12 @@ import {
   alpha,
   Paper,
   Tooltip
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   Close as CloseIcon,
   Search as SearchIcon,
   Delete as DeleteIcon
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { 
   account, 
   shareNoteWithUser, 
@@ -402,7 +402,7 @@ export function ShareNoteModal({ isOpen, onOpenChange, noteId, noteTitle }: Shar
               color: errorMsg ? '#FF4D4D' : '#EC4899',
               border: '1px solid',
               borderColor: errorMsg ? alpha('#FF4D4D', 0.2) : alpha('#EC4899', 0.2),
-              '& .MuiAlert-icon': { color: 'inherit' },
+              '& .ob-alert-icon': { color: 'inherit' },
               fontFamily: 'var(--font-satoshi)'
             }}
           >
@@ -434,15 +434,15 @@ export function ShareNoteModal({ isOpen, onOpenChange, noteId, noteTitle }: Shar
                   }
                 }}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  '& .ob-input-root': {
                     borderRadius: '12px',
                     bgcolor: '#0A0908',
                     fontFamily: 'var(--font-satoshi)',
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.05)' },
                     '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                    '&.Mui-focused fieldset': { borderColor: '#EC4899' }
+                    '&.ob-focused fieldset': { borderColor: '#EC4899' }
                   },
-                  '& .MuiInputBase-input': { color: 'white' }
+                  '& .ob-input': { color: 'white' }
                 }}
               />
 
@@ -534,9 +534,9 @@ export function ShareNoteModal({ isOpen, onOpenChange, noteId, noteTitle }: Shar
                   color: 'white',
                   fontFamily: 'var(--font-satoshi)',
                   fontWeight: 700,
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.05)' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#EC4899' }
+                  '& .ob-input-outline': { borderColor: 'rgba(255, 255, 255, 0.05)' },
+                  '&:hover .ob-input-outline': { borderColor: 'rgba(255, 255, 255, 0.1)' },
+                  '&.ob-focused .ob-input-outline': { borderColor: '#EC4899' }
                 }}
               >
                 <MenuItem value="read" sx={{ fontFamily: 'var(--font-satoshi)' }}>Read Only</MenuItem>
@@ -557,7 +557,7 @@ export function ShareNoteModal({ isOpen, onOpenChange, noteId, noteTitle }: Shar
                 fontFamily: 'var(--font-clash)',
                 px: 3,
                 '&:hover': { bgcolor: '#F472B6' },
-                '&.Mui-disabled': { bgcolor: '#1C1A18', color: 'rgba(255, 255, 255, 0.2)' }
+                '&.ob-disabled': { bgcolor: '#1C1A18', color: 'rgba(255, 255, 255, 0.2)' }
               }}
             >
               {isLoading ? <CircularProgress size={20} color="inherit" /> : 'Invite'}
@@ -663,7 +663,7 @@ export function ShareNoteModal({ isOpen, onOpenChange, noteId, noteTitle }: Shar
                         fontWeight: 900,
                         fontFamily: 'var(--font-clash)',
                         color: '#EC4899',
-                        '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                        '& .ob-input-outline': { border: 'none' },
                         bgcolor: alpha('#EC4899', 0.05),
                         borderRadius: '8px',
                         '&:hover': { bgcolor: alpha('#EC4899', 0.1) }

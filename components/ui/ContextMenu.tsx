@@ -8,7 +8,7 @@ import {
   ListItemText,
   alpha,
   Box
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { KYLRIX_COLORS, KYLRIX_APP_TONES, KylrixApp } from '@/lib/sdk/design';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -142,7 +142,7 @@ export function ContextMenu({ x, y, onCloseAction, items, appType }: ContextMenu
               color: item.variant === 'destructive' ? '#FF453A' : toneColor,
               transform: 'translateX(4px)'
             },
-            '& .MuiListItemIcon-root': {
+            '& .ob-list-item-icon': {
               minWidth: 'auto',
               color: 'inherit',
             }

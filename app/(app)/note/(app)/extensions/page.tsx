@@ -20,14 +20,14 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   Add as AddIcon, 
   Search as SearchIcon, 
   Extension as ExtensionIcon,
   Person as PersonIcon,
   Download as DownloadIcon
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { Extensions } from '@/types/appwrite';
 import { listExtensions, createExtension, updateExtension, getCurrentUser } from '@/lib/appwrite';
 
@@ -279,15 +279,15 @@ export default function ExtensionsPage() {
             value={activeTab} 
             onChange={(_: any, v: any) => setActiveTab(v)}
             sx={{
-              '& .MuiTabs-indicator': { bgcolor: '#6366F1', height: 3, borderRadius: '3px 3px 0 0' },
-              '& .MuiTab-root': { 
+              '& .ob-tabs-indicator': { bgcolor: '#6366F1', height: 3, borderRadius: '3px 3px 0 0' },
+              '& .ob-tab': { 
                 color: 'rgba(255, 255, 255, 0.3)',
                 fontWeight: 800,
                 fontSize: '0.85rem',
                 fontFamily: 'var(--font-mono)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.1em',
-                '&.Mui-selected': { color: 'white' }
+                '&.ob-selected': { color: 'white' }
               }
             }}
           >
@@ -314,7 +314,7 @@ export default function ExtensionsPage() {
                 fontWeight: 600,
                 border: '1px solid rgba(255, 255, 255, 0.05)',
                 '&:hover': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                '&.Mui-focused': { borderColor: '#6366F1', boxShadow: '0 0 10px rgba(99, 102, 241, 0.1)' }
+                '&.ob-focused': { borderColor: '#6366F1', boxShadow: '0 0 10px rgba(99, 102, 241, 0.1)' }
               }
             }}
             sx={{ maxWidth: 500 }}
@@ -738,7 +738,7 @@ function CreateExtensionModal({ isOpen, onClose, onSubmit, template }: {
                   fontWeight: 600,
                   border: '1px solid rgba(255, 255, 255, 0.05)',
                   '&:hover': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                  '&.Mui-focused': { borderColor: '#6366F1', boxShadow: '0 0 10px rgba(99, 102, 241, 0.1)' }
+                  '&.ob-focused': { borderColor: '#6366F1', boxShadow: '0 0 10px rgba(99, 102, 241, 0.1)' }
                 }
               }}
             />
@@ -768,7 +768,7 @@ function CreateExtensionModal({ isOpen, onClose, onSubmit, template }: {
                   fontWeight: 500,
                   border: '1px solid rgba(255, 255, 255, 0.05)',
                   '&:hover': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                  '&.Mui-focused': { borderColor: '#6366F1', boxShadow: '0 0 10px rgba(99, 102, 241, 0.1)' }
+                  '&.ob-focused': { borderColor: '#6366F1', boxShadow: '0 0 10px rgba(99, 102, 241, 0.1)' }
                 }
               }}
             />
@@ -796,7 +796,7 @@ function CreateExtensionModal({ isOpen, onClose, onSubmit, template }: {
                   fontWeight: 600,
                   border: '1px solid rgba(255, 255, 255, 0.05)',
                   '&:hover': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                  '&.Mui-focused': { borderColor: '#6366F1', boxShadow: '0 0 10px rgba(99, 102, 241, 0.1)' }
+                  '&.ob-focused': { borderColor: '#6366F1', boxShadow: '0 0 10px rgba(99, 102, 241, 0.1)' }
                 }
               }}
             />
@@ -825,7 +825,7 @@ function CreateExtensionModal({ isOpen, onClose, onSubmit, template }: {
                   fontSize: '0.85rem',
                   border: '1px solid rgba(255, 255, 255, 0.05)',
                   '&:hover': { borderColor: 'rgba(255, 255, 255, 0.1)' },
-                  '&.Mui-focused': { borderColor: '#6366F1', boxShadow: '0 0 10px rgba(99, 102, 241, 0.1)' }
+                  '&.ob-focused': { borderColor: '#6366F1', boxShadow: '0 0 10px rgba(99, 102, 241, 0.1)' }
                 }
               }}
             />

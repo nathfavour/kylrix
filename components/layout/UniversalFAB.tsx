@@ -10,7 +10,7 @@ import {
   alpha,
   useMediaQuery,
   useTheme,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { Plus, X } from 'lucide-react';
 import { useFAB } from '@/context/FABContext';
 import { usePathname } from 'next/navigation';

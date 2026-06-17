@@ -10,8 +10,8 @@ import {
   Tab,
   alpha,
   Container
-} from '@/lib/mui-tailwind/material';
-import { Close as CloseIcon } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Close as CloseIcon } from '@/lib/openbricks/icons';
 import type { Notes } from '@/types/appwrite';
 import { useState } from 'react';
 import Comments from './Comments';
@@ -109,13 +109,13 @@ export default function NoteViewer({ note, onClose }: NoteViewerProps) {
           onChange={handleTabChange} 
           variant="fullWidth"
             sx={{
-              '& .MuiTabs-indicator': { bgcolor: '#F59E0B', height: 3 },
-              '& .MuiTab-root': { 
+              '& .ob-tabs-indicator': { bgcolor: '#F59E0B', height: 3 },
+              '& .ob-tab': { 
                 color: 'rgba(255, 255, 255, 0.5)', 
                 fontWeight: 800,
                 fontSize: '0.85rem',
                 textTransform: 'none',
-                '&.Mui-selected': { color: '#F59E0B' }
+                '&.ob-selected': { color: '#F59E0B' }
               }
             }}
         >

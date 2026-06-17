@@ -23,7 +23,7 @@ import {
   Stack,
   Button,
   CircularProgress,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { useToast } from '@/components/ui/Toast';
 import { IdentityAvatar } from '@/components/common/IdentityBadge';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';

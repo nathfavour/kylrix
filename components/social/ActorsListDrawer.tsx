@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Drawer, Box, Typography, Avatar, IconButton, Stack, useMediaQuery, useTheme, Button, CircularProgress, alpha } from '@/lib/mui-tailwind/material';
+import { Drawer, Box, Typography, Avatar, IconButton, Stack, useMediaQuery, useTheme, Button, CircularProgress, alpha } from '@/lib/openbricks/primitives';
 import { X, UserPlus, Check } from 'lucide-react';
 
 export interface Actor {

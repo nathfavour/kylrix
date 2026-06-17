@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextField, TextFieldProps } from '@/lib/mui-tailwind/material';
+import { TextField, TextFieldProps } from '@/lib/openbricks/primitives';
 
 export type InputProps = TextFieldProps;
 
@@ -12,7 +12,7 @@ const Input = React.forwardRef<HTMLDivElement, InputProps>(
         variant="outlined"
         ref={ref}
         sx={{
-          '& .MuiOutlinedInput-root': {
+          '& .ob-input-root': {
             bgcolor: 'rgba(255, 255, 255, 0.03)',
             backdropFilter: 'blur(10px)',
             borderRadius: '12px',
@@ -23,13 +23,13 @@ const Input = React.forwardRef<HTMLDivElement, InputProps>(
             '&:hover fieldset': {
               borderColor: 'rgba(255, 255, 255, 0.2)',
             },
-            '&.Mui-focused fieldset': {
+            '&.ob-focused fieldset': {
               borderColor: '#6366F1',
               borderWidth: '1px',
               boxShadow: '0 0 15px rgba(99, 102, 241, 0.2)',
             },
           },
-          '& .MuiInputBase-input': {
+          '& .ob-input': {
             color: '#FFFFFF',
             fontFamily: 'var(--font-satoshi), sans-serif',
             '&::placeholder': {
@@ -37,9 +37,9 @@ const Input = React.forwardRef<HTMLDivElement, InputProps>(
               opacity: 1,
             },
           },
-          '& .MuiInputLabel-root': {
+          '& .ob-input-label': {
             color: 'rgba(255, 255, 255, 0.5)',
-            '&.Mui-focused': {
+            '&.ob-focused': {
               color: '#6366F1',
             },
           },

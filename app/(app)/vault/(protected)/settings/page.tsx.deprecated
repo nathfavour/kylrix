@@ -24,7 +24,7 @@ import {
   DialogContent,
   DialogActions,
   InputAdornment
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   Lock, 
   Shield, 
@@ -66,7 +66,7 @@ import {
   DialogContent,
   DialogActions,
   InputAdornment
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 
 export default function SettingsPage() {
   const [minting, setMinting] = useState(false);

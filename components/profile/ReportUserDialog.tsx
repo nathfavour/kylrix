@@ -13,7 +13,7 @@ import {
   alpha,
   useTheme,
   useMediaQuery,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { Flag, ShieldAlert } from 'lucide-react';
 import { getEcosystemUrl } from '@/lib/constants';
 

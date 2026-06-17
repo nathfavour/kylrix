@@ -18,7 +18,7 @@ import {
     DialogActions,
     Chip,
     Paper,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { X, ShieldAlert, Shield, User, Fingerprint, Bell, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useSetup } from '@/context/SetupContext';

@@ -11,7 +11,7 @@ import {
   useTheme,
   useMediaQuery,
   alpha,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { Zap, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { TOPBAR_DRAWER_BACKDROP_SLOT } from '@/lib/ui/topbar-drawer-slot';
@@ -56,7 +56,7 @@ export function ProUpgradeDrawer() {
       ModalProps={{ keepMounted: false, disableScrollLock: false, disablePortal: true }}
       slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
       sx={{
-        '& .MuiDrawer-paper': {
+        '& .ob-drawer-panel': {
           bgcolor: '#161412',
           backgroundImage: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(236, 72, 153, 0.02) 100%)',
           borderTop: isMobile ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(255, 255, 255, 0.1)',

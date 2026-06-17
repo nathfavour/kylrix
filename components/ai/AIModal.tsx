@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Drawer, Box, Typography, TextField, Button, CircularProgress, useTheme, useMediaQuery } from '@/lib/mui-tailwind/material';
-import { AutoAwesome as AutoAwesomeIcon } from '@/lib/mui-tailwind/icons';
-import { Send as SendIcon } from '@/lib/mui-tailwind/icons';
+import { Drawer, Box, Typography, TextField, Button, CircularProgress, useTheme, useMediaQuery } from '@/lib/openbricks/primitives';
+import { AutoAwesome as AutoAwesomeIcon } from '@/lib/openbricks/icons';
+import { Send as SendIcon } from '@/lib/openbricks/icons';
 import { useAI } from '@/context/AIContext';
 import { toast } from 'react-hot-toast';
 
@@ -146,12 +146,12 @@ export function AIModal({ onClose }: { onClose: () => void }) {
             disabled={isLoading}
             autoFocus
             sx={{
-              '& .MuiOutlinedInput-root': {
+              '& .ob-input-root': {
                 borderRadius: '12px',
                 bgcolor: 'rgba(255, 255, 255, 0.02)',
                 '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
                 '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                '&.Mui-focused fieldset': { borderColor: 'primary.main' }
+                '&.ob-focused fieldset': { borderColor: 'primary.main' }
               }
             }}
           />

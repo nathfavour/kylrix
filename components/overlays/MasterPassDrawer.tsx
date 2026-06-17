@@ -15,7 +15,7 @@ import {
   alpha,
   useTheme,
   useMediaQuery
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
@@ -26,7 +26,7 @@ import {
   ErrorOutline as ErrorOutlineIcon,
   Apps as AppsIcon,
   Close as CloseIcon,
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import Logo from '../common/Logo';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { masterPassCrypto } from '@/lib/masterpass-crypto';
@@ -576,7 +576,7 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
                   }
                 }}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  '& .ob-input-root': {
                     borderRadius: '16px',
                     bgcolor: alpha(VAULT_PRIMARY, 0.05),
                     border: `1px solid ${alpha(VAULT_PRIMARY, 0.2)}`,
@@ -617,7 +617,7 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
                   },
                 }}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  '& .ob-input-root': {
                     borderRadius: '16px',
                     bgcolor: alpha(VAULT_PRIMARY, 0.05),
                     border: `1px solid ${alpha(VAULT_PRIMARY, 0.2)}`,
@@ -651,7 +651,7 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
                     },
                   }}
                   sx={{
-                    '& .MuiOutlinedInput-root': {
+                    '& .ob-input-root': {
                       borderRadius: '16px',
                       bgcolor: alpha(VAULT_PRIMARY, 0.05),
                       border: `1px solid ${alpha(VAULT_PRIMARY, 0.2)}`,

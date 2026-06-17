@@ -1,7 +1,7 @@
  'use client';
 
 import React from 'react';
-import { alpha, Box, ButtonBase, Paper, Stack, Typography, useMediaQuery, useTheme } from '@/lib/mui-tailwind/material';
+import { alpha, Box, ButtonBase, Paper, Stack, Typography, useMediaQuery, useTheme } from '@/lib/openbricks/primitives';
 import { ChevronRight } from 'lucide-react';
 
 import Logo from '@/components/Logo';

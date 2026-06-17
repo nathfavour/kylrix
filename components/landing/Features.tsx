@@ -1,14 +1,14 @@
 "use client";
 
-import { Box, Container, Typography, Grid, Paper, alpha } from '@/lib/mui-tailwind/material';
+import { Box, Container, Typography, Grid, Paper, alpha } from '@/lib/openbricks/primitives';
 
 const VAULT_PRIMARY = "#10B981";
-import ShieldIcon from '@/lib/mui-tailwind/icons';
-import LockIcon from '@/lib/mui-tailwind/icons';
-import VpnKeyIcon from '@/lib/mui-tailwind/icons';
-import FingerprintIcon from '@/lib/mui-tailwind/icons';
-import PublicIcon from '@/lib/mui-tailwind/icons';
-import SyncIcon from '@/lib/mui-tailwind/icons';
+import ShieldIcon from '@/lib/openbricks/icons';
+import LockIcon from '@/lib/openbricks/icons';
+import VpnKeyIcon from '@/lib/openbricks/icons';
+import FingerprintIcon from '@/lib/openbricks/icons';
+import PublicIcon from '@/lib/openbricks/icons';
+import SyncIcon from '@/lib/openbricks/icons';
 
 const features = [
   {

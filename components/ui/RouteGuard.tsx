@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Box, CircularProgress, Typography } from '@/lib/mui-tailwind/material';
+import { Box, CircularProgress, Typography } from '@/lib/openbricks/primitives';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth/AuthContext';
 

@@ -10,14 +10,14 @@ import {
     Button,
     Paper,
     Stack,
-    Link as MuiLink
-} from '@/lib/mui-tailwind/material';
+    Link as ObLink
+} from '@/lib/openbricks/primitives';
 import NextLink from 'next/link';
-import { Close as CloseIcon } from '@/lib/mui-tailwind/icons';
-import { Event as EventIcon } from '@/lib/mui-tailwind/icons';
-import { LocationOn } from '@/lib/mui-tailwind/icons';
-import { AccessTime } from '@/lib/mui-tailwind/icons';
-import { Link } from '@/lib/mui-tailwind/icons';
+import { Close as CloseIcon } from '@/lib/openbricks/icons';
+import { Event as EventIcon } from '@/lib/openbricks/icons';
+import { LocationOn } from '@/lib/openbricks/icons';
+import { AccessTime } from '@/lib/openbricks/icons';
+import { Link } from '@/lib/openbricks/icons';
 
 interface EventViewDrawerProps {
     open: boolean;
@@ -103,9 +103,9 @@ export const EventViewDrawer = ({ open, onClose, event }: EventViewDrawerProps) 
                                     <Typography variant="subtitle2" fontWeight={700} color="white">
                                         Online Meeting
                                     </Typography>
-                                    <MuiLink href={event.meetingUrl} target="_blank" variant="caption" color="primary" sx={{ textDecoration: 'none', fontWeight: 600 }}>
+                                    <ObLink href={event.meetingUrl} target="_blank" variant="caption" color="primary" sx={{ textDecoration: 'none', fontWeight: 600 }}>
                                         Join Meeting
-                                    </MuiLink>
+                                    </ObLink>
                                 </Box>
                             </Box>
                         )}

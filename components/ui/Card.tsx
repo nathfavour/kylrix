@@ -1,11 +1,11 @@
 import React from 'react';
-import { Card as MuiCard, Typography, Box } from '@/lib/mui-tailwind/material';
+import { Card as ObCard, Typography, Box } from '@/lib/openbricks/primitives';
 
 const Card = React.forwardRef<
   HTMLDivElement,
   any
 >(({ children, sx, ...props }, ref) => (
-  <MuiCard
+  <ObCard
     ref={ref}
     sx={{
       bgcolor: '#13110F',
@@ -18,7 +18,7 @@ const Card = React.forwardRef<
     {...props}
   >
     {children}
-  </MuiCard>
+  </ObCard>
 ));
 Card.displayName = 'Card';
 

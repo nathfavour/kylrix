@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Box, Stack, Typography, Button, alpha } from '@/lib/mui-tailwind/material';
-import { Lock as LockIcon } from '@/lib/mui-tailwind/icons';
+import { Box, Stack, Typography, Button, alpha } from '@/lib/openbricks/primitives';
+import { Lock as LockIcon } from '@/lib/openbricks/icons';
 import type { Notes } from '@/types/appwrite';
 
 interface PaywallDisplayProps {

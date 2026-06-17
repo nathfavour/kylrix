@@ -16,7 +16,7 @@ import {
     ListItemIcon,
     ListItemText,
     useTheme
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
     Lock, 
     Shield, 
@@ -34,7 +34,7 @@ import { toast } from 'react-hot-toast';
 
 export default function SettingsPage() {
     const { user } = useAuth();
-    const _muiTheme = useTheme();
+    const _obTheme = useTheme();
     const [isUnlocked, setIsUnlocked] = useState(ecosystemSecurity.status.isUnlocked);
     const [unlockModalOpen, setUnlockModalOpen] = useState(false);
     const [passkeySetupOpen, setPasskeySetupOpen] = useState(false);

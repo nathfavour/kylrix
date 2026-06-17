@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getLastEcosystemRoute } from '@/lib/ecosystem/state-tracker';
 import { resolveAuthenticatedEntryPath } from '@/lib/ecosystem/resume-route';
-import { Box, CircularProgress } from '@/lib/mui-tailwind/material';
+import { Box, CircularProgress } from '@/lib/openbricks/primitives';
 
 /**
  * Client resume fallback when middleware cookie is missing but local history exists.

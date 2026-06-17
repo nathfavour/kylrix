@@ -13,7 +13,7 @@ disable-model-invocation: true
 - `DESIGN.V2.md`
 - `brand.design.md`
 - `components/common/Logo.tsx`
-- **Implementation / MUI / Next.js:** `.agents/skills/kylrix-muted-v3-design/SKILL.md`
+- **Implementation / OpenBricks / Next.js:** `.agents/skills/kylrix-muted-v3-design/SKILL.md`
 
 ## Rules
 

@@ -5,7 +5,7 @@ import {
   Drawer,
   Box, 
   Fade
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { useOverlay } from './OverlayContext';
 
 const Overlay: React.FC = () => {

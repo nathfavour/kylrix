@@ -14,7 +14,7 @@ import {
     Radio,
     RadioGroup,
     FormControlLabel
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
     ArrowLeft,
     Lock, 
@@ -391,7 +391,7 @@ export default function AssistantSettingsPage() {
                                                     fontFamily: fontUi,
                                                     minWidth: 96,
                                                     '&:hover': { bgcolor: '#4F46E5' },
-                                                    '&.Mui-disabled': { bgcolor: INSET_ASH, color: '#34322F' }
+                                                    '&.ob-disabled': { bgcolor: INSET_ASH, color: '#34322F' }
                                                 }}
                                             >
                                                 {byokSaving ? <CircularProgress size={18} color="inherit" /> : "Save"}
@@ -451,7 +451,7 @@ export default function AssistantSettingsPage() {
                                 >
                                     <FormControlLabel
                                         value={fw.id}
-                                        control={<Radio disabled={fw.status !== 'Active'} sx={{ color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: SYSTEM_PRIMARY } }} />}
+                                        control={<Radio disabled={fw.status !== 'Active'} sx={{ color: 'rgba(255,255,255,0.3)', '&.ob-checked': { color: SYSTEM_PRIMARY } }} />}
                                         label={
                                             <Box sx={{ ml: 1 }}>
                                                 <Typography sx={{ fontWeight: 800, fontFamily: fontUi, fontSize: '0.95rem' }}>{fw.title}</Typography>

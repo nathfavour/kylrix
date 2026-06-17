@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef } from 'react';
-import { Box, Typography, alpha } from '@/lib/mui-tailwind/material';
+import { Box, Typography, alpha } from '@/lib/openbricks/primitives';
 import Logo from '@/components/Logo';
 import FlyerShell from './FlyerShell';
 import type { DesignFlyerProps } from '../types';

@@ -10,11 +10,11 @@ import {
   CircularProgress, 
   TextField,
   InputAdornment
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   Search as SearchIcon,
   Event as EventIcon,
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { Dialog } from '../ui/Dialog';
 import { AppwriteService } from '@/lib/appwrite';
 import { useAuth } from '@/hooks/useAuth';
@@ -68,12 +68,12 @@ export function EventSelectorModal({ isOpen, onClose, onSelect }: EventSelectorM
           variant="outlined"
           sx={{
             mb: 3,
-            '& .MuiOutlinedInput-root': {
+            '& .ob-input-root': {
               bgcolor: 'rgba(255, 255, 255, 0.03)',
               borderRadius: '12px',
               '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
               '&:hover fieldset': { borderColor: 'rgba(16, 185, 129, 0.3)' },
-              '&.Mui-focused fieldset': { borderColor: '#10b981' },
+              '&.ob-focused fieldset': { borderColor: '#10b981' },
             }
           }}
           InputProps={{

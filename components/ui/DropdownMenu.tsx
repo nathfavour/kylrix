@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Menu, MenuItem, Box, Divider } from '@/lib/mui-tailwind/material';
+import { Menu, MenuItem, Box, Divider } from '@/lib/openbricks/primitives';
 
 interface DropdownMenuProps {
   trigger: React.ReactNode;
@@ -94,7 +94,7 @@ export function DropdownMenuItem({
         fontSize: '0.875rem',
         fontWeight: 600,
         '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.05)' },
-        '&.Mui-disabled': { opacity: 0.5 }
+        '&.ob-disabled': { opacity: 0.5 }
       }}
     >
       {children}

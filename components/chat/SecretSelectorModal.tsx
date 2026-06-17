@@ -18,8 +18,8 @@ import {
     Tabs,
     Tab,
     alpha as _alpha
-} from '@/lib/mui-tailwind/material';
-import { Search, Shield, Key } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Search, Shield, Key } from '@/lib/openbricks/icons';
 import { EcosystemService } from '@/lib/services/ecosystem';
 import { useAuth } from '@/lib/auth';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';

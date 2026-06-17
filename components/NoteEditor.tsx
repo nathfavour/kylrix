@@ -14,8 +14,8 @@ import {
   TextField,
   Button,
   CircularProgress
-} from '@/lib/mui-tailwind/material';
-import { Save as SaveIcon, Refresh as UpdateIcon } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Save as SaveIcon, Refresh as UpdateIcon } from '@/lib/openbricks/icons';
 import AttachmentsManager from '@/components/AttachmentsManager';
 import NoteContent from '@/components/NoteContent';
 import { IdentityAvatar } from './IdentityBadge';
@@ -376,7 +376,7 @@ export default function NoteEditor({
                 transform: 'translateY(-2px)',
                 boxShadow: `0 12px 32px ${alpha('#EC4899', 0.4)}, inset 0 1px 0 rgba(255, 255, 255, 0.2)`
               },
-              '&.Mui-disabled': {
+              '&.ob-disabled': {
                 bgcolor: '#1C1A18',
                 color: 'rgba(255, 255, 255, 0.1)',
                 border: '1px solid #2C2A28'
@@ -397,7 +397,7 @@ export default function NoteEditor({
               color: '#FF3B30',
               border: '1px solid',
               borderColor: alpha('#FF3B30', 0.2),
-              '& .MuiAlert-icon': { color: '#FF3B30' }
+              '& .ob-alert-icon': { color: '#FF3B30' }
             }}
           >
             {error}

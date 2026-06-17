@@ -7,7 +7,7 @@ import {
   BottomNavigation,
   BottomNavigationAction,
   Paper,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   FileText as NotesIcon,
   Share2 as SharedIcon,

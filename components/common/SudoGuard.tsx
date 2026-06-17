@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSudo } from '@/context/SudoContext';
-import { Box, Typography, Button, alpha } from '@/lib/mui-tailwind/material';
+import { Box, Typography, Button, alpha } from '@/lib/openbricks/primitives';
 import { Shield } from 'lucide-react';
 
 interface SudoGuardProps {

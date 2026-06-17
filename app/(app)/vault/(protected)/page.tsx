@@ -18,7 +18,7 @@ import { useSudo } from '@/context/SudoContext';
 import { useFAB } from '@/context/FABContext';
 import { MultiSectionContainer, useSection } from '@/context/SectionContext';
 import { ArrowLeft, Plus, Eye, EyeOff } from 'lucide-react';
-import { Box, Typography, Paper, Button, IconButton, Avatar, CircularProgress, Tooltip, alpha } from '@/lib/mui-tailwind/material';
+import { Box, Typography, Paper, Button, IconButton, Avatar, CircularProgress, Tooltip, alpha } from '@/lib/openbricks/primitives';
 
 function DashboardPageContent() {
   const { user, needsMasterPassword, isVaultUnlocked, isVaultBlurEnabled, setVaultBlurEnabled } = useAppwriteVault();

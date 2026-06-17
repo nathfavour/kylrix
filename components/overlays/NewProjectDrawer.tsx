@@ -19,7 +19,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   X as CloseIcon,
   Plus as PlusIcon,
@@ -246,7 +246,7 @@ export function NewProjectDrawer() {
       onClose={close}
       ModalProps={{ keepMounted: false, disableScrollLock: false, disablePortal: true }}
       sx={{
-        '& .MuiDrawer-paper': {
+        '& .ob-drawer-panel': {
           ...(isDesktop
             ? {
                 top: '88px',
@@ -425,7 +425,7 @@ export function NewProjectDrawer() {
                         fontWeight: 600,
                         border: BORDER,
                         '&:hover': { borderColor: '#4F4C49' },
-                        '&.Mui-focused': { borderColor: SYSTEM_PRIMARY }
+                        '&.ob-focused': { borderColor: SYSTEM_PRIMARY }
                         }
                     }}
                     />
@@ -455,7 +455,7 @@ export function NewProjectDrawer() {
                         fontWeight: 500,
                         border: BORDER,
                         '&:hover': { borderColor: '#4F4C49' },
-                        '&.Mui-focused': { borderColor: SYSTEM_PRIMARY }
+                        '&.ob-focused': { borderColor: SYSTEM_PRIMARY }
                         }
                     }}
                     />
@@ -530,7 +530,7 @@ export function NewProjectDrawer() {
                             boxShadow: 'none',
                             transition: BRAND_TRANSITION,
                             '&:hover': { bgcolor: template?.color || SYSTEM_HOVER, filter: 'brightness(0.9)' },
-                            '&.Mui-disabled': { bgcolor: HOVER, color: TEXT_MUTED }
+                            '&.ob-disabled': { bgcolor: HOVER, color: TEXT_MUTED }
                         }}
                     >
                         {loading ? <CircularProgress size={20} color="inherit" /> : `Activate ${template?.title || 'Project'}`}
@@ -563,7 +563,7 @@ export function NewProjectDrawer() {
         onClose={() => setIsVisibilityDrawerOpen(false)}
         ModalProps={{ keepMounted: false, disableScrollLock: false }}
         sx={{
-          '& .MuiDrawer-paper': {
+          '& .ob-drawer-panel': {
             bgcolor: SURFACE_ASH,
             borderTopLeftRadius: RADIUS_LARGE,
             borderTopRightRadius: RADIUS_LARGE,

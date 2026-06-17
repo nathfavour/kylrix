@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Link, Box, IconButton, Typography, Tooltip, CircularProgress, Button, Drawer, alpha } from '@/lib/mui-tailwind/material';
+import { Link, Box, IconButton, Typography, Tooltip, CircularProgress, Button, Drawer, alpha } from '@/lib/openbricks/primitives';
 import { Play, Pause, Key, Lock, Shield, Copy, Check, ArrowLeft, X, Eye, EyeOff, Download } from 'lucide-react';
 import { StorageService } from '@/lib/services/storage';
 import { useAppwriteVault } from '@/context/appwrite-context';
@@ -423,7 +423,7 @@ export function VaultTotpLink({ href, children }: { href: string; children?: Rea
                       thickness={5}
                       sx={{
                         color: timeRemaining <= 5 ? '#EF4444' : '#10B981',
-                        '& .MuiCircularProgress-circle': {
+                        '& .ob-spinner-circle': {
                           strokeLinecap: 'round',
                         }
                       }}

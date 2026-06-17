@@ -13,7 +13,7 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   X as CloseIcon,
   Tag as TagIcon,
@@ -69,7 +69,7 @@ export function TagSelectorDrawer() {
       ModalProps={{ keepMounted: false, disableScrollLock: false }}
       sx={{
         zIndex: 2000,
-        '& .MuiDrawer-paper': {
+        '& .ob-drawer-panel': {
           height: '50dvh',
           maxHeight: '80dvh',
           borderTopLeftRadius: RADIUS_LARGE,

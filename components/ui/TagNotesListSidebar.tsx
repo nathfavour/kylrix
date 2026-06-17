@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Notes, Tags } from '@/types/appwrite';
 import { getNotesByTag } from '@/lib/appwrite';
-import { Box, Typography, IconButton, Stack, Alert } from '@/lib/mui-tailwind/material';
-import { ArrowBack as ArrowBackIcon } from '@/lib/mui-tailwind/icons';
+import { Box, Typography, IconButton, Stack, Alert } from '@/lib/openbricks/primitives';
+import { ArrowBack as ArrowBackIcon } from '@/lib/openbricks/icons';
 import { NoteDetailSidebar } from './NoteDetailSidebar';
 import NoteCard from '@/components/ui/NoteCard';
 import { useNotes } from '@/context/NotesContext';
@@ -109,7 +109,7 @@ export function TagNotesListSidebar({
               bgcolor: 'rgba(255, 69, 58, 0.1)',
               color: '#FF453A',
               border: '1px solid rgba(255, 69, 58, 0.2)',
-              '& .MuiAlert-icon': { color: '#FF453A' }
+              '& .ob-alert-icon': { color: '#FF453A' }
             }}
           >
             {error}

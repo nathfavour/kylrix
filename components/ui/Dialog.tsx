@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import { Drawer, Box, IconButton, useTheme, useMediaQuery } from '@/lib/mui-tailwind/material';
-import { Close as CloseIcon } from '@/lib/mui-tailwind/icons';
+import { Drawer, Box, IconButton, useTheme, useMediaQuery } from '@/lib/openbricks/primitives';
+import { Close as CloseIcon } from '@/lib/openbricks/icons';
 
 export function Dialog({
   open,

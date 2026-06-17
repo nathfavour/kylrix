@@ -16,7 +16,7 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   Shield,
   Waypoints,
@@ -88,7 +88,7 @@ export default function AppsPage() {
                         width: '100%',
                         borderRadius: 3,
                         textAlign: 'left',
-                        '&.Mui-focusVisible': {
+                        '&.ob-focus-visible': {
                           boxShadow: `0 0 0 1px ${alpha(app.color, 0.5)}, 0 0 0 6px ${alpha(app.color, 0.16)}`,
                         },
                       }}
@@ -271,11 +271,11 @@ export default function AppsPage() {
           sx={{
             bgcolor: 'transparent',
             height: 74,
-            '& .MuiBottomNavigationAction-root': {
+            '& .ob-bottom-nav-action': {
               color: 'rgba(255, 255, 255, 0.55)',
               minWidth: 0,
             },
-            '& .Mui-selected': {
+            '& .ob-selected': {
               color: '#fff',
             },
           }}

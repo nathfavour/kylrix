@@ -16,8 +16,8 @@ import {
   IconButton,
   alpha,
   Avatar
-} from '@/lib/mui-tailwind/material';
-import { Search as SearchIcon, NoteOutlined as NoteIcon, FolderOutlined as FolderIcon, LocalOfferOutlined as TagIcon, Close as CloseIcon } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Search as SearchIcon, NoteOutlined as NoteIcon, FolderOutlined as FolderIcon, LocalOfferOutlined as TagIcon, Close as CloseIcon } from '@/lib/openbricks/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -217,7 +217,7 @@ export default function GlobalSearch() {
           }
         }}
         sx={{
-          '& .MuiOutlinedInput-root': {
+          '& .ob-input-root': {
             borderRadius: '16px',
             bgcolor: 'rgba(255, 255, 255, 0.03)',
             border: '1px solid rgba(255, 255, 255, 0.05)',
@@ -227,13 +227,13 @@ export default function GlobalSearch() {
               bgcolor: 'rgba(255, 255, 255, 0.05)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
             },
-            '&.Mui-focused': {
+            '&.ob-focused': {
               bgcolor: 'rgba(255, 255, 255, 0.05)',
               border: '1px solid rgba(99, 102, 241, 0.3)',
               boxShadow: '0 0 20px rgba(99, 102, 241, 0.1)',
             }
           },
-          '& .MuiInputBase-input': {
+          '& .ob-input': {
             color: 'white',
             fontWeight: 500,
             '&::placeholder': {
@@ -342,7 +342,7 @@ export default function GlobalSearch() {
                                   color: '#6366F1',
                                   border: '1px solid',
                                   borderColor: alpha('#6366F1', 0.2),
-                                  '& .MuiChip-label': { px: 1 }
+                                  '& .ob-chip-label': { px: 1 }
                                 }}
                               />
                             ))}

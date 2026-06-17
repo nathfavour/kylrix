@@ -19,7 +19,7 @@ import {
   
   Stack,
   alpha,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { motion, AnimatePresence as _AnimatePresence, useAnimation as _useAnimation } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
@@ -46,7 +46,7 @@ import {
   Star as _ProIcon,
   LightbulbOutlined as _IdeaIcon,
   MessageSquare as _ConnectIcon,
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import {
   Search as _SearchIcon,
   ArrowRight as _ArrowRightIcon,
@@ -467,7 +467,7 @@ export const ProfilePanelSurface: React.FC<{ onClosePanel: () => void }> = ({ on
                 height: 32,
                 color: 'rgba(255, 255, 255, 0.6)',
                 '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.08)' },
-                '&.Mui-disabled': { color: 'rgba(255,255,255,0.3)' }
+                '&.ob-disabled': { color: 'rgba(255,255,255,0.3)' }
               }}
             >
               <UserIcon size={18} />
@@ -577,7 +577,7 @@ export const ProfilePanelSurface: React.FC<{ onClosePanel: () => void }> = ({ on
           bgcolor: '#6366F1',
           color: '#000',
           '&:hover': { bgcolor: alpha('#6366F1', 0.86) },
-          '&.Mui-disabled': { bgcolor: 'rgba(99,102,241,0.28)', color: 'rgba(255,255,255,0.6)' },
+          '&.ob-disabled': { bgcolor: 'rgba(99,102,241,0.28)', color: 'rgba(255,255,255,0.6)' },
         }}
       >
         See full profile

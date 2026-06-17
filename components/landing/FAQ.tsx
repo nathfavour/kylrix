@@ -1,7 +1,7 @@
 "use client";
 
-import { Box, Container, Typography, Stack, Accordion, AccordionSummary, AccordionDetails } from '@/lib/mui-tailwind/material';
-import { ExpandMore } from '@/lib/mui-tailwind/icons';
+import { Box, Container, Typography, Stack, Accordion, AccordionSummary, AccordionDetails } from '@/lib/openbricks/primitives';
+import { ExpandMore } from '@/lib/openbricks/icons';
 
 const faqs = [
   {

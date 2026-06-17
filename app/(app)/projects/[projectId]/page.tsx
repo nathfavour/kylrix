@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { ID } from 'appwrite';
 import { useRouter, useParams } from 'next/navigation';
 
-import { useTheme } from '@/lib/mui-tailwind/styles';
+import { useTheme } from '@/lib/openbricks/theme';
 import {
   Plus,
   Calendar,

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography, useTheme } from '@/lib/mui-tailwind/material';
+import { Box, Typography, useTheme } from '@/lib/openbricks/primitives';
 import { motion } from 'framer-motion';
 import type { KylrixApp } from '@/lib/sdk/design';
 

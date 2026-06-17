@@ -1,7 +1,7 @@
 "use client";
 
-import { Box, Container, Typography, Grid, Paper, Stack } from '@/lib/mui-tailwind/material';
-import { Star as StarIcon } from '@/lib/mui-tailwind/icons';
+import { Box, Container, Typography, Grid, Paper, Stack } from '@/lib/openbricks/primitives';
+import { Star as StarIcon } from '@/lib/openbricks/icons';
 
 const VAULT_PRIMARY = "#10B981";
 

@@ -13,14 +13,14 @@ import {
   alpha,
   useTheme,
   useMediaQuery
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline as ErrorOutlineIcon,
   Email as MailIcon,
   Home as HomeIcon,
   Settings as SettingsIcon,
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { completeEmailVerification } from '@/lib/appwrite';
 
 interface VerifyEmailModalProps {

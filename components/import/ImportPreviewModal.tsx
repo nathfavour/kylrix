@@ -16,9 +16,9 @@ import {
   TableHead,
   TableRow,
   Chip
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { ImportItem, DeduplicationEngine } from '@/lib/import/deduplication';
-import { Close as CloseIcon, Search as SearchIcon, Folder as StorageIcon, ArrowForward as ArrowForwardIcon, Check as CheckIcon } from '@/lib/mui-tailwind/icons';
+import { Close as CloseIcon, Search as SearchIcon, Folder as StorageIcon, ArrowForward as ArrowForwardIcon, Check as CheckIcon } from '@/lib/openbricks/icons';
 
 interface ImportPreviewModalProps {
   isOpen: boolean;

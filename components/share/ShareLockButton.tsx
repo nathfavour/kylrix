@@ -6,7 +6,7 @@ import { toggleResourcePublicGuest } from '@/lib/actions/client-ops';
 import { buildPublicResourceUrl } from '@/lib/share/public-url';
 import { PublicResourceType } from '@/lib/share/resource-types';
 import { useToast } from '@/hooks/useToast';
-import { Tooltip, IconButton } from '@/lib/mui-tailwind/material';
+import { Tooltip, IconButton } from '@/lib/openbricks/primitives';
 
 interface ShareLockButtonProps {
   resourceType: PublicResourceType;
@@ -138,7 +138,7 @@ export function ShareLockButton({
             bgcolor: 'rgba(255, 255, 255, 0.05)',
             transform: 'scale(1.1)',
           },
-          '&.Mui-disabled': {
+          '&.ob-disabled': {
              color: 'rgba(255, 255, 255, 0.1)',
           }
         }}

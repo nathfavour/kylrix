@@ -16,7 +16,7 @@ import {
   Divider,
   Tabs,
   Tab,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   X,
   Search as SearchIcon,

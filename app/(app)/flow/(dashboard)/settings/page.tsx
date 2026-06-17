@@ -17,13 +17,13 @@ import {
     ListItemIcon,
     ListItemText,
     IconButton
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
     LockOutlined as LockIcon, 
     FingerprintOutlined as FingerprintIcon,
     DeleteOutline as DeleteIcon,
     ShieldOutlined as ShieldIcon
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { AppwriteService, getCurrentUser } from '@/lib/appwrite/client';
 import { PasskeySetup } from '@/components/overlays/PasskeySetup';

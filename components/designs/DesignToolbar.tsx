@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Button, FormControl, IconButton, MenuItem, Select, Stack, Typography, alpha } from '@/lib/mui-tailwind/material';
+import { Box, Button, FormControl, IconButton, MenuItem, Select, Stack, Typography, alpha } from '@/lib/openbricks/primitives';
 import { Download, ChevronDown, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import type { DesignExportFormat } from './types';
 
@@ -113,8 +113,8 @@ export default function DesignToolbar({
               color: 'white',
               bgcolor: alpha('#fff', 0.04),
               borderRadius: 2.5,
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.08)' },
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.16)' },
+              '& .ob-input-outline': { borderColor: 'rgba(255,255,255,0.08)' },
+              '&:hover .ob-input-outline': { borderColor: 'rgba(255,255,255,0.16)' },
             }}
             IconComponent={ChevronDown}
           >

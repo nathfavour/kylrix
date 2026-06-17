@@ -6,7 +6,7 @@ import { useNotes } from '@/context/NotesContext';
 import { useOverlay } from '@/components/ui/OverlayContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense } from 'react';
-import { CircularProgress } from '@/lib/mui-tailwind/material';
+import { CircularProgress } from '@/lib/openbricks/primitives';
 import type { Notes } from '@/types/appwrite';
 import NoteCard from '@/components/ui/NoteCard';
 import { Button } from '@/components/ui/Button';

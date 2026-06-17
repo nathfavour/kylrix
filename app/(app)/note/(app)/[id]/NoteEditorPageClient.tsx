@@ -15,7 +15,7 @@ import {
   DialogTitle, 
   DialogContent, 
   DialogActions,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { useToast } from '@/components/ui/Toast';
 import CommentsSection from '@/app/(app)/note/(app)/notes/Comments';
 import NoteReactions from '@/app/(app)/note/(app)/notes/NoteReactions';

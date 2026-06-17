@@ -11,7 +11,7 @@ import {
     alpha,
     InputAdornment,
     Tooltip
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
     Send, 
     X, 

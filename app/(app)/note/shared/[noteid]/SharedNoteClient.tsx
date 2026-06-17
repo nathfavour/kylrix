@@ -13,7 +13,7 @@ import {
   ContentCopy as CopyIcon,
   LibraryAdd as DuplicateIcon,
   Refresh as RefreshIcon
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { 
   Mic,
   Waves
@@ -46,9 +46,9 @@ import {
   Stack,
   Tooltip,
   alpha,
-  Link as MuiLink,
+  Link as ObLink,
   keyframes
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import NextLink from 'next/link';
 import CommentsSection from '@/app/(app)/note/(app)/notes/Comments';
 import NoteReactions from '@/app/(app)/note/(app)/notes/NoteReactions';
@@ -858,7 +858,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
                 ) : (
                   <Tooltip title="Login to duplicate note into your collection">
                     <Button
-                      component={MuiLink}
+                      component={ObLink}
                       href={`${getEcosystemUrl('accounts')}/login?source=${typeof window !== 'undefined' ? encodeURIComponent(window.location.origin + window.location.pathname) : ''}`}
                       variant="outlined"
                       startIcon={<DuplicateIcon />}
@@ -907,7 +907,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
               />
             )}
             {authorProfile && (
-              <MuiLink 
+              <ObLink 
                 component={NextLink}
                 href={authorProfile.username ? `${getEcosystemUrl('connect')}/u/${authorProfile.username}` : '#'} 
                 target="_blank"
@@ -938,7 +938,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
                 <Typography variant="caption" sx={{ fontWeight: 800, color: '#6366F1', fontFamily: 'var(--font-satoshi)' }}>
                   {authorProfile.username ? `@${authorProfile.username}` : getEffectiveDisplayName(authorProfile)}
                 </Typography>
-              </MuiLink>
+              </ObLink>
             )}
           </Box>
 
@@ -1112,7 +1112,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
                 fontWeight: 900,
                 letterSpacing: '-0.04em'
               }}
-              component={MuiLink}
+              component={ObLink}
               href="/"
             />
           </Box>
@@ -1228,7 +1228,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
               Join thousands of users who trust Kylrix Note to capture, organize, and share their thoughts.
             </Typography>
             <Button
-              component={MuiLink}
+              component={ObLink}
               href="/"
               variant="contained"
               size="large"

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, IconButton, Typography, Box, alpha } from '@/lib/mui-tailwind/material';
-import { Close as CloseIcon } from '@/lib/mui-tailwind/icons';
+import { Dialog, DialogTitle, DialogContent, IconButton, Typography, Box, alpha } from '@/lib/openbricks/primitives';
+import { Close as CloseIcon } from '@/lib/openbricks/icons';
 
 export interface ModalProps {
   isOpen: boolean;

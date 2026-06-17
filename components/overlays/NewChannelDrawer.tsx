@@ -21,7 +21,7 @@ import {
     useMediaQuery,
     Checkbox,
     Chip
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { X, Search, ShieldCheck, Users, ArrowRight, Check } from 'lucide-react';
 import { UsersService } from '@/lib/services/users';
 import { ChatService } from '@/lib/services/chat';
@@ -129,12 +129,12 @@ export function NewChannelDrawer({ isOpen, onClose }: { isOpen: boolean; onClose
                             value={channelName}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChannelName(e.target.value)}
                             sx={{
-                                '& .MuiOutlinedInput-root': {
+                                '& .ob-input-root': {
                                     borderRadius: '14px',
                                     bgcolor: '#0A0908',
                                     '& fieldset': { borderColor: 'rgba(255,255,255,0.05)' },
                                     '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                                    '&.Mui-focused fieldset': { borderColor: '#F59E0B' }
+                                    '&.ob-focused fieldset': { borderColor: '#F59E0B' }
                                 },
                                 '& input': { color: 'white', fontWeight: 700 }
                             }}
@@ -173,7 +173,7 @@ export function NewChannelDrawer({ isOpen, onClose }: { isOpen: boolean; onClose
                             textTransform: 'none',
                             fontSize: '1rem',
                             '&:hover': { bgcolor: alpha('#F59E0B', 0.8) },
-                            '&.Mui-disabled': { bgcolor: alpha('#F59E0B', 0.2), color: alpha('#fff', 0.3) }
+                            '&.ob-disabled': { bgcolor: alpha('#F59E0B', 0.2), color: alpha('#fff', 0.3) }
                         }}
                     >
                         {creating ? <CircularProgress size={24} color="inherit" /> : 'Create Channel'}

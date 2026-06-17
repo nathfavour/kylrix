@@ -18,7 +18,7 @@ import {
   MenuItem,
   Stack,
   Grid,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   Rocket, 
   ShieldAlert, 
@@ -179,7 +179,7 @@ export default function CreateProjectModal({ open, onClose, onCreated }: CreateP
                         autoFocus
                         InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', fontWeight: 700 } }}
                         sx={{
-                            '& .MuiOutlinedInput-root': {
+                            '& .ob-input-root': {
                                 color: '#fff',
                                 bgcolor: '#161412',
                                 borderRadius: '16px',
@@ -199,7 +199,7 @@ export default function CreateProjectModal({ open, onClose, onCreated }: CreateP
                         rows={3}
                         InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', fontWeight: 700 } }}
                         sx={{
-                            '& .MuiOutlinedInput-root': {
+                            '& .ob-input-root': {
                                 color: '#fff',
                                 bgcolor: '#161412',
                                 borderRadius: '16px',
@@ -219,8 +219,8 @@ export default function CreateProjectModal({ open, onClose, onCreated }: CreateP
                                 bgcolor: '#161412',
                                 borderRadius: '16px',
                                 fontWeight: 700,
-                                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.06)' },
-                                '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.3)' }
+                                '& .ob-input-outline': { borderColor: 'rgba(255,255,255,0.06)' },
+                                '& .ob-icon': { color: 'rgba(255,255,255,0.3)' }
                             }}
                         >
                             <MenuItem value="private">Private</MenuItem>

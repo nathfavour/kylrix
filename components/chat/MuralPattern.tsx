@@ -1,6 +1,6 @@
 'use client';
 
-import { Box } from '@/lib/mui-tailwind/material';
+import { Box } from '@/lib/openbricks/primitives';
 
 const TILE_WIDTH = 640;
 const TILE_HEIGHT = 456;

@@ -3,7 +3,7 @@ name: ui.muted-v3-design
 description: >-
   Kylrix Next.js mono app — Muted V3 Deep Earth UI system (palette, typography,
   opaque surfaces, hairline borders, bottom chrome parity, prohibited patterns).
-  Use when styling MUI surfaces, drawers, shells, navigation, cards, typography,
+  Use when styling OpenBricks surfaces, drawers, shells, navigation, cards, typography,
   spacing, brand polish, or reviewing visuals for drift from ecosystem design docs.
 disable-model-invocation: true
 ---
@@ -46,9 +46,9 @@ All primary interactive surfaces (cards, dashboard items) must follow these kine
 
 App accents — from `AGENTS.md` — only for app-scoped UI.
 
-## Typography (always wire explicitly in MUI when needed)
+## Typography (always wire explicitly in OpenBricks when needed)
 
-MUI defaults are **not** brand fonts:
+OpenBricks defaults are **not** brand fonts:
 
 - **UI / body:** `fontFamily: 'var(--font-satoshi)'`
 - **Display / titles:** `fontFamily: 'var(--font-clash)'`, optional `letterSpacing: '-0.02em'`

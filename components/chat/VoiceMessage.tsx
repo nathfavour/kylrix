@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Typography, IconButton, Slider } from '@/lib/mui-tailwind/material';
+import { Box, Typography, IconButton, Slider } from '@/lib/openbricks/primitives';
 import { Play, Pause } from 'lucide-react';
 
 interface VoiceMessageProps {
@@ -104,22 +104,22 @@ export const VoiceMessage: React.FC<VoiceMessageProps> = ({ url }) => {
             color: '#6366F1',
             height: 4,
             padding: '10px 0',
-            '& .MuiSlider-thumb': {
+            '& .ob-slider-thumb': {
               width: 10,
               height: 10,
               transition: '0.3s cubic-bezier(.47,1.64,.41,.8)',
               '&:before': {
                 boxShadow: '0 2px 12px 0 rgba(0,0,0,0.4)',
               },
-              '&:hover, &.Mui-focusVisible': {
+              '&:hover, &.ob-focus-visible': {
                 boxShadow: '0px 0px 0px 6px rgba(99, 102, 241, 0.16)',
               },
             },
-            '& .MuiSlider-rail': {
+            '& .ob-slider-rail': {
               opacity: 0.15,
               bgcolor: '#9B9691'
             },
-            '& .MuiSlider-track': {
+            '& .ob-slider-track': {
               border: 'none',
             },
           }}

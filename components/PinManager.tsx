@@ -10,8 +10,8 @@ import {
   Alert, 
   CircularProgress,
   alpha
-} from '@/lib/mui-tailwind/material';
-import { Apps, CheckCircle, FiberPin } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Apps, CheckCircle, FiberPin } from '@/lib/openbricks/icons';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { useTheme } from '@/lib/theme-context';
 import toast from 'react-hot-toast';
@@ -106,7 +106,7 @@ export default function PinManager() {
                     bgcolor: 'rgba(0, 240, 255, 0.05)', 
                     color: '#00F0FF',
                     border: '1px solid rgba(0, 240, 255, 0.1)',
-                    '& .MuiAlert-icon': { color: '#00F0FF' }
+                    '& .ob-alert-icon': { color: '#00F0FF' }
                   }}
                 >
                   Quick PIN is active on this browser.
@@ -165,7 +165,7 @@ export default function PinManager() {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 inputProps={{ maxLength: 4, inputMode: 'numeric', style: { textAlign: 'center', letterSpacing: '0.5em' } }}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  '& .ob-input-root': {
                     bgcolor: 'rgba(255,255,255,0.03)',
                     borderRadius: '10px'
                   }
@@ -184,7 +184,7 @@ export default function PinManager() {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 inputProps={{ maxLength: 4, inputMode: 'numeric', style: { textAlign: 'center', letterSpacing: '0.5em' } }}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  '& .ob-input-root': {
                     bgcolor: 'rgba(255,255,255,0.03)',
                     borderRadius: '10px'
                   }

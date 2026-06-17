@@ -13,7 +13,7 @@ import {
   useTheme,
   useMediaQuery,
   Divider,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { startRegistration } from '@simplewebauthn/browser';
 import { AppwriteService } from '@/lib/appwrite';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
@@ -24,7 +24,7 @@ import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
   CheckCircle as CheckCircleIcon,
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { Fingerprint, X } from 'lucide-react';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 
@@ -55,8 +55,8 @@ export function PasskeySetupPanel({
   trustUnlocked = false,
 }: PasskeySetupPanelProps) {
   const router = useRouter();
-  const muiTheme = useTheme();
-  const isDesktop = useMediaQuery(muiTheme.breakpoints.up('md'));
+  const obTheme = useTheme();
+  const isDesktop = useMediaQuery(obTheme.breakpoints.up('md'));
   const { setIsDrawerOpen } = useDrawerState();
 
   useEffect(() => {
@@ -251,7 +251,7 @@ export function PasskeySetupPanel({
 
       <Box sx={{ px: 3, pt: isDesktop ? 3 : 1.5, pb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <Fingerprint size={24} color={muiTheme.palette.primary.main} />
+          <Fingerprint size={24} color={obTheme.palette.primary.main} />
           <Typography sx={{ fontWeight: 900, fontFamily: 'var(--font-space-grotesk)', fontSize: '1.15rem' }}>
             Add New Passkey
           </Typography>
@@ -340,7 +340,7 @@ export function PasskeySetupPanel({
                 alignItems: 'center',
                 gap: 1
               }}>
-                <Fingerprint size={32} color={muiTheme.palette.primary.main} />
+                <Fingerprint size={32} color={obTheme.palette.primary.main} />
                 <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
                   Face ID • Touch ID • Windows Hello
                 </Typography>
@@ -459,8 +459,8 @@ export function PasskeySetup({
   onSuccess,
   trustUnlocked = false,
 }: PasskeySetupProps) {
-  const muiTheme = useTheme();
-  const isDesktop = useMediaQuery(muiTheme.breakpoints.up('md'));
+  const obTheme = useTheme();
+  const isDesktop = useMediaQuery(obTheme.breakpoints.up('md'));
 
   if (!open) return null;
 

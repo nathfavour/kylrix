@@ -11,7 +11,7 @@ import {
   IconButton, 
   Divider,
   Alert
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   PlayArrow as PlayIcon, 
   RotateLeft as NegateIcon, 
@@ -21,7 +21,7 @@ import {
   Security as AnonIcon, 
   Circle as DotIcon,
   ToggleOn as DynamicIcon
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { useLocalContext } from '@/lib/context-engine';
 import { anonymizeWorkflow, negateWorkflow, WorkflowChain } from '@/lib/workflow-engine';
 import { 

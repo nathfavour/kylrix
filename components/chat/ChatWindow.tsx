@@ -34,7 +34,7 @@ import {
     useTheme,
     useMediaQuery,
     alpha
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
     Send,
     Phone,
@@ -454,7 +454,7 @@ const ChatDraftInput = React.memo(function ChatDraftInput({
                             bgcolor: '#1C1A18',
                             borderColor: '#6366F1',
                         },
-                        '&.Mui-disabled': {
+                        '&.ob-disabled': {
                             color: 'rgba(255,255,255,0.05)',
                         }
                     }}

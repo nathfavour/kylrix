@@ -17,7 +17,7 @@ import {
     IconButton,
     alpha,
     InputBase
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
     Phone,
     Video,
@@ -148,7 +148,7 @@ export const CallSelectorModal = ({ open, onClose, onSelect }: CallSelectorModal
                             color: 'white',
                             fontSize: '0.95rem',
                             fontWeight: 500,
-                            '& .MuiInputBase-input::placeholder': {
+                            '& .ob-input::placeholder': {
                                 color: 'rgba(255, 255, 255, 0.3)',
                                 opacity: 1,
                             },

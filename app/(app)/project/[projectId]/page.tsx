@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Box, Typography, Button, Paper, Stack, CircularProgress, alpha, Chip, Container } from '@/lib/mui-tailwind/material';
+import { Box, Typography, Button, Paper, Stack, CircularProgress, alpha, Chip, Container } from '@/lib/openbricks/primitives';
 import { ShieldAlert, ArrowRight, LogIn } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
 import { account } from '@/lib/appwrite/client';
@@ -466,7 +466,7 @@ export default function ProjectInvitePage() {
               fontWeight: 900, 
               fontFamily: 'var(--font-satoshi)', 
               textTransform: 'none',
-              "&.Mui-disabled": {
+              "&.ob-disabled": {
                 borderColor: 'rgba(245, 158, 11, 0.3)',
                 color: '#F59E0B',
               }

@@ -20,7 +20,7 @@ import {
   useTheme,
   Chip,
   alpha,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   PlayArrow,
   Pause,
@@ -30,7 +30,7 @@ import {
   CheckCircle,
   RadioButtonUnchecked,
   AutoFixHigh as AutoFixHighIcon,
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { useTask } from '@/context/TaskContext';
 import { Task } from '@/types';
 import { focusSessions } from '@/lib/kylrixflow';

@@ -10,7 +10,7 @@ import {
     Paper,
     InputBase,
     alpha,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
     Search,
     X,

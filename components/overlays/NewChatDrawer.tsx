@@ -10,7 +10,7 @@ import {
     alpha,
     useTheme,
     useMediaQuery
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { X, ShieldCheck, MessageSquare } from 'lucide-react';
 import { ChatService } from '@/lib/services/chat';
 import { useAuth } from '@/lib/auth';

@@ -1,4 +1,4 @@
-import { Box, Button, Paper, Stack, Typography } from '@/lib/mui-tailwind/material';
+import { Box, Button, Paper, Stack, Typography } from '@/lib/openbricks/primitives';
 export function RouteErrorBoundary({ 
   error, 
   reset 

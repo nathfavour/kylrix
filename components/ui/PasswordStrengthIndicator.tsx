@@ -9,13 +9,13 @@ import {
   IconButton, 
   InputAdornment,
   Stack
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   Visibility as VisibilityIcon, 
   VisibilityOff as VisibilityOffIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { validatePasswordStrength, getPasswordStrengthLabel, type PasswordStrength } from '@/lib/passwordUtils';
 
 interface PasswordStrengthIndicatorProps {
@@ -57,7 +57,7 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
             height: 6, 
             borderRadius: 3,
             bgcolor: 'rgba(255, 255, 255, 0.05)',
-            '& .MuiLinearProgress-bar': {
+            '& .ob-linear-progress-bar': {
               bgcolor: getProgressColor(strength.score),
               borderRadius: 3,
               transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
@@ -165,16 +165,16 @@ export const PasswordInputWithStrength: React.FC<PasswordInputWithStrengthProps>
         name={name}
         variant="outlined"
         sx={{
-          '& .MuiOutlinedInput-root': {
+          '& .ob-input-root': {
             borderRadius: '12px',
             bgcolor: 'rgba(255, 255, 255, 0.03)',
             '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
             '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-            '&.Mui-focused fieldset': { borderColor: '#6366F1' },
+            '&.ob-focused fieldset': { borderColor: '#6366F1' },
           },
-          '& .MuiInputLabel-root': {
+          '& .ob-input-label': {
             color: 'rgba(255, 255, 255, 0.5)',
-            '&.Mui-focused': { color: '#6366F1' }
+            '&.ob-focused': { color: '#6366F1' }
           }
         }}
         slotProps={{

@@ -29,7 +29,7 @@ import {
     RadioGroup,
     FormControlLabel,
     Radio
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
     Copy as CopyIcon, 
     Check as CheckIcon,
@@ -349,7 +349,7 @@ const GhostSparkShelf = React.memo(({
                         gap: 1.5,
                         color: theme.palette.secondary.main,
                         '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.08) },
-                        '&.Mui-disabled': { opacity: 0.35 },
+                        '&.ob-disabled': { opacity: 0.35 },
                     }}
                 >
                     <ListItemIcon sx={{ minWidth: 'auto', color: 'inherit' }}>
@@ -1005,7 +1005,7 @@ export const GhostEditor = () => {
                     color: '#6366F1',
                     border: '1px solid rgba(255, 255, 255, 0.05)',
                     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
-                    '& .MuiAlert-message': { width: '100%' }
+                    '& .ob-alert-message': { width: '100%' }
                 }}
             >
                 <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems="center" spacing={1}>
@@ -1364,7 +1364,7 @@ export const GhostEditor = () => {
                                              <Grid size={{ xs: 6 }} key={option.value}>
                                         <FormControlLabel
                                             value={option.value}
-                                            control={<Radio sx={{ color: alpha(theme.palette.text.primary, 0.1), '&.Mui-checked': { color: theme.palette.secondary.main } }} />}
+                                            control={<Radio sx={{ color: alpha(theme.palette.text.primary, 0.1), '&.ob-checked': { color: theme.palette.secondary.main } }} />}
                                             label={
                                                 <Typography variant="body2" sx={{ fontWeight: 700, color: lifespanMs === option.value ? theme.palette.text.primary : theme.palette.text.secondary }}>
                                                     {option.label}

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Box, Typography, TextField, Button, List, ListItem, ListItemText, Divider, Select, MenuItem, FormControl, InputLabel } from '@/lib/mui-tailwind/material';
-import { SelectChangeEvent } from '@mui/material';
+import { Box, Typography, TextField, Button, List, ListItem, ListItemText, Divider, Select, MenuItem, FormControl, InputLabel } from '@/lib/openbricks/primitives';
+import type { ObSelectChangeEvent as SelectChangeEvent } from '@/lib/openbricks/types';
 import { listCollaborators, createCollaborator, deleteCollaborator } from '@/lib/appwrite';
 import { useToast } from '@/components/ui/Toast';
 import type { Collaborators, Users } from '@/types/appwrite';

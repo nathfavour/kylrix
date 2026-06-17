@@ -10,8 +10,8 @@ import {
   Grid, 
   useTheme,
   InputAdornment
-} from '@/lib/mui-tailwind/material';
-import { AutoAwesome as SparklesIcon } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { AutoAwesome as SparklesIcon } from '@/lib/openbricks/icons';
 
 interface AIHeroInputProps {
   onPromptSelectAction: (prompt: string) => void;
@@ -119,7 +119,7 @@ export function AIHeroInput({ onPromptSelectAction }: AIHeroInputProps) {
               '&:hover fieldset': {
                 borderColor: 'rgba(255, 255, 255, 0.2)',
               },
-              '&.Mui-focused fieldset': {
+              '&.ob-focused fieldset': {
                 borderColor: '#6366F1',
                 boxShadow: '0 0 30px rgba(99, 102, 241, 0.2)',
               },
@@ -144,7 +144,7 @@ export function AIHeroInput({ onPromptSelectAction }: AIHeroInputProps) {
                       bgcolor: inputValue.trim() ? '#00D1DA' : 'rgba(255, 255, 255, 0.1)',
                       transform: 'scale(1.05)',
                     },
-                    '&.Mui-disabled': {
+                    '&.ob-disabled': {
                       bgcolor: 'rgba(255, 255, 255, 0.02)',
                       color: 'rgba(255, 255, 255, 0.1)',
                     }

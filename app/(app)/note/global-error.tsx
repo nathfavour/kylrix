@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, Typography, Button, Paper, Container, Accordion, AccordionSummary, AccordionDetails } from '@/lib/mui-tailwind/material';
-import { Refresh, Home, ErrorOutline, ExpandMore } from '@/lib/mui-tailwind/icons';
+import { Box, Typography, Button, Paper, Container, Accordion, AccordionSummary, AccordionDetails } from '@/lib/openbricks/primitives';
+import { Refresh, Home, ErrorOutline, ExpandMore } from '@/lib/openbricks/icons';
 
 export default function GlobalError({
   error,

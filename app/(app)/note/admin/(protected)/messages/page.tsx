@@ -16,13 +16,13 @@ import {
   alpha,
   Container,
   Breadcrumbs,
-  Link as MuiLink
-} from '@/lib/mui-tailwind/material';
+  Link as ObLink
+} from '@/lib/openbricks/primitives';
 import {
   Send as SendIcon,
   Preview as PreviewIcon,
   ArrowBack as BackIcon
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import Link from 'next/link';
 
 interface SendState { status: 'idle'|'sending'|'success'|'error'; message?: string; }
@@ -106,9 +106,9 @@ export default function AdminMessages() {
       <Box sx={{ mb: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box>
           <Breadcrumbs sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 1 }}>
-            <MuiLink component={Link} href="/admin/dashboard" underline="hover" color="inherit">
+            <ObLink component={Link} href="/admin/dashboard" underline="hover" color="inherit">
               Admin
-            </MuiLink>
+            </ObLink>
             <Typography color="white">Messages</Typography>
           </Breadcrumbs>
           <Typography 
@@ -155,14 +155,14 @@ export default function AdminMessages() {
             onChange={ (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setSubject(e.target.value)}
             placeholder="Enter message subject"
             sx={{
-              '& .MuiOutlinedInput-root': {
+              '& .ob-input-root': {
                 color: 'white',
                 '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
                 '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                '&.Mui-focused fieldset': { borderColor: '#6366F1' },
+                '&.ob-focused fieldset': { borderColor: '#6366F1' },
               },
-              '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.5)' },
-              '& .MuiInputLabel-root.Mui-focused': { color: '#6366F1' },
+              '& .ob-input-label': { color: 'rgba(255, 255, 255, 0.5)' },
+              '& .ob-input-label.ob-focused': { color: '#6366F1' },
             }}
           />
 
@@ -176,16 +176,16 @@ export default function AdminMessages() {
             onChange={ (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setBody(e.target.value)}
             placeholder="<p>Announcement...</p>"
             sx={{
-              '& .MuiOutlinedInput-root': {
+              '& .ob-input-root': {
                 color: 'white',
                 fontFamily: 'monospace',
                 fontSize: '0.9rem',
                 '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
                 '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                '&.Mui-focused fieldset': { borderColor: '#6366F1' },
+                '&.ob-focused fieldset': { borderColor: '#6366F1' },
               },
-              '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.5)' },
-              '& .MuiInputLabel-root.Mui-focused': { color: '#6366F1' },
+              '& .ob-input-label': { color: 'rgba(255, 255, 255, 0.5)' },
+              '& .ob-input-label.ob-focused': { color: '#6366F1' },
             }}
           />
 
@@ -199,14 +199,14 @@ export default function AdminMessages() {
                 onChange={ (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setUserIds(e.target.value)}
                 placeholder="user1, user2"
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  '& .ob-input-root': {
                     color: 'white',
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
                     '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                    '&.Mui-focused fieldset': { borderColor: '#6366F1' },
+                    '&.ob-focused fieldset': { borderColor: '#6366F1' },
                   },
-                  '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.5)' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#6366F1' },
+                  '& .ob-input-label': { color: 'rgba(255, 255, 255, 0.5)' },
+                  '& .ob-input-label.ob-focused': { color: '#6366F1' },
                 }}
               />
             </Grid>
@@ -219,14 +219,14 @@ export default function AdminMessages() {
                 onChange={ (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setEmails(e.target.value)}
                 placeholder="a@b.dev, c@d.dev"
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  '& .ob-input-root': {
                     color: 'white',
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
                     '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                    '&.Mui-focused fieldset': { borderColor: '#6366F1' },
+                    '&.ob-focused fieldset': { borderColor: '#6366F1' },
                   },
-                  '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.5)' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#6366F1' },
+                  '& .ob-input-label': { color: 'rgba(255, 255, 255, 0.5)' },
+                  '& .ob-input-label.ob-focused': { color: '#6366F1' },
                 }}
               />
             </Grid>
@@ -242,14 +242,14 @@ export default function AdminMessages() {
                 onChange={ (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setBcc(e.target.value)}
                 placeholder="team@domain.dev"
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  '& .ob-input-root': {
                     color: 'white',
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
                     '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                    '&.Mui-focused fieldset': { borderColor: '#6366F1' },
+                    '&.ob-focused fieldset': { borderColor: '#6366F1' },
                   },
-                  '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.5)' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#6366F1' },
+                  '& .ob-input-label': { color: 'rgba(255, 255, 255, 0.5)' },
+                  '& .ob-input-label.ob-focused': { color: '#6366F1' },
                 }}
               />
             </Grid>
@@ -262,14 +262,14 @@ export default function AdminMessages() {
                 onChange={ (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setTopic(e.target.value)}
                 placeholder="release-2025q1"
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  '& .ob-input-root': {
                     color: 'white',
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.1)' },
                     '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                    '&.Mui-focused fieldset': { borderColor: '#6366F1' },
+                    '&.ob-focused fieldset': { borderColor: '#6366F1' },
                   },
-                  '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.5)' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#6366F1' },
+                  '& .ob-input-label': { color: 'rgba(255, 255, 255, 0.5)' },
+                  '& .ob-input-label.ob-focused': { color: '#6366F1' },
                 }}
               />
             </Grid>
@@ -281,7 +281,7 @@ export default function AdminMessages() {
                 <Checkbox 
                   checked={allUsers} 
                   onChange={ (e: React.ChangeEvent<HTMLInputElement>) => setAllUsers(e.target.checked)}
-                  sx={{ color: 'rgba(255, 255, 255, 0.3)', '&.Mui-checked': { color: '#6366F1' } }}
+                  sx={{ color: 'rgba(255, 255, 255, 0.3)', '&.ob-checked': { color: '#6366F1' } }}
                 />
               }
               label={<Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Broadcast to all users (overrides User IDs/Emails)</Typography>}
@@ -291,7 +291,7 @@ export default function AdminMessages() {
                 <Checkbox 
                   checked={dryRun} 
                   onChange={ (e: React.ChangeEvent<HTMLInputElement>) => setDryRun(e.target.checked)}
-                  sx={{ color: 'rgba(255, 255, 255, 0.3)', '&.Mui-checked': { color: '#6366F1' } }}
+                  sx={{ color: 'rgba(255, 255, 255, 0.3)', '&.ob-checked': { color: '#6366F1' } }}
                 />
               }
               label={<Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Dry Run (preview only)</Typography>}

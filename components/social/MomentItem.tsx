@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardHeader, Avatar } from '@/lib/mui-tailwind/material';
+import { Card, CardHeader, Avatar } from '@/lib/openbricks/primitives';
 import { Pin, Edit, Trash2 } from 'lucide-react';
 import { useResourcePins } from '@/context/ResourcePinContext';
 import { useContextMenu } from '@/components/ui/ContextMenuContext';

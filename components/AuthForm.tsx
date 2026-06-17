@@ -11,7 +11,7 @@ import {
   Stack,
   Alert,
   CircularProgress,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 
 type Props = {
   email: string;

@@ -18,7 +18,7 @@
 - **Opaque Surfaces**: No gradients or translucent backgrounds on product chrome.
 - **PNPM Only**: Always use `pnpm` for package management. NEVER use `npm` or `yarn`.
 - **Global Unmount Policy**: Strictly use conditional rendering (`{isOpen && <Component />}`) for all overlays (drawers, modals, sidebars) instead of relying on visibility props. This physically removes the component and its invisible backdrops from the DOM when closed, mathematically preventing interaction blocking.
-- **Interactivity Standards**: Use `keepMounted: false` and `disablePortal: true` for all MUI drawers/modals to ensure they stay contained and cleanup correctly.
+- **Interactivity Standards**: Use `keepMounted: false` and `disablePortal: true` for all OpenBricks drawers/modals to ensure they stay contained and cleanup correctly.
 - **Surgical Execution**: For 'surgical fixes', prioritize direct, high-precision code modifications. Skip build/lint/test cycles unless explicitly instructed to validate. Aim for maximum velocity in resolving identified issues.
 - **Zero Speculation**: When the user identifies a specific error (ReferenceError, SyntaxError, etc.), fix exactly that error and stop. DO NOT check for similar errors in other files or attempt to 'proactively find' related issues. Resolve the reported problem surgically and get out of the way immediately.
 - **Layman-First**: Prohibit technical jargon (e.g., E2EE, Entropy, Node, Nexus, Decentralized, Agentic) in all UI copy and descriptions. Use simple, direct, layman-friendly English (e.g., Secure, Private, System, Smart). Prioritize accessibility and user adoption over technical metaphors.

@@ -1,8 +1,8 @@
 "use client";
 
-import { Box, Container, Typography, Button, CircularProgress } from '@/lib/mui-tailwind/material';
-import { alpha } from '@/lib/mui-tailwind/material';
-import { ChevronRight } from '@/lib/mui-tailwind/icons';
+import { Box, Container, Typography, Button, CircularProgress } from '@/lib/openbricks/primitives';
+import { alpha } from '@/lib/openbricks/primitives';
+import { ChevronRight } from '@/lib/openbricks/icons';
 import { useAppwriteVault } from '@/context/appwrite-context';
 import { useRouter } from 'next/navigation';
 
@@ -52,8 +52,8 @@ export default function CTA() {
         sx={{
             bgcolor: VAULT_SECONDARY,
             // ensure MUI contained button styles don't override our app-specific color
-            '&.MuiButton-contained': { bgcolor: VAULT_SECONDARY },
-            '&.MuiButton-contained:hover': { bgcolor: alpha(VAULT_SECONDARY, 0.85) },
+            '&.ob-btn-contained': { bgcolor: VAULT_SECONDARY },
+            '&.ob-btn-contained:hover': { bgcolor: alpha(VAULT_SECONDARY, 0.85) },
             color: '#000',
             px: 6,
             py: 2.5,

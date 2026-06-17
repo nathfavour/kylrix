@@ -11,7 +11,7 @@ import {
   alpha,
   useTheme,
   Divider,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   ShieldCheck,
   Key,

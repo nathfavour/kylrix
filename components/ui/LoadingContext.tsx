@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Backdrop, CircularProgress, Typography, Box } from '@/lib/mui-tailwind/material';
+import { Backdrop, CircularProgress, Typography, Box } from '@/lib/openbricks/primitives';
 
 interface LoadingContextType {
   isLoading: boolean;

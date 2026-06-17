@@ -11,7 +11,7 @@ import {
     alpha,
     Tooltip,
     Avatar
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
     Video, 
     VideoOff, 

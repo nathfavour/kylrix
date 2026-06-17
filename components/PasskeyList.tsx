@@ -6,7 +6,7 @@ import {
   IconButton,
   Stack,
   Tooltip
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { Fingerprint, Edit, Trash2 } from 'lucide-react';
 import { AppwriteService } from '@/lib/appwrite';
 import toast from 'react-hot-toast';

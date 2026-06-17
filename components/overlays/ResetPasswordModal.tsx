@@ -14,9 +14,9 @@ import {
   Stack,
   useTheme,
   useMediaQuery
-} from '@/lib/mui-tailwind/material';
-import { Close as CloseIcon } from '@/lib/mui-tailwind/icons';
-import { VpnKey, Email } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Close as CloseIcon } from '@/lib/openbricks/icons';
+import { VpnKey, Email } from '@/lib/openbricks/icons';
 import { createPasswordRecovery, updatePasswordRecovery } from '@/lib/appwrite';
 import toast from 'react-hot-toast';
 
@@ -152,7 +152,7 @@ export function ResetPasswordModal({ isOpen, onClose }: ResetPasswordModalProps)
                   required
                   variant="outlined"
                   sx={{
-                    '& .MuiOutlinedInput-root': {
+                    '& .ob-input-root': {
                       borderRadius: '16px',
                       bgcolor: 'rgba(255, 255, 255, 0.03)',
                     }
@@ -168,7 +168,7 @@ export function ResetPasswordModal({ isOpen, onClose }: ResetPasswordModalProps)
                   required
                   variant="outlined"
                   sx={{
-                    '& .MuiOutlinedInput-root': {
+                    '& .ob-input-root': {
                       borderRadius: '16px',
                       bgcolor: 'rgba(255, 255, 255, 0.03)',
                     }
@@ -186,7 +186,7 @@ export function ResetPasswordModal({ isOpen, onClose }: ResetPasswordModalProps)
                 required
                 variant="outlined"
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  '& .ob-input-root': {
                     borderRadius: '16px',
                     bgcolor: 'rgba(255, 255, 255, 0.03)',
                   }
@@ -207,7 +207,7 @@ export function ResetPasswordModal({ isOpen, onClose }: ResetPasswordModalProps)
                 color: '#000',
                 mt: 1,
                 '&:hover': { bgcolor: '#00D1DA' },
-                '&.Mui-disabled': { bgcolor: 'rgba(99, 102, 241, 0.3)' }
+                '&.ob-disabled': { bgcolor: 'rgba(99, 102, 241, 0.3)' }
               }}
             >
               {loading ? <CircularProgress size={24} color="inherit" /> : (showResetForm ? "Update Password" : "Send Reset Link")}

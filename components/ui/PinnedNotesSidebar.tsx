@@ -2,8 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Query } from 'appwrite';
-import { Box, Typography, Stack, IconButton, useTheme, alpha, CircularProgress } from '@/lib/mui-tailwind/material';
-import { Close as CloseIcon, PushPin as PinIcon } from '@/lib/mui-tailwind/icons';
+import { Box, Typography, Stack, IconButton, useTheme, alpha, CircularProgress } from '@/lib/openbricks/primitives';
+import { Close as CloseIcon, PushPin as PinIcon } from '@/lib/openbricks/icons';
 import { useNotes } from '@/context/NotesContext';
 import NoteCard from '@/components/ui/NoteCard';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';

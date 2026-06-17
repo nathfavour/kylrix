@@ -18,10 +18,10 @@ import {
   Stack,
   IconButton,
   Chip,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   ContentCopy as ContentCopyIcon,
-} from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/icons';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { getResourceCollaboratorsSecure } from '@/lib/actions/secure-ops';
@@ -712,7 +712,7 @@ export default function EventPage() {
                         width: 40,
                         height: 40,
                         '&:hover': { bgcolor: '#4F46E5' },
-                        '&.Mui-disabled': { bgcolor: '#1C1A18', color: '#5E5B58' }
+                        '&.ob-disabled': { bgcolor: '#1C1A18', color: '#5E5B58' }
                       }}
                     >
                       <Send size={16} style={{ color: '#fff' }} />

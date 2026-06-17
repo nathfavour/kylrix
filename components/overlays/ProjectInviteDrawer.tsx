@@ -9,7 +9,7 @@ import {
   CircularProgress,
   IconButton,
   alpha,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { Check, X, Users } from 'lucide-react';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { acceptProjectInviteSecure } from '@/lib/actions/secure-ops';

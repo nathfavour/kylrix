@@ -16,7 +16,7 @@ import {
   Checkbox,
   FormControlLabel,
   TextField,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   ArrowLeft,
   Trash2,
@@ -868,7 +868,7 @@ export function HuddleChatWindow({ chatNoteId, user, title, participants = [], o
                           border: '1px solid rgba(255,255,255,0.05)',
                           transition: 'all 0.2s ease',
                           '&:hover': { borderColor: 'rgba(255,255,255,0.1)' },
-                          '&.Mui-focused': { borderColor: '#F59E0B' }
+                          '&.ob-focused': { borderColor: '#F59E0B' }
                         }
                       }}
                     />
@@ -1489,7 +1489,7 @@ function HuddleMainInput({
                 border: '1px solid rgba(255,255,255,0.05)',
                 transition: 'all 0.2s ease',
                 '&:hover': { borderColor: 'rgba(255,255,255,0.1)' },
-                '&.Mui-focused': { borderColor: '#F59E0B' }
+                '&.ob-focused': { borderColor: '#F59E0B' }
               }
             }}
           />
@@ -1507,7 +1507,7 @@ function HuddleMainInput({
             flexShrink: 0,
             transition: 'all 0.2s ease',
             '&:hover': { bgcolor: '#eab308' },
-            '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,0.1)' }
+            '&.ob-disabled': { bgcolor: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,0.1)' }
           }}
         >
           <Send size={18} />
@@ -1659,8 +1659,8 @@ function HuddleThreadInput({
               sx={{
                 color: 'rgba(255,255,255,0.3)',
                 p: 0.5,
-                '&.Mui-focused': { color: '#F59E0B' },
-                '&.Mui-checked': { color: '#F59E0B' }
+                '&.ob-focused': { color: '#F59E0B' },
+                '&.ob-checked': { color: '#F59E0B' }
               }}
             />
           }

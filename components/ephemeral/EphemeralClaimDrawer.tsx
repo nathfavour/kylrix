@@ -13,7 +13,7 @@ import {
   alpha,
   useTheme,
   useMediaQuery,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { ID, Permission, Role } from 'appwrite';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -320,10 +320,10 @@ export function EphemeralClaimDrawer({ open, onClose, target, onConsumed }: Prop
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMasterPass(e.target.value)}
             sx={{
               mb: 2,
-              '& .MuiOutlinedInput-root': { bgcolor: alpha('#fff', 0.03), borderRadius: 2 },
-              '& .MuiInputLabel-root': { color: alpha('#fff', 0.55) },
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: alpha('#fff', 0.12) },
-              '& .MuiInputBase-input': { color: '#fff' },
+              '& .ob-input-root': { bgcolor: alpha('#fff', 0.03), borderRadius: 2 },
+              '& .ob-input-label': { color: alpha('#fff', 0.55) },
+              '& .ob-input-outline': { borderColor: alpha('#fff', 0.12) },
+              '& .ob-input': { color: '#fff' },
             }}
           />
         )}

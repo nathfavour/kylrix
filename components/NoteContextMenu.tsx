@@ -15,8 +15,8 @@ import {
   Fade,
   useMediaQuery,
   useTheme,
-} from '@/lib/mui-tailwind/material';
-import { Close as CloseIcon, DragHandle as DragHandleIcon, Check as CheckIcon } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Close as CloseIcon, DragHandle as DragHandleIcon, Check as CheckIcon } from '@/lib/openbricks/icons';
 import type { Notes } from '@/types/appwrite';
 import { updateNote } from '@/lib/actions/client-ops';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
@@ -246,13 +246,13 @@ const PaywallDrawer: React.FC<PaywallDrawerProps> = ({
                         checked={hasPaywall} 
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHasPaywall(e.target.checked)}
                         sx={{
-                          '& .MuiSwitch-switchBase': {
+                          '& .ob-switch-thumb': {
                             color: 'rgba(255,255,255,0.4)',
                           },
-                          '& .MuiSwitch-switchBase.Mui-checked': {
+                          '& .ob-switch-thumb.ob-checked': {
                             color: '#6366F1',
                           },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                          '& .ob-switch-thumb.ob-checked + .ob-switch-track': {
                             backgroundColor: '#6366F1',
                           },
                         }}
@@ -316,7 +316,7 @@ const PaywallDrawer: React.FC<PaywallDrawerProps> = ({
                     onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setPaywallAmount(e.target.value ? parseFloat(e.target.value) : '')}
                     placeholder="0.00"
                     sx={{
-                      '& .MuiOutlinedInput-root': {
+                      '& .ob-input-root': {
                         borderRadius: '14px',
                         color: 'white',
                         backgroundColor: 'rgba(0,0,0,0.2)',
@@ -328,14 +328,14 @@ const PaywallDrawer: React.FC<PaywallDrawerProps> = ({
                           opacity: 1,
                         }
                       },
-                      '& .MuiOutlinedInput-notchedOutline': {
+                      '& .ob-input-outline': {
                         borderColor: 'rgba(255,255,255,0.08)',
                         transition: 'border-color 0.2s'
                       },
-                      '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                      '& .ob-input-root:hover .ob-input-outline': {
                         borderColor: 'rgba(255,255,255,0.12)',
                       },
-                      '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      '& .ob-input-root.ob-focused .ob-input-outline': {
                         borderColor: 'rgba(99, 102, 241, 0.4)',
                       },
                     }}

@@ -15,8 +15,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-} from '@/lib/mui-tailwind/material';
-import { Link as LinkIcon } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Link as LinkIcon } from '@/lib/openbricks/icons';
 
 interface WalletManagerProps {
   userId: string;

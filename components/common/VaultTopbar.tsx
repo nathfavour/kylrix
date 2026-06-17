@@ -16,7 +16,7 @@ import {
   CircularProgress,
   Tooltip,
   Typography,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   Bot,
   ChevronDown,

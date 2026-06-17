@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Box, Typography, Chip, TextField, Button, Autocomplete } from '@/lib/mui-tailwind/material';
+import { Box, Typography, Chip, TextField, Button, Autocomplete } from '@/lib/openbricks/primitives';
 import { listTags, createTag } from '@/lib/appwrite';
 import type { Tags } from '@/types/appwrite';
 

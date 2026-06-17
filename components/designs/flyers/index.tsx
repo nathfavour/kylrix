@@ -1,4 +1,4 @@
-import { Box, Typography, alpha } from '@/lib/mui-tailwind/material';
+import { Box, Typography, alpha } from '@/lib/openbricks/primitives';
 import Logo from '@/components/Logo';
 import HappyEasterFlyer from './HappyEasterFlyer';
 import MuralFrameFlyer from './MuralFrameFlyer';

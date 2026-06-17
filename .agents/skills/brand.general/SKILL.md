@@ -70,21 +70,21 @@ Avoid:
 - translucent chrome
 - large glowing gradients
 
-## MUI is the default layer
+## OpenBricks is the default UI layer
 
-This system is a subset of MUI-first UI.
+This system uses **OpenBricks primitives** (`@/lib/openbricks/primitives`) — Tailwind-backed layout and chrome components.
 
-Use MUI primitives to express the brand:
+Use OpenBricks primitives to express the brand:
 - `Box` for layout and shells
 - `Paper` for deep-ash surfaces
 - `Drawer` for focused flows
 - `AppBar` / topbar containers for command rails
 - `IconButton`, `Button`, `Chip`, `Tabs`, `SpeedDial` for interactive chrome
 
-Prefer MUI `sx` over ad hoc CSS when shaping brand surfaces.
+Prefer OpenBricks `sx` over ad hoc CSS when shaping brand surfaces. Use nested selectors with the `ob-*` prefix (e.g. `& .ob-drawer-panel`, `& .ob-tab`).
 
 ```tsx
-import { Box, Paper, Typography } from '@mui/material';
+import { Box, Paper, Typography } from '@/lib/openbricks/primitives';
 
 export function BrandShell({ children }: { children: React.ReactNode }) {
   return (
@@ -96,12 +96,11 @@ export function BrandShell({ children }: { children: React.ReactNode }) {
 ```
 
 ```tsx
-import { Box, Paper } from '@mui/material';
+import { Box, Paper } from '@/lib/openbricks/primitives';
 
 export function BrandCard({ children }: { children: React.ReactNode }) {
   return (
     <Paper
-      elevation={0}
       sx={{
         bgcolor: '#161412',
         border: '1px solid #1C1A18',
@@ -116,7 +115,7 @@ export function BrandCard({ children }: { children: React.ReactNode }) {
 ```
 
 ```tsx
-import { Box, Drawer } from '@mui/material';
+import { Box, Drawer } from '@/lib/openbricks/primitives';
 
 export function FocusDrawer({ open, onClose, children }: {
   open: boolean;
@@ -128,13 +127,12 @@ export function FocusDrawer({ open, onClose, children }: {
       anchor="bottom"
       open={open}
       onClose={onClose}
-      PaperProps={{
-        sx: {
+      sx={{
+        '& .ob-drawer-panel': {
           borderTopLeftRadius: '28px',
           borderTopRightRadius: '28px',
           bgcolor: '#161412',
           borderTop: '1px solid #1C1A18',
-          backgroundImage: 'none',
         },
       }}
     >
@@ -145,7 +143,7 @@ export function FocusDrawer({ open, onClose, children }: {
 ```
 
 ```tsx
-import { Box, Typography } from '@mui/material';
+import { Box, Typography } from '@/lib/openbricks/primitives';
 
 export function TopbarRail() {
   return (

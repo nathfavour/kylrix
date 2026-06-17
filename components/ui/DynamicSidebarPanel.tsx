@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Box, IconButton, Typography } from '@/lib/mui-tailwind/material';
+import { Box, IconButton, Typography } from '@/lib/openbricks/primitives';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { X as CloseIcon, ArrowLeft as BackIcon } from 'lucide-react';
 

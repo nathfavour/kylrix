@@ -18,7 +18,7 @@ import {
   CircularProgress,
   alpha,
   useTheme,
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import {
   Plus,
   FolderKanban,

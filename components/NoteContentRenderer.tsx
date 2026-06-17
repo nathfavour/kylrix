@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import { Box, Typography, alpha } from '@/lib/mui-tailwind/material';
+import { Box, Typography, alpha } from '@/lib/openbricks/primitives';
 import { preProcessMarkdown } from '@/lib/markdown';
 import { VoiceNotePlayer } from '@/components/LinkRenderer';
 

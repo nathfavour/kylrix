@@ -9,10 +9,10 @@ import {
     Divider,
     Button,
     Paper
-} from '@/lib/mui-tailwind/material';
-import { Close as CloseIcon } from '@/lib/mui-tailwind/icons';
-import { Description } from '@/lib/mui-tailwind/icons';
-import { OpenInNew } from '@/lib/mui-tailwind/icons';
+} from '@/lib/openbricks/primitives';
+import { Close as CloseIcon } from '@/lib/openbricks/icons';
+import { Description } from '@/lib/openbricks/icons';
+import { OpenInNew } from '@/lib/openbricks/icons';
 
 interface NoteViewDrawerProps {
     open: boolean;

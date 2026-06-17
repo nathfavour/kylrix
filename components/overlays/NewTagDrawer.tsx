@@ -16,7 +16,7 @@ import {
   alpha,
   Tooltip,
   Paper
-} from '@/lib/mui-tailwind/material';
+} from '@/lib/openbricks/primitives';
 import { 
   X as CloseIcon,
   Plus as PlusIcon,
@@ -214,7 +214,7 @@ export function NewTagDrawer() {
       ModalProps={{ keepMounted: false, disableScrollLock: false }}
       sx={{
         zIndex: 2000,
-        '& .MuiDrawer-paper': {
+        '& .ob-drawer-panel': {
           ...(isDesktop
             ? {
                 top: '88px',
@@ -380,7 +380,7 @@ export function NewTagDrawer() {
                   fontWeight: 600,
                   border: BORDER,
                   '&:hover': { borderColor: '#4F4C49' },
-                  '&.Mui-focused': { borderColor: SYSTEM_PRIMARY }
+                  '&.ob-focused': { borderColor: SYSTEM_PRIMARY }
                 }
               }}
             />
@@ -410,7 +410,7 @@ export function NewTagDrawer() {
                   fontWeight: 500,
                   border: BORDER,
                   '&:hover': { borderColor: '#4F4C49' },
-                  '&.Mui-focused': { borderColor: SYSTEM_PRIMARY }
+                  '&.ob-focused': { borderColor: SYSTEM_PRIMARY }
                 }
               }}
             />
@@ -486,7 +486,7 @@ export function NewTagDrawer() {
                 boxShadow: 'none',
                 transition: BRAND_TRANSITION,
                 '&:hover': { bgcolor: SYSTEM_HOVER },
-                '&.Mui-disabled': { bgcolor: HOVER, color: TEXT_MUTED }
+                '&.ob-disabled': { bgcolor: HOVER, color: TEXT_MUTED }
               }}
             >
               {isSaving ? <CircularProgress size={20} color="inherit" /> : (editingTag ? 'Update Tag' : 'Create Tag')}

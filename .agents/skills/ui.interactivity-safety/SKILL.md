@@ -9,7 +9,7 @@ This skill enforces the 'Global Unmount Policy' and 'Architectural Flatness' req
 
 ## Core Problem: Stacking Context Traps
 
-In a mono-app with centralized chrome (Topbar, Sidebars, Bottom Bar), MUI's `Drawer` and `Modal` components can leave 'Ghost Portals' in the DOM. Even if `open={false}`, these components may retain invisible backdrops or viewport-wide wrappers that intercept pointer events, rendering the page underneath 'unclickable'.
+In a mono-app with centralized chrome (Topbar, Sidebars, Bottom Bar), legacy drawer and modal patterns can leave ghost portals in the DOM. Even when closed, these may retain invisible backdrops or viewport-wide wrappers that intercept pointer events, rendering the page underneath unclickable.
 
 ## Mandatory Safety Patterns
 

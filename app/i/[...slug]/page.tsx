@@ -1,4 +1,4 @@
-import { Box, Container, Typography } from '@/lib/mui-tailwind/material';
+import { Box, Container, Typography } from '@/lib/openbricks/primitives';
 
 export const dynamic = 'force-dynamic';
 

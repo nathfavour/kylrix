@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Typography, Button, Paper } from '@/lib/mui-tailwind/material';
+import { Box, Typography, Button, Paper } from '@/lib/openbricks/primitives';
 import { useTheme } from '@/components/ThemeProvider';
 
 export function ThemeTest() {

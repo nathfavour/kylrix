@@ -11,7 +11,7 @@ import { deleteNote } from '@/lib/actions/client-ops';
 import { Button } from '@/components/ui/Button';
 import { sidebarIgnoreProps } from '@/constants/sidebar';
 
-import { Box, InputBase, Paper, List, ListItemButton, Typography, Chip, CircularProgress, IconButton } from '@/lib/mui-tailwind/material';
+import { Box, InputBase, Paper, List, ListItemButton, Typography, Chip, CircularProgress, IconButton } from '@/lib/openbricks/primitives';
 import { Search, X } from 'lucide-react';
 
 export function TopBarSearch() {
@@ -165,7 +165,7 @@ export function TopBarSearch() {
             color: 'text.primary',
             fontSize: '0.9375rem',
             fontWeight: 500,
-            '& .MuiInputBase-input::placeholder': {
+            '& .ob-input::placeholder': {
               color: 'text.secondary',
               opacity: 0.5,
             },
@@ -275,7 +275,7 @@ export function TopBarSearch() {
                               border: '1px solid',
                               borderColor: 'rgba(0, 240, 255, 0.2)',
                               borderRadius: '4px',
-                              '& .MuiChip-label': { px: 1 }
+                              '& .ob-chip-label': { px: 1 }
                             }}
                           />
                         ))}
