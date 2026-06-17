@@ -8,6 +8,7 @@ import LockIcon from '@/lib/mui-tailwind/icons';
 import FingerprintIcon from '@/lib/mui-tailwind/icons';
 
 export default function Trust() {
+const IconWrapper = ({ icon: Icon, sx }: { icon: any, sx?: any }) => <Icon sx={sx} />;
   return (
     <Box sx={{ py: 15 }}>
       <Container maxWidth="lg">
@@ -31,7 +32,7 @@ export default function Trust() {
                     bgcolor: alpha(item.color, 0.1), 
                     color: item.color 
                   }}>
-                    <item.icon sx={{ fontSize: 24 }} />
+                    <IconWrapper icon={item.icon} sx={{ fontSize: 24 }} />
                   </Box>
                   <Box>
                     <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{item.title}</Typography>

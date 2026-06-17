@@ -279,8 +279,8 @@ export function PasskeySetupPanel({
               type={showPassword ? "text" : "password"}
               placeholder="Master Password"
               value={masterPassword}
-              onChange={(e) => setMasterPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleContinueToName()}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMasterPassword(e.target.value)}
+              onKeyDown={(e: React.KeyboardEvent) => e.key === "Enter" && handleContinueToName()}
               variant="filled"
               InputProps={{
                 disableUnderline: true,
@@ -309,8 +309,8 @@ export function PasskeySetupPanel({
               fullWidth
               placeholder="Passkey Name"
               value={passkeyName}
-              onChange={(e) => setPasskeyName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleContinueToCreate()}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasskeyName(e.target.value)}
+              onKeyDown={(e: React.KeyboardEvent) => e.key === "Enter" && handleContinueToCreate()}
               variant="filled"
               autoFocus
               InputProps={{

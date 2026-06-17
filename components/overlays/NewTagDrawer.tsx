@@ -365,7 +365,7 @@ export function NewTagDrawer() {
               required
               autoFocus
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g. Research"
               variant="standard"
               InputProps={{
@@ -395,7 +395,7 @@ export function NewTagDrawer() {
               multiline
               rows={3}
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Optional notes about this tag..."
               variant="standard"
               InputProps={{

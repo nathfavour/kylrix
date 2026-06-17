@@ -704,10 +704,10 @@ export default function ConnectTopbar({
 
     const content = (
       <Box
-        onWheel={(event) => {
+        onWheel={(event: React.WheelEvent) => {
           if (isDesktop) return;
           const node = event.currentTarget;
-          if (event.deltaY < 0 && isTopbarScrollAtTop(node)) {
+          if (event.deltaY < 0 && isTopbarScrollAtTop(node as HTMLElement)) {
             event.preventDefault();
             handleCloseAll();
           }
@@ -803,7 +803,7 @@ export default function ConnectTopbar({
                       <Typography component="span" sx={{ color: 'white', fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.2 }}>{notif.title}</Typography>
                       <Typography component="span" sx={{ color: 'white/30', fontSize: '0.76rem', lineHeight: 1.35 }}>{notif.message}</Typography>
                   </Box>
-                  <IconButton size="small" onClick={(e) => dismissNotification(notif.id, e)} sx={{ color: 'white/10', alignSelf: 'flex-start', flexShrink: 0, '&:hover': { color: '#EF4444' } }}>
+                  <IconButton size="small" onClick={(e: React.MouseEvent) => dismissNotification(notif.id, e)} sx={{ color: 'white/10', alignSelf: 'flex-start', flexShrink: 0, '&:hover': { color: '#EF4444' } }}>
                       <CloseIcon size={12} />
                   </IconButton>
               </Box>
@@ -874,10 +874,10 @@ export default function ConnectTopbar({
 
     const searchContent = (
       <Box
-        onWheel={(event) => {
+        onWheel={(event: React.WheelEvent) => {
           if (isDesktop) return;
           const node = event.currentTarget;
-          if (event.deltaY < 0 && isTopbarScrollAtTop(node)) {
+          if (event.deltaY < 0 && isTopbarScrollAtTop(node as HTMLElement)) {
             event.preventDefault();
             handleCloseAll();
           }
@@ -929,7 +929,7 @@ export default function ConnectTopbar({
                 id="topbar-search-field"
                 inputRef={searchInputRef}
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(event.target.value)}
                 placeholder="Search note, flow, vault, connect..."
                 fullWidth
                 autoFocus
@@ -940,7 +940,7 @@ export default function ConnectTopbar({
                   fontSize: '0.9rem',
                   '& input::placeholder': { color: 'rgba(255,255,255,0.25)', opacity: 1 },
                 }}
-                onKeyDown={(event) => {
+                onKeyDown={(event: React.KeyboardEvent) => {
                   if (event.key === 'Escape') {
                     handleCloseAll();
                   }
@@ -1447,7 +1447,7 @@ export default function ConnectTopbar({
             <InputBase
               inputRef={searchInputRef}
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(event.target.value)}
               placeholder="Search globally..."
               fullWidth
               autoFocus
@@ -1458,7 +1458,7 @@ export default function ConnectTopbar({
                 fontSize: '0.92rem',
                 '& input::placeholder': { color: 'rgba(255,255,255,0.25)', opacity: 1 },
               }}
-              onKeyDown={(event) => {
+              onKeyDown={(event: React.KeyboardEvent) => {
                 if (event.key === 'Escape') {
                   handleCloseAll();
                 }
@@ -2056,9 +2056,9 @@ export default function ConnectTopbar({
           }}
         >
           <Box
-            onWheel={(event) => {
+            onWheel={(event: React.WheelEvent) => {
               const node = event.currentTarget;
-              if (event.deltaY < 0 && isTopbarScrollAtTop(node)) {
+              if (event.deltaY < 0 && isTopbarScrollAtTop(node as HTMLElement)) {
                 event.preventDefault();
                 handleCloseAll();
               }
@@ -2280,7 +2280,7 @@ export default function ConnectTopbar({
                         <InputBase 
                             inputRef={searchInputRef} 
                             value={searchQuery} 
-                            onChange={(e) => setSearchQuery(e.target.value)} 
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)} 
                             placeholder="Search ecosystem..." 
                             sx={{ flex: 1, color: 'white', fontWeight: 800, fontSize: '0.9rem', '& input::placeholder': { color: 'white/20' } }} 
                         />
@@ -2289,7 +2289,7 @@ export default function ConnectTopbar({
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
                             <Box sx={{ width: 1, height: 20, bgcolor: 'white/10', mx: 0.5 }} />
                             <IconButton 
-                                onClick={(e) => {
+                                onClick={(e: React.MouseEvent) => {
                                     e.stopPropagation();
                                     toggleNotifications();
                                 }} 
@@ -2353,7 +2353,7 @@ export default function ConnectTopbar({
                             </Box>
                             <IconButton 
                               size="small" 
-                              onClick={(e) => {
+                              onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation();
                                 setDismissedHintId(notifHint.id);
                                 setNotifHint(null);
@@ -2408,7 +2408,7 @@ export default function ConnectTopbar({
                             </Box>
                             <IconButton 
                               size="small" 
-                              onClick={(e) => {
+                              onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation();
                                 setDismissedHintId(notifHint.id);
                                 setNotifHint(null);

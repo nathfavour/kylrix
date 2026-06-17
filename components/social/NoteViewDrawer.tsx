@@ -10,9 +10,9 @@ import {
     Button,
     Paper
 } from '@/lib/mui-tailwind/material';
-import CloseIcon from '@/lib/mui-tailwind/icons';
-import DescriptionIcon from '@/lib/mui-tailwind/icons';
-import OpenInNewIcon from '@/lib/mui-tailwind/icons';
+import { Close as CloseIcon } from '@/lib/mui-tailwind/icons';
+import { Description } from '@/lib/mui-tailwind/icons';
+import { OpenInNew } from '@/lib/mui-tailwind/icons';
 
 interface NoteViewDrawerProps {
     open: boolean;
@@ -38,7 +38,7 @@ export const NoteViewDrawer = ({ open, onClose, note }: NoteViewDrawerProps) => 
         >
             <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <DescriptionIcon color="primary" sx={{ mr: 1.5, fontSize: 28 }} />
+                    <Description color="primary" sx={{ mr: 1.5, fontSize: 28 }} />
                     <Typography variant="h6" fontWeight={800} sx={{ flex: 1 }}>
                         Shared Note
                     </Typography>
@@ -81,7 +81,7 @@ export const NoteViewDrawer = ({ open, onClose, note }: NoteViewDrawerProps) => 
                     <Button 
                         fullWidth 
                         variant="outlined" 
-                        startIcon={<OpenInNewIcon />}
+                        startIcon={<OpenInNew />}
                         component="a"
                         href={`/notes/shared/${note.$id || note.id}`}
                         target="_blank"

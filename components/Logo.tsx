@@ -3,7 +3,6 @@
 import React from 'react';
 import LogoComponent from './common/Logo';
 import { KylrixApp } from '@/lib/sdk';
-
 interface LogoProps {
   sx?: any;
   size?: number;
@@ -21,4 +20,4 @@ const Logo: React.FC<LogoProps> = (props) => {
 
 export default Logo;
 export { Logo };
-export type { KylrixApp };
+export type { KylrixApp, LogoProps };

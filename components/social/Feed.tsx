@@ -5,6 +5,7 @@ import { SocialService } from '@/lib/services/social';
 import { UsersService } from '@/lib/services/users';
 import { ChatService } from '@/lib/services/chat';
 import { useAuth } from '@/lib/auth';
+import { ActiveDetail } from '@/context/SectionContext';
 import {
     Box,
     Card,
@@ -375,7 +376,7 @@ const PostComposer = React.memo(function PostComposer({
                                     </Box>
                                     <IconButton
                                         size="small"
-                                        onClick={(event) => {
+                                        onClick={(event: React.MouseEvent) => {
                                             event.stopPropagation();
                                             onClearNote();
                                         }}
@@ -783,7 +784,7 @@ const NewPostsWidget = ({ pendingMoments, onClick }: { pendingMoments: any[], on
                 {pendingMoments.slice(0, 3).map((m, i) => (
                                     <Avatar 
                                         key={m.$id} 
-                                        onClick={(e) => { e.stopPropagation(); const username = resolveIdentityUsername(m.creator, m.userId || m.creatorId); if (username) { router.push(`/u/${username}`); } }}
+                                        onClick={(e: React.MouseEvent) => { e.stopPropagation(); const username = resolveIdentityUsername(m.creator, m.userId || m.creatorId); if (username) { router.push(`/u/${username}`); } }}
                                         src={m.creator?.avatar} 
                                         sx={{ 
                                             width: 24, 
@@ -827,7 +828,8 @@ type FeedMomentCardProps = {
     onEditMoment: (moment: any) => void;
     onDeletePost: (momentId: string) => void;
     onOpenNote: (note: any) => void;
-    setActiveDetail: (detail: { type: string; id: string; data: any }) => void;
+    onOpenEvent: (event: any) => void;
+    setActiveDetail: (detail: ActiveDetail | null) => void;
     onToggleLike: (e: React.MouseEvent, moment: any) => void;
     openActorsList: (title: string, fetcher: () => Promise<any[]>) => void;
     fetchActorsForPulses: (momentId: string) => Promise<any[]>;
@@ -847,6 +849,7 @@ function FeedMomentCard({
     onEditMoment,
     onDeletePost,
     onOpenNote,
+    onOpenEvent,
     setActiveDetail,
     onToggleLike,
     openActorsList,
@@ -1007,7 +1010,7 @@ return (
                     opacity: 0.5,
                     '&:hover': { opacity: 0.8 },
                     cursor: 'pointer'
-                }} onClick={(e) => {
+                }} onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     onOpenMoment(moment.sourceMoment);
                 }}>
@@ -1213,7 +1216,7 @@ return (
         {moment.attachedEvent && (
             <Paper
                 variant="outlined"
-                onClick={() => handleOpenEvent(moment.attachedEvent)}
+                onClick={() => onOpenEvent(moment.attachedEvent)}
                 sx={{
                     p: 0,
                     borderRadius: 4,
@@ -1392,7 +1395,7 @@ return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
         <IconButton 
             size="small"
-            onClick={(e) => onToggleLike(e, moment)}
+            onClick={(e: React.MouseEvent) => onToggleLike(e, moment)}
             sx={{ 
                 p: 0.75,
                 color: moment.isLiked ? '#F59E0B' : 'inherit',
@@ -1402,7 +1405,7 @@ return (
             <Heart size={17} fill={moment.isLiked ? '#F59E0B' : 'none'} strokeWidth={1.5} />
         </IconButton>
         <Box
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 openActorsList('Likes', async () => await fetchActorsForLikes(moment.$id));
             }}
@@ -1415,7 +1418,7 @@ return (
 
         <Tooltip title="Pulse or Quote">
             <Box
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     openActorsList('Pulsed by', async () => await fetchActorsForPulses(moment.$id));
                 }}
@@ -1423,9 +1426,9 @@ return (
             >
                 <IconButton 
                     size="small"
-                    onClick={(e) => {
+                    onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
-                        setPulseMenuAnchorEl(e.currentTarget);
+                        setPulseMenuAnchorEl(e.currentTarget as HTMLElement);
                         setMenuMoment(moment);
                     }}
                     sx={{ 
@@ -1444,7 +1447,7 @@ return (
         <Tooltip title="Copy Link">
             <IconButton 
                 size="small"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     navigator.clipboard.writeText(`${window.location.origin}/connect/post/${moment.$id}`);
                     toast.success('Moment link copied!');
@@ -1473,9 +1476,9 @@ return (
         <Tooltip title="Share">
             <IconButton
                 size="small"
-                onClick={(e) => { 
+                onClick={(e: React.MouseEvent) => { 
                     e.stopPropagation();
-                    setShareAnchorEl(e.currentTarget); 
+                    setShareAnchorEl(e.currentTarget as HTMLElement); 
                     setSelectedMoment(moment); 
                 }}
                 sx={{ 
@@ -2395,7 +2398,7 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
                         variant="standard"
                         InputProps={{ disableUnderline: true, sx: { fontSize: '1rem', fontWeight: 600 } }}
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                         autoFocus
                     />
                 </Paper>
@@ -2427,7 +2430,7 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
                                         }}
                                     >
                                         <Avatar 
-                                            onClick={(e) => { e.stopPropagation(); router.push(`/u/${u.username}`); }}
+                                            onClick={(e: React.MouseEvent) => { e.stopPropagation(); router.push(`/u/${u.username}`); }}
                                             src={u.avatar} 
                                             sx={{ 
                                                 width: 48, 
@@ -2474,7 +2477,7 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
                                             elevation={0}
                                         >
                                             <CardHeader
-                            avatar={<Avatar onClick={(e) => { e.stopPropagation(); const username = resolveIdentityUsername(moment.creator || cachedCreator, creatorId); if (username) router.push(`/u/${username}`); }} src={creatorAvatar} sx={{ ...feedAvatarSx, width: 36, height: 36, cursor: 'pointer' }} />}
+                            avatar={<Avatar onClick={(e: React.MouseEvent) => { e.stopPropagation(); const username = resolveIdentityUsername(moment.creator || cachedCreator, creatorId); if (username) router.push(`/u/${username}`); }} src={creatorAvatar} sx={{ ...feedAvatarSx, width: 36, height: 36, cursor: 'pointer' }} />}
                                                 sx={{ px: 2, pt: 2, pb: 0.5, '& .MuiCardHeader-content': { minWidth: 0 } }}
                                                 title={<Typography sx={feedTitleSx}>{creatorName}</Typography>}
                                                 subheader={<Typography sx={feedSubheaderSx}>{new Date(moment.createdAt).toLocaleDateString()}</Typography>}
@@ -2596,6 +2599,7 @@ export const Feed = ({ view = 'personal', composeIntent = null }: FeedProps) => 
                         onEditMoment={handleEditMoment}
                         onDeletePost={handleDeletePost}
                         onOpenNote={handleOpenNote}
+                        onOpenEvent={handleOpenEvent}
                         setActiveDetail={setActiveDetail}
                         onToggleLike={handleToggleLike}
                         openActorsList={openActorsList}

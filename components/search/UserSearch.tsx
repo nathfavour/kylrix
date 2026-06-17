@@ -20,7 +20,7 @@ import {
     
     Stack
 } from '@/lib/mui-tailwind/material';
-import SearchIcon from '@/lib/mui-tailwind/icons';
+import { Search } from '@/lib/mui-tailwind/icons';
 import PersonIcon from '@/lib/mui-tailwind/icons';
 import toast from 'react-hot-toast';
 
@@ -161,13 +161,13 @@ export const UserSearch = () => {
                     boxShadow: 'none'
                 }}
             >
-                <SearchIcon sx={{ color: '#9B9691', mr: 2 }} />
+                <Search sx={{ color: '#9B9691', mr: 2 }} />
                 <TextField
                     sx={{ flex: 1 }}
                     placeholder="Search by name or @username..."
                     variant="standard"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
                     InputProps={{
                         disableUnderline: true,
                         sx: { color: 'white', fontWeight: 500, fontFamily: 'var(--font-satoshi)' }

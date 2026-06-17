@@ -117,7 +117,7 @@ export default function ReportUserDialog({
             select
             label="Report context"
             value={selectedContextType}
-            onChange={(e) => setSelectedContextType(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedContextType(e.target.value)}
             fullWidth
           >
             <MenuItem value="profile">Profile</MenuItem>
@@ -130,7 +130,7 @@ export default function ReportUserDialog({
           <TextField
             label="Reason"
             value={reason}
-            onChange={(e) => setReason(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReason(e.target.value)}
             fullWidth
             multiline
             minRows={3}
@@ -140,7 +140,7 @@ export default function ReportUserDialog({
           <TextField
             label="Extra notes"
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNotes(e.target.value)}
             fullWidth
             multiline
             minRows={3}

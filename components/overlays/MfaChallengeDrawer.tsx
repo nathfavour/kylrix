@@ -15,7 +15,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@/lib/mui-tailwind/material';
-import CloseIcon from '@/lib/mui-tailwind/icons';
+import { Close as CloseIcon } from '@/lib/mui-tailwind/icons';
 import { AuthenticationFactor } from 'appwrite';
 import { account } from '@/lib/appwrite';
 import toast from 'react-hot-toast';
@@ -202,7 +202,7 @@ export function MfaChallengeDrawer({ open, onClose, loginMethod, onSuccess }: Pr
               <Typography sx={{ color: 'white', fontWeight: 700, mb: 1 }}>Enter the code</Typography>
               <TextField
                 value={otp}
-                onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="6-digit code"
                 fullWidth
                 autoFocus

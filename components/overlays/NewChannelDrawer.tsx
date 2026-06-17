@@ -127,7 +127,7 @@ export function NewChannelDrawer({ isOpen, onClose }: { isOpen: boolean; onClose
                             variant="outlined"
                             placeholder="e.g. Alpha Squad"
                             value={channelName}
-                            onChange={(e) => setChannelName(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChannelName(e.target.value)}
                             sx={{
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '14px',

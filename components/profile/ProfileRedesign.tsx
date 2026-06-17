@@ -350,10 +350,10 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
     if (!currentUser) return;
     try {
       if (action === 'follow') {
-        await SocialService.followUser(currentUser.$id, actor.userId);
+        await SocialService.followUser(currentUser.$id, actor.userId || '');
         toast.success(`Following @${actor.username}`);
       } else {
-        await SocialService.unfollowUser(currentUser.$id, actor.userId);
+        await SocialService.unfollowUser(currentUser.$id, actor.userId || '');
         toast.success(`Unfollowed @actor.username`);
       }
       if (targetUserId) {
@@ -379,10 +379,12 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
   const handleTip = () => {
     if (!profile) return;
     openWalletWithIntent?.({
-      type: 'send',
-      recipientId: profile.userId || profile.$id,
-      recipientUsername: profile.username,
-      recipientName: profile.displayName,
+      mode: 'send',
+      toUser: {
+        id: profile.userId || profile.$id,
+        username: profile.username,
+        displayName: profile.displayName
+      }
     });
   };
 

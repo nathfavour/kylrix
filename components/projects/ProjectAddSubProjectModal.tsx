@@ -146,7 +146,7 @@ export default function ProjectAddSubProjectModal({
           size="small"
           placeholder="Search existing projects..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
           InputProps={{
             startAdornment: <Search size={16} style={{ marginRight: '8px', opacity: 0.5 }} />,
             sx: { bgcolor: 'rgba(255,255,255,0.02)', borderRadius: '12px' },

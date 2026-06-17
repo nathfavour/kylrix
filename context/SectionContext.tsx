@@ -31,7 +31,7 @@ import { useAuth } from '@/context/auth/AuthContext';
 import { getNote as getChatNote } from '@/lib/appwrite/note';
 
 export interface ActiveDetail {
-  type: 'note' | 'moment' | 'goal' | 'form' | 'event' | 'tag' | 'secret' | 'chat' | 'call' | 'github';
+  type: 'note' | 'moment' | 'goal' | 'form' | 'event' | 'tag' | 'secret' | 'chat' | 'call' | 'github' | 'huddle';
   id: string;
   data?: any; // Extra initial payload if we have it
 }

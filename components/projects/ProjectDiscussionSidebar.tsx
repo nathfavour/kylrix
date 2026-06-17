@@ -638,7 +638,7 @@ export function ProjectDiscussionSidebar({
                     key={group.emoji}
                     component="button"
                     type="button"
-                    onClick={(e) => {
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       handleReact(msg.id, group.emoji);
                     }}
@@ -662,7 +662,7 @@ export function ProjectDiscussionSidebar({
             {!activeThreadParent && replyCount > 0 && (
               <Button
                 size="small"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   setActiveThreadParent(msg);
                 }}
@@ -933,14 +933,14 @@ export function ProjectDiscussionSidebar({
                     disabled={isRecording}
                     placeholder={activeThreadParent ? 'Reply in thread…' : 'Message the team…'}
                     value={draftText}
-                    onChange={(e) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       handleInputChange(
                         e.target.value,
                         e.target.selectionStart ?? e.target.value.length,
                         activeThreadParent ? 'thread' : 'general'
                       )
                     }
-                    onKeyDown={async (e) => {
+                    onKeyDown={async (e: React.KeyboardEvent) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         await submitMessage();

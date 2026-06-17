@@ -142,7 +142,7 @@ export default function SdkShell({ sections, activeSection, onSelectSection, chi
             bottom: 0,
             px: 1.25,
             pb: 'calc(env(safe-area-inset-bottom) + 10px)',
-            zIndex: (value) => value.zIndex.appBar + 2,
+            zIndex: (value: any) => value.zIndex.appBar + 2,
           }}
         >
           <Paper

@@ -410,7 +410,7 @@ export function NewProjectDrawer() {
                     fullWidth
                     required
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
                     placeholder="e.g. Q3 Roadmap"
                     variant="standard"
                     InputProps={{
@@ -440,7 +440,7 @@ export function NewProjectDrawer() {
                     multiline
                     rows={2}
                     value={summary}
-                    onChange={(e) => setSummary(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSummary(e.target.value)}
                     placeholder="Optional project overview..."
                     variant="standard"
                     InputProps={{

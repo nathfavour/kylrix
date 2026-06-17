@@ -599,7 +599,7 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
                 type={showPassword ? "text" : "password"}
                 placeholder={isFirstTime ? "Set master password" : "Enter master password"}
                 value={masterPassword}
-                onChange={(e) => setMasterPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMasterPassword(e.target.value)}
                 disabled={loading}
                 slotProps={{
                   input: {
@@ -633,7 +633,7 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm master password"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                   disabled={loading}
                   slotProps={{
                     input: {

@@ -126,7 +126,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
       if (!session?.length) setProjectsLoading(true);
       try {
         const rows = await warmProjectsList({
-          userId: user.$id,
+          userId: user?.$id || '',
           getCachedDataAsync,
           fetchOptimized,
         });
@@ -976,7 +976,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
                           <Box
                             key={form.$id}
                             draggable
-                            onDragStart={(e) => {
+                            onDragStart={(e: React.DragEvent) => {
                               e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'form', id: form.$id, title: form.title }));
                             }}
                             onClick={() => router.push(`/flow/forms/${form.$id}`)}
@@ -1069,7 +1069,7 @@ export default function DesktopRightSection({ panels, contextId, onAction }: Des
                           <Box
                             key={goal.$id}
                             draggable
-                            onDragStart={(e) => {
+                            onDragStart={(e: React.DragEvent) => {
                               e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'goal', id: goal.$id, title: goal.title }));
                             }}
                             onClick={() => router.push('/flow')}

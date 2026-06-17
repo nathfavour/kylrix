@@ -60,7 +60,7 @@ export function ShareLockButton({
     
     // 1. Check blockages (e.g. TOTP or encrypted notes)
     if (!canPublish && !isPublic) {
-      showError('Cannot share', blockReason || 'This resource cannot be shared publicly.');
+      showError('Cannot share: ' + (blockReason || 'This resource cannot be shared publicly.'));
       return;
     }
 
@@ -71,12 +71,12 @@ export function ShareLockButton({
         const publicUrl = getClipboardUrl();
         const copied = await copyPublicUrl(publicUrl);
         if (copied) {
-          showSuccess('Link copied', 'Anyone with the link can view');
+          showSuccess('Link copied');
         } else {
-          showSuccess('Public link ready', publicUrl);
+          showSuccess('Public link ready: ' + publicUrl);
         }
       } catch (err: unknown) {
-        showError('Could not copy link', errorMessage(err, 'Try again in a moment.'));
+        showError('Could not copy link: ' + errorMessage(err, 'Try again in a moment.'));
       } finally {
         setLoading(false);
       }
@@ -93,7 +93,7 @@ export function ShareLockButton({
         projectId
       });
       if (!res?.success) {
-        showError('Could not publish', 'Sharing settings were not saved. Try again.');
+        showError('Could not publish: Sharing settings were not saved. Try again.');
         return;
       }
 
@@ -107,12 +107,12 @@ export function ShareLockButton({
 
       const copied = await copyPublicUrl(publicUrl);
       if (copied) {
-        showSuccess('Published & Link copied', 'Anyone with the link can view');
+        showSuccess('Published & Link copied');
       } else {
-        showSuccess('Published', publicUrl);
+        showSuccess('Published: ' + publicUrl);
       }
     } catch (err: unknown) {
-      showError('Could not publish', errorMessage(err, 'Sharing settings were not saved.'));
+      showError('Could not publish: ' + errorMessage(err, 'Sharing settings were not saved.'));
     } finally {
       setLoading(false);
     }

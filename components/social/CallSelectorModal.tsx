@@ -143,7 +143,7 @@ export const CallSelectorModal = ({ open, onClose, onSelect }: CallSelectorModal
                         placeholder="Search your call links..."
                         fullWidth
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                         sx={{
                             color: 'white',
                             fontSize: '0.95rem',

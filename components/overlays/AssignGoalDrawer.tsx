@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, IconButton, Button, Stack, Select, MenuItem, FormControl, alpha, CircularProgress } from '@/lib/mui-tailwind/material';
 import { X, ArrowLeft, Trash2, Users } from 'lucide-react';
-import Drawer from '@/lib/mui-tailwind/material';
+import { Drawer } from '@/lib/mui-tailwind/material';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { grantPermissionSecure, getResourceCollaboratorsSecure, revokePermissionSecure, PermissionLevel } from '@/lib/actions/secure-ops';
@@ -198,7 +198,7 @@ export function AssignGoalDrawer({ isOpen, onClose, taskId, taskTitle }: {
                     <FormControl fullWidth>
                         <Select 
                             value={permission} 
-                            onChange={(e) => setPermission(e.target.value as PermissionLevel)}
+                            onChange={(e: any) => setPermission(e.target.value as PermissionLevel)}
                             sx={{
                                 bgcolor: '#0A0908',
                                 color: 'white',
@@ -322,7 +322,7 @@ export function AssignGoalDrawer({ isOpen, onClose, taskId, taskTitle }: {
             <FormControl fullWidth>
                 <Select 
                     value={permission} 
-                    onChange={(e) => setPermission(e.target.value as PermissionLevel)}
+                    onChange={(e: any) => setPermission(e.target.value as PermissionLevel)}
                     sx={{
                         bgcolor: '#0A0908',
                         color: 'white',

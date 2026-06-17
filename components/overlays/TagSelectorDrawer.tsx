@@ -122,13 +122,13 @@ export function TagSelectorDrawer() {
           </ListItem>
 
           {ecosystemTags.map((tag) => {
-            const isSelected = selectedTags.includes(tag.name);
+            const isSelected = selectedTags.includes(tag.name || '');
             const color = (tag as any).color || '#9B9691';
 
             return (
               <ListItem key={tag.$id} disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton 
-                  onClick={() => handleSelect(tag.name)}
+                  onClick={() => handleSelect(tag.name || '')}
                   disabled={isSelected}
                   sx={{ 
                     borderRadius: RADIUS_SMALL, 
@@ -150,7 +150,7 @@ export function TagSelectorDrawer() {
                     }} 
                   />
                   <ListItemText 
-                    primary={tag.name.toUpperCase()} 
+                    primary={(tag.name || '').toUpperCase()} 
                     primaryTypographyProps={{ 
                       sx: { 
                         color: isSelected ? 'white' : TEXT_MUTED, 

@@ -218,7 +218,7 @@ const GhostSparkShelf = React.memo(({
                                         </Typography>
                                         <Stack direction="row" spacing={0.5} alignItems="center">
                                             <GhostClock createdAt={note.createdAt} expiresAt={note.expiresAt} />
-                                            <IconButton size="small" onClick={(e) => onContextMenu(e, note.id)} sx={{ color: 'rgba(255,255,255,0.2)' }}>
+                                            <IconButton size="small" onClick={(e: React.MouseEvent) => onContextMenu(e, note.id)} sx={{ color: 'rgba(255,255,255,0.2)' }}>
                                                 <MoreVertical size={14} />
                                             </IconButton>
                                         </Stack>
@@ -269,7 +269,7 @@ const GhostSparkShelf = React.memo(({
                                     '&:hover': {
                                         opacity: 1,
                                         bgcolor: '#161412',
-                                        borderColor: alpha(theme.palette.error.main, 0.3)
+                                        borderColor: alpha('#FF4D4D', 0.3)
                                     }
                                 }}
                             >
@@ -280,7 +280,7 @@ const GhostSparkShelf = React.memo(({
                                         </Typography>
                                         <Stack direction="row" spacing={0.5} alignItems="center">
                                             <GhostClock createdAt={note.createdAt} expiresAt={note.expiresAt} />
-                                            <IconButton size="small" onClick={(e) => onContextMenu(e, note.id)} sx={{ color: 'rgba(255,255,255,0.2)' }}>
+                                            <IconButton size="small" onClick={(e: React.MouseEvent) => onContextMenu(e, note.id)} sx={{ color: 'rgba(255,255,255,0.2)' }}>
                                                 <MoreVertical size={14} />
                                             </IconButton>
                                         </Stack>
@@ -1002,7 +1002,7 @@ export const GhostEditor = () => {
                     mb: 3, 
                     borderRadius: '16px', 
                     bgcolor: '#161412',
-                    color: theme.palette.info.main,
+                    color: '#6366F1',
                     border: '1px solid rgba(255, 255, 255, 0.05)',
                     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
                     '& .MuiAlert-message': { width: '100%' }
@@ -1070,7 +1070,7 @@ export const GhostEditor = () => {
                                     <Typography
                                         variant="caption"
                                         sx={{
-                                            color: content.length >= MAX_CONTENT_LENGTH ? theme.palette.error.main : 'rgba(255, 255, 255, 0.4)',
+                                            color: content.length >= MAX_CONTENT_LENGTH ? '#FF4D4D' : 'rgba(255, 255, 255, 0.4)',
                                             fontWeight: 700,
                                             fontFamily: 'var(--font-jetbrains-mono)',
                                             letterSpacing: '0.05em'
@@ -1151,7 +1151,7 @@ export const GhostEditor = () => {
                                     fullWidth
                                     placeholder="Note Title"
                                     value={title}
-                                    onChange={(e) => {
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                         setTitle(e.target.value);
                                         setIsTitleManuallyEdited(true);
                                     }}
@@ -1181,7 +1181,7 @@ export const GhostEditor = () => {
                                 maxRows={20}
                                 placeholder="Start typing your brilliance..."
                                 value={content}
-                                onChange={(e) => setContent(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setContent(e.target.value)}
                                 variant="standard"
                                 InputProps={{
                                     disableUnderline: true,
@@ -1357,7 +1357,7 @@ export const GhostEditor = () => {
                         </Typography>
                         <RadioGroup
                             value={lifespanMs}
-                            onChange={(e) => saveLifespanPref(Number(e.target.value))}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => saveLifespanPref(Number(e.target.value))}
                         >
                             <Grid container spacing={1}>
                                 {LIFESPAN_OPTIONS.map((option) => (

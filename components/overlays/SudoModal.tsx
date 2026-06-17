@@ -202,7 +202,7 @@ export default function SudoModal({
                 setIsDetecting(true);
                 
                 // 1. Check if user has masterpass
-                const hasPass = await AppwriteService.hasMasterpass(user.$id);
+                const hasPass = await AppwriteService.hasMasterpass(user?.$id || '');
                 if (!active) return;
                 setHasMasterpass(hasPass);
 
@@ -212,12 +212,12 @@ export default function SudoModal({
                 }
 
                 // 2. Check if a vault migration was interrupted previously
-                const pending = await masterPassCrypto.isMigrationInterrupted(user.$id);
+                const pending = await masterPassCrypto.isMigrationInterrupted(user?.$id || '');
                 if (!active) return;
                 setIsPendingVault(pending);
 
                 // 3. Check if user has passkeys configured
-                const entries = await AppwriteService.listKeychainEntries(user.$id);
+                const entries = await AppwriteService.listKeychainEntries(user?.$id || '');
                 const passkeyPresent = entries.some((e: { type?: string }) => e.type === "passkey");
                 const passkeyAllowed = passkeyPresent && isKylrixDomain;
                 if (!active) return;
@@ -381,7 +381,6 @@ export default function SudoModal({
                                 variant="icon" 
                                 size={48} 
                                 app={app}
-                                className="rounded-[18px] border-2 border-white/10 shadow-lg bg-[#0A0908]"
                             />
                             <div 
                                 style={{

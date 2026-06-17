@@ -174,7 +174,7 @@ export default function CreateProjectModal({ open, onClose, onCreated }: CreateP
                         fullWidth
                         label="Project Title"
                         value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
                         variant="outlined"
                         autoFocus
                         InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.4)', fontWeight: 700 } }}
@@ -193,7 +193,7 @@ export default function CreateProjectModal({ open, onClose, onCreated }: CreateP
                         fullWidth
                         label="Project Summary"
                         value={summary}
-                        onChange={(e) => setSummary(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSummary(e.target.value)}
                         variant="outlined"
                         multiline
                         rows={3}
@@ -213,7 +213,7 @@ export default function CreateProjectModal({ open, onClose, onCreated }: CreateP
                         <Select
                             value={visibility}
                             label="Visibility"
-                            onChange={(e) => setVisibility(e.target.value as any)}
+                            onChange={(e: any) => setVisibility(e.target.value as any)}
                             sx={{
                                 color: '#fff',
                                 bgcolor: '#161412',

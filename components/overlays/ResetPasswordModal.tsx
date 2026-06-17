@@ -15,9 +15,8 @@ import {
   useTheme,
   useMediaQuery
 } from '@/lib/mui-tailwind/material';
-import CloseIcon from '@/lib/mui-tailwind/icons';
-import MailIcon from '@/lib/mui-tailwind/icons';
-import VpnKeyIcon from '@/lib/mui-tailwind/icons';
+import { Close as CloseIcon } from '@/lib/mui-tailwind/icons';
+import { VpnKey, Email } from '@/lib/mui-tailwind/icons';
 import { createPasswordRecovery, updatePasswordRecovery } from '@/lib/appwrite';
 import toast from 'react-hot-toast';
 
@@ -123,7 +122,7 @@ export function ResetPasswordModal({ isOpen, onClose }: ResetPasswordModalProps)
           mx: 'auto',
           mb: 3
         }}>
-          {showResetForm ? <VpnKeyIcon sx={{ fontSize: 32, color: "#6366F1" }} /> : <MailIcon sx={{ fontSize: 32, color: "#6366F1" }} />}
+          {showResetForm ? <VpnKey sx={{ fontSize: 32, color: "#6366F1" }} /> : <Email sx={{ fontSize: 32, color: "#6366F1" }} />}
         </Box>
         <Typography variant="h5" sx={{ 
           fontWeight: 900, 
@@ -149,7 +148,7 @@ export function ResetPasswordModal({ isOpen, onClose }: ResetPasswordModalProps)
                   label="New Password"
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   required
                   variant="outlined"
                   sx={{
@@ -165,7 +164,7 @@ export function ResetPasswordModal({ isOpen, onClose }: ResetPasswordModalProps)
                   label="Confirm Password"
                   placeholder="••••••••"
                   value={passwordAgain}
-                  onChange={(e) => setPasswordAgain(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordAgain(e.target.value)}
                   required
                   variant="outlined"
                   sx={{
@@ -183,7 +182,7 @@ export function ResetPasswordModal({ isOpen, onClose }: ResetPasswordModalProps)
                 label="Email Address"
                 placeholder="name@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 required
                 variant="outlined"
                 sx={{

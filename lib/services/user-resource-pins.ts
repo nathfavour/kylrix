@@ -15,7 +15,8 @@ export type PinnableResourceType =
   | 'project'
   | 'conversation'
   | 'message'
-  | 'call';
+  | 'call'
+  | 'moment';
 
 export interface UserResourcePinRow {
   $id: string;

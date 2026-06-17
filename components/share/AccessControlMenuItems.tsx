@@ -46,10 +46,10 @@ export function useAccessControlMenuItems({
     try {
       const publicUrl = buildPublicResourceUrl(resourceType, resourceId, { projectId });
       await navigator.clipboard.writeText(publicUrl);
-      showSuccess('Link copied', 'Anyone with the link can view');
+      showSuccess('Link copied');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Try again in a moment.';
-      showError('Could not copy link', message);
+      showError('Could not copy link: ' + message);
     }
   };
 
@@ -63,13 +63,12 @@ export function useAccessControlMenuItems({
       });
       if (res.success) {
         showSuccess(
-          enable ? 'Guest access enabled' : 'Guest access disabled',
-          enable ? 'Anyone with the link can view' : 'Only authenticated users can view'
+          enable ? 'Guest access enabled' : 'Guest access disabled'
         );
         if (onUpdate) onUpdate();
       }
     } catch (err: any) {
-      showError('Failed to update access', err.message);
+      showError('Failed to update access: ' + err.message);
     }
   };
 
@@ -83,13 +82,12 @@ export function useAccessControlMenuItems({
       });
       if (res.success) {
         showSuccess(
-          enable ? 'Public access enabled' : 'Public access disabled',
-          enable ? 'Anyone with the link can view' : 'All public links are now invalidated'
+          enable ? 'Public access enabled' : 'Public access disabled'
         );
         if (onUpdate) onUpdate();
       }
     } catch (err: any) {
-      showError('Failed to update access', err.message);
+      showError('Failed to update access: ' + err.message);
     }
   };
 

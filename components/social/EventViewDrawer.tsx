@@ -13,11 +13,11 @@ import {
     Link as MuiLink
 } from '@/lib/mui-tailwind/material';
 import NextLink from 'next/link';
-import CloseIcon from '@/lib/mui-tailwind/icons';
-import EventIcon from '@/lib/mui-tailwind/icons';
-import LocationOnIcon from '@/lib/mui-tailwind/icons';
-import AccessTimeIcon from '@/lib/mui-tailwind/icons';
-import LanguageIcon from '@/lib/mui-tailwind/icons';
+import { Close as CloseIcon } from '@/lib/mui-tailwind/icons';
+import { Event as EventIcon } from '@/lib/mui-tailwind/icons';
+import { LocationOn } from '@/lib/mui-tailwind/icons';
+import { AccessTime } from '@/lib/mui-tailwind/icons';
+import { Link } from '@/lib/mui-tailwind/icons';
 
 interface EventViewDrawerProps {
     open: boolean;
@@ -71,7 +71,7 @@ export const EventViewDrawer = ({ open, onClose, event }: EventViewDrawerProps) 
                     
                     <Stack spacing={2} sx={{ mt: 3 }}>
                         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                            <AccessTimeIcon sx={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: 20, mt: 0.3 }} />
+                            <AccessTime sx={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: 20, mt: 0.3 }} />
                             <Box>
                                 <Typography variant="subtitle2" fontWeight={700} color="white">
                                     {startDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -84,7 +84,7 @@ export const EventViewDrawer = ({ open, onClose, event }: EventViewDrawerProps) 
 
                         {event.location && (
                             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                                <LocationOnIcon sx={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: 20, mt: 0.3 }} />
+                                <LocationOn sx={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: 20, mt: 0.3 }} />
                                 <Box>
                                     <Typography variant="subtitle2" fontWeight={700} color="white">
                                         Location
@@ -98,7 +98,7 @@ export const EventViewDrawer = ({ open, onClose, event }: EventViewDrawerProps) 
 
                         {event.meetingUrl && (
                             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                                <LanguageIcon sx={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: 20, mt: 0.3 }} />
+                                <Link sx={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: 20, mt: 0.3 }} />
                                 <Box>
                                     <Typography variant="subtitle2" fontWeight={700} color="white">
                                         Online Meeting

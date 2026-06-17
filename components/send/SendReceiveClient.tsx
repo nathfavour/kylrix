@@ -241,7 +241,7 @@ export function SendReceiveClient({ noteId, keyParam, initialNote }: Props) {
           try {
             const { getSharedProfilesSecure } = await import('@/lib/actions/secure-ops');
             const profilesRes = await getSharedProfilesSecure([note.userId]);
-            const author = profilesRes.documents?.[0];
+            const author = profilesRes.rows?.[0];
             if (author) setAuthorProfile(author as any);
           } catch (profileErr) {
             console.warn('Failed to resolve author profile:', profileErr);

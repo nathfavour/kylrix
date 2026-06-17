@@ -145,7 +145,7 @@ export function ActorsListDrawer({ open, onClose, title, actors, mobile = false,
                                             variant={confirmUnfollow === actor.$id ? "contained" : "outlined"}
                                             color={confirmUnfollow === actor.$id ? "error" : "inherit"}
                                             disabled={actionLoading === actor.$id}
-                                            onClick={(e) => handleAction(e, actor, 'unfollow')}
+                                            onClick={(e: React.MouseEvent) => handleAction(e, actor, 'unfollow')}
                                             sx={{ 
                                                 borderRadius: '10px',
                                                 textTransform: 'none',
@@ -178,7 +178,7 @@ export function ActorsListDrawer({ open, onClose, title, actors, mobile = false,
                                             size="small"
                                             variant="contained"
                                             disabled={actionLoading === actor.$id}
-                                            onClick={(e) => handleAction(e, actor, 'follow')}
+                                            onClick={(e: React.MouseEvent) => handleAction(e, actor, 'follow')}
                                             sx={{ 
                                                 borderRadius: '10px',
                                                 textTransform: 'none',

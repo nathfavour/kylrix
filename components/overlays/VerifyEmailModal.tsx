@@ -17,7 +17,7 @@ import {
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline as ErrorOutlineIcon,
-  Mail as MailIcon,
+  Email as MailIcon,
   Home as HomeIcon,
   Settings as SettingsIcon,
 } from '@/lib/mui-tailwind/icons';

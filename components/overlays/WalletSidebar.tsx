@@ -901,7 +901,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                             control={(
                                 <Switch
                                     checked={ktsMode}
-                                    onChange={(_, checked) => {
+                                    onChange={(_: React.SyntheticEvent, checked: boolean) => {
                                         setKtsModeState(checked);
                                         try {
                                             localStorage.setItem(KTS_STORAGE_KEY, checked ? '1' : '0');

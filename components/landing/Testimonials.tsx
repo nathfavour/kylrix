@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, Container, Typography, Grid, Paper, Stack } from '@/lib/mui-tailwind/material';
-import StarIcon from '@/lib/mui-tailwind/icons';
+import { Star as StarIcon } from '@/lib/mui-tailwind/icons';
 
 const VAULT_PRIMARY = "#10B981";
 

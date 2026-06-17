@@ -344,7 +344,7 @@ export function AccountHealthDrawers() {
                             fullWidth
                             label="Universal handle"
                             value={newHandle}
-                            onChange={(e) => setNewHandle(normalizeHandleInput(e.target.value))}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewHandle(normalizeHandleInput(e.target.value))}
                             autoComplete="off"
                             helperText={
                                 normalizedTyping !== canonicalSavedHandle && available === false
@@ -381,7 +381,7 @@ export function AccountHealthDrawers() {
                             fullWidth
                             label="Display name (optional)"
                             value={displayName}
-                            onChange={(e) => setDisplayName(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDisplayName(e.target.value)}
                             autoComplete="name"
                         />
                     </Stack>

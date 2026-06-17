@@ -157,10 +157,10 @@ export default function ProjectCard({ project, onClick, onDelete, onTogglePin, o
               </Typography>
             </Box>
             {!(project as any).isPending ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                 <IconButton
                   size="small"
-                  onClick={(e) => { e.stopPropagation(); onTogglePin?.(project.$id); }}
+                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); onTogglePin?.(project.$id); }}
                   sx={{
                     color: pinned ? '#F59E0B' : 'rgba(255,255,255,0.2)',
                     '&:hover': { color: '#F59E0B', bgcolor: alpha('#F59E0B', 0.05) },
