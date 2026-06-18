@@ -27,6 +27,7 @@ import { useDataNexus } from '@/context/DataNexusContext';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { useSudo } from '@/context/SudoContext';
 import { useSection } from '@/context/SectionContext';
+import { useTask } from '@/context/TaskContext';
 
 import { useRouter } from 'next/navigation';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
