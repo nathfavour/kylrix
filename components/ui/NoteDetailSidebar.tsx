@@ -111,6 +111,8 @@ export function NoteDetailSidebar({
   const { showSuccess, showError } = useToast();
   const { closeSidebar } = useDynamicSidebar();
   const { openCallLauncher } = useCallLauncher();
+  const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
+  const { ecosystemTags, refreshEcosystemTags } = useTask();
 
   const { notes: allNotes, isPinned, pinNote, unpinNote } = useNotes();
   const isPinnedFunc = useMemo(() => typeof isPinned === 'function' ? isPinned : () => false, [isPinned]);
@@ -133,6 +135,12 @@ export function NoteDetailSidebar({
   }, [note]);
 
   // Fetch note fully on mount/change
+  useEffect(() => {
+    if (liveNote?.$id) {
+      void refreshEcosystemTags();
+    }
+  }, [liveNote?.$id, refreshEcosystemTags]);
+
   useEffect(() => {
     setRealtimeNote(null);
     let active = true;
@@ -990,11 +998,30 @@ export function NoteDetailSidebar({
 
         {/* Tags */}
         <div className="px-1.5 shrink-0">
-          <span className="text-xs font-mono font-bold tracking-wider text-indigo-400 uppercase block mb-2">Tags</span>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-mono font-bold tracking-wider text-indigo-400 uppercase">Tags</span>
+            <button
+              onClick={() => setIsTagSelectorOpen(true)}
+              className="p-1 rounded-md hover:bg-white/5 text-indigo-400/50 hover:text-indigo-400 transition-all"
+              title="Edit Tags"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {displayTags.length > 0 ? displayTags.map((tag: string) => (
-              <span key={tag} className="inline-flex px-2 py-0.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-xs font-bold">
+              <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-xs font-bold">
                 {tag}
+                <button 
+                  onClick={() => {
+                    const newTags = displayTags.filter(t => t !== tag);
+                    setTags(newTags.join(', '));
+                    markDirty();
+                  }}
+                  className="hover:text-white"
+                >
+                  <CloseIcon size={10} />
+                </button>
               </span>
             )) : (
               <span className="text-xs font-mono text-white/30 italic">No tags assigned</span>
@@ -1257,6 +1284,140 @@ export function NoteDetailSidebar({
         entityId={liveNote.$id} 
         entityKind="note" 
       />
+
+      {/* Tag Selector Sub-Drawer */}
+      <Drawer
+        anchor="bottom"
+        open={isTagSelectorOpen}
+        onClose={() => setIsTagSelectorOpen(false)}
+        ModalProps={{ keepMounted: false, disableScrollLock: false }}
+        sx={{
+          zIndex: 2000,
+          '& .ob-drawer-panel': {
+            bgcolor: '#161412',
+            borderTopLeftRadius: '24px',
+            borderTopRightRadius: '24px',
+            border: '1px solid #34322F',
+            borderBottom: 0,
+            pb: 'max(24px, env(safe-area-inset-bottom))',
+            pt: 2,
+            px: { xs: 2.25, sm: 2.75 },
+            maxWidth: '600px',
+            mx: 'auto',
+          }
+        }}
+      >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <TagIcon size={20} color="#6366F1" />
+            <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem', fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em' }}>
+              Select Tags
+            </Typography>
+          </Stack>
+          <IconButton
+            onClick={() => setIsTagSelectorOpen(false)}
+            sx={{
+              color: '#E8E6E3',
+              bgcolor: '#0A0908',
+              border: '1px solid #34322F',
+              '&:hover': { bgcolor: '#1C1A18' },
+            }}
+          >
+            <CloseIcon size={18} />
+          </IconButton>
+        </Stack>
+
+        <Box sx={{ maxHeight: '40dvh', overflowY: 'auto', pr: 0.5 }}>
+          <List sx={{ py: 0 }}>
+            <ListItem disablePadding sx={{ mb: 1 }}>
+              <ListItemButton 
+                onClick={() => {
+                  setIsTagSelectorOpen(false);
+                  openUnified('new-tag', { 
+                    onSuccess: async () => {
+                      await refreshEcosystemTags();
+                    } 
+                    // @ts-ignore
+                  });
+                }}
+                sx={{ 
+                  borderRadius: '12px', 
+                  bgcolor: alpha('#6366F1', 0.1),
+                  border: `1px dashed ${alpha('#6366F1', 0.3)}`,
+                  py: 1.5,
+                  '&:hover': { bgcolor: alpha('#6366F1', 0.15) }
+                }}
+              >
+                <Plus size={18} color="#6366F1" style={{ marginRight: '12px' }} />
+                <ListItemText 
+                  primary="Create New Tag" 
+                  primaryTypographyProps={{ sx: { color: '#6366F1', fontWeight: 800, fontSize: '0.9rem' } }}
+                />
+              </ListItemButton>
+            </ListItem>
+
+            {ecosystemTags.map((tag) => {
+              const currentTagsArray = tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+              const isSelected = currentTagsArray.includes(tag.name || '');
+              const color = (tag as any).color || '#9B9691';
+
+              return (
+                <ListItem key={tag.$id} disablePadding sx={{ mb: 0.5 }}>
+                  <ListItemButton 
+                    onClick={() => {
+                      let nextTagsArray = [...currentTagsArray];
+                      if (!isSelected && tag.name) {
+                        nextTagsArray.push(tag.name);
+                      } else if (isSelected && tag.name) {
+                        nextTagsArray = nextTagsArray.filter(n => n !== tag.name);
+                      }
+                      setTags(nextTagsArray.join(', '));
+                      markDirty();
+                      setIsTagSelectorOpen(false);
+                    }}
+                    sx={{ 
+                      borderRadius: '12px', 
+                      py: 1.5,
+                      border: '1px solid transparent',
+                      borderColor: isSelected ? color : 'transparent',
+                      bgcolor: isSelected ? alpha(color, 0.1) : 'transparent',
+                      '&:hover': { bgcolor: '#1C1A18' }
+                    }}
+                  >
+                    <Box 
+                      sx={{ 
+                        width: 12, 
+                        height: 12, 
+                        borderRadius: '4px', 
+                        bgcolor: color, 
+                        mr: 2,
+                        boxShadow: `0 0 10px ${alpha(color, 0.4)}`
+                      }} 
+                    />
+                    <ListItemText 
+                      primary={(tag.name || '').toUpperCase()} 
+                      primaryTypographyProps={{ 
+                        sx: { 
+                          color: isSelected ? 'white' : '#9B9691', 
+                          fontWeight: 900, 
+                          fontSize: '0.8rem',
+                          fontFamily: 'var(--font-mono)',
+                          letterSpacing: '0.05em'
+                        } 
+                      }}
+                    />
+                    {isSelected && (
+                      <Typography sx={{ color: color, fontWeight: 900, fontSize: '0.7rem', opacity: 0.8 }}>
+                        SELECTED
+                      </Typography>
+                    )}
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
+          </List>
+        </Box>
+      </Drawer>
 
     </div>
   );
