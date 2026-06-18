@@ -27,8 +27,23 @@ import {
   Calendar as EventIcon,
   Key as KeyIcon,
   Copy as CopyIcon,
+  Tag as TagIcon,
+  Plus,
 } from 'lucide-react';
 
+import { 
+  Drawer, 
+  Box, 
+  Typography, 
+  Stack, 
+  IconButton, 
+  List, 
+  ListItem, 
+  ListItemButton, 
+  ListItemText,
+  alpha 
+} from '@/lib/openbricks/primitives';
+import { useTask } from '@/context/TaskContext';
 import { useToast } from '@/components/ui/Toast';
 import { useSudo } from '@/context/SudoContext';
 import { useProUpgrade } from '@/context/ProUpgradeContext';
