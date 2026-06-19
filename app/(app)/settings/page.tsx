@@ -17,8 +17,11 @@ import {
     Bot,
     Lightbulb,
     Link,
-    Loader2 as SpinnerIcon
+    Loader2 as SpinnerIcon,
+    Database,
+    Info
 } from 'lucide-react';
+import { VaultPorterDrawer } from '@/components/import/VaultPorterDrawer';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { useAuth } from '@/lib/auth';
 import { KeychainService } from '@/lib/appwrite/keychain';
@@ -92,6 +95,7 @@ export default function SettingsPage() {
     const [demoModeEnabled, setDemoModeEnabled] = useState(false);
     const [computeBalance, setComputeBalance] = useState<{ balance: number; maxBalance: number; tier: string; percent: number } | null>(null);
     const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
+    const [showPorterDrawer, setShowPorterDrawer] = useState(false);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -638,6 +642,40 @@ export default function SettingsPage() {
                                 </div>
                             </div>
 
+                            {/* Data Portability (Backup & Restore) */}
+                            <div>
+                                <h4 className="text-white font-extrabold text-sm flex items-center gap-1.5 mb-4 font-mono select-none">
+                                    <Database size={16} className="text-[#6366F1]" />
+                                    <span>Data Portability</span>
+                                </h4>
+
+                                <div className="p-5 bg-[#161412] border border-white/5 rounded-[24px] flex flex-col gap-4">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div className="flex-1">
+                                            <span className="block text-white font-extrabold text-xs">Import & Export Workspace</span>
+                                            <span className="block text-white/40 text-[10px] font-semibold mt-0.5 leading-relaxed">
+                                                Backup your passwords, TOTP tokens, note metadata, and settings, or import existing files securely.
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowPorterDrawer(true)}
+                                            className="px-4 py-2.5 bg-[#6366F1] text-black text-xs font-black rounded-xl hover:bg-emerald-400 transition-all flex-shrink-0 cursor-pointer"
+                                        >
+                                            Manage Backups
+                                        </button>
+                                    </div>
+                                    <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex gap-2.5 items-start">
+                                        <Info className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <span className="block text-[10px] font-black text-amber-400 uppercase tracking-wider">DO NOT CLOSE TAB OR REFRESH</span>
+                                            <span className="block text-[10px] text-white/50 leading-relaxed mt-0.5">
+                                                Ensure this browser tab is active during importing/exporting database tasks to prevent payload encryption corruption.
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="h-[1px] bg-white/5 w-full" />
 
                             {/* App Preferences Switches */}
@@ -741,6 +779,10 @@ export default function SettingsPage() {
                 }}
             />
         )}
+        <VaultPorterDrawer
+            isOpen={showPorterDrawer}
+            onClose={() => setShowPorterDrawer(false)}
+        />
     </MultiSectionContainer>
   );
 }

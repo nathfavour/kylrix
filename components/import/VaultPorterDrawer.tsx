@@ -466,6 +466,16 @@ export function VaultPorterDrawer({ isOpen, onClose }: VaultPorterDrawerProps) {
               ))}
             </div>
 
+            <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex gap-2.5 items-start">
+              <Info className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="block text-[10px] font-black text-amber-400 uppercase tracking-wider">DO NOT CLOSE TAB OR REFRESH</span>
+                <span className="block text-[10px] text-white/50 leading-relaxed mt-0.5">
+                  The import runs in the background but requires the current window to remain open to securely index and decrypt keys.
+                </span>
+              </div>
+            </div>
+
             <button
               onClick={handleFinalImport}
               disabled={isImporting}
@@ -580,6 +590,16 @@ export function VaultPorterDrawer({ isOpen, onClose }: VaultPorterDrawerProps) {
               <Download size={18} />
               <span>{isExporting ? 'Exporting...' : 'Export File'}</span>
             </button>
+
+            <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex gap-2.5 items-start">
+              <Info className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="block text-[10px] font-black text-amber-400 uppercase tracking-wider">KEEP TAB OPEN UNTIL COMPLETE</span>
+                <span className="block text-[10px] text-white/50 leading-relaxed mt-0.5">
+                  Exporting queries and package-wraps data on the fly. Do not refresh or close this tab while processing.
+                </span>
+              </div>
+            </div>
 
             <button onClick={handleReset} className="text-xs font-bold text-white/40 hover:text-white transition self-start">
               ← Cancel Export

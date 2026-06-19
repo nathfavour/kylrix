@@ -8,6 +8,7 @@ import {
 } from "./bitwarden-mapper";
 import { extractTotpFromBitwardenLogin } from "./totp-parser";
 import { processCustomFields } from "./custom-fields";
+import { DeduplicationEngine } from "@/lib/import/deduplication";
 
 export interface ImportProgress {
   stage: "parsing" | "folders" | "credentials" | "totp" | "completed" | "error";
@@ -134,25 +135,25 @@ export class ImportService {
             existingCredsSet.add(`${existUrl}|${existUser}|${existPass}`);
         }
 
-        // Deduplicate Credentials
+        // Run smart merge on incoming credentials first
+        const mergedIncoming = DeduplicationEngine.processSmartMerge(mappedData.credentials.map(c => ({
+          ...c,
+          _status: 'new'
+        })));
+
+        // Deduplicate against existing database items
         const uniqueCredentials = [];
         let skippedExisting = 0;
 
-        for (const cred of mappedData.credentials) {
-            const credUrl = this.normalizeUrl(cred.url);
-            const credUser = cred.username ? cred.username.trim() : "";
-            const credPass = cred.password ? cred.password.trim() : "";
-            
-            const key = `${credUrl}|${credUser}|${credPass}`;
-
-            if (existingCredsSet.has(key)) {
-                skippedExisting++;
-            } else {
-                uniqueCredentials.push(cred);
-            }
+        for (const cred of mergedIncoming) {
+          if (DeduplicationEngine.isDuplicateOfExisting(cred, existingCreds)) {
+            skippedExisting++;
+          } else {
+            uniqueCredentials.push(cred);
+          }
         }
         
-        mappedData.credentials = uniqueCredentials;
+        mappedData.credentials = uniqueCredentials as any;
         result.summary.skippedExisting = skippedExisting;
         
         // Deduplicate TOTP Secrets
@@ -167,7 +168,7 @@ export class ImportService {
         mappedData.totpSecrets = uniqueTotps;
 
         if (skippedExisting > 0) {
-             console.log(`[ImportService] Skipped ${skippedExisting} existing credentials.`);
+             console.log(`[ImportService] Skipped/merged ${skippedExisting} existing/duplicate credentials.`);
         }
       } catch (e: unknown) {
         console.warn("[ImportService] Failed to check existing data, proceeding with import.", e);
@@ -349,22 +350,22 @@ export class ImportService {
             existingCredsSet.add(`${existUrl}|${existUser}|${existPass}`);
         }
 
-        // Deduplicate Credentials
+        // Run smart merge on incoming credentials first
+        const mergedIncoming = DeduplicationEngine.processSmartMerge(credentials.map((c: any) => ({
+          ...c,
+          _status: 'new'
+        })));
+
+        // Deduplicate Credentials against existing items
         const uniqueCredentials = [];
         let skippedExisting = 0;
 
-        for (const cred of credentials) {
-            const credUrl = this.normalizeUrl(cred.url);
-            const credUser = cred.username ? String(cred.username).trim() : "";
-            const credPass = cred.password ? String(cred.password).trim() : "";
-
-            const key = `${credUrl}|${credUser}|${credPass}`;
-            
-            if (existingCredsSet.has(key)) {
-                skippedExisting++;
-            } else {
-                uniqueCredentials.push(cred);
-            }
+        for (const cred of mergedIncoming) {
+          if (DeduplicationEngine.isDuplicateOfExisting(cred, existingCreds)) {
+            skippedExisting++;
+          } else {
+            uniqueCredentials.push(cred);
+          }
         }
         
         credentials = uniqueCredentials;
@@ -382,7 +383,7 @@ export class ImportService {
         totpSecrets = uniqueTotps;
 
         if (skippedExisting > 0) {
-             console.log(`[ImportService] Skipped ${skippedExisting} existing credentials.`);
+             console.log(`[ImportService] Skipped/merged ${skippedExisting} existing/duplicate credentials.`);
         }
       } catch (e: unknown) {
         console.warn("[ImportService] Failed to check existing data, proceeding with import.", e);

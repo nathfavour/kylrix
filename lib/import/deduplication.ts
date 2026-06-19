@@ -1,12 +1,9 @@
-
 export interface ImportItem {
   name?: string | null;
   url?: string | null;
   username?: string | null;
   password?: string | null;
   notes?: string | null;
-  // Add other credential fields as needed, or extend Partial<Credentials> correctly if type allows
-  // For now defining explicitly to fix build error
   _status: 'new' | 'duplicate' | 'merged';
   _originalId?: string; // For tracking
   _mergeDetails?: string[]; // What happened?
@@ -16,45 +13,95 @@ export interface ImportItem {
 export class DeduplicationEngine {
   
   /**
-   * Normalizes a URL to its hostname for fuzzy matching
-   * e.g. https://www.google.com/login -> google.com
+   * Normalizes a URL to its primary registered domain for aggressive matching.
+   * e.g. https://login.microsoftonline.com/auth -> microsoftonline.com
    */
-  private static normalizeDomain(url?: string | null): string {
+  public static normalizeDomain(url?: string | null): string {
     if (!url) return "";
     try {
-      const hostname = new URL(url).hostname;
-      return hostname.replace(/^www\./, "").toLowerCase();
+      let host = url.trim().toLowerCase();
+      if (!host.startsWith("http://") && !host.startsWith("https://")) {
+        host = "https://" + host;
+      }
+      const hostname = new URL(host).hostname;
+      const parts = hostname.split(".");
+      
+      // Heuristic for country code TLDs (e.g. co.uk, com.br)
+      if (parts.length > 2) {
+        const p1 = parts[parts.length - 1];
+        const p2 = parts[parts.length - 2];
+        if ((p2.length <= 3 && p1.length <= 2) || (p2.length <= 2 && p1.length <= 3)) {
+          return parts.slice(-3).join(".");
+        }
+        return parts.slice(-2).join(".");
+      }
+      return hostname;
     } catch {
-      return url.toLowerCase();
+      // Fallback: cleanup string
+      let cleaned = (url || "").toLowerCase().trim();
+      cleaned = cleaned.replace(/^(https?:\/\/)?(www\.)?/, "");
+      return cleaned.split("/")[0] || cleaned;
     }
   }
 
   /**
+   * Calculate Levenshtein Distance to detect close username typos/patches.
+   */
+  private static getLevenshteinDistance(a: string, b: string): number {
+    const tmp: number[][] = [];
+    for (let i = 0; i <= a.length; i++) {
+      tmp[i] = [i];
+    }
+    for (let j = 0; j <= b.length; j++) {
+      tmp[0][j] = j;
+    }
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        tmp[i][j] = Math.min(
+          tmp[i - 1][j] + 1,
+          tmp[i][j - 1] + 1,
+          tmp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+        );
+      }
+    }
+    return tmp[a.length][b.length];
+  }
+
+  /**
+   * Verify if two usernames are highly similar (typos or subsets).
+   */
+  private static areUsernamesSimilar(u1: string, u2: string): boolean {
+    const clean1 = u1.trim().toLowerCase();
+    const clean2 = u2.trim().toLowerCase();
+    
+    if (clean1 === clean2) return true;
+    if (!clean1 || !clean2) return true; // Empty merges with populated
+
+    // If Levenshtein distance is small compared to length
+    const distance = this.getLevenshteinDistance(clean1, clean2);
+    const minLength = Math.min(clean1.length, clean2.length);
+    
+    if (minLength <= 4) return distance <= 1;
+    return distance <= 2;
+  }
+
+  /**
    * Phase 1: Identify and Mark Exact Duplicates
-   * Strict equality on: URL (Exact) + Username + Password
    */
   static processExactDuplicates(items: ImportItem[]): ImportItem[] {
     const uniqueMap = new Map<string, ImportItem>();
 
     for (const item of items) {
-      // Create a fingerprint for strict equality
       const fingerprint = `${item.url || ''}|${item.username || ''}|${item.password || ''}`;
       
       if (uniqueMap.has(fingerprint)) {
-        // We found a duplicate!
         const existing = uniqueMap.get(fingerprint)!;
-        
-        // Strategy: Keep the one with MORE data (Notes, Name length, etc.)
         const existingScore = (existing.notes?.length || 0) + (existing.name?.length || 0);
         const currentScore = (item.notes?.length || 0) + (item.name?.length || 0);
 
         if (currentScore > existingScore) {
-            // Replace existing with current (better version)
-            // Mark existing as duplicate? No, we filter them out in this "Strict" mode usually.
-            // But if we want to return a clean list, we just update the map.
-            uniqueMap.set(fingerprint, item);
+          uniqueMap.set(fingerprint, item);
         }
-        // Else: Ignore current item, it's a lesser duplicate
       } else {
         uniqueMap.set(fingerprint, item);
       }
@@ -64,56 +111,93 @@ export class DeduplicationEngine {
   }
 
   /**
-   * Phase 2: Merge Similar (Fuzzy)
-   * Matches on: Domain (Fuzzy) + Username
-   * Passwords MUST match to merge. If passwords differ, they are treated as unique entries (history/rotation).
+   * Phase 2: Aggressive Smart Merge
+   * Merges matches with similar domains, usernames, and passwords (handles missing passwords and notes merge).
    */
   static processSmartMerge(items: ImportItem[]): ImportItem[] {
-    const mergedMap = new Map<string, ImportItem>();
-    
+    const merged: ImportItem[] = [];
+
     for (const item of items) {
-      const domain = this.normalizeDomain(item.url);
-      // Key: domain + username + password
-      // We group by this key. If everything matches except Name/Notes, we merge.
-      const key = `${domain}|${item.username || ''}|${item.password || ''}`;
+      let isMerged = false;
+      const itemDomain = this.normalizeDomain(item.url);
+      const itemUser = (item.username || "").trim();
+      const itemPass = (item.password || "").trim();
 
-      if (mergedMap.has(key)) {
-        const existing = mergedMap.get(key)!;
+      for (let i = 0; i < merged.length; i++) {
+        const target = merged[i];
+        const targetDomain = this.normalizeDomain(target.url);
+        const targetUser = (target.username || "").trim();
+        const targetPass = (target.password || "").trim();
+
+        // 1. Domain must match
+        if (itemDomain !== targetDomain && itemDomain && targetDomain) continue;
+
+        // 2. Check password compatibility:
+        // Must either match, or one of them must be empty (which will be filled by the other)
+        const isPassCompatible = itemPass === targetPass || !itemPass || !targetPass;
+        if (!isPassCompatible) continue;
+
+        // 3. Check username similarity:
+        const isUserCompatible = this.areUsernamesSimilar(itemUser, targetUser);
+        if (!isUserCompatible) continue;
+
+        // Found matching credential! Merge them.
+        const newName = (item.name?.length || 0) > (target.name?.length || 0) ? item.name : target.name;
         
-        // MERGE LOGIC
-        // 1. Name: Longest name wins
-        const newName = (item.name?.length || 0) > (existing.name?.length || 0) ? item.name : existing.name;
-
-        // 2. Notes: Concatenate unique notes
-        let newNotes = existing.notes || "";
+        let newNotes = target.notes || "";
         if (item.notes && !newNotes.includes(item.notes)) {
-            newNotes = newNotes ? `${newNotes}\n\n[Merged]: ${item.notes}` : item.notes;
+          newNotes = newNotes ? `${newNotes}\n\n[Merged Note]: ${item.notes}` : item.notes;
         }
 
-        // 3. URL: Keep the most specific one (longest)
-        const newUrl = (item.url?.length || 0) > (existing.url?.length || 0) ? item.url : existing.url;
+        const newUrl = (item.url?.length || 0) > (target.url?.length || 0) ? item.url : target.url;
+        const newUsername = itemUser.length > targetUser.length ? itemUser : targetUser;
+        const newPassword = itemPass || targetPass;
 
-        // 4. Custom Fields: Concatenate (Basic implementation)
-        // ideally we parse JSON, but for now treating as string blob logic is risky. 
-        // Let's stick to core fields for robust V1.
-
-        const mergedItem: ImportItem = {
-            ...existing,
-            name: newName,
-            notes: newNotes,
-            url: newUrl,
-            _status: 'merged',
-            _mergeDetails: [...(existing._mergeDetails || []), `Merged with "${item.name}"`]
+        merged[i] = {
+          ...target,
+          name: newName,
+          username: newUsername,
+          password: newPassword,
+          notes: newNotes,
+          url: newUrl,
+          _status: 'merged',
+          _mergeDetails: [...(target._mergeDetails || []), `Aggressively merged with "${item.name || 'Untitled'}"`],
         };
 
-        mergedMap.set(key, mergedItem);
+        isMerged = true;
+        break;
+      }
 
-      } else {
-        mergedMap.set(key, item);
+      if (!isMerged) {
+        merged.push({ ...item });
       }
     }
 
-    return Array.from(mergedMap.values());
+    return merged;
+  }
+
+  /**
+   * Helper to check if an incoming item matches an existing item in the database.
+   */
+  static isDuplicateOfExisting(incoming: ImportItem, existingItems: any[]): boolean {
+    const incDomain = this.normalizeDomain(incoming.url);
+    const incUser = (incoming.username || "").trim().toLowerCase();
+    const incPass = (incoming.password || "").trim();
+
+    return existingItems.some(ext => {
+      const extDomain = this.normalizeDomain(ext.url);
+      const extUser = (ext.username || "").trim().toLowerCase();
+      const extPass = (ext.password || "").trim();
+
+      // Check same domain
+      if (incDomain !== extDomain && incDomain && extDomain) return false;
+
+      // Check username match or high similarity
+      const usernameMatch = incUser === extUser || this.areUsernamesSimilar(incUser, extUser);
+      if (!usernameMatch) return false;
+
+      // If passwords are exact, or incoming has no password (existing has it), it is duplicate
+      return incPass === extPass || !incPass;
+    });
   }
 }
-
