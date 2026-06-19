@@ -17,8 +17,9 @@ import { useAI } from '@/context/AIContext';
 import { useSudo } from '@/context/SudoContext';
 import { useFAB } from '@/context/FABContext';
 import { MultiSectionContainer, useSection } from '@/context/SectionContext';
-import { ArrowLeft, Plus, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Plus, Eye, EyeOff, ArrowUpDown } from 'lucide-react';
 import { Box, Typography, Paper, Button, IconButton, Avatar, CircularProgress, Tooltip, alpha } from '@/lib/openbricks/primitives';
+import { VaultPorterDrawer } from '@/components/import/VaultPorterDrawer';
 
 function DashboardPageContent() {
   const { user, needsMasterPassword, isVaultUnlocked, isVaultBlurEnabled, setVaultBlurEnabled } = useAppwriteVault();
@@ -32,6 +33,8 @@ function DashboardPageContent() {
   
   // Master password modal state
   const [showMasterPassDrawer, setShowMasterPassDrawer] = useState(needsMasterPassword || !isVaultUnlocked());
+  // Vault porter drawer state
+  const [showPorterDrawer, setShowPorterDrawer] = useState(false);
   
   // State for all credentials, fetched once
   const [allCredentials, setAllCredentials] = useState<Credentials[]>([]);
@@ -302,8 +305,17 @@ function DashboardPageContent() {
                     className={`p-2 border border-[#1C1A18] rounded-xl transition-colors ${
                       isVaultBlurEnabled ? 'text-white/40 bg-[#161412]' : 'text-[#10B981] bg-[#161412]'
                     } hover:bg-[#1C1A18]`}
+                    title="Toggle secret blur visibility"
                   >
                     {isVaultBlurEnabled ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+
+                  <button
+                    onClick={() => setShowPorterDrawer(true)}
+                    className="p-2 border border-[#1C1A18] rounded-xl text-white/60 bg-[#161412] hover:text-white hover:bg-[#1C1A18] transition-colors"
+                    title="Import/Export Vault Data"
+                  >
+                    <ArrowUpDown size={16} />
                   </button>
                 </div>
               </div>
@@ -401,6 +413,11 @@ function DashboardPageContent() {
           onCancel={() => { }}
         />
       )}
+
+      <VaultPorterDrawer
+        isOpen={showPorterDrawer}
+        onClose={() => setShowPorterDrawer(false)}
+      />
     </div>
   );
 }
