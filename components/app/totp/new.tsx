@@ -2,10 +2,22 @@
 
 import { createTotpSecret, updateTotpSecret } from '@/lib/appwrite';
 import { useAppwriteVault } from '@/context/appwrite-context';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Drawer } from '@/components/ui/Drawer';
-import { Shield } from 'lucide-react';
+import { Drawer, Box, Typography, IconButton } from '@/lib/openbricks/primitives';
+import { X, Shield } from 'lucide-react';
+import { useDrawerState } from '@/components/ui/DrawerStateContext';
+
+const DRAWER_SX = {
+  borderTopLeftRadius: '24px',
+  borderTopRightRadius: '24px',
+  bgcolor: '#161412',
+  borderTop: '1px solid #34322F',
+  backgroundImage: 'none',
+  maxWidth: 720,
+  width: '100%',
+  mx: 'auto',
+};
 
 export default function NewTotpDialog({
   open,
@@ -26,6 +38,8 @@ export default function NewTotpDialog({
   };
 }) {
   const { user } = useAppwriteVault();
+  const { setIsDrawerOpen } = useDrawerState();
+  
   const [form, setForm] = useState({
     issuer: "",
     accountName: "",
@@ -37,6 +51,11 @@ export default function NewTotpDialog({
   });
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setIsDrawerOpen(open);
+    return () => setIsDrawerOpen(false);
+  }, [open, setIsDrawerOpen]);
 
   useEffect(() => {
     if (initialData) {
@@ -61,6 +80,11 @@ export default function NewTotpDialog({
       });
     }
   }, [initialData, open]);
+
+  const handleClose = useCallback(() => {
+    setIsDrawerOpen(false);
+    onClose();
+  }, [onClose, setIsDrawerOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +111,7 @@ export default function NewTotpDialog({
         });
         toast.success("Smart Code added!");
       }
-      onClose();
+      handleClose();
       setLoading(false);
     } catch (e: unknown) {
       const err = e as { message?: string };
@@ -99,21 +123,47 @@ export default function NewTotpDialog({
   };
 
   return (
-    <Drawer open={open} onClose={onClose}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-2 select-none">
+    <Drawer
+      anchor="bottom"
+      open={open}
+      onClose={handleClose}
+      PaperProps={{
+        sx: {
+          ...DRAWER_SX,
+          height: '65dvh',
+          pointerEvents: 'auto',
+        }
+      }}
+      ModalProps={{
+        keepMounted: false,
+        disableScrollLock: false,
+        disablePortal: true,
+      }}
+    >
+      {/* Drag handle decoration */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 1.5 }}>
+        <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: '#3D3A36' }} />
+      </Box>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6 px-6 pb-6 select-none h-[calc(100%-24px)] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-white/5">
-          <div className="p-2.5 rounded-xl bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20">
-            <Shield size={20} />
+        <div className="flex items-center justify-between pb-4 border-b border-[#1C1A18]">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20">
+              <Shield size={20} />
+            </div>
+            <div>
+              <h2 className="text-lg font-black font-clash text-white">{initialData ? "Edit" : "Add"} Smart Code</h2>
+              <p className="text-xs font-semibold text-white/40">Secure multi-factor authenticator</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-black font-clash text-white">{initialData ? "Edit" : "Add"} Smart Code</h2>
-            <p className="text-xs font-semibold text-white/40">Secure multi-factor authentication token</p>
-          </div>
+          <IconButton onClick={handleClose} sx={{ color: '#9B9691' }}>
+            <X size={20} />
+          </IconButton>
         </div>
 
         {/* Content */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 flex-1 overflow-y-auto">
           {/* Issuer field */}
           <div className="flex flex-col gap-2">
             <label className="text-[0.75rem] font-bold text-[#9B9691] tracking-wide uppercase">
@@ -202,11 +252,11 @@ export default function NewTotpDialog({
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-4 flex gap-4">
+        <div className="pt-4 flex gap-4 mt-auto">
           <button
             type="button"
-            onClick={onClose}
-            className="flex-1 py-3.5 rounded-2xl font-extrabold text-white/50 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-all text-sm cursor-pointer"
+            onClick={handleClose}
+            className="flex-1 py-3.5 rounded-2xl font-extrabold text-white/50 hover:text-white hover:bg-white/5 border border-[#1C1A18] transition-all text-sm cursor-pointer"
           >
             Cancel
           </button>
