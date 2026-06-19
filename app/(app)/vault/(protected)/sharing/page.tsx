@@ -20,6 +20,8 @@ import { ArrowLeft, User, Share2, Unlock, Key, Search } from 'lucide-react';
 import CredentialItem from '@/components/app/dashboard/CredentialItem';
 import CredentialDetail from '@/components/app/dashboard/CredentialDetail';
 import { MultiSectionContainer } from '@/context/SectionContext';
+import SudoModal from '@/components/overlays/SudoModal';
+import { useCallback } from 'react';
 
 type SearchResult = Awaited<ReturnType<typeof searchGlobalUsers>>[number];
 
@@ -35,8 +37,11 @@ function parseMetadata(metadata: string | null) {
 
 export default function SharingPage() {
   const router = useRouter();
-  const { user, isVaultUnlocked } = useAppwriteVault();
+  const { user, needsMasterPassword, isVaultUnlocked } = useAppwriteVault();
   const [activeTab, setActiveTab] = useState(0);
+  
+  // Master password modal state
+  const [showMasterPassDrawer, setShowMasterPassDrawer] = useState(needsMasterPassword || !isVaultUnlocked());
   
   const [credentials, setCredentials] = useState<Credentials[]>([]);
   const [totpSecrets, setTotpSecrets] = useState<TotpSecrets[]>([]);
@@ -117,6 +122,19 @@ export default function SharingPage() {
     );
   }, [incomingShares]);
 
+  useEffect(() => {
+    if (needsMasterPassword || !isVaultUnlocked()) {
+      setShowMasterPassDrawer(true);
+    } else {
+      setShowMasterPassDrawer(false);
+    }
+  }, [needsMasterPassword, isVaultUnlocked]);
+
+  const handleMasterPassSuccess = useCallback(() => {
+    setShowMasterPassDrawer(false);
+    void refreshData();
+  }, []);
+
   const refreshData = async () => {
     if (!user?.$id) return;
     const [credsResult, totpResult, shareResult] = await Promise.allSettled([
@@ -194,10 +212,18 @@ export default function SharingPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen pb-10 bg-[#0A0908] pt-4 md:pt-8">
-      <MultiSectionContainer panels={['secrets', 'totp', 'secret_chat']}>
-      {/* Header Section */}
-      <div className="px-4 md:px-12">
+    <div className="flex flex-col min-h-screen pb-10 bg-[#0A0908] pt-4 md:pt-8 relative">
+      <div 
+        className="flex-1 flex flex-col transition-[filter,opacity] duration-300"
+        style={{
+          filter: showMasterPassDrawer ? 'blur(8px)' : 'none',
+          pointerEvents: showMasterPassDrawer ? 'none' : 'auto',
+          opacity: showMasterPassDrawer ? 0.3 : 1,
+        }}
+      >
+        <MultiSectionContainer panels={['secrets', 'totp', 'secret_chat']}>
+        {/* Header Section */}
+        <div className="px-4 md:px-12">
         <div className="flex items-center gap-3.5 mb-8">
           <button 
             onClick={() => router.back()} 
@@ -451,6 +477,16 @@ export default function SharingPage() {
         />
       )}
       </MultiSectionContainer>
+      </div>
+
+      {showMasterPassDrawer && (
+        <SudoModal
+          isOpen={showMasterPassDrawer}
+          app="vault"
+          onSuccess={handleMasterPassSuccess}
+          onCancel={() => { }}
+        />
+      )}
     </div>
   );
 }

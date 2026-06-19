@@ -16,6 +16,7 @@ import { useContextMenu } from '@/components/ui/ContextMenuContext';
 import { ShareLockButton } from '@/components/share/ShareLockButton';
 import { useAccessControlMenuItems } from '@/components/share/AccessControlMenuItems';
 import { useMemo, useCallback } from 'react';
+import SudoModal from '@/components/overlays/SudoModal';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,8 +24,11 @@ function TOTPPageContent() {
   const [search, setSearch] = useState("");
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user, isVaultUnlocked, isVaultBlurEnabled } = useAppwriteVault();
+  const { user, needsMasterPassword, isVaultUnlocked, isVaultBlurEnabled } = useAppwriteVault();
   const { setConfiguration, resetConfiguration } = useFAB();
+  
+  // Master password modal state
+  const [showMasterPassDrawer, setShowMasterPassDrawer] = useState(needsMasterPassword || !isVaultUnlocked());
   
   type TotpItem = {
     $id: string;
@@ -113,6 +117,18 @@ function TOTPPageContent() {
       })
       .finally(() => setLoading(false));
   }, [user, showNew, isVaultUnlocked]);
+
+  useEffect(() => {
+    if (needsMasterPassword || !isVaultUnlocked()) {
+      setShowMasterPassDrawer(true);
+    } else {
+      setShowMasterPassDrawer(false);
+    }
+  }, [needsMasterPassword, isVaultUnlocked]);
+
+  const handleMasterPassSuccess = useCallback(() => {
+    setShowMasterPassDrawer(false);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -363,11 +379,19 @@ function TOTPPageContent() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen pb-10 bg-[#0A0908] pt-4 md:pt-8">
-      <MultiSectionContainer panels={['secrets', 'secret_chat']} contextId={selectedTotp?.issuer || selectedTotp?.accountName || undefined}>
-      {/* Header & Back Action */}
-      <div className="px-4 md:px-12">
-        <div className="flex items-center gap-3.5 mb-8">
+    <div className="flex flex-col min-h-screen pb-10 bg-[#0A0908] pt-4 md:pt-8 relative">
+      <div 
+        className="flex-1 flex flex-col transition-[filter,opacity] duration-300"
+        style={{
+          filter: showMasterPassDrawer ? 'blur(8px)' : 'none',
+          pointerEvents: showMasterPassDrawer ? 'none' : 'auto',
+          opacity: showMasterPassDrawer ? 0.3 : 1,
+        }}
+      >
+        <MultiSectionContainer panels={['secrets', 'secret_chat']} contextId={selectedTotp?.issuer || selectedTotp?.accountName || undefined}>
+        {/* Header & Back Action */}
+        <div className="px-4 md:px-12">
+          <div className="flex items-center gap-3.5 mb-8">
           <button 
             onClick={() => router.back()} 
             className="p-2 text-white bg-[#161412] border border-[#1C1A18] rounded-xl hover:bg-[#1C1A18] transition-colors"
@@ -510,6 +534,16 @@ function TOTPPageContent() {
         </div>
       )}
       </MultiSectionContainer>
+      </div>
+
+      {showMasterPassDrawer && (
+        <SudoModal
+          isOpen={showMasterPassDrawer}
+          app="vault"
+          onSuccess={handleMasterPassSuccess}
+          onCancel={() => { }}
+        />
+      )}
     </div>
   );
 }
