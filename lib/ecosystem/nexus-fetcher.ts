@@ -20,8 +20,29 @@ export async function fetchOptimized<T>(
         const db = await getRxDB();
         const doc = await db.cache.findOne(key).exec();
         
-        if (doc && (Date.now() - doc.timestamp < ttl)) {
-            return doc.data as T;
+        if (doc) {
+            const data = doc.data as T;
+            const isStale = Date.now() - doc.timestamp >= ttl;
+            if (isStale) {
+                (async () => {
+                    try {
+                        const fresh = await fetcher();
+                        if (JSON.stringify(fresh) !== JSON.stringify(data)) {
+                            await db.cache.upsert({
+                                id: key,
+                                data: fresh as any,
+                                timestamp: Date.now()
+                            });
+                            window.dispatchEvent(new CustomEvent('kylrix:nexus:update', {
+                                detail: { key, data: fresh }
+                            }));
+                        }
+                    } catch (err) {
+                        console.warn(`[Nexus Bridge] Background revalidation failed for ${key}`, err);
+                    }
+                })();
+            }
+            return data;
         }
 
         // Network Sensing Fetch
@@ -33,6 +54,10 @@ export async function fetchOptimized<T>(
             data: data as any,
             timestamp: Date.now()
         });
+
+        window.dispatchEvent(new CustomEvent('kylrix:nexus:update', {
+            detail: { key, data }
+        }));
 
         return data;
     } catch (e) {

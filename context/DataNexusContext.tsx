@@ -107,6 +107,13 @@ export function DataNexusProvider({ children }: { children: ReactNode }) {
         } catch (e) {
             console.error(`[Nexus] RxDB Persist failed for ${key}:`, e);
         }
+
+        // Dispatch a custom event to notify components for live UI updating
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('kylrix:nexus:update', {
+                detail: { key, data }
+            }));
+        }
     }, []);
 
     const invalidate = useCallback(async (key: string) => {
@@ -243,25 +250,54 @@ export function DataNexusProvider({ children }: { children: ReactNode }) {
         fetcher: () => Promise<T>, 
         ttl: number = DEFAULT_TTL
     ): Promise<T> {
-        // 1. Check Synchronous Mirror
-        const cached = getCachedData<T>(key, ttl);
-        if (cached) return cached;
+        // 1. Check Synchronous Mirror (even if stale, return immediately and revalidate in bg)
+        const memoryEntry = memoryCache.current.get(key);
+        if (memoryEntry) {
+            const isStale = Date.now() - memoryEntry.timestamp >= ttl;
+            if (isStale) {
+                (async () => {
+                    try {
+                        const data = await fetcher();
+                        if (JSON.stringify(data) !== JSON.stringify(memoryEntry.data)) {
+                            await setCachedData(key, data, ttl);
+                        }
+                    } catch (e) {
+                        console.warn(`[Nexus] Background refresh failed for ${key}:`, e);
+                    }
+                })();
+            }
+            return memoryEntry.data as T;
+        }
 
-        // 2. Check RxDB Substrate (if memory miss)
+        // 2. Check RxDB Substrate (if memory miss, return immediately and revalidate in bg)
         try {
             const db = await getRxDB();
             const doc = await db.cache.findOne(key).exec();
             
-            if (doc && (Date.now() - doc.timestamp < ttl)) {
-                const entry = { data: doc.data as T, timestamp: doc.timestamp };
-                memoryCache.current.set(key, entry);
-                return entry.data;
+            if (doc) {
+                const data = doc.data as T;
+                memoryCache.current.set(key, { data, timestamp: doc.timestamp });
+                
+                const isStale = Date.now() - doc.timestamp >= ttl;
+                if (isStale) {
+                    (async () => {
+                        try {
+                            const fresh = await fetcher();
+                            if (JSON.stringify(fresh) !== JSON.stringify(data)) {
+                                await setCachedData(key, fresh, ttl);
+                            }
+                        } catch (e) {
+                            console.warn(`[Nexus] Background refresh from RxDB failed for ${key}:`, e);
+                        }
+                    })();
+                }
+                return data;
             }
         } catch (e) {
             console.warn(`[Nexus] RxDB Substrate read failed for ${key}`, e);
         }
 
-        // 3. Deduplication
+        // 3. Deduplication (only run direct fetch if no cache is present)
         const existingRequest = activeRequests.current.get(key);
         if (existingRequest) return existingRequest;
 
@@ -278,7 +314,7 @@ export function DataNexusProvider({ children }: { children: ReactNode }) {
 
         activeRequests.current.set(key, request);
         return request;
-    }, [getCachedData, setCachedData]);
+    }, [setCachedData]);
 
     return (
         <DataNexusContext.Provider value={{ 

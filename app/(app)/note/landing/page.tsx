@@ -553,7 +553,13 @@ export default function LandingPage() {
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.has('stay')) return;
     if (isAuthenticated) {
-      router.replace('/note');
+      const lastRoute = typeof window !== 'undefined'
+        ? document.cookie.split('; ').find(row => row.startsWith('kylrix_last_route='))?.split('=')[1]
+        : null;
+      const target = lastRoute ? decodeURIComponent(lastRoute) : '/note';
+      router.replace(target);
+    } else {
+      router.replace('/send');
     }
   }, [isAuthenticated, router]);
 
