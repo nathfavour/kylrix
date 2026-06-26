@@ -58,7 +58,20 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     pathname?.startsWith('/settings')
   ), [pathname]);
 
-  const isSharedPage = pathname?.includes('/shared/');
+  const isSharedPage = useMemo(() => {
+    if (!pathname) return false;
+    return (
+      pathname.includes('/shared/') ||
+      pathname.startsWith('/flow/goal/') ||
+      pathname.startsWith('/flow/form/') ||
+      pathname.startsWith('/flow/forms/') ||
+      pathname.startsWith('/flow/events/') ||
+      pathname.startsWith('/connect/call/') ||
+      pathname.startsWith('/send') ||
+      pathname.startsWith('/i/') ||
+      pathname.startsWith('/u/')
+    );
+  }, [pathname]);
   const isVaultResetRoute = pathname?.startsWith('/vault/reset');
   const isProjectsPage = pathname?.startsWith('/projects');
   const isLandingPage = pathname === '/';
