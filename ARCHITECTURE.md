@@ -413,7 +413,7 @@ Centralized server-side Appwrite client factory using React's `cache()` for requ
 Elevated-privilege clients that mandate a non-empty `actorEmail` parameter. Instantly throw if the email is not in the `ADMINS` environment variable. Used exclusively by admin console Server Actions.
 
 ### Configuration Hub (`lib/appwrite/config.ts`)
-Central registry of all database IDs, table IDs, bucket IDs, and function IDs. Single consolidated database `passwordManagerDb` for all apps. Domain constants and relying party configuration.
+Central registry of all database IDs, table IDs, bucket IDs, and function IDs. Under the **Single Database Mandate**, all tables across all platform workloads (such as `compute_balances`, `compute_ledger`, `notes`, `tasks`, etc.) reside within a single consolidated database ID: `passwordManagerDb`. Direct hardcoding of alternative database IDs (e.g. `whisperrflow`) is strictly prohibited.
 
 ### Keychain Service (`lib/appwrite/keychain.ts`)
 `KeychainService` with deduplication guard that blocks duplicate master password entries, preventing keychain bloat from repeated setup calls.
@@ -772,6 +772,19 @@ The following catalog provides a highly detailed engineering breakdown of the ac
     3.  Comments panel opens, enabling real-time WebSocket messaging.
 *   **Ecosystem Synergy**: Links Notes with Connect communication grids.
 *   **Next-Gen Optimizations**: Automatic huddle recording archiving, where audio/video calls in a promoted note are transcribed and attached directly as a note revision.
+
+#### 22.a. Note Locking (T5 Encryption)
+*   **Mechanics & Substrate**: Client-side DEK-based encryption integrated in `lib/appwrite/note.ts` and triggered from note cards and sidebars.
+*   **Zero-Knowledge Boundary**: Employs the same zero-knowledge envelope architecture as the Password Vault. When a note is locked, the client generates a unique 256-bit symmetric Data Encryption Key (DEK), encrypts the note's title and content via AES-GCM, encrypts the DEK with the user's Master Encryption Key (MEK), and stores the wrapped key directly in the top-level `dek` database column.
+*   **Acute Architectural Rationale**: Storing the wrapped DEK in a top-level `dek` column rather than nesting it inside a generic `metadata` JSON string allows rapid, query-efficient classification of locked vs unlocked notes without parsing string payloads. The database-level note title is set to a static, localized placeholder `'🔒 Locked Note'` to ensure server administrators and unauthorized clients see zero content hints.
+*   **Vivid End-to-End Execution Flow**:
+    1.  User clicks "Lock Note" on a note item.
+    2.  Client checks if the vault is unlocked; generates a random AES-GCM DEK.
+    3.  Title and content are encrypted with the DEK.
+    4.  The DEK is wrapped using the user's MEK and saved to the `dek` column alongside `isEncrypted: true`.
+    5.  On load, `decryptPublicEncryptedNote` resolves the wrapped DEK and recovers the original title/content in memory.
+*   **Ecosystem Synergy**: Unifies Note security with the core master key wrapping structure of the Password Vault, protecting sensitive user knowledge with top-tier client-side keys.
+*   **Next-Gen Optimizations**: Temporal auto-locking, which automatically discards in-memory decrypted note keys when the Sudo Mode window expires or when WESP detects cross-tab locks.
 
 ---
 
