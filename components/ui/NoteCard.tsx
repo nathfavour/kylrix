@@ -317,7 +317,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
                   <PinIcon size={14} className="text-[#EC4899] fill-[#EC4899] rotate-45 flex-shrink-0" />
                 )}
                 <h3 className="text-white text-base font-black tracking-tight leading-tight truncate flex-1 min-w-0 font-mono">
-                  {isEncryptedNote ? '🔒 Encrypted note' : note.title || 'Untitled Note'}
+                  {isLockedT5 ? '🔒 Locked Note' : isEncryptedNote ? '🔒 Encrypted note' : note.title || 'Untitled Note'}
                 </h3>
               </div>
 
@@ -325,7 +325,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
               <div className="text-sm text-white/50 font-medium leading-relaxed mt-2 overflow-hidden">
                 <p className="line-clamp-2 break-words select-text">
                   {isEncryptedNote 
-                    ? '🔒 Encrypted note' 
+                    ? (isLockedT5 ? '🔒 Locked Note' : '🔒 Encrypted note') 
                     : note.format === 'doodle'
                       ? 'Sketch note (no longer supported)'
                       : (note.content || '').replace(/\[voice:[a-zA-Z0-9_-]+\]/g, '🎙️ Voice Note')

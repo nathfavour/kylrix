@@ -51,6 +51,8 @@ import { sidebarIgnoreProps } from '@/constants/sidebar';
 import { NotesErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { PinnedNotesSidebar } from '@/components/ui/PinnedNotesSidebar';
 import { isClientEncryptedNote, resolvePinnedNoteRows } from '@/lib/note/note-visibility';
+import { useSudo } from '@/context/SudoContext';
+import { ecosystemSecurity } from '@/lib/ecosystem/security';
 
 // Client-side persistence cache to resist reload flicker
 
@@ -81,6 +83,7 @@ export default function NotesPage() {
     hasMore,
     loadMore
   } = useNotes();
+  const { promptSudo } = useSudo();
   const { openOverlay, closeOverlay } = useOverlay();
   const { setConfiguration, resetConfiguration } = useFAB();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -313,7 +316,21 @@ export default function NotesPage() {
     removeNote(noteId);
   }, [removeNote]);
 
-  const openNoteDetailSurface = useCallback((note: Notes | any) => {
+  const openNoteDetailSurface = useCallback(async (note: Notes | any) => {
+    const isLocked = !!note.dek || (() => {
+      try {
+        const meta = JSON.parse(note.metadata || '{}');
+        return meta.encryptionVersion === 'T5' || !!meta.dek;
+      } catch {
+        return false;
+      }
+    })();
+
+    if (isLocked && !ecosystemSecurity.status.isUnlocked) {
+      const unlocked = await promptSudo();
+      if (!unlocked) return;
+    }
+
     if (isDesktop) {
       openSidebar(
         <NoteDetailSidebar
@@ -335,7 +352,7 @@ export default function NotesPage() {
         onBack={closeOverlay}
       />
     );
-  }, [isDesktop, openSidebar, openOverlay, closeOverlay, handleNoteUpdated, handleNoteDeleted]);
+  }, [isDesktop, openSidebar, openOverlay, closeOverlay, handleNoteUpdated, handleNoteDeleted, promptSudo]);
 
   const handleSharedNoteClick = useCallback((note: any) => {
     openNoteDetailSurface(note);
