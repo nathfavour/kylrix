@@ -1006,11 +1006,13 @@ export type UserKeys = Models.Row & {
 export type ComputeBalances = Models.Row & {
     userId: string;
     tier: string;
+    balance: number;
     lastResetAt: string | null;
 }
 
 export type ComputeLedger = Models.Row & {
     userId: string;
+    tokensConsumed: number;
     timestamp: string;
 }
 
