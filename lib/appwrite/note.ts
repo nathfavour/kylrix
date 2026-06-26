@@ -3247,8 +3247,10 @@ export async function decryptPublicEncryptedNote(note: Notes, forceKeyRefresh = 
         return note; // cannot decrypt locked note, leave as encrypted
       }
       try {
-        const { decryptField } = await import("../masterpass-crypto");
-        const dekBase64 = await decryptField(rawDek);
+        const decryptedDekRaw = await ecosystemSecurity.decrypt(rawDek);
+        const dekBase64 = (() => {
+          try { return JSON.parse(decryptedDekRaw); } catch { return decryptedDekRaw; }
+        })();
         const rawKey = base64ToBytes(dekBase64);
         const dek = await crypto.subtle.importKey(
           "raw",
@@ -3880,8 +3882,6 @@ export async function unlockNote(noteId: string): Promise<Notes | null> {
   if (!currentUser) throw new Error('Not authenticated');
   const ownerId = note.userId || currentUser.$id;
 
-  const { decryptField } = await import("../masterpass-crypto");
-
   const meta = (() => {
     try { return JSON.parse(note.metadata || '{}'); } catch { return {}; }
   })();
@@ -3891,7 +3891,10 @@ export async function unlockNote(noteId: string): Promise<Notes | null> {
     return note;
   }
 
-  const dekBase64 = await decryptField(rawDek);
+  const decryptedDekRaw = await ecosystemSecurity.decrypt(rawDek);
+  const dekBase64 = (() => {
+    try { return JSON.parse(decryptedDekRaw); } catch { return decryptedDekRaw; }
+  })();
   const rawKey = base64ToBytes(dekBase64);
   const dek = await crypto.subtle.importKey(
     "raw",

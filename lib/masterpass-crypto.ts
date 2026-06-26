@@ -539,6 +539,26 @@ export class MasterPassCrypto {
 
   // Check if vault is unlocked with dynamic timeout
   isVaultUnlocked(): boolean {
+    // Dynamic sync with ecosystemSecurity to prevent locked/unlocked divergence
+    if (!ecosystemSecurity.status.isUnlocked) {
+      if (this.isUnlocked) {
+        this.lockApplication();
+      }
+      return false;
+    }
+
+    if (!this.isUnlocked || !this.masterKey) {
+      const ecoKey = ecosystemSecurity.getMasterKey();
+      if (ecoKey) {
+        this.masterKey = ecoKey;
+        this.isUnlocked = true;
+        if (typeof sessionStorage !== "undefined" && !sessionStorage.getItem("vault_unlocked")) {
+          sessionStorage.setItem("vault_unlocked", Date.now().toString());
+          sessionStorage.setItem("kylrix_vault_unlocked", "true");
+        }
+      }
+    }
+
     if (this.isUnlocked && !!this.masterKey) {
       // If memory is unlocked, verify timeout
       if (typeof sessionStorage !== "undefined") {
