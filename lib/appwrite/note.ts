@@ -3244,7 +3244,7 @@ export async function decryptPublicEncryptedNote(note: Notes, forceKeyRefresh = 
         return note; // cannot decrypt locked note, leave as encrypted
       }
       try {
-        const { decryptField, base64ToBytes } = await import("../masterpass-crypto");
+        const { decryptField } = await import("../masterpass-crypto");
         const dekBase64 = await decryptField(meta.dek);
         const rawKey = base64ToBytes(dekBase64);
         const dek = await crypto.subtle.importKey(
@@ -3817,7 +3817,7 @@ export async function lockNote(noteId: string): Promise<Notes | null> {
   if (!currentUser) throw new Error('Not authenticated');
   const ownerId = note.userId || currentUser.$id;
 
-  const { encryptField, bytesToBase64 } = await import("../masterpass-crypto");
+  const { encryptField } = await import("../masterpass-crypto");
 
   const meta = (() => {
     try { return JSON.parse(note.metadata || '{}'); } catch { return {}; }
@@ -3876,7 +3876,7 @@ export async function unlockNote(noteId: string): Promise<Notes | null> {
   if (!currentUser) throw new Error('Not authenticated');
   const ownerId = note.userId || currentUser.$id;
 
-  const { decryptField, base64ToBytes } = await import("../masterpass-crypto");
+  const { decryptField } = await import("../masterpass-crypto");
 
   const meta = (() => {
     try { return JSON.parse(note.metadata || '{}'); } catch { return {}; }
@@ -3924,4 +3924,12 @@ export async function unlockNote(noteId: string): Promise<Notes | null> {
   );
 
   return updated as unknown as Notes;
+}
+
+function base64ToBytes(value: string): Uint8Array {
+  return new Uint8Array(atob(value).split("").map((char) => char.charCodeAt(0)));
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes));
 }
