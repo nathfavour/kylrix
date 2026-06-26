@@ -58,7 +58,7 @@ async function checkComputeBalance(userId: string) {
 
   const { databases } = createSystemClient();
   const res = await databases.listRows(
-    'whisperrflow',
+    'passwordManagerDb',
     'compute_balances',
     [Query.equal('userId', userId), Query.limit(1)]
   );
@@ -66,7 +66,7 @@ async function checkComputeBalance(userId: string) {
   let balanceRow: any = null;
   if (res.rows.length === 0) {
     balanceRow = await databases.createRow(
-      'whisperrflow',
+      'passwordManagerDb',
       'compute_balances',
       ID.unique(),
       {
@@ -95,14 +95,14 @@ async function debitComputeBalance(userId: string, balanceRow: any, promptText: 
 
   const newBalance = Math.max(0, balanceRow.balance - totalTokens);
   await databases.updateRow(
-    'whisperrflow',
+    'passwordManagerDb',
     'compute_balances',
     balanceRow.$id,
     { balance: newBalance }
   );
 
   await databases.createRow(
-    'whisperrflow',
+    'passwordManagerDb',
     'compute_ledger',
     ID.unique(),
     {

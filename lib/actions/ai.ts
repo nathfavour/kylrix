@@ -51,7 +51,7 @@ export async function generateAIContent(payload: AIRequestPayload): Promise<AIRe
     try {
       tables = createSystemTablesDB();
       const res = await tables.listRows({
-        databaseId: 'whisperrflow',
+        databaseId: 'passwordManagerDb',
         tableId: 'compute_balances',
         queries: [
           Query.equal('userId', actor.$id),
@@ -63,7 +63,7 @@ export async function generateAIContent(payload: AIRequestPayload): Promise<AIRe
         // Initialize Pro user compute profile
         const isPro = hasPaidKylrixPlan(actor);
         balanceRow = await tables.createRow({
-          databaseId: 'whisperrflow',
+          databaseId: 'passwordManagerDb',
           tableId: 'compute_balances',
           rowId: ID.unique(),
           data: {
@@ -226,7 +226,7 @@ Please utilize this contextual memory to optimize your recommendations if releva
 
         const newBalance = Math.max(0, balanceRow.balance - totalTokens);
         await tables.updateRow({
-          databaseId: 'whisperrflow',
+          databaseId: 'passwordManagerDb',
           tableId: 'compute_balances',
           rowId: balanceRow.$id,
           data: {
@@ -235,7 +235,7 @@ Please utilize this contextual memory to optimize your recommendations if releva
         });
 
         await tables.createRow({
-          databaseId: 'whisperrflow',
+          databaseId: 'passwordManagerDb',
           tableId: 'compute_ledger',
           rowId: ID.unique(),
           data: {
@@ -302,7 +302,7 @@ export async function getComputeBalanceAction(jwt?: string) {
 
     const tables = createSystemTablesDB();
     const res = await tables.listRows({
-      databaseId: 'whisperrflow',
+      databaseId: 'passwordManagerDb',
       tableId: 'compute_balances',
       queries: [
         Query.equal('userId', actor.$id),

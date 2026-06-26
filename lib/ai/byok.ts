@@ -4,7 +4,7 @@ import { tablesDB } from '@/lib/appwrite/client';
 import { ID, Query, Permission, Role } from 'appwrite';
 import { encryptField, decryptField, masterPassCrypto } from '@/lib/masterpass-crypto';
 
-const DATABASE_ID = 'whisperrflow';
+const DATABASE_ID = 'passwordManagerDb';
 const TABLE_ID = 'user_keys';
 
 export const BYOKManager = {

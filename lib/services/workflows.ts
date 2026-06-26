@@ -3,7 +3,7 @@ import { createSystemTablesDB } from '@/lib/appwrite-admin';
 import { WorkflowChain } from '@/lib/workflow-engine';
 import { TelemetryNiche } from '@/lib/context-engine';
 
-const DATABASE_ID = 'whisperrflow';
+const DATABASE_ID = 'passwordManagerDb';
 const TABLE_ID = 'workflows';
 
 export const WorkflowDbService = {

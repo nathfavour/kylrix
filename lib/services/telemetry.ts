@@ -15,7 +15,7 @@ export type TelemetryNiche =
 export type ThreadStatus = 'running' | 'completed' | 'failed';
 export type NotificationType = 'direct' | 'suggested';
 
-const DATABASE_ID = 'whisperrflow';
+const DATABASE_ID = 'passwordManagerDb';
 const TABLES = {
   THREADS: 'action_threads',
   ACTIVITY: 'app_activity_logs',

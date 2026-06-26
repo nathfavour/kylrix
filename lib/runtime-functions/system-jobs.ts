@@ -72,7 +72,7 @@ async function cleanupExpiredPublicGhostNotes(payload?: { batchSize?: number }) 
 
 async function sweepStaleActionThreads(payload?: { batchSize?: number }) {
   const { databases } = createSystemClient();
-  const DATABASE_ID = 'whisperrflow';
+  const DATABASE_ID = 'passwordManagerDb';
   const THREADS_TABLE = 'action_threads';
   const cap = Math.min(Math.max(Number(payload?.batchSize) || 100, 1), 500);
 
