@@ -243,7 +243,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
       {isAppRoute && !isSharedPage && !isVaultResetRoute && !isLandingPage && !isConnectPage && (
         <Box sx={{ display: 'none' }} />
       )}
-      <UniversalFAB />
+      {!isSharedPage && <UniversalFAB />}
 
       </FABProvider>
 

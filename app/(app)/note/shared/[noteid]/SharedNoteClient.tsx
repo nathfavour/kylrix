@@ -60,6 +60,7 @@ import { fetchProfilePreview, getCachedProfilePreview } from '@/lib/profile-prev
 import { useDataNexus } from '@/context/DataNexusContext';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { decryptGhostData } from '@/lib/encryption/ghost-crypto';
+import { SharedWorkspaceBar } from '@/components/common/SharedWorkspaceBar';
 import { useParams, useRouter } from 'next/navigation';
 import { getConnectPrimaryColor } from '@/lib/ecosystem-app-colors';
 import { useCallLauncher } from '@/context/CallLauncherContext';
@@ -1184,6 +1185,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
       </Box>
 
       <Container maxWidth="md" sx={{ py: 8 }}>
+        <SharedWorkspaceBar objectType="note" />
         <Box sx={{ mb: 2 }}>
           <Button
             component={NextLink}

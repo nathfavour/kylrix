@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Flag, Calendar, Lock } from 'lucide-react';
 import { getPublicGoalDataSecure } from '@/lib/actions/secure-ops';
 
+import { SharedWorkspaceBar } from '@/components/common/SharedWorkspaceBar';
+
 const STATUS_LABELS: Record<string, string> = {
   todo: 'To do',
   'in-progress': 'In progress',
@@ -57,6 +59,7 @@ export default async function PublicGoalPage({
   return (
     <div className="min-h-[70vh] bg-[#0A0908] text-white">
       <div className="mx-auto max-w-3xl px-6 py-10">
+        <SharedWorkspaceBar objectType="goal" />
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#A855F7] mb-3">
           Shared goal
         </p>

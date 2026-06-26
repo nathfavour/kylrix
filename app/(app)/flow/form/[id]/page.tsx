@@ -7,6 +7,7 @@ import { Forms } from '@/generated/appwrite/types';
 import { useDataNexus } from '@/context/DataNexusContext';
 import { secureUploadFile } from '@/lib/actions/client-ops';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
+import { SharedWorkspaceBar } from '@/components/common/SharedWorkspaceBar';
 
 export default function PublicFormPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
@@ -428,6 +429,8 @@ export default function PublicFormPage({ params }: { params: Promise<{ id: strin
                     {visibleFields.length > 0 && !submitted ? `${currentStep + 1} OF ${visibleFields.length}` : ''}
                 </span>
             </div>
+
+            <SharedWorkspaceBar objectType="form" />
 
             {/* Main Content card */}
             <div className="max-w-2xl w-full mx-auto px-6 py-8 flex-1 flex flex-col justify-center relative z-10">
