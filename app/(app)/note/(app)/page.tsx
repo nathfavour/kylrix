@@ -77,7 +77,9 @@ export default function NotesPage() {
     removeNote,
     refetchNotes,
     isPinned,
-    pinnedIds
+    pinnedIds,
+    hasMore,
+    loadMore
   } = useNotes();
   const { openOverlay, closeOverlay } = useOverlay();
   const { setConfiguration, resetConfiguration } = useFAB();
@@ -576,6 +578,14 @@ export default function NotesPage() {
                 </div>
               )}
               
+              {hasMore && (
+                <div className="flex justify-center mb-5">
+                  <Button variant="outlined" onClick={loadMore} className="w-full md:w-auto">
+                    Load More Notes
+                  </Button>
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {regularNotes.map((note) => (
                   <NoteCard
@@ -587,6 +597,14 @@ export default function NotesPage() {
                   />
                 ))}
               </div>
+
+              {hasMore && (
+                <div className="flex justify-center mt-6">
+                  <Button variant="outlined" onClick={loadMore} className="w-full md:w-auto">
+                    Load More Notes
+                  </Button>
+                </div>
+              )}
             </div>
           )}
           
