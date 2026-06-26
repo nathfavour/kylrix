@@ -6,6 +6,11 @@ description: Appwrite CLI skill. Use when managing Appwrite projects from the co
 
 # Appwrite CLI
 
+> [!CAUTION]
+> **NEVER MANUALLY EDIT `appwrite.config.json` DIRECTLY.**
+> Manually editing database configurations/schemas inside `appwrite.config.json` can cause catastrophic state mismatches or accidental destruction/overwrite of production database tables.
+> Always pull the latest schema first using `appwrite pull tables`, perform database schema manipulations using the proper Appwrite CLI commands (e.g. `appwrite tables-db create-integer-column ...`), and then generate types using `appwrite generate --language typescript`.
+
 ## Installation
 
 ```bash

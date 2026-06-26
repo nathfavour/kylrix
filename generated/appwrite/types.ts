@@ -1800,12 +1800,14 @@ export type UserKeys = Models.Row & {
 export type ComputeBalancesCreate = {
     "userId": string;
     "tier": string;
+    "balance"?: number;
     "lastResetAt"?: string | null;
 }
 
 export type ComputeBalances = Models.Row & {
     "userId": string;
     "tier": string;
+    "balance"?: number;
     "lastResetAt"?: string | null;
 }
 
@@ -3818,12 +3820,14 @@ export type DatabaseTableMap = {
       create: (data: {
         "userId": string;
         "tier": string;
+        "balance"?: number;
         "lastResetAt"?: string | null;
       }, options?: { rowId?: string; permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<ComputeBalances>;
       get: (id: string) => Promise<ComputeBalances>;
       update: (id: string, data: Partial<{
         "userId": string;
         "tier": string;
+        "balance"?: number;
         "lastResetAt"?: string | null;
       }>, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<ComputeBalances>;
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;

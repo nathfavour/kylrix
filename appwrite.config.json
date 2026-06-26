@@ -2122,6 +2122,13 @@
                     "encrypt": true
                 },
                 {
+                    "key": "isDeleted",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
                     "key": "dek",
                     "type": "string",
                     "required": false,
@@ -2129,13 +2136,6 @@
                     "size": 1000,
                     "default": null,
                     "encrypt": false
-                },
-                {
-                    "key": "isDeleted",
-                    "type": "boolean",
-                    "required": false,
-                    "array": false,
-                    "default": false
                 }
             ],
             "indexes": [
@@ -8945,15 +8945,6 @@
                     "encrypt": false
                 },
                 {
-                    "key": "balance",
-                    "type": "integer",
-                    "required": false,
-                    "array": false,
-                    "default": 0,
-                    "min": 0,
-                    "max": 9223372036854775807
-                },
-                {
                     "key": "lastResetAt",
                     "type": "string",
                     "required": false,
@@ -8961,6 +8952,15 @@
                     "size": 64,
                     "default": null,
                     "encrypt": false
+                },
+                {
+                    "key": "balance",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": 0,
+                    "min": 0,
+                    "max": 9223372036854775807
                 }
             ],
             "indexes": [
@@ -9004,6 +9004,15 @@
                     "size": 64,
                     "default": null,
                     "encrypt": false
+                },
+                {
+                    "key": "tokensConsumed",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": 0,
+                    "min": 0,
+                    "max": 9223372036854775807
                 }
             ],
             "indexes": [
