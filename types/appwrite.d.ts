@@ -399,8 +399,8 @@ export type Notes = Models.Row & {
     source: string | null;
     keepPermission: boolean | null;
     crdt: string | null;
-    dek: string | null;
     isDeleted: boolean;
+    dek: string | null;
 }
 
 export type Comments = Models.Row & {
@@ -1006,14 +1006,14 @@ export type UserKeys = Models.Row & {
 export type ComputeBalances = Models.Row & {
     userId: string;
     tier: string;
-    balance: number;
     lastResetAt: string | null;
+    balance: number;
 }
 
 export type ComputeLedger = Models.Row & {
     userId: string;
-    tokensConsumed: number;
     timestamp: string;
+    tokensConsumed: number;
 }
 
 export type ActionThreads = Models.Row & {
