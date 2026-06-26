@@ -1941,6 +1941,44 @@ export type Objects = Models.Row & {
     "isGeneral"?: boolean;
 }
 
+export type TokenRegistryCreate = {
+    "chain": string;
+    "address": string;
+    "symbol": string;
+    "decimals": number;
+    "iconUrl"?: string | null;
+}
+
+export type TokenRegistry = Models.Row & {
+    "chain": string;
+    "address": string;
+    "symbol": string;
+    "decimals": number;
+    "iconUrl"?: string | null;
+}
+
+export type Web3TransactionsCreate = {
+    "userId": string;
+    "chain": string;
+    "hash": string;
+    "from": string;
+    "to": string;
+    "value": string;
+    "symbol": string;
+    "timestamp": number;
+}
+
+export type Web3Transactions = Models.Row & {
+    "userId": string;
+    "chain": string;
+    "hash": string;
+    "from": string;
+    "to": string;
+    "value": string;
+    "symbol": string;
+    "timestamp": number;
+}
+
 declare const __roleStringBrand: unique symbol;
 export type RoleString = string & { readonly [__roleStringBrand]: never };
 
@@ -3941,6 +3979,50 @@ export type DatabaseTableMap = {
       }>, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<Objects>;
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
       list: (options?: { queries?: (q: { equal: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; notEqual: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; lessThan: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; lessThanEqual: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; greaterThan: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; greaterThanEqual: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; contains: <K extends QueryableKeys<Objects>>(field: K, value: QueryableFieldValue<Objects, K>) => string; search: <K extends QueryableKeys<Objects>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<Objects>>(field: K) => string; isNotNull: <K extends QueryableKeys<Objects>>(field: K) => string; startsWith: <K extends QueryableKeys<Objects>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<Objects>>(field: K, value: string) => string; between: <K extends QueryableKeys<Objects>>(field: K, start: QueryableFieldValue<Objects, K>, end: QueryableFieldValue<Objects, K>) => string; select: <K extends keyof Objects>(fields: K[]) => string; orderAsc: <K extends keyof Objects>(field: K) => string; orderDesc: <K extends keyof Objects>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[] }) => Promise<{ total: number; rows: Objects[] }>;
+    };
+    "Token Registry": {
+      create: (data: {
+        "chain": string;
+        "address": string;
+        "symbol": string;
+        "decimals": number;
+        "iconUrl"?: string | null;
+      }, options?: { rowId?: string; permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<TokenRegistry>;
+      get: (id: string) => Promise<TokenRegistry>;
+      update: (id: string, data: Partial<{
+        "chain": string;
+        "address": string;
+        "symbol": string;
+        "decimals": number;
+        "iconUrl"?: string | null;
+      }>, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<TokenRegistry>;
+      delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
+      list: (options?: { queries?: (q: { equal: <K extends QueryableKeys<TokenRegistry>>(field: K, value: QueryableFieldValue<TokenRegistry, K>) => string; notEqual: <K extends QueryableKeys<TokenRegistry>>(field: K, value: QueryableFieldValue<TokenRegistry, K>) => string; lessThan: <K extends QueryableKeys<TokenRegistry>>(field: K, value: QueryableFieldValue<TokenRegistry, K>) => string; lessThanEqual: <K extends QueryableKeys<TokenRegistry>>(field: K, value: QueryableFieldValue<TokenRegistry, K>) => string; greaterThan: <K extends QueryableKeys<TokenRegistry>>(field: K, value: QueryableFieldValue<TokenRegistry, K>) => string; greaterThanEqual: <K extends QueryableKeys<TokenRegistry>>(field: K, value: QueryableFieldValue<TokenRegistry, K>) => string; contains: <K extends QueryableKeys<TokenRegistry>>(field: K, value: QueryableFieldValue<TokenRegistry, K>) => string; search: <K extends QueryableKeys<TokenRegistry>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<TokenRegistry>>(field: K) => string; isNotNull: <K extends QueryableKeys<TokenRegistry>>(field: K) => string; startsWith: <K extends QueryableKeys<TokenRegistry>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<TokenRegistry>>(field: K, value: string) => string; between: <K extends QueryableKeys<TokenRegistry>>(field: K, start: QueryableFieldValue<TokenRegistry, K>, end: QueryableFieldValue<TokenRegistry, K>) => string; select: <K extends keyof TokenRegistry>(fields: K[]) => string; orderAsc: <K extends keyof TokenRegistry>(field: K) => string; orderDesc: <K extends keyof TokenRegistry>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[] }) => Promise<{ total: number; rows: TokenRegistry[] }>;
+    };
+    "Web3 Transactions": {
+      create: (data: {
+        "userId": string;
+        "chain": string;
+        "hash": string;
+        "from": string;
+        "to": string;
+        "value": string;
+        "symbol": string;
+        "timestamp": number;
+      }, options?: { rowId?: string; permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<Web3Transactions>;
+      get: (id: string) => Promise<Web3Transactions>;
+      update: (id: string, data: Partial<{
+        "userId": string;
+        "chain": string;
+        "hash": string;
+        "from": string;
+        "to": string;
+        "value": string;
+        "symbol": string;
+        "timestamp": number;
+      }>, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<Web3Transactions>;
+      delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
+      list: (options?: { queries?: (q: { equal: <K extends QueryableKeys<Web3Transactions>>(field: K, value: QueryableFieldValue<Web3Transactions, K>) => string; notEqual: <K extends QueryableKeys<Web3Transactions>>(field: K, value: QueryableFieldValue<Web3Transactions, K>) => string; lessThan: <K extends QueryableKeys<Web3Transactions>>(field: K, value: QueryableFieldValue<Web3Transactions, K>) => string; lessThanEqual: <K extends QueryableKeys<Web3Transactions>>(field: K, value: QueryableFieldValue<Web3Transactions, K>) => string; greaterThan: <K extends QueryableKeys<Web3Transactions>>(field: K, value: QueryableFieldValue<Web3Transactions, K>) => string; greaterThanEqual: <K extends QueryableKeys<Web3Transactions>>(field: K, value: QueryableFieldValue<Web3Transactions, K>) => string; contains: <K extends QueryableKeys<Web3Transactions>>(field: K, value: QueryableFieldValue<Web3Transactions, K>) => string; search: <K extends QueryableKeys<Web3Transactions>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<Web3Transactions>>(field: K) => string; isNotNull: <K extends QueryableKeys<Web3Transactions>>(field: K) => string; startsWith: <K extends QueryableKeys<Web3Transactions>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<Web3Transactions>>(field: K, value: string) => string; between: <K extends QueryableKeys<Web3Transactions>>(field: K, start: QueryableFieldValue<Web3Transactions, K>, end: QueryableFieldValue<Web3Transactions, K>) => string; select: <K extends keyof Web3Transactions>(fields: K[]) => string; orderAsc: <K extends keyof Web3Transactions>(field: K) => string; orderDesc: <K extends keyof Web3Transactions>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[] }) => Promise<{ total: number; rows: Web3Transactions[] }>;
     }
   }
 };

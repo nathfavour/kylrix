@@ -1074,3 +1074,22 @@ export type Objects = Models.Row & {
     isGuest: boolean;
     isGeneral: boolean;
 }
+
+export type TokenRegistry = Models.Row & {
+    chain: string;
+    address: string;
+    symbol: string;
+    decimals: number;
+    iconUrl: string | null;
+}
+
+export type Web3Transactions = Models.Row & {
+    userId: string;
+    chain: string;
+    hash: string;
+    from: string;
+    to: string;
+    value: string;
+    symbol: string;
+    timestamp: number;
+}

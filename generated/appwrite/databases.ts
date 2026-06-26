@@ -94,6 +94,8 @@ tableIdMap["passwordManagerDb"]["anonymized_telemetry"] = "anonymized_telemetry"
 tableIdMap["passwordManagerDb"]["notifications"] = "notifications";
 tableIdMap["passwordManagerDb"]["workflows"] = "workflows";
 tableIdMap["passwordManagerDb"]["objects"] = "objects";
+tableIdMap["passwordManagerDb"]["Token Registry"] = "token_registry";
+tableIdMap["passwordManagerDb"]["Web3 Transactions"] = "web3_transactions";
 
 const tablesWithRelationships = new Set<string>();
 
