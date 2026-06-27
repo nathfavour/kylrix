@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.gnu.org/licenses/agpl-3.0">
+  <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-AGPL--3.0--or--later-black.svg?style=flat-square" alt="License: AGPL-3.0-or-later">
   </a>
   <a href="https://nextjs.org/">
@@ -22,6 +22,12 @@
   <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API">
     <img src="https://img.shields.io/badge/Crypto-Web%20Crypto%20API-pink?style=flat-square" alt="Crypto: Web Crypto API">
   </a>
+</p>
+
+<p align="center">
+  <strong>License:</strong> This project is licensed under the
+  <a href="LICENSE">GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)</a>.
+  Copyright © 2026 kylrix.
 </p>
 
 <div align="center">
