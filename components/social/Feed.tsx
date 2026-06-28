@@ -974,14 +974,20 @@ return (
                   >
                     <Bookmark size={16} className={bookmarked ? 'fill-[#F59E0B]' : ''} />
                   </IconButton>
-                  <ShareLockButton 
-                    resourceType="moment"
-                    resourceId={moment.$id}
-                    isPublic={!!moment.isPublic}
-                    isGuest={!!moment.isGuest}
-                    accentColor="#F59E0B"
-                    onPublished={() => {}}
-                  />
+                  <IconButton
+                    size="small"
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(`${window.location.origin}/connect/post/${moment.$id}`);
+                      toast.success('Moment link copied to clipboard');
+                    }}
+                    sx={{
+                      color: 'rgba(255, 255, 255, 0.15)',
+                      '&:hover': { color: '#F59E0B', bgcolor: 'rgba(255, 255, 255, 0.03)' }
+                    }}
+                  >
+                    <Share size={16} />
+                  </IconButton>
                 </Box>
             }
         />
