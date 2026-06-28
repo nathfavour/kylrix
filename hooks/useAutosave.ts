@@ -13,6 +13,7 @@ interface AutosaveOptions {
   onError?: (error: Error) => void;
   save?: (note: Notes) => Promise<Notes>;
   trigger?: 'continuous' | 'manual';
+  isDirty?: boolean;
 }
 
 function arraysEqual(a?: string[] | null, b?: string[] | null) {
@@ -63,6 +64,7 @@ export function useAutosave(note: Notes | null, options: AutosaveOptions = {}) {
     onError,
     save,
     trigger = 'continuous',
+    isDirty = false,
   } = options;
 
   const [isSaving, setIsSaving] = useState(false);
@@ -142,9 +144,12 @@ export function useAutosave(note: Notes | null, options: AutosaveOptions = {}) {
       rateLimitUntilRef.current = 0;
       return;
     }
-    if (!lastSavedRef.current || lastSavedRef.current.$id !== note.$id) {
+    const isDifferentNote = !lastSavedRef.current || lastSavedRef.current.$id !== note.$id;
+    const isExternalUpdate = !isDirty && lastSavedRef.current && (lastSavedRef.current.content !== note.content || lastSavedRef.current.title !== note.title);
+
+    if (isDifferentNote || isExternalUpdate) {
       // Flush previous note immediately if it had pending changes
-      if (lastSavedRef.current && pendingPayloadRef.current && pendingPayloadRef.current.$id === lastSavedRef.current.$id) {
+      if (isDifferentNote && lastSavedRef.current && pendingPayloadRef.current && pendingPayloadRef.current.$id === lastSavedRef.current.$id) {
         const prev = pendingPayloadRef.current;
         pendingPayloadRef.current = null;
         void saveFn(prev).catch(e => console.error('Failed to flush switched note:', e));
@@ -153,7 +158,7 @@ export function useAutosave(note: Notes | null, options: AutosaveOptions = {}) {
       rateLimitUntilRef.current = 0;
       pendingPayloadRef.current = null;
     }
-  }, [note, saveFn]);
+  }, [note, saveFn, isDirty]);
 
   useEffect(() => {
     if (trigger === 'manual') return;

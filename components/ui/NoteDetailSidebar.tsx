@@ -185,11 +185,13 @@ export function NoteDetailSidebar({
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const [isDirty, setIsDirty] = useState(false);
   const isDirtyRef = useRef(false);
   const loadedNoteIdRef = useRef<string | null>(null);
   const lastAppliedServerTsRef = useRef('');
   const markDirty = useCallback(() => {
     isDirtyRef.current = true;
+    setIsDirty(true);
   }, []);
   
   const [title, setTitle] = useState(liveNote.title || '');
@@ -496,13 +498,15 @@ export function NoteDetailSidebar({
   const { isSaving: isAutosaving, forceSave } = useAutosave(candidateNote, {
     onSave: (savedNote: Notes) => {
       isDirtyRef.current = false;
+      setIsDirty(false);
       lastAppliedServerTsRef.current = String(savedNote.updatedAt || savedNote.$updatedAt || '');
       updateLocalAndParentNote(savedNote);
     },
     onError: () => {
       showError('Save failed', 'Your changes are still on screen. We will retry automatically.');
     },
-    enabled: canEditNote,
+    enabled: canEditNote && isDirty,
+    isDirty: isDirty,
   });
 
   useEffect(() => {
