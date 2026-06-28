@@ -37,21 +37,24 @@ export async function generateMetadata({
     let decryptedContent = note.content || '';
     const isEncrypted = note.isEncrypted === true || meta.isEncrypted === true;
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URI || 'https://kylrix.space';
+
     if (isEncrypted) {
       if (!keyParam) {
+        const encryptedOgUrl = `${baseUrl}/note/shared/${noteid}/opengraph-image`;
         return {
           title: 'Protected Note · Kylrix',
           description: 'This note is secure and password-protected.',
           openGraph: {
             title: 'Protected Note · Kylrix',
             description: 'This note is secure and password-protected.',
-            images: [{ url: `/note/shared/${noteid}/opengraph-image`, width: 1200, height: 630 }],
+            images: [{ url: encryptedOgUrl, width: 1200, height: 630 }],
           },
           twitter: {
             card: 'summary_large_image',
             title: 'Protected Note · Kylrix',
             description: 'This note is secure and password-protected.',
-            images: [`/note/shared/${noteid}/opengraph-image`],
+            images: [encryptedOgUrl],
           },
         };
       }
@@ -61,19 +64,20 @@ export async function generateMetadata({
         decryptedContent = await decryptGhostData(note.content || '', keyParam);
       } catch (err) {
         console.warn('Failed server-side decryption of shared note metadata preview:', err);
+        const encryptedOgUrl = `${baseUrl}/note/shared/${noteid}/opengraph-image`;
         return {
           title: 'Protected Note · Kylrix',
           description: 'This note is secure and password-protected.',
           openGraph: {
             title: 'Protected Note · Kylrix',
             description: 'This note is secure and password-protected.',
-            images: [{ url: `/note/shared/${noteid}/opengraph-image`, width: 1200, height: 630 }],
+            images: [{ url: encryptedOgUrl, width: 1200, height: 630 }],
           },
           twitter: {
             card: 'summary_large_image',
             title: 'Protected Note · Kylrix',
             description: 'This note is secure and password-protected.',
-            images: [`/note/shared/${noteid}/opengraph-image`],
+            images: [encryptedOgUrl],
           },
         };
       }
@@ -84,7 +88,7 @@ export async function generateMetadata({
     const displayDesc = decryptedContent
       ? decryptedContent.substring(0, 160).trim() + '…'
       : 'View this note shared securely via Kylrix Note.';
-    const ogImage = `/note/shared/${noteid}/opengraph-image${keyParam ? `?key=${encodeURIComponent(keyParam)}` : ''}`;
+    const ogImage = `${baseUrl}/note/shared/${noteid}/opengraph-image${keyParam ? `?key=${encodeURIComponent(keyParam)}` : ''}`;
 
     return {
       title: displayTitle,

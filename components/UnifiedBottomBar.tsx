@@ -155,6 +155,7 @@ export function UnifiedBottomBar() {
   const isSpecificPostPage = Boolean(pathname?.match(/^\/connect\/post\/[^/]+$/));
   const isSpecificProjectPage = Boolean(pathname?.match(/^\/projects\/[^/]+$/));
   const isPublicFormPage = Boolean(pathname?.match(/^\/flow\/form\/[^/]+$/));
+  const isSharedNotePage = Boolean(pathname?.startsWith('/note/shared'));
 
   if (pathname?.startsWith('/accounts')) return null;
   if (pathname?.startsWith('/projects')) return null;
@@ -164,6 +165,7 @@ export function UnifiedBottomBar() {
     isSpecificProjectPage ||
     isPublicFormPage ||
     isSpecificPostPage ||
+    isSharedNotePage ||
     pathname?.includes('/settings') ||
     activeContent !== 'navbar' ||
     mode === 'compact' ||
