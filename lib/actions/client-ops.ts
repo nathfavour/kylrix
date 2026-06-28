@@ -442,4 +442,9 @@ export async function syncMasterpassToAccountPassword(userId: string, masterpass
   return syncMasterpassToAccountPasswordAction({ userId, masterpass, jwt });
 }
 
+export async function checkEmailAuthMethod(email: string) {
+  const { checkEmailAuthMethodAction } = await import('./secure-ops');
+  return checkEmailAuthMethodAction({ email });
+}
+
 

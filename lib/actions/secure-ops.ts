@@ -7028,6 +7028,18 @@ export async function syncMasterpassToAccountPasswordAction(payload: {
   const { users, databases } = createSystemClient();
   await users.updatePassword(validatedUserId, validatedMasterpass);
 
+  // 1b. Update user preferences to include hasPass: true without overwriting existing prefs
+  try {
+    const userDoc = await users.get(validatedUserId);
+    const currentPrefs = userDoc.prefs || {};
+    await users.updatePrefs(validatedUserId, {
+      ...currentPrefs,
+      hasPass: true
+    });
+  } catch (err) {
+    console.error('[syncMasterpassToAccountPasswordAction] Failed to update user prefs:', err);
+  }
+
   // 2. Query the keychain entry for this user and set authPass = true
   const keychainRes = await databases.listDocuments(
     APPWRITE_CONFIG.DATABASES.VAULT,
@@ -7050,6 +7062,28 @@ export async function syncMasterpassToAccountPasswordAction(payload: {
   }
 
   return { success: true };
+}
+
+export async function checkEmailAuthMethodAction(payload: { email: string }) {
+  const { z } = await import('zod');
+  const validatedEmail = z.string().email().parse(payload.email);
+
+  const { createSystemClient } = await import('@/lib/appwrite-admin');
+  const { users } = createSystemClient();
+
+  const userList = await users.list([
+    Query.equal('email', validatedEmail),
+    Query.limit(1)
+  ]).catch(() => ({ total: 0, users: [] as any[] }));
+
+  if (userList.total === 0) {
+    return { exists: false, hasPass: false };
+  }
+
+  const user = userList.users[0];
+  const hasPass = !!user.prefs?.hasPass;
+
+  return { exists: true, hasPass };
 }
 
 

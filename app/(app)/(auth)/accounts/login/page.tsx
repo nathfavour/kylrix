@@ -58,6 +58,9 @@ function LoginContent() {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [password, setPassword] = useState('');
+  const [hasPassword, setHasPassword] = useState(false);
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
   const [mfaChallengeOpen, setMfaChallengeOpen] = useState(false);
   const [mfaLoginMethod, setMfaLoginMethod] = useState<'email-otp' | 'oauth2' | 'password' | 'unknown'>('unknown');
   const appName = APPWRITE_CONFIG.SYSTEM?.RP_NAME || 'Kylrix';
@@ -227,6 +230,28 @@ function LoginContent() {
     }
   };
 
+  const handlePasswordLogin = async () => {
+    if (!emailValid || !password) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      await safeDeleteCurrentSession();
+      await account.createEmailPasswordSession(email, password);
+      await confirmAuthenticated();
+    } catch (_err: unknown) {
+      const err = _err as any;
+      if (isMfaRequiredError(err)) {
+        const session = await account.getSession('current').catch(() => null);
+        setMfaLoginMethod(resolveLoginMethod((session as any)?.provider));
+        setMfaChallengeOpen(true);
+        return;
+      }
+      setMessage(err.message || 'Password login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSendEmailOTP = async () => {
     if (!emailValid) {
       setMessage('Please enter a valid email');
@@ -293,6 +318,9 @@ function LoginContent() {
     setOtp('');
     setOtpUserId(null);
     setOtpRequested(false);
+    setPassword('');
+    setHasPassword(false);
+    setShowPasswordInput(false);
     setIsTyping(true);
     if (typingTimeout) clearTimeout(typingTimeout);
 
@@ -300,6 +328,23 @@ function LoginContent() {
     const timeout = setTimeout(() => {
       setEmailValid(isValid);
       setIsTyping(false);
+      if (isValid) {
+        import('@/lib/actions/client-ops')
+          .then(({ checkEmailAuthMethod }) => checkEmailAuthMethod(newEmail))
+          .then((res) => {
+            if (res.exists && res.hasPass) {
+              setHasPassword(true);
+              setShowPasswordInput(true);
+            } else {
+              setHasPassword(false);
+              setShowPasswordInput(false);
+            }
+          })
+          .catch((err) => console.error('Failed to check email auth method:', err));
+      } else {
+        setHasPassword(false);
+        setShowPasswordInput(false);
+      }
     }, 1000);
     setTypingTimeout(timeout);
   };
@@ -503,28 +548,80 @@ function LoginContent() {
 
           <Box sx={{ mt: 1, animation: 'fadeIn 0.3s ease' }}>
             <Stack spacing={2}>
-              <Button
-                onClick={otpRequested ? handleVerifyEmailOTP : handleSendEmailOTP}
-                disabled={loading || !emailValid || (!otpRequested && !emailValid) || (otpRequested && otp.trim().length !== 6)}
-                variant="outlined"
-                fullWidth
-                sx={{
-                  height: 56, borderRadius: '16px',
-                  color: 'white', borderColor: 'rgba(255, 255, 255, 0.1)', fontWeight: 800,
-                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.03)', borderColor: '#6366F1' }
-                }}
-              >
-                {otpRequested ? 'Verify Code' : 'Send Code'}
-              </Button>
+              {showPasswordInput ? (
+                <>
+                  <TextField
+                    type="password"
+                    value={password}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                    placeholder="Enter password"
+                    fullWidth
+                    sx={{
+                      '& .ob-input-root': {
+                        color: 'white', height: 56, borderRadius: '16px', bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.1)',
+                        '&.ob-focused': { borderColor: '#6366F1', bgcolor: 'rgba(99, 102, 241, 0.02)' },
+                        '& fieldset': { border: 'none' }
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={handlePasswordLogin}
+                    disabled={loading || !password || !emailValid}
+                    variant="outlined"
+                    fullWidth
+                    sx={{
+                      height: 56, borderRadius: '16px',
+                      color: 'white', borderColor: 'rgba(255, 255, 255, 0.1)', fontWeight: 800,
+                      bgcolor: 'rgba(255, 255, 255, 0.03)',
+                      '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)', borderColor: '#6366F1' }
+                    }}
+                  >
+                    Sign In
+                  </Button>
+                  <Button
+                    onClick={() => setShowPasswordInput(false)}
+                    variant="text"
+                    sx={{ color: '#6366F1', fontWeight: 700, fontSize: '0.8rem', textTransform: 'none' }}
+                  >
+                    or send one-time code (OTP)
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={otpRequested ? handleVerifyEmailOTP : handleSendEmailOTP}
+                    disabled={loading || !emailValid || (!otpRequested && !emailValid) || (otpRequested && otp.trim().length !== 6)}
+                    variant="outlined"
+                    fullWidth
+                    sx={{
+                      height: 56, borderRadius: '16px',
+                      color: 'white', borderColor: 'rgba(255, 255, 255, 0.1)', fontWeight: 800,
+                      '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.03)', borderColor: '#6366F1' }
+                    }}
+                  >
+                    {otpRequested ? 'Verify Code' : 'Send Code'}
+                  </Button>
 
-              {otpRequested && emailValid && (
-                <TextField
-                  value={otp}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="6-digit code"
-                  fullWidth
-                  sx={{ '& .ob-input-root': { color: 'white', height: 56, borderRadius: '16px', bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid #6366F1', '& fieldset': { border: 'none' }, textAlign: 'center' }, '& .ob-outlined-input': { textAlign: 'center', letterSpacing: '0.5em', fontSize: '1.2rem' } }}
-                />
+                  {otpRequested && emailValid && (
+                    <TextField
+                      value={otp}
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="6-digit code"
+                      fullWidth
+                      sx={{ '& .ob-input-root': { color: 'white', height: 56, borderRadius: '16px', bgcolor: 'rgba(255, 255, 255, 0.03)', border: '1px solid #6366F1', '& fieldset': { border: 'none' }, textAlign: 'center' }, '& .ob-outlined-input': { textAlign: 'center', letterSpacing: '0.5em', fontSize: '1.2rem' } }}
+                    />
+                  )}
+
+                  {hasPassword && (
+                    <Button
+                      onClick={() => setShowPasswordInput(true)}
+                      variant="text"
+                      sx={{ color: '#6366F1', fontWeight: 700, fontSize: '0.8rem', textTransform: 'none' }}
+                    >
+                      use password instead
+                    </Button>
+                  )}
+                </>
               )}
             </Stack>
           </Box>
