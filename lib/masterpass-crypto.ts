@@ -231,8 +231,12 @@ export class MasterPassCrypto {
 
         // Check if we need to silently synchronize MasterPass with account password
         try {
+          const { account } = await import("./appwrite/client");
+          const userPrefs = await account.getPrefs().catch(() => ({})) as any;
+          const masterpassForLoginEnabled = userPrefs?.masterpass_for_login_enabled !== false;
+
           const entry = await ecosystemSecurity.fetchKeychain(userId);
-          if (entry && !entry.authPass) {
+          if (entry && !entry.authPass && masterpassForLoginEnabled) {
             const { syncMasterpassToAccountPassword } = await import("./actions/client-ops");
             syncMasterpassToAccountPassword(userId, masterPassword)
               .then(() => console.log('[Vault] Silently synchronized masterpass to account password.'))
@@ -268,10 +272,16 @@ export class MasterPassCrypto {
 
         // Trigger password sync silently for first-time masterpass configuration
         try {
-          const { syncMasterpassToAccountPassword } = await import("./actions/client-ops");
-          syncMasterpassToAccountPassword(userId, masterPassword)
-            .then(() => console.log('[Vault] Silently synchronized masterpass to account password on first-time setup.'))
-            .catch((err) => console.error('[Vault] Masterpass first-time sync failed:', err));
+          const { account } = await import("./appwrite/client");
+          const userPrefs = await account.getPrefs().catch(() => ({})) as any;
+          const masterpassForLoginEnabled = userPrefs?.masterpass_for_login_enabled !== false;
+
+          if (masterpassForLoginEnabled) {
+            const { syncMasterpassToAccountPassword } = await import("./actions/client-ops");
+            syncMasterpassToAccountPassword(userId, masterPassword)
+              .then(() => console.log('[Vault] Silently synchronized masterpass to account password on first-time setup.'))
+              .catch((err) => console.error('[Vault] Masterpass first-time sync failed:', err));
+          }
         } catch (e) {
           console.warn('[Vault] Failed to trigger first-time masterpass auth sync:', e);
         }

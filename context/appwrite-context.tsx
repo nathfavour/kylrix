@@ -21,6 +21,8 @@ export interface AppwriteContextType {
   setVaultBlurEnabled: (enabled: boolean) => Promise<void>;
   usePasskeysByDefault: boolean;
   setUsePasskeysByDefault: (enabled: boolean) => Promise<void>;
+  masterpassForLoginEnabled: boolean;
+  setMasterpassForLoginEnabled: (enabled: boolean) => Promise<void>;
 }
 
 export const AppwriteContext = createContext<AppwriteContextType | undefined>(

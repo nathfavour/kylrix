@@ -40,6 +40,7 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
   const [needsMasterPassword, setNeedsMasterPassword] = useState(false);
   const [isVaultBlurEnabled, setIsVaultBlurEnabled] = useState(false);
   const [usePasskeysByDefault, setUsePasskeysByDefaultState] = useState(true);
+  const [masterpassForLoginEnabled, setMasterpassForLoginEnabledState] = useState(true);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [idmWindowOpen, setIDMWindowOpen] = useState(false);
   const verbose = process.env.NODE_ENV === "development";
@@ -84,6 +85,12 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
             setUsePasskeysByDefaultState(!!account.prefs.use_passkeys_by_default);
         } else {
             setUsePasskeysByDefaultState(true); // Default to true
+        }
+
+        if (account.prefs?.masterpass_for_login_enabled !== undefined) {
+            setMasterpassForLoginEnabledState(!!account.prefs.masterpass_for_login_enabled);
+        } else {
+            setMasterpassForLoginEnabledState(true); // Default to true
         }
 
         // Clear the auth=success param from URL if it exists
@@ -433,6 +440,19 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  const setMasterpassForLoginEnabled = useCallback(async (enabled: boolean) => {
+    setMasterpassForLoginEnabledState(enabled);
+    if (user?.$id) {
+        try {
+            const { account } = await import('@/lib/appwrite/client');
+            const currentPrefs = user.prefs || {};
+            await account.updatePrefs({ ...currentPrefs, masterpass_for_login_enabled: enabled });
+        } catch (err) {
+            console.error("[Vault] Failed to persist masterpass login preference", err);
+        }
+    }
+  }, [user]);
+
   const contextValue = useMemo(() => ({
     user,
     loading,
@@ -451,7 +471,9 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
     setVaultBlurEnabled,
     usePasskeysByDefault,
     setUsePasskeysByDefault,
-  }), [user, loading, isAuthenticating, isAuthReady, isVaultUnlocked, needsMasterPassword, logout, resetMasterpass, refresh, openIDMWindow, closeIDMWindow, idmWindowOpen, isVaultBlurEnabled, setVaultBlurEnabled, usePasskeysByDefault, setUsePasskeysByDefault]);
+    masterpassForLoginEnabled,
+    setMasterpassForLoginEnabled,
+  }), [user, loading, isAuthenticating, isAuthReady, isVaultUnlocked, needsMasterPassword, logout, resetMasterpass, refresh, openIDMWindow, closeIDMWindow, idmWindowOpen, isVaultBlurEnabled, setVaultBlurEnabled, usePasskeysByDefault, setUsePasskeysByDefault, masterpassForLoginEnabled, setMasterpassForLoginEnabled]);
 
   return (
     <AppwriteContext.Provider

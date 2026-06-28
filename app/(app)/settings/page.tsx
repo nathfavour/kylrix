@@ -74,7 +74,7 @@ function Switch({ checked, onChange }: { checked: boolean; onChange: () => void 
 export default function SettingsPage() {
     const { user, refreshUser } = useAuth();
     const { currentTier, expiresAt, refreshEntitlement } = useSubscription();
-    const { usePasskeysByDefault, setUsePasskeysByDefault } = useAppwriteVault();
+    const { usePasskeysByDefault, setUsePasskeysByDefault, masterpassForLoginEnabled, setMasterpassForLoginEnabled } = useAppwriteVault();
     const router = useRouter();
     const { requestSudo } = useSudo();
     const { open: openDrawer } = useUnifiedDrawer();
@@ -191,7 +191,29 @@ export default function SettingsPage() {
             toast.error(err.message || "Failed to update Demo Mode");
         }
     };
-
+    const handleMasterpassLoginToggle = () => {
+        if (masterpassForLoginEnabled) {
+            openDrawer('delete-confirm', {
+                title: 'Disable MasterPass for Sign-In?',
+                description: 'WARNING: Disabling this will prevent you from signing into your account using your MasterPass. If you lose access to your email OTP or passkeys, you could permanently lose access to your account. Are you sure you want to proceed?',
+                confirmLabel: 'Disable',
+                onConfirm: async () => {
+                    await setMasterpassForLoginEnabled(false);
+                    try {
+                        const { account } = await import('@/lib/appwrite/client');
+                        const currentPrefs = user?.prefs || {};
+                        await account.updatePrefs({ ...currentPrefs, hasPass: false });
+                    } catch (e) {
+                        console.error('Failed to update hasPass pref:', e);
+                    }
+                    toast.success('MasterPass sign-in disabled');
+                }
+            });
+        } else {
+            setMasterpassForLoginEnabled(true);
+            toast.success('MasterPass sign-in enabled');
+        }
+    };
     const FEATURE_FORM_ID = '6a2a653f002b0f296958';
 
     const handleManualMint = async () => {
@@ -753,6 +775,20 @@ export default function SettingsPage() {
                                         <Switch 
                                             checked={usePasskeysByDefault}
                                             onChange={() => setUsePasskeysByDefault(!usePasskeysByDefault)}
+                                        />
+                                    </div>
+
+                                    <div className="h-[1px] bg-white/5 w-full" />
+
+                                    {/* Masterpass for Login Switch */}
+                                    <div className="flex items-center justify-between gap-4 select-none">
+                                        <div>
+                                            <span className="block text-white font-extrabold text-xs">Enable MasterPass for Account Login</span>
+                                            <span className="block text-white/40 text-[10px] font-semibold font-sans mt-0.5">Allow using your MasterPass to authenticate your account sign-in</span>
+                                        </div>
+                                        <Switch 
+                                            checked={masterpassForLoginEnabled}
+                                            onChange={handleMasterpassLoginToggle}
                                         />
                                     </div>
 
