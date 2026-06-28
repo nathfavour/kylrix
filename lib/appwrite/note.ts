@@ -28,6 +28,8 @@ import { publishNexusInvalidate } from '@/lib/ecosystem/nexus-bridge';
 export const APPWRITE_ENDPOINT = APPWRITE_CONFIG.ENDPOINT;
 export const APPWRITE_PROJECT_ID = APPWRITE_CONFIG.PROJECT_ID;
 
+export const activeNoteKeys = new Map<string, CryptoKey>();
+
 // export app public uri
  export const APP_URI = process.env.NEXT_PUBLIC_APP_URI ?? `https://app.${APPWRITE_CONFIG.SYSTEM.DOMAIN}`;
 
@@ -823,6 +825,36 @@ export async function getNote(noteId: string): Promise<Notes> {
 export async function updateNote(noteId: string, data: Partial<Notes>, jwt?: string) {
   if (typeof window !== 'undefined') {
     invalidateNoteRowClientCache(noteId);
+    
+    // Encrypt fields client-side if we hold the active encryption key
+    const key = activeNoteKeys.get(noteId);
+    if (key && (data.content !== undefined || data.title !== undefined)) {
+      try {
+        const titleText = data.title || 'Untitled Thought';
+        const contentText = data.content || '';
+        const encryptedTitle = await ecosystemSecurity.encryptWithKey(titleText, key);
+        const encryptedContent = await ecosystemSecurity.encryptWithKey(contentText, key);
+        
+        let meta: Record<string, any> = {};
+        try {
+          meta = JSON.parse((data as any).metadata || '{}');
+        } catch {}
+        
+        data = {
+          ...data,
+          title: '🔒 Encrypted Note',
+          content: encryptedContent,
+          metadata: JSON.stringify({
+            ...meta,
+            isEncrypted: true,
+            encryptedTitle
+          })
+        };
+      } catch (err) {
+        console.error('Failed to encrypt note update client-side:', err);
+      }
+    }
+
     const { updateNote } = await import('@/lib/actions/client-ops');
     const result = await updateNote(noteId, data);
     invalidateNoteRowClientCache(noteId);
@@ -3261,14 +3293,21 @@ export async function decryptPublicEncryptedNote(note: Notes, forceKeyRefresh = 
         );
         const decryptedTitle = await ecosystemSecurity.decryptWithKey(meta.encryptedTitle || '', dek);
         const decryptedContent = await ecosystemSecurity.decryptWithKey(note.content || '', dek);
+        activeNoteKeys.set(note.$id, dek);
         return {
           ...note,
           metadata: JSON.stringify({ ...meta, clientDecrypted: true }),
           title: decryptedTitle,
           content: decryptedContent,
         };
-      } catch (err) {
+      } catch (err: any) {
         console.error('T5 decryption failed:', err);
+        if (err?.name === 'InvalidCharacterError' || String(err).includes('atob') || String(err?.message).includes('atob')) {
+          return {
+            ...note,
+            metadata: JSON.stringify({ ...meta, clientDecrypted: true }),
+          };
+        }
         return null;
       }
     }
@@ -3317,13 +3356,23 @@ export async function decryptPublicEncryptedNote(note: Notes, forceKeyRefresh = 
     try {
         const decryptedContent = await ecosystemSecurity.decryptWithKey(note.content || '', key, true);
         cachePublicNoteDecryptionKey(note.$id, keyBase64);
+        activeNoteKeys.set(note.$id, key);
         return {
           ...note,
           metadata: JSON.stringify({ ...meta, clientDecrypted: true }),
           title: decryptedTitle,
           content: decryptedContent,
         };
-    } catch (err) {
+    } catch (err: any) {
+        if (err?.name === 'InvalidCharacterError' || String(err).includes('atob') || String(err?.message).includes('atob')) {
+          cachePublicNoteDecryptionKey(note.$id, keyBase64);
+          activeNoteKeys.set(note.$id, key);
+          return {
+            ...note,
+            metadata: JSON.stringify({ ...meta, clientDecrypted: true }),
+            title: decryptedTitle,
+          };
+        }
         return null;
     }
   } catch (error) {

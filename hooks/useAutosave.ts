@@ -52,7 +52,10 @@ async function defaultSave(note: Notes): Promise<Notes> {
   if (!note.$id) {
     throw new Error('Missing note id for autosave');
   }
-  return updateNote(note.$id, pickNoteAutosavePayload(note));
+  return updateNote(note.$id, {
+    ...pickNoteAutosavePayload(note),
+    metadata: note.metadata,
+  });
 }
 
 export function useAutosave(note: Notes | null, options: AutosaveOptions = {}) {
