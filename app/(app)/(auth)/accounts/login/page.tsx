@@ -13,6 +13,13 @@ import { getLastActiveApp } from '@/lib/sdk/ecosystem/useLastActiveApp';
 import Logo from '../components/Logo';
 import { MfaChallengeDrawer } from '@/components/overlays/MfaChallengeDrawer';
 import { createHandoffSessionSecure } from '@/lib/actions/secure-ops';
+import { startAuthentication } from '@simplewebauthn/browser';
+import { Fingerprint } from 'lucide-react';
+import { ecosystemSecurity } from '@/lib/ecosystem/security';
+import toast from 'react-hot-toast';
+import { getPasskeyLoginOptionsAction, verifyPasskeyLoginAction } from '@/lib/actions/auth-actions';
+
+
 
 const client = new Client();
 if (typeof window !== 'undefined') {
@@ -226,6 +233,92 @@ function LoginContent() {
       );
     } catch (err: any) {
       setMessage(err?.message || 'OAuth login failed');
+      setLoading(false);
+    }
+  };
+
+  const handlePasskeyLogin = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const hostname = window.location.hostname;
+      const hostHeader = window.location.host;
+
+      // 1. Fetch options via Server Action
+      const optionsRes = await getPasskeyLoginOptionsAction(email, hostname);
+      if (!optionsRes.success || !optionsRes.options) {
+        throw new Error(optionsRes.error || 'Failed to generate passkey login options');
+      }
+
+      // 2. Perform WebAuthn authentication via startAuthentication
+      const authResp = await startAuthentication({ optionsJSON: optionsRes.options });
+
+      // 3. Post assertion response to the verification Server Action
+      const verifyRes = await verifyPasskeyLoginAction(authResp, hostname, hostHeader);
+      if (!verifyRes.success || !verifyRes.verified) {
+        throw new Error(verifyRes.error || 'Passkey verification failed');
+      }
+
+      if (verifyRes.verified && verifyRes.token) {
+        // 4. Delete existing sessions and establish the new Appwrite session
+        await safeDeleteCurrentSession();
+        await account.createSession(verifyRes.userId, verifyRes.token);
+
+        // 5. Concurrently decrypt the MEK and unlock the vault
+        if (verifyRes.wrappedKey) {
+          const extensionResults = authResp.clientExtensionResults as any;
+          const prfBuffer = extensionResults?.prf?.results?.first;
+
+          let kwrapSeed: ArrayBuffer;
+          if (prfBuffer) {
+            kwrapSeed = prfBuffer;
+          } else {
+            // Fallback derivation
+            const encoder = new TextEncoder();
+            const credentialData = encoder.encode(authResp.id + verifyRes.userId);
+            kwrapSeed = await crypto.subtle.digest("SHA-256", credentialData);
+          }
+
+          const kwrap = await crypto.subtle.importKey(
+            "raw",
+            kwrapSeed,
+            { name: "AES-GCM" },
+            false,
+            ["decrypt"],
+          );
+
+          const wrappedKeyBytes = new Uint8Array(
+            atob(verifyRes.wrappedKey).split("").map((c: string) => c.charCodeAt(0))
+          );
+
+          const iv = wrappedKeyBytes.slice(0, 12);
+          const ciphertext = wrappedKeyBytes.slice(12);
+
+          const mekBytes = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv },
+            kwrap,
+            ciphertext
+          );
+
+          const unlockSuccess = await ecosystemSecurity.importMasterKey(mekBytes);
+          if (unlockSuccess) {
+            toast.success("Vault unlocked automatically");
+          }
+        }
+
+        // 6. Complete authentication and route user
+        await confirmAuthenticated();
+      } else {
+        throw new Error('Authentication succeeded but server returned invalid verification payload');
+      }
+    } catch (err: any) {
+      console.error('Passkey login failed:', err);
+      if (err.name === 'NotAllowedError') {
+        // User cancelled the prompt, do not show error banner
+        return;
+      }
+      setMessage(err.message || 'Passkey authentication failed');
+    } finally {
       setLoading(false);
     }
   };
@@ -495,6 +588,29 @@ function LoginContent() {
               GitHub
             </Button>
           </Stack>
+
+          <Button
+            onClick={handlePasskeyLogin}
+            disabled={loading}
+            startIcon={<Fingerprint size={20} />}
+            variant="contained"
+            fullWidth
+            sx={{
+              height: 52,
+              borderRadius: '14px',
+              bgcolor: 'rgba(99, 102, 241, 0.1)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              color: '#818CF8',
+              fontWeight: 700,
+              textTransform: 'none',
+              '&:hover': {
+                bgcolor: 'rgba(99, 102, 241, 0.2)',
+                border: '1px solid rgba(99, 102, 241, 0.5)',
+              },
+            }}
+          >
+            Sign In with Passkey
+          </Button>
 
           <Box sx={{ display: 'flex', alignItems: 'center', py: 1 }}>
             <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
