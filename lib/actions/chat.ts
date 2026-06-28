@@ -231,7 +231,7 @@ export async function getConversationsAction(payload: {
       databaseId: DB_ID,
       tableId: CONV_TABLE,
       queries: [
-        Query.contains('participants', validatedUserId),
+        Query.equal('participants', validatedUserId),
         Query.limit(100)
       ]
     }).catch(() => ({ total: 0, rows: [] }));

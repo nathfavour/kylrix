@@ -747,7 +747,7 @@ export const ChatService = {
         } catch (err) {
             console.error('[ChatService] getConversationsAction failed:', err);
             const legacy = await tablesDB.listRows(DB_ID, CONV_TABLE, [
-                Query.contains('participants', userId),
+                Query.equal('participants', userId),
                 Query.limit(100)
             ]).catch(() => ({ rows: [] as any[] }));
             conversationRows = legacy.rows || [];

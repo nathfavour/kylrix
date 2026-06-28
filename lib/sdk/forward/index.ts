@@ -461,7 +461,7 @@ export function createAppwriteForwardSource(client: AppwriteForwardSourceClient,
       const conversationIds = uniqueStrings((membershipRows.rows || []).map((row: any) => row.conversationId));
       if (conversationIds.length === 0) {
         const legacy = await client.listRows(config.databaseId, config.conversationsTableId, [
-          Query.contains('participants', userId),
+          Query.equal('participants', userId),
           Query.limit(100)]).catch(() => ({ rows: [] as any[] }));
         return legacy.rows || [];
       }
