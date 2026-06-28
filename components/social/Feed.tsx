@@ -871,7 +871,7 @@ const creatorAvatar = isOwnPost ? userAvatarUrl : (moment.creator?.avatar || cac
 
 const { isPinned: isResourcePinned, togglePin } = useResourcePins();
 
-const pinned = isResourcePinned('moment', moment.$id, creatorId, moment.isPinned);
+const bookmarked = isResourcePinned('moment', moment.$id, creatorId, moment.isPinned);
 const { openMenu } = useContextMenu();
 
 const handlePinToggle = async (e?: React.MouseEvent) => {
@@ -890,7 +890,7 @@ const handlePinToggle = async (e?: React.MouseEvent) => {
       },
     });
   } catch (err: any) {
-    console.error('Failed to toggle pin:', err);
+    console.error('Failed to toggle bookmark:', err);
   }
 
 };
@@ -907,7 +907,7 @@ const accessControlItems = useAccessControlMenuItems({
 });
 
 const contextMenuItems = [
-  { label: pinned ? 'Unpin' : 'Pin', icon: <Pin size={16} className={pinned ? 'rotate-45 text-[#F59E0B]' : ''} />, onClick: handlePinToggle },
+  { label: bookmarked ? 'Remove Bookmark' : 'Bookmark', icon: <Bookmark size={16} className={bookmarked ? 'text-[#F59E0B] fill-[#F59E0B]' : ''} />, onClick: handlePinToggle },
   ...accessControlItems,
   ...(isOwnPost ? [
     { label: 'Edit Moment', icon: <Edit size={16} />, onClick: () => onEditMoment(moment) },
@@ -968,11 +968,11 @@ return (
                     size="small"
                     onClick={handlePinToggle}
                     sx={{
-                      color: pinned ? '#F59E0B' : 'rgba(255, 255, 255, 0.15)',
+                      color: bookmarked ? '#F59E0B' : 'rgba(255, 255, 255, 0.15)',
                       '&:hover': { color: '#F59E0B', bgcolor: 'rgba(255, 255, 255, 0.03)' }
                     }}
                   >
-                    <Pin size={16} className={pinned ? 'fill-[#F59E0B]' : ''} />
+                    <Bookmark size={16} className={bookmarked ? 'fill-[#F59E0B]' : ''} />
                   </IconButton>
                   <ShareLockButton 
                     resourceType="moment"

@@ -1,13 +1,13 @@
 import React from 'react';
 import { Card, CardHeader, Avatar } from '@/lib/openbricks/primitives';
-import { Pin, Edit, Trash2 } from 'lucide-react';
+import { Bookmark, Edit, Trash2 } from 'lucide-react';
 import { useResourcePins } from '@/context/ResourcePinContext';
 import { useContextMenu } from '@/components/ui/ContextMenuContext';
 import { useAccessControlMenuItems } from '@/components/share/AccessControlMenuItems';
 
 export function MomentItem({ moment, isOwnPost, creatorId, creatorAvatar, momentCardSx, handleEditMoment, handleDeletePost }: any) {
   const { isPinned: isResourcePinned, togglePin } = useResourcePins();
-  const pinned = isResourcePinned('moment', moment.$id, creatorId, moment.isPinned);
+  const bookmarked = isResourcePinned('moment', moment.$id, creatorId, moment.isPinned);
   const { openMenu } = useContextMenu();
 
   const handlePinToggle = async (e?: React.MouseEvent) => {
@@ -24,7 +24,7 @@ export function MomentItem({ moment, isOwnPost, creatorId, creatorAvatar, moment
         setOwnerRowPin: async (nextPinned) => {},
       });
     } catch (err: any) {
-      console.error('Failed to toggle pin:', err);
+      console.error('Failed to toggle bookmark:', err);
     }
   };
 
@@ -38,7 +38,7 @@ export function MomentItem({ moment, isOwnPost, creatorId, creatorAvatar, moment
   });
 
   const contextMenuItems = [
-    { label: pinned ? 'Unpin' : 'Pin', icon: <Pin size={16} className={pinned ? 'rotate-45 text-[#F59E0B]' : ''} />, onClick: handlePinToggle },
+    { label: bookmarked ? 'Remove Bookmark' : 'Bookmark', icon: <Bookmark size={16} className={bookmarked ? 'text-[#F59E0B] fill-[#F59E0B]' : ''} />, onClick: handlePinToggle },
     ...accessControlItems,
     ...(isOwnPost ? [
       { label: 'Edit Moment', icon: <Edit size={16} />, onClick: () => handleEditMoment(moment) },

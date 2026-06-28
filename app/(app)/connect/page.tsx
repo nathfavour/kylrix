@@ -7,7 +7,10 @@ import { useProjectsList } from '@/hooks/useProjectsList';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useFAB } from '@/context/FABContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
-import { MessageSquare, Phone, Plus, ChevronDown, ChevronUp, Maximize2, FolderKanban } from 'lucide-react';
+import { MessageSquare, Phone, Plus, ChevronDown, ChevronUp, Maximize2, FolderKanban, Bookmark } from 'lucide-react';
+import { useResourcePins } from '@/context/ResourcePinContext';
+import { useSection } from '@/context/SectionContext';
+import { useAuth } from '@/context/auth/AuthContext';
 import toast from 'react-hot-toast';
 
 function ConnectHomeContent() {
@@ -27,8 +30,52 @@ function ConnectHomeContent() {
   // Flexible panel sizes
   const [threadsOpen, setThreadsOpen] = useState(true);
   const [projectsOpen, setProjectsOpen] = useState(true);
+  const [bookmarksOpen, setBookmarksOpen] = useState(true);
 
   const { projects, loading: projectsLoading } = useProjectsList();
+  const { user } = useAuth();
+  const { pinSets } = useResourcePins();
+  const { setActiveDetail } = useSection();
+  const [bookmarkedMoments, setBookmarkedMoments] = useState<any[]>([]);
+  const [bookmarksLoading, setBookmarksLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.$id) return;
+    const bookmarkedIds = Array.from(pinSets.moment || []);
+    if (bookmarkedIds.length === 0) {
+      setBookmarkedMoments([]);
+      setBookmarksLoading(false);
+      return;
+    }
+
+    let active = true;
+    setBookmarksLoading(true);
+    
+    const fetchBookmarks = async () => {
+      try {
+        const { APPWRITE_CONFIG } = await import('@/lib/appwrite/config');
+        const { tablesDB } = await import('@/lib/appwrite/client');
+        const { Query } = await import('appwrite');
+        
+        const res = await tablesDB.listRows(
+          APPWRITE_CONFIG.DATABASES.CONNECT,
+          APPWRITE_CONFIG.TABLES.CONNECT.MOMENTS,
+          [Query.equal('$id', bookmarkedIds), Query.limit(100)]
+        );
+        
+        if (active) {
+          setBookmarkedMoments(res.rows || []);
+        }
+      } catch (err) {
+        console.error('Failed to load bookmarked moments:', err);
+      } finally {
+        if (active) setBookmarksLoading(false);
+      }
+    };
+
+    void fetchBookmarks();
+    return () => { active = false; };
+  }, [pinSets.moment, user?.$id]);
 
   useEffect(() => {
     setConfiguration({
@@ -263,6 +310,79 @@ function ConnectHomeContent() {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Pocket 3: Bookmarks */}
+          <div 
+            className="bg-[#161412] rounded-3xl border border-white/5 p-5 flex flex-col overflow-hidden shadow-[0_12px_36px_rgba(0,0,0,0.5)] hover:border-white/10 hover:-translate-y-0.5 transition-all duration-300"
+            style={{
+              flex: '0 0 auto',
+              height: bookmarksOpen ? '380px' : '68px',
+            }}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <h3 className="text-sm font-mono uppercase tracking-widest text-white/90">
+                  Bookmarks
+                </h3>
+              </div>
+              <div className="flex gap-1 items-center">
+                <button 
+                  onClick={() => setBookmarksOpen(!bookmarksOpen)} 
+                  className="p-1 text-white/40 hover:text-white rounded transition-colors"
+                >
+                  {bookmarksOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+              </div>
+            </div>
+
+            {bookmarksOpen && (
+              <div className="flex-1 overflow-y-auto pr-1 bg-[#0B0A09] rounded-2xl border border-white/5 p-3 scrollbar-none">
+                {bookmarksLoading ? (
+                  <div className="flex flex-col gap-2.5">
+                    {[1, 2].map((n) => (
+                      <div key={n} className="flex gap-3 p-3 rounded-xl bg-white/[0.01] border border-white/[0.03]">
+                        <div className="w-8 h-8 rounded bg-white/5 animate-pulse" />
+                        <div className="flex-1 flex flex-col gap-1 justify-center">
+                          <div className="h-3 bg-white/5 rounded w-2/3 animate-pulse" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : bookmarkedMoments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-xs text-white/40">
+                      No bookmarks yet.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {bookmarkedMoments.map((moment) => (
+                      <div
+                        key={moment.$id}
+                        onClick={() => setActiveDetail({ type: 'moment', id: moment.$id, data: moment })}
+                        className="flex gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03] cursor-pointer hover:bg-white/[0.04] hover:border-white/[0.08] hover:translate-x-1 transition-all duration-200"
+                      >
+                        <div 
+                          className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 bg-amber-500/10 text-amber-500"
+                        >
+                          <Bookmark size={16} className="fill-amber-500/20" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-bold text-white truncate">
+                            {moment.caption || 'Untitled Moment'}
+                          </div>
+                          <div className="text-[9px] text-white/40 font-mono uppercase truncate mt-0.5">
+                            {(moment.momentKind || 'POST').toUpperCase()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
