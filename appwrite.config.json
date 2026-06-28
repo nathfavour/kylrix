@@ -1583,6 +1583,22 @@
                     "required": false,
                     "array": false,
                     "default": false
+                },
+                {
+                    "key": "publicKey",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 2000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "authPasskey",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
                 }
             ],
             "indexes": [

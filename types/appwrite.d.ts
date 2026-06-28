@@ -345,6 +345,8 @@ export type Keychain = Models.Row & {
     isPending: boolean;
     totpId: string;
     authPass: boolean;
+    publicKey: string | null;
+    authPasskey: boolean;
 }
 
 export type KeyMapping = Models.Row & {

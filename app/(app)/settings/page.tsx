@@ -679,9 +679,17 @@ export default function SettingsPage() {
                                                         <span className="block text-white font-extrabold text-xs truncate">
                                                             {pk.params?.name || `Passkey ${idx + 1}`}
                                                         </span>
-                                                        <span className="block text-[#10B981] text-[9px] font-black uppercase tracking-wider font-mono">
-                                                            Active
-                                                        </span>
+                                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                                            <span className="block text-[#10B981] text-[9px] font-black uppercase tracking-wider font-mono">
+                                                                Active
+                                                            </span>
+                                                            {pk.authPasskey && (
+                                                                <span className="flex items-center gap-1 text-[#6366F1] text-[9px] font-black uppercase tracking-wider font-mono bg-[#6366F1]/10 px-1.5 py-0.5 rounded" title="Auth Enabled (Can be used for account login)">
+                                                                    <Key size={9} />
+                                                                    <span>Auth</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <button

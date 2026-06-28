@@ -29,7 +29,7 @@ export async function unlockWithPasskey(userId: string): Promise<boolean> {
 
     const rpId = resolvePasskeyRpId(window.location.hostname);
 
-    const authOptions = {
+    const authOptions: any = {
       challenge: challengeBase64,
       rpId,
       allowCredentials: passkeyEntries.map((entry: any) => ({
@@ -40,6 +40,17 @@ export async function unlockWithPasskey(userId: string): Promise<boolean> {
       userVerification: 'preferred' as UserVerificationRequirement,
       timeout: 60000,
     };
+
+    const hasAnyAuthPasskey = passkeyEntries.some((entry: any) => entry.authPasskey);
+    if (hasAnyAuthPasskey) {
+      authOptions.extensions = {
+        prf: {
+          eval: {
+            first: new TextEncoder().encode('kylrix-unified-salt-v1')
+          }
+        }
+      };
+    }
 
     // 3. Start WebAuthn authentication (optionsJSON matches Note / SimpleWebAuthn v13)
     const authResp = await startAuthentication({ optionsJSON: authOptions });
@@ -52,9 +63,24 @@ export async function unlockWithPasskey(userId: string): Promise<boolean> {
     }
 
     // 5. Derive the wrapping key
-    const encoder = new TextEncoder();
-    const credentialData = encoder.encode(authResp.id + userId);
-    const kwrapSeed = await crypto.subtle.digest("SHA-256", credentialData);
+    let kwrapSeed: ArrayBuffer;
+
+    if (matchingEntry.authPasskey) {
+      const extensionResults = authResp.clientExtensionResults as any;
+      const prfBuffer = extensionResults?.prf?.results?.first;
+      if (prfBuffer) {
+        kwrapSeed = prfBuffer;
+      } else {
+        const encoder = new TextEncoder();
+        const credentialData = encoder.encode(authResp.id + userId);
+        kwrapSeed = await crypto.subtle.digest("SHA-256", credentialData);
+      }
+    } else {
+      const encoder = new TextEncoder();
+      const credentialData = encoder.encode(authResp.id + userId);
+      kwrapSeed = await crypto.subtle.digest("SHA-256", credentialData);
+    }
+
     const kwrap = await crypto.subtle.importKey(
       "raw",
       kwrapSeed,

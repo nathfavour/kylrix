@@ -25,7 +25,7 @@ import {
   VisibilityOff as VisibilityOffIcon,
   CheckCircle as CheckCircleIcon,
 } from '@/lib/openbricks/icons';
-import { Fingerprint, X } from 'lucide-react';
+import { Fingerprint, X, Key, ChevronDown, ChevronUp } from 'lucide-react';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 
 export interface PasskeySetupPanelProps {
@@ -70,6 +70,8 @@ export function PasskeySetupPanel({
   const [passkeyName, setPasskeyName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [verifyingPassword, setVerifyingPassword] = useState(false);
+  const [alsoUseForLogin, setAlsoUseForLogin] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const verifyMasterPassword = async () => {
     const masterpassSet = await AppwriteService.hasMasterpass(userId);
@@ -140,7 +142,7 @@ export function PasskeySetupPanel({
 
       const userIdBytes = new TextEncoder().encode(userId);
       const rpId = resolvePasskeyRpId(window.location.hostname);
-      const registrationOptions = {
+      const registrationOptions: any = {
         challenge: challengeBase64,
         rp: {
           name: "Kylrix",
@@ -161,11 +163,34 @@ export function PasskeySetupPanel({
         attestation: "none" as const,
       };
 
-      const regResp = await startRegistration({ optionsJSON: registrationOptions });
+      if (alsoUseForLogin) {
+        registrationOptions.extensions = {
+          prf: {}
+        };
+      }
 
-      const encoder = new TextEncoder();
-      const credentialData = encoder.encode(regResp.id + userId);
-      const kwrapSeed = await crypto.subtle.digest("SHA-256", credentialData);
+      const regResp = await startRegistration({ optionsJSON: registrationOptions });
+      const extensionResults = regResp.clientExtensionResults as any;
+
+      let kwrapSeed: ArrayBuffer;
+      let isAuthPasskey = false;
+
+      if (alsoUseForLogin && extensionResults?.prf?.enabled) {
+        const prfBuffer = extensionResults?.prf?.results?.first;
+        if (prfBuffer) {
+          kwrapSeed = prfBuffer;
+          isAuthPasskey = true;
+        } else {
+          const encoder = new TextEncoder();
+          const credentialData = encoder.encode(regResp.id + userId);
+          kwrapSeed = await crypto.subtle.digest("SHA-256", credentialData);
+        }
+      } else {
+        const encoder = new TextEncoder();
+        const credentialData = encoder.encode(regResp.id + userId);
+        kwrapSeed = await crypto.subtle.digest("SHA-256", credentialData);
+      }
+
       const kwrap = await crypto.subtle.importKey(
         "raw",
         kwrapSeed,
@@ -203,7 +228,10 @@ export function PasskeySetupPanel({
           created: new Date().toISOString(),
           rpId,
         }),
-        isBackup: false
+        isBackup: false,
+        authPass: false,
+        publicKey: regResp.response.publicKey || null,
+        authPasskey: isAuthPasskey,
       });
 
       setStep(4);
@@ -318,6 +346,66 @@ export function PasskeySetupPanel({
                 sx: { borderRadius: '16px', bgcolor: 'rgba(255, 255, 255, 0.05)' }
               }}
             />
+
+            {/* Expandable Advanced Options */}
+            <Box>
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.4)',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  padding: 0,
+                  outline: 'none',
+                }}
+              >
+                <span>{showAdvanced ? "Hide Advanced Options" : "Show Advanced Options"}</span>
+                {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+              
+              {showAdvanced && (
+                <Box 
+                  sx={{ 
+                    mt: 2, 
+                    p: 2, 
+                    borderRadius: '16px', 
+                    bgcolor: 'rgba(255, 255, 255, 0.02)', 
+                    border: '1px solid rgba(255, 255, 255, 0.05)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    gap: 2 
+                  }}
+                >
+                  <Box sx={{ flex: 1, pr: 1 }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: 'white' }}>
+                      Also Use for Login
+                    </Typography>
+                    <Typography sx={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: '0.75rem', display: 'block', mt: 0.5, lineHeight: 1.3 }}>
+                      Allow using this passkey to sign in to your account.
+                    </Typography>
+                  </Box>
+                  <input
+                    type="checkbox"
+                    checked={alsoUseForLogin}
+                    onChange={(e) => setAlsoUseForLogin(e.target.checked)}
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      accentColor: '#6366F1',
+                      cursor: 'pointer',
+                    }}
+                  />
+                </Box>
+              )}
+            </Box>
           </Stack>
         )}
 
