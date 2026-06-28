@@ -320,7 +320,7 @@ export default function NotesPage() {
     const isLocked = !!note.dek || (() => {
       try {
         const meta = JSON.parse(note.metadata || '{}');
-        return meta.encryptionVersion === 'T5' || !!meta.dek;
+        return meta.isEncrypted === true || meta.isEncrypted === 'true' || meta.encryptionVersion === 'T4' || meta.encryptionVersion === 'T5' || !!meta.dek;
       } catch {
         return false;
       }

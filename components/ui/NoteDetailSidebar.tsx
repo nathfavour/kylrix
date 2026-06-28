@@ -53,6 +53,7 @@ import { useAuth } from '@/lib/auth';
 import { hasPaidKylrixPlan } from '@/lib/utils';
 import { IdentityAvatar } from '@/components/common/IdentityBadge';
 import { useNotes } from '@/context/NotesContext';
+import { useDataNexus } from '@/context/DataNexusContext';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { formatNoteCreatedDate, formatNoteUpdatedDate } from '@/lib/date-utils';
@@ -114,6 +115,7 @@ export function NoteDetailSidebar({
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const { ecosystemTags, refreshEcosystemTags } = useTask();
 
+  const { setCachedData } = useDataNexus();
   const { notes: allNotes, isPinned, pinNote, unpinNote } = useNotes();
   const isPinnedFunc = useMemo(() => typeof isPinned === 'function' ? isPinned : () => false, [isPinned]);
   const pinNoteFunc = useMemo(() => typeof pinNote === 'function' ? pinNote : async () => {}, [pinNote]);
@@ -262,6 +264,27 @@ export function NoteDetailSidebar({
       setIsPublic(getNotePublicState(liveNote));
     }
   }, [liveNote, title, content]);
+
+  // Synchronize candidate note changes to the local cache and parent notes list in real-time (keystroke buffering)
+  useEffect(() => {
+    if (!isDirtyRef.current || !liveNote.$id) return;
+
+    const handler = setTimeout(() => {
+      const draftNote: Notes = {
+        ...liveNote,
+        title,
+        content,
+        tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+        updatedAt: new Date().toISOString(), // Fresh timestamp for sorting/caching
+      };
+      
+      // Update local cache and notify the parent list instantly
+      void setCachedData(`note_${liveNote.$id}`, draftNote);
+      onUpdate(draftNote);
+    }, 150); // 150ms debounce on keystrokes to prevent database lock congestion
+
+    return () => clearTimeout(handler);
+  }, [title, content, tags, liveNote, onUpdate, setCachedData]);
 
   // Automatically heal T4 encrypted state if vault is unlocked
   useEffect(() => {

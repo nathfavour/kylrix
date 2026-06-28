@@ -69,20 +69,41 @@ export function useAutosave(note: Notes | null, options: AutosaveOptions = {}) {
   const lastSavedRef = useRef<Notes | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef(false);
+  const pendingPayloadRef = useRef<Notes | null>(null);
   const rateLimitUntilRef = useRef<number>(0);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const saveFn = save ?? defaultSave;
 
   const performSave = useCallback(
     async (candidate: Notes, force = false) => {
-      if ((!enabled && !force) || isSavingRef.current || !candidate.$id) return;
-      if (Date.now() < rateLimitUntilRef.current) return;
-      if (!shouldSave(lastSavedRef.current, candidate, minChangeThreshold)) {
+      if (!candidate.$id) return;
+      
+      // If a save is already in flight, queue this latest payload
+      if (isSavingRef.current) {
+        pendingPayloadRef.current = candidate;
+        return;
+      }
+
+      if ((!enabled && !force) || Date.now() < rateLimitUntilRef.current) {
+        return;
+      }
+
+      if (!force && !shouldSave(lastSavedRef.current, candidate, minChangeThreshold)) {
         return;
       }
 
       isSavingRef.current = true;
-      setIsSaving(true);
+      if (isMountedRef.current) {
+        setIsSaving(true);
+      }
 
       try {
         const saved = await saveFn(candidate);
@@ -98,7 +119,16 @@ export function useAutosave(note: Notes | null, options: AutosaveOptions = {}) {
         onError?.(error as Error);
       } finally {
         isSavingRef.current = false;
-        setIsSaving(false);
+        if (isMountedRef.current) {
+          setIsSaving(false);
+        }
+        
+        // Process any queued payload immediately
+        if (pendingPayloadRef.current) {
+          const next = pendingPayloadRef.current;
+          pendingPayloadRef.current = null;
+          void performSave(next, true);
+        }
       }
     },
     [enabled, minChangeThreshold, onSave, onError, saveFn]
@@ -113,10 +143,17 @@ export function useAutosave(note: Notes | null, options: AutosaveOptions = {}) {
       return;
     }
     if (!lastSavedRef.current || lastSavedRef.current.$id !== note.$id) {
+      // Flush previous note immediately if it had pending changes
+      if (lastSavedRef.current && pendingPayloadRef.current && pendingPayloadRef.current.$id === lastSavedRef.current.$id) {
+        const prev = pendingPayloadRef.current;
+        pendingPayloadRef.current = null;
+        void saveFn(prev).catch(e => console.error('Failed to flush switched note:', e));
+      }
       lastSavedRef.current = note;
       rateLimitUntilRef.current = 0;
+      pendingPayloadRef.current = null;
     }
-  }, [note]);
+  }, [note, saveFn]);
 
   useEffect(() => {
     if (trigger === 'manual') return;
