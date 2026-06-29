@@ -19,6 +19,8 @@ import {
   Waves
 } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
+import { useProUpgrade } from '@/context/ProUpgradeContext';
+import { hasPaidKylrixPlan } from '@/lib/utils';
 import { NoteContentRenderer } from '@/components/NoteContentRenderer';
 import PaywallDisplay from '@/components/PaywallDisplay';
 import { 
@@ -128,6 +130,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
   const [isPostingMoment, setIsPostingMoment] = useState(false);
   const [alreadyDuplicated, setAlreadyDuplicated] = useState(false);
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { openProUpgrade } = useProUpgrade();
   const [isCopied, setIsCopied] = React.useState(false);
   const { showSuccess, showError } = useToast();
   const { setCachedData, getCachedData, invalidate } = useDataNexus();
@@ -624,6 +627,12 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
 
   const handleDuplicate = async () => {
     if (!verifiedNote || isDuplicating) return;
+    
+    // Duplication is gated to PRO/TEAMS to prevent database bloat
+    if (!hasPaidKylrixPlan(user)) {
+      openProUpgrade('Note Duplication');
+      return;
+    }
     
     setIsDuplicating(true);
     try {

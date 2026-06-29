@@ -114,6 +114,14 @@ export function EphemeralClaimDrawer({ open, onClose, target, onConsumed }: Prop
       return;
     }
 
+    // Duplication/Claiming shared objects is gated to Pro/Teams to prevent database/storage bloat
+    if (!hasPaidKylrixPlan(user)) {
+      openProUpgrade(`Claim Send ${target.stashKind || 'objects'}`);
+      toast.error('Kylrix Pro/Teams is required to duplicate or claim shared objects.');
+      handleClose();
+      return;
+    }
+
     setBusy(true);
     try {
       const res = await fetch(sharedNotePublicUrl(target.noteId), { cache: 'no-store' });
