@@ -173,13 +173,12 @@ export function PasskeySetupPanel({
       const extensionResults = regResp.clientExtensionResults as any;
 
       let kwrapSeed: ArrayBuffer;
-      let isAuthPasskey = false;
+      let isAuthPasskey = alsoUseForLogin;
 
       if (alsoUseForLogin && extensionResults?.prf?.enabled) {
         const prfBuffer = extensionResults?.prf?.results?.first;
         if (prfBuffer) {
           kwrapSeed = prfBuffer;
-          isAuthPasskey = true;
         } else {
           const encoder = new TextEncoder();
           const credentialData = encoder.encode(regResp.id + userId);
