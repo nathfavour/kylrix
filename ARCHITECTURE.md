@@ -1158,10 +1158,10 @@ The following catalog provides a highly detailed engineering breakdown of the ac
 
 #### 53. In-Line Typographic Voice Note Formatting (Markdown Waveforms)
 *   **Mechanics & Substrate**: Markdown AST (Abstract Syntax Tree) compiler and waveform rendering wrapper inside `components/LinkRenderer.tsx` and `components/notes/VoiceNotePlayer.tsx`.
-*   **Zero-Knowledge Boundary**: Voice note audio clips are limited to exactly **2 minutes**, encrypted, and saved inside the voice storage bucket.
+*   **Access Control**: Voice note recording and playback features are gated to paid tiers (Pro and Teams) to control storage resource costs.
 *   **Acute Architectural Rationale**: Most editors treat voice recordings as block-level attachments that break paragraph flows. Kylrix parses a special inline tag `[Voice](source:kylrixvoice:fileId)` seamlessly within paragraph content. This ensures voice notes flow naturally in-between words or sections without clashing with standard markdown layout blocks.
 *   **Vivid End-to-End Execution Flow**:
-    1.  User clicks the microphone tool inside a paragraph and records a voice snippet.
+    1.  User clicks the microphone tool inside a paragraph and records a voice snippet (available on Pro/Teams tiers).
     2.  The audio file is encrypted and saved to the voice bucket.
     3.  A reference `[Voice](source:kylrixvoice:fileId)` is inserted inline inside the text content.
     4.  Markdown AST parses the note.
@@ -1205,6 +1205,19 @@ The following catalog provides a highly detailed engineering breakdown of the ac
 *   **Ecosystem Synergy**: Unifies calendar grids and scheduling views with real-time WebRTC audio/video huddles and live discussion threads.
 *   **Next-Gen Optimizations**: High-velocity visual indicator displaying tiny participant avatars inside the cell hovering state without triggering network overhead.
 
+#### 58. Three-Tier Pricing and Resource Restructure
+*   **Mechanics & Substrate**: Gating variables checked at the Server Action and client rendering boundaries. Restructures limits into three distinct tiers: Free, Pro, and Teams.
+*   **Rules & Architectural Mandates**:
+    1.  **Binary Feature Access**: No discrete/numerical limits on features (e.g. no "X minutes of audio" or "Y collaborators" rules). Features are strictly available or unavailable.
+    2.  **Zero Database Gating (Except Scaling Risks)**: The database remains 100% free and unlimited for solo personal use. Multi-user collaboration (shared databases/collaborators) introduces exponential synchronous hit risks and is restricted to the Teams tier.
+    3.  **Resource-Heavy Storage Gating**: Storage of profile pictures is free. Arbitrary file storage and audio recordings are gated to paid tiers (Pro/Teams).
+    4.  **Permissive Community Features**: Access to Moments, secure chats, and Hangouts (groups) is universally free.
+*   **Tier Definitions**:
+    *   **Free**: Full personal database (zero collaborators), secure chats, hangouts, moments, and profile picture storage. Audio features are excluded.
+    *   **Pro**: Adds arbitrary file storage and audio messages.
+    *   **Teams**: Enables multi-user collaboration (shared databases with unlimited collaborators) and WebRTC group calls (which incur Cloudflare calls billing).
+
 ---
 
 **Build freely. Work while you sleep.** 🌙
+
