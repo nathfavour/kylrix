@@ -61,7 +61,8 @@ export function allowsCollaboratorSharing(tier: BillingUiTier | string): boolean
   if (isSelfHostedDeployment()) {
     return true;
   }
-  return String(tier || 'FREE').toUpperCase() !== 'FREE';
+  const normalized = String(tier || 'FREE').toUpperCase();
+  return normalized === 'TEAMS' || normalized === 'ORG' || normalized === 'LIFETIME';
 }
 
 export function getCollaboratorCap(tier: BillingUiTier | string): number {
@@ -69,44 +70,25 @@ export function getCollaboratorCap(tier: BillingUiTier | string): number {
     return Number.POSITIVE_INFINITY;
   }
   const normalized = String(tier || 'FREE').toUpperCase();
-  if (normalized === 'FREE') {
-    return 0;
+  if (normalized === 'TEAMS' || normalized === 'ORG' || normalized === 'LIFETIME') {
+    return Number.POSITIVE_INFINITY;
   }
-  if (normalized === 'PRO') {
-    return 3;
-  }
-  return Number.POSITIVE_INFINITY;
+  return 0;
 }
 
 export function getProjectCap(tier: BillingUiTier | string): number {
-  if (isSelfHostedDeployment()) {
-    return Number.POSITIVE_INFINITY;
-  }
-  const normalized = String(tier || 'FREE').toUpperCase();
-  if (normalized === 'PRO') {
-    return 10;
-  }
-  if (normalized === 'TEAMS' || normalized === 'ORG' || normalized === 'LIFETIME') {
-    return Number.POSITIVE_INFINITY;
-  }
-  return 1;
+  return Number.POSITIVE_INFINITY;
 }
 
 export function getContainerObjectCap(tier: BillingUiTier | string): number {
-  if (isSelfHostedDeployment()) {
-    return Number.POSITIVE_INFINITY;
-  }
-  const normalized = String(tier || 'FREE').toUpperCase();
-  if (normalized === 'PRO') {
-    return 10;
-  }
-  if (normalized === 'TEAMS' || normalized === 'ORG' || normalized === 'LIFETIME') {
-    return Number.POSITIVE_INFINITY;
-  }
-  return 3;
+  return Number.POSITIVE_INFINITY;
 }
 
 export function allowsGroupHangouts(tier: BillingUiTier | string): boolean {
+  return true;
+}
+
+export function allowsGroupCalls(tier: BillingUiTier | string): boolean {
   if (isSelfHostedDeployment()) {
     return true;
   }
@@ -114,12 +96,14 @@ export function allowsGroupHangouts(tier: BillingUiTier | string): boolean {
   return normalized === 'TEAMS' || normalized === 'ORG' || normalized === 'LIFETIME';
 }
 
-export function getNoteContentCharLimit(tier: BillingUiTier | string): number {
+export function allowsAudioRecordings(tier: BillingUiTier | string): boolean {
   if (isSelfHostedDeployment()) {
-    return 655350000;
+    return true;
   }
-  if (effectiveTierHasPaidAccess(tier)) {
-    return 655350000;
-  }
-  return 50000;
+  const normalized = String(tier || 'FREE').toUpperCase();
+  return normalized === 'PRO' || normalized === 'TEAMS' || normalized === 'ORG' || normalized === 'LIFETIME';
+}
+
+export function getNoteContentCharLimit(tier: BillingUiTier | string): number {
+  return 655350000;
 }

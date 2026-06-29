@@ -5,6 +5,8 @@ export {
   effectiveTierHasPaidAccess,
   allowsCollaboratorSharing,
   allowsGroupHangouts,
+  allowsGroupCalls,
+  allowsAudioRecordings,
   getCollaboratorCap,
   getProjectCap,
   getContainerObjectCap,

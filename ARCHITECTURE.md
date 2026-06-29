@@ -1211,11 +1211,12 @@ The following catalog provides a highly detailed engineering breakdown of the ac
     1.  **Binary Feature Access**: No discrete/numerical limits on features (e.g. no "X minutes of audio" or "Y collaborators" rules). Features are strictly available or unavailable.
     2.  **Zero Database Gating (Except Scaling Risks)**: The database remains 100% free and unlimited for solo personal use. Multi-user collaboration (shared databases/collaborators) introduces exponential synchronous hit risks and is restricted to the Teams tier.
     3.  **Resource-Heavy Storage Gating**: Storage of profile pictures is free. Arbitrary file storage and audio recordings are gated to paid tiers (Pro/Teams).
-    4.  **Permissive Community Features**: Access to Moments, secure chats, and Hangouts (groups) is universally free.
+    4.  **Permissive Community & Communication Features**: Access to Moments, secure chats, Hangouts (groups), and 1-on-1 direct voice/video calls is universally free.
+    5.  **Democratic Call Gating**: One-on-one direct calls are free to preserve the baseline right of direct communication. Group calls (anything beyond 2 participants) are restricted to the Teams tier because multi-peer SFU/WebRTC bridging incurs external Cloudflare Calls bandwidth billing. Gating group calls ensures the infrastructure remains self-sustaining without threatening bankruptcy.
 *   **Tier Definitions**:
-    *   **Free**: Full personal database (zero collaborators), secure chats, hangouts, moments, and profile picture storage. Audio features are excluded.
+    *   **Free**: Full personal database (zero collaborators), secure chats, hangouts, moments, profile picture storage, and 1-on-1 direct calls. Audio recording features are excluded.
     *   **Pro**: Adds arbitrary file storage and audio messages.
-    *   **Teams**: Enables multi-user collaboration (shared databases with unlimited collaborators) and WebRTC group calls (which incur Cloudflare calls billing).
+    *   **Teams**: Enables multi-user collaboration (shared databases with unlimited collaborators) and WebRTC group calls.
 
 ---
 

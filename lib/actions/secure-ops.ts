@@ -6874,25 +6874,7 @@ export async function attachObjectSecure(params: {
     ] as any
   });
 
-  if (containerExisting.rows.length >= containerLimit) {
-    throw new Error(`Attachment limit reached: This ${params.parentKind} has reached its limit of ${containerLimit} attachments on the ${parentOwnerTier} plan.`);
-  }
 
-  // Actor-specific limit: Free user can upload max 3 objects even inside a Pro project
-  if (userTier === 'FREE') {
-    const actorExisting = await tables.listRows({
-      databaseId,
-      tableId,
-      queries: [
-        Query.equal('parentId', params.parentId),
-        Query.equal('parentKind', params.parentKind),
-        Query.equal('userId', actor.$id)
-      ] as any
-    });
-    if (actorExisting.rows.length >= 3) {
-      throw new Error(`Attachment limit reached: Free users can attach up to 3 objects per resource. Upgrade to PRO to attach more.`);
-    }
-  }
 
   const now = new Date().toISOString();
   const obj = await tables.createRow({
