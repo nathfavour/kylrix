@@ -1,5 +1,3 @@
-'use server';
-
 import * as shared from './shared';
 import {
   ID, Permission, Query, Role, Databases, TablesDB, Account

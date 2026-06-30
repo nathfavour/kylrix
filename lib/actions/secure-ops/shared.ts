@@ -1,7 +1,3 @@
-'use server';
-
-'use server';
-
 export { cookies } from 'next/headers';
 import { createHmac, randomBytes } from 'node:crypto';
 import { ID, Permission, Query, Role, Databases, TablesDB, Account } from 'node-appwrite';

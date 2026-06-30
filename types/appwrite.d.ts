@@ -404,6 +404,7 @@ export type Notes = Models.Row & {
     crdt: string | null;
     isDeleted: boolean;
     dek: string | null;
+    article: boolean | null;
 }
 
 export type Comments = Models.Row & {
