@@ -757,31 +757,35 @@ export default function CreateNoteForm({
             />
           )}
 
-          <textarea
-            ref={contentRef}
-            rows={isExpanded ? 12 : 6}
-            value={content}
-            maxLength={isArticle ? 655300000 : 65535}
-            onPaste={handlePaste}
+          <div
             onContextMenu={(event) => {
               event.preventDefault();
               event.stopPropagation();
               setIsContextDrawerOpen(true);
             }}
-            onChange={(event) => {
-              const val = event.target.value;
-              setContent(val);
-              syncNoteInMemory(title, val, tags);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey && !isExpanded && !isPastedRef.current) {
-                event.preventDefault();
-                handleClose();
-              }
-            }}
-            placeholder="Write your note..."
-            className="w-full flex-1 min-h-[160px] resize-none bg-white/[0.03] text-white placeholder-white/20 border border-white/[0.06] hover:border-white/10 focus:border-pink-500/30 rounded-xl px-3 py-2 text-lg focus:outline-none transition-all scrollbar-thin"
-          />
+            className="w-full flex-1 flex flex-col"
+          >
+            <textarea
+              ref={contentRef}
+              rows={isExpanded ? 12 : 6}
+              value={content}
+              maxLength={isArticle ? 655300000 : 65535}
+              onPaste={handlePaste}
+              onChange={(event) => {
+                const val = event.target.value;
+                setContent(val);
+                syncNoteInMemory(title, val, tags);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey && !isExpanded && !isPastedRef.current) {
+                  event.preventDefault();
+                  handleClose();
+                }
+              }}
+              placeholder="Write your note..."
+              className="w-full h-full min-h-[160px] resize-none bg-white/[0.03] text-white placeholder-white/20 border border-white/[0.06] hover:border-white/10 focus:border-pink-500/30 rounded-xl px-3 py-2 text-lg focus:outline-none transition-all scrollbar-thin"
+            />
+          </div>
 
           <div className="text-[10px] text-white/30 font-mono select-none mt-auto pt-1">
             Right click is handled here so copy, cut, paste, and shortcuts stay local.

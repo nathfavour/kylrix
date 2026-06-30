@@ -1013,22 +1013,26 @@ export function NoteDetailSidebar({
               <NoteContentRenderer content={content} format="doodle" />
             ) : (
               <>
-                <textarea
-                  value={content}
-                  onChange={(e) => {
-                    setContent(e.target.value);
-                    markDirty();
-                  }}
+                <div
                   onContextMenu={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
                     setIsContextDrawerOpen(true);
                   }}
-                  ref={contentTextareaRef}
-                  className="w-full min-h-[320px] bg-transparent text-white/90 text-lg leading-[1.75] border-none focus:outline-none resize-none scrollbar-thin focus:ring-0 focus:ring-offset-0 font-sans placeholder:text-white/25"
-                  placeholder="Write in Markdown — headings, lists, links, and voice tags are supported."
-                  spellCheck
-                />
+                  className="w-full flex-1 flex flex-col"
+                >
+                  <textarea
+                    value={content}
+                    onChange={(e) => {
+                      setContent(e.target.value);
+                      markDirty();
+                    }}
+                    ref={contentTextareaRef}
+                    className="w-full h-full min-h-[320px] bg-transparent text-white/90 text-lg leading-[1.75] border-none focus:outline-none resize-none scrollbar-thin focus:ring-0 focus:ring-offset-0 font-sans placeholder:text-white/25"
+                    placeholder="Write in Markdown — headings, lists, links, and voice tags are supported."
+                    spellCheck
+                  />
+                </div>
                 <div className="flex justify-between items-center mt-1.5 px-1 text-[10px] text-white/35 font-mono select-none">
                   <span>{liveNote.article ? 'Article' : 'Note'}</span>
                   <span>{content.length.toLocaleString()} chars</span>
