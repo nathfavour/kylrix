@@ -387,7 +387,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
               <ShareLockButton 
                 resourceType="note"
                 resourceId={note.$id}
-                isPublic={!!note.isPublic}
+                isPublic={getNotePublicState(note)}
                 isGuest={!!note.isGuest}
                 accentColor="#EC4899"
                 onPublished={({ isPublic, isGuest }) => {
