@@ -60,6 +60,24 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
   const [isPaywallDialogOpen, setIsPaywallDialogOpen] = useState(false);
   const [isAIProcessing, setIsAIProcessing] = useState(false);
   const [isMenuDrawerOpen, setIsMenuDrawerOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const contentWrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isMenuDrawerOpen) {
+      const timer = setTimeout(() => {
+        if (contentWrapperRef.current) {
+          const hasScroll = contentWrapperRef.current.scrollHeight > contentWrapperRef.current.clientHeight;
+          setHasOverflow(hasScroll);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      setIsExpanded(false);
+      setHasOverflow(false);
+    }
+  }, [isMenuDrawerOpen]);
 
   const { openMenu } = useContextMenu();
   const { openSidebar } = useDynamicSidebar();
@@ -419,6 +437,8 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
               mx: 'auto',
               p: 2,
               pb: 4,
+              height: isExpanded ? '92dvh' : '60dvh',
+              transition: 'height 0.3s ease-in-out',
               pointerEvents: 'auto',
             }
           }}
@@ -428,8 +448,35 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
             disablePortal: true,
           }}
         >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pointerEvents: 'auto' }}>
-            <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: '#3D3A36', mx: 'auto', mb: 1 }} aria-hidden />
+          {hasOverflow && (
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                py: 1, 
+                cursor: 'pointer',
+                pointerEvents: 'auto'
+              }}
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: '#3D3A36' }} aria-hidden />
+            </Box>
+          )}
+
+          <Box 
+            ref={contentWrapperRef}
+            sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 1.5, 
+              pointerEvents: 'auto',
+              flex: 1,
+              overflowY: 'auto'
+            }}
+          >
+            {!hasOverflow && (
+              <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: '#3D3A36', mx: 'auto', mb: 1 }} aria-hidden />
+            )}
             <Typography sx={{ fontSize: '0.9rem', fontWeight: 950, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', tracking: '0.05em', fontFamily: 'var(--font-mono)', mb: 1, textAlign: 'center' }}>
               Note Actions
             </Typography>
