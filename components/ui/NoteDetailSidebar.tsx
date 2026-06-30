@@ -29,7 +29,8 @@ import {
   Copy as CopyIcon,
   Tag as TagIcon,
   Plus,
-  Clipboard
+  Clipboard,
+  MoreVertical
 } from 'lucide-react';
 
 import { 
@@ -935,6 +936,16 @@ export function NoteDetailSidebar({
             title={isPinnedFunc(liveNote.$id) ? 'Unpin' : 'Pin'}
           >
             <PinIcon className="w-4 h-4" />
+          </button>
+
+          {/* More actions (three dots) */}
+          <button 
+            type="button"
+            onClick={() => setIsContextDrawerOpen(true)} 
+            className="p-1.5 rounded-lg bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center"
+            title="More Actions"
+          >
+            <MoreVertical className="w-4 h-4" />
           </button>
 
           {/* Header Delete */}
