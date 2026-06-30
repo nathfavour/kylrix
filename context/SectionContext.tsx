@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Box, Divider, useTheme, useMediaQuery, CircularProgress, Typography, Drawer, alpha } from '@/lib/openbricks/primitives';
 import { usePathname } from 'next/navigation';
 import { recordAnonymizedTelemetry } from '@/lib/actions/client-ops';
@@ -46,6 +46,14 @@ export interface SectionConfig {
   }>;
 }
 
+export interface PageState {
+  activeDetail: ActiveDetail | null;
+  scrollPositions: Record<string, number>;
+  activeDrawers: Record<string, boolean>;
+  routePaths: Record<string, string>;
+  extra: Record<string, any>;
+}
+
 interface SectionContextType {
   getLayoutForRoute: (route: string) => SectionConfig;
   updateRouteOverride: (route: string, override: Partial<SectionConfig>) => void;
@@ -53,6 +61,10 @@ interface SectionContextType {
   screenWidth: number;
   activeDetail: ActiveDetail | null;
   setActiveDetail: (detail: ActiveDetail | null) => void;
+  pageState: PageState;
+  updatePageState: (updater: Partial<PageState> | ((prev: PageState) => PageState)) => void;
+  persistScrollPosition: (key: string, scrollY: number) => void;
+  getScrollPosition: (key: string) => number;
 }
 
 const SectionContext = createContext<SectionContextType | undefined>(undefined);
@@ -75,9 +87,148 @@ const DEFAULT_LAYOUTS: Record<string, PanelType[]> = {
   '/send': ['stash'],
 };
 
+import { getSettings, updateSettings, createSettings } from '@/lib/appwrite/note';
+
 export function SectionProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [activeDetail, setActiveDetail] = useState<ActiveDetail | null>(null);
+  const { user } = useAuth();
+
+  const [pageState, setPageState] = useState<PageState>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('kylrix:pageState');
+        return saved ? JSON.parse(saved) : {
+          activeDetail: null,
+          scrollPositions: {},
+          activeDrawers: {},
+          routePaths: {},
+          extra: {},
+        };
+      } catch {
+        // Fallback
+      }
+    }
+    return {
+      activeDetail: null,
+      scrollPositions: {},
+      activeDrawers: {},
+      routePaths: {},
+      extra: {},
+    };
+  });
+
+  const updatePageState = useCallback((updater: Partial<PageState> | ((prev: PageState) => PageState)) => {
+    setPageState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('kylrix:pageState', JSON.stringify(next));
+      }
+      return next;
+    });
+  }, []);
+
+  const persistScrollPosition = useCallback((key: string, scrollY: number) => {
+    setPageState(prev => {
+      const next = {
+        ...prev,
+        scrollPositions: {
+          ...prev.scrollPositions,
+          [key]: scrollY
+        }
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('kylrix:pageState', JSON.stringify(next));
+      }
+      return next;
+    });
+  }, []);
+
+  const getScrollPosition = useCallback((key: string) => {
+    return pageState.scrollPositions[key] || 0;
+  }, [pageState.scrollPositions]);
+
+  const handleSetActiveDetail = useCallback((detail: ActiveDetail | null) => {
+    setActiveDetail(detail);
+    updatePageState({ activeDetail: detail });
+  }, [updatePageState]);
+
+  // Sync cloud pageState to local state when user logs in
+  useEffect(() => {
+    if (!user?.$id) return;
+
+    const loadCloudState = async () => {
+      try {
+        const userId = user.$id;
+        const row = await getSettings(userId);
+        if (row && row.settings) {
+          const config = JSON.parse(row.settings);
+          if (config.pageState) {
+            setPageState(prev => {
+              const merged = {
+                ...prev,
+                ...config.pageState,
+                scrollPositions: { ...prev.scrollPositions, ...config.pageState.scrollPositions },
+                activeDrawers: { ...prev.activeDrawers, ...config.pageState.activeDrawers },
+                routePaths: { ...prev.routePaths, ...config.pageState.routePaths },
+                extra: { ...prev.extra, ...config.pageState.extra },
+              };
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('kylrix:pageState', JSON.stringify(merged));
+              }
+              return merged;
+            });
+            if (config.pageState.activeDetail) {
+              setActiveDetail(config.pageState.activeDetail);
+            }
+          }
+        }
+      } catch (err) {
+        // Safe to ignore
+      }
+    };
+    loadCloudState();
+  }, [user?.$id]);
+
+  // Debounced cloud sync of pageState
+  useEffect(() => {
+    if (!user?.$id) return;
+
+    const handler = setTimeout(async () => {
+      try {
+        const userId = user.$id;
+        let existingConfig: any = {};
+        try {
+          const row = await getSettings(userId);
+          existingConfig = row.settings ? JSON.parse(row.settings) : {};
+        } catch {
+          // Row doesn't exist
+        }
+
+        existingConfig.pageState = pageState;
+
+        try {
+          await updateSettings(userId, { settings: JSON.stringify(existingConfig) });
+        } catch {
+          await createSettings({
+            userId,
+            settings: JSON.stringify(existingConfig)
+          });
+        }
+      } catch (err) {
+        console.error('Failed to sync page state to cloud:', err);
+      }
+    }, 1500);
+
+    return () => clearTimeout(handler);
+  }, [pageState, user?.$id]);
+
+  // Restore initial active detail on mount
+  useEffect(() => {
+    if (pageState.activeDetail) {
+      setActiveDetail(pageState.activeDetail);
+    }
+  }, []);
   
   const [overrides, setOverrides] = useState<Record<string, Partial<SectionConfig>>>(() => {
     if (typeof window !== 'undefined') {
@@ -101,9 +252,13 @@ export function SectionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Close hijacked details panel automatically on path navigation to prevent UI state leakage
+  const lastPathnameRef = useRef(pathname);
   useEffect(() => {
-    setActiveDetail(null);
-  }, [pathname]);
+    if (lastPathnameRef.current !== pathname) {
+      lastPathnameRef.current = pathname;
+      handleSetActiveDetail(null);
+    }
+  }, [pathname, handleSetActiveDetail]);
 
   const updateRouteOverride = useCallback((route: string, override: Partial<SectionConfig>) => {
     setOverrides((prev) => {
@@ -232,8 +387,12 @@ export function SectionProvider({ children }: { children: React.ReactNode }) {
     resetOverrides,
     screenWidth,
     activeDetail,
-    setActiveDetail,
-  }), [screenWidth, activeDetail, getLayoutForRoute, updateRouteOverride, resetOverrides]);
+    setActiveDetail: handleSetActiveDetail,
+    pageState,
+    updatePageState,
+    persistScrollPosition,
+    getScrollPosition
+  }), [screenWidth, activeDetail, handleSetActiveDetail, pageState, updatePageState, persistScrollPosition, getScrollPosition, getLayoutForRoute, updateRouteOverride, resetOverrides]);
 
   return (
     <SectionContext.Provider value={contextValue}>

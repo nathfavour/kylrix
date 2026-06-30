@@ -56,6 +56,7 @@ import { hasPaidKylrixPlan } from '@/lib/utils';
 import { IdentityAvatar } from '@/components/common/IdentityBadge';
 import { useNotes } from '@/context/NotesContext';
 import { useDataNexus } from '@/context/DataNexusContext';
+import { useSection } from '@/context/SectionContext';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { formatNoteCreatedDate, formatNoteUpdatedDate } from '@/lib/date-utils';
@@ -116,6 +117,8 @@ export function NoteDetailSidebar({
   const { openCallLauncher } = useCallLauncher();
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const { ecosystemTags, refreshEcosystemTags } = useTask();
+  const { persistScrollPosition, getScrollPosition } = useSection();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { setCachedData } = useDataNexus();
   const { notes: allNotes, isPinned, pinNote, unpinNote } = useNotes();
@@ -128,6 +131,13 @@ export function NoteDetailSidebar({
     () => (realtimeNote?.$id === note.$id ? realtimeNote : (allNotes || []).find((candidate: any) => candidate.$id === note.$id) || note),
     [allNotes, note, realtimeNote]
   );
+
+  useEffect(() => {
+    if (scrollContainerRef.current && liveNote?.$id) {
+      const saved = getScrollPosition(`note_detail:${liveNote.$id}`);
+      scrollContainerRef.current.scrollTop = saved;
+    }
+  }, [liveNote?.$id, getScrollPosition]);
 
   const updateLocalAndParentNote = useCallback((updated: Notes) => {
     onUpdate(updated);
@@ -259,13 +269,11 @@ export function NoteDetailSidebar({
     }
 
     if (isDirtyRef.current) return;
-    if (serverTs !== lastAppliedServerTsRef.current) {
-      lastAppliedServerTsRef.current = serverTs;
-      setTitle(liveNote.title || '');
-      setContent(liveNote.content || '');
-      setTags(liveNote.tags?.join(', ') || '');
-      setIsPublic(getNotePublicState(liveNote));
-    }
+    lastAppliedServerTsRef.current = serverTs;
+    setTitle(liveNote.title || '');
+    setContent(liveNote.content || '');
+    setTags(liveNote.tags?.join(', ') || '');
+    setIsPublic(getNotePublicState(liveNote));
   }, [liveNote]);
 
   // Synchronize candidate note changes to the local cache and parent notes list in real-time (keystroke buffering)
@@ -963,7 +971,15 @@ export function NoteDetailSidebar({
       </div>
 
       {/* Content Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scrollbar-thin">
+      <div 
+        ref={scrollContainerRef}
+        onScroll={(e) => {
+          if (liveNote?.$id) {
+            persistScrollPosition(`note_detail:${liveNote.$id}`, e.currentTarget.scrollTop);
+          }
+        }}
+        className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scrollbar-thin"
+      >
         {/* Editor Box */}
         <div className="flex flex-col p-4 rounded-[20px] bg-[#0A0908] border border-white/[0.04] shadow-[0_8px_24px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/30 transition-all flex-shrink-0">
           <div className="flex justify-between items-center mb-3">
