@@ -157,6 +157,7 @@ export type Notes = Models.Row & {
     metadata: string | null;
     format: string | null;
     attachments: string[] | null;
+    article?: boolean | null;
     // Virtual attributes (hydrated from metadata)
     linkedTaskId?: string | null;
     linkedTaskIds?: string[] | null;

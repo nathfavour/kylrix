@@ -828,7 +828,8 @@ export async function updateNote(noteId: string, data: Partial<Notes>, jwt?: str
     
     // Encrypt fields client-side if we hold the active encryption key
     const key = activeNoteKeys.get(noteId);
-    if (key && (data.content !== undefined || data.title !== undefined)) {
+    const isArticle = data.article === true;
+    if (key && !isArticle && (data.content !== undefined || data.title !== undefined)) {
       try {
         const titleText = data.title || 'Untitled Thought';
         const contentText = data.content || '';

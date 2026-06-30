@@ -52,6 +52,7 @@ export const NoteSchema = z.object({
   isPublic: z.boolean().optional(),
   isGuest: z.boolean().optional(),
   metadata: z.string().nullable().optional(),
+  article: z.boolean().optional().nullable(),
 });
 
 export const ProjectSchema = z.object({

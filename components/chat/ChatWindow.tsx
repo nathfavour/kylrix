@@ -1376,13 +1376,7 @@ export const ChatWindow = ({ conversationId, onBack }: { conversationId: string;
                 mediaRecorder.start();
                 setIsRecording(true);
 
-                // Enforce strict client-side limit of 120 seconds (2 minutes)
-                recordingTimerRef.current = setTimeout(() => {
-                    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-                        mediaRecorderRef.current.stop();
-                    }
-                    setIsRecording(false);
-                }, 120000);
+                // Audio length limit removed for Pro/Teams users.
 
             } catch (err) {
                 console.error("Failed to start recording:", err);

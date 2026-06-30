@@ -507,10 +507,7 @@ export function ProjectDiscussionSidebar({
       setIsRecording(true);
       setRecordingSeconds(0);
       recordingIntervalRef.current = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
-      recordingTimerRef.current = setTimeout(() => {
-        if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
-        setIsRecording(false);
-      }, 120000);
+      // Audio length limit removed for Pro/Teams users.
     } catch {
       showError('Microphone access is required for voice notes.');
     }

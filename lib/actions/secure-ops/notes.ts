@@ -591,18 +591,12 @@ export async function createNoteSecure(data: any, jwt?: string) {
   }
 
   const contentLength = (noteData.content || '').length;
-  const BASE_NOTE_LIMIT = 655350;
-  const PRO_NOTE_LIMIT = 655350000;
+  const STANDARD_LIMIT = 65535;
+  const ARTICLE_LIMIT = 655300000;
+  const limit = noteData.article === true ? ARTICLE_LIMIT : STANDARD_LIMIT;
 
-  if (contentLength > BASE_NOTE_LIMIT) {
-    if (!hasPaidKylrixPlan(actor)) {
-      throw new Error('PAYWALL_REQUIRED: Note content exceeds free limit');
-    }
-    if (contentLength > PRO_NOTE_LIMIT) {
-      throw new Error('Note content exceeds maximum allowed limit');
-    }
-    // Anything beyond the base limit is considered an article
-    noteData.isArticle = true;
+  if (contentLength > limit) {
+    throw new Error(`Content exceeds maximum allowed limit for ${noteData.article === true ? 'articles' : 'standard notes'}`);
   }
 
   const tables = createSystemTablesDB();
@@ -770,18 +764,12 @@ export async function updateNoteSecure(noteId: string, data: any, jwt?: string) 
   }
 
   const contentLength = (data.content || '').length;
-  const BASE_NOTE_LIMIT = 655350;
-  const PRO_NOTE_LIMIT = 655350000;
+  const STANDARD_LIMIT = 65535;
+  const ARTICLE_LIMIT = 655300000;
+  const limit = data.article === true ? ARTICLE_LIMIT : STANDARD_LIMIT;
 
-  if (contentLength > BASE_NOTE_LIMIT) {
-    if (!hasPaidKylrixPlan(actor)) {
-      throw new Error('PAYWALL_REQUIRED: Note content exceeds free limit');
-    }
-    if (contentLength > PRO_NOTE_LIMIT) {
-      throw new Error('Note content exceeds maximum allowed limit');
-    }
-    // Anything beyond the base limit is considered an article
-    data.isArticle = true;
+  if (contentLength > limit) {
+    throw new Error(`Content exceeds maximum allowed limit for ${data.article === true ? 'articles' : 'standard notes'}`);
   }
 
   const tables = createSystemTablesDB();

@@ -79,6 +79,7 @@ export default function CreateNoteForm({
   const [tags, setTags] = useState<string[]>(normalizeTags(initialContent?.tags || []));
   const [isPublic, setIsPublic] = useState(initialContent?.isPublic || false);
   const [isGuest, setIsGuest] = useState(initialContent?.isGuest || false);
+  const [isArticle, setIsArticle] = useState(false);
   const [isTitleManuallyEdited, setIsTitleManuallyEdited] = useState(false);
   const [currentTag, setCurrentTag] = useState('');
   const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
@@ -195,12 +196,7 @@ export default function CreateNoteForm({
           setRecordingDuration(prev => prev + 1);
         }, 1000);
 
-        recordingTimerRef.current = setTimeout(() => {
-          if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-            mediaRecorderRef.current.stop();
-          }
-          setIsRecording(false);
-        }, 120000); // 120 seconds limit (2 minutes)
+        // Audio length limit removed for Pro/Teams users.
 
       } catch (err) {
         console.error("Failed to start recording:", err);
@@ -329,10 +325,12 @@ export default function CreateNoteForm({
         setComposerKind(nextComposerKind);
         const cachedPublic = getNotePublicState(cached as Notes);
         const cachedGuest = !!(cached as any).isGuest;
+        const cachedArticle = !!(cached as any).article;
         setIsPublic(cachedPublic);
         setPersistedIsPublic(cachedPublic);
         setIsGuest(cachedGuest);
         setPersistedIsGuest(cachedGuest);
+        setIsArticle(cachedArticle);
         const paywall = (cached as any).metadata?.paywall;
         setHasPaywall(!!paywall?.enabled);
         setPaywallAmount(paywall?.amount || 0);
@@ -344,6 +342,7 @@ export default function CreateNoteForm({
           composerKind: nextComposerKind,
           isPublic: cachedPublic,
           isGuest: cachedGuest,
+          isArticle: cachedArticle,
           hasPaywall: !!paywall?.enabled,
           paywallAmount: paywall?.amount || 0,
           resolvedNoteId: cached.$id,
@@ -361,10 +360,12 @@ export default function CreateNoteForm({
         setComposerKind(nextComposerKind);
         const loadedPublic = getNotePublicState(loaded as Notes);
         const loadedGuest = !!(loaded as any).isGuest;
+        const loadedArticle = !!(loaded as any).article;
         setIsPublic(loadedPublic);
         setPersistedIsPublic(loadedPublic);
         setIsGuest(loadedGuest);
         setPersistedIsGuest(loadedGuest);
+        setIsArticle(loadedArticle);
         const paywall = (loaded as any).metadata?.paywall;
         setHasPaywall(!!paywall?.enabled);
         setPaywallAmount(paywall?.amount || 0);
@@ -376,6 +377,7 @@ export default function CreateNoteForm({
           composerKind: nextComposerKind,
           isPublic: loadedPublic,
           isGuest: loadedGuest,
+          isArticle: loadedArticle,
           hasPaywall: !!paywall?.enabled,
           paywallAmount: paywall?.amount || 0,
           resolvedNoteId: loaded.$id,
@@ -490,6 +492,7 @@ export default function CreateNoteForm({
         kind: composerKind,
         isPublic,
         isGuest,
+        article: isArticle,
         metadata: JSON.stringify({
           paywall: hasPaywall && paywallAmount ? {
             enabled: true,
@@ -852,6 +855,18 @@ export default function CreateNoteForm({
               >
                 <Globe className="w-2.5 h-2.5" />
                 <span>Public</span>
+              </button>
+            </div>
+
+            {/* Article Toggle */}
+            <div className="flex items-center gap-1 bg-black/40 border border-white/5 rounded-xl p-0.5 text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => setIsArticle(!isArticle)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-colors font-bold ${isArticle ? 'bg-[#6366F1]/20 text-[#6366F1] font-extrabold' : 'text-white/40 hover:text-white'}`}
+              >
+                <FileText className="w-2.5 h-2.5" />
+                <span>Article</span>
               </button>
             </div>
 
