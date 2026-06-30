@@ -695,6 +695,9 @@ export default function CreateNoteForm({
                 }`}>
                   Autosave
                 </span>
+                <span className="text-[10px] font-mono text-white/40 border-l border-white/10 pl-2">
+                   {content.length}/{isArticle ? '655,300,000' : '65,535'}
+                </span>
               </div>
             </div>
           </div>
@@ -753,6 +756,7 @@ export default function CreateNoteForm({
             ref={contentRef}
             rows={isExpanded ? 12 : 6}
             value={content}
+            maxLength={isArticle ? 655300000 : 65535}
             onPaste={handlePaste}
             onChange={(event) => {
               const val = event.target.value;
