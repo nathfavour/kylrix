@@ -258,15 +258,14 @@ export function NoteDetailSidebar({
     }
 
     if (isDirtyRef.current) return;
-    const contentDiverged = liveNote.title !== title || liveNote.content !== content;
-    if (serverTs !== lastAppliedServerTsRef.current || contentDiverged) {
+    if (serverTs !== lastAppliedServerTsRef.current) {
       lastAppliedServerTsRef.current = serverTs;
       setTitle(liveNote.title || '');
       setContent(liveNote.content || '');
       setTags(liveNote.tags?.join(', ') || '');
       setIsPublic(getNotePublicState(liveNote));
     }
-  }, [liveNote, title, content]);
+  }, [liveNote]);
 
   // Synchronize candidate note changes to the local cache and parent notes list in real-time (keystroke buffering)
   useEffect(() => {
@@ -498,8 +497,10 @@ export function NoteDetailSidebar({
 
   const { isSaving: isAutosaving, forceSave } = useAutosave(candidateNote, {
     onSave: (savedNote: Notes) => {
-      isDirtyRef.current = false;
-      setIsDirty(false);
+      if (candidateNoteRef.current.content === savedNote.content && candidateNoteRef.current.title === savedNote.title) {
+        isDirtyRef.current = false;
+        setIsDirty(false);
+      }
       lastAppliedServerTsRef.current = String(savedNote.updatedAt || savedNote.$updatedAt || '');
       updateLocalAndParentNote(savedNote);
     },
@@ -1011,22 +1012,28 @@ export function NoteDetailSidebar({
             ) : liveNote.format === 'doodle' ? (
               <NoteContentRenderer content={content} format="doodle" />
             ) : (
-              <textarea
-                value={content}
-                onChange={(e) => {
-                  setContent(e.target.value);
-                  markDirty();
-                }}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  setIsContextDrawerOpen(true);
-                }}
-                ref={contentTextareaRef}
-                className="w-full min-h-[320px] bg-transparent text-white/90 text-lg leading-[1.75] border-none focus:outline-none resize-none scrollbar-thin focus:ring-0 focus:ring-offset-0 font-sans placeholder:text-white/25"
-                placeholder="Write in Markdown — headings, lists, links, and voice tags are supported."
-                spellCheck
-              />
+              <>
+                <textarea
+                  value={content}
+                  onChange={(e) => {
+                    setContent(e.target.value);
+                    markDirty();
+                  }}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setIsContextDrawerOpen(true);
+                  }}
+                  ref={contentTextareaRef}
+                  className="w-full min-h-[320px] bg-transparent text-white/90 text-lg leading-[1.75] border-none focus:outline-none resize-none scrollbar-thin focus:ring-0 focus:ring-offset-0 font-sans placeholder:text-white/25"
+                  placeholder="Write in Markdown — headings, lists, links, and voice tags are supported."
+                  spellCheck
+                />
+                <div className="flex justify-between items-center mt-1.5 px-1 text-[10px] text-white/35 font-mono select-none">
+                  <span>{liveNote.article ? 'Article' : 'Note'}</span>
+                  <span>{content.length.toLocaleString()} chars</span>
+                </div>
+              </>
             )}
           </div>
         </div>
