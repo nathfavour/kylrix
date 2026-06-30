@@ -42,6 +42,7 @@ import { useProUpgrade } from '@/context/ProUpgradeContext';
 import { useAuth } from '@/context/auth/AuthContext';
 import { hasPaidKylrixPlan } from '@/lib/utils';
 import { generateAIAction } from '@/lib/ai-actions';
+import { useDrawerState } from '@/components/ui/DrawerStateContext';
 
 interface NoteCardProps {
   note: Notes;
@@ -92,6 +93,12 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
   
   const { promptSudo } = useSudo();
   const { openProUpgrade } = useProUpgrade();
+  const { setIsDrawerOpen } = useDrawerState();
+
+  React.useEffect(() => {
+    setIsDrawerOpen(isMenuDrawerOpen);
+    return () => setIsDrawerOpen(false);
+  }, [isMenuDrawerOpen, setIsDrawerOpen]);
   const { showSuccess, showError, showInfo } = useToast();
 
   React.useEffect(() => setMounted(true), []);
@@ -405,6 +412,10 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
           onClose={() => setIsMenuDrawerOpen(false)}
           PaperProps={{
             sx: {
+              position: 'fixed !important',
+              bottom: '0 !important',
+              left: '0 !important',
+              right: '0 !important',
               borderTopLeftRadius: '24px',
               borderTopRightRadius: '24px',
               bgcolor: '#161412',
