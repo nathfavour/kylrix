@@ -43,10 +43,11 @@ export async function encryptGhostData(text: string, providedKey?: string): Prom
  */
 export async function decryptGhostData(encryptedData: string, keyBase64: string): Promise<string> {
     try {
-        const [ivBase64, encrypted, authTagBase64] = restoreStandardBase64(encryptedData).split('.');
-        if (!ivBase64 || !encrypted || !authTagBase64) {
+        const parts = encryptedData.split('.');
+        if (parts.length !== 3) {
             throw new Error('Invalid encrypted data format');
         }
+        const [ivBase64, encrypted, authTagBase64] = parts.map(restoreStandardBase64);
 
         const key = Buffer.from(restoreStandardBase64(keyBase64), 'base64');
         const iv = Buffer.from(ivBase64, 'base64');

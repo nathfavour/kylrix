@@ -1723,7 +1723,7 @@ export const FormGroup = ({ children, ...props }: any) => React.createElement('d
 export const Fullscreen = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const FullscreenExit = ({ children, ...props }: any) => React.createElement('div', props, children);
 export const InfoOutlined = ({ children, ...props }: any) => React.createElement('div', props, children);
-export const InputBase = React.forwardRef(({ className, sx, inputRef, endAdornment, startAdornment, ...props }: any, ref) => {
+export const InputBase = React.forwardRef(({ className, sx, inputRef, endAdornment, startAdornment, fullWidth, ...props }: any, ref) => {
   const { root, nested } = splitSx(sx);
   const placeholderStyle = nested['& input::placeholder'] || {};
   return (

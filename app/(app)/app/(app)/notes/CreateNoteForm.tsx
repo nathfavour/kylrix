@@ -574,8 +574,8 @@ export default function CreateNoteForm({
           const existingIndex = history.findIndex((n: any) => n.id === id);
           const newRef = {
             id,
-            title: generatedTitle,
-            content: payload.content,
+            title: encTitle,
+            content: encContent,
             metadata: saved.metadata,
             createdAt: new Date().toISOString(),
             expiresAt,

@@ -2645,7 +2645,19 @@ export async function updateCredential(
         const index = history.findIndex((n: any) => n.id === id);
         if (index !== -1) {
           const match = history[index];
-          const payload = JSON.parse(match.content || '{}');
+          let decryptedTitle = match.title;
+          let decryptedContent = match.content || '{}';
+          if (match.decryptionKey) {
+            const { decryptGhostData } = await import('@/lib/encryption/ghost-crypto');
+            try {
+              decryptedTitle = await decryptGhostData(match.title, match.decryptionKey);
+              decryptedContent = await decryptGhostData(match.content || '', match.decryptionKey);
+            } catch (e) {
+              console.error('Failed to decrypt ghost credential for update:', e);
+            }
+          }
+          
+          const payload = JSON.parse(decryptedContent);
           const updatedPayload = {
             ...payload,
             username: data.username !== undefined ? data.username : payload.username,
@@ -2654,13 +2666,13 @@ export async function updateCredential(
           };
 
           const { encryptGhostData } = await import('@/lib/encryption/ghost-crypto');
-          const { encrypted: encTitle, key: noteKey } = await encryptGhostData(data.name || match.title);
+          const { encrypted: encTitle, key: noteKey } = await encryptGhostData(data.name !== undefined ? data.name : decryptedTitle);
           const { encrypted: encContent } = await encryptGhostData(JSON.stringify(updatedPayload), noteKey);
 
           history[index] = {
             ...match,
-            title: data.name || match.title,
-            content: JSON.stringify(updatedPayload),
+            title: encTitle,
+            content: encContent,
             decryptionKey: noteKey,
           };
           localStorage.setItem('kylrix_ghost_notes_v2', JSON.stringify(history));

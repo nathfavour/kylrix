@@ -986,8 +986,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           const id = `ghost-${crypto.randomUUID()}`;
           const newRef = {
             id,
-            title: task.title,
-            content: JSON.stringify(taskPayload),
+            title: encTitle,
+            content: encContent,
             metadata: JSON.stringify({
               isGhost: true,
               ghostSecret: secret,

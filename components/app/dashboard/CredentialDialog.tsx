@@ -312,8 +312,8 @@ export default function CredentialDialog({
         const id = initial?.$id || `ghost-${crypto.randomUUID()}`;
         const newRef = {
           id,
-          title: credentialData.name,
-          content: JSON.stringify(credentialPayload),
+          title: encTitle,
+          content: encContent,
           metadata: JSON.stringify({
             isGhost: true,
             ghostSecret: secret,

@@ -805,12 +805,23 @@ export async function getNote(noteId: string): Promise<Notes> {
       const history = JSON.parse(historyRaw);
       const match = history.find((n: any) => n.id === noteId);
       if (match) {
+        let decryptedTitle = match.title;
+        let decryptedContent = match.content || '';
+        if (match.decryptionKey) {
+          try {
+            const { decryptGhostData } = await import('@/lib/encryption/ghost-crypto');
+            decryptedTitle = await decryptGhostData(match.title, match.decryptionKey);
+            decryptedContent = await decryptGhostData(match.content || '', match.decryptionKey);
+          } catch (e) {
+            console.error('Failed to decrypt ghost note in getNote:', e);
+          }
+        }
         return {
           $id: match.id,
           $createdAt: match.createdAt,
           $updatedAt: match.createdAt,
-          title: match.title,
-          content: match.content || '',
+          title: decryptedTitle,
+          content: decryptedContent,
           format: 'text',
           tags: [],
           userId: 'ghost',
@@ -853,14 +864,46 @@ export async function updateNote(noteId: string, data: Partial<Notes>, jwt?: str
       const index = history.findIndex((n: any) => n.id === noteId);
       if (index !== -1) {
         const match = history[index];
+        
+        let decryptedTitle = match.title;
+        let decryptedContent = match.content || '';
+        if (match.decryptionKey) {
+          try {
+            const { decryptGhostData } = await import('@/lib/encryption/ghost-crypto');
+            decryptedTitle = await decryptGhostData(match.title, match.decryptionKey);
+            decryptedContent = await decryptGhostData(match.content || '', match.decryptionKey);
+          } catch (e) {
+            console.error('Failed to decrypt ghost note for update:', e);
+          }
+        }
+
+        const nextTitle = data.title !== undefined ? data.title : decryptedTitle;
+        const nextContent = data.content !== undefined ? data.content : decryptedContent;
+
+        let encTitle = nextTitle;
+        let encContent = nextContent;
+        let decryptionKey = match.decryptionKey;
+
+        if (match.decryptionKey) {
+          try {
+            const { encryptGhostData } = await import('@/lib/encryption/ghost-crypto');
+            const resTitle = await encryptGhostData(nextTitle, match.decryptionKey);
+            encTitle = resTitle.encrypted;
+            const resContent = await encryptGhostData(nextContent, match.decryptionKey);
+            encContent = resContent.encrypted;
+          } catch (e) {
+            console.error('Failed to encrypt ghost note for update:', e);
+          }
+        }
+
         const updatedRef = {
           ...match,
-          title: data.title !== undefined ? data.title : match.title,
-          content: data.content !== undefined ? data.content : match.content,
+          title: encTitle,
+          content: encContent,
           metadata: data.metadata !== undefined ? data.metadata : match.metadata,
           createdAt: match.createdAt,
           expiresAt: match.expiresAt,
-          decryptionKey: match.decryptionKey,
+          decryptionKey,
           deletionSecret: match.deletionSecret,
         };
         history[index] = updatedRef;
@@ -870,8 +913,8 @@ export async function updateNote(noteId: string, data: Partial<Notes>, jwt?: str
           $id: updatedRef.id,
           $createdAt: updatedRef.createdAt,
           $updatedAt: new Date().toISOString(),
-          title: updatedRef.title,
-          content: updatedRef.content || '',
+          title: nextTitle,
+          content: nextContent,
           format: 'text',
           tags: [],
           userId: 'ghost',
