@@ -317,11 +317,12 @@ function LoginContent() {
       }
     } catch (err: any) {
       console.error('Passkey login failed:', err);
+      console.log('VERBOSE STACK:', err.stack);
       if (err.name === 'NotAllowedError') {
         // User cancelled the prompt, do not show error banner
         return;
       }
-      setMessage(err.message || 'Passkey authentication failed');
+      setMessage(`Passkey login failed: ${err.message}\nStack: ${err.stack?.slice(0, 150)}`);
     } finally {
       setLoading(false);
     }

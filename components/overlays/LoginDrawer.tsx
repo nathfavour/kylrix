@@ -219,7 +219,8 @@ export function LoginDrawer() {
         return;
       }
       console.error('Passkey login failed:', err);
-      toast.error(err.message || 'Passkey authentication failed');
+      console.log('VERBOSE STACK:', err.stack);
+      toast.error(`Passkey login failed: ${err.message}\nStack: ${err.stack?.slice(0, 150)}`);
     } finally {
       setPasskeyLoading(false);
     }
