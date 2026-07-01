@@ -10,17 +10,9 @@ import {
 } from '@/lib/openbricks/primitives';
 import {
   FileText as NotesIcon,
-  Share2 as SharedIcon,
-  Tag as TagsIcon,
-  FolderKanban as ProjectsIcon,
   Lock as VaultIcon,
-  Shield as TotpIcon,
   CheckSquare as FlowIcon,
-  FileText as FormIcon,
-  Zap as EventsIcon,
   MessageCircle as ConnectIcon,
-  Home as HomeIcon,
-  Phone as CallsIcon,
 } from 'lucide-react';
 
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
@@ -31,7 +23,7 @@ import { useOverlay } from '@/components/ui/OverlayContext';
 
 /**
  * Persistent unified app-specific bottom bar.
- * Shows different icons/tabs based on which app you're in.
+ * Shows exactly four item icons: note, flow, vault, connect in that order.
  * Attached to bottom with full width, curved top corners.
  */
 export function UnifiedBottomBar() {
@@ -44,11 +36,11 @@ export function UnifiedBottomBar() {
   const { isOpen: isOverlayOpen } = useOverlay();
 
   const appContext = useMemo(() => {
-    if (pathname?.startsWith('/note')) return 'note';
+    if (pathname?.startsWith('/app')) return 'note';
     if (pathname?.startsWith('/vault')) return 'vault';
     if (pathname?.startsWith('/flow')) return 'flow';
     if (pathname?.startsWith('/connect')) return 'connect';
-    if (pathname?.startsWith('/projects')) return 'note'; // Default to Note context for Projects hub
+    if (pathname?.startsWith('/projects')) return 'note';
     return null;
   }, [pathname]);
 
@@ -67,41 +59,22 @@ export function UnifiedBottomBar() {
   }, [appContext]);
 
   const getCurrentTab = () => {
-    if (pathname?.startsWith('/projects')) return 'projects';
-
-    if (appContext === 'note') {
-      if (pathname?.includes('/shared')) return 'shared';
-      if (pathname?.includes('/tags')) return 'tags';
-      return 'notes';
-    }
-    if (appContext === 'vault') {
-      if (pathname?.includes('/sharing')) return 'sharing';
-      if (pathname?.includes('/totp')) return 'totp';
-      return 'credentials';
-    }
-    if (appContext === 'flow') {
-      if (pathname?.includes('/forms')) return 'forms';
-      if (pathname?.includes('/events')) return 'events';
-      return 'goals';
-    }
-    if (appContext === 'connect') {
-      if (pathname?.includes('/chats')) return 'chats';
-      if (pathname?.includes('/calls')) return 'calls';
-      return 'home';
-    }
+    if (pathname?.startsWith('/app') || pathname?.startsWith('/projects')) return 'note';
+    if (pathname?.startsWith('/flow')) return 'flow';
+    if (pathname?.startsWith('/vault')) return 'vault';
+    if (pathname?.startsWith('/connect')) return 'connect';
     return null;
   };
 
   const handleNavChange = (_: React.SyntheticEvent, newValue: string) => {
-    const routes: Record<string, Record<string, string>> = {
-      note: { notes: '/note', shared: '/note/shared', tags: '/tags', projects: '/projects' },
-      vault: { credentials: '/vault', sharing: '/vault/sharing', totp: '/vault/totp', projects: '/projects' },
-      flow: { goals: '/flow', forms: '/flow/forms', events: '/flow/events', projects: '/projects' },
-      connect: { home: '/connect', chats: '/connect/chats', calls: '/connect/calls', projects: '/projects' },
+    const routes: Record<string, string> = {
+      note: '/app',
+      flow: '/flow',
+      vault: '/vault',
+      connect: '/connect',
     };
     
-    const context = appContext || 'note';
-    const target = routes[context]?.[newValue];
+    const target = routes[newValue];
     if (!target) return;
 
     if (newValue === getCurrentTab()) {
@@ -113,52 +86,23 @@ export function UnifiedBottomBar() {
   };
 
   const renderNavItems = () => {
-    const context = appContext || 'note';
-    if (context === 'note') {
-      return [
-        <BottomNavigationAction key="notes" value="notes" icon={<NotesIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-        <BottomNavigationAction key="shared" value="shared" icon={<SharedIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-        <BottomNavigationAction key="tags" value="tags" icon={<TagsIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-        <BottomNavigationAction key="projects" value="projects" icon={<ProjectsIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-      ];
-    }
-    if (context === 'vault') {
-      return [
-        <BottomNavigationAction key="credentials" value="credentials" icon={<VaultIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-        <BottomNavigationAction key="sharing" value="sharing" icon={<SharedIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-        <BottomNavigationAction key="totp" value="totp" icon={<TotpIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-        <BottomNavigationAction key="projects" value="projects" icon={<ProjectsIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-      ];
-    }
-    if (context === 'flow') {
-      return [
-        <BottomNavigationAction key="goals" value="goals" icon={<FlowIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-        <BottomNavigationAction key="forms" value="forms" icon={<FormIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-        <BottomNavigationAction key="events" value="events" icon={<EventsIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-        <BottomNavigationAction key="projects" value="projects" icon={<ProjectsIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-      ];
-    }
-    if (context === 'connect') {
-      return [
-        <BottomNavigationAction key="home" value="home" icon={<HomeIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-        <BottomNavigationAction key="chats" value="chats" icon={<ConnectIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-        <BottomNavigationAction key="calls" value="calls" icon={<CallsIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-        <BottomNavigationAction key="projects" value="projects" icon={<ProjectsIcon size={24} strokeWidth={1.5} className="lucide" />} />,
-      ];
-    }
-    return null;
+    return [
+      <BottomNavigationAction key="note" value="note" icon={<NotesIcon size={24} strokeWidth={1.5} className="lucide" />} />,
+      <BottomNavigationAction key="flow" value="flow" icon={<FlowIcon size={24} strokeWidth={1.5} className="lucide" />} />,
+      <BottomNavigationAction key="vault" value="vault" icon={<VaultIcon size={24} strokeWidth={1.5} className="lucide" />} />,
+      <BottomNavigationAction key="connect" value="connect" icon={<ConnectIcon size={24} strokeWidth={1.5} className="lucide" />} />,
+    ];
   };
 
-  const isNoteFullPageDetail = Boolean(pathname?.match(/^\/note\/notes\/[^/]+$/));
+  const isNoteFullPageDetail = Boolean(pathname?.match(/^\/app\/notes\/[^/]+$/));
   const isConnectCallDetail = Boolean(pathname?.match(/^\/connect\/call\/[^/]+$/));
   const isSpecificChatPage = Boolean(pathname?.match(/^\/connect\/chat\/[^/]+$/));
   const isSpecificPostPage = Boolean(pathname?.match(/^\/connect\/post\/[^/]+$/));
   const isSpecificProjectPage = Boolean(pathname?.match(/^\/projects\/[^/]+$/));
   const isPublicFormPage = Boolean(pathname?.match(/^\/flow\/form\/[^/]+$/));
-  const isSharedNotePage = Boolean(pathname?.startsWith('/note/shared'));
+  const isSharedNotePage = Boolean(pathname?.startsWith('/app/shared'));
 
   if (pathname?.startsWith('/accounts')) return null;
-  if (pathname?.startsWith('/projects')) return null;
 
   if (
     isSpecificChatPage ||

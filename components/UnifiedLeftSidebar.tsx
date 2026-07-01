@@ -5,17 +5,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Box, Paper, Tooltip } from '@/lib/openbricks/primitives';
 import {
   FileText as NotesIcon,
-  Share2 as SharedIcon,
-  Tag as TagsIcon,
-  FolderKanban as ProjectsIcon,
   Lock as VaultIcon,
-  Shield as TotpIcon,
   CheckSquare as FlowIcon,
-  FileText as FormIcon,
-  Zap as EventsIcon,
   MessageCircle as ConnectIcon,
-  Home as HomeIcon,
-  Phone as CallsIcon,
 } from 'lucide-react';
 
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
@@ -35,10 +27,11 @@ export function UnifiedLeftSidebar() {
 
   // Determine which app we're in
   const appContext = useMemo(() => {
-    if (pathname?.startsWith('/note')) return 'note';
+    if (pathname?.startsWith('/app')) return 'note';
     if (pathname?.startsWith('/vault')) return 'vault';
     if (pathname?.startsWith('/flow')) return 'flow';
     if (pathname?.startsWith('/connect')) return 'connect';
+    if (pathname?.startsWith('/projects')) return 'note';
     return null;
   }, [pathname]);
 
@@ -59,66 +52,24 @@ export function UnifiedLeftSidebar() {
 
   // Get current tab based on pathname
   const getCurrentTab = () => {
-    if (appContext === 'note') {
-      if (pathname?.includes('/shared')) return 'shared';
-      if (pathname?.includes('/tags')) return 'tags';
-      return 'notes';
-    }
-    if (appContext === 'vault') {
-      if (pathname?.includes('/sharing')) return 'sharing';
-      if (pathname?.includes('/totp')) return 'totp';
-      return 'credentials';
-    }
-    if (appContext === 'flow') {
-      if (pathname?.includes('/forms')) return 'forms';
-      if (pathname?.includes('/events')) return 'events';
-      return 'goals';
-    }
-    if (appContext === 'connect') {
-      if (pathname?.includes('/chats')) return 'chats';
-      if (pathname?.includes('/calls')) return 'calls';
-      return 'home';
-    }
+    if (pathname?.startsWith('/app') || pathname?.startsWith('/projects')) return 'note';
+    if (pathname?.startsWith('/flow')) return 'flow';
+    if (pathname?.startsWith('/vault')) return 'vault';
+    if (pathname?.startsWith('/connect')) return 'connect';
     return null;
   };
 
   const handleNavChange = (newValue: string) => {
-    if (appContext === 'note') {
-      const routes: Record<string, string> = {
-        notes: '/note',
-        shared: '/note/shared',
-        tags: '/tags',
-        projects: '/projects',
-      };
-      router.push(routes[newValue] || '/note');
-    } else if (appContext === 'vault') {
-      const routes: Record<string, string> = {
-        credentials: '/vault',
-        sharing: '/vault/sharing',
-        totp: '/vault/totp',
-        projects: '/projects',
-      };
-      router.push(routes[newValue] || '/vault');
-    } else if (appContext === 'flow') {
-      const routes: Record<string, string> = {
-        goals: '/flow',
-        forms: '/flow/forms',
-        events: '/flow/events',
-        projects: '/projects',
-      };
-      router.push(routes[newValue] || '/flow');
-    } else if (appContext === 'connect') {
-      const routes: Record<string, string> = {
-        home: '/connect',
-        chats: '/connect/chats',
-        calls: '/connect/calls',
-        projects: '/projects',
-      };
-      router.push(routes[newValue] || '/connect');
-    }
+    const routes: Record<string, string> = {
+      note: '/app',
+      flow: '/flow',
+      vault: '/vault',
+      connect: '/connect',
+    };
+    router.push(routes[newValue] || '/app');
   };
 
-  const isNoteFullPageDetail = Boolean(pathname?.match(/^\/note\/notes\/[^/]+$/));
+  const isNoteFullPageDetail = Boolean(pathname?.match(/^\/app\/notes\/[^/]+$/));
   const isConnectCallDetail = Boolean(pathname?.match(/^\/connect\/call\/[^/]+$/));
   const isConnectChatPage = pathname?.startsWith('/connect/chats') || pathname?.match(/^\/connect\/chat\/[^/]+$/);
   const isProjectsPage = pathname?.startsWith('/projects');
@@ -143,41 +94,12 @@ export function UnifiedLeftSidebar() {
 
   const currentTab = getCurrentTab();
 
-  const navItems = (() => {
-    if (appContext === 'note') {
-      return [
-        { id: 'notes', label: 'My Notes', icon: NotesIcon },
-        { id: 'shared', label: 'Shared Notes', icon: SharedIcon },
-        { id: 'tags', label: 'My Tags', icon: TagsIcon },
-        { id: 'projects', label: 'All Projects', icon: ProjectsIcon },
-      ];
-    }
-    if (appContext === 'vault') {
-      return [
-        { id: 'credentials', label: 'My Credentials', icon: VaultIcon },
-        { id: 'sharing', label: 'Shared Access', icon: SharedIcon },
-        { id: 'totp', label: 'TOTP Generator', icon: TotpIcon },
-        { id: 'projects', label: 'All Projects', icon: ProjectsIcon },
-      ];
-    }
-    if (appContext === 'flow') {
-      return [
-        { id: 'goals', label: 'Flow Goals', icon: FlowIcon },
-        { id: 'forms', label: 'Custom Forms', icon: FormIcon },
-        { id: 'events', label: 'Smart Events', icon: EventsIcon },
-        { id: 'projects', label: 'All Projects', icon: ProjectsIcon },
-      ];
-    }
-    if (appContext === 'connect') {
-      return [
-        { id: 'home', label: 'Connect Hub', icon: HomeIcon },
-        { id: 'chats', label: 'Ecosystem Chats', icon: ConnectIcon },
-        { id: 'calls', label: 'Voice Calls', icon: CallsIcon },
-        { id: 'projects', label: 'All Projects', icon: ProjectsIcon },
-      ];
-    }
-    return [];
-  })();
+  const navItems = [
+    { id: 'note', label: 'Notes & Projects', icon: NotesIcon },
+    { id: 'flow', label: 'Flow Goals', icon: FlowIcon },
+    { id: 'vault', label: 'Vault Crypt', icon: VaultIcon },
+    { id: 'connect', label: 'Connect Hub', icon: ConnectIcon },
+  ];
 
   return (
     <Box

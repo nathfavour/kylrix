@@ -964,19 +964,46 @@ export default function NotesPage() {
             {/* Mobile Header */}
             <header className="mb-4 flex md:hidden items-center justify-between px-3 py-2 bg-white/[0.01] border border-white/8 rounded-2xl select-none">
               <h1 className="text-white font-black text-xl tracking-tight leading-none font-mono">
-                Notes
+                {activeTab === 'notes' ? 'Notes' : 'Projects'}
               </h1>
               <div className="flex items-center gap-2">
-                <button 
-                  onClick={handleManualRefresh} 
-                  disabled={isRefreshing}
-                  className="w-9 h-9 rounded-lg bg-white/3 border border-white/8 hover:border-white/15 flex items-center justify-center transition-all duration-300 disabled:opacity-40"
-                >
-                  <RefreshIcon size={14} className={isRefreshing ? 'animate-spin text-[#EC4899]' : 'text-white/60'} />
-                </button>
+                {activeTab === 'notes' && (
+                  <button 
+                    onClick={handleManualRefresh} 
+                    disabled={isRefreshing}
+                    className="w-9 h-9 rounded-lg bg-white/3 border border-white/8 hover:border-white/15 flex items-center justify-center transition-all duration-300 disabled:opacity-40"
+                  >
+                    <RefreshIcon size={14} className={isRefreshing ? 'animate-spin text-[#EC4899]' : 'text-white/60'} />
+                  </button>
+                )}
               </div>
             </header>
-            {mainNotesContent}
+
+            {/* Tab Switcher */}
+            <div className="flex items-center gap-2 p-1 bg-white/[0.02] border border-white/5 rounded-2xl w-fit select-none mb-6">
+              <button
+                onClick={() => setActiveTab('notes')}
+                className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                  activeTab === 'notes'
+                    ? 'bg-[#EC4899] text-white shadow-[0_4px_12px_rgba(236,72,153,0.25)]'
+                    : 'text-white/50 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Notes
+              </button>
+              <button
+                onClick={() => setActiveTab('projects')}
+                className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                  activeTab === 'projects'
+                    ? 'bg-[#6366F1] text-white shadow-[0_4px_12px_rgba(99,102,241,0.25)]'
+                    : 'text-white/50 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Projects
+              </button>
+            </div>
+
+            {activeTab === 'notes' ? mainNotesContent : projectsGridContent}
           </>
         )}
       </div>
