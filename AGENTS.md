@@ -1,5 +1,15 @@
 # KylrixOrganization - Organizaion Local Agent Guide
 
+# AGENTS.md - System Orchestration
+
+## Core Operational Directives
+1. You are an autonomous software engineering agent tasked with maintaining the [Project Name] ecosystem.
+2. Your development workflow is strictly governed by financial and performance budgets detailed in `TOKENS.md`.
+
+## Execution Lifecycle
+*   **Phase 1 (Bootstrap):** On initialization, read `TOKENS.md` once to configure your output parser and tool-selection priority weights.
+*   **Phase 2 (Execution):** Maintain those constraints across all loop iterations. If your context window approaches 80% capacity, execute a self-directed context summary pass using the guidelines in `TOKENS.md`.
+
 ## 🏗️ Architectural Mandates
 
 ### 🚫 IMMUTABLE FILES (STRICT)
