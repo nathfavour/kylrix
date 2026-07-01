@@ -41,7 +41,7 @@ export default function SharingPage() {
   const [activeTab, setActiveTab] = useState(0);
   
   // Master password modal state
-  const [showMasterPassDrawer, setShowMasterPassDrawer] = useState(needsMasterPassword || !isVaultUnlocked());
+  const [showMasterPassDrawer, setShowMasterPassDrawer] = useState(!!user && (needsMasterPassword || !isVaultUnlocked()));
   
   const [credentials, setCredentials] = useState<Credentials[]>([]);
   const [totpSecrets, setTotpSecrets] = useState<TotpSecrets[]>([]);
@@ -123,12 +123,12 @@ export default function SharingPage() {
   }, [incomingShares]);
 
   useEffect(() => {
-    if (needsMasterPassword || !isVaultUnlocked()) {
+    if (user && (needsMasterPassword || !isVaultUnlocked())) {
       setShowMasterPassDrawer(true);
     } else {
       setShowMasterPassDrawer(false);
     }
-  }, [needsMasterPassword, isVaultUnlocked]);
+  }, [user, needsMasterPassword, isVaultUnlocked]);
 
   const handleMasterPassSuccess = useCallback(() => {
     setShowMasterPassDrawer(false);

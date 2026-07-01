@@ -33,7 +33,7 @@ function DashboardPageContent() {
   const { setActiveDetail } = useSection();
   
   // Master password modal state
-  const [showMasterPassDrawer, setShowMasterPassDrawer] = useState(needsMasterPassword || !isVaultUnlocked());
+  const [showMasterPassDrawer, setShowMasterPassDrawer] = useState(!!user && (needsMasterPassword || !isVaultUnlocked()));
   // Vault porter drawer state
   const [showPorterDrawer, setShowPorterDrawer] = useState(false);
   const [activeTab, setActiveTab] = useState<'secrets' | 'totp'>('secrets');
@@ -235,12 +235,12 @@ function DashboardPageContent() {
   }, [searchParams, router]);
 
   useEffect(() => {
-    if (needsMasterPassword || !isVaultUnlocked()) {
+    if (user && (needsMasterPassword || !isVaultUnlocked())) {
       setShowMasterPassDrawer(true);
     } else {
       setShowMasterPassDrawer(false);
     }
-  }, [needsMasterPassword, isVaultUnlocked]);
+  }, [user, needsMasterPassword, isVaultUnlocked]);
 
   useEffect(() => {
     registerCreateModal((prefill) => {

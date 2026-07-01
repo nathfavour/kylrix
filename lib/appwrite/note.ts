@@ -69,7 +69,8 @@ export const APPWRITE_BUCKET_BACKUPS = APPWRITE_CONFIG.BUCKETS.BACKUPS;
 export const APPWRITE_BUCKET_TEMP_UPLOADS = APPWRITE_CONFIG.BUCKETS.TEMP_UPLOADS;
 export const CONNECT_TABLE_ID_MOMENTS = APPWRITE_CONFIG.TABLES.CHAT.MOMENTS;
 
-export { client, account, databases, storage, functions, ID, Query, Permission, Role, OAuthProvider, realtime };
+// Removed redundant exports to prevent ES6 module naming collisions with client.ts
+export { ID, Query, Permission, Role, OAuthProvider };
 
 type PermissionUpdateAction = 'grant' | 'revoke';
 type NoteCollaboratorPermission = 'read' | 'write' | 'admin';

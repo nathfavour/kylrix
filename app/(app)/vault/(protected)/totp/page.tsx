@@ -28,7 +28,7 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
   const { setConfiguration, resetConfiguration } = useFAB();
   
   // Master password modal state
-  const [showMasterPassDrawer, setShowMasterPassDrawer] = useState(needsMasterPassword || !isVaultUnlocked());
+  const [showMasterPassDrawer, setShowMasterPassDrawer] = useState(!!user && (needsMasterPassword || !isVaultUnlocked()));
   
   type TotpItem = {
     $id: string;
@@ -119,12 +119,12 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
   }, [user, showNew, isVaultUnlocked]);
 
   useEffect(() => {
-    if (needsMasterPassword || !isVaultUnlocked()) {
+    if (user && (needsMasterPassword || !isVaultUnlocked())) {
       setShowMasterPassDrawer(true);
     } else {
       setShowMasterPassDrawer(false);
     }
-  }, [needsMasterPassword, isVaultUnlocked]);
+  }, [user, needsMasterPassword, isVaultUnlocked]);
 
   const handleMasterPassSuccess = useCallback(() => {
     setShowMasterPassDrawer(false);

@@ -162,7 +162,6 @@ export function LoginDrawer() {
       }
 
       // Complete Appwrite session creation using the minted token
-      const { account } = await import('@/lib/appwrite/client');
       await account.createSession(verifyRes.userId, verifyRes.token);
       
       // Sync MEK/Masterpass wrapping if available

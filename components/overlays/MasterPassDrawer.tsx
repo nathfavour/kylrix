@@ -246,6 +246,12 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
         const passwordEntries = entries.filter((e: any) => e.type === 'password');
         const passwordPresent = passwordEntries.length > 0;
 
+        if (passwordPresent) {
+          localStorage.setItem('kylrix_has_masterpass_' + user.$id, 'true');
+        } else {
+          localStorage.removeItem('kylrix_has_masterpass_' + user.$id);
+        }
+
         // Prioritize stable over pending for authentication
         const stableEntry = passwordEntries.find(e => !e.isPending);
         const pendingEntry = passwordEntries.find(e => e.isPending);
@@ -279,9 +285,16 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
         }
 
       })
-      .catch(() => {
-        setIsFirstTime(true);
-        setMode("initialize");
+      .catch((err) => {
+        console.warn("Failed to fetch keychain entries (likely offline):", err);
+        const cachedHasMasterpass = typeof window !== 'undefined' && localStorage.getItem('kylrix_has_masterpass_' + user.$id) === 'true';
+        if (cachedHasMasterpass) {
+          setIsFirstTime(false);
+          setMode("password");
+        } else {
+          setIsFirstTime(true);
+          setMode("initialize");
+        }
       })
       .finally(() => {
         setLoading(false);
