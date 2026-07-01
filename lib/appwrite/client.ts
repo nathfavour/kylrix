@@ -253,9 +253,30 @@ function readCurrentUserSnapshot() {
     if (!canUseStorage()) return null;
     try {
         const raw = localStorage.getItem(CURRENT_USER_CACHE_KEY);
-        if (!raw) return null;
+        if (!raw) {
+            // Fallback to last logged in user if we are offline
+            const isOffline = typeof window !== 'undefined' && !window.navigator.onLine;
+            if (isOffline) {
+                const lastUserRaw = localStorage.getItem('kylrix_last_logged_in_user');
+                if (lastUserRaw) {
+                    const user = JSON.parse(lastUserRaw);
+                    return { user, expiresAt: Date.now() + CURRENT_USER_CACHE_TTL };
+                }
+            }
+            return null;
+        }
         const parsed = JSON.parse(raw) as { user: any; expiresAt: number; lastForcedAt?: number };
-        if (!parsed?.user || parsed.expiresAt <= Date.now()) {
+        if (!parsed?.user) return null;
+        if (parsed.expiresAt <= Date.now()) {
+            const isOffline = typeof window !== 'undefined' && !window.navigator.onLine;
+            if (isOffline) {
+                return parsed;
+            }
+            const lastUserRaw = localStorage.getItem('kylrix_last_logged_in_user');
+            if (lastUserRaw) {
+                const user = JSON.parse(lastUserRaw);
+                return { user, expiresAt: Date.now() + CURRENT_USER_CACHE_TTL };
+            }
             localStorage.removeItem(CURRENT_USER_CACHE_KEY);
             return null;
         }
@@ -270,6 +291,7 @@ function writeCurrentUserSnapshot(user: any | null, lastForcedAt?: number) {
     try {
         if (!user) {
             localStorage.removeItem(CURRENT_USER_CACHE_KEY);
+            localStorage.removeItem('kylrix_last_logged_in_user');
             return;
         }
         localStorage.setItem(CURRENT_USER_CACHE_KEY, JSON.stringify({
@@ -277,6 +299,7 @@ function writeCurrentUserSnapshot(user: any | null, lastForcedAt?: number) {
             expiresAt: Date.now() + CURRENT_USER_CACHE_TTL,
             lastForcedAt: lastForcedAt || (currentUserCache?.lastForcedAt)
         }));
+        localStorage.setItem('kylrix_last_logged_in_user', JSON.stringify(user));
     } catch {
         // Best effort only.
     }

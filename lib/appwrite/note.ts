@@ -781,8 +781,46 @@ export default AppwriteService;
 
 export async function createNote(data: Partial<Notes>, jwt?: string) {
   if (typeof window !== 'undefined') {
-    const { createNote } = await import('@/lib/actions/client-ops');
-    return createNote(data);
+    try {
+      const { createNote } = await import('@/lib/actions/client-ops');
+      return await createNote(data);
+    } catch (err: any) {
+      const isNetworkError = !err.status || err.code === 'network_error' || err.message?.includes('fetch') || err.message?.includes('NetworkError');
+      if (isNetworkError) {
+        console.log('[createNote] Network error. Saving note to RxDB for offline sync...');
+        const user = await getCurrentUser();
+        if (user?.$id) {
+          const { getRxDB } = await import('@/lib/webrtc/RxDBManager');
+          const db = await getRxDB();
+          const id = data.$id || `note-${crypto.randomUUID()}`;
+          const now = new Date().toISOString();
+          await db.notes.insert({
+            id,
+            title: data.title || 'Untitled Thought',
+            content: data.content || '',
+            userId: user.$id,
+            metadata: data.metadata || '{}',
+            updatedAt: now,
+            _deleted: false
+          });
+          
+          return {
+            $id: id,
+            $createdAt: now,
+            $updatedAt: now,
+            title: data.title || 'Untitled Thought',
+            content: data.content || '',
+            format: 'text',
+            tags: data.tags || [],
+            userId: user.$id,
+            isPublic: false,
+            isGuest: false,
+            metadata: data.metadata || '{}',
+          } as any;
+        }
+      }
+      throw err;
+    }
   }
   const { createNoteSecure } = await import('@/lib/actions/secure-ops');
   return createNoteSecure(data, jwt);
@@ -959,10 +997,57 @@ export async function updateNote(noteId: string, data: Partial<Notes>, jwt?: str
       }
     }
 
-    const { updateNote } = await import('@/lib/actions/client-ops');
-    const result = await updateNote(noteId, data);
-    invalidateNoteRowClientCache(noteId);
-    return result as Notes;
+    try {
+      const { updateNote } = await import('@/lib/actions/client-ops');
+      const result = await updateNote(noteId, data);
+      invalidateNoteRowClientCache(noteId);
+      return result as Notes;
+    } catch (err: any) {
+      const isNetworkError = !err.status || err.code === 'network_error' || err.message?.includes('fetch') || err.message?.includes('NetworkError');
+      if (isNetworkError) {
+        console.log('[updateNote] Network error. Updating note in RxDB for offline sync...');
+        const user = await getCurrentUser();
+        if (user?.$id) {
+          const { getRxDB } = await import('@/lib/webrtc/RxDBManager');
+          const db = await getRxDB();
+          const doc = await db.notes.findOne(noteId).exec();
+          const now = new Date().toISOString();
+          if (doc) {
+            await doc.patch({
+              title: data.title !== undefined ? data.title : doc.title,
+              content: data.content !== undefined ? data.content : doc.content,
+              metadata: data.metadata !== undefined ? data.metadata : doc.metadata,
+              updatedAt: now
+            });
+          } else {
+            await db.notes.insert({
+              id: noteId,
+              title: data.title || 'Untitled Thought',
+              content: data.content || '',
+              userId: user.$id,
+              metadata: data.metadata || '{}',
+              updatedAt: now,
+              _deleted: false
+            });
+          }
+          
+          return {
+            $id: noteId,
+            $createdAt: now,
+            $updatedAt: now,
+            title: data.title || '',
+            content: data.content || '',
+            format: 'text',
+            tags: data.tags || [],
+            userId: user.$id,
+            isPublic: false,
+            isGuest: false,
+            metadata: data.metadata || '{}',
+          } as any;
+        }
+      }
+      throw err;
+    }
   }
   const { updateNoteSecure } = await import('@/lib/actions/secure-ops');
   const result = await updateNoteSecure(noteId, data, jwt);
@@ -1109,10 +1194,29 @@ export async function deleteNote(noteId: string, jwt?: string) {
 
   if (typeof window !== 'undefined') {
     invalidateNoteRowClientCache(noteId);
-    const { deleteNote } = await import('@/lib/actions/client-ops');
-    const result = await deleteNote(noteId);
-    invalidateNoteRowClientCache(noteId);
-    return result;
+    try {
+      const { deleteNote } = await import('@/lib/actions/client-ops');
+      const result = await deleteNote(noteId);
+      invalidateNoteRowClientCache(noteId);
+      return result;
+    } catch (err: any) {
+      const isNetworkError = !err.status || err.code === 'network_error' || err.message?.includes('fetch') || err.message?.includes('NetworkError');
+      if (isNetworkError) {
+        console.log('[deleteNote] Network error. Marking note as deleted in RxDB for offline sync...');
+        const { getRxDB } = await import('@/lib/webrtc/RxDBManager');
+        const db = await getRxDB();
+        const doc = await db.notes.findOne(noteId).exec();
+        if (doc) {
+          await doc.patch({
+            _deleted: true,
+            updatedAt: new Date().toISOString()
+          });
+        }
+        invalidateNoteRowClientCache(noteId);
+        return { success: true };
+      }
+      throw err;
+    }
   }
   const { deleteNoteSecure } = await import('@/lib/actions/secure-ops');
   const result = await deleteNoteSecure(noteId, jwt);
@@ -3191,11 +3295,59 @@ export async function listNotesPaginated(options: ListNotesPaginatedOptions = {}
     Query.orderDesc('$createdAt')];
   if (cursor) finalQueries.push(Query.cursorAfter(cursor));
 
-  const res: any = await databases.listRows(
-    APPWRITE_DATABASE_ID,
-    APPWRITE_TABLE_ID_NOTES,
-    finalQueries
-  );
+  let res: any;
+  try {
+    res = await databases.listRows(
+      APPWRITE_DATABASE_ID,
+      APPWRITE_TABLE_ID_NOTES,
+      finalQueries
+    );
+  } catch (err: any) {
+    const isNetworkError = !err.status || err.code === 'network_error' || err.message?.includes('fetch') || err.message?.includes('NetworkError');
+    if (isNetworkError && typeof window !== 'undefined') {
+      console.log('[listNotesPaginated] Network error detected. Falling back to RxDB local notes...');
+      let effectiveUserId = userId;
+      if (!effectiveUserId) {
+        const user = await getCurrentUser();
+        effectiveUserId = user?.$id;
+      }
+      if (effectiveUserId) {
+        const { getRxDB } = await import('@/lib/webrtc/RxDBManager');
+        const db = await getRxDB();
+        const docs = await db.notes.find({
+          selector: {
+            userId: effectiveUserId,
+            _deleted: { $ne: true }
+          }
+        }).exec();
+        
+        const sortedDocs = docs.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        
+        const rows = sortedDocs.map(doc => ({
+          $id: doc.id,
+          $createdAt: doc.updatedAt,
+          $updatedAt: doc.updatedAt,
+          title: doc.title,
+          content: doc.content,
+          format: 'text',
+          tags: [],
+          userId: doc.userId,
+          isPublic: false,
+          isGuest: false,
+          metadata: doc.metadata || '{}',
+        })) as any[];
+        
+        return {
+          rows,
+          total: rows.length,
+          nextCursor: null,
+          hasMore: false
+        };
+      }
+    }
+    throw err;
+  }
+
   const notes = (res.rows as any[]).map(doc => hydrateVirtualAttributes(doc)) as unknown as Notes[];
 
   if (hydrateTags && notes.length) {
