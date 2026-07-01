@@ -378,17 +378,6 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
     );
   };
 
-  return (
-    <div className="flex flex-col min-h-screen pb-10 bg-[#0A0908] pt-4 md:pt-8 relative">
-      <div 
-        className="flex-1 flex flex-col transition-[filter,opacity] duration-300"
-        style={{
-          filter: showMasterPassDrawer ? 'blur(8px)' : 'none',
-          pointerEvents: showMasterPassDrawer ? 'none' : 'auto',
-          opacity: showMasterPassDrawer ? 0.3 : 1,
-        }}
-      >
-        <MultiSectionContainer panels={['secrets', 'secret_chat']} contextId={selectedTotp?.issuer || selectedTotp?.accountName || undefined}>
   const innerContent = (
     <>
         {/* Filter/Search Bar & Add Button Stack */}
