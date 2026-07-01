@@ -95,7 +95,7 @@ export function UnifiedLeftSidebar() {
   const currentTab = getCurrentTab();
 
   const navItems = [
-    { id: 'note', label: 'Notes & Projects', icon: NotesIcon },
+    { id: 'note', label: 'Ideas & Projects', icon: NotesIcon },
     { id: 'flow', label: 'Flow Goals', icon: FlowIcon },
     { id: 'vault', label: 'Vault Crypt', icon: VaultIcon },
     { id: 'connect', label: 'Connect Hub', icon: ConnectIcon },

@@ -20,7 +20,7 @@ import SudoModal from '@/components/overlays/SudoModal';
 
 export const dynamic = 'force-dynamic';
 
-function TOTPPageContent() {
+export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) {
   const [search, setSearch] = useState("");
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -389,20 +389,8 @@ function TOTPPageContent() {
         }}
       >
         <MultiSectionContainer panels={['secrets', 'secret_chat']} contextId={selectedTotp?.issuer || selectedTotp?.accountName || undefined}>
-        {/* Header & Back Action */}
-        <div className="px-4 md:px-12">
-          <div className="flex items-center gap-3.5 mb-8">
-          <button 
-            onClick={() => router.back()} 
-            className="p-2 text-white bg-[#161412] border border-[#1C1A18] rounded-xl hover:bg-[#1C1A18] transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="text-2xl font-black font-clash text-white">
-            Smart Codes
-          </h1>
-        </div>
-
+  const innerContent = (
+    <>
         {/* Filter/Search Bar & Add Button Stack */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center mb-8 max-w-3xl">
           <div className="relative w-full sm:max-w-[400px] flex-grow">
@@ -465,7 +453,6 @@ function TOTPPageContent() {
               ))}
           </div>
         )}
-      </div>
 
       {/* Dialogs */}
       {showNew && (
@@ -533,6 +520,40 @@ function TOTPPageContent() {
           </div>
         </div>
       )}
+    </>
+  );
+
+  if (isTabMode) {
+    return innerContent;
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen pb-10 bg-[#0A0908] pt-4 md:pt-8 relative">
+      <div 
+        className="flex-1 flex flex-col transition-[filter,opacity] duration-300"
+        style={{
+          filter: showMasterPassDrawer ? 'blur(8px)' : 'none',
+          pointerEvents: showMasterPassDrawer ? 'none' : 'auto',
+          opacity: showMasterPassDrawer ? 0.3 : 1,
+        }}
+      >
+        <MultiSectionContainer panels={['secrets', 'secret_chat']} contextId={selectedTotp?.issuer || selectedTotp?.accountName || undefined}>
+        {/* Header & Back Action */}
+        <div className="px-4 md:px-12">
+          <div className="flex items-center gap-3.5 mb-8">
+          <button 
+            onClick={() => router.back()} 
+            className="p-2 text-white bg-[#161412] border border-[#1C1A18] rounded-xl hover:bg-[#1C1A18] transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <h1 className="text-2xl font-black font-clash text-white">
+            Smart Codes
+          </h1>
+        </div>
+        
+        {innerContent}
+      </div>
       </MultiSectionContainer>
       </div>
 

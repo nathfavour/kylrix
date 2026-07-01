@@ -20,6 +20,7 @@ import { MultiSectionContainer, useSection } from '@/context/SectionContext';
 import { ArrowLeft, Plus, Eye, EyeOff, ArrowUpDown } from 'lucide-react';
 import { Box, Typography, Paper, Button, IconButton, Avatar, CircularProgress, Tooltip, alpha } from '@/lib/openbricks/primitives';
 import { VaultPorterDrawer } from '@/components/import/VaultPorterDrawer';
+import { TOTPPageContent } from './totp/page';
 
 function DashboardPageContent() {
   const { user, needsMasterPassword, isVaultUnlocked, isVaultBlurEnabled, setVaultBlurEnabled } = useAppwriteVault();
@@ -35,6 +36,7 @@ function DashboardPageContent() {
   const [showMasterPassDrawer, setShowMasterPassDrawer] = useState(needsMasterPassword || !isVaultUnlocked());
   // Vault porter drawer state
   const [showPorterDrawer, setShowPorterDrawer] = useState(false);
+  const [activeTab, setActiveTab] = useState<'secrets' | 'totp'>('secrets');
   
   // State for all credentials, fetched once
   const [allCredentials, setAllCredentials] = useState<Credentials[]>([]);
@@ -345,96 +347,128 @@ function DashboardPageContent() {
       >
         <MultiSectionContainer panels={['note', 'totp', 'projects']}>
           <div>
-            {/* Header Section */}
-            <div className="px-4 md:px-12">
-              <div className="flex items-center gap-3.5 mb-8">
-                <button 
-                  onClick={() => router.back()} 
-                  className="p-2 text-white bg-[#161412] border border-[#1C1A18] rounded-xl hover:bg-[#1C1A18] transition-colors"
+            {/* Tab Switcher */}
+            <div className="px-4 md:px-12 mb-6">
+              <div className="flex items-center gap-2 p-1 bg-white/[0.02] border border-white/5 rounded-2xl w-fit select-none">
+                <button
+                  onClick={() => setActiveTab('secrets')}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                    activeTab === 'secrets'
+                      ? 'bg-[#10B981] text-white shadow-[0_4px_12px_rgba(16,185,129,0.25)]'
+                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                  }`}
                 >
-                  <ArrowLeft size={20} />
-                </button>
-                <h1 className="text-2xl font-black font-clash text-white">
                   Secrets
-                </h1>
-                
-                <div className="ml-auto flex items-center gap-2">
-                  {isSelectMode && selectedIds.length > 0 && (
-                    <button
-                      onClick={() => requestSudo({ onSuccess: () => handleDelete() })}
-                      disabled={isMultiDeleting}
-                      className="px-3 py-2 bg-[#FF453A]/10 text-[#FF453A] text-xs font-bold rounded-xl hover:bg-[#FF453A]/20 transition-colors"
-                    >
-                      {isMultiDeleting ? "Deleting..." : `Delete (${selectedIds.length})`}
-                    </button>
-                  )}
-                  
-                  <button
-                    onClick={handleToggleSelectMode}
-                    className={`px-3 py-2 border text-xs font-bold rounded-xl transition-colors ${
-                      isSelectMode ? 'border-[#10B981] bg-[#10B981]/10 text-[#10B981]' : 'border-[#1C1A18] text-white/60 hover:text-white hover:bg-[#1C1A18]'
-                    }`}
-                  >
-                    {isSelectMode ? 'Cancel' : 'Select'}
-                  </button>
-
-                  <button
-                    onClick={() => setVaultBlurEnabled(!isVaultBlurEnabled)}
-                    className={`p-2 border border-[#1C1A18] rounded-xl transition-colors ${
-                      isVaultBlurEnabled ? 'text-white/40 bg-[#161412]' : 'text-[#10B981] bg-[#161412]'
-                    } hover:bg-[#1C1A18]`}
-                    title="Toggle secret blur visibility"
-                  >
-                    {isVaultBlurEnabled ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-
-                  <button
-                    onClick={() => setShowPorterDrawer(true)}
-                    className="p-2 border border-[#1C1A18] rounded-xl text-white/60 bg-[#161412] hover:text-white hover:bg-[#1C1A18] transition-colors"
-                    title="Import/Export Vault Data"
-                  >
-                    <ArrowUpDown size={16} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Credentials List */}
-              <div className="flex flex-col gap-3.5 max-w-3xl">
-                {loading ? (
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <CredentialItem key={`skeleton-${i}`} credential={{ $id: `skeleton-${i}`, name: 'Loading...', username: '', type: 'password' } as any} onCopy={() => {}} onEdit={() => {}} onDelete={() => {}} />
-                  ))
-                ) : allCredentials.length === 0 ? (
-                  <div className="p-24 text-center rounded-[32px] bg-[#161412] border border-dashed border-[#1C1A18]">
-                    <h2 className="text-xl font-black text-white mb-2 font-clash">
-                      No Secrets Found
-                    </h2>
-                    <p className="text-[#9B9691] max-w-xs mx-auto">
-                      Your secure vault is ready for its first secret.
-                    </p>
-                  </div>
-                ) : (
-                  sortedCredentials.map((cred: Credentials) => (
-                    <CredentialItem
-                      key={cred.$id}
-                      credential={cred}
-                      onCopy={handleCopy}
-                      onEdit={() => handleEdit(cred)}
-                      onDelete={() => openDeleteModal(cred)}
-                      onTogglePin={() => handleTogglePin(cred.$id)}
-                      isBlurEnabled={isVaultBlurEnabled}
-                      isSelectMode={isSelectMode}
-                      isSelected={selectedIds.includes(cred.$id)}
-                      onToggleSelect={() => toggleSelection(cred.$id)}
-                      onClick={() => {
-                        setSelectedCredential(cred);
-                        setActiveDetail({ type: 'secret', id: cred.$id, data: cred });
-                      }}
-                    />
-                  ))
-                )}
+                </button>
+                <button
+                  onClick={() => setActiveTab('totp')}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                    activeTab === 'totp'
+                      ? 'bg-[#10B981] text-white shadow-[0_4px_12px_rgba(16,185,129,0.25)]'
+                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  TOTP
+                </button>
               </div>
             </div>
+
+            {activeTab === 'secrets' ? (
+              <div>
+                {/* Header Section */}
+                <div className="px-4 md:px-12">
+                  <div className="flex items-center gap-3.5 mb-8">
+                    <button 
+                      onClick={() => router.back()} 
+                      className="p-2 text-white bg-[#161412] border border-[#1C1A18] rounded-xl hover:bg-[#1C1A18] transition-colors"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <h1 className="text-2xl font-black font-clash text-white">
+                      Secrets
+                    </h1>
+                    
+                    <div className="ml-auto flex items-center gap-2">
+                      {isSelectMode && selectedIds.length > 0 && (
+                        <button
+                          onClick={() => requestSudo({ onSuccess: () => handleDelete() })}
+                          disabled={isMultiDeleting}
+                          className="px-3 py-2 bg-[#FF453A]/10 text-[#FF453A] text-xs font-bold rounded-xl hover:bg-[#FF453A]/20 transition-colors"
+                        >
+                          {isMultiDeleting ? "Deleting..." : `Delete (${selectedIds.length})`}
+                        </button>
+                      )}
+                      
+                      <button
+                        onClick={handleToggleSelectMode}
+                        className={`px-3 py-2 border text-xs font-bold rounded-xl transition-colors ${
+                          isSelectMode ? 'border-[#10B981] bg-[#10B981]/10 text-[#10B981]' : 'border-[#1C1A18] text-white/60 hover:text-white hover:bg-[#1C1A18]'
+                        }`}
+                      >
+                        {isSelectMode ? 'Cancel' : 'Select'}
+                      </button>
+
+                      <button
+                        onClick={() => setVaultBlurEnabled(!isVaultBlurEnabled)}
+                        className={`p-2 border border-[#1C1A18] rounded-xl transition-colors ${
+                          isVaultBlurEnabled ? 'text-white/40 bg-[#161412]' : 'text-[#10B981] bg-[#161412]'
+                        } hover:bg-[#1C1A18]`}
+                        title="Toggle secret blur visibility"
+                      >
+                        {isVaultBlurEnabled ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+
+                      <button
+                        onClick={() => setShowPorterDrawer(true)}
+                        className="p-2 border border-[#1C1A18] rounded-xl text-white/60 bg-[#161412] hover:text-white hover:bg-[#1C1A18] transition-colors"
+                        title="Import/Export Vault Data"
+                      >
+                        <ArrowUpDown size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Credentials List */}
+                  <div className="flex flex-col gap-3.5 max-w-3xl">
+                    {loading ? (
+                      Array.from({ length: 6 }).map((_, i) => (
+                        <CredentialItem key={`skeleton-${i}`} credential={{ $id: `skeleton-${i}`, name: 'Loading...', username: '', type: 'password' } as any} onCopy={() => {}} onEdit={() => {}} onDelete={() => {}} />
+                      ))
+                    ) : allCredentials.length === 0 ? (
+                      <div className="p-24 text-center rounded-[32px] bg-[#161412] border border-dashed border-[#1C1A18]">
+                        <h2 className="text-xl font-black text-white mb-2 font-clash">
+                          No Secrets Found
+                        </h2>
+                        <p className="text-[#9B9691] max-w-xs mx-auto">
+                          Your secure vault is ready for its first secret.
+                        </p>
+                      </div>
+                    ) : (
+                      sortedCredentials.map((cred: Credentials) => (
+                        <CredentialItem
+                          key={cred.$id}
+                          credential={cred}
+                          onCopy={handleCopy}
+                          onEdit={() => handleEdit(cred)}
+                          onDelete={() => openDeleteModal(cred)}
+                          onTogglePin={() => handleTogglePin(cred.$id)}
+                          isBlurEnabled={isVaultBlurEnabled}
+                          isSelectMode={isSelectMode}
+                          isSelected={selectedIds.includes(cred.$id)}
+                          onToggleSelect={() => toggleSelection(cred.$id)}
+                          onClick={() => {
+                            setSelectedCredential(cred);
+                            setActiveDetail({ type: 'secret', id: cred.$id, data: cred });
+                          }}
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <TOTPPageContent isTabMode={true} />
+            )}
           </div>
         </MultiSectionContainer>
       </div>

@@ -519,16 +519,16 @@ export default function NotesPage() {
         <div className="absolute top-[-1px] left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-[#EC4899] to-transparent" />
         <div>
           <h1 className="text-white font-black text-2xl md:text-3xl tracking-tight leading-tight mb-1 font-mono tracking-tighter">
-            Notes
+            Ideas
           </h1>
           <p className="text-white/40 text-xs font-semibold leading-normal font-sans">
             {visibleNotes.length < totalNotes && !hasSearchResults ? (
-              <span>Syncing <span className="font-mono font-bold text-[#EC4899]">{visibleNotes.length}</span> of <span className="font-mono font-bold">{totalNotes}</span> notes</span>
+              <span>Syncing <span className="font-mono font-bold text-[#EC4899]">{visibleNotes.length}</span> of <span className="font-mono font-bold">{totalNotes}</span> ideas</span>
             ) : (
               hasSearchResults ? (
                 <span><span className="font-mono font-bold text-[#EC4899]">{totalCount}</span> {totalCount === 1 ? 'result' : 'results'} found</span>
               ) : (
-                <span><span className="font-mono font-bold text-[#EC4899]">{totalNotes}</span> {totalNotes === 1 ? 'note' : 'notes'}</span>
+                <span><span className="font-mono font-bold text-[#EC4899]">{totalNotes}</span> {totalNotes === 1 ? 'idea' : 'ideas'}</span>
               )
             )}
           </p>
@@ -631,12 +631,12 @@ export default function NotesPage() {
             )}
           </div>
           <h4 className="text-white font-black text-lg tracking-tight mb-2">
-            {hasSearchResults ? 'No Results' : 'No Notes Yet'}
+            {hasSearchResults ? 'No Results' : 'No Ideas Yet'}
           </h4>
           <p className="text-white/40 text-xs font-semibold max-w-xs leading-relaxed mb-6">
             {hasSearchResults
               ? `No matches found for "${searchQuery}". Try adjusting your query.`
-              : 'Capture your thoughts and tasks here. Notes are securely sealed in your vault.'
+              : 'Capture your thoughts and tasks here. Ideas are securely sealed in your vault.'
             }
           </p>
           {hasSearchResults ? (
@@ -645,7 +645,7 @@ export default function NotesPage() {
                 Clear Search
               </Button>
               <Button onClick={handleCreateNoteClick}>
-                New Note
+                New Idea
               </Button>
             </div>
           ) : (
@@ -665,7 +665,7 @@ export default function NotesPage() {
                     <PinIcon size={14} className="rotate-45" />
                   </div>
                   <span className="font-black text-[10px] tracking-widest uppercase text-[#EC4899] font-mono leading-none">
-                    Pinned Notes ({pinnedIds.length})
+                    Pinned Ideas ({pinnedIds.length})
                   </span>
                 </div>
 
@@ -702,7 +702,7 @@ export default function NotesPage() {
                     <SearchIcon size={14} />
                   </div>
                   <span className="font-black text-[10px] tracking-widest uppercase text-white/50 font-mono leading-none">
-                    All Notes
+                    All Ideas
                   </span>
                 </div>
               )}
@@ -813,7 +813,7 @@ export default function NotesPage() {
               >
                 <div className="flex justify-between items-center mb-4 flex-shrink-0 select-none">
                   <h3 className="text-white text-base font-black tracking-tight leading-tight">
-                    Shared Notes
+                    Shared Ideas
                   </h3>
                   <div className="flex items-center gap-1">
                     <button 

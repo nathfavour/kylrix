@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Feed } from '@/components/social/Feed';
 import { ChatList } from '@/components/chat/ChatList';
+import { CallHistory } from '@/components/call/CallHistory';
 import { useProjectsList } from '@/hooks/useProjectsList';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useFAB } from '@/context/FABContext';
