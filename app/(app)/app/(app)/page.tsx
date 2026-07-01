@@ -964,7 +964,7 @@ export default function NotesPage() {
             {/* Mobile Header */}
             <header className="mb-4 flex md:hidden items-center justify-between px-3 py-2 bg-white/[0.01] border border-white/8 rounded-2xl select-none">
               <h1 className="text-white font-black text-xl tracking-tight leading-none font-mono">
-                {activeTab === 'notes' ? 'Notes' : 'Projects'}
+                {activeTab === 'notes' ? 'Ideas' : 'Projects'}
               </h1>
               <div className="flex items-center gap-2">
                 {activeTab === 'notes' && (
@@ -989,7 +989,7 @@ export default function NotesPage() {
                     : 'text-white/50 hover:text-white hover:bg-white/5'
                 }`}
               >
-                Notes
+                Ideas
               </button>
               <button
                 onClick={() => setActiveTab('projects')}

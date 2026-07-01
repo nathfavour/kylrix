@@ -582,12 +582,15 @@ export default function CreateNoteForm({
 
           localStorage.setItem('kylrix_ghost_notes_v2', JSON.stringify(history));
           setResolvedNoteId(id);
+          if (!resolvedNoteId && typeof window !== 'undefined') {
+            localStorage.removeItem('kylrix:draft:note');
+          }
           onNoteCreated(saved);
           upsertNote(saved);
           setIsSaving(false);
           if (showToast && !createdToastShown.current) {
             createdToastShown.current = true;
-            showSuccess('Note saved', 'Your note has been saved offline.');
+            showSuccess('Idea saved', 'Your idea has been saved offline.');
           }
           return saved;
         }
@@ -614,7 +617,7 @@ export default function CreateNoteForm({
           onNoteCreated(saved);
           if (showToast && !createdToastShown.current) {
             createdToastShown.current = true;
-            showSuccess('Note saved', 'Your note has been created.');
+            showSuccess('Idea saved', 'Your idea has been created.');
           }
         }
 
@@ -642,10 +645,10 @@ export default function CreateNoteForm({
             saved = await applySecureVisibility();
             onNoteCreated(saved);
             showSuccess(
-              getNotePublicState(saved) ? 'Note is now Public' : 'Note is now Private',
+              getNotePublicState(saved) ? 'Idea is now Public' : 'Idea is now Private',
               getNotePublicState(saved)
-                ? 'Encrypted sharing is enabled for this note.'
-                : 'This note is now private.'
+                ? 'Encrypted sharing is enabled for this idea.'
+                : 'This idea is now private.'
             );
           }
 
@@ -675,7 +678,7 @@ export default function CreateNoteForm({
       } catch (error: any) {
         console.error('Failed to persist note:', error);
         if (showToast) {
-          showError('Could not save note', error?.message || 'Please try again.');
+          showError('Could not save idea', error?.message || 'Please try again.');
         }
         throw error;
       } finally {
@@ -752,8 +755,8 @@ export default function CreateNoteForm({
             <div className="min-w-0 flex flex-col">
               <span className="font-extrabold text-sm font-mono tracking-tight text-white leading-tight">
                 {resolvedNoteId 
-                  ? (composerKind === 'project' ? 'Edit Project' : 'Edit Note') 
-                  : (composerKind === 'project' ? 'New Project' : 'New Note')
+                  ? (composerKind === 'project' ? 'Edit Project' : 'Edit Idea') 
+                  : (composerKind === 'project' ? 'New Project' : 'New Idea')
                 }
               </span>
               <div className="flex items-center gap-1.5 mt-0.5 select-none">
@@ -851,7 +854,7 @@ export default function CreateNoteForm({
                   handleClose();
                 }
               }}
-              placeholder="Write your note..."
+              placeholder="Write your idea..."
               className="w-full h-full min-h-[160px] resize-none bg-white/[0.03] text-white placeholder-white/20 border border-white/[0.06] hover:border-white/10 focus:border-pink-500/30 rounded-xl px-3 py-2 text-lg focus:outline-none transition-all scrollbar-thin"
             />
           </div>
@@ -927,7 +930,7 @@ export default function CreateNoteForm({
                       ? 'bg-red-500/20 border-red-500/30 text-red-400 animate-pulse' 
                       : 'bg-black/40 border-white/5 text-white/60 hover:text-white hover:bg-white/5'
                   }`}
-                  title={isRecording ? "Click to Stop & Insert" : "Record Voice Note"}
+                  title={isRecording ? "Click to Stop & Insert" : "Record Voice Idea"}
                 >
                   {isRecording ? (
                     <>
@@ -988,7 +991,7 @@ export default function CreateNoteForm({
               }}
               className="w-full flex items-center justify-between bg-[#0A0908] border border-white/5 rounded-xl px-3 py-2 text-[10px] font-bold text-white/40 uppercase tracking-wider hover:border-pink-500/30 hover:text-pink-400 transition-all cursor-pointer"
             >
-              <span>{tags.length > 0 ? 'Add more tags...' : 'Add tags to this note...'}</span>
+              <span>{tags.length > 0 ? 'Add more tags...' : 'Add tags to this idea...'}</span>
               <ArrowUpRight size={14} className="opacity-40" />
             </button>
           </div>
@@ -1030,7 +1033,7 @@ export default function CreateNoteForm({
                 type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(content);
-                  showSuccess('Copied', 'Entire note content copied to clipboard.');
+                  showSuccess('Copied', 'Entire idea content copied to clipboard.');
                   setIsContextDrawerOpen(false);
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer"
