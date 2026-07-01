@@ -27,9 +27,15 @@ import {
   ChevronUp, 
   Maximize2, 
   Share2,
-  Info
+  Info,
+  Plus as PlusIcon,
+  Edit2 as EditIcon,
+  Trash2 as TrashIcon,
+  Clock as ClockIcon,
+  Loader2 as SpinnerIcon,
+  ShieldCheck
 } from 'lucide-react';
-import { getSharedNotes } from '@/lib/appwrite';
+import { getSharedNotes, listTags, deleteTag } from '@/lib/appwrite';
 import { useDataNexus } from '@/context/DataNexusContext';
 import { useAuth } from '@/context/auth/AuthContext';
 import {
@@ -53,6 +59,11 @@ import { PinnedNotesSidebar } from '@/components/ui/PinnedNotesSidebar';
 import { isClientEncryptedNote, resolvePinnedNoteRows } from '@/lib/note/note-visibility';
 import { useSudo } from '@/context/SudoContext';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+import { useLayout } from '@/context/LayoutContext';
+import { useToast } from '@/components/ui/Toast';
+import { TaggedResourcesTabs } from '@/components/share/TaggedResourcesTabs';
+import { formatDateWithFallback } from '@/lib/date-utils';
 
 // Client-side persistence cache to resist reload flicker
 
@@ -101,7 +112,90 @@ export default function NotesPage() {
   // Collapsible accordion state for the desktop right pane
   const [sharedNotesOpen, setSharedNotesOpen] = useState(true);
   const [projectsOpen, setProjectsOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<'notes' | 'projects'>('notes');
+  const [activeTab, setActiveTab] = useState<'notes' | 'projects' | 'tags'>('notes');
+
+  // Tags data state
+  const [globalTags, setGlobalTags] = useState<any[]>([]);
+  const [globalTagsLoading, setGlobalTagsLoading] = useState(true);
+  const [globalTagsError, setGlobalTagsError] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<any | null>(null);
+  const [taggedResources, setTaggedResources] = useState<any>({
+    notes: [],
+    tasks: [],
+    credentials: [],
+    totps: [],
+    events: [],
+    forms: [],
+    moments: []
+  });
+  const [resolvingResources, setResolvingResources] = useState(false);
+
+  const { open: openUnified } = useUnifiedDrawer();
+  const { openSecondarySidebar } = useLayout();
+  const { showError } = useToast();
+
+  const fetchTags = useCallback(async () => {
+    if (!user) return;
+    try {
+      setGlobalTagsLoading(true);
+      const response = await listTags();
+      setGlobalTags(response.rows);
+    } catch (err: any) {
+      setGlobalTagsError(err instanceof Error ? err.message : 'Failed to fetch tags');
+    } finally {
+      setGlobalTagsLoading(false);
+    }
+  }, [user]);
+
+  const resolveTaggedResources = useCallback(async (tag: any) => {
+    setResolvingResources(true);
+    try {
+      const res = await ProjectsService.listTaggedResources([tag.$id]);
+      setTaggedResources(res);
+    } catch (err) {
+      console.error('Failed to resolve tagged resources:', err);
+    } finally {
+      setResolvingResources(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'tags') {
+      fetchTags();
+    }
+  }, [activeTab, fetchTags]);
+
+  useEffect(() => {
+    if (selectedTag) {
+      resolveTaggedResources(selectedTag);
+    }
+  }, [selectedTag, resolveTaggedResources]);
+
+  const handleCreateNewTag = useCallback(() => {
+    openUnified('new-tag', { onSuccess: fetchTags });
+  }, [openUnified, fetchTags]);
+
+  const handleEditTag = (tag: any) => {
+    openUnified('new-tag', { tag, onSuccess: fetchTags });
+  };
+
+  const handleDeleteTag = async (tag: any) => {
+    openUnified('delete-confirm', {
+      title: `Delete tag "${tag.name}"?`,
+      description: 'This will remove the tag from all associated resources. The objects themselves will not be deleted.',
+      resourceName: 'this tag',
+      confirmLabel: 'Delete Tag',
+      onConfirm: async () => {
+        try {
+          await deleteTag(tag.$id);
+          await fetchTags();
+          if (selectedTag?.$id === tag.$id) setSelectedTag(null);
+        } catch (err: any) {
+          setGlobalTagsError(err instanceof Error ? err.message : 'Failed to delete tag');
+        }
+      }
+    });
+  };
 
   // Projects data state
   const [projects, setProjects] = useState<any[]>(() => getSessionProjectsList() || []);
@@ -512,6 +606,206 @@ export default function NotesPage() {
     </div>
   );
 
+  const tagsGridContent = (
+    <div className="flex flex-col gap-6">
+      {/* Desktop Header */}
+      <header className="hidden md:flex items-center justify-between p-5 bg-white/[0.01] border border-white/8 rounded-[32px] shadow-2xl relative select-none">
+        <div className="absolute top-[-1px] left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-[#10B981] to-transparent" />
+        <div className="flex items-center gap-4">
+          {selectedTag && (
+            <button
+              onClick={() => setSelectedTag(null)}
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-white/40 hover:text-white bg-white/5 hover:bg-white/10 border border-white/6 transition-all"
+            >
+              <ArrowLeftIcon size={18} />
+            </button>
+          )}
+          <div>
+            <h1 className="text-white font-black text-2xl md:text-3xl tracking-tight leading-tight mb-1 font-mono tracking-tighter">
+              {selectedTag ? `# ${selectedTag.name?.toUpperCase() || ''}` : 'Global Tags'}
+            </h1>
+            <p className="text-white/40 text-xs font-semibold leading-normal font-sans">
+              {selectedTag ? `Sweeping ecosystem resources with this tag` : 'Organize and sweep resources across the ecosystem'}
+            </p>
+          </div>
+        </div>
+        
+        {!selectedTag && (
+          <button 
+            onClick={handleCreateNewTag}
+            className="h-10 px-4 rounded-xl bg-[#10B981]/10 hover:bg-[#10B981]/20 border border-[#10B981]/20 hover:border-[#10B981]/40 flex items-center justify-center text-[#34D399] font-bold text-xs gap-1.5 transition-all"
+          >
+            <PlusIcon size={16} />
+            <span>Create Tag</span>
+          </button>
+        )}
+      </header>
+
+      {globalTagsError && (
+        <div className="p-4 mb-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-[#ff4444] text-sm font-semibold">
+          {globalTagsError}
+        </div>
+      )}
+
+      {!selectedTag ? (
+        <>
+          {/* Tags Grid */}
+          {globalTagsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div 
+                  key={i} 
+                  className="p-6 rounded-[32px] bg-[#161412] border border-white/5 animate-pulse min-h-[180px]"
+                />
+              ))}
+            </div>
+          ) : globalTags.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center select-none">
+              <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-[28px] flex items-center justify-center mb-6 shadow-2xl">
+                <TagIcon size={38} className="text-white/30" />
+              </div>
+              <h4 className="text-white font-black text-lg tracking-tight mb-2">No Tags Yet</h4>
+              <p className="text-white/40 text-xs font-semibold max-w-xs leading-relaxed mb-6">
+                Create your first tag to start organizing your ecosystem
+              </p>
+              <Button onClick={handleCreateNewTag}>
+                Create First Tag
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {globalTags.map((tag) => (
+                <div
+                  key={tag.$id}
+                  onClick={() => setSelectedTag(tag)}
+                  className="p-6 rounded-[32px] bg-[#161412] border border-white/5 shadow-2xl hover:border-white/10 hover:bg-[#1C1A18] hover:translate-y-[-2px] transition-all duration-300 ease-out cursor-pointer flex flex-col justify-between min-h-[196px] group"
+                >
+                  <div>
+                    {/* Top Row: Name and Count */}
+                    <div className="flex items-start gap-4 mb-3 w-full justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div 
+                          style={{ 
+                            backgroundColor: `${tag.color || '#10B981'}1a`,
+                            color: tag.color || '#10B981',
+                            borderColor: `${tag.color || '#10B981'}33`
+                          }}
+                          className="w-12 h-12 rounded-2xl border flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform"
+                        >
+                          <TagIcon size={20} />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-white text-base font-black tracking-tight leading-tight truncate font-mono">
+                            {tag.name}
+                          </h3>
+                          <span className="block text-[9px] font-black uppercase tracking-wider text-white/30 font-mono mt-0.5">
+                            {(tag as any).usageCount || 0} items
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    {tag.description && (
+                      <p className="text-xs text-white/50 font-medium leading-relaxed mb-4 line-clamp-2 select-text">
+                        {tag.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    {/* Access time metadata */}
+                    <div className="flex items-center gap-1.5 text-white/20 text-[10px] font-bold font-mono uppercase mb-4">
+                      <ClockIcon size={12} />
+                      <span>
+                        Created {formatDateWithFallback(tag.createdAt, { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+
+                    {/* Bottom Row Actions */}
+                    <div className="flex gap-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditTag(tag);
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl border border-white/5 bg-[#1C1A18] hover:bg-[#252220] hover:border-white/10 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <EditIcon size={14} />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTag(tag);
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl border border-red-500/10 bg-red-500/5 hover:bg-red-500/10 hover:border-red-500/20 text-red-500 font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <TrashIcon size={14} />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="flex flex-col gap-8">
+          {/* Tagged Resources Section */}
+          <div className="bg-[#161412] border border-white/6 rounded-[32px] overflow-hidden shadow-2xl">
+            <div className="border-b border-white/6 px-6 py-5 bg-white/[0.01] flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <TagIcon size={18} className="text-[#10B981] flex-shrink-0" />
+                <span className="text-white font-black text-base tracking-tight leading-none block uppercase">
+                  Swept Resources
+                </span>
+              </div>
+              <span className="bg-[#10B981]/10 text-[#10B981] text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-[#10B981]/20">
+                AUTO-SWEPT
+              </span>
+            </div>
+            
+            <div className="px-6 py-3 bg-[#10B981]/5 border-b border-white/4 flex items-center gap-2.5">
+              <ShieldCheck size={14} className="text-[#10B981] flex-shrink-0" />
+              <p className="text-[10px] text-white/50 font-bold leading-tight">
+                By default, tagged items keep their permissions. Global sweeping respects resource owner privacy.
+              </p>
+            </div>
+
+            <div className="p-4 md:p-8">
+              {resolvingResources ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <SpinnerIcon className="animate-spin text-[#10B981]" size={24} />
+                  <span className="text-white/30 text-xs font-bold font-mono">Resolving ecosystem items...</span>
+                </div>
+              ) : Object.values(taggedResources).every((arr: any) => arr.length === 0) ? (
+                <div className="py-20 text-center select-none">
+                  <p className="text-white/20 italic text-sm font-semibold">
+                    No resources found with tag #{selectedTag.name}
+                  </p>
+                </div>
+              ) : (
+                <TaggedResourcesTabs 
+                  resources={taggedResources} 
+                  openSidebar={openSidebar}
+                  openSecondarySidebar={openSecondarySidebar}
+                  openOverlay={openOverlay}
+                  closeOverlay={closeOverlay}
+                  fetchProjectData={async () => {}} // No project to refresh
+                  handleRemoveObject={async () => {}} // Cannot remove from global swept list
+                  router={router}
+                  showError={showError}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const mainNotesContent = (
     <div className="flex flex-col gap-6">
       {/* Desktop Header */}
@@ -797,9 +1091,19 @@ export default function NotesPage() {
                 >
                   Projects
                 </button>
+                <button
+                  onClick={() => setActiveTab('tags')}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                    activeTab === 'tags'
+                      ? 'bg-[#10B981] text-white shadow-[0_4px_12px_rgba(16,185,129,0.25)]'
+                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Tags
+                </button>
               </div>
 
-              {activeTab === 'notes' ? mainNotesContent : projectsGridContent}
+              {activeTab === 'notes' ? mainNotesContent : activeTab === 'projects' ? projectsGridContent : tagsGridContent}
             </div>
 
             {/* Right Pane: Sticky side column */}
@@ -961,49 +1265,53 @@ export default function NotesPage() {
           </div>
         ) : (
           <>
-            {/* Mobile Header */}
-            <header className="mb-4 flex md:hidden items-center justify-between px-3 py-2 bg-white/[0.01] border border-white/8 rounded-2xl select-none">
-              <h1 className="text-white font-black text-xl tracking-tight leading-none font-mono">
-                {activeTab === 'notes' ? 'Ideas' : 'Projects'}
-              </h1>
-              <div className="flex items-center gap-2">
-                {activeTab === 'notes' && (
-                  <button 
-                    onClick={handleManualRefresh} 
-                    disabled={isRefreshing}
-                    className="w-9 h-9 rounded-lg bg-white/3 border border-white/8 hover:border-white/15 flex items-center justify-center transition-all duration-300 disabled:opacity-40"
-                  >
-                    <RefreshIcon size={14} className={isRefreshing ? 'animate-spin text-[#EC4899]' : 'text-white/60'} />
-                  </button>
-                )}
+            {/* Tab Switcher & Reload Line */}
+            <div className="flex items-center justify-between gap-2 mb-6 select-none w-full">
+              <div className="flex items-center gap-2 p-1 bg-white/[0.02] border border-white/5 rounded-2xl w-fit">
+                <button
+                  onClick={() => setActiveTab('notes')}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                    activeTab === 'notes'
+                      ? 'bg-[#EC4899] text-white shadow-[0_4px_12px_rgba(236,72,153,0.25)]'
+                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Ideas
+                </button>
+                <button
+                  onClick={() => setActiveTab('projects')}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                    activeTab === 'projects'
+                      ? 'bg-[#6366F1] text-white shadow-[0_4px_12px_rgba(99,102,241,0.25)]'
+                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Projects
+                </button>
+                <button
+                  onClick={() => setActiveTab('tags')}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                    activeTab === 'tags'
+                      ? 'bg-[#10B981] text-white shadow-[0_4px_12px_rgba(16,185,129,0.25)]'
+                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Tags
+                </button>
               </div>
-            </header>
 
-            {/* Tab Switcher */}
-            <div className="flex items-center gap-2 p-1 bg-white/[0.02] border border-white/5 rounded-2xl w-fit select-none mb-6">
-              <button
-                onClick={() => setActiveTab('notes')}
-                className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
-                  activeTab === 'notes'
-                    ? 'bg-[#EC4899] text-white shadow-[0_4px_12px_rgba(236,72,153,0.25)]'
-                    : 'text-white/50 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                Ideas
-              </button>
-              <button
-                onClick={() => setActiveTab('projects')}
-                className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
-                  activeTab === 'projects'
-                    ? 'bg-[#6366F1] text-white shadow-[0_4px_12px_rgba(99,102,241,0.25)]'
-                    : 'text-white/50 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                Projects
-              </button>
+              {activeTab === 'notes' && (
+                <button 
+                  onClick={handleManualRefresh} 
+                  disabled={isRefreshing}
+                  className="w-10 h-10 rounded-xl bg-white/3 border border-white/8 hover:border-white/15 flex items-center justify-center transition-all duration-300 disabled:opacity-40"
+                >
+                  <RefreshIcon size={14} className={isRefreshing ? 'animate-spin text-[#EC4899]' : 'text-white/60'} />
+                </button>
+              )}
             </div>
 
-            {activeTab === 'notes' ? mainNotesContent : projectsGridContent}
+            {activeTab === 'notes' ? mainNotesContent : activeTab === 'projects' ? projectsGridContent : tagsGridContent}
           </>
         )}
       </div>
