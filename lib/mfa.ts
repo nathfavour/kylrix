@@ -1,5 +1,5 @@
 import { AuthenticationFactor, AuthenticatorType, type Account, type Models } from 'appwrite';
-import { account } from '@/lib/appwrite';
+import { account } from '@/lib/appwrite/client';
 
 export const MFA_RECOVERY_VAULT_NAME = 'kylrix:mfa-recovery';
 export const MFA_RECOVERY_KIND = 'kylrix-mfa-recovery';

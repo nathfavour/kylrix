@@ -22,6 +22,7 @@ import {
 import { X, ShieldAlert, Shield, User, Fingerprint, Bell, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useSetup } from '@/context/SetupContext';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { UsersService, buildUsernameHandleSuggestions, invalidateUsersProfileRowCache } from '@/lib/services/users';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { account } from '@/lib/appwrite/client';
@@ -42,6 +43,7 @@ const normalizeHandleInput = (raw: string) =>
 export function AccountHealthDrawers() {
     const router = useRouter();
     const { user } = useAuth();
+    const { activeContent } = useUnifiedDrawer();
     const { currentStep, dismissStep, profile, triggerCheck } = useSetup();
 
     const [newHandle, setNewHandle] = useState('');
@@ -209,6 +211,10 @@ export function AccountHealthDrawers() {
         normalizedTyping.length >= 3 &&
         !(normalizedTyping !== canonicalSavedHandle && available === false) &&
         !checkingAvailability;
+
+    if (activeContent === 'login') {
+        return null;
+    }
 
     return (
         <>

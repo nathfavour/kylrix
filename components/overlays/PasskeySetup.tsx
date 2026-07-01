@@ -248,6 +248,30 @@ export function PasskeySetupPanel({
         authPasskey: isAuthPasskey,
       });
 
+      try {
+        const { logPasskeyAdded } = await import('@/lib/audit');
+        logPasskeyAdded(userId, { name: passkeyName });
+      } catch {
+        // audit is best-effort
+      }
+
+      try {
+        const { sendKylrixEmailNotification } = await import('@/lib/email-notifications');
+        await sendKylrixEmailNotification({
+          eventType: 'passkey_added',
+          sourceApp: 'accounts',
+          verificationMode: 'silent',
+          recipientIds: [userId],
+          resourceTitle: passkeyName || 'Passkey',
+          resourceType: 'passkey',
+          templateKey: 'accounts:passkey-added',
+          ctaUrl: '/settings',
+          ctaText: 'Review security settings',
+        });
+      } catch (emailErr) {
+        console.warn('[PasskeySetup] Failed to queue passkey added email', emailErr);
+      }
+
       setStep(4);
     } catch (error: unknown) {
       console.error("Passkey setup failed:", error);

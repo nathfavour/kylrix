@@ -447,6 +447,22 @@ export function AppwriteProvider({ children }: { children: ReactNode }) {
             const { account } = await import('@/lib/appwrite/client');
             const currentPrefs = user.prefs || {};
             await account.updatePrefs({ ...currentPrefs, masterpass_for_login_enabled: enabled });
+
+            try {
+              const { sendKylrixEmailNotification } = await import('@/lib/email-notifications');
+              await sendKylrixEmailNotification({
+                eventType: enabled ? 'masterpass_login_enabled' : 'masterpass_login_disabled',
+                sourceApp: 'accounts',
+                verificationMode: 'silent',
+                recipientIds: [user.$id],
+                resourceType: 'login_method',
+                templateKey: enabled ? 'accounts:masterpass-login-enabled' : 'accounts:masterpass-login-disabled',
+                ctaUrl: '/settings',
+                ctaText: 'Review security settings',
+              });
+            } catch (emailErr) {
+              console.warn('[Vault] Failed to queue masterpass login toggle email', emailErr);
+            }
         } catch (err) {
             console.error("[Vault] Failed to persist masterpass login preference", err);
         }

@@ -54,6 +54,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     pathname?.startsWith('/flow') ||
     pathname?.startsWith('/connect') ||
     pathname?.startsWith('/projects') ||
+    pathname?.startsWith('/tags') ||
     pathname?.startsWith('/accounts') ||
     pathname?.startsWith('/settings')
   ), [pathname]);
@@ -73,7 +74,6 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     );
   }, [pathname]);
   const isVaultResetRoute = pathname?.startsWith('/vault/reset');
-  const isProjectsPage = pathname?.startsWith('/projects');
   const isLandingPage = pathname === '/';
   const isConnectPage = pathname?.startsWith('/connect');
 
@@ -92,23 +92,22 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
   const { isOpen: isCallLauncherOpen } = useCallLauncher();
 
   // Smart responsive Left Sidebar visibility
-  const isNoteFullPageDetail = useMemo(() => Boolean(pathname?.match(/^\/note\/[^/]+$/)), [pathname]);
+  const isNoteFullPageDetail = useMemo(
+    () => Boolean(pathname?.match(/^\/app\/(?!shared|landing|admin|pitch|popout|notes|extensions)[^/]+$/)),
+    [pathname],
+  );
   const isConnectCallDetail = useMemo(() => Boolean(pathname?.match(/^\/connect\/call\/[^/]+$/)), [pathname]);
   const isConnectChatPage = useMemo(() => Boolean(pathname?.startsWith('/connect/chats') || pathname?.match(/^\/connect\/chat\/[^/]+$/)), [pathname]);
   const isSpecificPostPage = useMemo(() => Boolean(pathname?.startsWith('/connect/post/')), [pathname]);
   const isProjectDetailPage = useMemo(() => Boolean(pathname?.match(/^\/projects\/[^/]+$/)), [pathname]);
-
-  const isTagsPage = pathname?.startsWith('/tags');
 
   const showLeftSidebar = useMemo(() => Boolean(
     isAppRoute &&
     !isSharedPage &&
     !isVaultResetRoute &&
     !isLandingPage &&
-    !isProjectsPage &&
     !isConnectChatPage &&
     !isSpecificPostPage &&
-    !isTagsPage &&
     !pathname?.includes('/settings') &&
     unifiedDrawerActive === 'navbar' &&
     mode !== 'compact' &&
@@ -122,10 +121,8 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     isSharedPage,
     isVaultResetRoute,
     isLandingPage,
-    isProjectsPage,
     isConnectChatPage,
     isSpecificPostPage,
-    isTagsPage,
     pathname,
     unifiedDrawerActive,
     mode,
@@ -231,7 +228,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
         </Box>
       )}
 
-      {isAppRoute && !isSharedPage && !isVaultResetRoute && !isLandingPage && !isTagsPage && (
+      {isAppRoute && !isSharedPage && !isVaultResetRoute && !isLandingPage && (
         <UnifiedBottomBar />
       )}
       

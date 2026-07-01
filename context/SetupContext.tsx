@@ -6,6 +6,7 @@ import { UsersService, buildUsernameHandleSuggestions, invalidateUsersProfileRow
 import { KeychainService } from '@/lib/appwrite/keychain';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { usePathname } from 'next/navigation';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import toast from 'react-hot-toast';
 
 export type SetupStep = 'none' | 'masterpass' | 'username' | 'passkey' | 'identity';
@@ -38,6 +39,7 @@ function routeSuppressesSetup(pathname: string | null): boolean {
 
 export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading: authLoading } = useAuth();
+  const { activeContent } = useUnifiedDrawer();
   const pathname = usePathname();
   const [currentStep, setCurrentStep] = useState<SetupStep>('none');
   const [isLoading, setIsLoading] = useState(true);
@@ -47,19 +49,19 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const checkInflight = useRef(false);
 
   const dismissStep = useCallback((step: SetupStep, durationDays?: number) => {
-    if (!user?.$id) return;
-    const expiresAt = Date.now() + (durationDays ?? 7) * 24 * 60 * 60 * 1000;
-    
-    if (step === 'username') {
-      localStorage.setItem(`${USERNAME_DISMISS_KEY}${user.$id}`, String(expiresAt));
-    } else if (step === 'masterpass') {
-      localStorage.setItem(`${MP_DISMISS_KEY}${user.$id}`, String(expiresAt));
-    } else if (step === 'passkey') {
-      localStorage.setItem(`${PASSKEY_DISMISS_KEY}${user.$id}`, String(expiresAt));
+    if (user?.$id) {
+      const expiresAt = Date.now() + (durationDays ?? 7) * 24 * 60 * 60 * 1000;
+      
+      if (step === 'username') {
+        localStorage.setItem(`${USERNAME_DISMISS_KEY}${user.$id}`, String(expiresAt));
+      } else if (step === 'masterpass') {
+        localStorage.setItem(`${MP_DISMISS_KEY}${user.$id}`, String(expiresAt));
+      } else if (step === 'passkey') {
+        localStorage.setItem(`${PASSKEY_DISMISS_KEY}${user.$id}`, String(expiresAt));
+      }
     }
     
     setCurrentStep('none');
-    setTimeout(() => void triggerCheck(), 100);
   }, [user?.$id]);
 
   const silentPublishUsername = useCallback(async (): Promise<boolean> => {
@@ -131,6 +133,11 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsLoading(true);
 
     try {
+      if (activeContent === 'login') {
+        setCurrentStep('none');
+        return;
+      }
+
       const [prof, mpOk] = await Promise.all([
         UsersService.getProfileById(user.$id),
         KeychainService.hasMasterpass(user.$id).catch(() => false),
@@ -140,7 +147,9 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setHasMasterpass(mpOk);
 
       const keychainRes = await KeychainService.listKeychainEntries(user.$id).catch(() => []);
-      const passkeyOk = keychainRes.some((e: any) => e.type === 'passkey');
+      const lastAuthMethod = typeof window !== 'undefined' ? localStorage.getItem('kylrix_last_auth_method') : null;
+      const cachedHasPasskey = typeof window !== 'undefined' && localStorage.getItem(`kylrix_has_passkey_${user.$id}`) === 'true';
+      const passkeyOk = keychainRes.some((e: any) => e.type === 'passkey') || lastAuthMethod === 'passkey' || cachedHasPasskey;
       setHasPasskey(passkeyOk);
 
       const now = Date.now();
@@ -209,7 +218,7 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setIsLoading(false);
       checkInflight.current = false;
     }
-  }, [user, pathname, silentPublishUsername]);
+  }, [user, pathname, silentPublishUsername, activeContent]);
 
   useEffect(() => {
     if (authLoading) return;

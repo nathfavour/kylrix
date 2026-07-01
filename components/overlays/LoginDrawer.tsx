@@ -11,7 +11,7 @@ import { getCurrentLoginMethod, isMfaRequiredError } from '@/lib/mfa';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { startAuthentication } from '@simplewebauthn/browser';
-import { account } from '@/lib/appwrite';
+import { account } from '@/lib/appwrite/client';
 import { getPasskeyLoginOptionsAction, verifyPasskeyLoginAction, checkEmailAuthStatusAction } from '@/lib/actions/auth-actions';
 
 type LoginStep = 'initial' | 'email' | 'otp';
@@ -164,6 +164,9 @@ export function LoginDrawer() {
       // Complete Appwrite session creation using the minted token
       await account.createSession(verifyRes.userId, verifyRes.token);
       
+      localStorage.setItem('kylrix_last_auth_method', 'passkey');
+      localStorage.setItem(`kylrix_has_passkey_${verifyRes.userId}`, 'true');
+
       // Sync MEK/Masterpass wrapping if available
       if (verifyRes.wrappedKey) {
         let kwrapSeed: ArrayBuffer;
@@ -207,7 +210,6 @@ export function LoginDrawer() {
         await ecosystemSecurity.importMasterKey(mekBytes);
       }
 
-      localStorage.setItem('kylrix_last_auth_method', 'passkey');
       toast.success('Authenticated via Passkey!');
       await refreshUser(true);
       close();

@@ -8,6 +8,8 @@ import {
   Lock as VaultIcon,
   CheckSquare as FlowIcon,
   MessageCircle as ConnectIcon,
+  FolderKanban as ProjectsIcon,
+  Tag as TagsIcon,
 } from 'lucide-react';
 
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
@@ -15,6 +17,19 @@ import { useAppChrome } from '@/components/providers/AppChromeProvider';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { useCallLauncher } from '@/context/CallLauncherContext';
 import { useOverlay } from '@/components/ui/OverlayContext';
+
+type NavId = 'note' | 'flow' | 'vault' | 'connect' | 'projects' | 'tags';
+
+const NAV_COLORS: Record<NavId, string> = {
+  note: '#EC4899',
+  flow: '#A855F7',
+  vault: '#10B981',
+  connect: '#F59E0B',
+  projects: '#F59E0B',
+  tags: '#6366F1',
+};
+
+const NOTE_DETAIL_EXCLUDED = 'shared|landing|admin|pitch|popout|notes|extensions';
 
 export function UnifiedLeftSidebar() {
   const pathname = usePathname();
@@ -25,61 +40,48 @@ export function UnifiedLeftSidebar() {
   const { isOpen: isCallLauncherOpen } = useCallLauncher();
   const { isOpen: isOverlayOpen } = useOverlay();
 
-  // Determine which app we're in
-  const appContext = useMemo(() => {
+  const appContext = useMemo((): NavId | null => {
+    if (pathname?.startsWith('/tags')) return 'tags';
+    if (pathname?.startsWith('/projects')) return 'projects';
     if (pathname?.startsWith('/app')) return 'note';
     if (pathname?.startsWith('/vault')) return 'vault';
     if (pathname?.startsWith('/flow')) return 'flow';
     if (pathname?.startsWith('/connect')) return 'connect';
-    if (pathname?.startsWith('/projects')) return 'note';
     return null;
   }, [pathname]);
 
-  // Get app-specific color for selected state
-  const appColor = useMemo(() => {
-    switch (appContext) {
-      case 'vault':
-        return '#10B981'; // Emerald
-      case 'flow':
-        return '#A855F7'; // Amethyst
-      case 'connect':
-        return '#F59E0B'; // Amber
-      case 'note':
-      default:
-        return '#EC4899'; // Pink
-    }
-  }, [appContext]);
-
-  // Get current tab based on pathname
-  const getCurrentTab = () => {
-    if (pathname?.startsWith('/app') || pathname?.startsWith('/projects')) return 'note';
+  const getCurrentTab = (): NavId | null => {
+    if (pathname?.startsWith('/tags')) return 'tags';
+    if (pathname?.startsWith('/projects')) return 'projects';
+    if (pathname?.startsWith('/app')) return 'note';
     if (pathname?.startsWith('/flow')) return 'flow';
     if (pathname?.startsWith('/vault')) return 'vault';
     if (pathname?.startsWith('/connect')) return 'connect';
     return null;
   };
 
-  const handleNavChange = (newValue: string) => {
-    const routes: Record<string, string> = {
+  const handleNavChange = (navId: NavId) => {
+    const routes: Record<NavId, string> = {
       note: '/app',
       flow: '/flow',
       vault: '/vault',
       connect: '/connect',
+      projects: '/projects',
+      tags: '/tags',
     };
-    router.push(routes[newValue] || '/app');
+    router.push(routes[navId] || '/app');
   };
 
-  const isNoteFullPageDetail = Boolean(pathname?.match(/^\/app\/notes\/[^/]+$/));
+  const isNoteFullPageDetail = Boolean(
+    pathname?.match(new RegExp(`^/app/(?!${NOTE_DETAIL_EXCLUDED})[^/]+$`)),
+  );
   const isConnectCallDetail = Boolean(pathname?.match(/^\/connect\/call\/[^/]+$/));
-  const isConnectChatPage = pathname?.startsWith('/connect/chats') || pathname?.match(/^\/connect\/chat\/[^/]+$/);
-  const isProjectsPage = pathname?.startsWith('/projects');
+  const isConnectChatPage =
+    pathname?.startsWith('/connect/chats') || pathname?.match(/^\/connect\/chat\/[^/]+$/);
 
-  // Accounts: never use left sidebar
   if (pathname?.startsWith('/accounts')) return null;
 
-  // Hide left sidebar on settings page, when overlays/drawers/compact shells are active
   if (
-    isProjectsPage ||
     isConnectChatPage ||
     pathname?.includes('/settings') ||
     activeContent !== 'navbar' ||
@@ -87,23 +89,26 @@ export function UnifiedLeftSidebar() {
     isDrawerOpen ||
     isNoteFullPageDetail ||
     isConnectCallDetail ||
-    isCallLauncherOpen || 
+    isCallLauncherOpen ||
     isOverlayOpen ||
     !appContext
   ) return null;
 
   const currentTab = getCurrentTab();
 
-  const navItems = [
-    { id: 'note', label: 'Ideas & Projects', icon: NotesIcon },
-    { id: 'flow', label: 'Flow Goals', icon: FlowIcon },
-    { id: 'vault', label: 'Vault Crypt', icon: VaultIcon },
-    { id: 'connect', label: 'Connect Hub', icon: ConnectIcon },
+  const navItems: { id: NavId; label: string; icon: typeof NotesIcon }[] = [
+    { id: 'note', label: 'Ideas', icon: NotesIcon },
+    { id: 'flow', label: 'Flow', icon: FlowIcon },
+    { id: 'vault', label: 'Vault', icon: VaultIcon },
+    { id: 'connect', label: 'Connect', icon: ConnectIcon },
+    { id: 'projects', label: 'Projects', icon: ProjectsIcon },
+    { id: 'tags', label: 'Tags', icon: TagsIcon },
   ];
 
   return (
     <Box
       component="nav"
+      className="kylrix-sidebar"
       sx={{
         position: 'fixed',
         left: 0,
@@ -126,33 +131,34 @@ export function UnifiedLeftSidebar() {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          py: 3,
+          py: 2.5,
           boxSizing: 'border-box',
         }}
       >
-        <Stack spacing={3.5} sx={{ width: '100%', alignItems: 'center' }}>
+        <Stack spacing={2} sx={{ width: '100%', alignItems: 'center' }}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isSelected = currentTab === item.id;
+            const itemColor = NAV_COLORS[item.id];
             return (
               <Tooltip key={item.id} title={item.label} placement="right" arrow>
                 <Box
                   onClick={() => handleNavChange(item.id)}
                   sx={{
                     position: 'relative',
-                    width: 48,
-                    height: 48,
-                    borderRadius: '16px',
+                    width: 46,
+                    height: 46,
+                    borderRadius: '14px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    color: isSelected ? appColor : 'rgba(255, 255, 255, 0.4)',
+                    color: isSelected ? itemColor : 'rgba(255, 255, 255, 0.4)',
                     bgcolor: isSelected ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    border: isSelected ? `1px solid ${appColor}33` : '1px solid transparent',
+                    border: isSelected ? `1px solid ${itemColor}33` : '1px solid transparent',
                     '&:hover': {
-                      color: isSelected ? appColor : '#fff',
+                      color: isSelected ? itemColor : '#fff',
                       bgcolor: 'rgba(255, 255, 255, 0.04)',
                       transform: 'translateY(-1px)',
                       ...(isSelected ? {} : { borderColor: 'rgba(255,255,255,0.08)' }),
@@ -162,29 +168,28 @@ export function UnifiedLeftSidebar() {
                     },
                   }}
                 >
-                  {/* Glowing vertical indicator edge */}
                   {isSelected && (
                     <Box
                       sx={{
                         position: 'absolute',
                         left: -16,
                         width: 4,
-                        height: 24,
+                        height: 22,
                         borderRadius: '0 4px 4px 0',
-                        bgcolor: appColor,
-                        boxShadow: `0 0 12px ${appColor}`,
+                        bgcolor: itemColor,
+                        boxShadow: `0 0 12px ${itemColor}`,
                       }}
                     />
                   )}
 
                   <Icon
-                    size={22}
+                    size={20}
                     strokeWidth={1.5}
                     style={{
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       ...(isSelected && {
                         transform: 'scale(1.1)',
-                        filter: `drop-shadow(0 0 6px ${appColor}60)`,
+                        filter: `drop-shadow(0 0 6px ${itemColor}60)`,
                       }),
                     }}
                   />
@@ -198,7 +203,6 @@ export function UnifiedLeftSidebar() {
   );
 }
 
-// Inline Stack Component to avoid separate imports if not present
 function Stack({ children, spacing, sx }: { children: React.ReactNode; spacing: number; sx?: any }) {
   return (
     <Box

@@ -19,7 +19,10 @@ export type UnorganicEmailEventType =
   | 'project_invited'
   | 'subscription_expiry_reminder'
   | 'feature_announcement'
-  | 'coupon_issued';
+  | 'coupon_issued'
+  | 'passkey_added'
+  | 'masterpass_login_enabled'
+  | 'masterpass_login_disabled';
 
 export type UnorganicEmailRecipientInput =
   | { userId: string; email?: never }
@@ -88,6 +91,9 @@ const EVENT_PRIORITY: Record<UnorganicEmailEventType, number> = {
   subscription_expiry_reminder: 95,
   feature_announcement: 70,
   coupon_issued: 80,
+  passkey_added: 36,
+  masterpass_login_enabled: 34,
+  masterpass_login_disabled: 34,
 };
 
 const MAX_UNORGANIC_EMAILS = 5;
@@ -331,6 +337,30 @@ function resolveEventCopy(input: Required<Pick<UnorganicEmailDispatchInput, 'eve
         body: `Your paid Kylrix Pro subscription is expiring in 2 days. To avoid being downgraded back to the free plan, please fund your in-app wallet or renew your subscription ahead of expiry.`.trim(),
         ctaText: 'Renew Subscription',
         ctaUrl: `${KYLRIX_AUTH_URI}/accounts/settings/profile`,
+      };
+    case 'passkey_added':
+      return {
+        subject: `Passkey added: ${resourceTitle}`,
+        title: 'New passkey',
+        body: `Passkey "${resourceTitle}" was added to your account. If you did not do this, review your security settings right away.`.trim(),
+        ctaText: pickText(input.ctaText, 'Review security settings'),
+        ctaUrl: pickText(input.ctaUrl, `${KYLRIX_AUTH_URI}/settings`),
+      };
+    case 'masterpass_login_enabled':
+      return {
+        subject: 'MasterPass sign-in enabled',
+        title: 'Sign-in method updated',
+        body: 'MasterPass for account login has been enabled on your account.',
+        ctaText: pickText(input.ctaText, 'Review security settings'),
+        ctaUrl: pickText(input.ctaUrl, `${KYLRIX_AUTH_URI}/settings`),
+      };
+    case 'masterpass_login_disabled':
+      return {
+        subject: 'MasterPass sign-in disabled',
+        title: 'Sign-in method updated',
+        body: 'MasterPass for account login has been disabled on your account.',
+        ctaText: pickText(input.ctaText, 'Review security settings'),
+        ctaUrl: pickText(input.ctaUrl, `${KYLRIX_AUTH_URI}/settings`),
       };
     case 'feature_announcement':
     case 'coupon_issued': {
