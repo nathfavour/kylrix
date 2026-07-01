@@ -93,9 +93,12 @@ export const GhostNoteClaimer = () => {
                                 const { createTotpSecret } = await import('@/lib/appwrite/vault');
                                 await createTotpSecret({
                                     userId: user.$id,
-                                    label: decryptedTitle,
-                                    secret: payload.secret,
-                                    issuer: payload.issuer || null,
+                                    issuer: payload.issuer || decryptedTitle || 'Imported',
+                                    accountName: payload.account || payload.accountName || decryptedTitle || 'Authenticator',
+                                    secretKey: payload.secret || payload.secretKey || '',
+                                    algorithm: payload.algorithm || 'SHA1',
+                                    digits: payload.digits || 6,
+                                    period: payload.period || 30,
                                 });
                             }
                         } else {
