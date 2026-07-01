@@ -39,7 +39,7 @@ function hasInstantSharedData(
   return privateNotes.length > 0 || publicNotes.length > 0;
 }
 
-export default function SharedNotesPage() {
+export default function SharedIdeasPage() {
   const { isPinned, notes: ownedNotes } = useNotes();
   const { user } = useAuth();
   const { getCachedDataAsync, setCachedData } = useDataNexus();
@@ -83,7 +83,7 @@ export default function SharedNotesPage() {
       mainColor: '#EC4899',
       onMainClick: () => openComposer(),
       actions: [
-        { id: 'new-shared-note', label: 'NEW PUBLIC NOTE', icon: <PlusIcon size={16} />, onClick: () => openComposer() },
+        { id: 'new-shared-note', label: 'NEW PUBLIC IDEA', icon: <PlusIcon size={16} />, onClick: () => openComposer() },
       ]
     });
     return () => resetConfiguration();
@@ -218,7 +218,7 @@ export default function SharedNotesPage() {
                 Shared
               </h1>
               <p className="text-white/40 text-xs font-semibold leading-normal font-sans">
-                Notes shared with you and your public notes
+                Ideas shared with you and your public ideas
               </p>
             </div>
 
@@ -271,12 +271,12 @@ export default function SharedNotesPage() {
                 )}
               </div>
               <h4 className="text-white font-black text-lg tracking-tight mb-2">
-                {activeTab === 0 ? 'No Private Shared Notes' : 'No Public Notes'}
+                {activeTab === 0 ? 'No Private Shared Ideas' : 'No Public Ideas'}
               </h4>
               <p className="text-white/40 text-xs font-semibold max-w-xs leading-relaxed">
                 {activeTab === 0
-                  ? "When others share notes with you, they'll appear here. Start collaborating by sharing your own notes!"
-                  : "When you make your notes public, they'll appear here."
+                  ? "When others share ideas with you, they'll appear here. Start collaborating by sharing your own ideas!"
+                  : "When you make your ideas public, they'll appear here."
                 }
               </p>
             </div>

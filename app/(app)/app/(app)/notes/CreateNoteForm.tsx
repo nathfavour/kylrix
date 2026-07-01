@@ -263,6 +263,15 @@ export default function CreateNoteForm({
     }
   }, [title, content, tags, isTitleManuallyEdited, resolvedNoteId, noteId, isHydrated]);
 
+  // Clear draft on unmount if the note has been saved
+  useEffect(() => {
+    return () => {
+      if (resolvedNoteId && typeof window !== 'undefined') {
+        localStorage.removeItem('kylrix:draft:note');
+      }
+    };
+  }, [resolvedNoteId]);
+
   // Seamless auto-title logic
   useEffect(() => {
     if (isTitleManuallyEdited) return;

@@ -848,7 +848,7 @@ export default function NotesPage() {
                     ) : sharedNotes.length === 0 ? (
                       <div className="text-center py-6 select-none">
                         <p className="text-white/40 text-xs italic font-bold">
-                          No shared notes.
+                          No shared ideas.
                         </p>
                       </div>
                     ) : (
@@ -864,7 +864,7 @@ export default function NotesPage() {
                             </div>
                             <div className="min-w-0 flex-1">
                               <span className="block text-white font-extrabold text-xs truncate">
-                                {note.title || 'Untitled Note'}
+                                {note.title || 'Untitled Idea'}
                               </span>
                               <span className="block text-white/40 text-[9px] font-black uppercase tracking-wider font-mono mt-0.5">
                                 BY: {note.userId === 'system' ? 'SYSTEM' : (note.userName || 'Collaborator').toUpperCase()}

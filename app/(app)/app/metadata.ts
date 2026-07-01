@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "WhisperNote",
-  description: "A modern note-taking app",
+  title: "Ideas",
+  description: "A modern workspace for your ideas",
   icons: {
     icon: '/logo_generic.png',
   },

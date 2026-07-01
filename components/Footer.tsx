@@ -108,7 +108,7 @@ export default function Footer() {
                 fontFamily: 'var(--font-satoshi), sans-serif'
               }}
             >
-              © {new Date().getFullYear()} WhisperNote. All rights reserved.
+              © {new Date().getFullYear()} Kylrix. All rights reserved.
             </Typography>
             <Stack direction="row" spacing={1}>
               {[
