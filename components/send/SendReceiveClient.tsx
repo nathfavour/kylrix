@@ -30,8 +30,8 @@ import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { useToast } from '@/components/ui/Toast';
 import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
-import CommentsSection from '@/app/(app)/note/(app)/notes/Comments';
-import NoteReactions from '@/app/(app)/note/(app)/notes/NoteReactions';
+import CommentsSection from '@/app/(app)/app/(app)/notes/Comments';
+import NoteReactions from '@/app/(app)/app/(app)/notes/NoteReactions';
 import { HuddleChatWindow } from '@/components/chat/HuddleChatWindow';
 
 import { getEcosystemUrl } from '@/constants/ecosystem';

@@ -25,8 +25,8 @@ import { getNote } from '@/lib/appwrite';
 import { deleteNote } from '@/lib/actions/client-ops';
 import { useDataNexus } from '@/context/DataNexusContext';
 import { useToast } from '@/components/ui/Toast';
-import CommentsSection from '@/app/(app)/note/(app)/notes/Comments';
-import NoteReactions from '@/app/(app)/note/(app)/notes/NoteReactions';
+import CommentsSection from '@/app/(app)/app/(app)/notes/Comments';
+import NoteReactions from '@/app/(app)/app/(app)/notes/NoteReactions';
 import { useAuth } from '@/context/auth/AuthContext';
 import { getNote as getChatNote } from '@/lib/appwrite/note';
 

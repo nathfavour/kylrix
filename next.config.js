@@ -40,13 +40,23 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: '/note/notes',
-        destination: '/note',
+        source: '/note',
+        destination: '/app',
         permanent: true,
       },
       {
-        source: '/note/notes/:path*',
-        destination: '/note/:path*',
+        source: '/note/:path*',
+        destination: '/app/:path*',
+        permanent: true,
+      },
+      {
+        source: '/app/notes',
+        destination: '/app',
+        permanent: true,
+      },
+      {
+        source: '/app/notes/:path*',
+        destination: '/app/:path*',
         permanent: true,
       },
       {
