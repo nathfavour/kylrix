@@ -41,7 +41,7 @@ export async function generateMetadata({
 
     if (isEncrypted) {
       if (!keyParam) {
-        const encryptedOgUrl = `${baseUrl}/note/shared/${noteid}/opengraph-image`;
+        const encryptedOgUrl = `${baseUrl}/app/shared/${noteid}/opengraph-image`;
         return {
           title: 'Protected Note · Kylrix',
           description: 'This note is secure and password-protected.',
@@ -64,7 +64,7 @@ export async function generateMetadata({
         decryptedContent = await decryptGhostData(note.content || '', keyParam);
       } catch (err) {
         console.warn('Failed server-side decryption of shared note metadata preview:', err);
-        const encryptedOgUrl = `${baseUrl}/note/shared/${noteid}/opengraph-image`;
+        const encryptedOgUrl = `${baseUrl}/app/shared/${noteid}/opengraph-image`;
         return {
           title: 'Protected Note · Kylrix',
           description: 'This note is secure and password-protected.',
@@ -88,7 +88,7 @@ export async function generateMetadata({
     const displayDesc = decryptedContent
       ? decryptedContent.substring(0, 160).trim() + '…'
       : 'View this note shared securely via Kylrix Note.';
-    const ogImage = `${baseUrl}/note/shared/${noteid}/opengraph-image${keyParam ? `?key=${encodeURIComponent(keyParam)}` : ''}`;
+    const ogImage = `${baseUrl}/app/shared/${noteid}/opengraph-image${keyParam ? `?key=${encodeURIComponent(keyParam)}` : ''}`;
 
     return {
       title: displayTitle,

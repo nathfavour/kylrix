@@ -128,7 +128,7 @@ export const ContextMenuProvider = ({ children }: { children: ReactNode }) => {
 
       // Helper function for quick note capture
       const triggerQuickNote = () => {
-        import("@/app/(app)/note/(app)/notes/CreateNoteForm").then(({ default: CreateNoteForm }) => {
+        import("@/app/(app)/app/(app)/notes/CreateNoteForm").then(({ default: CreateNoteForm }) => {
           openOverlay(<CreateNoteForm onNoteCreated={(n) => upsertNote(n)} />);
         });
       };

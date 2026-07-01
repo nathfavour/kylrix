@@ -377,7 +377,7 @@ export default function NotesPage() {
       if (typeof window === 'undefined') return;
       const params = new URLSearchParams(window.location.search);
       params.delete('openNoteId');
-      const path = `/note${params.toString() ? `?${params.toString()}` : ''}`;
+      const path = `/app${params.toString() ? `?${params.toString()}` : ''}`;
       router.replace(path);
     };
 
@@ -687,7 +687,7 @@ export default function NotesPage() {
                       {sharedNotesOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
                     <button 
-                      onClick={() => router.push('/note/shared')} 
+                      onClick={() => router.push('/app/shared')} 
                       className="p-1.5 rounded-lg text-white/40 hover:text-[#EC4899] hover:bg-white/5 transition-all"
                     >
                       <Maximize2 size={14} />

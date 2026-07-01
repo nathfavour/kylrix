@@ -556,7 +556,7 @@ export default function LandingPage() {
       const lastRoute = typeof window !== 'undefined'
         ? document.cookie.split('; ').find(row => row.startsWith('kylrix_last_route='))?.split('=')[1]
         : null;
-      const target = lastRoute ? decodeURIComponent(lastRoute) : '/note';
+      const target = lastRoute ? decodeURIComponent(lastRoute) : '/app';
       router.replace(target);
     } else {
       router.replace('/send');

@@ -174,16 +174,16 @@ export default function GlobalShortcuts() {
       // Cmd/Ctrl + N => create new note (navigate to /note if not there)
       if (key === "n" && !e.altKey && !typing) {
         e.preventDefault();
-        if (window.location.pathname.startsWith("/note")) {
+        if (window.location.pathname.startsWith("/app")) {
           // Dynamically import CreateNoteForm when needed
-          import("@/app/(app)/note/(app)/notes/CreateNoteForm").then(({ default: CreateNoteForm }) => {
+          import("@/app/(app)/app/(app)/notes/CreateNoteForm").then(({ default: CreateNoteForm }) => {
             openOverlay(<CreateNoteForm onNoteCreated={(n) => upsertNote(n)} />);
           });
         } else {
           try {
             sessionStorage.setItem("open-create-note", "1");
           } catch {}
-          router.push("/note");
+          router.push("/app");
         }
         return;
       }

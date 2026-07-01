@@ -56,7 +56,7 @@ import { events as eventApi } from '@/lib/kylrixflow';
 import { permissions } from '@/lib/permissions';
 
 // Dialog/Form Imports
-import CreateNoteForm from '@/app/(app)/note/(app)/notes/CreateNoteForm';
+import CreateNoteForm from '@/app/(app)/app/(app)/notes/CreateNoteForm';
 import CredentialDialog from '@/components/app/dashboard/CredentialDialog';
 import FormDialog from '@/components/forms/FormDialog';
 import { EventDialog } from '@/components/events/EventDialog';

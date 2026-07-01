@@ -48,13 +48,13 @@ export async function generateMetadata({
           openGraph: {
             title: 'Protected Note · Kylrix',
             description: 'This note is secure and password-protected.',
-            images: [{ url: `/note/${id}/opengraph-image`, width: 1200, height: 630 }],
+            images: [{ url: `/app/${id}/opengraph-image`, width: 1200, height: 630 }],
           },
           twitter: {
             card: 'summary_large_image',
             title: 'Protected Note · Kylrix',
             description: 'This note is secure and password-protected.',
-            images: [`/note/${id}/opengraph-image`],
+            images: [`/app/${id}/opengraph-image`],
           },
         };
       }
@@ -70,13 +70,13 @@ export async function generateMetadata({
           openGraph: {
             title: 'Protected Note · Kylrix',
             description: 'This note is secure and password-protected.',
-            images: [{ url: `/note/${id}/opengraph-image`, width: 1200, height: 630 }],
+            images: [{ url: `/app/${id}/opengraph-image`, width: 1200, height: 630 }],
           },
           twitter: {
             card: 'summary_large_image',
             title: 'Protected Note · Kylrix',
             description: 'This note is secure and password-protected.',
-            images: [`/note/${id}/opengraph-image`],
+            images: [`/app/${id}/opengraph-image`],
           },
         };
       }
@@ -87,7 +87,7 @@ export async function generateMetadata({
     const displayDesc = decryptedContent
       ? decryptedContent.substring(0, 160).trim() + '…'
       : 'View this note shared securely via Kylrix Note.';
-    const ogImage = `/note/${id}/opengraph-image${key ? `?key=${encodeURIComponent(key)}` : ''}`;
+    const ogImage = `/app/${id}/opengraph-image${key ? `?key=${encodeURIComponent(key)}` : ''}`;
 
     return {
       title: displayTitle,

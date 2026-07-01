@@ -17,8 +17,8 @@ import {
   DialogActions,
 } from '@/lib/openbricks/primitives';
 import { useToast } from '@/components/ui/Toast';
-import CommentsSection from '@/app/(app)/note/(app)/notes/Comments';
-import NoteReactions from '@/app/(app)/note/(app)/notes/NoteReactions';
+import CommentsSection from '@/app/(app)/app/(app)/notes/Comments';
+import NoteReactions from '@/app/(app)/app/(app)/notes/NoteReactions';
 import { useDataNexus } from '@/context/DataNexusContext';
 
 export default function NoteEditorPageClient() {
@@ -97,7 +97,7 @@ export default function NoteEditorPageClient() {
       await deleteNote(noteId);
       if (CACHE_KEY) invalidate(CACHE_KEY);
       showSuccess('Deleted', 'Note removed');
-      router.push('/note');
+      router.push('/app');
     } catch (error: any) {
       console.error('Delete failed', error);
       showError('Delete failed', 'Could not delete the note.');

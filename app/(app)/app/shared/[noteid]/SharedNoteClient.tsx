@@ -52,8 +52,8 @@ import {
   keyframes
 } from '@/lib/openbricks/primitives';
 import NextLink from 'next/link';
-import CommentsSection from '@/app/(app)/note/(app)/notes/Comments';
-import NoteReactions from '@/app/(app)/note/(app)/notes/NoteReactions';
+import CommentsSection from '@/app/(app)/app/(app)/notes/Comments';
+import NoteReactions from '@/app/(app)/app/(app)/notes/NoteReactions';
 
 import Logo from '@/components/common/Logo';
 import { getEcosystemUrl } from '@/constants/ecosystem';
@@ -1122,7 +1122,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
           <Box sx={{ mb: 2 }}>
             <Button
               component={NextLink}
-              href="/note"
+              href="/app"
               startIcon={<ArrowBackIcon />}
               sx={{
                 borderRadius: '12px',
@@ -1164,7 +1164,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
               </Typography>
               <Button
                 component={NextLink}
-                href="/note"
+                href="/app"
                 variant="contained"
                 size="large"
                 endIcon={<ArrowRightIcon />}
@@ -1288,7 +1288,7 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
         <Box sx={{ mb: 2 }}>
           <Button
             component={NextLink}
-            href="/note"
+            href="/app"
             startIcon={<ArrowBackIcon />}
             sx={{
               borderRadius: '12px',

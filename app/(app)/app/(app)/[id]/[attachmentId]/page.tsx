@@ -92,7 +92,7 @@ export default function AttachmentPage() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <IconButton 
               component={Link} 
-              href={`/note/${noteId}`}
+              href={`/app/${noteId}`}
               sx={{ 
                 color: 'white', 
                 bgcolor: 'rgba(255, 255, 255, 0.05)',
@@ -103,10 +103,10 @@ export default function AttachmentPage() {
             </IconButton>
             <Box>
               <Breadcrumbs sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 0.5 }}>
-                <ObLink component={Link} href="/note" underline="hover" color="inherit">
+                <ObLink component={Link} href="/app" underline="hover" color="inherit">
                   Notes
                 </ObLink>
-                <ObLink component={Link} href={`/note/${noteId}`} underline="hover" color="inherit">
+                <ObLink component={Link} href={`/app/${noteId}`} underline="hover" color="inherit">
                   Note
                 </ObLink>
                 <Typography color="white">Attachment</Typography>
