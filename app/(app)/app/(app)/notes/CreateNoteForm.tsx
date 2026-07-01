@@ -719,6 +719,9 @@ export default function CreateNoteForm({
         return;
       }
     }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('kylrix:draft:note');
+    }
     if (onClose) {
       onClose();
     } else {

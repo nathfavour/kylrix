@@ -19,17 +19,17 @@ export async function generateMetadata({
 
     if (!note) {
       return {
-        title: 'Note · Kylrix',
-        description: 'View and collaborate on this note securely.',
+        title: 'Idea · Kylrix',
+        description: 'View and collaborate on this idea securely.',
         openGraph: {
-          title: 'Note · Kylrix',
-          description: 'View and collaborate on this note securely.',
+          title: 'Idea · Kylrix',
+          description: 'View and collaborate on this idea securely.',
           images: [{ url: fallbackImage, width: 1200, height: 630 }],
         },
         twitter: {
           card: 'summary_large_image',
-          title: 'Note · Kylrix',
-          description: 'View and collaborate on this note securely.',
+          title: 'Idea · Kylrix',
+          description: 'View and collaborate on this idea securely.',
           images: [fallbackImage],
         },
       };
@@ -43,17 +43,17 @@ export async function generateMetadata({
     if (isEncrypted) {
       if (!key) {
         return {
-          title: 'Protected Note · Kylrix',
-          description: 'This note is secure and password-protected.',
+          title: 'Protected Idea · Kylrix',
+          description: 'This idea is secure and password-protected.',
           openGraph: {
-            title: 'Protected Note · Kylrix',
-            description: 'This note is secure and password-protected.',
+            title: 'Protected Idea · Kylrix',
+            description: 'This idea is secure and password-protected.',
             images: [{ url: `/app/${id}/opengraph-image`, width: 1200, height: 630 }],
           },
           twitter: {
             card: 'summary_large_image',
-            title: 'Protected Note · Kylrix',
-            description: 'This note is secure and password-protected.',
+            title: 'Protected Idea · Kylrix',
+            description: 'This idea is secure and password-protected.',
             images: [`/app/${id}/opengraph-image`],
           },
         };
@@ -65,28 +65,28 @@ export async function generateMetadata({
       } catch (err) {
         console.warn('Failed server-side decryption of note metadata preview:', err);
         return {
-          title: 'Protected Note · Kylrix',
-          description: 'This note is secure and password-protected.',
+          title: 'Protected Idea · Kylrix',
+          description: 'This idea is secure and password-protected.',
           openGraph: {
-            title: 'Protected Note · Kylrix',
-            description: 'This note is secure and password-protected.',
+            title: 'Protected Idea · Kylrix',
+            description: 'This idea is secure and password-protected.',
             images: [{ url: `/app/${id}/opengraph-image`, width: 1200, height: 630 }],
           },
           twitter: {
             card: 'summary_large_image',
-            title: 'Protected Note · Kylrix',
-            description: 'This note is secure and password-protected.',
+            title: 'Protected Idea · Kylrix',
+            description: 'This idea is secure and password-protected.',
             images: [`/app/${id}/opengraph-image`],
           },
         };
       }
     }
 
-    const titleText = decryptedTitle || 'Shared Note';
+    const titleText = decryptedTitle || 'Shared Idea';
     const displayTitle = `${titleText} · Kylrix`;
     const displayDesc = decryptedContent
       ? decryptedContent.substring(0, 160).trim() + '…'
-      : 'View this note shared securely via Kylrix Note.';
+      : 'View this idea shared securely via Kylrix Idea.';
     const ogImage = `/app/${id}/opengraph-image${key ? `?key=${encodeURIComponent(key)}` : ''}`;
 
     return {
@@ -113,26 +113,26 @@ export async function generateMetadata({
       },
     };
   } catch (error) {
-    console.error('Error generating metadata for Note:', error);
+    console.error('Error generating metadata for Idea:', error);
     const fallbackImage = 'https://kylrix.space/logo_social.png';
     return {
-      title: 'Note · Kylrix',
-      description: 'View notes securely.',
+      title: 'Idea · Kylrix',
+      description: 'View ideas securely.',
       openGraph: {
-        title: 'Note · Kylrix',
-        description: 'View notes securely.',
+        title: 'Idea · Kylrix',
+        description: 'View ideas securely.',
         images: [{ url: fallbackImage, width: 1200, height: 630 }],
       },
       twitter: {
         card: 'summary_large_image',
-        title: 'Note · Kylrix',
-        description: 'View notes securely.',
+        title: 'Idea · Kylrix',
+        description: 'View ideas securely.',
         images: [fallbackImage],
       },
     };
   }
 }
 
-export default function NotePage() {
+export default function IdeaPage() {
   return <NoteEditorPageClient />;
 }
