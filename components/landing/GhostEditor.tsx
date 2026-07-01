@@ -236,7 +236,7 @@ const GhostSparkShelf = React.memo(({
                                         </IconButton>
                                         <IconButton
                                             size="small"
-                                            onClick={() => window.open(`/note/shared/${note.id}${note.decryptionKey ? `/${note.decryptionKey}` : ''}`, '_blank')}
+                                            onClick={() => window.open(`/app/shared/${note.id}${note.decryptionKey ? `/${note.decryptionKey}` : ''}`, '_blank')}
                                             sx={{ color: theme.palette.secondary.main }}
                                         >
                                             <ExternalLink size={14} />
@@ -675,7 +675,7 @@ export const GhostEditor = () => {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onOpenPublicLink={(currentNote) => {
-                    window.open(`/note/shared/${currentNote.id}${currentNote.decryptionKey ? `/${currentNote.decryptionKey}` : ''}`, '_blank');
+                    window.open(`/app/shared/${currentNote.id}${currentNote.decryptionKey ? `/${currentNote.decryptionKey}` : ''}`, '_blank');
                 }}
                 onClaim={(currentNote) => {
                     closeSidebar();
@@ -898,8 +898,8 @@ export const GhostEditor = () => {
             });
 
             if (note) {
-                // URI format: /note/shared/[id]/[key]
-                const url = `${window.location.origin}/note/shared/${note.$id}/${noteKey}`;
+                // URI format: /app/shared/[id]/[key]
+                const url = `${window.location.origin}/app/shared/${note.$id}/${noteKey}`;
                 const copied = await copyToClipboard(url);
                 
                 if (copied) {

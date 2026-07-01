@@ -63,7 +63,7 @@ export async function generateMetadata({
         ? decryptedContent.substring(0, 160).trim() + '…'
         : 'View this task shared securely via Kylrix Send.';
     }
-    const ogImage = `/note/shared/${noteId}/opengraph-image`;
+    const ogImage = `/app/shared/${noteId}/opengraph-image`;
 
     return {
       title: displayTitle,

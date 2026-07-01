@@ -51,12 +51,12 @@ function normalizeQuery(query: string) {
 function routeLabelFromPath(pathname: string | null) {
   if (!pathname) return 'Note';
   if (pathname === '/' || pathname === '/landing') return 'Landing';
-  if (pathname === '/note' || pathname === '/note') return 'Notes';
-  if (pathname.startsWith('/note/')) return 'Note';
-  if (pathname === '/note/shared' || pathname.startsWith('/note/shared/')) return 'Shared';
+  if (pathname === '/app' || pathname === '/app') return 'Notes';
+  if (pathname.startsWith('/app/')) return 'Note';
+  if (pathname === '/app/shared' || pathname.startsWith('/app/shared/')) return 'Shared';
   if (pathname === '/tags') return 'Tags';
-  if (pathname === '/note/extensions') return 'Extensions';
-  if (pathname === '/note/settings') return 'Settings';
+  if (pathname === '/app/extensions') return 'Extensions';
+  if (pathname === '/app/settings') return 'Settings';
   if (pathname === '/pitch') return 'Pitch';
   return 'Note';
 }
@@ -74,7 +74,7 @@ function routeSnippets(pathname: string | null, user: any | null): PotatoSnippet
       }];
   }
 
-  if (pathname === '/note' || pathname === '/note') {
+  if (pathname === '/app' || pathname === '/app') {
     return [
       {
         id: 'notes-current',
@@ -90,7 +90,7 @@ function routeSnippets(pathname: string | null, user: any | null): PotatoSnippet
       }];
   }
 
-  if (pathname.startsWith('/note/')) {
+  if (pathname.startsWith('/app/')) {
     return [
       {
         id: 'note-editor',
@@ -106,7 +106,7 @@ function routeSnippets(pathname: string | null, user: any | null): PotatoSnippet
       }];
   }
 
-  if (pathname === '/note/shared' || pathname.startsWith('/note/shared/')) {
+  if (pathname === '/app/shared' || pathname.startsWith('/app/shared/')) {
     return [
       {
         id: 'shared-notes',
@@ -126,7 +126,7 @@ function routeSnippets(pathname: string | null, user: any | null): PotatoSnippet
       }];
   }
 
-  if (pathname === '/note/extensions') {
+  if (pathname === '/app/extensions') {
     return [
       {
         id: 'extensions-overview',
@@ -136,7 +136,7 @@ function routeSnippets(pathname: string | null, user: any | null): PotatoSnippet
       }];
   }
 
-  if (pathname === '/note/settings' || pathname.startsWith('/accounts/settings')) {
+  if (pathname === '/app/settings' || pathname.startsWith('/accounts/settings')) {
     return [
       {
         id: 'settings-profile',
@@ -168,30 +168,30 @@ function buildSurface(query: string, routeLabel: string, snippets: PotatoSnippet
       kind: 'note',
       title: 'Draft a note',
       description: 'Capture the current context before it disappears.',
-        href: '/note/new',
+        href: '/app/new',
       accent: '#EC4899',
       terms: ['note', 'draft', 'capture', 'write'],
-      onSelect: () => navigate('/note/new'),
+      onSelect: () => navigate('/app/new'),
     },
     {
       id: 'browse-notes',
       kind: 'note',
       title: 'Open notes',
       description: 'Jump to your notes workspace.',
-        href: '/note',
+        href: '/app',
       accent: '#EC4899',
       terms: ['notes', 'note', 'workspace', 'home'],
-      onSelect: () => navigate('/note'),
+      onSelect: () => navigate('/app'),
     },
     {
       id: 'browse-shared',
       kind: 'shared',
       title: 'Review shared notes',
       description: 'Open notes shared with you or published by link.',
-        href: '/note/shared',
+        href: '/app/shared',
       accent: '#6366F1',
       terms: ['shared', 'share', 'public', 'link'],
-      onSelect: () => navigate('/note/shared'),
+      onSelect: () => navigate('/app/shared'),
     },
     {
       id: 'open-tags',
@@ -208,10 +208,10 @@ function buildSurface(query: string, routeLabel: string, snippets: PotatoSnippet
       kind: 'extension',
       title: 'Manage extensions',
       description: 'Connect automations and editor extensions.',
-        href: '/note/extensions',
+        href: '/app/extensions',
       accent: '#6366F1',
       terms: ['extension', 'extensions', 'automation', 'plugin'],
-      onSelect: () => navigate('/note/extensions'),
+      onSelect: () => navigate('/app/extensions'),
     }];
 
   const searchTargets: PotatoAction[] = [
@@ -220,20 +220,20 @@ function buildSurface(query: string, routeLabel: string, snippets: PotatoSnippet
       kind: 'note',
       title: 'Search notes',
       description: 'Find drafts, archives, and research.',
-        href: `/note?search=${encodeURIComponent(query)}`,
+        href: `/app?search=${encodeURIComponent(query)}`,
       accent: '#EC4899',
       terms: ['note', 'notes', 'writing', 'draft'],
-      onSelect: () => navigate(`/note?search=${encodeURIComponent(query)}`),
+      onSelect: () => navigate(`/app?search=${encodeURIComponent(query)}`),
     },
     {
       id: 'search-shared',
       kind: 'shared',
       title: 'Search shared notes',
       description: 'Find public links and shared copies.',
-        href: `/note/shared?search=${encodeURIComponent(query)}`,
+        href: `/app/shared?search=${encodeURIComponent(query)}`,
       accent: '#6366F1',
       terms: ['shared', 'public', 'link', 'share'],
-      onSelect: () => navigate(`/note/shared?search=${encodeURIComponent(query)}`),
+      onSelect: () => navigate(`/app/shared?search=${encodeURIComponent(query)}`),
     },
     {
       id: 'search-tags',

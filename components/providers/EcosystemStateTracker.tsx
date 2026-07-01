@@ -21,7 +21,7 @@ export function EcosystemStateTracker({ children }: { children: React.ReactNode 
       pathname.startsWith('/send') ||
       pathname === '/' ||
       pathname.startsWith('/i/') ||
-      pathname.startsWith('/note/shared') ||
+      pathname.startsWith('/app/shared') ||
       pathname.startsWith('/u/') ||
       pathname.startsWith('/p/') ||
       pathname.startsWith('/call/') ||

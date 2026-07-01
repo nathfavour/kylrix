@@ -40,7 +40,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       const isPublic = 
         path === '/' ||
         path.startsWith('/send') ||
-        path.startsWith('/note/shared') ||
+        path.startsWith('/app/shared') ||
         path.startsWith('/i/') ||
         path.startsWith('/u/') ||
         path.startsWith('/p/') ||

@@ -75,9 +75,11 @@ export function middleware(request: NextRequest) {
   }
 
   // Instant Route Forwards (Legacy -> Canonical)
-  if (pathname.startsWith('/note/notes')) {
-    const subPath = pathname.replace('/note/notes', '');
-    return NextResponse.redirect(new URL(`/note${subPath}`, request.url));
+  if (pathname.startsWith('/note/notes') || pathname.startsWith('/app/notes')) {
+    const subPath = pathname.startsWith('/note/notes') 
+      ? pathname.replace('/note/notes', '') 
+      : pathname.replace('/app/notes', '');
+    return NextResponse.redirect(new URL(`/app${subPath}`, request.url));
   }
   
   if (pathname.startsWith('/flow/tasks') || pathname.startsWith('/flow/goals')) {
