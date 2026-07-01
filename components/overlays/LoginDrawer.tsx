@@ -142,7 +142,19 @@ export function LoginDrawer() {
         throw new Error(optionsRes.error || 'Failed to generate passkey options');
       }
 
-      const authResp = await startAuthentication({ optionsJSON: optionsRes.options });
+      // Prepare options with correct PRF format if present
+      const options = { ...optionsRes.options };
+      if (options.extensions?.prf?.eval?.first) {
+        // If the first salt was serialized as a plain object (e.g. {"0":107, "1":121...}) by JSON.stringify,
+        // convert it back to a proper Uint8Array so startAuthentication doesn't throw a type/support error.
+        const rawFirst = options.extensions.prf.eval.first;
+        if (rawFirst && typeof rawFirst === 'object' && !(rawFirst instanceof Uint8Array)) {
+          const values = Object.values(rawFirst);
+          options.extensions.prf.eval.first = new Uint8Array(values);
+        }
+      }
+
+      const authResp = await startAuthentication({ optionsJSON: options });
       const verifyRes = await verifyPasskeyLoginAction(authResp, hostname, hostHeader);
 
       if (!verifyRes.success || !verifyRes.token) {
