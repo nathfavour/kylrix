@@ -2259,7 +2259,7 @@ export async function syncMasterpassToAccountPasswordAction(payload: {
   }
 
   // 2. Query the keychain entry for this user and set authPass = true
-  const keychainRes = await databases.listDocuments(
+  const keychainRes = await databases.listRows(
     APPWRITE_CONFIG.DATABASES.VAULT,
     APPWRITE_CONFIG.TABLES.VAULT.KEYCHAIN,
     [
@@ -2269,9 +2269,9 @@ export async function syncMasterpassToAccountPasswordAction(payload: {
     ]
   );
 
-  const entry = keychainRes.documents?.[0];
+  const entry = keychainRes.rows?.[0];
   if (entry) {
-    await databases.updateDocument(
+    await databases.updateRow(
       APPWRITE_CONFIG.DATABASES.VAULT,
       APPWRITE_CONFIG.TABLES.VAULT.KEYCHAIN,
       entry.$id,

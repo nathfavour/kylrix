@@ -84,7 +84,8 @@ export default function SudoModal({
     const accentColor = appTone.secondary;
     const isKylrixDomain =
         typeof window !== "undefined" &&
-        (window.location.hostname === "kylrix.space" || window.location.hostname.endsWith(".kylrix.space"));
+        ((window.location.hostname === "kylrix.space" || window.location.hostname.endsWith(".kylrix.space")) ||
+         ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") && !!user?.prefs?.demo_mode));
 
     // Migration state
     const [migrationStatus, setMigrationStatus] = useState<'idle' | 'upgrading' | 'success' | 'error'>('idle');

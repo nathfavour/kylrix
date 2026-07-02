@@ -234,7 +234,8 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
     setLoading(true);
 
     const isKylrixDomain = typeof window !== 'undefined' && 
-      (window.location.hostname === 'kylrix.space' || window.location.hostname.endsWith('.kylrix.space'));
+      ((window.location.hostname === 'kylrix.space' || window.location.hostname.endsWith('.kylrix.space')) ||
+       ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && !!(user?.prefs as any)?.demo_mode));
 
     const pinSet = ecosystemSecurity.isPinSet();
     setHasPin(pinSet);
@@ -343,7 +344,8 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
         if (success) {
           await setMasterpassFlag(user.$id, user.email);
           const isKylrixDomain = typeof window !== 'undefined' && 
-            (window.location.hostname === 'kylrix.space' || window.location.hostname.endsWith('.kylrix.space'));
+            ((window.location.hostname === 'kylrix.space' || window.location.hostname.endsWith('.kylrix.space')) ||
+             ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && !!(user?.prefs as any)?.demo_mode));
           
           if (!hasPasskey && isKylrixDomain) {
             setShowPasskeyIncentive(true);
@@ -373,7 +375,8 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
           );
           const sevenDays = 7 * 24 * 60 * 60 * 1000;
           const isKylrixDomain = typeof window !== 'undefined' && 
-            (window.location.hostname === 'kylrix.space' || window.location.hostname.endsWith('.kylrix.space'));
+            ((window.location.hostname === 'kylrix.space' || window.location.hostname.endsWith('.kylrix.space')) ||
+             ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && !!(user?.prefs as any)?.demo_mode));
 
           const shouldShowIncentive =
             !hasPasskey &&
