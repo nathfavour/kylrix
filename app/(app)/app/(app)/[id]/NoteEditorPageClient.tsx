@@ -69,12 +69,19 @@ export default function NoteEditorPageClient() {
     (async () => {
       if (!cached) setIsLoading(true);
       try {
-        const fetched = await fetchOptimized(CACHE_KEY, () => getNote(id as string));
-        if (mounted) {
+        let fetched: Notes | null = null;
+        try {
+          fetched = await fetchOptimized(CACHE_KEY, () => getNote(id as string));
+        } catch {
+          const { getPublicNoteDataSecure } = await import('@/lib/actions/secure-ops');
+          fetched = await getPublicNoteDataSecure(id as string);
+        }
+        if (mounted && fetched) {
           setRawNote(fetched);
         }
       } catch (error: any) {
         console.error('Failed to load note', error);
+        if (mounted) setRawNote(null);
         showError('Failed to load note', 'Please try again later.');
       } finally {
         if (mounted) setIsLoading(false);

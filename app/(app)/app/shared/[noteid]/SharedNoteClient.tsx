@@ -398,12 +398,18 @@ export default function SharedNoteClient({ noteId, initialKey }: SharedNoteClien
       }
     } catch (err: any) {
       const message = err?.message || 'An error occurred';
-      setError(message);
-      if (forceRefresh && (err?.status === 404 || message.toLowerCase().includes('not found') || message.toLowerCase().includes('not public'))) {
-        setVerifiedNote(null);
-        setAuthorProfile(null);
-        invalidate(CACHE_KEY);
-      }
+      setVerifiedNote((prev) => {
+        if (prev && !forceRefresh) {
+          return prev;
+        }
+        setError(message);
+        if (forceRefresh && (err?.status === 404 || message.toLowerCase().includes('not found') || message.toLowerCase().includes('not public'))) {
+          setAuthorProfile(null);
+          invalidate(CACHE_KEY);
+          return null;
+        }
+        return prev;
+      });
     } finally {
       setIsLoadingNote(false);
     }

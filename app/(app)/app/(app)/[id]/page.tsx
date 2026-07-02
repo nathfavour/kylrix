@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import NoteEditorPageClient from './NoteEditorPageClient';
+import SharedNoteClient from '../../shared/[noteid]/SharedNoteClient';
 import { validatePublicNoteAccess } from '@/lib/appwrite';
 import { parseSendGhostMetadata } from '@/lib/send/metadata';
+import { createServerClient } from '@/lib/appwrite/server';
 
 export async function generateMetadata({
   params,
@@ -133,6 +135,29 @@ export async function generateMetadata({
   }
 }
 
-export default function IdeaPage() {
+export default async function IdeaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ key?: string }>;
+}) {
+  const { id } = await params;
+  const { key } = await searchParams;
+
+  const publicNote = await validatePublicNoteAccess(id);
+  if (publicNote) {
+    try {
+      const { account } = await createServerClient();
+      const user = await account.get();
+      const isOwner = user?.$id && publicNote.userId === user.$id;
+      if (!isOwner) {
+        return <SharedNoteClient noteId={id} initialKey={key} />;
+      }
+    } catch {
+      return <SharedNoteClient noteId={id} initialKey={key} />;
+    }
+  }
+
   return <NoteEditorPageClient />;
 }
