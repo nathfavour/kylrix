@@ -169,7 +169,7 @@ export async function verifyPasskeyLoginAction(authResp: any, challengeToken: st
       return {
         success: true,
         verified: true,
-        token: token.phrase,
+        token: token.phrase || token.secret,
         userId: row.userId,
         wrappedKey: row.wrappedKey,
         fallbackSeed,
@@ -295,7 +295,8 @@ export async function verifyPasskeyRegistrationAction(
       const publicKeyBase64 = Buffer.from(credentialPublicKey).toString('base64');
       return { success: true, publicKey: publicKeyBase64 };
     }
-    return { success: false, error: 'Registration verification failed' };
+    console.error('Registration verification failed. Response detail:', verification);
+    return { success: false, error: 'Registration verification failed on verification constraints' };
   } catch (error: any) {
     console.error('Error verifying passkey registration:', error);
     return { success: false, error: error.message };
