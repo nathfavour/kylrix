@@ -1,20 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import TaskList from '@/components/tasks/TaskList';
 import FormsDashboard from './forms/page';
 import EventList from '@/components/events/EventList';
-import { useFAB } from '@/context/FABContext';
-import { Plus } from 'lucide-react';
 
 export default function FlowDashboardPage() {
   const [activeTab, setActiveTab] = useState<'goals' | 'forms' | 'events'>('goals');
-  const { resetConfiguration } = useFAB();
-
-  // Reset FAB when switching tabs to let the active tab component configure its own FAB
-  useEffect(() => {
-    resetConfiguration();
-  }, [activeTab, resetConfiguration]);
 
   return (
     <div className="min-h-screen bg-[#0A0908] text-white/90 font-satoshi relative overflow-x-hidden pt-4 md:pt-8 px-4 md:px-6">

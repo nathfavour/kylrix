@@ -77,7 +77,7 @@ export default function SettingsPage() {
     const { currentTier, expiresAt, refreshEntitlement } = useSubscription();
     const { usePasskeysByDefault, setUsePasskeysByDefault, masterpassForLoginEnabled, setMasterpassForLoginEnabled } = useAppwriteVault();
     const router = useRouter();
-    const { requestSudo } = useSudo();
+    const { requestSudo, promptSudo } = useSudo();
     const { open: openDrawer } = useUnifiedDrawer();
     const [isUnlocked, setIsUnlocked] = useState(ecosystemSecurity.status.isUnlocked);
     const [isArgon, setIsArgon] = useState(ecosystemSecurity.status.isArgon);
@@ -212,8 +212,41 @@ export default function SettingsPage() {
                 }
             });
         } else {
-            setMasterpassForLoginEnabled(true);
-            toast.success('MasterPass sign-in enabled');
+            if (!isUnlocked) {
+                openDrawer('delete-confirm', {
+                    title: 'Enable MasterPass Sign-In?',
+                    description: 'To enable MasterPass for sign-in, we need to authenticate and synchronize your local encryption vault password with the server authentication password. Do you want to unlock and synchronize now?',
+                    confirmLabel: 'Proceed',
+                    onConfirm: () => {
+                        requestSudo({
+                            intent: 'unlock',
+                            forcePrompt: true,
+                            onSuccess: async () => {
+                                await setMasterpassForLoginEnabled(true);
+                                try {
+                                    const { account } = await import('@/lib/appwrite/client');
+                                    const currentPrefs = user?.prefs || {};
+                                    await account.updatePrefs({ ...currentPrefs, hasPass: true });
+                                } catch (e) {
+                                    console.error('Failed to update hasPass pref:', e);
+                                }
+                                toast.success('MasterPass sign-in enabled & synchronized.');
+                            }
+                        });
+                    }
+                });
+            } else {
+                setMasterpassForLoginEnabled(true);
+                try {
+                    import('@/lib/appwrite/client').then(async ({ account }) => {
+                        const currentPrefs = user?.prefs || {};
+                        await account.updatePrefs({ ...currentPrefs, hasPass: true });
+                    });
+                } catch (e) {
+                    console.error('Failed to update hasPass pref:', e);
+                }
+                toast.success('MasterPass sign-in enabled');
+            }
         }
     };
     const FEATURE_FORM_ID = '6a2a653f002b0f296958';
@@ -620,21 +653,51 @@ export default function SettingsPage() {
                                     )}
                                 </div>
                                 
-                                <button
-                                    onClick={() =>
-                                      isUnlocked
-                                        ? ecosystemSecurity.lock()
-                                        : requestSudo({ onSuccess: () => {} })
-                                    }
-                                    className={`h-10 px-5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto ${
-                                        isUnlocked
-                                            ? 'border border-white/10 hover:border-white/20 bg-white/2 hover:bg-white/5 text-white/80'
-                                            : 'bg-[#6366F1] hover:bg-[#5458E8] text-white'
-                                    }`}
-                                >
-                                    {isUnlocked ? <Lock size={14} /> : <Shield size={14} />}
-                                    <span>{isUnlocked ? "Lock Vault" : (hasMasterpass === false ? "Setup" : "Unlock Vault")}</span>
-                                </button>
+                                <div className="flex flex-wrap gap-2.5 w-full sm:w-auto">
+                                    <button
+                                        onClick={() =>
+                                            isUnlocked
+                                                ? ecosystemSecurity.lock()
+                                                : requestSudo({ onSuccess: () => {} })
+                                        }
+                                        className={`h-10 px-5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all flex-1 sm:flex-initial ${
+                                            isUnlocked
+                                                ? 'border border-white/10 hover:border-white/20 bg-white/2 hover:bg-white/5 text-white/80'
+                                                : 'bg-[#6366F1] hover:bg-[#5458E8] text-white'
+                                        }`}
+                                    >
+                                        {isUnlocked ? <Lock size={14} /> : <Shield size={14} />}
+                                        <span>{isUnlocked ? "Lock Vault" : (hasMasterpass === false ? "Setup" : "Unlock Vault")}</span>
+                                    </button>
+
+                                    {hasMasterpass && (
+                                        <>
+                                            {isUnlocked && (
+                                                <button
+                                                    onClick={() => promptSudo('upgrade', true)}
+                                                    className="h-10 px-4 rounded-xl border border-white/10 hover:border-white/20 bg-white/2 hover:bg-white/5 text-white/80 font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all flex-1 sm:flex-initial"
+                                                >
+                                                    Change Password
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => {
+                                                    openDrawer('delete-confirm', {
+                                                        title: 'Reset Vault?',
+                                                        description: 'WARNING: Resetting will permanently wipe all encrypted data from the vault (passwords, TOTPs, identities). This action is irreversible. Are you sure you want to proceed?',
+                                                        confirmLabel: 'Proceed to Reset',
+                                                        onConfirm: () => {
+                                                            promptSudo('reset', true);
+                                                        }
+                                                    });
+                                                }}
+                                                className="h-10 px-4 rounded-xl border border-red-500/20 hover:border-red-500/30 bg-red-500/5 hover:bg-red-500/10 text-red-500 font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all flex-1 sm:flex-initial"
+                                            >
+                                                Reset Vault (Wipe)
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="h-[1px] bg-white/5 w-full" />

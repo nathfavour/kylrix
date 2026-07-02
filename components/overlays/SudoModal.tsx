@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import Logo from "@/components/common/Logo";
 import { ecosystemSecurity } from "@/lib/ecosystem/security";
-import { AppwriteService } from "@/lib/appwrite";
+import { AppwriteService, setMasterpassFlag } from "@/lib/appwrite";
 import { useAuth } from "@/context/auth/AuthContext";
 import { unlockWithPasskey } from "@/lib/passkey";
 import { PasskeySetup } from "./PasskeySetup";
@@ -75,7 +75,9 @@ export default function SudoModal({
     const [passkeyLoading, setPasskeyLoading] = useState(false);
     const [hasPasskey, setHasPasskey] = useState(false);
     const [hasMasterpass, setHasMasterpass] = useState<boolean | null>(null);
-    const [mode, setMode] = useState<"passkey" | "password" | "initialize" | "migrating" | null>(null);
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [resetConfirmation, setResetConfirmation] = useState("");
+    const [mode, setMode] = useState<"passkey" | "password" | "initialize" | "change-masterpass" | "reset-confirm" | "migrating" | null>(null);
     const [isDetecting, setIsDetecting] = useState(true);
     const [isPendingVault, setIsPendingVault] = useState(false);
     const [showPasskeyIncentive, setShowPasskeyIncentive] = useState(false);
@@ -165,9 +167,8 @@ export default function SudoModal({
     }, [user?.$id]);
 
     const handleRedirectToVaultSetup = useCallback(() => {
-        router.push("/vault/masterpass?setup=1");
-        cancelHandler();
-    }, [router, cancelHandler]);
+        setMode("initialize");
+    }, []);
 
     const handlePasskeyVerify = useCallback(async () => {
         if (!user || passkeyLoading) return;
@@ -239,8 +240,12 @@ export default function SudoModal({
                 setHasPasskey(passkeyAllowed);
 
                 // Determine default mode
-                if (intent === "initialize") {
+                if (intent === "initialize" || hasPass === false) {
                     setMode("initialize");
+                } else if (intent === "reset") {
+                    setMode("reset-confirm");
+                } else if (intent === "upgrade") {
+                    setMode("password");
                 } else if (pending) {
                     setMode("password");
                 } else if (passkeyAllowed && usePasskeysByDefault) {
@@ -277,6 +282,8 @@ export default function SudoModal({
         if (!isOpen) {
             passkeyTriggeredRef.current = false;
             setPassword("");
+            setConfirmPassword("");
+            setResetConfirmation("");
             setLoading(false);
             setPasskeyLoading(false);
             setMigrationStatus('idle');
@@ -310,8 +317,14 @@ export default function SudoModal({
                 if (isMigratingRef.current) {
                     return;
                 }
-                toast.success("Verified");
-                handleSuccessWithSync();
+                if (intent === "upgrade") {
+                    setMode("change-masterpass");
+                    setPassword("");
+                    setConfirmPassword("");
+                } else {
+                    toast.success("Verified");
+                    handleSuccessWithSync();
+                }
             } else {
                 toast.error("Incorrect master password");
             }
@@ -323,6 +336,97 @@ export default function SudoModal({
             } else {
                 toast.error("Verification failed");
             }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleInitialize = async (e: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!user?.$id || !user.email) return;
+        if (password.length < 8) {
+            toast.error("Master password must be at least 8 characters.");
+            return;
+        }
+        if (password !== confirmPassword) {
+            toast.error("Passwords do not match.");
+            return;
+        }
+        setLoading(true);
+        try {
+            const success = await masterPassCrypto.unlock(password, user.$id, true);
+            if (!success) {
+                toast.error("Could not initialize master password.");
+                return;
+            }
+            await setMasterpassFlag(user.$id, user.email);
+            
+            // Sync immediately with account password
+            const { syncMasterpassToAccountPasswordAction } = await import("@/lib/actions/secure-ops/misc");
+            await syncMasterpassToAccountPasswordAction({ userId: user.$id, masterpass: password });
+
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("kylrix:masterpass-updated"));
+            }
+            
+            setHasMasterpass(true);
+            toast.success("MasterPass configured.");
+            handleSuccessWithSync();
+        } catch (err: any) {
+            console.error("Initialization error:", err);
+            toast.error(err.message || "Failed to initialize master password.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleChangeMasterpass = async (e: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!user?.$id) return;
+        if (password.length < 8) {
+            toast.error("New master password must be at least 8 characters.");
+            return;
+        }
+        if (password !== confirmPassword) {
+            toast.error("Passwords do not match.");
+            return;
+        }
+        setLoading(true);
+        try {
+            await masterPassCrypto.changeMasterPassword(password, user.$id);
+            toast.success("MasterPass successfully updated.");
+            handleSuccessWithSync();
+        } catch (err: any) {
+            console.error("Change MasterPass error:", err);
+            toast.error(err.message || "Failed to change master password.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResetWipe = async (e: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!user?.$id) return;
+        if (resetConfirmation !== "WIPE") {
+            toast.error("Please type WIPE to confirm.");
+            return;
+        }
+        setLoading(true);
+        try {
+            const success = await masterPassCrypto.resetMasterPassword();
+            if (success) {
+                toast.success("Vault wiped successfully.");
+                setHasMasterpass(false);
+                setMode("initialize");
+                setPassword("");
+                setConfirmPassword("");
+                setResetConfirmation("");
+            } else {
+                toast.error("Reset failed.");
+            }
+        } catch (err: any) {
+            console.error("Reset error:", err);
+            toast.error(err.message || "Failed to reset vault.");
         } finally {
             setLoading(false);
         }
@@ -532,6 +636,143 @@ export default function SudoModal({
                                 {passkeyLoading ? "CONFIRM ON DEVICE" : "TAP TO VERIFY"}
                             </span>
                         </div>
+                    ) : mode === "initialize" ? (
+                        <form onSubmit={handleInitialize} className="space-y-4 animate-fadeIn">
+                            <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl flex gap-3 items-start">
+                                <Shield className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <h4 className="font-extrabold text-white text-sm">Create Master Password</h4>
+                                    <p className="text-xs text-[#9B9691] leading-relaxed mt-1">
+                                        Set a password to encrypt your vault. Write this password down; it cannot be recovered.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <span className="text-[10px] text-white/40 font-bold tracking-wider uppercase block">
+                                        PASSWORD
+                                    </span>
+                                    <input
+                                        type="password"
+                                        placeholder="Create Master Password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        autoFocus
+                                        className="w-full bg-white/[0.03] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1] hover:border-white/20 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <span className="text-[10px] text-white/40 font-bold tracking-wider uppercase block">
+                                        CONFIRM PASSWORD
+                                    </span>
+                                    <input
+                                        type="password"
+                                        placeholder="Confirm Master Password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                        className="w-full bg-white/[0.03] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1] hover:border-white/20 transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                style={{
+                                    background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}CC 100%)`,
+                                    boxShadow: loading ? 'none' : `0 8px 25px ${accentColor}40`,
+                                }}
+                                className="w-full py-3.5 rounded-xl text-white font-extrabold text-sm hover:scale-[1.01] hover:shadow-lg active:scale-100 transition-all cursor-pointer flex justify-center items-center disabled:opacity-50"
+                            >
+                                {loading ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" /> : "Initialize Vault"}
+                            </button>
+                        </form>
+                    ) : mode === "change-masterpass" ? (
+                        <form onSubmit={handleChangeMasterpass} className="space-y-4 animate-fadeIn">
+                            <div className="p-4 bg-[#6366F1]/5 border border-[#6366F1]/20 rounded-2xl flex gap-3 items-start">
+                                <Lock className="w-5 h-5 text-[#6366F1] mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <h4 className="font-extrabold text-white text-sm">Change MasterPass</h4>
+                                    <p className="text-xs text-[#9B9691] leading-relaxed mt-1">
+                                        Re-encrypt your database with a new password. Existing active credentials will remain valid.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <span className="text-[10px] text-white/40 font-bold tracking-wider uppercase block">
+                                        NEW PASSWORD
+                                    </span>
+                                    <input
+                                        type="password"
+                                        placeholder="New Master Password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        autoFocus
+                                        className="w-full bg-white/[0.03] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1] hover:border-white/20 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <span className="text-[10px] text-white/40 font-bold tracking-wider uppercase block">
+                                        CONFIRM NEW PASSWORD
+                                    </span>
+                                    <input
+                                        type="password"
+                                        placeholder="Confirm New Master Password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                        className="w-full bg-white/[0.03] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:outline-none focus:border-[#6366F1] hover:border-white/20 transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                style={{
+                                    background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}CC 100%)`,
+                                    boxShadow: loading ? 'none' : `0 8px 25px ${accentColor}40`,
+                                }}
+                                className="w-full py-3.5 rounded-xl text-white font-extrabold text-sm hover:scale-[1.01] hover:shadow-lg active:scale-100 transition-all cursor-pointer flex justify-center items-center disabled:opacity-50"
+                            >
+                                {loading ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" /> : "Change MasterPass"}
+                            </button>
+                        </form>
+                    ) : mode === "reset-confirm" ? (
+                        <form onSubmit={handleResetWipe} className="space-y-4 animate-fadeIn">
+                            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex gap-3 items-start">
+                                <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <h4 className="font-extrabold text-white text-sm">Wipe and Reset Vault</h4>
+                                    <p className="text-xs text-red-400 leading-relaxed mt-1">
+                                        WARNING: This permanently purges your encrypted keys, passwords, and TOTP metadata. This action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <span className="text-[10px] text-white/40 font-bold tracking-wider uppercase block">
+                                    TYPE "WIPE" TO CONFIRM
+                                </span>
+                                <input
+                                    type="text"
+                                    placeholder="Type WIPE"
+                                    value={resetConfirmation}
+                                    onChange={(e) => setResetConfirmation(e.target.value)}
+                                    required
+                                    autoFocus
+                                    className="w-full bg-red-500/5 px-4 py-3 rounded-xl border border-red-500/20 text-white text-sm font-semibold focus:outline-none focus:border-red-500 transition-all placeholder:text-red-500/30"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={loading || resetConfirmation !== "WIPE"}
+                                className="w-full py-3.5 bg-red-600 hover:bg-red-700 disabled:bg-red-800/40 text-white font-extrabold text-sm rounded-xl transition-all cursor-pointer flex justify-center items-center"
+                            >
+                                {loading ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" /> : "Permanently Destroy Vault"}
+                            </button>
+                        </form>
                     ) : (
                         <form onSubmit={handlePasswordVerify} className="space-y-4 animate-fadeIn">
                             {isPendingVault && (

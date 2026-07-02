@@ -341,11 +341,14 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
 
     useEffect(() => {
         if (isOpen && hasMasterpass === false) {
-            const baseUrl = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : '';
-            const callbackUrl = encodeURIComponent(baseUrl + '?openWallet=true');
-            router.push(`/vault/masterpass?callbackUrl=${callbackUrl}`);
+            requestSudo({
+                intent: 'initialize',
+                onSuccess: async () => {
+                    await refreshWallets();
+                }
+            });
         }
-    }, [isOpen, hasMasterpass, router]);
+    }, [isOpen, hasMasterpass, requestSudo, refreshWallets]);
 
     const handleUnlock = () => {
         requestSudo({
