@@ -288,7 +288,10 @@ export async function verifyPasskeyRegistrationAction(
 
     if (verification.verified && verification.registrationInfo) {
       const regInfo = verification.registrationInfo as any;
-      const credentialPublicKey = regInfo.credentialPublicKey;
+      const credentialPublicKey = regInfo.credential?.publicKey || regInfo.credentialPublicKey;
+      if (!credentialPublicKey) {
+        return { success: false, error: 'Registration returned empty public key' };
+      }
       const publicKeyBase64 = Buffer.from(credentialPublicKey).toString('base64');
       return { success: true, publicKey: publicKeyBase64 };
     }
