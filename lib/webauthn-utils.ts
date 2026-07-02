@@ -60,7 +60,23 @@ export async function performNativePasskeyAuthentication(
     throw new Error('Authentication was not completed');
   }
 
-  return publicKeyCredentialToJSON(assertion) as Record<string, unknown>;
+  const credential = assertion as PublicKeyCredential;
+  const response = credential.response as AuthenticatorAssertionResponse;
+
+  const cleanPayload = {
+    id: credential.id,
+    rawId: bufferToBase64Url(credential.rawId),
+    type: credential.type,
+    response: {
+      authenticatorData: bufferToBase64Url(response.authenticatorData),
+      clientDataJSON: bufferToBase64Url(response.clientDataJSON),
+      signature: bufferToBase64Url(response.signature),
+      userHandle: response.userHandle ? bufferToBase64Url(response.userHandle) : null,
+    },
+    authenticatorAttachment: credential.authenticatorAttachment || null,
+  };
+
+  return cleanPayload as unknown as Record<string, unknown>;
 }
 
 export function publicKeyCredentialToJSON(pubKeyCred: unknown): unknown {
