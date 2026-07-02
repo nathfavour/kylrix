@@ -20,7 +20,7 @@ import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { resolvePasskeyRpId } from '@/lib/passkey-webauthn-options';
-import { getPasskeyRegisterFallbackSeedAction } from '@/lib/actions/auth-actions';
+import { getPasskeyRegisterFallbackSeedAction, verifyPasskeyRegistrationAction } from '@/lib/actions/auth-actions';
 import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
@@ -228,6 +228,20 @@ export function PasskeySetupPanel({
       combined.set(new Uint8Array(encryptedMasterKey), iv.length);
       const passkeyBlob = arrayBufferToBase64(combined.buffer);
 
+      // Verify registration response on the server to get the correct COSE public key
+      const verifyRegRes = await verifyPasskeyRegistrationAction(
+        regResp,
+        challengeBase64,
+        window.location.hostname,
+        window.location.host
+      );
+
+      if (!verifyRegRes.success || !verifyRegRes.publicKey) {
+        throw new Error(verifyRegRes.error || 'Failed to verify passkey registration on server');
+      }
+
+      const cosePublicKey = verifyRegRes.publicKey;
+
       await AppwriteService.createKeychainEntry({
         userId,
         type: 'passkey',
@@ -236,7 +250,7 @@ export function PasskeySetupPanel({
         salt: "",
         params: JSON.stringify({
           name: passkeyName,
-          publicKey: regResp.response.publicKey || "",
+          publicKey: cosePublicKey,
           counter: 0,
           transports: regResp.response.transports || [],
           created: new Date().toISOString(),
@@ -244,7 +258,7 @@ export function PasskeySetupPanel({
         }),
         isBackup: false,
         authPass: false,
-        publicKey: regResp.response.publicKey || null,
+        publicKey: cosePublicKey,
         authPasskey: isAuthPasskey,
       });
 

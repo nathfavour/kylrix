@@ -74,6 +74,7 @@ export async function performNativePasskeyAuthentication(
       userHandle: response.userHandle ? bufferToBase64Url(response.userHandle) : null,
     },
     authenticatorAttachment: credential.authenticatorAttachment || null,
+    clientExtensionResults: credential.getClientExtensionResults ? credential.getClientExtensionResults() : {},
   };
 
   return cleanPayload as unknown as Record<string, unknown>;

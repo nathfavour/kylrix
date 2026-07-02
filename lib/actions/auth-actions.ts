@@ -1,6 +1,6 @@
 'use server';
 
-import { generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
+import { generateAuthenticationOptions, verifyAuthenticationResponse, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { createSystemClient } from '@/lib/appwrite-admin';
 import { APPWRITE_DATABASE_ID, APPWRITE_COLLECTION_KEYCHAIN_ID } from '@/lib/appwrite';
 import { Query } from 'node-appwrite';
@@ -134,7 +134,7 @@ export async function verifyPasskeyLoginAction(authResp: any, challengeToken: st
       expectedRPID: rpID,
       credential: {
         id: row.credentialId,
-        publicKey: new Uint8Array(Buffer.from(row.publicKey, 'base64')),
+        publicKey: Uint8Array.from(Buffer.from(row.publicKey, 'base64')),
         counter: row.params ? (JSON.parse(row.params).counter || 0) : 0,
       },
     });
@@ -264,4 +264,39 @@ export async function checkEmailAuthStatusAction(email: string) {
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Verifies a passkey registration response on the server and returns the correct COSE public key.
+ */
+export async function verifyPasskeyRegistrationAction(
+  registrationResponse: any,
+  expectedChallenge: string,
+  hostname: string = 'localhost',
+  hostHeader: string = 'localhost'
+) {
+  try {
+    const rpID = resolvePasskeyRpId(hostname);
+    const protocol = hostname === 'localhost' || hostname.startsWith('127.') ? 'http' : 'https';
+    const origin = `${protocol}://${hostHeader}`;
+
+    const verification = await verifyRegistrationResponse({
+      response: registrationResponse,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+    });
+
+    if (verification.verified && verification.registrationInfo) {
+      const regInfo = verification.registrationInfo as any;
+      const credentialPublicKey = regInfo.credentialPublicKey;
+      const publicKeyBase64 = Buffer.from(credentialPublicKey).toString('base64');
+      return { success: true, publicKey: publicKeyBase64 };
+    }
+    return { success: false, error: 'Registration verification failed' };
+  } catch (error: any) {
+    console.error('Error verifying passkey registration:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 
