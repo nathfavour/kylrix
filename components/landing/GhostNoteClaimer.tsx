@@ -167,6 +167,19 @@ export const GhostNoteClaimer = () => {
                                     period: payload.period || 30,
                                 });
                             }
+                        } else if (kind === 'project') {
+                            const payload = (() => {
+                                try { return JSON.parse(decryptedContent); } catch { return null; }
+                            })();
+                            const { ProjectsService } = await import('@/lib/appwrite/projects');
+                            await ProjectsService.createProject({
+                                name: decryptedTitle,
+                                description: payload?.description || '',
+                                status: payload?.status || 'active',
+                            });
+                        } else if (kind === 'tag') {
+                            const { createStandaloneTag } = await import('@/lib/actions/client-ops');
+                            await createStandaloneTag(decryptedTitle);
                         } else {
                             // Note
                             const { createNote } = await import('@/lib/actions/client-ops');

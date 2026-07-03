@@ -12,6 +12,7 @@ import { formatNoteUpdatedDate } from '@/lib/date-utils';
 import { isNotePublic } from '@/lib/appwrite';
 import { motion } from 'framer-motion';
 const MotionCard = motion(Card);
+import toast from 'react-hot-toast';
 
 interface NoteComponentProps {
   note: Notes;
@@ -41,6 +42,11 @@ export default function NoteComponent({
 
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const handleShare = () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      toast.error('Sharing requires an active internet connection.');
+      handleMenuClose();
+      return;
+    }
     setShareDialogOpen(true);
     handleMenuClose();
     onShare?.(note.$id);

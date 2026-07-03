@@ -135,6 +135,7 @@ import {
   getObjectsByParentSecure,
   syncMasterpassToAccountPasswordAction,
   checkEmailAuthMethodAction,
+  createStandaloneTagSecure,
 } from './secure-ops/misc';
 
 export {
@@ -257,6 +258,7 @@ export {
   getObjectsByParentSecure,
   syncMasterpassToAccountPasswordAction,
   checkEmailAuthMethodAction,
+  createStandaloneTagSecure,
 };
 
 export type { PermissionLevel, PermissionChangeInput } from './secure-ops/shared';

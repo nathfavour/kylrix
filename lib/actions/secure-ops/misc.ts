@@ -1885,6 +1885,47 @@ export async function claimSendObjectSecure(payload: {
         Permission.delete(Role.user(actor.$id))
       ]
     );
+  } else if (kind === 'project') {
+    const data = payload.decryptedData;
+    await tables.createRow(
+      APPWRITE_CONFIG.DATABASES.CHAT,
+      APPWRITE_CONFIG.TABLES.CHAT.PROJECTS || 'projects',
+      ID.unique(),
+      {
+        name: note.title,
+        description: data?.description || '',
+        status: data?.status || 'active',
+        userId: actor.$id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      [
+        Permission.read(Role.user(actor.$id)),
+        Permission.write(Role.user(actor.$id)),
+        Permission.delete(Role.user(actor.$id))
+      ]
+    );
+  } else if (kind === 'tag') {
+    const nameLower = note.title.toLowerCase();
+    await tables.createRow(
+      APPWRITE_CONFIG.DATABASES.NOTE,
+      APPWRITE_CONFIG.TABLES.NOTE.TAGS,
+      ID.unique(),
+      {
+        name: note.title,
+        nameLower,
+        userId: actor.$id,
+        isPublic: false,
+        isGuest: false,
+        usageCount: 0,
+        metadata: JSON.stringify({ version: 'v2' })
+      },
+      [
+        Permission.read(Role.user(actor.$id)),
+        Permission.write(Role.user(actor.$id)),
+        Permission.delete(Role.user(actor.$id))
+      ]
+    );
   }
 
   // 2. Cleanup the Ghost Link (Delete original row)
@@ -2302,4 +2343,34 @@ export async function checkEmailAuthMethodAction(payload: { email: string }) {
   const hasPass = !!user.prefs?.hasPass;
 
   return { exists: true, hasPass };
+}
+
+export async function createStandaloneTagSecure(tagName: string, jwt: string) {
+  const actor = await getActor(jwt);
+  if (!actor?.$id) throw new Error('Unauthorized');
+
+  const tables = createSystemTablesDB();
+  const APPWRITE_DATABASE_ID = APPWRITE_CONFIG.DATABASES.NOTE;
+  const tagsTable = APPWRITE_CONFIG.TABLES.NOTE.TAGS;
+  const nameLower = tagName.trim().toLowerCase();
+
+  return await tables.createRow(
+    APPWRITE_DATABASE_ID,
+    tagsTable,
+    ID.unique(),
+    {
+      name: tagName.trim(),
+      nameLower,
+      userId: actor.$id,
+      isPublic: false,
+      isGuest: false,
+      usageCount: 0,
+      metadata: JSON.stringify({ version: 'v2' })
+    },
+    [
+      Permission.read(Role.user(actor.$id)),
+      Permission.write(Role.user(actor.$id)),
+      Permission.delete(Role.user(actor.$id))
+    ]
+  );
 }

@@ -321,6 +321,33 @@ export async function tagResource(
   isPublic = false,
   isGuest = false
 ) {
+  const { hasAuthSessionHint } = await import('@/lib/appwrite/client');
+  if (!hasAuthSessionHint()) {
+      const id = `ghost-tag-${crypto.randomUUID()}`;
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      const metadata = JSON.stringify({
+        isGhost: true,
+        send_object: { kind: 'tag' }
+      });
+      
+      const historyRaw = localStorage.getItem('kylrix_ghost_notes_v2');
+      let history = historyRaw ? JSON.parse(historyRaw) : [];
+      if (!Array.isArray(history)) history = [];
+      
+      history.unshift({
+        id,
+        title: tagName,
+        content: '',
+        metadata,
+        createdAt: new Date().toISOString(),
+        expiresAt
+      });
+      
+      localStorage.setItem('kylrix_ghost_notes_v2', JSON.stringify(history));
+      import('react-hot-toast').then(t => t.default.success('Tag saved locally.'));
+      return { success: true, id };
+  }
+
   const jwt = await getJwt();
   return tagResourceSecure(resourceId, resourceType, tagName, isPublic, isGuest, jwt);
 }
@@ -459,6 +486,12 @@ export async function syncMasterpassToAccountPassword(userId: string, masterpass
 export async function checkEmailAuthMethod(email: string) {
   const { checkEmailAuthMethodAction } = await import('./secure-ops');
   return checkEmailAuthMethodAction({ email });
+}
+
+export async function createStandaloneTag(tagName: string) {
+  const jwt = await getJwt();
+  const { createStandaloneTagSecure } = await import('./secure-ops');
+  return createStandaloneTagSecure(tagName, jwt);
 }
 
 
