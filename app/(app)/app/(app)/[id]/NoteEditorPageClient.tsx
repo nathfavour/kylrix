@@ -30,18 +30,7 @@ export default function NoteEditorPageClient() {
     }
   }, [id, decryptionKey]);
 
-  const note =
-    rawNote ||
-    (isLoading
-      ? ({
-          $id: id as string,
-          title: 'Loading…',
-          content: '',
-          tags: [],
-          $createdAt: new Date().toISOString(),
-          $updatedAt: new Date().toISOString(),
-        } as Notes)
-      : null);
+  const note = rawNote;
 
   useEffect(() => {
     let mounted = true;
@@ -111,7 +100,20 @@ export default function NoteEditorPageClient() {
     router.push('/app');
   }, [router]);
 
-  if (!isLoading && !note) {
+  if (isLoading) {
+    return (
+      <div className="bg-[#0A0908] text-white font-satoshi min-h-[calc(100dvh-72px)]">
+        <div className="max-w-[920px] mx-auto w-full px-4 md:px-5 py-5">
+          <div className="rounded-[24px] border border-white/5 bg-[#161412] px-5 py-6">
+            <div className="h-5 w-40 bg-white/10 rounded mb-3 animate-pulse" />
+            <div className="h-4 w-64 bg-white/10 rounded animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!note) {
     return (
       <div className="min-h-[50dvh] flex items-center justify-center bg-[#0A0908] text-[#9B9691] text-sm font-semibold">
         Note not found.
