@@ -2,6 +2,8 @@
 
 This blueprint serves as the single, authoritative architectural guide and features manifest for the Kylrix ecosystem. It defines the core security boundaries, cryptographic protocols, data infrastructure models, and execution flows within the codebase. It acts as an active conceptual ingest for engineers and agentic AI systems to understand the codebase's mechanics, synergies, and future expansion paths.
 
+> **Last major sync (Jul 2026):** Passkey login + dual-role vault credentials, MasterPass↔account password sync, offline ghost CRUD, Ideas `/app` routing, contextual Agentic drawer, multi-step security confirmations, Telegram granular prefs, project join approval workflow.
+
 ---
 
 ## 🏗️ Core Architectural Mandates & Design Patterns
@@ -48,6 +50,28 @@ Kylrix operates a zero-trust database permission model:
 ### 3. Temporal MFA & Sudo Gates
 - **Session Alignment Check**: To prevent session hijacking where an attacker bypasses MFA on a session created before MFA was enabled, `lib/mfa-session.ts` verifies that the `mfaUpdatedAt` timestamp is greater than or equal to the session's `$createdAt` timestamp.
 - **Sudo Mode Gate**: High-risk actions (e.g. master password change, database wipe, full JSON export) require the user to re-enter their master credentials. Upon validation, the client enters a temporal Sudo Mode window lasting exactly **5 minutes** (stored as an in-memory timestamp in `context/SudoContext.tsx`). The Sudo token is strictly non-persistent and cannot be cached.
+- **Multi-Step Security Confirmation Drawers**: Before Sudo is even invoked, destructive settings actions pass through staged bottom drawers (`components/overlays/SecurityConfirmDrawer.tsx`, `lib/settings/security-confirm-steps.ts`). Vault wipe requires **3** confirmation steps; master password change requires **2**. Each step uses layman copy and explicit consequence warnings. Only after all steps complete does the flow call `promptSudo()` from `context/SudoContext.tsx`. Drawer type: `security-confirm` in `context/UnifiedDrawerContext.tsx`.
+- **Login-Feature Disable Warnings**: Disabling passkey login or related auth features triggers a dedicated confirmation bottom drawer (`db22ef5` pattern) so users cannot accidentally strand themselves without a recovery path.
+
+### 4. Passkey Authentication & Dual-Role Credentials
+Kylrix passkeys are no longer vault-only. A single WebAuthn credential can serve **both** vault unlock (PRF-wrapped MEK) and Appwrite account login (`authPasskey: true` on keychain rows).
+
+- **Registration UX**: `components/overlays/PasskeySetup.tsx` exposes `alsoUseForLogin` (default **on**). When enabled, registration stores `authPasskey: true` on the keychain row and, if the authenticator supports PRF, derives the vault unlock wrapping key from `extensionResults.prf`.
+- **Dual PRF + Login**: Vault-decryption passkeys and login passkeys can be the same physical credential. `lib/actions/auth-actions.ts` rejects login when `row.authPasskey` is false, even if the credential exists for unlock.
+- **Stateless Login API**: Login bypasses fragile Server Action cookie propagation. `app/api/auth/passkey/route.ts` exposes `POST` (options) and `PUT` (verify). Challenges are sealed in an HMAC-signed `challengeToken` (5-minute TTL) using `APPWRITE_API` as the HMAC secret — no server session required between steps.
+- **Native WebAuthn Client**: `lib/webauthn-utils.ts` calls `navigator.credentials.get()` directly, maps assertion responses to clean POJOs (prevents extension `toJSON` prototype pollution), and standardizes Base64URL buffer encoding. Global prototype sanitization runs in client auth bootstrap.
+- **Server Verification**: `@simplewebauthn/server` verifies assertions; COSE public keys are stored on registration (`lib/actions/auth-actions.ts`). Credential counters are updated after successful login. Verified users receive an Appwrite session via `users.createToken()` → `account.createSession({ userId, secret })`.
+- **Login Drawer Integration**: `components/overlays/LoginDrawer.tsx` — "Continue with Passkey" flow. Deprecated standalone `/login` page removed; all auth surfaces through unified drawers.
+- **Settings Bifurcation**: Production passkeys and localhost/dev passkeys render in separate lists in Settings. Sudo unlock modals filter passkey counts by domain context (`resolvePasskeyRpId`).
+- **Diagnostics**: See `passkey.md` for the full client → API → `auth-actions.ts` sequence and verbose error logging in catch blocks.
+
+### 5. MasterPass ↔ Account Password Unification
+The master password (vault MEK derivation input) and the Appwrite account login password are kept in sync by design.
+
+- **Silent Sync on Unlock/Setup/Change**: `lib/masterpass-crypto.ts` calls `syncMasterpassToAccountPassword()` after successful vault unlock, first-time masterpass setup, and masterpass rotation. This updates the Appwrite Users password via `syncMasterpassToAccountPasswordAction` in `lib/actions/secure-ops/misc.ts` and sets `prefs.hasPass: true`.
+- **Explicit Sync on Sudo**: `components/overlays/SudoModal.tsx` syncs immediately when the user changes masterpass through the Sudo upgrade path.
+- **Email Notifications**: Masterpass changes and new passkey registrations trigger email dispatch (`b922db4` notification bridge).
+- **Rationale**: Users should not maintain two different high-entropy secrets. One masterpass unlocks the vault **and** can authenticate the Appwrite session when synchronized.
 
 ---
 
@@ -88,6 +112,16 @@ Accidental page refreshes or network drops do not result in data loss. The draft
 3. **Network fetch with 30s TTL** (fallback, with promise deduplication to prevent thundering herds).
 This ensures the user identity is always available instantly without redundant network calls.
 
+### 7. Offline-First Ghost CRUD (Unauthenticated Substrate)
+Beyond RxDB replication for authenticated users, Kylrix supports full local CRUD for guests and offline sessions via `localStorage` ghost stores (`kylrix_ghost_notes_v2`, `kylrix_ghost_secret_v2`).
+
+- **Ideas (Notes)**: `context/NotesContext.tsx` and `lib/appwrite/note.ts` read/write encrypted ghost note rows locally when unauthenticated or offline. Ghost payloads decrypt on load via `lib/encryption/ghost-crypto.ts`.
+- **Flow Tasks**: `context/TaskContext.tsx` mirrors the same pattern for ghost tasks.
+- **Vault**: `lib/appwrite/vault.ts`, `app/(app)/vault/(protected)/page.tsx`, and credential dialogs support ghost passwords/TOTPs in local storage until login.
+- **Claim on Login**: `components/landing/GhostNoteClaimer.tsx` automatically claims and migrates all ghost artifacts (notes, tasks, credentials, TOTPs) into official `passwordManagerDb` rows upon authentication.
+- **Network Recovery**: `bd15455` — automatic refresh and ghost claiming when connectivity returns.
+- **Public App Access**: `app/(app)/layout.tsx` allows unauthenticated access to `/app`, `/flow`, `/vault`, and `/connect` for zero-idle onboarding; protected dashboards still gate to `/send?login=1`.
+
 ---
 
 ## III. SDK ABSTRACTION LAYER
@@ -110,9 +144,14 @@ The codebase implements a modular SDK facade (`lib/sdk/`, 48 files) that wraps a
 
 1. **Reload Storm Defense**: Cookie-based `k_rld` counter tracks rapid page reloads. If 30 reloads occur within a 5-second window, the middleware returns a `429` status with an HTML retry page and `Retry-After` header. Prevents accidental or malicious reload floods.
 2. **Redirect Loop Circuit Breaker**: Cookie-based `_rd` parameter counter detects chained redirects. If 5 consecutive redirects are detected, the circuit breaks and returns the user to the root path, preventing infinite redirect loops.
-3. **Legacy Route Migration**: Permanent 301 redirects for deprecated URL patterns: `/note/notes/*` → `/note/*`, `/vault/dashboard/*` → `/vault/*`, `/flow/tasks/*` and `/flow/goals/*` → `/flow/*`.
-4. **Authenticated Session Detection**: Reads `kylrix_pulse_v2` cookie and `a_session_*` cookies to determine auth state. Authenticated users are routed to their last active path (stored in a cookie); unauthenticated users stay on the current route.
-5. **Static Asset Bypass**: Skips middleware processing for `/_next`, `/api`, `/favicon`, and files with extensions.
+3. **Legacy Route Migration**: Permanent redirects in `next.config.js` and `middleware.ts`:
+   - `/note` and `/note/:path*` → `/app` and `/app/:path*` (Ideas workspace canonical prefix).
+   - `/app/notes` and `/app/notes/:path*` → `/app` and `/app/:path*`.
+   - `/send` → `/app`; `/send/:noteId` → `/app/shared/:noteId` (Send absorbed into Ideas shared flow).
+   - `/vault/dashboard/*` → `/vault/*`; `/flow/tasks/*` and `/flow/goals/*` → `/flow/*`.
+4. **Landing Zero-Idle Redirect**: `/` redirects to `/app` or the last active route unless `?stay` or `#stay` is present.
+5. **Authenticated Session Detection**: Reads `kylrix_pulse_v2` cookie and `a_session_*` cookies to determine auth state. Authenticated users are routed to their last active path (stored in a cookie); unauthenticated users stay on the current route.
+6. **Static Asset Bypass**: Skips middleware processing for `/_next`, `/api`, `/favicon`, and files with extensions.
 
 ---
 
@@ -260,8 +299,11 @@ A complete internal token ledger system powers merit-based distributions and mic
 - **Local Context Engine**: Builds context payloads from the user's notes, tasks, and vault metadata to ground AI responses.
 - **Server Action**: `lib/actions/ai.ts` — server-side AI content generation with privacy sanitization.
 - **Hooks**: `hooks/useAI.ts` — client-side AI interaction hook.
-- **Agentic Layer**: `lib/services/agentic.ts` and `lib/actions/agentic.ts` — AI agent management and action execution.
-- **Drawer Context**: `context/AgenticDrawerContext.tsx` — manages the AI agent drawer UI state.
+- **Agentic Layer**: `lib/services/agentic.ts` and `lib/actions/agentic.ts` — AI agent management and action execution. `executeInstantRequestAction` accepts page context (`zone`, `route`, `resourceId`, `systemHint`).
+- **Global Agentic Bottom Drawer**: `components/overlays/AgenticDrawer.tsx` + `components/overlays/AgenticPanelContent.tsx`, mounted from `components/GlobalShell.tsx` (not inline in topbar). Opened via `context/AgenticDrawerContext.tsx` (`openAgenticDrawer({ prompt, autoRun })`). ConnectTopbar bot icon only triggers open/close.
+- **60dvh Chrome Rule**: Drawer caps at `60dvh` on desktop; mobile can expand to fullscreen. Sticky header, sticky contextual quick-action grid, sticky composer — only the chat thread scrolls. Quick actions band scrolls internally when action count exceeds visible height.
+- **Page-Aware Workflows**: `lib/agentic/context-workflows.ts` resolves zone from pathname (`note`→Ideas `/app`, `flow`, `vault`, `connect`, `projects`, `settings`, `agents`, `accounts`, `workspace`) and returns per-zone quick actions (e.g. "Compose a note", "Schedule a task", "Research scope"). Actions are `prompt`, `instant` (auto-run), or `navigate`.
+- **Assistant Settings**: `/settings/agents` — BYOK vault key storage, framework runtime selection, link to `/agents` workspace. Pure Tailwind layout (OpenBricks primitives removed).
 - **Guardrails**: The `agent-action-guardrail` Appwrite function enforces safety boundaries on AI agent actions (privileged table protection, vault deletion gates, email spam control).
 
 ---
@@ -313,7 +355,7 @@ A privacy-respecting analytics system tracks content engagement:
 A multi-channel notification orchestration layer:
 - **In-App**: `context/NotificationContext.tsx` with Appwrite Realtime subscription for live notification delivery.
 - **Email**: `lib/unorganic-email-api.ts` (1,075 lines) — priority scoring (source + event priority → low/medium/high/critical), multi-layer anti-spam (rapid succession 10min block, token transfer rate limit 1/hr, project invite dedup 24hr, repeated action threshold 2/day), quota system (5 ordinary emails/month, 2/week; bypassed events: 3/week), in-memory `EmailQueueCache` for deduplication, HTML template builder with per-source themes.
-- **Telegram**: `lib/services/internal/telegram-dispatch.ts` — push notifications via Telegram Bot API, bypassing Apple APNs and Google FCM.
+- **Telegram**: `lib/services/internal/telegram-dispatch.ts` — push notifications via Telegram Bot API, bypassing Apple APNs and Google FCM. Granular per-object preferences managed in `components/overlays/TelegramDrawer.tsx` with typed notification actions/objects (`lib/services/internal/telegram.ts`, `notification-dispatcher.ts`).
 - **Dispatcher**: `lib/services/internal/notification-dispatcher.ts` orchestrates channel selection and delivery.
 - **Toast**: `react-hot-toast` library with `position="top-center"` and dark theme styling (`#161412` background), configured in `components/ClientToaster.tsx`.
 
@@ -335,10 +377,11 @@ A multi-channel notification orchestration layer:
 
 ### 1. Layout Shell
 `components/GlobalShell.tsx` orchestrates the primary application layout:
-- **UnifiedLeftSidebar**: `components/UnifiedLeftSidebar.tsx` — primary left navigation with conditional visibility.
+- **UnifiedLeftSidebar**: `components/UnifiedLeftSidebar.tsx` — primary left navigation with conditional visibility. Ideas workspace labeled "Ideas" (formerly Notes) at `/app`.
 - **DynamicSidebar**: Context-driven right panel system (`DynamicSidebarContext`, `DynamicSidebarPanel`, `useDynamicSidebar` hook) that can host any component (NoteDetailSidebar, ProjectDiscussionSidebar, PinnedNotesSidebar, PostDetailSidebar, TaskDetails, etc.).
 - **UnifiedBottomBar**: `components/UnifiedBottomBar.tsx` — mobile bottom navigation bar.
-- **Responsive Breakpoints**: `showLeftSidebar` logic adapts layout for mobile/desktop.
+- **Responsive Breakpoints**: `showLeftSidebar` logic adapts layout for mobile/desktop. Note full-page detail (`/app/[id]`) hides left sidebar and applies `.note-detail` padding class in `chrome.css`.
+- **Agentic Drawer Layer**: Global bottom drawer at z-index 1300+; unified security/confirm drawers at z-index via `UnifiedBottomDrawer`.
 - **CSS Containment**: Layout wrappers use `contain: layout size style` for rendering performance (`chrome.css`).
 
 ### 2. CSS Token System
@@ -427,7 +470,7 @@ Database migration system for `system_pulse` metrics substrate.
 
 The mono-app is partitioned into four core workspaces that share the centralized WESP and identity frameworks:
 
-1.  **Kylrix Note**: A markdown-first knowledge base featuring Doodle Canvas sketches serialized directly to JSON, and ephemeral Ghost Notes subject to automatic 7-day recursive purges.
+1.  **Kylrix Ideas** (canonical route `/app`, legacy `/note` redirects): A markdown-first knowledge base branded "Ideas" in UI copy. Features Write/Preview markdown toggle on full-page detail (`NoteEditorPageClient`, `NoteDetailSidebar`), Doodle Canvas sketches, ephemeral Ghost Notes, and automatic 7-day recursive purges. Full-page editor at `/app/[id]` with reactions/comments sections below the editor shell.
 2.  **Kylrix Vault**: High-security login, credential, and TOTP key manager with client-side zero-knowledge shared key mapping tables.
 3.  **Kylrix Flow**: Productive checklist, task, and ingestion form manager. Enforces a strict limit of 8 collaborators per resource on the free tier to protect against WebSocket lag and concurrency conflicts.
 4.  **Kylrix Connect**: Secure messaging and P2P video/audio huddles. Live group calls are strictly capped at 16 concurrent members to prevent database read permission overhead and WebSocket performance degradation.
@@ -466,7 +509,7 @@ To prevent 'Non-Responsive UI' locks caused by hidden DOM structures capturing c
 
 ## XXI. VERIFIED DIRECTORY LAYOUT
 
-- `app/`: Next.js App Router mapping path-based routes (e.g. `/note`, `/vault`, `/flow`, `/connect`, `/accounts`).
+- `app/`: Next.js App Router mapping path-based routes (e.g. `/app` [Ideas], `/vault`, `/flow`, `/connect`, `/accounts`).
 - `components/`: 80+ specialized React UI widgets and dashboard elements grouped by function (e.g. `tasks/`, `chat/`, `calendar/`, `call/`, `projects/`, `social/`, `send/`, `ai/`, `ui/`, `overlays/`, `layout/`, `onboarding/`).
 - `context/`: 27+ centralized React Context providers coordinating state (e.g. `AuthContext.tsx`, `DataNexusContext.tsx`, `SudoContext.tsx`, `TaskContext.tsx`, `NotesContext.tsx`, `AIContext.tsx`, `TokenOpsContext.tsx`, `NotificationContext.tsx`).
 - `hooks/`: 16 custom state helpers and listeners (e.g. `useAutosave.ts`, `useRealtimeTable.ts`, `useWebRTC.ts`, `useCollaborativeNote.ts`, `useServiceWorker.ts`, `useEcosystemNode.ts`, `useEcosystemIntents.ts`).
@@ -576,6 +619,7 @@ The following catalog provides a highly detailed engineering breakdown of the ac
 #### 7. Temporal Sudo Mode Gate
 *   **Mechanics & Substrate**: High-risk action barrier inside `context/SudoContext.tsx` and `lib/sudo-mode.ts`.
 *   **Zero-Knowledge Boundary**: Critical actions (master password change, database wipe, full JSON export) require the user to re-validate their master password. Once verified, the client enters a Sudo Mode window lasting exactly **5 minutes** (stored as an in-memory timestamp).
+*   **Multi-Step Pre-Confirmations**: Settings destructive flows (`SecurityConfirmDrawer`, `lib/settings/security-confirm-steps.ts`) require 2–3 explicit confirmation drawers **before** Sudo is invoked (vault wipe: 3 steps; change password: 2 steps).
 *   **Acute Architectural Rationale**: The Sudo token is strictly non-persistent and cannot be cached in disk storage, neutralizing attacks from temporary local device access.
 *   **Vivid End-to-End Execution Flow**:
     1.  User clicks "Wipe Database".
@@ -679,15 +723,16 @@ The following catalog provides a highly detailed engineering breakdown of the ac
 
 ### II. KYLRIX NOTE (KNOWLEDGE MANAGEMENT)
 
-#### 15. Rich Markdown Editor
-*   **Mechanics & Substrate**: GitHub Flavored Markdown (GFM) text processor styled with Pitch Black design tokens, located in `components/notes/NoteEditor.tsx`.
+#### 15. Rich Markdown Editor (Ideas)
+*   **Mechanics & Substrate**: GitHub Flavored Markdown (GFM) via `marked` + DOMPurify in `components/NoteContentRenderer.tsx`. Full-page editor at `app/(app)/app/(app)/[id]/NoteEditorPageClient.tsx`; sidebar editor in `components/ui/NoteDetailSidebar.tsx`.
+*   **Write / Preview Toggle**: Note detail supports dual modes — raw markdown textarea (Write) and rendered preview (Preview) with `.note-markdown-preview` typography in `app/globals.css`. Autosave preserves `format: markdown` via `pickNoteAutosavePayload`.
 *   **Zero-Knowledge Boundary**: Note contents are encrypted client-side using GCM before save operations.
-*   **Acute Architectural Rationale**: Combines absolute server-blindness with a clean, distraction-free typography system. Integrates with the cross-linking renderer to inject inline widgets inside text flows.
+*   **Acute Architectural Rationale**: Combines absolute server-blindness with readable rendered output. Users edit markdown but can verify formatting without leaving the editor.
 *   **Vivid End-to-End Execution Flow**:
-    1.  User types markdown into the editor.
-    2.  `useAutosave` hook tracks modifications.
-    3.  The text block is parsed to render typography, lists, and code blocks.
-*   **Ecosystem Synergy**: Forms the primary interface for guides, checklists, and notes.
+    1.  User types markdown in Write mode or switches to Preview.
+    2.  `useAutosave` hook tracks modifications in `NoteDetailSidebar`.
+    3.  Preview renders headings, lists, blockquotes, code fences, and `[voice:fileId]` embeds.
+*   **Ecosystem Synergy**: Forms the primary interface for guides, checklists, and ideas.
 *   **Next-Gen Optimizations**: Inline LaTeX formatting and Mermaid diagrams parsed on the fly with GPU-accelerated transition animations.
 
 #### 16. Doodle Canvas
@@ -702,28 +747,27 @@ The following catalog provides a highly detailed engineering breakdown of the ac
 *   **Ecosystem Synergy**: Embedded directly inside Notes, adding vector-sketching capabilities.
 *   **Next-Gen Optimizations**: Real-time collaborative canvas syncing, allowing multiple users in a WebRTC call to sketch on the same vector whiteboard simultaneously.
 
-#### 17. Ghost Notes
-*   **Mechanics & Substrate**: Ephemeral zero-knowledge items marked as `isGhost: true` inside database schemas. Detailed in `lib/actions/secure-ops.ts`.
-*   **Zero-Knowledge Boundary**: These notes are encrypted, stored, and verified via temporal lifecycles.
-*   **Acute Architectural Rationale**: Subject to an automated, recursive 7-day purge sweep that purges expired records. Deletion cascades to storage files, reactions, comments, and voice files, guaranteeing absolute data hygiene.
+#### 17. Ghost Notes & Offline Ghost CRUD
+*   **Mechanics & Substrate**: Ephemeral zero-knowledge items marked as `isGhost: true` inside database schemas. Detailed in `lib/actions/secure-ops.ts`. Local offline substrate: `kylrix_ghost_notes_v2` + `kylrix_ghost_secret_v2` in `localStorage` via `lib/appwrite/note.ts`, `context/NotesContext.tsx`.
+*   **Zero-Knowledge Boundary**: Ghost payloads are encrypted client-side. Unauthenticated users can create, edit, and delete ghost ideas/tasks/vault entries entirely offline.
+*   **Claim on Login**: `GhostNoteClaimer` migrates all ghost rows into `passwordManagerDb` tables after authentication — notes, tasks, credentials, and TOTP seeds.
+*   **Acute Architectural Rationale**: Subject to automated 7-day purge for server-side ghosts. Local ghosts persist until claimed or manually cleared. Enables zero-idle onboarding without forcing signup before first value.
 *   **Vivid End-to-End Execution Flow**:
-    1.  User creates a Ghost Note.
-    2.  The note is stored with a 7-day expiration timestamp.
-    3.  On the 7th day, the server cron job invokes the cascade delete action.
-    4.  All traces of the note and its attachments are permanently erased.
-*   **Ecosystem Synergy**: Ideal for highly sensitive temporary credentials or brain-dumps.
+    1.  Guest creates an idea offline → encrypted row in `kylrix_ghost_notes_v2`.
+    2.  User signs in → `GhostNoteClaimer` decrypts, uploads, and clears local ghost store.
+    3.  Server ghosts expire after 7 days → `ghost-cleanup` function cascades deletes.
+*   **Ecosystem Synergy**: Ideal for sensitive temporary credentials, brain-dumps, and try-before-signup workflows across Ideas, Flow, and Vault.
 *   **Next-Gen Optimizations**: Multi-tier ghost notes with custom self-destruct countdowns (e.g. read-once, 1 hour, or 24 hours).
 
-#### 18. Polymorphic Relay (Send)
-*   **Mechanics & Substrate**: Universal zero-knowledge sharing engine located at `/send`, implemented in `components/send/SendReceiveClient.tsx`.
-*   **Zero-Knowledge Boundary**: The secret key is stored in the URL hash fragment (`/send/[id]#[key]`), which is never sent to the server.
-*   **Acute Architectural Rationale**: Standard routing redirects unauthenticated traffic to `/send` immediately. This "Zero-Idle Onboarding" lets visitors experience E2EE sharing immediately, converting them to users organically.
+#### 18. Polymorphic Relay (Send → Ideas Shared)
+*   **Mechanics & Substrate**: Universal zero-knowledge sharing engine. Legacy `/send` routes permanently redirect to `/app` and `/app/shared/:noteId` (`next.config.js`). Shared note viewer: `app/(app)/app/shared/[noteid]/SharedNoteClient.tsx`.
+*   **Zero-Knowledge Boundary**: The secret key is stored in the URL hash fragment or `?key=` query param, which is never sent to the server in the hash case.
+*   **Acute Architectural Rationale**: Send is absorbed into the Ideas workspace. Unauthenticated traffic lands on `/app` for zero-idle onboarding instead of a separate relay surface.
 *   **Vivid End-to-End Execution Flow**:
-    1.  User drops a file or text block into the `/send` interface.
+    1.  User shares an idea or drops encrypted content.
     2.  A 256-bit symmetric key is generated.
-    3.  The payload is encrypted client-side.
-    4.  Encrypted data is saved to Appwrite.
-    5.  Client yields a sharing URL with the key appended in the hash fragment.
+    3.  Payload encrypted client-side and saved to Appwrite (or ghost-local when offline).
+    4.  Recipient opens `/app/shared/[id]?key=…` — owner sees editor, guests see `SharedNoteClient`.
 *   **Ecosystem Synergy**: Integrates with Vault and Chats to send secure ephemeral files instantly.
 *   **Next-Gen Optimizations**: One-time-download ghost files that immediately delete themselves from Appwrite storage buckets the microsecond the download stream completes.
 
@@ -826,17 +870,17 @@ The following catalog provides a highly detailed engineering breakdown of the ac
 *   **Ecosystem Synergy**: Integrated inside the Vault creation drawer.
 *   **Next-Gen Optimizations**: AI-driven password strength auditing, suggesting entropy upgrades for legacy credentials detected in the vault.
 
-#### 26. Biometric Vault Unlock
-*   **Mechanics & Substrate**: FIDO2/WebAuthn hardware integration located in `lib/webauthn.ts`.
-*   **Zero-Knowledge Boundary**: The MEK is wrapped with a key derived from the WebAuthn PRF (Pseudo-Random Function) extension. The hardware device itself executes the decryption, ensuring raw secrets never touch the OS clipboard or disk.
-*   **Acute Architectural Rationale**: Eliminates the "Master Password Fatigue" problem, allowing users to unlock their zero-knowledge workspace with a fingerprint or hardware key.
+#### 26. Biometric Vault Unlock & Dual-Role Passkeys
+*   **Mechanics & Substrate**: FIDO2/WebAuthn in `lib/webauthn-utils.ts`, `components/overlays/PasskeySetup.tsx`, and `lib/actions/auth-actions.ts`. Registration verifies COSE keys server-side; challenges use Base64URL encoding throughout.
+*   **Zero-Knowledge Boundary**: Vault unlock: MEK wrapped with PRF-derived key from hardware. Login: `authPasskey: true` rows verified via `@simplewebauthn/server`; session minted with `users.createToken()`.
+*   **Dual-Role Credentials**: `alsoUseForLogin` (default on) lets one passkey both unwrap the vault **and** sign into Appwrite. PRF-enabled authenticators derive vault keys; login authorization is a separate `authPasskey` flag on the keychain row.
+*   **Acute Architectural Rationale**: Eliminates master password fatigue for unlock while enabling passwordless account login from the same credential. Disabling login features requires confirmation drawers.
 *   **Vivid End-to-End Execution Flow**:
-    1.  User clicks "Unlock with Biometrics".
-    2.  `navigator.credentials.get()` invokes the hardware key.
-    3.  Hardware derives a secret based on the PRF salt.
-    4.  The secret unwraps the local MEK envelope.
-*   **Ecosystem Synergy**: Primary high-velocity unlock protocol for desktop and mobile.
-*   **Next-Gen Optimizations**: Multi-device roaming authenticators, where a user can use their mobile phone's biometric sensor to unlock their desktop browser session via P2P Bluetooth handshakes.
+    1.  User registers passkey with "Also use for login" checked.
+    2.  Server stores credential ID, COSE public key, `authPasskey`, optional PRF metadata.
+    3.  Unlock: PRF unwraps MEK. Login: API route verifies assertion → Appwrite session.
+*   **Ecosystem Synergy**: Primary high-velocity unlock and authentication protocol for desktop and mobile.
+*   **Next-Gen Optimizations**: Multi-device roaming authenticators via cross-device WebAuthn caBLE.
 
 ---
 
@@ -1011,26 +1055,28 @@ The following catalog provides a highly detailed engineering breakdown of the ac
 *   **Next-Gen Optimizations**: Dynamic action links inside Moment Feed cards, enabling users to accept project invites or join active voice huddles in one click.
 
 #### 41. Telegram Notification Bridge
-*   **Mechanics & Substrate**: Push notification service integrated in `lib/services/internal/telegram-dispatch.ts` and `lib/actions/telegram.ts`.
-*   **Zero-Knowledge Boundary**: Chat IDs are saved securely against user profiles.
-*   **Acute Architectural Rationale**: Bypasses Apple APNs and Google FCM developer fee structures and platform audits, maintaining complete store detachment and developer autonomy.
+*   **Mechanics & Substrate**: Push notification service in `lib/services/internal/telegram-dispatch.ts` and `lib/actions/telegram.ts`. Granular preferences UI in `components/overlays/TelegramDrawer.tsx` (60dvh scroll-contained layout).
+*   **Granular Preferences**: Per-notification-type and per-object toggles via `notification-dispatcher.ts` and telegram service preference rows. Settings page clarifies Telegram alert options.
+*   **Zero-Knowledge Boundary**: Chat IDs saved against user profiles; messages contain metadata only — never vault secrets or note plaintext.
+*   **Acute Architectural Rationale**: Bypasses Apple APNs and Google FCM, maintaining store detachment and developer autonomy.
 *   **Vivid End-to-End Execution Flow**:
-    1.  An event triggers a notification (e.g. key shared).
-    2.  Server queries the user's Telegram Chat ID.
-    3.  A secure POST request is dispatched via Telegram's Bot API.
-*   **Ecosystem Synergy**: Instant notifications delivered to any device.
-*   **Next-Gen Optimizations**: Bi-directional command executions, enabling users to query vault lock statuses or trigger database wipes by replying to Telegram messages.
+    1.  Event triggers notification dispatcher.
+    2.  User preference checked for Telegram opt-in on that event type.
+    3.  Server queries Telegram Chat ID and dispatches via Bot API.
+*   **Ecosystem Synergy**: Instant notifications delivered to any device alongside in-app and email channels.
+*   **Next-Gen Optimizations**: Bi-directional command executions for vault lock status queries via Telegram replies.
 
-#### 42. Group Join Request Gating
-*   **Mechanics & Substrate**: Invite validation engine inside `lib/actions/secure-ops.ts`.
-*   **Zero-Knowledge Boundary**: Generates invite hashes using SHA-256 derived from `inviterId + projectId + timestamp`.
-*   **Acute Architectural Rationale**: Enforces strict temporal expiration checks, immediately rejecting join requests if invite links are expired or tampered with.
+#### 42. Group & Project Join Request Gating
+*   **Mechanics & Substrate**: Invite validation in `lib/actions/secure-ops.ts`. Project join approval workflow: `approveProjectJoinRequest` client-op with owner permission checks; project detail page approve UI (`cfc4dc6`).
+*   **Zero-Knowledge Boundary**: Invite hashes use SHA-256 derived from `inviterId + projectId + timestamp`. Join request rows store metadata only.
+*   **Acute Architectural Rationale**: Enforces temporal expiration; owners explicitly approve join requests before collaborator permissions propagate.
 *   **Vivid End-to-End Execution Flow**:
-    1.  Invite link is generated.
-    2.  Recipient clicks the link.
-    3.  Server computes the SHA-256 hash and verifies timestamp validity before granting access.
-*   **Ecosystem Synergy**: Guards collaborative Project workspaces.
-*   **Next-Gen Optimizations**: Blind signature join requests, allowing users to invite guests without revealing the host project's ID to unauthorized users.
+    1.  Guest requests join/edit access on a shared project.
+    2.  Request row created; owner notified.
+    3.  Owner approves via project UI → Server Action grants collaborator role.
+    4.  Expired or tampered invite links rejected.
+*   **Ecosystem Synergy**: Guards collaborative Project workspaces. Edit-access requests gated to Teams tier (Feature 58).
+*   **Next-Gen Optimizations**: Blind signature join requests without revealing host project IDs to unauthorized users.
 
 ---
 
@@ -1063,7 +1109,7 @@ The following catalog provides a highly detailed engineering breakdown of the ac
 
 #### 45. Autonomous Local Injection & Flap-Over Previews for Secure Relays
 *   **shipped Mechanism & Substrate**: URL interceptor matching `/send/[id]/[key]` inside markdown content.
-*   **Inline Preview Injection**: Resolves note metadata locally through `/note/api/shared/${id}` (caching results inside Data Nexus `send_relay_${id}`) and extracts the secure object kind to inject a custom, highly styled glassmorphic micro-card into the text.
+*   **Inline Preview Injection**: Resolves shared idea metadata via `/app/api/og/note/[noteid]` or shared-note cache (`send_relay_${id}` in Data Nexus) and injects a styled micro-card into markdown.
 *   **dedicated Flap-Over Drawer**: Bypasses traditional page redirection. Clicking the preview card slides out a dedicated right-hand panel (`SendFlapOver`) that decrypts and visualizes the secure object contextually (Username/Password fields, live TOTP circular counts, or inline file decryption and binary downloads) without breaking active viewport flow.
 *   **Acute Architectural Rationale**: Enables rapid reading of shared assets without interrupting focus or dropping the active viewport state.
 *   **Vivid End-to-End Execution Flow**:
@@ -1109,7 +1155,7 @@ The following catalog provides a highly detailed engineering breakdown of the ac
 #### 49. Zero-Idle Redirect & Auth Resume
 *   **Mechanics & Substrate**: Route middleware in `middleware.ts` handles authenticated user routing and legacy path migration.
 *   **Authenticated Resume**: When an authenticated user visits `/`, the middleware reads their last active route from a cookie (`LAST_ROUTE_COOKIE`) validated by `lib/ecosystem/resume-route.ts` and redirects them there. Guests stay on the landing page.
-*   **Legacy Route Migration**: Permanent 301 redirects for deprecated URL patterns: `/note/notes/*` → `/note/*`, `/vault/dashboard/*` → `/vault/*`, `/flow/tasks/*` and `/flow/goals/*` → `/flow/*`.
+*   **Legacy Route Migration**: `/note/*` → `/app/*`, `/send/*` → `/app/shared/*`, `/vault/dashboard/*` → `/vault/*`, `/flow/tasks/*` and `/flow/goals/*` → `/flow/*` (see Section IV).
 *   **Acute Architectural Rationale**: Eliminates friction for returning authenticated users while maintaining clean URL hygiene through legacy redirects.
 *   **Vivid End-to-End Execution Flow**:
     1.  Authenticated user visits the root domain.
@@ -1219,6 +1265,34 @@ The following catalog provides a highly detailed engineering breakdown of the ac
     *   **Free**: Full personal database (zero collaborators), secure chats, hangouts, moments, profile picture storage, and 1-on-1 direct calls. Audio recording features, shared note duplication, shared Send claiming, and edit access requests are excluded.
     *   **Pro**: Adds arbitrary file storage, audio messages, shared note duplication, and shared Send claiming.
     *   **Teams**: Enables multi-user collaboration (shared databases with unlimited collaborators), WebRTC group calls, shared note duplication, shared Send claiming, and edit access requests.
+
+#### 59. Native Passkey Login (Passwordless Appwrite Session)
+*   **shipped Mechanism**: `LoginDrawer` → `POST/PUT /api/auth/passkey` → `getPasskeyLoginOptionsAction` / `verifyPasskeyLoginAction` → `account.createSession({ userId, secret })`.
+*   **Stateless Challenge Token**: HMAC-sealed challenge survives cookieless verification (5-minute TTL).
+*   **Prototype Hardening**: WebAuthn `toJSON` sanitization, clean POJO assertion mapping, Base64URL standardization, localhost RP ID support.
+
+#### 60. MasterPass ↔ Account Password Sync
+*   **shipped Mechanism**: `syncMasterpassToAccountPasswordAction` updates Appwrite Users password when masterpass is set, unlocked, or rotated (`lib/masterpass-crypto.ts`, `SudoModal.tsx`).
+*   **Rationale**: One secret for vault MEK derivation and account login. `prefs.hasPass` set on sync.
+
+#### 61. Contextual Agentic Bottom Drawer (Smart System)
+*   **shipped Mechanism**: Global `AgenticDrawer` at 60dvh with page-aware quick actions from `lib/agentic/context-workflows.ts`. Zones: Ideas, Flow, Vault, Connect, Projects, Settings, Agents, Accounts, Workspace.
+*   **Sticky Chrome**: Header + quick-action grid + composer always visible; chat thread scrolls.
+
+#### 62. Multi-Step Security Confirmation Drawers
+*   **shipped Mechanism**: `SecurityConfirmDrawer` + `security-confirm-steps.ts`. Vault wipe: 3 steps → Sudo → destructive modal. Change password: 2 steps → Sudo.
+
+#### 63. Ideas Canonical Routing (`/app`)
+*   **shipped Mechanism**: `/note/*` → `/app/*`, `/send/*` → `/app/shared/*`. UI copy rebranded Notes → Ideas. Public unauthenticated access to core apps for ghost CRUD.
+
+#### 64. Resource ID Normalization
+*   **shipped Mechanism**: `isValidAppwriteRowId`, `normalizeCollaboratorResourceType` in `lib/utils/resource-ids.ts`. Collaboration checks accept both `userId` and `creatorId`.
+
+#### 65. Auth Drawer Enhancements
+*   **shipped Mechanism**: Debounced email existence check, password login path, "Continue with Passkey" in unified login drawer. Masterpass drawer suppressed when unauthenticated/offline to prevent spurious vault prompts.
+
+#### 66. Note Detail Page Layout & Markdown Preview
+*   **shipped Mechanism**: Full-page `/app/[id]` with `layout="page"` on `NoteDetailSidebar`, reduced top padding via `.note-detail` shell class, Write/Preview toggle, `.note-markdown-preview` styles, back navigation to `/app`.
 
 ---
 
