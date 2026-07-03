@@ -93,6 +93,7 @@ export interface NoteDetailSidebarProps {
   onUpdate: (updatedNote: Notes) => void;
   onDelete: (noteId: string) => void;
   onBack?: () => void;
+  layout?: 'page' | 'drawer';
   showExpandButton?: boolean;
   showHeaderDeleteButton?: boolean;
   isLoading?: boolean;
@@ -103,6 +104,7 @@ export function NoteDetailSidebar({
   onUpdate,
   onDelete,
   onBack,
+  layout = 'drawer',
   showExpandButton = true,
   showHeaderDeleteButton = true,
   isLoading = false,
@@ -496,7 +498,7 @@ export function NoteDetailSidebar({
     ...liveNote,
     title,
     content,
-    format: 'text',
+    format: liveNote.format || 'markdown',
     tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
   }), [liveNote, title, content, tags]);
 
@@ -662,6 +664,8 @@ export function NoteDetailSidebar({
 
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [isContextDrawerOpen, setIsContextDrawerOpen] = useState(false);
+  const [contentMode, setContentMode] = useState<'edit' | 'preview'>('edit');
+  const isPageLayout = layout === 'page';
 
   useEffect(() => {
     setIsDrawerOpen(isContextDrawerOpen);
@@ -796,7 +800,7 @@ export function NoteDetailSidebar({
         pickNoteAutosavePayload({
           content: nextContent,
           title,
-          format: 'text',
+          format: liveNote.format || 'markdown',
           tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
         })
       );
@@ -812,37 +816,39 @@ export function NoteDetailSidebar({
 
   // --- RENDER ---
   return (
-    <div className="note-detail-sidebar-root flex flex-col h-full bg-[#161412] overflow-hidden text-white w-full">
+    <div
+      className={`note-detail-sidebar-root flex flex-col bg-[#0A0908] overflow-hidden text-white w-full ${
+        isPageLayout ? 'min-h-0' : 'h-full bg-[#161412]'
+      }`}
+    >
       {/* Header */}
-      <div className="flex flex-col gap-3 p-4 pb-3 border-b border-white/5 bg-[#161412] shrink-0">
-        {/* Row 1: Title and back buttons */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            {onBack ? (
-              <button 
-                type="button"
-                onClick={handleBackClick} 
-                className="p-1.5 text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex-shrink-0"
-              >
-                <BackIcon className="w-5 h-5" />
-              </button>
-            ) : (
-              <button 
-                type="button"
-                onClick={handleBackClick} 
-                className="p-1.5 text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex-shrink-0 sm:hidden"
-              >
-                <BackIcon className="w-5 h-5" />
-              </button>
-            )}
-            
+      <div
+        className={`flex flex-col gap-3 border-b border-white/5 bg-[#0A0908] shrink-0 ${
+          isPageLayout ? 'px-4 md:px-5 pt-1 pb-3' : 'p-4 pb-3'
+        }`}
+      >
+        {/* Row 1: Back + title */}
+        <div className="flex items-center justify-between gap-3 min-w-0">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <button
+              type="button"
+              onClick={handleBackClick}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-white/55 hover:text-white hover:bg-white/[0.05] border border-white/5 flex-shrink-0 transition-colors"
+              aria-label="Back to ideas"
+            >
+              <BackIcon className="w-4 h-4" />
+            </button>
+
             {isEncryptedNote ? (
-              <h2
+              <button
+                type="button"
                 onClick={() => !vaultUnlocked && promptSudo()}
-                className="font-black font-space-grotesk text-[#6366F1] uppercase tracking-wide text-xl truncate flex-1 cursor-pointer"
+                className="min-w-0 flex-1 text-left"
               >
-                {vaultUnlocked ? 'Decrypting Secure Note...' : 'Locked Note'}
-              </h2>
+                <span className="text-[#6366F1] font-extrabold font-clash text-lg leading-tight truncate block">
+                  {vaultUnlocked ? 'Decrypting secure note…' : 'Locked note'}
+                </span>
+              </button>
             ) : (
               <input
                 type="text"
@@ -851,17 +857,17 @@ export function NoteDetailSidebar({
                   setTitle(e.target.value);
                   markDirty();
                 }}
-                className="w-full bg-transparent text-[#6366F1] font-black text-xl font-space-grotesk tracking-wide uppercase border-none focus:outline-none placeholder-white/20 flex-1 min-w-0"
+                className="w-full min-w-0 bg-transparent text-[#6366F1] font-extrabold text-lg font-clash tracking-tight leading-tight border-none focus:outline-none placeholder:text-white/25"
                 placeholder="Untitled note"
               />
             )}
           </div>
 
-          {!onBack && (
+          {!onBack && !isPageLayout && (
             <button
               type="button"
               onClick={handleDismiss}
-              className="p-1.5 text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors hidden sm:inline-flex shrink-0"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-white/55 hover:text-white hover:bg-white/[0.05] border border-white/5 hidden sm:inline-flex shrink-0 transition-colors"
               title="Close"
             >
               <CloseIcon className="w-4 h-4" />
@@ -972,26 +978,57 @@ export function NoteDetailSidebar({
       </div>
 
       {/* Content Scroll Area */}
-      <div 
+      <div
         ref={scrollContainerRef}
         onScroll={(e) => {
           if (liveNote?.$id) {
             persistScrollPosition(`note_detail:${liveNote.$id}`, e.currentTarget.scrollTop);
           }
         }}
-        className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scrollbar-thin"
+        className={`flex-1 overflow-y-auto flex flex-col gap-5 scrollbar-thin ${
+          isPageLayout ? 'px-4 md:px-5 py-4' : 'p-4 gap-4'
+        }`}
       >
-        {/* Editor Box */}
-        <div className="flex flex-col p-4 rounded-[20px] bg-[#0A0908] border border-white/[0.04] shadow-[0_8px_24px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/30 transition-all flex-shrink-0">
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold tracking-wider text-indigo-400 uppercase">Content</span>
+        {/* Editor / preview */}
+        <div className="flex flex-col rounded-[24px] bg-[#161412] border border-white/5 overflow-hidden flex-shrink-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-5 pt-4 pb-3 border-b border-white/5">
+            <div className="min-w-0 flex flex-col gap-0.5">
+              <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#6366F1] font-clash">
+                Content
+              </span>
               {isAutosaving && (
-                <span className="text-[10px] font-mono font-bold text-white/35 uppercase tracking-wider">Saving…</span>
+                <span className="text-[10px] font-semibold text-[#9B9691]">Saving…</span>
               )}
             </div>
-            
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {!shouldMaskEncrypted && (
+                <div className="flex rounded-xl border border-white/8 bg-[#0B0A09] p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setContentMode('edit')}
+                    className={`px-3 py-1.5 rounded-[10px] text-[11px] font-extrabold transition-colors ${
+                      contentMode === 'edit'
+                        ? 'bg-[#6366F1] text-white'
+                        : 'text-[#9B9691] hover:text-white'
+                    }`}
+                  >
+                    Write
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContentMode('preview')}
+                    className={`px-3 py-1.5 rounded-[10px] text-[11px] font-extrabold transition-colors ${
+                      contentMode === 'preview'
+                        ? 'bg-[#6366F1] text-white'
+                        : 'text-[#9B9691] hover:text-white'
+                    }`}
+                  >
+                    Preview
+                  </button>
+                </div>
+              )}
+
               {!shouldMaskEncrypted && content && (
                 <button
                   type="button"
@@ -1000,236 +1037,343 @@ export function NoteDetailSidebar({
                     navigator.clipboard.writeText(content);
                     showSuccess('Copied', 'Note content copied to clipboard');
                   }}
-                  className="h-7 w-7 rounded-lg flex items-center justify-center transition-all bg-white/5 border border-white/5 text-white/60 hover:text-white hover:bg-white/10"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#0B0A09] border border-white/8 text-white/55 hover:text-white hover:bg-white/[0.04] transition-colors"
                   title="Copy content"
                 >
                   <CopyIcon className="w-3.5 h-3.5" />
                 </button>
               )}
-              {!shouldMaskEncrypted && (
+
+              {!shouldMaskEncrypted && contentMode === 'edit' && (
                 <button
                   type="button"
                   onClick={toggleRecording}
-                  className={`h-7 px-2 rounded-lg flex items-center justify-center gap-1.5 font-mono text-xs font-bold transition-all border voice-recorder-btn ${
-                    isRecording 
-                      ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' 
-                      : 'bg-white/5 border-white/5 text-white/60 hover:text-white hover:bg-white/10'
+                  className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-[11px] font-extrabold border transition-colors voice-recorder-btn ${
+                    isRecording
+                      ? 'bg-red-500/10 border-red-500/25 text-red-400 animate-pulse'
+                      : 'bg-[#0B0A09] border-white/8 text-[#9B9691] hover:text-white'
                   }`}
-                  title={isRecording ? `Stop & Insert` : "Record Voice"}
+                  title={isRecording ? 'Stop and insert' : 'Record voice'}
                 >
-                  {isRecording ? <Square className="w-3 h-3 fill-red-500 text-red-500" /> : <Mic className="w-3 h-3" />}
-                  <span>{isRecording ? `${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}` : "Record Voice"}</span>
+                  {isRecording ? (
+                    <Square className="w-3 h-3 fill-red-500 text-red-500" />
+                  ) : (
+                    <Mic className="w-3 h-3" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {isRecording
+                      ? `${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}`
+                      : 'Voice'}
+                  </span>
                 </button>
               )}
             </div>
           </div>
 
-          <div className="flex-1 min-h-[240px] overflow-y-auto pr-1">
+          <div className="px-4 md:px-5 py-4 md:py-5 min-h-[280px]">
             {isEncryptedNote ? (
               <button
                 type="button"
                 onClick={() => !vaultUnlocked && promptSudo()}
-                className="min-h-[200px] w-full text-left cursor-pointer"
+                className="min-h-[200px] w-full text-left"
               >
-                <p className="text-xs italic font-bold text-white/40 leading-relaxed">
-                  {vaultUnlocked 
-                    ? 'Decrypting secure note, please wait...' 
-                    : 'Secure content hidden. Unlock your secure space to view and edit this note.'}
+                <p className="text-[#9B9691] text-sm font-semibold leading-relaxed">
+                  {vaultUnlocked
+                    ? 'Decrypting secure note, please wait…'
+                    : 'Secure content hidden. Unlock your vault to view and edit this note.'}
                 </p>
               </button>
             ) : liveNote.format === 'doodle' ? (
               <NoteContentRenderer content={content} format="doodle" />
+            ) : contentMode === 'preview' ? (
+              <div className="note-markdown-preview min-h-[240px]">
+                {content.trim() ? (
+                  <NoteContentRenderer content={content} format={liveNote.format || 'markdown'} />
+                ) : (
+                  <p className="text-[#9B9691] text-sm font-semibold italic leading-relaxed">
+                    Nothing to preview yet. Switch to Write and add markdown.
+                  </p>
+                )}
+              </div>
             ) : (
-              <>
-                <div
-                  onContextMenu={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    setIsContextDrawerOpen(true);
+              <div
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setIsContextDrawerOpen(true);
+                }}
+                className="w-full flex flex-col min-h-[240px]"
+              >
+                <textarea
+                  value={content}
+                  onChange={(e) => {
+                    setContent(e.target.value);
+                    markDirty();
                   }}
-                  className="w-full flex-1 flex flex-col"
-                >
-                  <textarea
-                    value={content}
-                    onChange={(e) => {
-                      setContent(e.target.value);
-                      markDirty();
-                    }}
-                    ref={contentTextareaRef}
-                    className="w-full h-full min-h-[320px] bg-transparent text-white/90 text-lg leading-[1.75] border-none focus:outline-none resize-none scrollbar-thin focus:ring-0 focus:ring-offset-0 font-sans placeholder:text-white/25"
-                    placeholder="Write in Markdown — headings, lists, links, and voice tags are supported."
-                    spellCheck
-                  />
-                </div>
-                <div className="flex justify-between items-center mt-1.5 px-1 text-[10px] text-white/35 font-mono select-none">
-                  <span>{liveNote.article ? 'Article' : 'Note'}</span>
-                  <span>{content.length.toLocaleString()} chars</span>
-                </div>
-              </>
+                  ref={contentTextareaRef}
+                  className="w-full min-h-[320px] bg-transparent text-white/92 text-[15px] leading-[1.75] border-none focus:outline-none resize-y scrollbar-thin placeholder:text-[#9B9691]/45 font-satoshi"
+                  placeholder="Write in markdown — headings, lists, links, and voice tags are supported."
+                  spellCheck
+                />
+              </div>
+            )}
+
+            {!shouldMaskEncrypted && (
+              <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/5 text-[10px] text-[#9B9691] font-semibold select-none">
+                <span>{liveNote.article ? 'Article' : 'Note'} · Markdown</span>
+                <span>{content.length.toLocaleString()} characters</span>
+              </div>
             )}
           </div>
         </div>
 
         {/* Tags */}
-        <div className="px-1.5 shrink-0">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-mono font-bold tracking-wider text-indigo-400 uppercase">Tags</span>
+        <div className="shrink-0">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#6366F1] font-clash">Tags</span>
             <button
+              type="button"
               onClick={() => setIsTagSelectorOpen(true)}
-              className="p-1 rounded-md hover:bg-white/5 text-indigo-400/50 hover:text-indigo-400 transition-all"
-              title="Edit Tags"
+              className="w-7 h-7 rounded-lg hover:bg-white/[0.04] text-[#6366F1]/60 hover:text-[#6366F1] transition-colors flex items-center justify-center"
+              title="Edit tags"
             >
               <Plus size={14} />
             </button>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {displayTags.length > 0 ? displayTags.map((tag: string) => (
-              <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-xs font-bold">
-                {tag}
-                <button 
-                  onClick={() => {
-                    const newTags = displayTags.filter(t => t !== tag);
-                    setTags(newTags.join(', '));
-                    markDirty();
-                  }}
-                  className="hover:text-white"
+          <div className="flex flex-wrap gap-2">
+            {displayTags.length > 0 ? (
+              displayTags.map((tag: string) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#6366F1]/10 border border-[#6366F1]/20 text-[#6366F1] text-xs font-extrabold"
                 >
-                  <CloseIcon size={10} />
-                </button>
-              </span>
-            )) : (
-              <span className="text-xs font-mono text-white/30 italic">No tags assigned</span>
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newTags = displayTags.filter((t) => t !== tag);
+                      setTags(newTags.join(', '));
+                      markDirty();
+                    }}
+                    className="hover:text-white"
+                  >
+                    <CloseIcon size={10} />
+                  </button>
+                </span>
+              ))
+            ) : (
+              <span className="text-[#9B9691] text-xs font-semibold leading-relaxed">No tags yet</span>
             )}
           </div>
         </div>
 
         {/* Attachments */}
-        <div className="px-1.5 shrink-0">
-          <span className="text-xs font-mono font-bold tracking-wider text-indigo-400 uppercase block mb-2">Attachments</span>
+        <div className="shrink-0">
+          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#6366F1] font-clash block mb-2.5">
+            Attachments
+          </span>
           {currentAttachments.length > 0 ? (
             <div className="flex flex-col gap-2">
               {currentAttachments.map((file: any) => (
-                <div key={file.id} className="p-3 rounded-xl bg-[#0A0908] border border-white/[0.04] flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <PaperClipIcon className="w-4 h-4 text-white/40" />
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-white/80">{file.name}</span>
-                      <span className="text-xs font-mono text-white/45">{formatFileSize(file.size)}</span>
-                    </div>
+                <div
+                  key={file.id}
+                  className="p-3.5 rounded-[16px] bg-[#161412] border border-white/5 flex items-center gap-3 min-w-0"
+                >
+                  <PaperClipIcon className="w-4 h-4 text-white/40 flex-shrink-0" />
+                  <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                    <span className="text-sm font-extrabold text-white leading-tight truncate">{file.name}</span>
+                    <span className="text-[11px] font-semibold text-[#9B9691] leading-snug">
+                      {formatFileSize(file.size)}
+                    </span>
                   </div>
-                  <button type="button" onClick={() => window.open(`/api/notes/${liveNote.$id}/attachments/${file.id}`, '_blank')} className="p-1.5 text-indigo-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => window.open(`/api/notes/${liveNote.$id}/attachments/${file.id}`, '_blank')}
+                    className="w-8 h-8 rounded-lg text-[#6366F1] hover:text-white hover:bg-white/[0.04] flex items-center justify-center flex-shrink-0"
+                  >
                     <OpenIcon className="w-4 h-4" />
                   </button>
                 </div>
               ))}
             </div>
           ) : (
-            <span className="text-xs font-mono text-white/30 italic">No attachments</span>
+            <span className="text-[#9B9691] text-xs font-semibold leading-relaxed">No attachments</span>
           )}
         </div>
 
         {/* Voice Notes */}
-        <div className="px-1.5 shrink-0">
-          <span className="text-xs font-mono font-bold tracking-wider text-pink-400 uppercase block mb-2">Voice Notes</span>
-          {attachedObjects.filter(obj => obj.childKind === 'voice').length > 0 ? (
+        <div className="shrink-0">
+          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-pink-400 font-clash block mb-2.5">
+            Voice notes
+          </span>
+          {attachedObjects.filter((obj) => obj.childKind === 'voice').length > 0 ? (
             <div className="flex flex-col gap-2">
-              {attachedObjects.filter(obj => obj.childKind === 'voice').map((obj) => (
-                <div key={obj.$id} className="p-3 rounded-xl bg-[#0A0908] border border-white/[0.04] flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-white/45">Line {obj.metadata ? JSON.parse(obj.metadata).insertLine || 1 : 1}</span>
-                    <button 
-                      type="button" 
-                      onClick={async () => {
-                        try {
-                          const { detachObject } = await import('@/lib/actions/client-ops');
-                          await detachObject(obj.$id);
-                          setAttachedObjects(prev => prev.filter(o => o.$id !== obj.$id));
-                          showSuccess('Voice note removed');
-                        } catch (err: any) {
-                          showError('Failed to remove', err.message);
-                        }
-                      }}
-                      className="text-xs text-red-500 hover:text-red-400 hover:underline"
-                    >
-                      Delete
-                    </button>
+              {attachedObjects
+                .filter((obj) => obj.childKind === 'voice')
+                .map((obj) => (
+                  <div
+                    key={obj.$id}
+                    className="p-3.5 rounded-[16px] bg-[#161412] border border-white/5 flex flex-col gap-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold text-[#9B9691]">
+                        Line {obj.metadata ? JSON.parse(obj.metadata).insertLine || 1 : 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const { detachObject } = await import('@/lib/actions/client-ops');
+                            await detachObject(obj.$id);
+                            setAttachedObjects((prev) => prev.filter((o) => o.$id !== obj.$id));
+                            showSuccess('Voice note removed');
+                          } catch (err: unknown) {
+                            showError('Failed to remove', err instanceof Error ? err.message : 'Error');
+                          }
+                        }}
+                        className="text-[11px] font-bold text-red-400 hover:text-red-300"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <VoiceNotePlayer fileId={obj.childId} />
                   </div>
-                  <VoiceNotePlayer fileId={obj.childId} />
-                </div>
-              ))}
+                ))}
             </div>
           ) : (
-            <span className="text-xs font-mono text-white/30 italic">No voice notes</span>
+            <span className="text-[#9B9691] text-xs font-semibold leading-relaxed">No voice notes</span>
           )}
         </div>
 
         {/* Linked sections */}
-        <div className="flex flex-col gap-4 px-1.5">
+        <div className="flex flex-col gap-5">
           {[
-            { label: 'Goals', items: linkedTasks, loading: isLoadingTasks, icon: <TaskIcon className="w-4 h-4" />, color: 'text-emerald-400', borderHover: 'hover:bg-emerald-500/5', iconColor: '#10B981', link: (id: string) => `/flow?taskId=${id}` },
-            { label: 'Events', items: linkedEvents, loading: isLoadingEvents, icon: <EventIcon className="w-4 h-4" />, color: 'text-indigo-400', borderHover: 'hover:bg-indigo-500/5', iconColor: '#6366F1', link: (id: string) => `/flow/events?eventId=${id}` },
-            { label: 'Secrets', items: linkedSecrets, loading: isLoadingSecrets, icon: <KeyIcon className="w-4 h-4" />, color: 'text-amber-400', borderHover: 'hover:bg-amber-500/5', iconColor: '#F59E0B', link: (id: string) => `/vault?id=${id}` }
-          ].map(section => (
+            {
+              label: 'Goals',
+              items: linkedTasks,
+              loading: isLoadingTasks,
+              icon: <TaskIcon className="w-4 h-4" />,
+              color: 'text-emerald-400',
+              borderHover: 'hover:bg-emerald-500/5',
+              iconColor: '#10B981',
+              link: (id: string) => `/flow?taskId=${id}`,
+            },
+            {
+              label: 'Events',
+              items: linkedEvents,
+              loading: isLoadingEvents,
+              icon: <EventIcon className="w-4 h-4" />,
+              color: 'text-indigo-400',
+              borderHover: 'hover:bg-indigo-500/5',
+              iconColor: '#6366F1',
+              link: (id: string) => `/flow/events?eventId=${id}`,
+            },
+            {
+              label: 'Secrets',
+              items: linkedSecrets,
+              loading: isLoadingSecrets,
+              icon: <KeyIcon className="w-4 h-4" />,
+              color: 'text-amber-400',
+              borderHover: 'hover:bg-amber-500/5',
+              iconColor: '#F59E0B',
+              link: (id: string) => `/vault?id=${id}`,
+            },
+          ].map((section) => (
             <div key={section.label} className="shrink-0">
-              <span className={`text-xs font-mono font-bold tracking-wider uppercase block mb-2 ${section.color}`}>
+              <span className={`text-[10px] font-black uppercase tracking-[0.14em] font-clash block mb-2.5 ${section.color}`}>
                 Linked {section.label}
               </span>
               {section.loading ? (
-                <div className="px-2 py-1 text-xs text-white/40 font-mono flex items-center gap-2">
-                  <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
-                  <span>Loading...</span>
+                <div className="text-xs text-[#9B9691] font-semibold flex items-center gap-2">
+                  <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                  <span>Loading…</span>
                 </div>
               ) : section.items.length > 0 ? (
                 <div className="flex flex-col gap-2">
                   {section.items.map((item: any) => (
-                    <div key={item.$id} className={`p-3 rounded-xl bg-[#0A0908] border border-white/[0.04] flex justify-between items-center transition-colors ${section.borderHover}`}>
-                      <div className="flex items-center gap-3">
-                        <span style={{ color: section.iconColor }}>{section.icon}</span>
-                        <span className="text-xs font-bold text-white/80">{item.title || item.name}</span>
-                      </div>
-                      <button type="button" onClick={() => window.open(section.link(item.$id), '_blank')} className="p-1.5 hover:bg-white/5 rounded-lg transition-colors" style={{ color: section.iconColor }}>
+                    <div
+                      key={item.$id}
+                      className={`p-3.5 rounded-[16px] bg-[#161412] border border-white/5 flex items-center gap-3 min-w-0 transition-colors ${section.borderHover}`}
+                    >
+                      <span style={{ color: section.iconColor }} className="flex-shrink-0">
+                        {section.icon}
+                      </span>
+                      <span className="min-w-0 flex-1 text-sm font-extrabold text-white leading-tight truncate">
+                        {item.title || item.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => window.open(section.link(item.$id), '_blank')}
+                        className="w-8 h-8 rounded-lg hover:bg-white/[0.04] flex items-center justify-center flex-shrink-0"
+                        style={{ color: section.iconColor }}
+                      >
                         <OpenIcon className="w-4 h-4" />
                       </button>
                     </div>
                   ))}
                 </div>
               ) : (
-                <span className="text-xs font-mono text-white/30 italic">No linked {section.label.toLowerCase()}</span>
+                <span className="text-[#9B9691] text-xs font-semibold leading-relaxed">
+                  No linked {section.label.toLowerCase()}
+                </span>
               )}
             </div>
           ))}
 
           {/* Collaborators */}
           <div className="shrink-0">
-            <span className="text-xs font-mono font-bold tracking-wider text-pink-400 uppercase block mb-2">Collaborators</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-pink-400 font-clash block mb-2.5">
+              Collaborators
+            </span>
             {isLoadingCollaborators ? (
-              <div className="px-2 py-1 text-xs text-white/40 font-mono flex items-center gap-2">
-                <div className="w-3.5 h-3.5 border border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-                <span>Loading...</span>
+              <div className="text-xs text-[#9B9691] font-semibold flex items-center gap-2">
+                <div className="w-3.5 h-3.5 border border-pink-500 border-t-transparent rounded-full animate-spin" />
+                <span>Loading…</span>
               </div>
             ) : collaboratorProfiles.length > 0 ? (
               <div className="flex flex-col gap-2">
                 {collaboratorProfiles.map((p: any) => (
-                  <div key={p.$id || p.userId} className="p-2.5 rounded-xl bg-[#0A0908] border border-white/[0.04] flex items-center gap-3 cursor-pointer hover:bg-white/[0.02] transition-colors" onClick={() => openUnified('share-note', { noteId: liveNote.$id, noteTitle: liveNote.title, initialCollaborator: p })}>
-                    <IdentityAvatar fileId={p.avatar} alt={p.username} fallback={p.username?.[0]?.toUpperCase()} size={34} verified={p.tier === 'admin' || p.verified} />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs font-bold text-white/80 block truncate">{p.displayName || p.username}</span>
-                      <span className="text-xs font-mono text-white/45 block truncate">@{p.username}</span>
+                  <button
+                    key={p.$id || p.userId}
+                    type="button"
+                    onClick={() =>
+                      openUnified('share-note', {
+                        noteId: liveNote.$id,
+                        noteTitle: liveNote.title,
+                        initialCollaborator: p,
+                      })
+                    }
+                    className="w-full p-3 rounded-[16px] bg-[#161412] border border-white/5 flex items-center gap-3 hover:bg-white/[0.02] transition-colors text-left min-w-0"
+                  >
+                    <IdentityAvatar
+                      fileId={p.avatar}
+                      alt={p.username}
+                      fallback={p.username?.[0]?.toUpperCase()}
+                      size={34}
+                      verified={p.tier === 'admin' || p.verified}
+                    />
+                    <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                      <span className="text-sm font-extrabold text-white leading-tight truncate">
+                        {p.displayName || p.username}
+                      </span>
+                      <span className="text-[11px] font-semibold text-[#9B9691] leading-snug truncate">
+                        @{p.username}
+                      </span>
                     </div>
-                    <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-pink-500/10 text-pink-400">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-pink-500/10 text-pink-400 flex-shrink-0">
                       {p.permissionLevel || 'Viewer'}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
-              <span className="text-xs font-mono text-white/30 italic">No collaborators found</span>
+              <span className="text-[#9B9691] text-xs font-semibold leading-relaxed">No collaborators</span>
             )}
           </div>
         </div>
 
         {/* Timestamps */}
-        <div className="mt-4 pt-3 border-t border-white/5 text-xs font-mono text-white/30 flex flex-col gap-0.5 shrink-0">
+        <div className="pt-3 border-t border-white/5 text-[11px] font-semibold text-[#9B9691] flex flex-col gap-1 shrink-0">
           <span>Created {formatNoteCreatedDate(liveNote)}</span>
           <span>Updated {formatNoteUpdatedDate(liveNote)}</span>
         </div>

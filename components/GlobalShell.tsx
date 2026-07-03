@@ -133,6 +133,14 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     isOverlayOpen
   ]);
 
+  const mainClassName = useMemo(() => {
+    const parts = ['kylrix-main-content'];
+    if (showLeftSidebar) parts.push('with-sidebar');
+    if (isProjectDetailPage) parts.push('project-detail');
+    if (isNoteFullPageDetail) parts.push('note-detail');
+    return parts.join(' ');
+  }, [showLeftSidebar, isProjectDetailPage, isNoteFullPageDetail]);
+
   // 3. Automated Logic
   useEffect(() => {
     if (!isLoading && !user && isAppRoute && !isSharedPage) {
@@ -191,14 +199,14 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
       {/* --- LAYER 0: CONTENT --- */}
       <Box
         component="main"
-        className={`kylrix-main-content ${showLeftSidebar ? 'with-sidebar' : ''} ${isProjectDetailPage ? 'project-detail' : ''}`}
+        className={mainClassName}
         sx={{
           minWidth: 0,
           position: 'relative',
           zIndex: 1,
-          pt: isSpecificPostPage ? 0 : '88px', // Clear top padding if topbar is hidden
+          pt: isSpecificPostPage ? 0 : isNoteFullPageDetail ? '72px' : '88px',
           pb: isSpecificPostPage ? 0 : (isLandingPage ? 0 : { xs: 12, md: 4 }),
-          px: isProjectDetailPage ? { xs: 1, sm: 1, md: 2 } : { xs: 2, sm: 2, md: 4 },
+          px: isProjectDetailPage ? { xs: 1, sm: 1, md: 2 } : isNoteFullPageDetail ? { xs: 0, sm: 0, md: 0 } : { xs: 2, sm: 2, md: 4 },
           // Authoritative padding is now handled by CSS classes for 100% rigidity
           maxWidth: 1800,
           mx: 'auto',

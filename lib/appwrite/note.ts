@@ -380,7 +380,7 @@ export function pickNoteAutosavePayload(data: {
   return {
     title: trimmedTitle || buildAutoTitleFromContent(content) || 'Untitled Thought',
     content,
-    format: 'text',
+    format: data.format || 'markdown',
     tags: Array.isArray(data.tags) ? data.tags.filter(Boolean) : [],
   };
 }

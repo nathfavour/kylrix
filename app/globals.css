@@ -101,6 +101,83 @@ html {
   display: none !important;
 }
 
+/* Note markdown preview — readable rhythm on detail pages */
+.note-markdown-preview {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+.note-markdown-preview p {
+  margin-bottom: 1rem;
+}
+
+.note-markdown-preview h1,
+.note-markdown-preview h2,
+.note-markdown-preview h3 {
+  color: #fff;
+  font-family: var(--font-clash), sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.note-markdown-preview h1 { font-size: 1.75rem; }
+.note-markdown-preview h2 { font-size: 1.4rem; }
+.note-markdown-preview h3 { font-size: 1.15rem; }
+
+.note-markdown-preview ul,
+.note-markdown-preview ol {
+  margin-bottom: 1rem;
+  padding-left: 1.25rem;
+}
+
+.note-markdown-preview li {
+  margin-bottom: 0.35rem;
+}
+
+.note-markdown-preview blockquote {
+  border-left: 3px solid #6366f1;
+  padding-left: 1rem;
+  margin: 1.25rem 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-style: italic;
+}
+
+.note-markdown-preview code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+  font-size: 0.88em;
+  color: #a5b4fc;
+}
+
+.note-markdown-preview pre {
+  background: #0b0a09;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.9rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1.25rem 0;
+}
+
+.note-markdown-preview pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.note-markdown-preview a {
+  color: #6366f1;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.note-markdown-preview a:hover {
+  text-decoration: underline;
+}
+
 @keyframes shine {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
