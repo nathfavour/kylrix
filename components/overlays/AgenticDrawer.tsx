@@ -1,28 +1,62 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import {
+  AlarmClock,
+  ArrowLeft,
+  BarChart3,
+  Bell,
   Bot,
+  CalendarRange,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Compass,
+  CreditCard,
+  FolderKanban,
+  Kanban,
+  KeyRound,
+  Lightbulb,
+  Link2,
+  ListTodo,
+  Lock,
+  MessageSquare,
+  PenLine,
   Play,
   Plug,
   Plus,
-  X,
-  ChevronRight,
-  ArrowLeft,
-  Check,
   Power,
-  AlertCircle,
   RefreshCw,
-  ChevronDown,
-  ChevronUp,
   Send,
+  Settings,
+  Share2,
+  Shield,
+  ShieldCheck,
   Sparkles,
+  Sunrise,
+  Tags,
+  Target,
+  User,
+  Users,
+  Video,
+  Workflow,
+  X,
+  AlertCircle,
 } from 'lucide-react';
 
 import { useAgenticDrawer } from '@/context/AgenticDrawerContext';
 import { useAuth } from '@/context/auth/AuthContext';
 import { AgenticService } from '@/lib/services/agentic';
 import { runMyAgent, executeInstantRequestAction } from '@/lib/actions/agentic';
+import {
+  buildInstantPrompt,
+  getQuickWorkflows,
+  resolveAgenticPageContext,
+  type QuickWorkflowAction,
+} from '@/lib/agentic/context-workflows';
+import { getAppColor } from '@/lib/ecosystem-app-colors';
 import { useProUpgrade } from '@/context/ProUpgradeContext';
 import { hasPaidKylrixPlan } from '@/lib/utils';
 import { account } from '@/lib/appwrite/client';
@@ -44,8 +78,64 @@ interface AgentRow {
 const frameworks: Array<{ id: AgentFramework; title: string; comingSoon?: boolean }> = [
   { id: 'kylrix', title: 'Kylrix Internal' },
   { id: 'openclaw', title: 'OpenClaw', comingSoon: true },
-  { id: 'hermes', title: 'Hermes', comingSoon: true }
+  { id: 'hermes', title: 'Hermes', comingSoon: true },
 ];
+
+const QUICK_ICON_MAP: Record<string, ComponentType<{ size?: number; className?: string }>> = {
+  'pen-line': PenLine,
+  sparkles: Sparkles,
+  'list-todo': ListTodo,
+  'share-2': Share2,
+  'calendar-range': CalendarRange,
+  'alarm-clock': AlarmClock,
+  target: Target,
+  kanban: Kanban,
+  'shield-check': ShieldCheck,
+  'key-round': KeyRound,
+  tags: Tags,
+  lock: Lock,
+  'message-square': MessageSquare,
+  users: Users,
+  video: Video,
+  'bar-chart-3': BarChart3,
+  send: Send,
+  'link-2': Link2,
+  'folder-kanban': FolderKanban,
+  bell: Bell,
+  shield: Shield,
+  bot: Bot,
+  compass: Compass,
+  'refresh-cw': RefreshCw,
+  settings: Settings,
+  'credit-card': CreditCard,
+  user: User,
+  sunrise: Sunrise,
+  lightbulb: Lightbulb,
+  workflow: Workflow,
+};
+
+function zoneBadgeLabel(zone: string): string {
+  switch (zone) {
+    case 'note':
+      return 'IDEAS';
+    case 'flow':
+      return 'FLOW';
+    case 'vault':
+      return 'VAULT';
+    case 'connect':
+      return 'CONNECT';
+    case 'projects':
+      return 'PROJECTS';
+    case 'settings':
+      return 'SETTINGS';
+    case 'agents':
+      return 'SMART SYSTEM';
+    case 'accounts':
+      return 'ACCOUNTS';
+    default:
+      return 'WORKSPACE';
+  }
+}
 
 function formatUpdatedAgo(value?: string): string {
   if (!value) return 'Just now';
@@ -121,13 +211,22 @@ function DrawerShell({
 }
 
 export function AgenticDrawer() {
-  const { isOpen, closeAgenticDrawer } = useAgenticDrawer();
+  const { isOpen, closeAgenticDrawer, consumePendingPrompt } = useAgenticDrawer();
   const { user } = useAuth();
   const { openProUpgrade } = useProUpgrade();
+  const pathname = usePathname() || '/';
+  const router = useRouter();
   const isPro = hasPaidKylrixPlan(user);
+  const promptInputRef = useRef<HTMLInputElement>(null);
+
+  const pageContext = useMemo(() => resolveAgenticPageContext(pathname), [pathname]);
+  const accent = useMemo(() => getAppColor(pageContext.accentApp), [pageContext.accentApp]);
+  const quickWorkflows = useMemo(() => getQuickWorkflows(pageContext), [pageContext]);
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [showAgents, setShowAgents] = useState(false);
+  const [runningWorkflowId, setRunningWorkflowId] = useState<string | null>(null);
 
   // Nested Overlay State Controllers
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -171,8 +270,84 @@ export function AgenticDrawer() {
       setInstantPrompt('');
       setInstantResponse(null);
       setInstantError(null);
+      setShowAgents(false);
+      setRunningWorkflowId(null);
     }
   }, [isOpen]);
+
+  const runInstant = useCallback(
+    async (rawPrompt: string) => {
+      const trimmed = rawPrompt.trim();
+      if (!trimmed) return;
+
+      if (!isPro) {
+        openProUpgrade('Smart System request');
+        return;
+      }
+
+      setExecutingInstant(true);
+      setInstantError(null);
+      setInstantResponse(null);
+      try {
+        const jwt = await account.createJWT().then((res: { jwt?: string }) => res?.jwt || '').catch(() => undefined);
+        const contextualPrompt = buildInstantPrompt(trimmed, pageContext);
+        const res = await executeInstantRequestAction(contextualPrompt, jwt, {
+          zone: pageContext.zone,
+          route: pageContext.route,
+          title: pageContext.title,
+          systemHint: pageContext.systemHint,
+          resourceId: pageContext.resourceId,
+        });
+        if (res.success) {
+          setInstantResponse(res.response);
+        }
+      } catch (err: unknown) {
+        setInstantError(err instanceof Error ? err.message : 'Execution failed.');
+      } finally {
+        setExecutingInstant(false);
+        setRunningWorkflowId(null);
+      }
+    },
+    [isPro, openProUpgrade, pageContext],
+  );
+
+  const handleQuickAction = useCallback(
+    async (action: QuickWorkflowAction) => {
+      if (action.kind === 'navigate' && action.href) {
+        closeAgenticDrawer();
+        router.push(action.href);
+        return;
+      }
+
+      const prompt = action.prompt || '';
+      if (action.kind === 'prompt') {
+        setInstantPrompt(prompt);
+        promptInputRef.current?.focus();
+        return;
+      }
+
+      if (!prompt) return;
+      setInstantPrompt(prompt);
+      if (action.autoRun) {
+        setRunningWorkflowId(action.id);
+        await runInstant(prompt);
+      }
+    },
+    [closeAgenticDrawer, router, runInstant],
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const pending = consumePendingPrompt();
+    if (pending?.prompt) {
+      setInstantPrompt(pending.prompt);
+      if (pending.autoRun) {
+        void runInstant(pending.prompt);
+      } else {
+        promptInputRef.current?.focus();
+      }
+    }
+  }, [isOpen, consumePendingPrompt, runInstant]);
 
   const fetchAgents = useCallback(async () => {
     if (!user?.$id) {
@@ -305,22 +480,39 @@ export function AgenticDrawer() {
         zIndexClass="z-[1300]"
       >
         <div className="px-5 md:px-7 pb-6 pt-3 md:pt-6 flex-1 flex flex-col min-h-0 font-satoshi">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6 flex-shrink-0">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#0A0908] border border-[#34322F]">
-                <Bot size={20} className="text-[#6366F1]" strokeWidth={2} />
+          {/* Context header */}
+          <div className="flex items-start justify-between mb-5 flex-shrink-0">
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div
+                className="w-11 h-11 rounded-[14px] flex items-center justify-center bg-[#0B0A09] border flex-shrink-0"
+                style={{ borderColor: `${accent}33`, boxShadow: `0 0 18px ${accent}22` }}
+              >
+                <Sparkles size={18} style={{ color: accent }} strokeWidth={2.2} />
               </div>
-              <div className="flex flex-col">
-                <h2 className="text-white font-extrabold text-base font-clash tracking-tight leading-none">
-                  Agentic Engine
+              <div className="min-w-0 flex flex-col gap-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className="text-[9px] font-black tracking-[0.18em] px-2 py-0.5 rounded-md border"
+                    style={{ color: accent, borderColor: `${accent}33`, backgroundColor: `${accent}12` }}
+                  >
+                    {zoneBadgeLabel(pageContext.zone)}
+                  </span>
+                  {runSummary.working > 0 && (
+                    <span className="flex items-center gap-1.5 text-[10px] font-bold text-[#F59E0B]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
+                      {runSummary.working} running
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-white font-extrabold text-[17px] font-clash tracking-tight leading-tight truncate">
+                  {pageContext.title}
                 </h2>
-                <span className="text-[#9B9691] text-xs font-semibold mt-1">
-                  Autonomous workspace coordination
-                </span>
+                <p className="text-[#9B9691] text-xs font-semibold leading-snug">
+                  {pageContext.subtitle}
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               {!isDesktop && (
                 <button
                   type="button"
@@ -342,186 +534,234 @@ export function AgenticDrawer() {
             </div>
           </div>
 
-          {/* Stats Bar */}
-          <div className="mb-4 p-4 rounded-2xl bg-[#0B0A09] border border-white/5 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${runSummary.working > 0 ? 'bg-[#F59E0B]' : 'bg-[#10B981]'}`} />
-                <span className="text-white text-xs font-black">
-                  {runSummary.total} Autonomous Agents
-                </span>
-              </div>
-              <span className="text-[#9B9691] text-[11px] font-bold">
-                {runSummary.working} Active · {runSummary.idle} Idle
-              </span>
-            </div>
-          </div>
-
-          {/* Instant System Command Box (OpenBricks 3.0 Refinement) */}
-          <div className="mb-5 flex flex-shrink-0 flex-col gap-3.5 p-5 rounded-2xl bg-[#0B0A09] border border-white/5 relative overflow-hidden group transition-all duration-300 hover:border-[#6366F1]/30">
-            {/* Top Spotlight Ambient Gradient */}
-            <div className="absolute top-0 right-0 w-24 h-24 bg-radial-gradient from-[#6366F1]/5 to-transparent rounded-full blur-2xl pointer-events-none group-hover:from-[#6366F1]/10 transition-all duration-300" />
-            
-            <div className="flex items-center gap-2 relative z-10">
-              <Sparkles size={13} className="text-[#6366F1] animate-pulse" />
-              <span className="text-white text-xs font-black uppercase tracking-wider font-clash">
-                Instant Prompt
-              </span>
-              {!isPro && (
-                <span className="ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-500">
-                  PRO
-                </span>
-              )}
-            </div>
-
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!instantPrompt.trim()) return;
-                
-                if (!isPro) {
-                  openProUpgrade('Instant System Request');
-                  return;
-                }
-
-                setExecutingInstant(true);
-                setInstantError(null);
-                setInstantResponse(null);
-                try {
-                  const jwt = await account.createJWT().then((res: any) => res?.jwt || '').catch(() => undefined);
-                  const res = await executeInstantRequestAction(instantPrompt.trim(), jwt);
-                  if (res.success) {
-                    setInstantResponse(res.response);
-                  }
-                } catch (err: any) {
-                  setInstantError(err.message || 'Execution failed.');
-                } finally {
-                  setExecutingInstant(false);
-                }
-              }}
-              className="relative flex items-center gap-2 z-10"
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 flex flex-col gap-4">
+            {/* Command bar */}
+            <div
+              className="flex flex-col gap-3 p-4 rounded-[20px] bg-[#0B0A09] border border-white/5 relative overflow-hidden"
+              style={{ boxShadow: `0 -8px 28px rgba(0,0,0,0.35), 0 12px 32px rgba(0,0,0,0.45)` }}
             >
-              <input
-                type="text"
-                value={instantPrompt}
-                onChange={(e) => setInstantPrompt(e.target.value)}
-                placeholder="Ask the agent to write, analyze, or process..."
-                disabled={executingInstant}
-                className="w-full pl-3.5 pr-12 py-3 rounded-xl bg-[#161412] border border-white/5 text-xs text-white font-semibold placeholder:text-[#9B9691]/40 focus:outline-none focus:border-[#6366F1]/50 focus:shadow-[0_0_12px_rgba(99,102,241,0.15)] transition-all duration-300 disabled:opacity-50"
+              <div
+                className="absolute -top-8 -right-6 w-32 h-32 rounded-full blur-3xl pointer-events-none opacity-70"
+                style={{ background: `radial-gradient(circle, ${accent}18 0%, transparent 70%)` }}
               />
-              <button
-                type="submit"
-                disabled={executingInstant || !instantPrompt.trim()}
-                className="absolute right-1.5 p-2 rounded-lg text-white hover:text-white/80 bg-[#6366F1] hover:bg-[#575CF0] disabled:bg-white/5 disabled:text-[#9B9691]/40 transition-all duration-300 cursor-pointer"
-              >
-                {executingInstant ? (
-                  <RefreshCw size={12} className="animate-spin" />
-                ) : (
-                  <Send size={12} />
+              <div className="flex items-center gap-2 relative z-10">
+                <span className="text-white text-[11px] font-black uppercase tracking-wider font-clash">
+                  Do it now
+                </span>
+                {!isPro && (
+                  <span className="ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-500">
+                    PRO
+                  </span>
                 )}
-              </button>
-            </form>
-
-            {/* Instant Error */}
-            {instantError && (
-              <div className="mt-1 flex items-center gap-2 text-[10px] text-red-400 relative z-10">
-                <AlertCircle size={12} className="flex-shrink-0" />
-                <span className="font-semibold">{instantError}</span>
               </div>
-            )}
 
-            {/* Instant Response Panel */}
-            {instantResponse && (
-              <div className="mt-1 p-3.5 rounded-xl bg-[#161412] border border-white/5 max-h-[160px] overflow-y-auto relative z-10">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[10px] text-[#9B9691] font-bold uppercase tracking-wider">System Output</span>
-                  <button
-                    type="button"
-                    onClick={() => setInstantResponse(null)}
-                    className="text-[10px] text-[#6366F1] hover:text-[#575CF0] font-bold transition-colors cursor-pointer"
-                  >
-                    Clear
-                  </button>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  await runInstant(instantPrompt);
+                }}
+                className="relative z-10"
+              >
+                <input
+                  ref={promptInputRef}
+                  type="text"
+                  value={instantPrompt}
+                  onChange={(e) => setInstantPrompt(e.target.value)}
+                  placeholder={pageContext.placeholder}
+                  disabled={executingInstant}
+                  className="w-full pl-3.5 pr-12 py-3.5 rounded-xl bg-[#161412] border border-white/5 text-xs text-white font-semibold placeholder:text-[#9B9691]/45 focus:outline-none transition-all duration-300 disabled:opacity-50"
+                  style={{
+                    boxShadow: executingInstant ? `0 0 0 1px ${accent}55` : undefined,
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = `${accent}66`;
+                    e.currentTarget.style.boxShadow = `0 0 14px ${accent}22`;
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={executingInstant || !instantPrompt.trim()}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-white disabled:bg-white/5 disabled:text-[#9B9691]/40 transition-all duration-300 cursor-pointer"
+                  style={{ backgroundColor: executingInstant || !instantPrompt.trim() ? undefined : accent }}
+                >
+                  {executingInstant ? (
+                    <RefreshCw size={12} className="animate-spin" />
+                  ) : (
+                    <Send size={12} />
+                  )}
+                </button>
+              </form>
+
+              {instantError && (
+                <div className="flex items-center gap-2 text-[10px] text-red-400 relative z-10">
+                  <AlertCircle size={12} className="flex-shrink-0" />
+                  <span className="font-semibold">{instantError}</span>
                 </div>
-                <p className="text-white/95 text-xs font-mono whitespace-pre-wrap leading-relaxed">
-                  {instantResponse}
-                </p>
-              </div>
-            )}
-          </div>
+              )}
 
-          {/* Main List */}
-          <div className="flex-1 min-h-0 flex flex-col gap-4">
-            {error && <span className="text-[#FCA5A5] text-xs px-1">{error}</span>}
-
-            <div className="overflow-y-auto pr-1 flex-1 flex flex-col gap-2.5">
-              {loading ? (
-                <div className="py-12 flex items-center justify-center">
-                  <RefreshCw className="w-6 h-6 text-[#6366F1] animate-spin" />
-                </div>
-              ) : parsedAgents.length === 0 ? (
-                <div className="p-6 rounded-2xl bg-[#0B0A09] border border-white/5 text-center">
-                  <h3 className="text-white font-extrabold text-sm mb-1">
-                    No Agents Configured
-                  </h3>
-                  <p className="text-[#9B9691] text-xs leading-relaxed">
-                    Initialize an autonomous agent to orchestrate your workspace.
+              {instantResponse && (
+                <div className="p-3.5 rounded-xl bg-[#161412] border border-white/5 max-h-[180px] overflow-y-auto relative z-10">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] text-[#9B9691] font-bold uppercase tracking-wider">Result</span>
+                    <button
+                      type="button"
+                      onClick={() => setInstantResponse(null)}
+                      className="text-[10px] font-bold transition-colors cursor-pointer"
+                      style={{ color: accent }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <p className="text-white/95 text-xs whitespace-pre-wrap leading-relaxed">
+                    {instantResponse}
                   </p>
                 </div>
-              ) : (
-                parsedAgents.map((agent) => {
-                  const isWorking = agent.status === 'working';
-                  return (
-                    <div
-                      key={agent.$id}
-                      onClick={() => setSelectedAgentId(agent.$id)}
-                      className="p-4 rounded-2xl bg-[#0B0A09] border border-white/5 cursor-pointer transition hover:bg-[#1C1A18] hover:-translate-y-0.5 hover:shadow-[0_8px_10px_-8px_rgba(0,0,0,1)]"
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="min-w-0 flex-1 flex flex-col gap-1">
-                          <h4 className="text-white font-extrabold text-[13px] font-clash truncate">
-                            {agent.name}
-                          </h4>
-                          <div className="flex items-center gap-1.5 text-xs text-[#9B9691] font-semibold">
-                            <span>
-                              {agent.framework === 'kylrix' ? 'Internal Engine' : agent.framework}
-                            </span>
-                            <span className="w-1 h-1 rounded-full bg-[#5D5A56]" />
-                            <span className="text-[10px] font-normal text-white/35">
-                              {formatUpdatedAgo(agent.$updatedAt)}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          <span
-                            className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border ${
-                              isWorking
-                                ? 'bg-[#6366F1]/15 border-[#6366F1]/30 text-[#6366F1]'
-                                : 'bg-[#10B981]/15 border-[#10B981]/30 text-[#10B981]'
-                            }`}
-                          >
-                            {agent.status}
-                          </span>
-                          <ChevronRight size={16} className="text-[#9B9691]" />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
               )}
             </div>
 
-            {/* Bottom Initialize Action Button */}
-            <div className="mt-auto pt-4 flex-shrink-0">
+            {/* Quick workflows */}
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center justify-between px-0.5">
+                <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9B9691] font-clash">
+                  Quick workflows
+                </span>
+                <span className="text-[10px] font-semibold text-white/30">
+                  {quickWorkflows.length} for this page
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                {quickWorkflows.map((action) => {
+                  const Icon = QUICK_ICON_MAP[action.icon] || Sparkles;
+                  const isRunning = runningWorkflowId === action.id || (executingInstant && instantPrompt === action.prompt);
+                  return (
+                    <button
+                      key={action.id}
+                      type="button"
+                      disabled={isRunning}
+                      onClick={() => void handleQuickAction(action)}
+                      className="group text-left p-3.5 rounded-[16px] bg-[#0B0A09] border border-white/5 hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-60"
+                      style={{
+                        boxShadow: '0 8px 20px rgba(0,0,0,0.25)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = `${accent}44`;
+                        e.currentTarget.style.boxShadow = `0 10px 24px rgba(0,0,0,0.35), 0 0 16px ${accent}18`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)';
+                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.25)';
+                      }}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <div
+                          className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0 border"
+                          style={{ color: accent, borderColor: `${accent}33`, backgroundColor: `${accent}10` }}
+                        >
+                          {isRunning ? (
+                            <RefreshCw size={14} className="animate-spin" />
+                          ) : (
+                            <Icon size={14} />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-white text-[12px] font-extrabold font-clash leading-tight truncate">
+                            {action.label}
+                          </p>
+                          <p className="text-[#9B9691] text-[10px] font-semibold mt-0.5 leading-snug line-clamp-2">
+                            {action.description}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Agents (collapsible) */}
+            <div className="rounded-[20px] bg-[#0B0A09] border border-white/5 overflow-hidden">
               <button
                 type="button"
-                onClick={() => setIsCreateOpen(true)}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-extrabold text-sm bg-[#6366F1] text-white hover:bg-[#575CF0] transition shadow-none cursor-pointer"
+                onClick={() => setShowAgents((prev) => !prev)}
+                className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-[#161412] transition"
               >
-                <Plus size={18} />
-                <span>Initialize Agent</span>
+                <div className="flex items-center gap-2.5">
+                  <Bot size={15} style={{ color: accent }} />
+                  <span className="text-white text-xs font-extrabold font-clash">Your agents</span>
+                  <span className="text-[10px] font-bold text-[#9B9691]">
+                    {runSummary.total} · {runSummary.working} active
+                  </span>
+                </div>
+                <ChevronRight
+                  size={16}
+                  className={`text-[#9B9691] transition-transform ${showAgents ? 'rotate-90' : ''}`}
+                />
               </button>
+
+              {showAgents && (
+                <div className="px-4 pb-4 flex flex-col gap-2.5 border-t border-white/5 pt-3">
+                  {error && <span className="text-[#FCA5A5] text-xs">{error}</span>}
+
+                  {loading ? (
+                    <div className="py-8 flex items-center justify-center">
+                      <RefreshCw className="w-5 h-5 animate-spin" style={{ color: accent }} />
+                    </div>
+                  ) : parsedAgents.length === 0 ? (
+                    <div className="py-4 text-center">
+                      <p className="text-[#9B9691] text-xs font-semibold">
+                        No agents yet. Create one to automate recurring work.
+                      </p>
+                    </div>
+                  ) : (
+                    parsedAgents.map((agent) => {
+                      const isWorking = agent.status === 'working';
+                      return (
+                        <button
+                          key={agent.$id}
+                          type="button"
+                          onClick={() => setSelectedAgentId(agent.$id)}
+                          className="w-full text-left p-3 rounded-xl bg-[#161412] border border-white/5 hover:border-white/10 transition"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-white font-extrabold text-[12px] font-clash truncate">
+                                {agent.name}
+                              </p>
+                              <p className="text-[10px] text-[#9B9691] font-semibold mt-0.5">
+                                {formatUpdatedAgo(agent.$updatedAt)}
+                              </p>
+                            </div>
+                            <span
+                              className="px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase border flex-shrink-0"
+                              style={
+                                isWorking
+                                  ? { color: accent, borderColor: `${accent}44`, backgroundColor: `${accent}14` }
+                                  : { color: '#10B981', borderColor: 'rgba(16,185,129,0.3)', backgroundColor: 'rgba(16,185,129,0.12)' }
+                              }
+                            >
+                              {agent.status}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-extrabold text-xs text-white transition cursor-pointer"
+                    style={{ backgroundColor: accent }}
+                  >
+                    <Plus size={15} />
+                    <span>New agent</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

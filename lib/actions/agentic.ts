@@ -278,7 +278,17 @@ export async function runMyAgent(agentId: string, jwt?: string): Promise<{ summa
   }
 }
 
-export async function executeInstantRequestAction(prompt: string, jwt?: string): Promise<{ success: boolean; response: string }> {
+export async function executeInstantRequestAction(
+  prompt: string,
+  jwt?: string,
+  pageContext?: {
+    zone: string;
+    route: string;
+    title: string;
+    systemHint: string;
+    resourceId?: string;
+  },
+): Promise<{ success: boolean; response: string }> {
   const user = await requireUser(jwt);
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) {
@@ -287,10 +297,26 @@ export async function executeInstantRequestAction(prompt: string, jwt?: string):
 
   const balanceRow = await checkComputeBalance(user.$id);
 
+  const contextBlock = pageContext
+    ? [
+        `Active page: ${pageContext.title} (${pageContext.zone})`,
+        `Route: ${pageContext.route}`,
+        pageContext.resourceId ? `Focused resource: ${pageContext.resourceId}` : null,
+        `Page guidance: ${pageContext.systemHint}`,
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : null;
+
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
     model: process.env.GEMINI_MODEL_NAME || 'gemini-2.0-flash',
-    systemInstruction: 'You are the core Kylrix Smart System assistant. Help the user accomplish tasks, manage notes, or answer queries instantly with concise and actionable responses.',
+    systemInstruction: [
+      'You are the Kylrix Smart System assistant embedded in the user workspace.',
+      'Respond with concise, actionable output. Prefer bullet steps when planning.',
+      'Stay grounded in the current page context and Kylrix apps: Ideas, Flow, Vault, Connect, Projects.',
+      contextBlock || 'No page context supplied.',
+    ].join('\n'),
   });
 
   const response = await model.generateContent(prompt);
