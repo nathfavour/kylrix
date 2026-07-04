@@ -21,7 +21,25 @@ import {
     Loader2 as SpinnerIcon,
     Database,
     Info,
-    Edit3
+    Edit3,
+    UserCircle as ProfileIcon,
+    ShieldCheck as SecurityIcon,
+    MonitorSmartphone as SessionsIcon,
+    History as ActivityIcon,
+    Sliders as PreferencesIcon,
+    Settings2 as RootAccountIcon,
+    ShieldAlert as AdminIcon,
+    AlertTriangle,
+    Mail,
+    Ticket,
+    Cpu,
+    TrendingUp,
+    Users,
+    Zap,
+    MoreVertical,
+    CheckCircle2,
+    UserPlus,
+    Activity
 } from 'lucide-react';
 import { VaultPorterDrawer } from '@/components/import/VaultPorterDrawer';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
@@ -43,6 +61,23 @@ import { getProfilePicturePreview } from '@/lib/appwrite';
 import { getCachedProfilePreview } from '@/lib/profile-preview';
 import { getUserProfilePicId as getSdkUserProfilePicId } from '@/lib/user-utils';
 import { useSubscription } from '@/context/subscription/SubscriptionContext';
+
+// Consolidated settings subpage imports
+import ProfileManager from '@/components/ProfileManager';
+import SessionsManager from '@/components/SessionsManager';
+import ActivityLogs from '@/components/ActivityLogs';
+import ConnectedIdentities from '@/components/ConnectedIdentities';
+import PreferencesManager from '@/components/PreferencesManager';
+import MasterPassManager from '@/components/MasterPassManager';
+import PinManager from '@/components/PinManager';
+import { TwoFactorDrawer } from '@/components/overlays/TwoFactorDrawer';
+import { BillingDrawer } from '@/components/overlays/BillingDrawer';
+import { AppwriteService } from '@/lib/appwrite';
+import { account } from '@/lib/appwrite/client';
+import AdminDashboardPage from '@/app/(app)/(auth)/accounts/admin/page';
+import UsersManagement from '@/app/(app)/(auth)/accounts/admin/users/page';
+import EmailOrchestrator from '@/app/(app)/(auth)/accounts/admin/emails/page';
+import AdminCouponsPage from '@/app/(app)/(auth)/accounts/admin/coupons/page';
 
 // Inline Custom Telegram Icon SVG for lucide alignment
 function TelegramIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -73,12 +108,25 @@ function Switch({ checked, onChange }: { checked: boolean; onChange: () => void 
 }
 
 export default function SettingsPage() {
-    const { user, refreshUser } = useAuth();
+    const { user, refreshUser, getJWT } = useAuth();
     const { currentTier, expiresAt, refreshEntitlement } = useSubscription();
     const { usePasskeysByDefault, setUsePasskeysByDefault, masterpassForLoginEnabled, setMasterpassForLoginEnabled } = useAppwriteVault();
     const router = useRouter();
     const { requestSudo, promptSudo } = useSudo();
     const { open: openDrawer } = useUnifiedDrawer();
+
+    // Tab state
+    const [activeTab, setActiveTab] = useState<'general' | 'profile' | 'security' | 'sessions' | 'activity' | 'identities' | 'preferences' | 'account' | 'admin'>('general');
+    const [billingDrawerOpen, setBillingDrawerOpen] = useState(false);
+    const [twoFactorDrawerOpen, setTwoFactorDrawerOpen] = useState(false);
+    const [mfaFactors, setMfaFactors] = useState<any>(null);
+    const [accountMfaEnabled, setAccountMfaEnabled] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [adminSubTab, setAdminSubTab] = useState<'dashboard' | 'users' | 'email' | 'coupons'>('dashboard');
+
+    // Delete/export state
+    const [confirmExportOpen, setConfirmExportOpen] = useState(false);
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
     const [isUnlocked, setIsUnlocked] = useState(ecosystemSecurity.status.isUnlocked);
     const [isArgon, setIsArgon] = useState(ecosystemSecurity.status.isArgon);
     const [hasMasterpass, setHasMasterpass] = useState<boolean | null>(null);
@@ -86,6 +134,7 @@ export default function SettingsPage() {
 
     // Telegram state
     const [tgDrawerOpen, setTgDrawerOpen] = useState(false);
+    const [telegramConnected, setTelegramConnected] = useState(false);
     const [minting, setMinting] = useState(false);
   
     // Passkey state
@@ -122,6 +171,20 @@ export default function SettingsPage() {
         if (typeof window !== 'undefined') {
             setIsLocalhost(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
         }
+    }, []);
+
+    useEffect(() => {
+        let active = true;
+        async function checkTg() {
+            try {
+                const res = await checkTelegramConnection();
+                if (active) setTelegramConnected(Boolean(res.success && res.isVerified));
+            } catch (err) {
+                console.warn('Failed to check Telegram connection:', err);
+            }
+        }
+        checkTg();
+        return () => { active = false; };
     }, []);
 
     const profilePicId = getUserProfilePicId(user) || getSdkUserProfilePicId(user);
@@ -282,6 +345,40 @@ export default function SettingsPage() {
         }
     };
 
+    useEffect(() => {
+        let active = true;
+        async function checkAdmin() {
+            try {
+                const { isUserAdmin } = await import('@/lib/actions/admin/check-admin');
+                const jwt = await getJWT();
+                const result = await isUserAdmin(jwt || undefined);
+                if (active) setIsAdmin(result);
+            } catch (err) {
+                console.error('Failed to check admin status:', err);
+            }
+        }
+        checkAdmin();
+        return () => { active = false; };
+    }, [getJWT]);
+
+    useEffect(() => {
+        let active = true;
+        async function checkMfa() {
+            if (!user?.$id) return;
+            try {
+                const factors = await AppwriteService.getMfaFactors();
+                if (active) {
+                    setMfaFactors(factors);
+                    setAccountMfaEnabled(factors.email && factors.totp);
+                }
+            } catch (err) {
+                console.warn('Failed to load MFA factors:', err);
+            }
+        }
+        checkMfa();
+        return () => { active = false; };
+    }, [user?.$id]);
+
     const loadPasskeys = useCallback(async () => {
         if (!user?.$id) return;
         try {
@@ -384,6 +481,82 @@ export default function SettingsPage() {
         router.push('/connect');
     };
 
+    const tabsList = [
+        { id: 'general', label: 'General', icon: RootAccountIcon },
+        { id: 'profile', label: 'Profile', icon: ProfileIcon },
+        { id: 'security', label: 'Security & 2FA', icon: SecurityIcon },
+        { id: 'sessions', label: 'Sessions', icon: SessionsIcon },
+        { id: 'activity', label: 'Activity Logs', icon: ActivityIcon },
+        { id: 'identities', label: 'Connected Apps', icon: Fingerprint },
+        { id: 'preferences', label: 'Preferences', icon: PreferencesIcon },
+        { id: 'account', label: 'Delete/Export', icon: Trash2 },
+    ];
+    if (isAdmin) {
+        tabsList.push({ id: 'admin', label: 'Admin', icon: AdminIcon });
+    }
+
+    const handleExport = async () => {
+        try {
+            const [appPrefs, sessions] = await Promise.all([
+                account.getPrefs().catch(() => ({})),
+                account.listSessions().catch(() => ({ rows: [] }))
+            ]);
+            
+            const exportData = {
+                profile: {
+                    userId: user?.$id,
+                    email: user?.email,
+                    name: user?.name,
+                },
+                preferences: appPrefs,
+                sessions: (sessions as any).sessions || (sessions as any).rows || [],
+                exportDate: new Date().toISOString(),
+            };
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `kylrix_account_export_${user?.$id}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            toast.success('Account data exported successfully.');
+        } catch (err: any) {
+            toast.error(err.message || 'Export failed.');
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        try {
+            toast.loading('Purging identity data...', { id: 'delete-purge' });
+            const { executeMasterPurgeSecure } = await import('@/lib/actions/secure-ops');
+            await executeMasterPurgeSecure();
+            await account.deleteSession('current').catch(() => {});
+            toast.success('Identity purged. Redirecting...', { id: 'delete-purge' });
+            router.push('/');
+        } catch (err: any) {
+            toast.error(err.message || 'Purge failed.', { id: 'delete-purge' });
+        }
+    };
+
+    const triggerExport = () => {
+        openDrawer('delete-confirm', {
+            title: 'Export Account Data',
+            description: 'Are you sure you want to download a copy of your account profile, preferences, and session details?',
+            confirmLabel: 'Export',
+            onConfirm: handleExport
+        });
+    };
+
+    const triggerDeleteAccount = () => {
+        openDrawer('delete-confirm', {
+            title: 'Delete Account?',
+            description: 'WARNING: This will permanently delete your account and all associated vault/metadata. This action cannot be undone. Are you sure you want to proceed?',
+            confirmLabel: 'Delete Permanently',
+            onConfirm: handleDeleteAccount
+        });
+    };
+
     return (
         <MultiSectionContainer>
             <div className="relative w-full max-w-[1200px] mx-auto pt-4 md:pt-6 pb-12 px-4 md:px-6 z-10 select-none">
@@ -472,510 +645,401 @@ export default function SettingsPage() {
                 </div>
             </header>
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr] gap-8 items-start">
-                
-                {/* Left Column: Discoverability, Integrations & Feedback */}
-                <div className="flex flex-col gap-8">
-                    
-                    {/* Discoverability section removed */}
-
-                    {/* GitHub Integration panel */}
-                    <div id="github-workspace-settings" className="transition-all duration-300">
-                        <h3 className="text-white font-black text-lg tracking-tight leading-tight flex items-center gap-2 mb-3 font-mono">
-                            <svg viewBox="0 0 24 24" width="20" height="20" className="fill-white">
-                              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                            </svg>
-                            <span>Connected Integrations</span>
-                        </h3>
-                        <div className="p-6 bg-[#161412] border border-white/5 rounded-[28px] shadow-2xl">
-                            <div className="flex items-start md:items-center justify-between gap-4 flex-wrap">
-                                <div className="flex items-start gap-3 min-w-0 pr-2">
-                                    <div className="w-9 h-9 rounded-xl bg-white/3 border border-white/8 flex items-center justify-center flex-shrink-0 text-white mt-0.5 md:mt-0">
-                                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                                            <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <div className="min-w-0">
-                                        <h4 className="text-white font-extrabold text-sm truncate">
-                                            GitHub Integration
-                                        </h4>
-                                        <p className="text-white/40 text-xs font-semibold font-sans mt-0.5 leading-relaxed">
-                                            Connect your GitHub profile to sync code, tasks, issues, and PR boards.
-                                        </p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => openDrawer('github-integration')}
-                                    className="h-10 px-5 rounded-xl bg-[#24292F] hover:bg-[#1F2328] border border-white/5 text-white font-extrabold text-xs flex items-center justify-center transition-all w-full md:w-auto"
-                                >
-                                    Configure
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Daily Token Mint */}
-                    <div className="p-6 bg-[#161412] border border-white/5 rounded-[28px] shadow-2xl flex flex-col gap-3">
-                        <h4 className="text-white font-black text-base font-mono">Daily Token Mint</h4>
-                        <p className="text-white/40 text-xs font-semibold leading-relaxed">
-                            Manually trigger your daily token minting reward.
-                        </p>
+            {/* Horizontal Tabs Bar */}
+            <div className="flex gap-2 overflow-x-auto pb-3 mb-8 border-b border-white/5 scrollbar-none select-none">
+                {tabsList.map((t) => {
+                    const Icon = t.icon;
+                    const isActive = activeTab === t.id;
+                    return (
                         <button
-                            onClick={handleManualMint}
-                            disabled={minting}
-                            className="h-11 px-5 rounded-xl bg-[#6366F1] hover:bg-[#5458E8] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all select-none disabled:opacity-40 w-fit"
+                            key={t.id}
+                            type="button"
+                            onClick={() => setActiveTab(t.id as any)}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex-shrink-0 cursor-pointer ${
+                                isActive 
+                                    ? 'bg-[#6366F1] text-white border border-[#6366F1]' 
+                                    : 'bg-[#161412] hover:bg-[#1C1A18] text-white/50 border border-white/5'
+                            }`}
                         >
-                            {minting ? <SpinnerIcon className="animate-spin text-white" size={16} /> : <RefreshCw size={16} />}
-                            <span>{minting ? 'Minting...' : 'Mint Daily Tokens'}</span>
+                            <Icon size={14} />
+                            <span>{t.label}</span>
                         </button>
-                    </div>
+                    );
+                })}
+            </div>
 
-                    {/* Feature Requests Section */}
-                    <div>
-                        <h3 className="text-white font-black text-lg tracking-tight leading-tight flex items-center gap-2 mb-3 font-mono">
-                            <Lightbulb size={20} className="text-[#6366F1]" />
-                            <span>Feedback & Intelligence</span>
-                        </h3>
-                        <div className="p-6 bg-[#161412] border border-white/5 rounded-[28px] shadow-2xl hover:border-white/10 hover:bg-[#1C1A18] transition-all duration-300">
-                            <div className="flex items-center justify-between gap-4 flex-wrap">
-                                <div className="min-w-0">
-                                    <h4 className="text-white font-extrabold text-sm truncate">
-                                        Feature Request & Bug Report
-                                    </h4>
-                                    <p className="text-white/40 text-xs font-semibold font-sans mt-0.5 leading-relaxed">
-                                        Help us improve the Kylrix ecosystem by reporting issues or suggesting new features.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => openDrawer('form', { formId: FEATURE_FORM_ID })}
-                                    className="h-10 px-5 rounded-xl bg-[#6366F1] hover:bg-[#5458E8] text-white font-extrabold text-xs flex items-center justify-center transition-all w-full md:w-auto"
-                                >
-                                    Open Portal
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                {/* Right Column: Account settings, Smart Assistants, Telegram & Security */}
-                <div className="flex flex-col gap-8">
-                    
-                    {/* Go to account settings */}
-                    <button
-                        onClick={() => router.push('/accounts')}
-                        className="w-full text-left p-6 bg-[#161412] border border-white/5 hover:border-white/10 hover:bg-[#1C1A18] rounded-[28px] shadow-2xl flex items-center justify-between gap-4 transition-all duration-300 group"
-                    >
-                        <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-11 h-11 rounded-xl bg-[#6366F1]/10 text-[#6366F1] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                                <User size={22} />
-                            </div>
-                            <div className="min-w-0">
-                                <h4 className="text-white font-black text-base leading-tight font-mono">
-                                    Go to account settings
-                                </h4>
-                                <p className="text-white/40 text-xs font-semibold mt-0.5 leading-relaxed">
-                                    Manage your unified identity, WebAuthn passkeys, and connected apps.
-                                </p>
-                            </div>
-                        </div>
-                        <ChevronRight size={20} className="text-white/30 group-hover:text-white transition-colors" />
-                    </button>
-
-                    {/* Smart Assistants */}
-                    <button
-                        onClick={() => router.push('/settings/agents')}
-                        className="w-full text-left p-6 bg-[#161412] border border-white/5 hover:border-white/10 hover:bg-[#1C1A18] rounded-[28px] shadow-2xl flex items-center justify-between gap-4 transition-all duration-300 group"
-                    >
-                        <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-11 h-11 rounded-xl bg-[#6366F1]/10 text-[#6366F1] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                                <Bot size={22} />
-                            </div>
-                            <div className="min-w-0">
-                                <h4 className="text-white font-black text-base leading-tight font-mono">
-                                    Smart Assistants
-                                </h4>
-                                <p className="text-white/40 text-xs font-semibold mt-0.5 leading-relaxed">
-                                    Configure private AI keys, automated assistant systems, and active workspaces.
-                                </p>
-                            </div>
-                        </div>
-                        <ChevronRight size={20} className="text-white/30 group-hover:text-white transition-colors" />
-                    </button>
-
-                    {/* Telegram Notifications */}
-                    <div className="p-6 bg-[#161412] border border-white/5 hover:border-white/10 hover:bg-[#1C1A18] rounded-[28px] shadow-2xl flex items-center justify-between gap-4 transition-all duration-300">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-11 h-11 rounded-xl bg-[#0088cc]/10 text-[#0088cc] flex items-center justify-center flex-shrink-0">
-                                <TelegramIcon className="w-6 h-6" />
-                            </div>
-                            <div className="min-w-0">
-                                <h4 className="text-white font-black text-base leading-tight font-mono">
-                                    Telegram Notifications
-                                </h4>
-                                <p className="text-white/40 text-xs font-semibold mt-0.5 leading-relaxed">
-                                    Link Telegram and choose exactly which actions and items send alerts.
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setTgDrawerOpen(true)}
-                            className="h-10 px-5 rounded-xl bg-[#6366F1] hover:bg-[#5458E8] text-white font-bold text-xs flex items-center justify-center transition-all select-none"
-                        >
-                            Manage
-                        </button>
-                    </div>
-
-                    {/* Security & Privacy card */}
-                    <div>
-                        <h3 className="text-white font-black text-lg tracking-tight leading-tight flex items-center gap-2 mb-3 font-mono">
-                            <Shield size={20} className="text-[#6366F1]" />
-                            <span>Security & Privacy</span>
-                        </h3>
-                        
-                        <div className="p-6 bg-[#161412] border border-white/5 rounded-[28px] shadow-2xl flex flex-col gap-6">
-                            
-                            {/* Vault Status */}
-                            <div className="flex items-center justify-between gap-4 flex-wrap">
-                                <div className="min-w-0">
-                                    <h4 className="text-white font-extrabold text-sm">Vault Status</h4>
-                                    <p className="text-white/40 text-xs font-semibold font-sans mt-0.5 leading-relaxed">
-                                        Current encryption state of your session
-                                    </p>
-                                    {hasMasterpass && (
-                                        <div className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider font-mono mt-1.5 ${
-                                            isArgon ? 'text-[#10B981]' : 'text-[#F59E0B]'
-                                        }`}>
-                                            <span className="w-1.5 h-1.5 rounded-full bg-currentColor" />
-                                            <span>{isArgon ? 'Vault upgraded to T5 core' : 'Unlock to upgrade to Argon2id'}</span>
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                <div className="flex flex-wrap gap-2.5 w-full sm:w-auto">
-                                    <button
-                                        onClick={() =>
-                                            isUnlocked
-                                                ? ecosystemSecurity.lock()
-                                                : requestSudo({ onSuccess: () => {} })
-                                        }
-                                        className={`h-10 px-5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all flex-1 sm:flex-initial ${
-                                            isUnlocked
-                                                ? 'border border-white/10 hover:border-white/20 bg-white/2 hover:bg-white/5 text-white/80'
-                                                : 'bg-[#6366F1] hover:bg-[#5458E8] text-white'
-                                        }`}
-                                    >
-                                        {isUnlocked ? <Lock size={14} /> : <Shield size={14} />}
-                                        <span>{isUnlocked ? "Lock Vault" : (hasMasterpass === false ? "Setup" : "Unlock Vault")}</span>
-                                    </button>
-
-                                    {hasMasterpass && (
-                                        <>
-                                            {isUnlocked && (
-                                                <button
-                                                    onClick={() => {
-                                                        openDrawer('security-confirm', {
-                                                            flow: 'change-password',
-                                                            onAfterConfirmations: () => {
-                                                                void promptSudo('upgrade', true);
-                                                            },
-                                                        });
-                                                    }}
-                                                    className="h-10 px-4 rounded-xl border border-white/10 hover:border-white/20 bg-white/2 hover:bg-white/5 text-white/80 font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all flex-1 sm:flex-initial"
-                                                >
-                                                    Change Password
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => {
-                                                    openDrawer('security-confirm', {
-                                                        flow: 'vault-wipe',
-                                                        onAfterConfirmations: () => {
-                                                            void promptSudo('reset', true);
-                                                        },
-                                                    });
-                                                }}
-                                                className="h-10 px-4 rounded-xl border border-red-500/20 hover:border-red-500/30 bg-red-500/5 hover:bg-red-500/10 text-red-500 font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all flex-1 sm:flex-initial"
-                                            >
-                                                Reset Vault (Wipe)
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="h-[1px] bg-white/5 w-full" />
-
-                            {/* Passkeys */}
-                            <div>
-                                <div className="flex items-center justify-between gap-4 mb-4 select-none">
-                                    <div className="min-w-0">
-                                        <h4 className="text-white font-extrabold text-sm">Passkeys</h4>
-                                        <p className="text-white/40 text-xs font-semibold font-sans mt-0.5 leading-relaxed">
-                                            Use biometrics to unlock your secure session.
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            if (!user?.$id) return;
-                                            openDrawer('passkey-setup', {
-                                                userId: user.$id,
-                                                trustUnlocked: true,
-                                                onSuccess: loadPasskeys,
-                                            });
-                                        }}
-                                        disabled={hasMasterpass === false}
-                                        className="h-9 px-4 rounded-xl bg-[#6366F1] hover:bg-[#5458E8] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                                    >
-                                        <Fingerprint size={14} />
-                                        <span>Add Passkey</span>
-                                    </button>
-                                </div>
-
-                                <div className="bg-[#0A0908] border border-white/5 rounded-2xl p-2 flex flex-col gap-1.5">
-                                    {passkeyEntries.length === 0 ? (
-                                        <div className="p-4 text-center text-white/40 text-xs font-bold font-sans">
-                                            No passkeys registered.
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col gap-4">
-                                            {(() => {
-                                                const productionPasskeys = passkeyEntries.filter(pk => pk.params?.rpId !== 'localhost' && pk.params?.rpId !== '127.0.0.1');
-                                                const localhostPasskeys = passkeyEntries.filter(pk => pk.params?.rpId === 'localhost' || pk.params?.rpId === '127.0.0.1');
-                                                return (
-                                                    <>
-                                                        {productionPasskeys.length > 0 && (
-                                                            <div className="flex flex-col gap-1.5">
-                                                                <span className="block text-white/40 text-[9px] font-black uppercase tracking-wider font-mono px-3">
-                                                                    Primary Passkeys (kylrix.space)
-                                                                </span>
-                                                                {productionPasskeys.map((pk, idx) => (
-                                                                    <div 
-                                                                        key={pk.$id}
-                                                                        className="flex items-center justify-between gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors"
-                                                                    >
-                                                                        <div className="flex items-center gap-3 min-w-0">
-                                                                            <div className="w-8 h-8 rounded-lg bg-[#6366F1]/10 text-[#6366F1] flex items-center justify-center flex-shrink-0">
-                                                                                <Fingerprint size={16} />
-                                                                            </div>
-                                                                            <div className="min-w-0">
-                                                                                <span className="block text-white font-extrabold text-xs truncate">
-                                                                                    {pk.params?.name || `Passkey ${idx + 1}`}
-                                                                                </span>
-                                                                                <div className="flex items-center gap-1.5 mt-0.5">
-                                                                                    <span className="block text-[#10B981] text-[9px] font-black uppercase tracking-wider font-mono">
-                                                                                        Active
-                                                                                    </span>
-                                                                                    {pk.authPasskey && (
-                                                                                        <span className="flex items-center gap-1 text-[#6366F1] text-[9px] font-black uppercase tracking-wider font-mono bg-[#6366F1]/10 px-1.5 py-0.5 rounded" title="Auth Enabled (Can be used for account login)">
-                                                                                            <Key size={9} />
-                                                                                            <span>Auth</span>
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                        <button
-                                                                            onClick={() => handleRemovePasskey(pk.$id)}
-                                                                            className="w-8 h-8 rounded-lg text-white/20 hover:text-red-500 hover:bg-red-500/10 flex items-center justify-center transition-all"
-                                                                            title="Remove Passkey"
-                                                                        >
-                                                                            <Trash2 size={16} />
-                                                                        </button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-
-                                                        {localhostPasskeys.length > 0 && (
-                                                            <div className="flex flex-col gap-1.5 border-t border-white/5 pt-3 mt-1">
-                                                                <span className="block text-amber-500/70 text-[9px] font-black uppercase tracking-wider font-mono px-3">
-                                                                    Development / Localhost Passkeys
-                                                                </span>
-                                                                {localhostPasskeys.map((pk, idx) => (
-                                                                    <div 
-                                                                        key={pk.$id}
-                                                                        className="flex items-center justify-between gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors"
-                                                                    >
-                                                                        <div className="flex items-center gap-3 min-w-0">
-                                                                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center flex-shrink-0">
-                                                                                <Fingerprint size={16} />
-                                                                            </div>
-                                                                            <div className="min-w-0">
-                                                                                <span className="block text-white font-extrabold text-xs truncate">
-                                                                                    {pk.params?.name || `Local Passkey ${idx + 1}`} <span className="text-amber-500 text-[10px] font-black font-mono">(Localhost)</span>
-                                                                                </span>
-                                                                                <div className="flex items-center gap-1.5 mt-0.5">
-                                                                                    <span className="block text-[#10B981] text-[9px] font-black uppercase tracking-wider font-mono">
-                                                                                        Active
-                                                                                    </span>
-                                                                                    {pk.authPasskey && (
-                                                                                        <span className="flex items-center gap-1 text-[#6366F1] text-[9px] font-black uppercase tracking-wider font-mono bg-[#6366F1]/10 px-1.5 py-0.5 rounded" title="Auth Enabled (Can be used for account login)">
-                                                                                            <Key size={9} />
-                                                                                            <span>Auth</span>
-                                                                                        </span>
-                                                                                    )}
-                                                                                    <span className="text-white/40 text-[9px] font-mono">
-                                                                                        RP: {pk.params?.rpId}
-                                                                                    </span>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                        <button
-                                                                            onClick={() => handleRemovePasskey(pk.$id)}
-                                                                            className="w-8 h-8 rounded-lg text-white/20 hover:text-red-500 hover:bg-red-500/10 flex items-center justify-center transition-all"
-                                                                            title="Remove Passkey"
-                                                                        >
-                                                                            <Trash2 size={16} />
-                                                                        </button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </>
-                                                );
-                                            })()}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Data Portability (Backup & Restore) */}
-                            <div>
-                                <h4 className="text-white font-extrabold text-sm flex items-center gap-1.5 mb-4 font-mono select-none">
-                                    <Database size={16} className="text-[#6366F1]" />
-                                    <span>Data Portability</span>
-                                </h4>
-
-                                <div className="p-5 bg-[#161412] border border-white/5 rounded-[24px] flex flex-col gap-4">
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div className="flex-1">
-                                            <span className="block text-white font-extrabold text-xs">Import & Export Workspace</span>
-                                            <span className="block text-white/40 text-[10px] font-semibold mt-0.5 leading-relaxed">
-                                                Backup your passwords, TOTP tokens, note metadata, and settings, or import existing files securely.
-                                            </span>
+            {/* Tab Rendering Content */}
+            <div className="w-full relative min-h-[400px]">
+                {activeTab === 'general' && (
+                    <div className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr] gap-8 items-start">
+                        {/* Left Column: Discoverability, Integrations & Feedback */}
+                        <div className="flex flex-col gap-8">
+                            {/* GitHub Integration panel */}
+                            <div id="github-workspace-settings" className="transition-all duration-300">
+                                <h3 className="text-white font-black text-lg tracking-tight leading-tight flex items-center gap-2 mb-3 font-mono">
+                                    <svg viewBox="0 0 24 24" width="20" height="20" className="fill-white">
+                                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                    </svg>
+                                    <span>Connected Integrations</span>
+                                </h3>
+                                <div className="p-6 bg-[#161412] border border-white/5 rounded-[28px] shadow-2xl">
+                                    <div className="flex items-start md:items-center justify-between gap-4 flex-wrap">
+                                        <div className="flex items-start gap-3 min-w-0 pr-2">
+                                            <div className="w-9 h-9 rounded-xl bg-white/3 border border-white/8 flex items-center justify-center flex-shrink-0 text-white mt-0.5 md:mt-0">
+                                                <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h4 className="text-white font-extrabold text-sm truncate">
+                                                    GitHub Integration
+                                                </h4>
+                                                <p className="text-white/40 text-xs font-semibold font-sans mt-0.5 leading-relaxed">
+                                                    Connect your GitHub profile to sync code, tasks, issues, and PR boards.
+                                                </p>
+                                            </div>
                                         </div>
                                         <button
-                                            onClick={() => setShowPorterDrawer(true)}
-                                            className="px-4 py-2.5 bg-[#6366F1] text-black text-xs font-black rounded-xl hover:bg-emerald-400 transition-all flex-shrink-0 cursor-pointer"
+                                            type="button"
+                                            onClick={() => openDrawer('github-integration')}
+                                            className="h-10 px-5 rounded-xl bg-[#24292F] hover:bg-[#1F2328] border border-white/5 text-white font-extrabold text-xs flex items-center justify-center transition-all w-full md:w-auto"
                                         >
-                                            Manage Backups
+                                            Configure
                                         </button>
                                     </div>
-                                    <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex gap-2.5 items-start">
-                                        <Info className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                                        <div>
-                                            <span className="block text-[10px] font-black text-amber-400 uppercase tracking-wider">DO NOT CLOSE TAB OR REFRESH</span>
-                                            <span className="block text-[10px] text-white/50 leading-relaxed mt-0.5">
-                                                Ensure this browser tab is active during importing/exporting database tasks to prevent payload encryption corruption.
-                                            </span>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
 
-                            <div className="h-[1px] bg-white/5 w-full" />
+                            {/* Daily Token Mint */}
+                            <div className="p-6 bg-[#161412] border border-white/5 rounded-[28px] shadow-2xl flex flex-col gap-3">
+                                <h4 className="text-white font-black text-base font-mono">Daily Token Mint</h4>
+                                <p className="text-white/40 text-xs font-semibold leading-relaxed">
+                                    Manually trigger your daily token minting reward.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleManualMint}
+                                    disabled={minting}
+                                    className="h-11 px-5 rounded-xl bg-[#6366F1] hover:bg-[#5458E8] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all select-none disabled:opacity-40 w-fit"
+                                >
+                                    {minting ? <SpinnerIcon className="animate-spin text-white" size={16} /> : <RefreshCw size={16} />}
+                                    <span>{minting ? 'Minting...' : 'Mint Daily Tokens'}</span>
+                                </button>
+                            </div>
 
-                            {/* App Preferences Switches */}
+                            {/* Feature Requests Section */}
                             <div>
-                                <h4 className="text-white font-extrabold text-sm flex items-center gap-1.5 mb-4 font-mono select-none">
-                                    <Smartphone size={16} className="text-[#6366F1]" />
-                                    <span>App Preferences</span>
-                                </h4>
-
-                                <div className="flex flex-col gap-4">
-                                    {/* Push Notifications Switch */}
-                                    <div className="flex items-center justify-between gap-4 select-none">
-                                        <div>
-                                            <span className="block text-white font-extrabold text-xs">Push Notifications</span>
-                                            <span className="block text-white/40 text-[10px] font-semibold font-sans mt-0.5">Get notified of new messages</span>
+                                <h3 className="text-white font-black text-lg tracking-tight leading-tight flex items-center gap-2 mb-3 font-mono">
+                                    <Lightbulb size={20} className="text-[#6366F1]" />
+                                    <span>Feedback & Intelligence</span>
+                                </h3>
+                                <div className="p-6 bg-[#161412] border border-white/5 rounded-[28px] shadow-2xl hover:border-white/10 hover:bg-[#1C1A18] transition-all duration-300">
+                                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                                        <div className="min-w-0">
+                                            <h4 className="text-white font-extrabold text-sm truncate">
+                                                Feature Request & Bug Report
+                                            </h4>
+                                            <p className="text-white/40 text-xs font-semibold font-sans mt-0.5 leading-relaxed">
+                                                Help us improve the Kylrix ecosystem by reporting issues or suggesting new features.
+                                            </p>
                                         </div>
-                                        <Switch 
-                                            checked={pushEnabled}
-                                            onChange={() => setPushEnabled(!pushEnabled)}
-                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => openDrawer('form', { formId: FEATURE_FORM_ID })}
+                                            className="h-10 px-5 rounded-xl bg-[#6366F1] hover:bg-[#5458E8] text-white font-extrabold text-xs flex items-center justify-center transition-all w-full md:w-auto"
+                                        >
+                                            Open Portal
+                                        </button>
                                     </div>
-
-                                    <div className="h-[1px] bg-white/5 w-full" />
-
-                                    {/* Active Status Switch */}
-                                    <div className="flex items-center justify-between gap-4 select-none">
-                                        <div>
-                                            <span className="block text-white font-extrabold text-xs">Active Status</span>
-                                            <span className="block text-white/40 text-[10px] font-semibold font-sans mt-0.5">Show when you are online</span>
-                                        </div>
-                                        <Switch 
-                                            checked={statusEnabled}
-                                            onChange={() => setStatusEnabled(!statusEnabled)}
-                                        />
-                                    </div>
-
-                                    <div className="h-[1px] bg-white/5 w-full" />
-
-                                    {/* Passkeys Default Switch */}
-                                    <div className="flex items-center justify-between gap-4 select-none">
-                                        <div>
-                                            <span className="block text-white font-extrabold text-xs">Use Passkeys by Default</span>
-                                            <span className="block text-white/40 text-[10px] font-semibold font-sans mt-0.5">Prioritize biometrics over master password for unlocking</span>
-                                        </div>
-                                        <Switch 
-                                            checked={usePasskeysByDefault}
-                                            onChange={() => setUsePasskeysByDefault(!usePasskeysByDefault)}
-                                        />
-                                    </div>
-
-                                    <div className="h-[1px] bg-white/5 w-full" />
-
-                                    {/* Masterpass for Login Switch */}
-                                    <div className="flex items-center justify-between gap-4 select-none">
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="block text-white font-extrabold text-xs">Enable MasterPass for Account Login</span>
-                                                {masterpassForLoginEnabled && !isAuthPassConfigured && (
-                                                    <button
-                                                        onClick={() => toast('Please lock and unlock your vault to upgrade your MasterPass to align with your account password.', {
-                                                            icon: '⚠️',
-                                                            duration: 6000,
-                                                        })}
-                                                        className="text-[#F59E0B] hover:text-[#D97706] transition-colors focus:outline-none"
-                                                        title="Upgrade pending"
-                                                    >
-                                                        <AlertCircle size={14} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <span className="block text-white/40 text-[10px] font-semibold font-sans mt-0.5">Allow using your MasterPass to authenticate your account sign-in</span>
-                                        </div>
-                                        <Switch 
-                                            checked={masterpassForLoginEnabled}
-                                            onChange={handleMasterpassLoginToggle}
-                                        />
-                                    </div>
-
-                                    {isLocalhost && (
-                                        <>
-                                            <div className="h-[1px] bg-white/5 w-full" />
-                                            {/* Demo Mode (Beta) Switch */}
-                                            <div className="flex items-center justify-between gap-4 select-none">
-                                                <div>
-                                                    <span className="block text-white font-extrabold text-xs">Demo Mode (Beta)</span>
-                                                    <span className="block text-white/40 text-[10px] font-semibold font-sans mt-0.5">Enable simulated environments and assets for presentations</span>
-                                                </div>
-                                                <Switch 
-                                                    checked={demoModeEnabled}
-                                                    onChange={handleDemoModeToggle}
-                                                />
-                                            </div>
-                                        </>
-                                    )}
                                 </div>
                             </div>
+                        </div>
 
+                        {/* Right Column */}
+                        <div className="flex flex-col gap-8">
+                            {/* Smart Assistants */}
+                            <button
+                                type="button"
+                                onClick={() => router.push('/settings/agents')}
+                                className="w-full text-left p-6 bg-[#161412] border border-white/5 hover:border-white/10 hover:bg-[#1C1A18] rounded-[28px] shadow-2xl flex items-center justify-between gap-4 transition-all duration-300 group"
+                            >
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-11 h-11 rounded-xl bg-[#6366F1]/10 text-[#6366F1] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                                        <Bot size={22} />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h4 className="text-white font-black text-base leading-tight font-mono">
+                                            Smart Assistants
+                                        </h4>
+                                        <p className="text-white/40 text-xs font-semibold mt-0.5 leading-relaxed">
+                                            Configure private AI keys, automated assistant systems, and active workspaces.
+                                        </p>
+                                    </div>
+                                </div>
+                                <ChevronRight size={20} className="text-white/30 group-hover:text-white transition-colors" />
+                            </button>
+
+                            {/* Telegram panel */}
+                            <div className="p-6 bg-[#161412] border border-white/5 rounded-[28px] shadow-2xl flex flex-col gap-5">
+                                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-9 h-9 rounded-xl bg-[#0088cc]/10 text-[#0088cc] flex items-center justify-center">
+                                            <TelegramIcon />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-extrabold text-sm text-white">Telegram Notifications</h4>
+                                            <p className="text-[10px] text-white/40 font-bold">Push notifications outlet</p>
+                                        </div>
+                                    </div>
+                                    <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${
+                                        telegramConnected 
+                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                                            : 'bg-white/5 border-white/10 text-white/40'
+                                    }`}>
+                                        {telegramConnected ? 'active' : 'off'}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setTgDrawerOpen(true)}
+                                    className="py-3 px-5 rounded-xl border border-white/10 text-white hover:text-white font-extrabold text-xs hover:border-white/20 transition-all text-center w-full bg-transparent cursor-pointer"
+                                >
+                                    {telegramConnected ? 'Manage Link' : 'Link Telegram Bot'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                )}
+
+                {activeTab === 'profile' && (
+                    <div className="flex flex-col gap-8 pb-24 max-w-3xl">
+                        <div id="identity" className="bg-[#161412] border border-white/5 rounded-[32px] p-6 md:p-10">
+                            <ProfileManager 
+                                onProfileUpdate={async () => {
+                                    await refreshUser(true);
+                                    await fetchProfile();
+                                }}
+                            />
+                        </div>
+
+                        <div id="identifiers" className="space-y-4">
+                            <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+                                Account Email
+                            </h2>
+                            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <span className="text-[10px] text-[#9B9691] font-bold font-mono uppercase tracking-wider block mb-1">
+                                        Primary Mail Relay
+                                    </span>
+                                    <span className="text-lg text-white font-extrabold tracking-tight">
+                                        {user?.email}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (user?.email) {
+                                            navigator.clipboard.writeText(user.email);
+                                            toast.success('Email copied');
+                                        }
+                                    }}
+                                    className="py-2 px-4 rounded-xl border border-white/10 text-white font-bold text-xs hover:border-[#6366F1] hover:bg-[#6366F1]/5 transition-all cursor-pointer flex-shrink-0"
+                                >
+                                    Copy Email
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/[0.02] border border-white/5 rounded-[28px] p-6 md:p-8 space-y-4">
+                            <h3 className="text-lg font-black font-clash text-white">
+                                Billing & Subscriptions
+                            </h3>
+                            <p className="text-xs text-[#9B9691] leading-relaxed font-satoshi">
+                                Manage your premium subscription plans, active coupons, regional parameters, and gift subscriptions to other network nodes.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => setBillingDrawerOpen(true)}
+                                className="px-6 py-3.5 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-white font-black text-sm transition-all cursor-pointer border-none"
+                            >
+                                Manage Billing & Subscription
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'security' && (
+                    <div className="flex flex-col gap-8 pb-24 max-w-3xl">
+                        <div id="masterpass" className="space-y-4">
+                            <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+                                Encryption
+                            </h2>
+                            <div className="bg-[#161412] border border-white/5 rounded-[32px] p-6 md:p-10">
+                                {user && <MasterPassManager userId={user.$id} />}
+                            </div>
+                        </div>
+
+                        <div id="pin" className="space-y-4">
+                            <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+                                Quick Access
+                            </h2>
+                            <div className="bg-[#161412] border border-white/5 rounded-[32px] p-6 md:p-10">
+                                <PinManager />
+                            </div>
+                        </div>
+
+                        <div id="mfa" className="space-y-4">
+                            <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+                                2FA
+                            </h2>
+                            <div className="bg-white/[0.02] border border-white/5 rounded-[28px] p-6 space-y-4">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                    <div>
+                                        <h4 className="text-base font-extrabold text-white mb-1">2FA Status</h4>
+                                        <p className="text-xs text-[#9B9691] leading-relaxed max-w-[540px]">
+                                            2FA is on only when both Email and TOTP are enabled.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setTwoFactorDrawerOpen(true)}
+                                        className="py-3 px-5 rounded-xl bg-[#6366F1] hover:bg-[#5458E8] text-white font-black text-xs transition-colors cursor-pointer flex-shrink-0"
+                                    >
+                                        {accountMfaEnabled ? 'Manage 2FA' : 'Set up 2FA'}
+                                    </button>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
+                                        accountMfaEnabled 
+                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                                    }`}>
+                                        2FA: {accountMfaEnabled ? 'enabled' : 'off'}
+                                    </span>
+                                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
+                                        mfaFactors?.email 
+                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                                            : 'bg-white/5 border-white/10 text-white/50'
+                                    }`}>
+                                        Email: {mfaFactors?.email ? 'enabled' : 'off'}
+                                    </span>
+                                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
+                                        mfaFactors?.totp 
+                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                                            : 'bg-white/5 border-white/10 text-white/50'
+                                    }`}>
+                                        TOTP: {mfaFactors?.totp ? 'enabled' : 'off'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'sessions' && (
+                    <div id="active-sessions" className="space-y-4 pb-24 max-w-3xl">
+                        <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+                            Sessions
+                        </h2>
+                        <div className="bg-[#161412] border border-white/5 rounded-[32px] p-6 md:p-10">
+                            <SessionsManager />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'activity' && (
+                    <div id="activity-log" className="space-y-4 pb-24 max-w-3xl">
+                        <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+                            Activity
+                        </h2>
+                        <div className="bg-[#161412] border border-white/5 rounded-[32px] p-6 md:p-10">
+                            <ActivityLogs />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'identities' && (
+                    <div id="oauth" className="pb-24 max-w-3xl">
+                        <div className="bg-[#161412] border border-white/5 rounded-[32px] p-6 md:p-10">
+                            <ConnectedIdentities />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'preferences' && (
+                    <div id="env-prefs" className="space-y-4 pb-24 max-w-3xl">
+                        <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+                            Preferences
+                        </h2>
+                        <div className="bg-[#161412] border border-white/5 rounded-[32px] p-6 md:p-10">
+                            <PreferencesManager />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'account' && (
+                    <div id="root-mgmt" className="space-y-6 pb-24 max-w-3xl">
+                        <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+                            Account Settings
+                        </h2>
+                        <div className="bg-white/[0.01] border border-white/5 rounded-[28px] p-6 md:p-8 space-y-6">
+                            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                                <div>
+                                    <h4 className="text-base font-extrabold text-white mb-1">Export Account Data</h4>
+                                    <p className="text-xs text-[#9B9691] leading-relaxed max-w-[600px] font-satoshi">
+                                        Download a copy of your account profile, preferences, and active session details.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={triggerExport}
+                                    className="py-3 px-5 rounded-xl border border-white/10 text-white font-extrabold text-xs hover:border-[#6366F1] hover:bg-[#6366F1]/5 transition-all min-w-[200px] cursor-pointer"
+                                >
+                                    Download Data
+                                </button>
+                            </div>
+                            
+                            <div className="h-px bg-white/5 w-full" />
+
+                            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                                <div>
+                                    <h4 className="text-base font-extrabold text-red-500 mb-1">Delete Account</h4>
+                                    <p className="text-xs text-[#9B9691] leading-relaxed max-w-[600px] font-satoshi">
+                                        Permanently delete your account and all associated data. This action cannot be undone.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={triggerDeleteAccount}
+                                    className="py-3 px-5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-extrabold text-xs transition-all min-w-[200px] cursor-pointer"
+                                >
+                                    Delete Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'admin' && isAdmin && (
+                    <div className="flex flex-col lg:flex-row gap-6 pb-24 w-full">
+                        {/* Admin sub-menu */}
+                        <div className="flex flex-col gap-2 w-full lg:w-[200px] flex-shrink-0">
+                            <button type="button" onClick={() => setAdminSubTab('dashboard')} className={`p-3.5 rounded-xl text-xs font-bold text-left cursor-pointer transition-colors ${adminSubTab === 'dashboard' ? 'bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20' : 'text-white/40 hover:bg-white/5'}`}>System Dashboard</button>
+                            <button type="button" onClick={() => setAdminSubTab('users')} className={`p-3.5 rounded-xl text-xs font-bold text-left cursor-pointer transition-colors ${adminSubTab === 'users' ? 'bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20' : 'text-white/40 hover:bg-white/5'}`}>User Directory</button>
+                            <button type="button" onClick={() => setAdminSubTab('email')} className={`p-3.5 rounded-xl text-xs font-bold text-left cursor-pointer transition-colors ${adminSubTab === 'email' ? 'bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20' : 'text-white/40 hover:bg-white/5'}`}>Email Orchestrator</button>
+                            <button type="button" onClick={() => setAdminSubTab('coupons')} className={`p-3.5 rounded-xl text-xs font-bold text-left cursor-pointer transition-colors ${adminSubTab === 'coupons' ? 'bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20' : 'text-white/40 hover:bg-white/5'}`}>Coupons Registry</button>
+                        </div>
+                        {/* Render the selected admin subpage */}
+                        <div className="flex-grow min-w-0">
+                            {adminSubTab === 'dashboard' && <AdminDashboardPage />}
+                            {adminSubTab === 'users' && <UsersManagement />}
+                            {adminSubTab === 'email' && <EmailOrchestrator />}
+                            {adminSubTab === 'coupons' && <AdminCouponsPage />}
+                        </div>
+                    </div>
+                )}
             </div>
-        </div>
 
         {/* TOS & Privacy Policy Links */}
         <footer className="mt-12 pt-6 border-t border-white/5 flex items-center justify-center gap-4 text-xs font-semibold text-white/30 select-none">
@@ -1018,6 +1082,29 @@ export default function SettingsPage() {
                 onUpdate={async () => {
                     await refreshUser(true);
                     await fetchProfile();
+                }}
+            />
+        )}
+        {billingDrawerOpen && (
+            <BillingDrawer
+                isOpen={billingDrawerOpen}
+                onClose={() => setBillingDrawerOpen(false)}
+            />
+        )}
+        {twoFactorDrawerOpen && user && (
+            <TwoFactorDrawer
+                open={twoFactorDrawerOpen}
+                onClose={() => setTwoFactorDrawerOpen(false)}
+                userId={user.$id}
+                loginMethod="password"
+                onEnabled={() => {
+                    setTwoFactorDrawerOpen(false);
+                    if (user?.$id) {
+                        AppwriteService.getMfaFactors().then((factors: any) => {
+                            setMfaFactors(factors);
+                            setAccountMfaEnabled(factors.email && factors.totp);
+                        });
+                    }
                 }}
             />
         )}

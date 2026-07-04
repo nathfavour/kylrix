@@ -27,7 +27,7 @@ function HomeContent() {
         url.searchParams.set('auth', 'success');
         router.replace(url.toString());
       } else {
-        router.replace('/accounts/settings/profile');
+        router.replace('/settings');
       }
     } else {
       const loginUrl = source ? `/accounts/login?source=${encodeURIComponent(source)}` : '/accounts/login';
@@ -79,10 +79,10 @@ function HomeContent() {
 
           <button
             type="button"
-            onClick={() => router.push('/accounts/settings/profile')}
+            onClick={() => router.push('/settings')}
             className="w-full h-14 rounded-xl bg-[#1C1A18] hover:bg-[#242220] border border-[#34322F] text-white font-extrabold text-sm transition-all cursor-pointer flex items-center justify-center"
           >
-            View Account Settings
+            View Settings
           </button>
 
           {isPopup && (

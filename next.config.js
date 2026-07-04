@@ -114,6 +114,21 @@ const nextConfig = {
         destination: '/flow/:path*',
         permanent: true,
       },
+      {
+        source: '/accounts/settings',
+        destination: '/settings',
+        permanent: true,
+      },
+      {
+        source: '/accounts/settings/:path*',
+        destination: '/settings',
+        permanent: true,
+      },
+      {
+        source: '/accounts/billing',
+        destination: '/settings',
+        permanent: true,
+      },
     ];
   },
 };

@@ -37,6 +37,16 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
+  if (pathname?.startsWith('/settings')) {
+    return (
+      <AdminGuard>
+        <div className="w-full text-white font-satoshi">
+          {children}
+        </div>
+      </AdminGuard>
+    );
+  }
+
   return (
     <AdminGuard>
       <div className="flex min-h-screen bg-[#0A0908] text-white font-satoshi">

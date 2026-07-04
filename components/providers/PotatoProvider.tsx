@@ -136,7 +136,7 @@ function routeSnippets(pathname: string | null, user: any | null): PotatoSnippet
       }];
   }
 
-  if (pathname === '/app/settings' || pathname.startsWith('/accounts/settings')) {
+  if (pathname === '/app/settings' || pathname === '/settings' || pathname.startsWith('/accounts/settings')) {
     return [
       {
         id: 'settings-profile',
