@@ -2,7 +2,7 @@
 
 This blueprint serves as the single, authoritative architectural guide and features manifest for the Kylrix ecosystem. It defines the core security boundaries, cryptographic protocols, data infrastructure models, and execution flows within the codebase. It acts as an active conceptual ingest for engineers and agentic AI systems to understand the codebase's mechanics, synergies, and future expansion paths.
 
-> **Last major sync (Jul 2026):** Passkey login + dual-role vault credentials, MasterPass↔account password sync, offline ghost CRUD, Ideas `/app` routing, contextual Agentic drawer, multi-step security confirmations, Telegram granular prefs, project join approval workflow.
+> **Last major sync (Jul 2026):** Consolidated settings tabs layout, BillingDrawer overlays, Passkey login + dual-role vault credentials, MasterPass↔account password sync, offline ghost CRUD, Ideas `/app` routing, contextual Agentic drawer, multi-step security confirmations, Telegram granular prefs, project join approval workflow.
 
 ---
 
