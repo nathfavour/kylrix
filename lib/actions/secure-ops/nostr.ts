@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/lib/appwrite/server';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
+import { getActor } from '../secure-ops/shared';
 import { Databases, Query } from 'node-appwrite';
 
 /**
@@ -10,16 +11,13 @@ import { Databases, Query } from 'node-appwrite';
  */
 export async function getNostrIdentityAction() {
   try {
-    const { client, account } = await createServerClient();
-    let accountInfo;
-    try {
-      accountInfo = await account.get();
-    } catch {
-      // Gracefully handle unauthenticated/guest users
+    const actor = await getActor();
+    if (!actor) {
       return null;
     }
-    const userId = accountInfo.$id;
+    const userId = actor.$id;
 
+    const { client } = await createServerClient();
     const databases = new Databases(client);
     const res = await databases.listDocuments(
       APPWRITE_CONFIG.DATABASE_ID,
@@ -39,10 +37,6 @@ export async function getNostrIdentityAction() {
       salt: row.salt
     };
   } catch (err: any) {
-    // If it's a guest account permission error, return null instead of throwing
-    if (err.message && err.message.includes('missing scopes')) {
-      return null;
-    }
     console.error('Failed to get Nostr identity row:', err);
     throw new Error(err.message || 'Failed to fetch Nostr identity');
   }
@@ -58,10 +52,13 @@ export async function registerNostrIdentityAction(params: {
   salt: string;
 }) {
   try {
-    const { client, account } = await createServerClient();
-    const accountInfo = await account.get();
-    const userId = accountInfo.$id;
+    const actor = await getActor();
+    if (!actor) {
+      throw new Error('Unauthorized: You must be logged in to register a Nostr identity');
+    }
+    const userId = actor.$id;
 
+    const { client } = await createServerClient();
     const databases = new Databases(client);
     
     // Ensure uniqueness constraint
