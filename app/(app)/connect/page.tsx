@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Feed } from '@/components/social/Feed';
 import { ChatList } from '@/components/chat/ChatList';
-import { CallHistory } from '@/components/call/CallHistory';
+import { MailBox } from '@/components/connect/MailBox';
 import { useProjectsList } from '@/hooks/useProjectsList';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useFAB } from '@/context/FABContext';
@@ -32,7 +32,7 @@ function ConnectHomeContent() {
   const [threadsOpen, setThreadsOpen] = useState(true);
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [bookmarksOpen, setBookmarksOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<'moments' | 'chats' | 'calls'>('moments');
+  const [activeTab, setActiveTab] = useState<'moments' | 'chats' | 'mail'>('moments');
   const [chatsActiveTab, setChatsActiveTab] = useState<'secure' | 'public'>('secure');
 
   const { projects, loading: projectsLoading } = useProjectsList();
@@ -185,14 +185,14 @@ function ConnectHomeContent() {
             Chats
           </button>
           <button
-            onClick={() => setActiveTab('calls')}
+            onClick={() => setActiveTab('mail')}
             className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
-              activeTab === 'calls'
+              activeTab === 'mail'
                 ? 'bg-[#F59E0B] text-white shadow-[0_4px_12px_rgba(245,158,11,0.25)]'
                 : 'text-white/50 hover:text-white hover:bg-white/5'
             }`}
           >
-            Calls
+            Mail
           </button>
         </div>
 
@@ -455,9 +455,9 @@ function ConnectHomeContent() {
           </div>
         )}
 
-        {activeTab === 'calls' && (
-          <div className="max-w-3xl mx-auto">
-            <CallHistory />
+        {activeTab === 'mail' && (
+          <div className="w-full">
+            <MailBox />
           </div>
         )}
       </div>
