@@ -1100,3 +1100,11 @@ export type Web3Transactions = Models.Row & {
     symbol: string;
     timestamp: number;
 }
+
+export type NostrIdentities = Models.Row & {
+    userId: string;
+    npub: string;
+    encryptedNsec: string;
+    iv: string;
+    salt: string;
+}
