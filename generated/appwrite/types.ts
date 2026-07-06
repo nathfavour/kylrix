@@ -517,6 +517,7 @@ export type WalletsCreate = {
     "chain": string;
     "encryptedSecret": string;
     "type": string;
+    "metadata"?: string | null;
 }
 
 export type Wallets = Models.Row & {
@@ -525,6 +526,7 @@ export type Wallets = Models.Row & {
     "chain": string;
     "encryptedSecret": string;
     "type": string;
+    "metadata"?: string | null;
 }
 
 export type NotesCreate = {
@@ -2009,6 +2011,26 @@ export type NostrIdentities = Models.Row & {
     "salt": string;
 }
 
+export type AgentPaymentIntentsCreate = {
+    "userId": string;
+    "agentId": string;
+    "status": string;
+    "txHash"?: string | null;
+    "payload"?: string | null;
+    "chainId": number;
+    "amount": number;
+}
+
+export type AgentPaymentIntents = Models.Row & {
+    "userId": string;
+    "agentId": string;
+    "status": string;
+    "txHash"?: string | null;
+    "payload"?: string | null;
+    "chainId": number;
+    "amount": number;
+}
+
 declare const __roleStringBrand: unique symbol;
 export type RoleString = string & { readonly [__roleStringBrand]: never };
 
@@ -2416,6 +2438,7 @@ export type DatabaseTableMap = {
         "chain": string;
         "encryptedSecret": string;
         "type": string;
+        "metadata"?: string | null;
       }, options?: { rowId?: string; permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<Wallets>;
       get: (id: string) => Promise<Wallets>;
       update: (id: string, data: Partial<{
@@ -2424,6 +2447,7 @@ export type DatabaseTableMap = {
         "chain": string;
         "encryptedSecret": string;
         "type": string;
+        "metadata"?: string | null;
       }>, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<Wallets>;
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
       list: (options?: { queries?: (q: { equal: <K extends QueryableKeys<Wallets>>(field: K, value: QueryableFieldValue<Wallets, K>) => string; notEqual: <K extends QueryableKeys<Wallets>>(field: K, value: QueryableFieldValue<Wallets, K>) => string; lessThan: <K extends QueryableKeys<Wallets>>(field: K, value: QueryableFieldValue<Wallets, K>) => string; lessThanEqual: <K extends QueryableKeys<Wallets>>(field: K, value: QueryableFieldValue<Wallets, K>) => string; greaterThan: <K extends QueryableKeys<Wallets>>(field: K, value: QueryableFieldValue<Wallets, K>) => string; greaterThanEqual: <K extends QueryableKeys<Wallets>>(field: K, value: QueryableFieldValue<Wallets, K>) => string; contains: <K extends QueryableKeys<Wallets>>(field: K, value: QueryableFieldValue<Wallets, K>) => string; search: <K extends QueryableKeys<Wallets>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<Wallets>>(field: K) => string; isNotNull: <K extends QueryableKeys<Wallets>>(field: K) => string; startsWith: <K extends QueryableKeys<Wallets>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<Wallets>>(field: K, value: string) => string; between: <K extends QueryableKeys<Wallets>>(field: K, start: QueryableFieldValue<Wallets, K>, end: QueryableFieldValue<Wallets, K>) => string; select: <K extends keyof Wallets>(fields: K[]) => string; orderAsc: <K extends keyof Wallets>(field: K) => string; orderDesc: <K extends keyof Wallets>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[] }) => Promise<{ total: number; rows: Wallets[] }>;
@@ -4086,6 +4110,29 @@ export type DatabaseTableMap = {
       }>, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<NostrIdentities>;
       delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
       list: (options?: { queries?: (q: { equal: <K extends QueryableKeys<NostrIdentities>>(field: K, value: QueryableFieldValue<NostrIdentities, K>) => string; notEqual: <K extends QueryableKeys<NostrIdentities>>(field: K, value: QueryableFieldValue<NostrIdentities, K>) => string; lessThan: <K extends QueryableKeys<NostrIdentities>>(field: K, value: QueryableFieldValue<NostrIdentities, K>) => string; lessThanEqual: <K extends QueryableKeys<NostrIdentities>>(field: K, value: QueryableFieldValue<NostrIdentities, K>) => string; greaterThan: <K extends QueryableKeys<NostrIdentities>>(field: K, value: QueryableFieldValue<NostrIdentities, K>) => string; greaterThanEqual: <K extends QueryableKeys<NostrIdentities>>(field: K, value: QueryableFieldValue<NostrIdentities, K>) => string; contains: <K extends QueryableKeys<NostrIdentities>>(field: K, value: QueryableFieldValue<NostrIdentities, K>) => string; search: <K extends QueryableKeys<NostrIdentities>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<NostrIdentities>>(field: K) => string; isNotNull: <K extends QueryableKeys<NostrIdentities>>(field: K) => string; startsWith: <K extends QueryableKeys<NostrIdentities>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<NostrIdentities>>(field: K, value: string) => string; between: <K extends QueryableKeys<NostrIdentities>>(field: K, start: QueryableFieldValue<NostrIdentities, K>, end: QueryableFieldValue<NostrIdentities, K>) => string; select: <K extends keyof NostrIdentities>(fields: K[]) => string; orderAsc: <K extends keyof NostrIdentities>(field: K) => string; orderDesc: <K extends keyof NostrIdentities>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[] }) => Promise<{ total: number; rows: NostrIdentities[] }>;
+    };
+    "Agent Payment Intents": {
+      create: (data: {
+        "userId": string;
+        "agentId": string;
+        "status": string;
+        "txHash"?: string | null;
+        "payload"?: string | null;
+        "chainId": number;
+        "amount": number;
+      }, options?: { rowId?: string; permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<AgentPaymentIntents>;
+      get: (id: string) => Promise<AgentPaymentIntents>;
+      update: (id: string, data: Partial<{
+        "userId": string;
+        "agentId": string;
+        "status": string;
+        "txHash"?: string | null;
+        "payload"?: string | null;
+        "chainId": number;
+        "amount": number;
+      }>, options?: { permissions?: (permission: { read: (role: RoleString) => string; write: (role: RoleString) => string; create: (role: RoleString) => string; update: (role: RoleString) => string; delete: (role: RoleString) => string }, role: { any: () => RoleString; user: (userId: string, status?: string) => RoleString; users: (status?: string) => RoleString; guests: () => RoleString; team: (teamId: string, role?: string) => RoleString; member: (memberId: string) => RoleString; label: (label: string) => RoleString }) => string[]; transactionId?: string }) => Promise<AgentPaymentIntents>;
+      delete: (id: string, options?: { transactionId?: string }) => Promise<void>;
+      list: (options?: { queries?: (q: { equal: <K extends QueryableKeys<AgentPaymentIntents>>(field: K, value: QueryableFieldValue<AgentPaymentIntents, K>) => string; notEqual: <K extends QueryableKeys<AgentPaymentIntents>>(field: K, value: QueryableFieldValue<AgentPaymentIntents, K>) => string; lessThan: <K extends QueryableKeys<AgentPaymentIntents>>(field: K, value: QueryableFieldValue<AgentPaymentIntents, K>) => string; lessThanEqual: <K extends QueryableKeys<AgentPaymentIntents>>(field: K, value: QueryableFieldValue<AgentPaymentIntents, K>) => string; greaterThan: <K extends QueryableKeys<AgentPaymentIntents>>(field: K, value: QueryableFieldValue<AgentPaymentIntents, K>) => string; greaterThanEqual: <K extends QueryableKeys<AgentPaymentIntents>>(field: K, value: QueryableFieldValue<AgentPaymentIntents, K>) => string; contains: <K extends QueryableKeys<AgentPaymentIntents>>(field: K, value: QueryableFieldValue<AgentPaymentIntents, K>) => string; search: <K extends QueryableKeys<AgentPaymentIntents>>(field: K, value: string) => string; isNull: <K extends QueryableKeys<AgentPaymentIntents>>(field: K) => string; isNotNull: <K extends QueryableKeys<AgentPaymentIntents>>(field: K) => string; startsWith: <K extends QueryableKeys<AgentPaymentIntents>>(field: K, value: string) => string; endsWith: <K extends QueryableKeys<AgentPaymentIntents>>(field: K, value: string) => string; between: <K extends QueryableKeys<AgentPaymentIntents>>(field: K, start: QueryableFieldValue<AgentPaymentIntents, K>, end: QueryableFieldValue<AgentPaymentIntents, K>) => string; select: <K extends keyof AgentPaymentIntents>(fields: K[]) => string; orderAsc: <K extends keyof AgentPaymentIntents>(field: K) => string; orderDesc: <K extends keyof AgentPaymentIntents>(field: K) => string; limit: (value: number) => string; offset: (value: number) => string; cursorAfter: (documentId: string) => string; cursorBefore: (documentId: string) => string; or: (...queries: string[]) => string; and: (...queries: string[]) => string }) => string[] }) => Promise<{ total: number; rows: AgentPaymentIntents[] }>;
     }
   }
 };
