@@ -5,6 +5,7 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
 import { HDKey } from '@scure/bip32';
 import * as secp256k1 from '@noble/secp256k1';
 import * as ed25519 from '@noble/ed25519';
+import { sha512 } from '@noble/hashes/sha2.js';
 import { base58, bech32 } from '@scure/base';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { ripemd160 as hash160 } from '@noble/hashes/legacy.js';
@@ -13,6 +14,11 @@ import { tablesDB } from '../appwrite/client';
 import { APPWRITE_CONFIG } from '../appwrite/config';
 import { ecosystemSecurity } from '../ecosystem/security';
 import { UsersService } from './users';
+
+// Configure sha512 for ed25519
+ed25519.hashes.sha512 = (message: Uint8Array) => sha512(message);
+ed25519.hashes.sha512Async = (message: Uint8Array) => Promise.resolve(sha512(message));
+
 
 const PASSWORD_MANAGER_DB = APPWRITE_CONFIG.DATABASES.PASSWORD_MANAGER;
 const WALLETS_TABLE = APPWRITE_CONFIG.TABLES.PASSWORD_MANAGER.WALLETS;
@@ -305,44 +311,49 @@ const createWalletRow = async (
 };
 
 const syncWalletMap = async (userId: string, wallets: any[]) => {
-    const publicAddresses = Array.from(
-        new Set(
-            wallets
-                .filter((wallet) => NETWORKS[wallet.chain as SupportedWalletChain]?.publicProfile)
-                .map((wallet) => wallet.address.toLowerCase())
-        )
-    );
+    try {
+        const publicAddresses = Array.from(
+            new Set(
+                wallets
+                    .filter((wallet) => NETWORKS[wallet.chain as SupportedWalletChain]?.publicProfile)
+                    .map((wallet) => wallet.address.toLowerCase())
+            )
+        );
 
-    const existing = await tablesDB.listRows(NOTE_DB, WALLET_MAP_TABLE, [
-        Query.equal('userId', userId),
-        Query.limit(100)]);
+        const existing = await tablesDB.listRows(NOTE_DB, WALLET_MAP_TABLE, [
+            Query.equal('userId', userId),
+            Query.limit(100)
+        ]);
 
-    for (const row of existing.rows) {
-        if (!publicAddresses.includes(row.walletAddressLower)) {
-            await tablesDB.deleteRow(NOTE_DB, WALLET_MAP_TABLE, row.$id);
+        for (const row of existing.rows) {
+            if (!publicAddresses.includes(row.walletAddressLower)) {
+                await tablesDB.deleteRow(NOTE_DB, WALLET_MAP_TABLE, row.$id);
+            }
         }
-    }
 
-    const existingAddresses = new Set(existing.rows.map((row: any) => row.walletAddressLower));
+        const existingAddresses = new Set(existing.rows.map((row: any) => row.walletAddressLower));
 
-    for (const walletAddressLower of publicAddresses) {
-        if (existingAddresses.has(walletAddressLower)) continue;
+        for (const walletAddressLower of publicAddresses) {
+            if (existingAddresses.has(walletAddressLower)) continue;
 
-        try {
-            await tablesDB.createRow(
-                NOTE_DB,
-                WALLET_MAP_TABLE,
-                ID.unique(),
-                {
-                    walletAddressLower,
-                    userId,
-                    updatedAt: new Date().toISOString(),
-                },
-                walletMapPermissions(userId)
-            );
-        } catch (error) {
-            console.warn('[WalletService] Failed to sync walletMap row', error);
+            try {
+                await tablesDB.createRow(
+                    NOTE_DB,
+                    WALLET_MAP_TABLE,
+                    ID.unique(),
+                    {
+                        walletAddressLower,
+                        userId,
+                        updatedAt: new Date().toISOString(),
+                    },
+                    walletMapPermissions(userId)
+                );
+            } catch (error) {
+                console.warn('[WalletService] Failed to sync walletMap row', error);
+            }
         }
+    } catch (err: any) {
+        console.warn('[WalletService] walletMap table check/sync failed (likely table missing in DB):', err.message);
     }
 };
 

@@ -1119,49 +1119,47 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                             </Typography>
                             <Paper
                                 sx={{
-                                    p: 2,
-                                    px: 2.5,
-                                    borderRadius: '20px',
+                                    px: 2.25,
+                                    py: 1.5,
+                                    borderRadius: '18px',
                                     bgcolor: HIGHLIGHT,
                                     border: `1px solid ${EDGE}`,
                                     transition: 'all 0.2s ease',
                                     '&:hover': { bgcolor: SURFACE, borderColor: '#4A4743', transform: 'translateX(4px)' }
                                 }}
                             >
-                                <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2}>
-                                    <Stack direction="row" alignItems="center" gap={2}>
-                                        <Box sx={{
-                                            width: 40,
-                                            height: 40,
-                                            borderRadius: '12px',
-                                            bgcolor: '#252321',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                        }}>
-                                            <PinnedNetworkIconSolana size={22} />
-                                        </Box>
-                                        <Box sx={{ minWidth: 0 }}>
-                                            <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)' }}>
-                                                {solWallet?.label || 'Solana'}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: MUTED, fontFamily: 'var(--font-mono)', display: 'block' }}>
-                                                {solWallet ? shortenAddress(solWallet.address) : 'Provisioning required'}
-                                            </Typography>
-                                        </Box>
-                                    </Stack>
-                                    <Stack alignItems="flex-end">
-                                        <Typography variant="body2" sx={{ fontWeight: 900, color: getNetworkColor('sol'), fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                                    <Box sx={{
+                                        width: 38,
+                                        height: 38,
+                                        borderRadius: '12px',
+                                        bgcolor: '#252321',
+                                        display: 'grid',
+                                        placeItems: 'center',
+                                        flexShrink: 0,
+                                    }}>
+                                        <PinnedNetworkIconSolana size={20} />
+                                    </Box>
+                                    <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                                        <Typography component="span" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)', fontSize: '0.88rem', lineHeight: 1.25 }}>
+                                            {solWallet?.label || 'Solana'}
+                                        </Typography>
+                                        <Typography component="span" sx={{ color: MUTED, fontFamily: 'var(--font-mono)', fontSize: '0.76rem', lineHeight: 1.35 }}>
+                                            {solWallet ? shortenAddress(solWallet.address) : 'Provisioning required'}
+                                        </Typography>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5, flexShrink: 0 }}>
+                                        <Typography component="span" sx={{ fontWeight: 900, color: getNetworkColor('sol'), fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: 1.2 }}>
                                             0.00 {solWallet?.symbol || 'SOL'}
                                         </Typography>
                                         {solWallet ? (
-                                            <Stack direction="row" gap={0.5} sx={{ mt: 0.5 }}>
+                                            <Stack direction="row" gap={0.5}>
                                                 <IconButton
                                                     size="small"
                                                     onClick={() => handleCopyAddress(solWallet.address)}
                                                     sx={{ p: 0.5, color: MUTED, '&:hover': { color: getNetworkColor('sol') } }}
                                                 >
-                                                    <Copy size={14} />
+                                                    <Copy size={12} />
                                                 </IconButton>
                                                 <IconButton
                                                     size="small"
@@ -1173,7 +1171,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                                     }}
                                                     sx={{ p: 0.5, color: MUTED, '&:hover': { color: 'white' } }}
                                                 >
-                                                    <ExternalLink size={14} />
+                                                    <ExternalLink size={12} />
                                                 </IconButton>
                                             </Stack>
                                         ) : (
@@ -1183,12 +1181,13 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                                 onClick={() => handleAddNetwork('sol')}
                                                 disabled={pendingChain !== null}
                                                 sx={{
-                                                    mt: 0.5,
-                                                    minWidth: 0,
-                                                    borderRadius: '10px',
+                                                    borderRadius: '8px',
                                                     borderColor: EDGE,
                                                     color: 'white',
                                                     textTransform: 'none',
+                                                    fontSize: '0.72rem',
+                                                    px: 1.5,
+                                                    py: 0.5,
                                                     fontFamily: 'var(--font-satoshi)',
                                                     '&:hover': { bgcolor: HIGHLIGHT, borderColor: '#4A4743' }
                                                 }}
@@ -1196,70 +1195,68 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                                 Add SOL
                                             </Button>
                                         )}
-                                    </Stack>
-                                </Stack>
+                                    </Box>
+                                </Box>
                             </Paper>
-                                <Paper
-                                    sx={{
-                                        p: 2,
-                                        px: 2.5,
-                                        borderRadius: '20px',
-                                        bgcolor: HIGHLIGHT,
-                                        border: `1px solid ${EDGE}`,
-                                        transition: 'all 0.2s ease',
-                                        '&:hover': { bgcolor: SURFACE, borderColor: '#4A4743', transform: 'translateX(4px)' },
-                                    }}
-                                >
-                                    <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2}>
-                                        <Stack direction="row" alignItems="center" gap={2}>
-                                            <Box sx={{
-                                                width: 40,
-                                                height: 40,
-                                                borderRadius: '12px',
-                                                bgcolor: '#252321',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                lineHeight: 0,
-                                            }}>
-                                                <Logo app="root" variant="icon" size={22} />
-                                            </Box>
-                                            <Box sx={{ minWidth: 0 }}>
-                                                <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)' }}>
-                                                    Kylrix
-                                                </Typography>
-                                                <Typography variant="caption" sx={{ color: MUTED, fontFamily: 'var(--font-mono)', display: 'block' }}>
-                                                    {user?.$id ? shortenUserId(user.$id) : '—'}
-                                                </Typography>
-                                            </Box>
-                                        </Stack>
-                                        <Stack alignItems="flex-end">
-                                            <Typography variant="body2" sx={{ fontWeight: 900, color: ACCENT, fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
-                                                {tokenBalance?.amount || '0'} {kylrixTicker(tokenBalance?.symbol)}
-                                            </Typography>
-                                            {user?.$id ? (
-                                                <Stack direction="row" gap={0.5} sx={{ mt: 0.5 }}>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleCopyAddress(user.$id)}
-                                                        sx={{ p: 0.5, color: MUTED, '&:hover': { color: ACCENT } }}
-                                                        aria-label="Copy Kylrix wallet id"
-                                                    >
-                                                        <Copy size={14} />
-                                                    </IconButton>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleKylrixCardClick()}
-                                                        sx={{ p: 0.5, color: MUTED, '&:hover': { color: 'white' } }}
-                                                        aria-label="Open Kylrix ledger"
-                                                    >
-                                                        <PanelRight size={14} />
-                                                    </IconButton>
-                                                </Stack>
-                                            ) : null}
-                                        </Stack>
-                                    </Stack>
-                                </Paper>
+                            
+                            <Paper
+                                sx={{
+                                    px: 2.25,
+                                    py: 1.5,
+                                    borderRadius: '18px',
+                                    bgcolor: HIGHLIGHT,
+                                    border: `1px solid ${EDGE}`,
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': { bgcolor: SURFACE, borderColor: '#4A4743', transform: 'translateX(4px)' },
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                                    <Box sx={{
+                                        width: 38,
+                                        height: 38,
+                                        borderRadius: '12px',
+                                        bgcolor: '#252321',
+                                        display: 'grid',
+                                        placeItems: 'center',
+                                        flexShrink: 0,
+                                    }}>
+                                        <Logo app="root" variant="icon" size={20} />
+                                    </Box>
+                                    <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                                        <Typography component="span" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)', fontSize: '0.88rem', lineHeight: 1.25 }}>
+                                            Kylrix
+                                        </Typography>
+                                        <Typography component="span" sx={{ color: MUTED, fontFamily: 'var(--font-mono)', fontSize: '0.76rem', lineHeight: 1.35 }}>
+                                            {user?.$id ? shortenUserId(user.$id) : '—'}
+                                        </Typography>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5, flexShrink: 0 }}>
+                                        <Typography component="span" sx={{ fontWeight: 900, color: ACCENT, fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: 1.2 }}>
+                                            {tokenBalance?.amount || '0'} {kylrixTicker(tokenBalance?.symbol)}
+                                        </Typography>
+                                        {user?.$id ? (
+                                            <Stack direction="row" gap={0.5}>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleCopyAddress(user.$id)}
+                                                    sx={{ p: 0.5, color: MUTED, '&:hover': { color: ACCENT } }}
+                                                    aria-label="Copy Kylrix wallet id"
+                                                >
+                                                    <Copy size={12} />
+                                                </IconButton>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleKylrixCardClick()}
+                                                    sx={{ p: 0.5, color: MUTED, '&:hover': { color: 'white' } }}
+                                                    aria-label="Open Kylrix ledger"
+                                                >
+                                                    <PanelRight size={12} />
+                                                </IconButton>
+                                            </Stack>
+                                        ) : null}
+                                    </Box>
+                                </Box>
+                            </Paper>
                         </Stack>
 
                         {/* Other Live Networks */}
@@ -1272,8 +1269,8 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                     <Paper
                                         key={wallet.chain}
                                         sx={{
-                                            p: 1.5,
-                                            px: 2,
+                                            px: 2.25,
+                                            py: 1.5,
                                             borderRadius: '18px',
                                             bgcolor: SURFACE,
                                             border: `1px solid ${EDGE}`,
@@ -1281,42 +1278,40 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                             '&:hover': { bgcolor: HIGHLIGHT, transform: 'translateX(4px)' }
                                         }}
                                     >
-                                        <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2}>
-                                            <Stack direction="row" alignItems="center" gap={1.5}>
-                                                <Box sx={{ 
-                                                    width: 32, 
-                                                    height: 32, 
-                                                    borderRadius: '8px',
-                                                    bgcolor: '#252321',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    color: getNetworkColor(wallet.chain),
-                                                    fontWeight: 800,
-                                                    fontSize: '14px'
-                                                }}>
-                                                    {getNetworkLogo(wallet.chain)}
-                                                </Box>
-                                                <Box sx={{ minWidth: 0 }}>
-                                                    <Typography variant="body2" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)' }}>
-                                                        {wallet.label}
-                                                    </Typography>
-                                                    <Typography variant="caption" sx={{ color: MUTED, fontFamily: 'var(--font-mono)', display: 'block' }}>
-                                                        {shortenAddress(wallet.address)}
-                                                    </Typography>
-                                                </Box>
-                                            </Stack>
-                                            <Stack alignItems="flex-end">
-                                                <Typography variant="body2" sx={{ fontWeight: 900, color: getNetworkColor(wallet.chain), fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                                            <Box sx={{ 
+                                                width: 32, 
+                                                height: 32, 
+                                                borderRadius: '8px',
+                                                bgcolor: '#252321',
+                                                display: 'grid',
+                                                placeItems: 'center',
+                                                flexShrink: 0,
+                                                color: getNetworkColor(wallet.chain),
+                                                fontWeight: 800,
+                                                fontSize: '14px'
+                                            }}>
+                                                {getNetworkLogo(wallet.chain)}
+                                            </Box>
+                                            <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                                                <Typography component="span" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)', fontSize: '0.88rem', lineHeight: 1.25 }}>
+                                                    {wallet.label}
+                                                </Typography>
+                                                <Typography component="span" sx={{ color: MUTED, fontFamily: 'var(--font-mono)', fontSize: '0.76rem', lineHeight: 1.35 }}>
+                                                    {shortenAddress(wallet.address)}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5, flexShrink: 0 }}>
+                                                <Typography component="span" sx={{ fontWeight: 900, color: getNetworkColor(wallet.chain), fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: 1.2 }}>
                                                     0.00 {wallet.symbol}
                                                 </Typography>
-                                                <Stack direction="row" gap={0.5} sx={{ mt: 0.5 }}>
+                                                <Stack direction="row" gap={0.5}>
                                                     <IconButton
                                                         size="small"
                                                         onClick={() => handleCopyAddress(wallet.address)}
                                                         sx={{ p: 0.5, color: MUTED, '&:hover': { color: getNetworkColor(wallet.chain) } }}
                                                     >
-                                                        <Copy size={14} />
+                                                        <Copy size={12} />
                                                     </IconButton>
                                                     <IconButton
                                                         size="small"
@@ -1328,11 +1323,11 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                                         }}
                                                         sx={{ p: 0.5, color: MUTED, '&:hover': { color: 'white' } }}
                                                     >
-                                                        <ExternalLink size={14} />
+                                                        <ExternalLink size={12} />
                                                     </IconButton>
                                                 </Stack>
-                                            </Stack>
-                                        </Stack>
+                                            </Box>
+                                        </Box>
                                     </Paper>
                                 ))}
                             </Stack>
