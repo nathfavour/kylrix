@@ -366,6 +366,7 @@ export type Wallets = Models.Row & {
     chain: string;
     encryptedSecret: string;
     type: string;
+    metadata: string | null;
 }
 
 export type Notes = Models.Row & {
@@ -1107,4 +1108,14 @@ export type NostrIdentities = Models.Row & {
     encryptedNsec: string;
     iv: string;
     salt: string;
+}
+
+export type AgentPaymentIntents = Models.Row & {
+    userId: string;
+    agentId: string;
+    status: string;
+    txHash: string | null;
+    payload: string | null;
+    chainId: number;
+    amount: number;
 }
