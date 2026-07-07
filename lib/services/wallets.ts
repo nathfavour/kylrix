@@ -1,5 +1,9 @@
 import { ID, Permission, Query, Role } from 'appwrite';
-import { Buffer } from 'buffer';
+function bytesToHex(bytes: Uint8Array): string {
+    return Array.from(bytes)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
 import * as bip39 from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english.js';
 import { HDKey } from '@scure/bip32';
@@ -216,7 +220,7 @@ const deriveAddress = async (
             if (!child.privateKey) throw new Error('Failed to derive EVM key');
             const pubKey = secp256k1.getPublicKey(child.privateKey, false).slice(1);
             const hash = keccak_256(pubKey);
-            address = '0x' + Buffer.from(hash.slice(-20)).toString('hex').toLowerCase();
+            address = '0x' + bytesToHex(hash.slice(-20)).toLowerCase();
             break;
         }
         case 'solana': {
@@ -245,7 +249,7 @@ const deriveAddress = async (
             tmp.set([0x00]); // Flag for Ed25519 in Sui
             tmp.set(pubKey, 1);
             const hash = blake2b(tmp, { dkLen: 32 });
-            address = '0x' + Buffer.from(hash).toString('hex').slice(0, 64);
+            address = '0x' + bytesToHex(hash).slice(0, 64);
             break;
         }
         default: {
@@ -447,12 +451,12 @@ export const WalletService = {
         if (family === 'evm') {
             const child = rootKey.derive("m/44'/60'/0'/0/0");
             if (!child.privateKey) throw new Error('Failed to derive EVM key');
-            return Buffer.from(child.privateKey).toString('hex');
+            return bytesToHex(child.privateKey);
         }
         if (family === 'solana') {
             const child = rootKey.derive("m/44'/501'/0'/0'");
             if (!child.privateKey) throw new Error('Failed to derive Solana key');
-            return Buffer.from(child.privateKey).toString('hex');
+            return bytesToHex(child.privateKey);
         }
         throw new Error(`Derivation for chain ${chain} not implemented`);
     },

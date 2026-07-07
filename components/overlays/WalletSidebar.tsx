@@ -1128,39 +1128,40 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
             </Stack>
 
             <Stack gap={2.5} sx={{ flex: 1, overflowY: 'auto' }}>
-                <Paper sx={{ p: 2, borderRadius: '18px', bgcolor: HIGHLIGHT, border: `1px solid ${EDGE}` }}>
-                    <Typography sx={{ color: MUTED, fontSize: '0.72rem', mb: 0.5, textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em' }}>
+                <Paper sx={{ px: 2.25, py: 1.5, borderRadius: '18px', bgcolor: HIGHLIGHT, border: `1px solid ${EDGE}`, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                    <Typography component="span" sx={{ color: MUTED, fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em', fontFamily: 'var(--font-satoshi)' }}>
                         Origin / Invoker
                     </Typography>
-                    <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.88rem', fontFamily: 'var(--font-satoshi)' }}>
+                    <Typography component="span" sx={{ color: 'white', fontWeight: 700, fontSize: '0.88rem', fontFamily: 'var(--font-satoshi)', lineHeight: 1.25 }}>
                         {signDestination || 'Kylrix Ecosystem Platform'}
                     </Typography>
                 </Paper>
 
-                <Paper sx={{ p: 2, borderRadius: '18px', bgcolor: HIGHLIGHT, border: `1px solid ${EDGE}` }}>
-                    <Typography sx={{ color: MUTED, fontSize: '0.72rem', mb: 1, textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em' }}>
+                <Paper sx={{ px: 2.25, py: 1.5, borderRadius: '18px', bgcolor: HIGHLIGHT, border: `1px solid ${EDGE}`, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Typography component="span" sx={{ color: MUTED, fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em', fontFamily: 'var(--font-satoshi)' }}>
                         Message to Sign
                     </Typography>
                     <Box sx={{
                         bgcolor: '#0B0A09',
-                        p: 1.5,
+                        p: 2.25,
                         borderRadius: '12px',
                         border: '1px solid rgba(255,255,255,0.03)',
                         fontFamily: 'var(--font-mono)',
                         fontSize: '0.78rem',
                         color: 'white',
                         whiteSpace: 'pre-wrap',
-                        textAlign: 'left'
+                        textAlign: 'left',
+                        lineHeight: 1.4
                     }}>
                         {signMessageText}
                     </Box>
                 </Paper>
 
-                <Box sx={{ p: 2, borderRadius: '18px', bgcolor: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
-                    <Typography sx={{ color: '#ef4444', fontWeight: 800, fontSize: '0.78rem', mb: 0.5, fontFamily: 'var(--font-satoshi)' }}>
+                <Box sx={{ px: 2.25, py: 1.5, borderRadius: '18px', bgcolor: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.15)', display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                    <Typography component="span" sx={{ color: '#ef4444', fontWeight: 800, fontSize: '0.78rem', fontFamily: 'var(--font-satoshi)' }}>
                         Security Risk Acknowledgment
                     </Typography>
-                    <Typography sx={{ color: MUTED, fontSize: '0.72rem', lineHeight: 1.45, fontFamily: 'var(--font-satoshi)' }}>
+                    <Typography component="span" sx={{ color: MUTED, fontSize: '0.72rem', lineHeight: 1.45, fontFamily: 'var(--font-satoshi)' }}>
                         Website-based keys reside in transient RAM to prevent sandbox scraping. However, client environments carry active XSS risks. Confirm you trust this application action fully.
                     </Typography>
                 </Box>
@@ -1806,11 +1807,17 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                 <Divider sx={{ borderColor: EDGE, my: 2 }} />
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Typography variant="caption" sx={{ color: MUTED, fontWeight: 700, fontFamily: 'var(--font-satoshi)' }}>
-                        Auto-provisioned once unlocked
+                        {isUnlocked ? 'Vault unlocked & active' : 'Auto-provisioned once unlocked'}
                     </Typography>
-                    <IconButton size="small" onClick={() => setShowSettings(true)} sx={{ color: MUTED, '&:hover': { color: 'white' } }}>
-                        <Settings size={16} />
-                    </IconButton>
+                    {isUnlocked ? (
+                        <IconButton size="small" onClick={() => setShowSettings(true)} sx={{ color: MUTED, '&:hover': { color: 'white' } }}>
+                            <Settings size={16} />
+                        </IconButton>
+                    ) : (
+                        <Typography variant="caption" sx={{ color: MUTED, fontWeight: 700, fontFamily: 'var(--font-satoshi)', fontStyle: 'italic', opacity: 0.6 }}>
+                            Locked
+                        </Typography>
+                    )}
                 </Stack>
             </Box>
         );

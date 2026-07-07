@@ -9,7 +9,7 @@ export default async function AgentsPage() {
   // Parallel Fetch: Auth check + Initial data
   const actor = await getActor();
   if (!actor) {
-    redirect('/accounts/login');
+    redirect('/send?login=1');
   }
 
   const agents = await listMyAgents();
