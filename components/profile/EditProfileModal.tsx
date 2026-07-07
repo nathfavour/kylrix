@@ -8,6 +8,8 @@ import { account, client } from '@/lib/appwrite/client';
 import { Storage } from 'appwrite';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { secureUploadFile } from '@/lib/actions/client-ops';
+import { useProUpgrade } from '@/context/ProUpgradeContext';
+import { hasPaidKylrixPlan } from '@/lib/utils';
 
 const storage = new Storage(client);
 const AVATAR_BUCKET_ID = 'profile_pictures';
@@ -95,6 +97,10 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
     const [tipEnabled, setTipEnabled] = useState(false);
     const [hasWallet, setHasWallet] = useState(false);
     const [showAdvancedDiscovery, setShowAdvancedDiscovery] = useState(false);
+    const [hideSensitiveInfo, setHideSensitiveInfo] = useState(false);
+
+    const { openProUpgrade } = useProUpgrade();
+    const isPro = hasPaidKylrixPlan(user);
 
     // Profile picture local state
     const [profilePic, setProfilePic] = useState<File | null>(null);
@@ -135,10 +141,12 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                 setLinks(prefsObj.links || []);
                 setTags(prefsObj.tags || []);
                 setTipEnabled(prefsObj.tipEnabled ?? false);
+                setHideSensitiveInfo(prefsObj.hideSensitiveInfo ?? false);
             } catch (e) {
                 setLinks([]);
                 setTags([]);
                 setTipEnabled(false);
+                setHideSensitiveInfo(false);
             }
 
             // Set initial picture preview url if profile has avatar field
@@ -326,7 +334,8 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                 ...currentPrefsObj,
                 links: links.filter(l => l.url.trim() !== ''),
                 tags,
-                tipEnabled: tipEnabled && hasWallet
+                tipEnabled: tipEnabled && hasWallet,
+                hideSensitiveInfo: hideSensitiveInfo && isPro
             });
 
             await UsersService.updateProfile(userId, {
@@ -583,6 +592,33 @@ export function EditProfileModal({ open, onClose, profile, onUpdate }: EditProfi
                                 disabled={!hasWallet}
                                 onChange={(e) => setTipEnabled(e.target.checked)}
                                 className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#6366F1] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Hide Sensitive Info Section (Pro only) */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="flex items-center gap-1.5">
+                                    <p className="text-sm font-bold text-white">Hide sensitive info</p>
+                                    <span className="text-[9px] font-black bg-[#F59E0B]/10 text-[#F59E0B] px-1.5 py-0.5 rounded uppercase tracking-wider">Pro</span>
+                                </div>
+                                <p className="text-xs text-white/40 font-semibold leading-normal">
+                                    Hide info like join date, user ID, last edited, and username change history
+                                </p>
+                            </div>
+                            <input
+                                type="checkbox"
+                                checked={hideSensitiveInfo && isPro}
+                                onChange={(e) => {
+                                    if (!isPro) {
+                                        openProUpgrade();
+                                        return;
+                                    }
+                                    setHideSensitiveInfo(e.target.checked);
+                                }}
+                                className="w-9 h-5 bg-white/10 rounded-full appearance-none checked:bg-[#6366F1] cursor-pointer relative transition-all before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-transform"
                             />
                         </div>
                     </div>

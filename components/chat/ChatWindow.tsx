@@ -8,7 +8,7 @@ import { StorageService } from '@/lib/services/storage';
 import { useAuth } from '@/lib/auth';
 import { UsersService } from '@/lib/services/users';
 import { PresenceService } from '@/lib/services/presence';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { tablesDB, realtime } from '@/lib/appwrite/client';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
@@ -501,6 +501,22 @@ export const ChatWindow = ({ conversationId, onBack }: { conversationId: string;
     const [isPending, startTransition] = useTransition();
     const isProPlan = hasPaidKylrixPlan(user);
     const { openWalletWithIntent } = useWalletOverlay();
+    const searchParams = useSearchParams();
+    const startCallParam = searchParams.get('startCall');
+    const callInitiatedRef = useRef(false);
+
+    useEffect(() => {
+        if (conversation && startCallParam === '1' && !callInitiatedRef.current) {
+            callInitiatedRef.current = true;
+            openCallLauncher({
+                source: 'chat',
+                conversationId,
+                conversationName: conversation?.name,
+                participantIds: Array.isArray(conversation?.participants) ? conversation.participants : [],
+                title: 'Audio Call',
+            });
+        }
+    }, [conversation, startCallParam, conversationId, openCallLauncher]);
 
     const partnerId = useMemo(() => {
         if (!conversation || conversation.type !== 'direct' || !user?.$id) return null;

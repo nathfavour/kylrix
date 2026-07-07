@@ -20,7 +20,12 @@ import {
   Github,
   Linkedin,
   Youtube,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Info,
+  Copy,
+  MessageSquare,
+  PhoneCall,
+  X
 } from 'lucide-react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
@@ -81,6 +86,7 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
   }, [normalizedUsername]);
 
   const [profile, setProfile] = useState<any>(() => initialProfile || preloadedProfile || cachedUsernameProfile);
+  const targetUserId = profile?.userId || profile?.$id || null;
   const [loading, setLoading] = useState(() => !normalizedUsername || !(initialProfile || preloadedProfile || cachedUsernameProfile));
   const [error, setError] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -88,6 +94,41 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [showAllLinks, setShowAllLinks] = useState(false);
+  const [technicalInfoOpen, setTechnicalInfoOpen] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    if (technicalInfoOpen && targetUserId) {
+      setHistoryLoading(true);
+      import('@/lib/appwrite/client').then(({ tablesDB }) => {
+        import('@/lib/appwrite/config').then(({ APPWRITE_CONFIG }) => {
+          import('appwrite').then(({ Query }) => {
+            tablesDB.listRows(
+              APPWRITE_CONFIG.DATABASES.CHAT,
+              APPWRITE_CONFIG.TABLES.CHAT.ACCOUNT_EVENTS,
+              [
+                Query.equal('userId', targetUserId),
+                Query.equal('type', 'username_change'),
+                Query.orderDesc('$createdAt'),
+                Query.limit(50)
+              ]
+            )
+            .then((res: any) => {
+              setHistory(res.rows || res || []);
+            })
+            .catch((err: any) => {
+              console.error("Failed to fetch username history:", err);
+            })
+            .finally(() => {
+              setHistoryLoading(false);
+            });
+          });
+        });
+      });
+    }
+  }, [technicalInfoOpen, targetUserId]);
+
   const [refreshNonce, setRefreshNonce] = useState(0);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { openTokenUserSearch } = useTokenOps();
@@ -104,7 +145,6 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
 
   const tabParam = searchParams.get('tab');
   const [selectedTab, setSelectedTab] = useState<TabKey>(() => normalizeTab(tabParam));
-  const targetUserId = profile?.userId || profile?.$id || null;
   const isOwnProfile = useMemo(() => {
     if (!currentUser?.$id || !targetUserId) return false;
     return currentUser.$id === targetUserId;
@@ -135,6 +175,7 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
   const profileLinks: Array<{ title?: string; url: string }> = preferences.links || [];
   const profileTags: string[] = preferences.tags || [];
   const tipEnabled: boolean = preferences.tipEnabled ?? false;
+  const hideSensitiveInfo: boolean = preferences.hideSensitiveInfo ?? false;
 
   const categorized = useMemo(() => {
     const momentsList = moments.filter((moment) => {
@@ -518,25 +559,58 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
               />
             </div>
             <div className="space-y-1">
-              <h1 className="text-white text-2xl font-black tracking-tight leading-none">
-                {profile?.displayName || profile?.username}
-              </h1>
-              <p className="text-[#6366F1] font-mono text-sm tracking-wide">
-                @{profile?.username}
-              </p>
+              <div className="flex items-center gap-2">
+                <h1 className="text-white text-2xl font-black tracking-tight leading-none">
+                  {profile?.displayName || profile?.username}
+                </h1>
+                {!hideSensitiveInfo && (
+                  <button
+                    onClick={() => setTechnicalInfoOpen(true)}
+                    className="p-1 rounded bg-white/2 hover:bg-white/5 text-white/40 hover:text-white transition-all flex items-center justify-center"
+                    title="Audit Technical Info"
+                  >
+                    <Info size={14} />
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[#6366F1] font-mono text-sm tracking-wide">
+                  @{profile?.username}
+                </p>
+                <button
+                  onClick={() => {
+                    const profileUrl = `${window.location.origin}/u/${profile?.username}`;
+                    navigator.clipboard.writeText(profileUrl);
+                    import('react-hot-toast').then(({ toast }) => toast.success("Profile link copied!"));
+                  }}
+                  className="p-1 rounded bg-white/2 hover:bg-white/5 text-white/40 hover:text-white transition-all flex items-center justify-center"
+                  title="Copy Profile URL"
+                >
+                  <Copy size={12} />
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Quick Actions Container */}
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             {isOwnProfile ? (
-              <button
-                onClick={() => setIsEditModalOpen(true)}
-                className="w-full md:w-auto py-2.5 px-6 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-white font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg"
-              >
-                <Edit3 size={15} />
-                <span>Edit Profile</span>
-              </button>
+              <>
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="flex-1 md:flex-none py-2.5 px-6 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] text-white font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <Edit3 size={15} />
+                  <span>Edit Profile</span>
+                </button>
+                <button
+                  onClick={() => router.push(`/connect/chat/${currentUser?.$id}`)}
+                  className="flex-1 md:flex-none py-2.5 px-6 rounded-xl bg-white/10 hover:bg-white/15 text-white border border-white/8 font-black text-sm transition-all flex items-center justify-center gap-2"
+                >
+                  <MessageSquare size={15} />
+                  <span>Saved Messages</span>
+                </button>
+              </>
             ) : (
               <>
                 <button
@@ -552,6 +626,27 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
                   <span>{followLoading ? 'Updating...' : isFollowing ? 'Following' : 'Follow'}</span>
                 </button>
                 
+                {profile?.isContact !== false && (
+                  <>
+                    <button
+                      onClick={() => router.push(`/connect/chat/${targetUserId}`)}
+                      disabled={!currentUser}
+                      className="flex-1 md:flex-none py-2.5 px-6 rounded-xl bg-white/10 hover:bg-white/15 text-white border border-white/8 font-black text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <MessageSquare size={15} />
+                      <span>Message</span>
+                    </button>
+                    <button
+                      onClick={() => router.push(`/connect/chat/${targetUserId}?startCall=1`)}
+                      disabled={!currentUser}
+                      className="flex-1 md:flex-none py-2.5 px-6 rounded-xl bg-white/10 hover:bg-white/15 text-white border border-white/8 font-black text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <PhoneCall size={15} />
+                      <span>Call</span>
+                    </button>
+                  </>
+                )}
+
                 {tipEnabled && (
                   <button
                     onClick={handleTip}
@@ -891,6 +986,77 @@ export function ProfileRedesign({ username, initialProfile }: ProfileProps) {
         }}
         onAction={handleActorAction}
       />
+
+      {technicalInfoOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1100] transition-opacity duration-300 ease-in-out cursor-default"
+            onClick={() => setTechnicalInfoOpen(false)}
+          />
+          {/* Drawer container */}
+          <div className="fixed bottom-0 left-0 right-0 max-h-[70vh] md:max-h-none md:top-0 md:right-0 md:left-auto md:w-[450px] bg-[#161412] border-t md:border-t-0 md:border-l border-white/8 rounded-t-[28px] md:rounded-t-none z-[1200] text-white flex flex-col animate-slide-up md:animate-slide-in">
+            <div className="flex items-center justify-between p-6 border-b border-white/8">
+              <div>
+                <h3 className="text-white text-lg font-black tracking-tight leading-tight">Technical Profile Audit</h3>
+                <p className="text-white/40 text-[11px] font-bold mt-1">Ecosystem audit log & user details</p>
+              </div>
+              <button
+                onClick={() => setTechnicalInfoOpen(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white bg-white/2 hover:bg-white/5 transition-all"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <span className="text-[10px] font-black tracking-wider text-white/45 uppercase block mb-1">User ID</span>
+                  <code className="text-xs bg-white/4 border border-white/8 rounded px-2.5 py-1.5 text-white font-mono break-all block">{targetUserId}</code>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black tracking-wider text-white/45 uppercase block mb-1">Joined Date</span>
+                  <p className="text-sm font-bold text-white/80">
+                    {profile?.$createdAt ? new Date(profile.$createdAt).toLocaleString() : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black tracking-wider text-white/45 uppercase block mb-1">Last Profile Sync</span>
+                  <p className="text-sm font-bold text-white/80">
+                    {profile?.$updatedAt ? new Date(profile.$updatedAt).toLocaleString() : (profile?.$createdAt ? new Date(profile.$createdAt).toLocaleString() : 'N/A')}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black tracking-wider text-white/45 uppercase block mb-1">Handle Edit History</span>
+                  {historyLoading ? (
+                    <div className="text-xs text-white/45 font-bold animate-pulse">Loading audit logs...</div>
+                  ) : history.length === 0 ? (
+                    <div className="text-xs text-white/30 italic">No handle changes recorded</div>
+                  ) : (
+                    <div className="space-y-2 mt-1">
+                      {history.map((evt: any, i: number) => {
+                        let info = "Updated details";
+                        try {
+                          const parsed = typeof evt.metadata === 'string' ? JSON.parse(evt.metadata) : evt.metadata;
+                          if (parsed.newUsername) {
+                            info = `Changed handle to @${parsed.newUsername}`;
+                          }
+                        } catch {}
+                        return (
+                          <div key={i} className="flex justify-between items-center bg-white/2 border border-white/5 p-2.5 rounded-lg text-xs">
+                            <span className="font-bold text-white/70">{info}</span>
+                            <span className="text-[10px] text-white/40">{new Date(evt.$createdAt || evt.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
