@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { validatePublicNoteAccess } from '@/lib/appwrite/note';
+import { validatePublicNoteAccess } from '@/lib/appwrite';
 import { UsersService } from '@/lib/services/users';
 import { parseSendGhostMetadata } from '@/lib/send/metadata';
 

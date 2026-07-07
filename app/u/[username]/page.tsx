@@ -32,12 +32,8 @@ export async function generateMetadata({
 
     const displayName = profile.displayName || profile.username || username;
     const bioText = profile.bio ? profile.bio.substring(0, 160).trim() + '…' : `View @${username}'s profile on Kylrix.`;
-    const avatarFileId = profile.avatar || profile.avatarFileId || null;
-    let avatarUrl = fallbackImage;
-
-    if (avatarFileId) {
-      avatarUrl = `https://api.kylrix.space/v1/storage/buckets/profile_pictures/files/${avatarFileId}/view?project=67fe9627001d97e37ef3`;
-    }
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URI || 'https://kylrix.space';
+    const ogImage = `${baseUrl}/u/${profile.username || username}/opengraph-image`;
 
     return {
       title: `${displayName} (@${profile.username || username}) · Kylrix`,
@@ -49,18 +45,18 @@ export async function generateMetadata({
         username: profile.username || username,
         images: [
           {
-            url: avatarUrl,
-            width: 320,
-            height: 320,
-            alt: `${displayName}'s avatar`,
+            url: ogImage,
+            width: 1200,
+            height: 630,
+            alt: `${displayName}'s profile preview`,
           },
         ],
       },
       twitter: {
-        card: 'summary',
+        card: 'summary_large_image',
         title: `${displayName} (@${profile.username || username}) · Kylrix`,
         description: bioText,
-        images: [avatarUrl],
+        images: [ogImage],
       },
     };
   } catch (error) {
