@@ -2117,6 +2117,32 @@ export async function attachObjectSecure(params: {
   const databaseId = APPWRITE_CONFIG.DATABASES.FLOW;
   const tableId = APPWRITE_CONFIG.TABLES.FLOW.OBJECTS || 'objects';
 
+  // Note parent safety: only note owner or write collaborator can attach.
+  if (params.parentKind === 'note') {
+    const note = await tables.getRow({
+      databaseId: APPWRITE_CONFIG.DATABASES.NOTE,
+      tableId: APPWRITE_CONFIG.TABLES.NOTE.NOTES,
+      rowId: params.parentId,
+    }).catch(() => null as any);
+
+    if (!note) throw new Error('Parent note not found');
+
+    const isOwner = note.userId === actor.$id;
+    const collaborators = Array.isArray(note.collaborators) ? note.collaborators : [];
+    const hasWriteAccess = collaborators.some((entry: any) => {
+      try {
+        const parsed = typeof entry === 'string' ? JSON.parse(entry) : entry;
+        return parsed?.userId === actor.$id && String(parsed?.permission || '').toLowerCase() === 'write';
+      } catch {
+        return false;
+      }
+    });
+
+    if (!isOwner && !hasWriteAccess) {
+      throw new Error('Forbidden: You do not have write access to this note.');
+    }
+  }
+
   const userTier = getUserSubscriptionTier(actor);
   const { users } = createSystemClient();
 
@@ -2151,6 +2177,13 @@ export async function attachObjectSecure(params: {
       Query.equal('parentKind', params.parentKind)
     ] as any
   });
+
+  const duplicate = containerExisting.rows.find((row: any) => (
+    row?.childId === params.childId && row?.childKind === params.childKind
+  ));
+  if (duplicate) {
+    return JSON.parse(JSON.stringify(duplicate));
+  }
 
 
 

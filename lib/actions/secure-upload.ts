@@ -26,6 +26,7 @@ export async function secureUploadFile(formData: FormData, jwt?: string) {
     APPWRITE_CONFIG.BUCKETS.PROFILE_PICTURES,
     APPWRITE_CONFIG.BUCKETS.MESSAGES,
     APPWRITE_CONFIG.BUCKETS.NOTES_ATTACHMENTS,
+    APPWRITE_CONFIG.BUCKETS.GENERAL_STORAGE,
     APPWRITE_CONFIG.BUCKETS.VAULT_ATTACHMENTS,
     APPWRITE_CONFIG.BUCKETS.FORM_MEDIA,
     APPWRITE_CONFIG.BUCKETS.FORM_ATTACHMENTS,
@@ -58,6 +59,7 @@ export async function secureUploadFile(formData: FormData, jwt?: string) {
     profile_pictures: 1 * 1024 * 1024,   // 1 MB
     messages: 1 * 1024 * 1024,           // 1 MB
     notes_attachments: 5 * 1024 * 1024,   // 5 MB
+    general_storage: 10 * 1024 * 1024,    // 10 MB
     vault_attachments: 5 * 1024 * 1024,   // 5 MB
     form_media: 10 * 1024 * 1024,        // 10 MB
     form_attachments: 5 * 1024 * 1024,   // 5 MB

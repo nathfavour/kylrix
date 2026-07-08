@@ -30,7 +30,11 @@ import {
   Tag as TagIcon,
   Plus,
   Clipboard,
-  MoreVertical
+  MoreVertical,
+  Bold,
+  Italic,
+  Heading1,
+  Code2
 } from 'lucide-react';
 
 import { 
@@ -87,6 +91,14 @@ import { resolveResourceOwnerId, isValidAppwriteRowId } from '@/lib/utils/resour
 import { pickNoteAutosavePayload } from '@/lib/appwrite/note';
 import { attachObject } from '@/lib/actions/client-ops';
 import ProjectLinker from '@/components/projects/ProjectLinker';
+import {
+  applyMarkdownWrap,
+  getRemovedObjectBlocks,
+  parseObjectBlocks,
+  serializeObjectBlock,
+  type ParsedObjectBlock,
+} from '@/lib/note-object-secondary';
+import { storage } from '@/lib/appwrite/client';
 
 export type NoteAccessRole = 'owner' | 'write-collab' | 'read-collab' | 'guest' | 'public';
 
@@ -672,7 +684,12 @@ export function NoteDetailSidebar({
 
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [isContextDrawerOpen, setIsContextDrawerOpen] = useState(false);
+  const [pendingBlockDelete, setPendingBlockDelete] = useState<ParsedObjectBlock | null>(null);
+  const [isAttachingObject, setIsAttachingObject] = useState(false);
+  const objectUploadInputRef = useRef<HTMLInputElement | null>(null);
   const [contentMode, setContentMode] = useState<'edit' | 'preview'>(readOnly ? 'preview' : 'edit');
+  const canAttachSecondaryObject = !readOnly && (accessRole === 'owner' || accessRole === 'write-collab');
+  const previousContentRef = useRef(content);
 
   // Force preview mode when readOnly
   useEffect(() => {
@@ -826,6 +843,214 @@ export function NoteDetailSidebar({
       console.error('Failed to run immediate save on voice note insert:', err);
     }
   }, [content, liveNote.$id, updateLocalAndParentNote, title, tags, markDirty]);
+
+  const replaceContentWithSave = useCallback(async (nextContent: string) => {
+    setContent(nextContent);
+    markDirty();
+    try {
+      const { updateNote: apiUpdateNote } = await import('@/lib/actions/client-ops');
+      const saved = await apiUpdateNote(
+        liveNote.$id,
+        pickNoteAutosavePayload({
+          content: nextContent,
+          title,
+          format: liveNote.format || 'markdown',
+          tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+        })
+      );
+      if (saved) {
+        isDirtyRef.current = false;
+        lastAppliedServerTsRef.current = String(saved.updatedAt || saved.$updatedAt || '');
+        updateLocalAndParentNote(saved as Notes);
+      }
+    } catch (err) {
+      console.error('Failed to save content update:', err);
+    }
+  }, [liveNote.$id, title, liveNote.format, tags, markDirty, updateLocalAndParentNote]);
+
+  const insertObjectBlockAtCursor = useCallback(async (block: string) => {
+    const textarea = contentTextareaRef.current;
+    const start = textarea ? textarea.selectionStart : content.length;
+    const end = textarea ? textarea.selectionEnd : content.length;
+    const insertion = `${start > 0 && content[start - 1] !== '\n' ? '\n' : ''}${block}\n`;
+    const nextContent = content.substring(0, start) + insertion + content.substring(end);
+    await replaceContentWithSave(nextContent);
+    if (textarea) {
+      setTimeout(() => {
+        textarea.focus();
+        const cursor = start + insertion.length;
+        textarea.setSelectionRange(cursor, cursor);
+      }, 50);
+    }
+  }, [content, replaceContentWithSave]);
+
+  const attachExternalLink = useCallback(async () => {
+    if (!canAttachSecondaryObject) {
+      showError('No access', 'Only owners and write collaborators can attach objects.');
+      return;
+    }
+    const href = window.prompt('Paste a URL to attach');
+    if (!href) return;
+    setIsAttachingObject(true);
+    try {
+      await attachObject({
+        parentId: liveNote.$id,
+        parentKind: 'note',
+        childId: href,
+        childKind: 'link',
+        metadata: { href, insertLine: getCursorLineNumber() },
+      });
+      await insertObjectBlockAtCursor(serializeObjectBlock({
+        childId: href,
+        childKind: 'link',
+        href,
+        line: getCursorLineNumber(),
+        appTheme: 'idea',
+      }));
+      const { getObjectsByParent } = await import('@/lib/actions/client-ops');
+      setAttachedObjects(await getObjectsByParent(liveNote.$id, 'note'));
+      showSuccess('Link attached');
+    } catch (err: any) {
+      showError('Attach failed', err?.message || 'Unable to attach link.');
+    } finally {
+      setIsAttachingObject(false);
+      setIsContextDrawerOpen(false);
+    }
+  }, [canAttachSecondaryObject, showError, liveNote.$id, getCursorLineNumber, insertObjectBlockAtCursor, showSuccess]);
+
+  const attachEcosystemObject = useCallback(async (childKind: 'task' | 'form' | 'vault' | 'note') => {
+    if (!canAttachSecondaryObject) {
+      showError('No access', 'Only owners and write collaborators can attach objects.');
+      return;
+    }
+    const childId = window.prompt(`Enter ${childKind} row id`);
+    if (!childId) return;
+    setIsAttachingObject(true);
+    try {
+      await attachObject({
+        parentId: liveNote.$id,
+        parentKind: 'note',
+        childId,
+        childKind,
+        metadata: { insertLine: getCursorLineNumber() },
+      });
+      await insertObjectBlockAtCursor(serializeObjectBlock({
+        childId,
+        childKind,
+        line: getCursorLineNumber(),
+        appTheme: childKind === 'vault' ? 'vault' : childKind === 'task' ? 'flow' : 'idea',
+      }));
+      const { getObjectsByParent } = await import('@/lib/actions/client-ops');
+      setAttachedObjects(await getObjectsByParent(liveNote.$id, 'note'));
+      showSuccess('Object attached');
+    } catch (err: any) {
+      showError('Attach failed', err?.message || 'Unable to attach object.');
+    } finally {
+      setIsAttachingObject(false);
+      setIsContextDrawerOpen(false);
+    }
+  }, [canAttachSecondaryObject, showError, liveNote.$id, getCursorLineNumber, insertObjectBlockAtCursor, showSuccess]);
+
+  const onPickExternalFile = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    event.target.value = '';
+    if (!canAttachSecondaryObject) {
+      showError('No access', 'Only owners and write collaborators can attach objects.');
+      return;
+    }
+    setIsAttachingObject(true);
+    try {
+      const bucketId = APPWRITE_CONFIG.BUCKETS.GENERAL_STORAGE;
+      const uploaded = await StorageService.uploadFile(file, bucketId);
+      const childKind = file.type.startsWith('image/') ? 'image' : 'file';
+      const relation = await attachObject({
+        parentId: liveNote.$id,
+        parentKind: 'note',
+        childId: uploaded.$id,
+        childKind,
+        metadata: { bucketId, fileName: file.name, mimeType: file.type, size: file.size, insertLine: getCursorLineNumber() },
+      });
+      await insertObjectBlockAtCursor(serializeObjectBlock({
+        objectId: relation?.$id,
+        childId: uploaded.$id,
+        childKind,
+        bucketId,
+        label: file.name,
+        line: getCursorLineNumber(),
+        appTheme: 'idea',
+      }));
+      const { getObjectsByParent } = await import('@/lib/actions/client-ops');
+      setAttachedObjects(await getObjectsByParent(liveNote.$id, 'note'));
+      showSuccess('Attachment added');
+    } catch (err: any) {
+      showError('Attach failed', err?.message || 'Unable to upload and attach file.');
+    } finally {
+      setIsAttachingObject(false);
+      setIsContextDrawerOpen(false);
+    }
+  }, [canAttachSecondaryObject, showError, liveNote.$id, getCursorLineNumber, insertObjectBlockAtCursor, showSuccess]);
+
+  const applyInlineFormatting = useCallback((left: string, right = left) => {
+    const textarea = contentTextareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const { next, cursorStart, cursorEnd } = applyMarkdownWrap(content, start, end, left, right);
+    setContent(next);
+    markDirty();
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(cursorStart, cursorEnd);
+    }, 0);
+  }, [content, markDirty]);
+
+  const onEditorKeyDown = useCallback((event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Backspace' && event.key !== 'Delete') return;
+    const textarea = event.currentTarget;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const hit = parseObjectBlocks(content).find((block) => (
+      (end > block.start && start < block.end)
+      || (event.key === 'Backspace' && start === end && start > block.start && start <= block.end)
+      || (event.key === 'Delete' && start === end && start >= block.start && start < block.end)
+    ));
+    if (!hit) return;
+    event.preventDefault();
+    setPendingBlockDelete(hit);
+  }, [content]);
+
+  useEffect(() => {
+    const previous = previousContentRef.current;
+    if (previous === content) return;
+    previousContentRef.current = content;
+    const removedBlocks = getRemovedObjectBlocks(previous, content);
+    if (!removedBlocks.length) return;
+
+    void (async () => {
+      try {
+        const { detachObjectByRelation } = await import('@/lib/actions/client-ops');
+        for (const block of removedBlocks) {
+          await detachObjectByRelation({
+            parentId: liveNote.$id,
+            childId: block.payload.childId,
+          });
+          if (block.payload.childKind === 'file' || block.payload.childKind === 'image') {
+            const bucketId = block.payload.bucketId || APPWRITE_CONFIG.BUCKETS.GENERAL_STORAGE;
+            try {
+              await storage.deleteFile(bucketId, block.payload.childId);
+            } catch {
+              // Ignore delete races; relation cleanup is authoritative.
+            }
+          }
+        }
+        const { getObjectsByParent } = await import('@/lib/actions/client-ops');
+        setAttachedObjects(await getObjectsByParent(liveNote.$id, 'note'));
+      } catch (err) {
+        console.warn('Failed object reconciliation after markdown update:', err);
+      }
+    })();
+  }, [content, liveNote.$id]);
 
   // --- RENDER ---
   return (
@@ -1080,27 +1305,33 @@ export function NoteDetailSidebar({
 
               {/* Voice recorder in content area — editors only */}
               {!readOnly && !shouldMaskEncrypted && contentMode === 'edit' && (
-                <button
-                  type="button"
-                  onClick={toggleRecording}
-                  className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-[11px] font-extrabold border transition-colors voice-recorder-btn ${
-                    isRecording
-                      ? 'bg-red-500/10 border-red-500/25 text-red-400 animate-pulse'
-                      : 'bg-[#0B0A09] border-white/8 text-[#9B9691] hover:text-white'
-                  }`}
-                  title={isRecording ? 'Stop and insert' : 'Record voice'}
-                >
-                  {isRecording ? (
-                    <Square className="w-3 h-3 fill-red-500 text-red-500" />
-                  ) : (
-                    <Mic className="w-3 h-3" />
-                  )}
-                  <span className="hidden sm:inline">
-                    {isRecording
-                      ? `${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}`
-                      : 'Voice'}
-                  </span>
-                </button>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button type="button" onClick={() => applyInlineFormatting('**')} className="h-8 px-2 rounded-lg border border-white/8 text-[#9B9691] hover:text-white bg-[#0B0A09]"><Bold className="w-3 h-3" /></button>
+                  <button type="button" onClick={() => applyInlineFormatting('*')} className="h-8 px-2 rounded-lg border border-white/8 text-[#9B9691] hover:text-white bg-[#0B0A09]"><Italic className="w-3 h-3" /></button>
+                  <button type="button" onClick={() => applyInlineFormatting('# ', '')} className="h-8 px-2 rounded-lg border border-white/8 text-[#9B9691] hover:text-white bg-[#0B0A09]"><Heading1 className="w-3 h-3" /></button>
+                  <button type="button" onClick={() => applyInlineFormatting('`')} className="h-8 px-2 rounded-lg border border-white/8 text-[#9B9691] hover:text-white bg-[#0B0A09]"><Code2 className="w-3 h-3" /></button>
+                  <button
+                    type="button"
+                    onClick={toggleRecording}
+                    className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-[11px] font-extrabold border transition-colors voice-recorder-btn ${
+                      isRecording
+                        ? 'bg-red-500/10 border-red-500/25 text-red-400 animate-pulse'
+                        : 'bg-[#0B0A09] border-white/8 text-[#9B9691] hover:text-white'
+                    }`}
+                    title={isRecording ? 'Stop and insert' : 'Record voice'}
+                  >
+                    {isRecording ? (
+                      <Square className="w-3 h-3 fill-red-500 text-red-500" />
+                    ) : (
+                      <Mic className="w-3 h-3" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {isRecording
+                        ? `${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60 < 10 ? '0' : '') + (recordingDuration % 60)}`
+                        : 'Voice'}
+                    </span>
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -1146,6 +1377,7 @@ export function NoteDetailSidebar({
                     markDirty();
                   }}
                   ref={contentTextareaRef}
+                  onKeyDown={onEditorKeyDown}
                   className="w-full min-h-[320px] bg-transparent text-white/92 text-[15px] leading-[1.75] border-none focus:outline-none resize-y scrollbar-thin placeholder:text-[#9B9691]/45 font-satoshi"
                   placeholder="Write in markdown — headings, lists, links, and voice tags are supported."
                   spellCheck
@@ -1776,9 +2008,82 @@ export function NoteDetailSidebar({
               <Clipboard className="w-5 h-5 text-emerald-500" />
               <span>Paste Clipboard</span>
             </button>
+
+            {canAttachSecondaryObject && (
+              <>
+                <button
+                  type="button"
+                  disabled={isAttachingObject}
+                  onClick={() => objectUploadInputRef.current?.click()}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer disabled:opacity-60"
+                >
+                  <PaperClipIcon className="w-5 h-5 text-indigo-400" />
+                  <span>Attach file or image</span>
+                </button>
+                <button type="button" onClick={attachExternalLink} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer">
+                  <LinkIcon className="w-5 h-5 text-cyan-400" />
+                  <span>Attach link</span>
+                </button>
+                <button type="button" onClick={() => attachEcosystemObject('task')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer">
+                  <TaskIcon className="w-5 h-5 text-emerald-400" />
+                  <span>Attach goal</span>
+                </button>
+                <button type="button" onClick={() => attachEcosystemObject('form')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer">
+                  <Clipboard className="w-5 h-5 text-green-400" />
+                  <span>Attach form</span>
+                </button>
+                <button type="button" onClick={() => attachEcosystemObject('vault')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer">
+                  <KeyIcon className="w-5 h-5 text-amber-400" />
+                  <span>Attach vault item</span>
+                </button>
+              </>
+            )}
           </Box>
         </Drawer>
       )}
+
+      {pendingBlockDelete && (
+        <Drawer
+          anchor="bottom"
+          open={Boolean(pendingBlockDelete)}
+          onClose={() => setPendingBlockDelete(null)}
+          ModalProps={{ keepMounted: false, disablePortal: true }}
+          PaperProps={{ sx: { bgcolor: '#161412', borderTop: '1px solid #34322F', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', p: 2 } }}
+        >
+          <div className="space-y-3">
+            <p className="text-sm font-bold text-white">Remove this {pendingBlockDelete.payload.childKind} object?</p>
+            <p className="text-xs text-white/60">This removes the object block from markdown and detaches the relation row.</p>
+            <div className="flex items-center gap-2">
+              <button type="button" className="h-9 px-3 rounded-lg border border-white/10 text-white/80" onClick={() => setPendingBlockDelete(null)}>Cancel</button>
+              <button
+                type="button"
+                className="h-9 px-3 rounded-lg bg-red-500/15 border border-red-500/35 text-red-300"
+                onClick={async () => {
+                  const block = pendingBlockDelete;
+                  if (!block) return;
+                  const next = content.slice(0, block.start) + content.slice(block.end);
+                  await replaceContentWithSave(next);
+                  try {
+                    const { detachObjectByRelation, getObjectsByParent } = await import('@/lib/actions/client-ops');
+                    await detachObjectByRelation({ parentId: liveNote.$id, childId: block.payload.childId });
+                    setAttachedObjects(await getObjectsByParent(liveNote.$id, 'note'));
+                  } catch {}
+                  setPendingBlockDelete(null);
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </Drawer>
+      )}
+
+      <input
+        ref={objectUploadInputRef}
+        type="file"
+        className="hidden"
+        onChange={onPickExternalFile}
+      />
 
     </div>
   );

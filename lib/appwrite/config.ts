@@ -144,6 +144,7 @@ export const APPWRITE_CONFIG = {
         PROFILE_PICTURES: 'profile_pictures',
         GROUP_AVATARS: 'group_avatars',
         NOTES_ATTACHMENTS: 'notes_attachments',
+        GENERAL_STORAGE: 'general_storage',
         BLOG_MEDIA: 'event_covers',
         EXTENSION_ASSETS: 'extension_assets',
         BACKUPS: 'backups',

@@ -1,12 +1,12 @@
 import { ID } from 'appwrite';
 import { secureUploadFile } from '../actions/client-ops';
 import { storage } from '../appwrite/client';
+import { APPWRITE_CONFIG } from '../appwrite/config';
 
 const BUCKETS = {
-    MESSAGES: 'messages', // From your config: "Message Attachments"
-    VOICE: 'voice',       // "Voice Messages"
-    VIDEO: 'video',       // "Video Files"
-    DOCUMENTS: 'documents' // "Documents"
+    MESSAGES: APPWRITE_CONFIG.BUCKETS.MESSAGES,
+    VOICE: 'voice',
+    GENERAL_STORAGE: APPWRITE_CONFIG.BUCKETS.GENERAL_STORAGE,
 };
 
 export const StorageService = {
@@ -32,9 +32,9 @@ export const StorageService = {
     getBucketForType(type: 'image' | 'video' | 'audio' | 'file') {
         switch (type) {
             case 'audio': return BUCKETS.VOICE;
-            case 'video': return BUCKETS.VIDEO;
-            case 'file': return BUCKETS.DOCUMENTS;
-            default: return BUCKETS.MESSAGES;
+            case 'video': return BUCKETS.GENERAL_STORAGE;
+            case 'file': return BUCKETS.GENERAL_STORAGE;
+            default: return BUCKETS.GENERAL_STORAGE;
         }
     }
 };
