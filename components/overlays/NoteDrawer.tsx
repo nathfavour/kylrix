@@ -1,9 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { Box, Typography, IconButton } from '@/lib/openbricks/primitives';
-import { X, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { Drawer } from '@/lib/openbricks/primitives';
 import { useNoteDrawer } from '@/context/NoteDrawerContext';
-import { useNotes } from '@/context/NotesContext';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import CreateNoteForm from '@/app/(app)/app/(app)/notes/CreateNoteForm';
 
@@ -20,7 +19,6 @@ const DRAWER_SX = {
 
 export function NoteDrawer() {
   const { isOpen, close } = useNoteDrawer();
-  const { pushLiveNote } = useNotes();
   const { setIsDrawerOpen } = useDrawerState();
   const [isExpanded, setIsExpanded] = React.useState(false);
 
@@ -78,8 +76,9 @@ export function NoteDrawer() {
         </Box>
 
         <CreateNoteForm
-            onNoteCreated={(newNote) => {
-              pushLiveNote(newNote);
+            onNoteCreated={() => {
+              // CreateNoteForm now handles live-push internally via pushLiveNote.
+              // Only collapse expanded view on first create event.
               setIsExpanded(false);
             }}
             isExpanded={isExpanded}

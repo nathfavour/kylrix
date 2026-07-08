@@ -601,9 +601,21 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       const isDelete = response.events.some(e => e.endsWith('.delete'));
 
       if (isCreate) {
+        // If this note is still being actively composed (migration window),
+        // skip — the live-draft card is already present from pushLiveNote.
+        // The realtime event here would add a stale server snapshot as a duplicate.
         if (activeComposeNoteIdsRef.current.has(payload.$id)) {
+          // Update the existing card with guard-merged content, but do NOT add a new row.
+          setNotes(prev => {
+            const guard = liveEditGuardsRef.current.get(payload.$id);
+            const merged = guard ? mergeServerWithLiveGuard(payload, guard) : normalizeVisibility(payload);
+            if (!prev.some(n => n.$id === payload.$id)) return prev; // Don't insert during compose
+            return prev.map(n => n.$id === payload.$id ? merged : n);
+          });
           const guard = liveEditGuardsRef.current.get(payload.$id);
-          if (!guard) return;
+          const merged = guard ? mergeServerWithLiveGuard(payload, guard) : normalizeVisibility(payload);
+          setCachedData(`note_${payload.$id}`, merged);
+          return;
         }
         const alreadyListed = notesRef.current.some(n => n.$id === payload.$id);
         setNotes(prev => {

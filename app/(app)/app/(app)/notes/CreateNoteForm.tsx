@@ -32,6 +32,7 @@ import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { useSudo } from '@/context/SudoContext';
 import { useSection } from '@/context/SectionContext';
 import { useTask } from '@/context/TaskContext';
+import ProjectAddObjectModal from '@/components/projects/ProjectAddObjectModal';
 
 import { useRouter } from 'next/navigation';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
@@ -109,11 +110,13 @@ export default function CreateNoteForm({
   }, [refreshEcosystemTags]);
 
   const createdToastShown = useRef(false);
+  const hasAnnouncedDraftRef = useRef(false);
   const liveDraftIdRef = useRef<string | undefined>(noteId);
   const allNotesRef = useRef<Notes[]>([]);
   const hasAnnouncedCreateRef = useRef(false);
   const isPastedRef = useRef(false);
   const pasteTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pushLiveNoteTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
@@ -127,6 +130,17 @@ export default function CreateNoteForm({
   const [localIsExpanded, setLocalIsExpanded] = useState(true);
   const isExpanded = controlledIsExpanded !== undefined ? controlledIsExpanded : localIsExpanded;
   const toggleExpand = onToggleExpand || (() => setLocalIsExpanded(prev => !prev));
+  const [isAttachDrawerOpen, setIsAttachDrawerOpen] = useState(false);
+
+  const ensureLiveDraftId = useCallback(() => {
+    const existingId = resolvedNoteId || liveDraftIdRef.current;
+    if (existingId) return existingId;
+    const noteId = `live-${crypto.randomUUID()}`;
+    liveDraftIdRef.current = noteId;
+    registerComposeSession(noteId);
+    setResolvedNoteId(noteId);
+    return noteId;
+  }, [registerComposeSession, resolvedNoteId]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -432,6 +446,21 @@ export default function CreateNoteForm({
     setResolvedNoteId(noteId);
   }, [title, content, tags, isHydrated, resolvedNoteId, registerComposeSession]);
 
+  useEffect(() => {
+    if (title || content || tags.length) return;
+    hasAnnouncedDraftRef.current = false;
+    hasAnnouncedCreateRef.current = false;
+
+    const noteId = liveDraftIdRef.current;
+    if (!noteId || !isLiveDraftNoteId(noteId)) return;
+
+    removeNote(noteId);
+    unregisterComposeSession(noteId);
+    liveDraftIdRef.current = undefined;
+    setResolvedNoteId(undefined);
+    setLastSavedSnapshot('');
+  }, [title, content, tags, removeNote, unregisterComposeSession]);
+
   const candidateNote = useMemo((): Notes | null => {
     const noteId = resolvedNoteId || liveDraftIdRef.current;
     if (!isHydrated || !noteId) return null;
@@ -462,17 +491,28 @@ export default function CreateNoteForm({
   candidateNoteRef.current = candidateNote;
 
   // Mirror note detail: card always reflects editor keystrokes; server save is separate.
+  // Debounced to 80ms to batch rapid keystrokes into a single push, preventing
+  // partial-content truncation from multiple concurrent writes to card state.
   useEffect(() => {
     if (!candidateNote?.$id) return;
     registerComposeSession(candidateNote.$id);
-    const draftNote: Notes = {
-      ...candidateNote,
-      $updatedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+
+    if (pushLiveNoteTimerRef.current) clearTimeout(pushLiveNoteTimerRef.current);
+    pushLiveNoteTimerRef.current = setTimeout(() => {
+      const draftNote: Notes = {
+        ...candidateNote,
+        $updatedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      pushLiveNote(draftNote);
+      setCachedData(`note_${candidateNote.$id}`, draftNote);
+    }, 80);
+
+    return () => {
+      if (pushLiveNoteTimerRef.current) clearTimeout(pushLiveNoteTimerRef.current);
     };
-    pushLiveNote(draftNote);
-    setCachedData(`note_${candidateNote.$id}`, draftNote);
-  }, [candidateNote, pushLiveNote, registerComposeSession, setCachedData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [candidateNote?.$id, candidateNote?.title, candidateNote?.content, candidateNote?.tags, candidateNote?.isPublic]);
 
   useEffect(() => {
     return () => {
@@ -544,23 +584,19 @@ export default function CreateNoteForm({
     }));
   }, [composerKind]);
 
-  const migrateDraftId = useCallback((savedId: string, ephemeralId: string | undefined, source?: Notes | null) => {
+  const migrateDraftId = useCallback((savedId: string, ephemeralId: string | undefined) => {
     if (!ephemeralId || !isLiveDraftNoteId(ephemeralId) || ephemeralId === savedId) {
       if (savedId) registerComposeSession(savedId);
       liveDraftIdRef.current = savedId;
       setResolvedNoteId(savedId);
       return;
     }
-    if (source) {
-      pushLiveNote({ ...source, $id: savedId });
-      setCachedData(`note_${savedId}`, { ...source, $id: savedId });
-    }
     removeNote(ephemeralId);
     unregisterComposeSession(ephemeralId);
     registerComposeSession(savedId);
     liveDraftIdRef.current = savedId;
     setResolvedNoteId(savedId);
-  }, [pushLiveNote, registerComposeSession, removeNote, setCachedData, unregisterComposeSession]);
+  }, [registerComposeSession, removeNote, unregisterComposeSession]);
 
   const saveComposerNote = useCallback(async (source: Notes): Promise<Notes> => {
     if (!source.$id) {
@@ -643,7 +679,7 @@ export default function CreateNoteForm({
       if (existingIndex !== -1) history[existingIndex] = newRef;
       else history.unshift(newRef);
       localStorage.setItem('kylrix_ghost_notes_v2', JSON.stringify(history));
-      migrateDraftId(id, source.$id, source);
+      migrateDraftId(id, source.$id);
       if (!hasAnnouncedCreateRef.current) {
         hasAnnouncedCreateRef.current = true;
         onNoteCreated(saved);
@@ -670,7 +706,7 @@ export default function CreateNoteForm({
         isGuest: payload.isGuest,
         title: generatedTitle,
       })) as Notes;
-      migrateDraftId(saved.$id, ephemeralId, source);
+      migrateDraftId(saved.$id, ephemeralId);
       if (typeof window !== 'undefined') {
         localStorage.removeItem('kylrix:draft:note');
       }
@@ -715,8 +751,6 @@ export default function CreateNoteForm({
     persistedIsGuest,
     persistedIsPublic,
     promptSudo,
-    pushLiveNote,
-    setCachedData,
     showSuccess,
     user?.$id,
   ]);
@@ -780,7 +814,29 @@ export default function CreateNoteForm({
   }, [forceSave, setActiveDetail, closeOverlay, onClose, resolvedNoteId]);
 
   const handleClose = useCallback(() => {
-    if (isDirty && candidateNoteRef.current?.$id) {
+    const hasAnyDraft = Boolean(title.trim() || content.trim() || tags.length);
+    if (hasAnyDraft) {
+      const noteId = ensureLiveDraftId();
+      const finalDraft: Notes = {
+        ...(candidateNoteRef.current || ({} as Notes)),
+        $id: noteId,
+        title: resolveNoteCardTitle(title, content),
+        content,
+        tags: normalizeTags(tags),
+        format: 'text',
+        isPublic,
+        isGuest,
+        $updatedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      pushLiveNote(finalDraft);
+      setCachedData(`note_${noteId}`, finalDraft);
+      if (!hasAnnouncedDraftRef.current) {
+        hasAnnouncedDraftRef.current = true;
+        onNoteCreated(finalDraft);
+      }
+      void forceSave(finalDraft);
+    } else if (isDirty && candidateNoteRef.current?.$id) {
       void forceSave(candidateNoteRef.current);
     }
     if (typeof window !== 'undefined') {
@@ -791,7 +847,7 @@ export default function CreateNoteForm({
     } else {
       closeOverlay();
     }
-  }, [closeOverlay, isDirty, onClose, forceSave]);
+  }, [closeOverlay, content, ensureLiveDraftId, forceSave, isDirty, isGuest, isPublic, onClose, onNoteCreated, pushLiveNote, setCachedData, tags, title]);
 
   const handlePaste = useCallback(() => {
     isPastedRef.current = true;
@@ -1156,8 +1212,75 @@ export default function CreateNoteForm({
                 <Clipboard className="w-5 h-5 text-emerald-500" />
                 <span>Paste Clipboard</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsContextDrawerOpen(false);
+                  ensureLiveDraftId();
+                  setIsAttachDrawerOpen(true);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-pink-500/40 text-sm font-bold text-pink-300 hover:bg-pink-500/10 transition-all text-left cursor-pointer"
+              >
+                <Plus className="w-5 h-5 text-pink-400" />
+                <span>Attach…</span>
+              </button>
             </Box>
           </Drawer>
+        )}
+
+        {isAttachDrawerOpen && (
+          <ProjectAddObjectModal
+            open={isAttachDrawerOpen}
+            onClose={() => setIsAttachDrawerOpen(false)}
+            mode="resource"
+            title="Attach to Idea"
+            onAttachResource={async (payload) => {
+              // Mirror NoteDetailSidebar attachPickedObject: we only need to insert an object block.
+              const textarea = contentRef.current;
+              const start = textarea ? textarea.selectionStart : content.length;
+              const end = textarea ? textarea.selectionEnd : content.length;
+              const needsLeadingBreak = start > 0 && !content.slice(Math.max(0, start - 2), start).includes('\n\n');
+              const needsTrailingBreak = end < content.length && !content.slice(end, Math.min(content.length, end + 2)).includes('\n\n');
+              const kindToChildKind: Record<string, 'note' | 'task' | 'vault' | 'form' | 'event' | 'tag' | 'totp' | 'moment' | 'call'> = {
+                note: 'note',
+                goal: 'task',
+                password: 'vault',
+                form: 'form',
+                event: 'event',
+                tag: 'tag',
+                totp: 'totp',
+                moment: 'moment',
+                call: 'call',
+              };
+              const childKind = kindToChildKind[payload.kind] || 'note';
+              const theme =
+                childKind === 'vault' || childKind === 'totp'
+                  ? 'vault'
+                  : childKind === 'task' || childKind === 'event' || childKind === 'form'
+                    ? 'flow'
+                    : 'idea';
+              const line = 0;
+              const block = `[[kylrix-object:${JSON.stringify({
+                childId: payload.entityId,
+                childKind,
+                line,
+                appTheme: theme,
+                label: payload.item?.title || payload.item?.name || payload.item?.issuer || payload.item?.caption || undefined,
+              })}]]`;
+              const insertion = `${needsLeadingBreak ? '\n\n' : ''}${block}${needsTrailingBreak ? '\n\n' : '\n'}`;
+              const nextContent =
+                content.substring(0, start) + insertion + content.substring(end);
+              setContent(nextContent);
+              if (textarea) {
+                setTimeout(() => {
+                  textarea.focus();
+                  const cursor = start + insertion.length;
+                  textarea.setSelectionRange(cursor, cursor);
+                }, 50);
+              }
+            }}
+          />
         )}
       </div>
   );

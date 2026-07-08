@@ -2059,29 +2059,27 @@ export function NoteDetailSidebar({
               <span>Paste Clipboard</span>
             </button>
 
-            {canAttachSecondaryObject && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsContextDrawerOpen(false);
-                    setIsAttachObjectPickerOpen(true);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer disabled:opacity-60"
-                >
-                  <Plus className="w-5 h-5 text-indigo-400" />
-                  <span>Attach object</span>
-                </button>
-                <button type="button" disabled={isAttachingObject} onClick={() => objectUploadInputRef.current?.click()} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer disabled:opacity-60">
-                  <PaperClipIcon className="w-5 h-5 text-indigo-400" />
-                  <span>Attach file or image</span>
-                </button>
-                <button type="button" onClick={attachExternalLink} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer">
-                  <LinkIcon className="w-5 h-5 text-cyan-400" />
-                  <span>Attach link</span>
-                </button>
-              </>
-            )}
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsContextDrawerOpen(false);
+                  setIsAttachObjectPickerOpen(true);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-pink-500/40 text-sm font-bold text-pink-300 hover:bg-pink-500/10 transition-all text-left cursor-pointer"
+              >
+                <Plus className="w-5 h-5 text-pink-400" />
+                <span>Attach object</span>
+              </button>
+              <button type="button" disabled={isAttachingObject || !canAttachSecondaryObject} onClick={() => objectUploadInputRef.current?.click()} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer disabled:opacity-60">
+                <PaperClipIcon className="w-5 h-5 text-indigo-400" />
+                <span>Attach file or image</span>
+              </button>
+              <button type="button" disabled={!canAttachSecondaryObject} onClick={attachExternalLink} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer disabled:opacity-60">
+                <LinkIcon className="w-5 h-5 text-cyan-400" />
+                <span>Attach link</span>
+              </button>
+            </>
           </Box>
         </Drawer>
       )}

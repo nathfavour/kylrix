@@ -337,10 +337,11 @@ export default function NotesPage() {
   const handleNoteCreated = useCallback((newNote: Notes) => {
     if (newNote.$id) {
       registerComposeSession(newNote.$id);
+      pushLiveNote(newNote);
     }
     clearSearch();
     goToPage(1);
-  }, [clearSearch, goToPage, registerComposeSession]);
+  }, [clearSearch, goToPage, pushLiveNote, registerComposeSession]);
 
   const openComposer = useCallback((kind: 'note' | 'project') => {
     openOverlay(
