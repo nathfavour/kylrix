@@ -92,6 +92,7 @@ import { resolveResourceOwnerId, isValidAppwriteRowId } from '@/lib/utils/resour
 import { pickNoteAutosavePayload } from '@/lib/appwrite/note';
 import { attachObject } from '@/lib/actions/client-ops';
 import ProjectLinker from '@/components/projects/ProjectLinker';
+import ProjectAddObjectModal from '@/components/projects/ProjectAddObjectModal';
 import {
   applyMarkdownWrap,
   getRemovedObjectBlocks,
@@ -685,6 +686,7 @@ export function NoteDetailSidebar({
 
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [isContextDrawerOpen, setIsContextDrawerOpen] = useState(false);
+  const [isAttachObjectPickerOpen, setIsAttachObjectPickerOpen] = useState(false);
   const [isObjectPermissionInfoOpen, setIsObjectPermissionInfoOpen] = useState(false);
   const [pendingBlockDelete, setPendingBlockDelete] = useState<ParsedObjectBlock | null>(null);
   const [isAttachingObject, setIsAttachingObject] = useState(false);
@@ -879,7 +881,9 @@ export function NoteDetailSidebar({
     const textarea = contentTextareaRef.current;
     const start = textarea ? textarea.selectionStart : content.length;
     const end = textarea ? textarea.selectionEnd : content.length;
-    const insertion = `${start > 0 && content[start - 1] !== '\n' ? '\n' : ''}${block}\n`;
+    const needsLeadingBreak = start > 0 && !content.slice(Math.max(0, start - 2), start).includes('\n\n');
+    const needsTrailingBreak = end < content.length && !content.slice(end, Math.min(content.length, end + 2)).includes('\n\n');
+    const insertion = `${needsLeadingBreak ? '\n\n' : ''}${block}${needsTrailingBreak ? '\n\n' : '\n'}`;
     const nextContent = content.substring(0, start) + insertion + content.substring(end);
     await replaceContentWithSave(nextContent);
     if (textarea) {
@@ -925,38 +929,41 @@ export function NoteDetailSidebar({
     }
   }, [canAttachSecondaryObject, showError, liveNote.$id, getCursorLineNumber, insertObjectBlockAtCursor, showSuccess]);
 
-  const attachEcosystemObject = useCallback(async (childKind: 'task' | 'form' | 'vault' | 'note') => {
+  const attachPickedObject = useCallback(async (payload: { kind: string; entityId: string; item: any }) => {
     if (!canAttachSecondaryObject) {
       showError('No access', 'Only owners and write collaborators can attach objects.');
       return;
     }
-    const childId = window.prompt(`Enter ${childKind} row id`);
-    if (!childId) return;
-    setIsAttachingObject(true);
-    try {
-      await attachObject({
-        parentId: liveNote.$id,
-        parentKind: 'note',
-        childId,
-        childKind,
-        metadata: { insertLine: getCursorLineNumber() },
-      });
-      await insertObjectBlockAtCursor(serializeObjectBlock({
-        childId,
-        childKind,
-        line: getCursorLineNumber(),
-        appTheme: childKind === 'vault' ? 'vault' : childKind === 'task' ? 'flow' : 'idea',
-      }));
-      const { getObjectsByParent } = await import('@/lib/actions/client-ops');
-      setAttachedObjects(await getObjectsByParent(liveNote.$id, 'note'));
-      showSuccess('Object attached');
-    } catch (err: any) {
-      showError('Attach failed', err?.message || 'Unable to attach object.');
-    } finally {
-      setIsAttachingObject(false);
-      setIsContextDrawerOpen(false);
-    }
-  }, [canAttachSecondaryObject, showError, liveNote.$id, getCursorLineNumber, insertObjectBlockAtCursor, showSuccess]);
+    const kindToChildKind: Record<string, 'note' | 'task' | 'vault' | 'form' | 'event' | 'tag' | 'totp' | 'moment' | 'call'> = {
+      note: 'note',
+      goal: 'task',
+      password: 'vault',
+      form: 'form',
+      event: 'event',
+      tag: 'tag',
+      totp: 'totp',
+      moment: 'moment',
+      call: 'call',
+    };
+    const childKind = kindToChildKind[payload.kind] || 'note';
+    const theme = childKind === 'vault' || childKind === 'totp' ? 'vault' : childKind === 'task' || childKind === 'event' || childKind === 'form' ? 'flow' : 'idea';
+    await attachObject({
+      parentId: liveNote.$id,
+      parentKind: 'note',
+      childId: payload.entityId,
+      childKind,
+      metadata: { insertLine: getCursorLineNumber(), sourceKind: payload.kind },
+    });
+    await insertObjectBlockAtCursor(serializeObjectBlock({
+      childId: payload.entityId,
+      childKind: childKind as any,
+      line: getCursorLineNumber(),
+      appTheme: theme as any,
+      label: payload.item?.title || payload.item?.name || payload.item?.issuer || payload.item?.caption || undefined,
+    }));
+    const { getObjectsByParent } = await import('@/lib/actions/client-ops');
+    setAttachedObjects(await getObjectsByParent(liveNote.$id, 'note'));
+  }, [canAttachSecondaryObject, showError, liveNote.$id, getCursorLineNumber, insertObjectBlockAtCursor]);
 
   const onPickExternalFile = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -2031,10 +2038,16 @@ export function NoteDetailSidebar({
               <>
                 <button
                   type="button"
-                  disabled={isAttachingObject}
-                  onClick={() => objectUploadInputRef.current?.click()}
+                  onClick={() => {
+                    setIsContextDrawerOpen(false);
+                    setIsAttachObjectPickerOpen(true);
+                  }}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer disabled:opacity-60"
                 >
+                  <Plus className="w-5 h-5 text-indigo-400" />
+                  <span>Attach object</span>
+                </button>
+                <button type="button" disabled={isAttachingObject} onClick={() => objectUploadInputRef.current?.click()} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer disabled:opacity-60">
                   <PaperClipIcon className="w-5 h-5 text-indigo-400" />
                   <span>Attach file or image</span>
                 </button>
@@ -2042,23 +2055,20 @@ export function NoteDetailSidebar({
                   <LinkIcon className="w-5 h-5 text-cyan-400" />
                   <span>Attach link</span>
                 </button>
-                <button type="button" onClick={() => attachEcosystemObject('task')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer">
-                  <TaskIcon className="w-5 h-5 text-emerald-400" />
-                  <span>Attach goal</span>
-                </button>
-                <button type="button" onClick={() => attachEcosystemObject('form')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer">
-                  <Clipboard className="w-5 h-5 text-green-400" />
-                  <span>Attach form</span>
-                </button>
-                <button type="button" onClick={() => attachEcosystemObject('vault')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer">
-                  <KeyIcon className="w-5 h-5 text-amber-400" />
-                  <span>Attach vault item</span>
-                </button>
               </>
             )}
           </Box>
         </Drawer>
       )}
+
+      <ProjectAddObjectModal
+        open={isAttachObjectPickerOpen}
+        onClose={() => setIsAttachObjectPickerOpen(false)}
+        mode="resource"
+        title="Attach object"
+        onAttachResource={attachPickedObject}
+        initialTab={0}
+      />
 
       {pendingBlockDelete && (
         <Drawer

@@ -416,7 +416,7 @@ export default function CreateNoteForm({
 
     const timer = window.setTimeout(() => {
       void persist(false);
-    }, 750);
+    }, 150);
 
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -428,10 +428,11 @@ export default function CreateNoteForm({
     if (existing) {
       upsertNote({
         ...existing,
-        title: nextTitle.trim(),
-        content: nextContent.trim(),
+        title: nextTitle,
+        content: nextContent,
         tags: nextTags,
         format: 'text',
+        $updatedAt: new Date().toISOString(),
       });
     }
   }, [resolvedNoteId, allNotes, upsertNote]);
@@ -719,14 +720,12 @@ export default function CreateNoteForm({
     }
   }, [persist, setActiveDetail, closeOverlay, onClose]);
 
-  const handleClose = useCallback(async () => {
+  const handleClose = useCallback(() => {
     const shouldPersist = Boolean((resolvedNoteId && isDirty) || (!resolvedNoteId && (title.trim() || content.trim())));
     if (shouldPersist) {
-      try {
-        await persist(false);
-      } catch {
-        return;
-      }
+      void persist(false).catch((error) => {
+        console.error('Background note persist failed on close:', error);
+      });
     }
     if (typeof window !== 'undefined') {
       localStorage.removeItem('kylrix:draft:note');

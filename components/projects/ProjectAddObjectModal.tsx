@@ -66,8 +66,11 @@ import { CallActionModal } from '@/components/call/CallActionModal';
 interface ProjectAddObjectModalProps {
   open: boolean;
   onClose: () => void;
-  projectId: string;
-  onAdded: () => void;
+  projectId?: string;
+  onAdded?: () => void;
+  mode?: 'project' | 'resource';
+  title?: string;
+  onAttachResource?: (payload: { kind: string; entityId: string; item: any }) => Promise<void> | void;
   initialTab?: number;
 }
 
@@ -168,7 +171,16 @@ function CreateMomentDialog({
 
 import { DialogActions } from '@/lib/openbricks/primitives';
 
-export default function ProjectAddObjectModal({ open, onClose, projectId, onAdded, initialTab = 0 }: ProjectAddObjectModalProps) {
+export default function ProjectAddObjectModal({
+  open,
+  onClose,
+  projectId,
+  onAdded,
+  mode = 'project',
+  title,
+  onAttachResource,
+  initialTab = 0,
+}: ProjectAddObjectModalProps) {
   const theme = useTheme();
   const { showSuccess, showError } = useToast();
   const { fetchOptimized } = useDataNexus();
@@ -327,18 +339,28 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
       else if (tab === 7) kind = 'moment';
       else if (tab === 8) kind = 'call';
 
-      await ProjectsService.addObjectToProject(projectId, kind, entityId);
-      showSuccess('Added to project');
-      onAdded();
+      const selectedItem = results.find((row) => row?.$id === entityId) || null;
+      if (mode === 'project') {
+        if (!projectId) throw new Error('Project id is required');
+        await ProjectsService.addObjectToProject(projectId, kind, entityId);
+        showSuccess('Added to project');
+        onAdded?.();
+      } else {
+        await onAttachResource?.({ kind, entityId, item: selectedItem });
+        showSuccess('Attached');
+        onAdded?.();
+      }
       onClose();
     } catch (err: any) {
-      showError('Failed to add object', err.message);
+      showError(mode === 'project' ? 'Failed to add object' : 'Failed to attach object', err.message);
     } finally {
       setAdding(null);
     }
   };
 
   const handleCreateNew = () => {
+    if (mode !== 'project') return;
+    if (!projectId) return;
     if (!user?.$id) return;
     
     switch (tab) {
@@ -424,7 +446,7 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
                 showSuccess('Event created');
                 await ProjectsService.addObjectToProject(projectId, 'event', newDoc.$id);
                 closeOverlay();
-                onAdded();
+                onAdded?.();
                 onClose();
               } catch (err: any) {
                 showError('Failed to create event', err.message);
@@ -437,7 +459,7 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
         onClose();
         openUnified('new-tag', { 
           onSuccess: () => {
-            onAdded();
+            onAdded?.();
           } 
         });
         break;
@@ -513,7 +535,9 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
       }}
     >
       <Box sx={{ p: 3, pb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6" sx={{ fontWeight: 900, color: '#fff', fontFamily: 'var(--font-satoshi)' }}>Integrate Object</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 900, color: '#fff', fontFamily: 'var(--font-satoshi)' }}>
+          {title || (mode === 'project' ? 'Integrate Object' : 'Attach Object')}
+        </Typography>
         <IconButton onClick={onClose} size="small" sx={{ color: 'rgba(255,255,255,0.4)' }}><X size={20} /></IconButton>
       </Box>
       
@@ -562,25 +586,27 @@ export default function ProjectAddObjectModal({ open, onClose, projectId, onAdde
                 sx: { bgcolor: 'rgba(255,255,255,0.02)', borderRadius: '12px', color: '#fff' }
             }}
         />
-        <Button
-          variant="outlined"
-          startIcon={<Plus size={16} />}
-          onClick={handleCreateNew}
-          sx={{
-            borderRadius: '12px',
-            textTransform: 'none',
-            fontWeight: 800,
-            whiteSpace: 'nowrap',
-            borderColor: 'rgba(255,255,255,0.1)',
-            color: 'white',
-            '&:hover': {
-              borderColor: theme.palette.primary.main,
-              bgcolor: 'rgba(255,255,255,0.02)',
-            }
-          }}
-        >
-          Create New
-        </Button>
+        {mode === 'project' && (
+          <Button
+            variant="outlined"
+            startIcon={<Plus size={16} />}
+            onClick={handleCreateNew}
+            sx={{
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 800,
+              whiteSpace: 'nowrap',
+              borderColor: 'rgba(255,255,255,0.1)',
+              color: 'white',
+              '&:hover': {
+                borderColor: theme.palette.primary.main,
+                bgcolor: 'rgba(255,255,255,0.02)',
+              }
+            }}
+          >
+            Create New
+          </Button>
+        )}
       </Stack>
 
       <Box sx={{ flex: 1, overflowY: 'auto' }}>
