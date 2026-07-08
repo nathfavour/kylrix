@@ -221,7 +221,7 @@ export default function IdeaPageClient({ noteId, decryptionKey }: IdeaPageClient
         return;
       }
 
-      if (isUpdate && access.role !== 'loading' && access.role !== 'none') {
+      if (isUpdate && access.role !== 'none') {
         const payload = response.payload as Notes;
         void (async () => {
           try {
