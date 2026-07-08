@@ -16,7 +16,9 @@ import {
   Plus,
   Clipboard,
   CheckSquare,
-  Copy
+  Copy,
+  Paperclip,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { Drawer, Box, Typography } from '@/lib/openbricks/primitives';
 import { StorageService } from '@/lib/services/storage';
@@ -24,8 +26,11 @@ import { buildAutoTitleFromContent, resolveNoteCardTitle } from '@/constants/not
 import { useOverlay } from '@/components/ui/OverlayContext';
 import { useToast } from '@/components/ui/Toast';
 import { getNote, getNotePublicState, toggleNoteVisibility, getAllTags } from '@/lib/appwrite';
-import { createNote, updateNote } from '@/lib/actions/client-ops';
+import { createNote, updateNote, attachObject } from '@/lib/actions/client-ops';
 import type { Notes } from '@/types/appwrite';
+import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
+import { serializeObjectBlock, parseObjectBlocks } from '@/lib/note-object-secondary';
+import type { ParsedObjectBlock } from '@/lib/note-object-secondary';
 import { useNotes } from '@/context/NotesContext';
 import { useDataNexus } from '@/context/DataNexusContext';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
@@ -131,6 +136,10 @@ export default function CreateNoteForm({
   const isExpanded = controlledIsExpanded !== undefined ? controlledIsExpanded : localIsExpanded;
   const toggleExpand = onToggleExpand || (() => setLocalIsExpanded(prev => !prev));
   const [isAttachDrawerOpen, setIsAttachDrawerOpen] = useState(false);
+  const [isAttachingFile, setIsAttachingFile] = useState(false);
+  const [isCheckingUrl, setIsCheckingUrl] = useState(false);
+  const [pendingBlockDelete, setPendingBlockDelete] = useState<ParsedObjectBlock | null>(null);
+  const fileUploadRef = useRef<HTMLInputElement | null>(null);
 
   const ensureLiveDraftId = useCallback(() => {
     const existingId = resolvedNoteId || liveDraftIdRef.current;
@@ -230,6 +239,121 @@ export default function CreateNoteForm({
       }
     }
   };
+
+  // Insert [[kylrix-object:...]] block into textarea at cursor with surrounding blank lines
+  const insertObjectBlock = useCallback((block: string) => {
+    const textarea = contentRef.current;
+    const start = textarea ? textarea.selectionStart : content.length;
+    const end = textarea ? textarea.selectionEnd : content.length;
+    const needsLeadingBreak = start > 0 && !content.slice(Math.max(0, start - 2), start).includes('\n\n');
+    const needsTrailingBreak = end < content.length && !content.slice(end, Math.min(content.length, end + 2)).includes('\n\n');
+    const insertion = `${needsLeadingBreak ? '\n\n' : ''}${block}${needsTrailingBreak ? '\n\n' : '\n'}`;
+    const next = content.substring(0, start) + insertion + content.substring(end);
+    setContent(next);
+    if (textarea) {
+      setTimeout(() => {
+        textarea.focus();
+        const cursor = start + insertion.length;
+        textarea.setSelectionRange(cursor, cursor);
+      }, 50);
+    }
+  }, [content]);
+
+  // Upload file → objects table → insert block
+  const onPickFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    const noteId = ensureLiveDraftId();
+    if (!noteId) return;
+    setIsAttachingFile(true);
+    try {
+      const bucketId = APPWRITE_CONFIG.BUCKETS.GENERAL_STORAGE;
+      const uploaded = await StorageService.uploadFile(file, bucketId);
+      const childKind = file.type.startsWith('image/') ? 'image' : 'file';
+      const relation = await attachObject({
+        parentId: noteId,
+        parentKind: 'note',
+        childId: uploaded.$id,
+        childKind,
+        metadata: { bucketId, fileName: file.name, mimeType: file.type, size: file.size },
+      });
+      insertObjectBlock(serializeObjectBlock({
+        objectId: relation?.$id,
+        childId: uploaded.$id,
+        childKind,
+        bucketId,
+        label: file.name,
+        appTheme: 'idea',
+      }));
+      showSuccess('File attached', file.name);
+    } catch (err: any) {
+      showError('Attach failed', err?.message || 'Could not upload file.');
+    } finally {
+      setIsAttachingFile(false);
+    }
+  }, [ensureLiveDraftId, insertObjectBlock, showSuccess, showError]);
+
+  // Paste URL → HEAD-check → objects table → insert block
+  const attachUrl = useCallback(async () => {
+    const href = window.prompt('Paste a URL to attach:');
+    if (!href || !href.trim()) return;
+    const url = href.trim();
+    const noteId = ensureLiveDraftId();
+    if (!noteId) return;
+    setIsCheckingUrl(true);
+    try {
+      // Best-effort HEAD check (may be blocked by CORS — still insert if it fails)
+      let resolves = true;
+      try {
+        const res = await fetch(url, { method: 'HEAD', mode: 'no-cors' });
+        resolves = res.type === 'opaque' || res.ok;
+      } catch {
+        resolves = false;
+      }
+      if (!resolves) {
+        const proceed = window.confirm(`The URL could not be verified:\n${url}\n\nAttach anyway?`);
+        if (!proceed) return;
+      }
+      await attachObject({
+        parentId: noteId,
+        parentKind: 'note',
+        childId: url,
+        childKind: 'link',
+        metadata: { href: url },
+      });
+      insertObjectBlock(serializeObjectBlock({
+        childId: url,
+        childKind: 'link',
+        href: url,
+        label: url,
+        appTheme: 'idea',
+      }));
+      showSuccess('Link attached');
+    } catch (err: any) {
+      showError('Attach failed', err?.message || 'Unable to attach link.');
+    } finally {
+      setIsCheckingUrl(false);
+      setIsContextDrawerOpen(false);
+    }
+  }, [ensureLiveDraftId, insertObjectBlock, showSuccess, showError]);
+
+  // Protected-block content change interceptor
+  // When a keystroke or paste would mutate inside a [[kylrix-object:...]] block, intercept and show confirm.
+  const handleContentChange = useCallback((nextValue: string) => {
+    const blocks = parseObjectBlocks(content);
+    const changed = blocks.find(b => {
+      const prevBlock = content.slice(b.start, b.end);
+      const nextBlock = nextValue.slice(b.start, b.start + prevBlock.length);
+      return prevBlock !== nextBlock;
+    });
+    if (changed) {
+      setPendingBlockDelete(changed);
+      return; // Reject the mutation — show confirm drawer instead
+    }
+    setContent(nextValue);
+    markDirty();
+  }, [content, markDirty]);
 
   const insertTextAtCursor = (text: string) => {
     const textarea = contentRef.current;
@@ -966,8 +1090,7 @@ export default function CreateNoteForm({
               maxLength={isArticle ? 655300000 : 65535}
               onPaste={handlePaste}
               onChange={(event) => {
-                const val = event.target.value;
-                setContent(val);
+                handleContentChange(event.target.value);
               }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey && !isExpanded && !isPastedRef.current) {
@@ -1223,7 +1346,33 @@ export default function CreateNoteForm({
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-pink-500/40 text-sm font-bold text-pink-300 hover:bg-pink-500/10 transition-all text-left cursor-pointer"
               >
                 <Plus className="w-5 h-5 text-pink-400" />
-                <span>Attach…</span>
+                <span>Attach object…</span>
+              </button>
+
+              {/* Upload file */}
+              <button
+                type="button"
+                disabled={isAttachingFile}
+                onClick={() => {
+                  setIsContextDrawerOpen(false);
+                  ensureLiveDraftId();
+                  fileUploadRef.current?.click();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer disabled:opacity-60"
+              >
+                <Paperclip className="w-5 h-5 text-indigo-400" />
+                <span>{isAttachingFile ? 'Uploading…' : 'Upload file or image'}</span>
+              </button>
+
+              {/* Paste URL */}
+              <button
+                type="button"
+                disabled={isCheckingUrl}
+                onClick={() => { void attachUrl(); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm font-bold text-white hover:bg-white/5 transition-all text-left cursor-pointer disabled:opacity-60"
+              >
+                <LinkIcon className="w-5 h-5 text-cyan-400" />
+                <span>{isCheckingUrl ? 'Checking…' : 'Paste URL'}</span>
               </button>
             </Box>
           </Drawer>
@@ -1236,12 +1385,6 @@ export default function CreateNoteForm({
             mode="resource"
             title="Attach to Idea"
             onAttachResource={async (payload) => {
-              // Mirror NoteDetailSidebar attachPickedObject: we only need to insert an object block.
-              const textarea = contentRef.current;
-              const start = textarea ? textarea.selectionStart : content.length;
-              const end = textarea ? textarea.selectionEnd : content.length;
-              const needsLeadingBreak = start > 0 && !content.slice(Math.max(0, start - 2), start).includes('\n\n');
-              const needsTrailingBreak = end < content.length && !content.slice(end, Math.min(content.length, end + 2)).includes('\n\n');
               const kindToChildKind: Record<string, 'note' | 'task' | 'vault' | 'form' | 'event' | 'tag' | 'totp' | 'moment' | 'call'> = {
                 note: 'note',
                 goal: 'task',
@@ -1260,28 +1403,62 @@ export default function CreateNoteForm({
                   : childKind === 'task' || childKind === 'event' || childKind === 'form'
                     ? 'flow'
                     : 'idea';
-              const line = 0;
-              const block = `[[kylrix-object:${JSON.stringify({
+              insertObjectBlock(serializeObjectBlock({
                 childId: payload.entityId,
-                childKind,
-                line,
+                childKind: childKind as any,
                 appTheme: theme,
                 label: payload.item?.title || payload.item?.name || payload.item?.issuer || payload.item?.caption || undefined,
-              })}]]`;
-              const insertion = `${needsLeadingBreak ? '\n\n' : ''}${block}${needsTrailingBreak ? '\n\n' : '\n'}`;
-              const nextContent =
-                content.substring(0, start) + insertion + content.substring(end);
-              setContent(nextContent);
-              if (textarea) {
-                setTimeout(() => {
-                  textarea.focus();
-                  const cursor = start + insertion.length;
-                  textarea.setSelectionRange(cursor, cursor);
-                }, 50);
-              }
+              }));
             }}
           />
         )}
+
+        {/* Protected-block delete confirmation */}
+        {pendingBlockDelete && (
+          <Drawer
+            anchor="bottom"
+            open={Boolean(pendingBlockDelete)}
+            onClose={() => setPendingBlockDelete(null)}
+            ModalProps={{ keepMounted: false, disablePortal: true }}
+            PaperProps={{ sx: { bgcolor: '#161412', borderTop: '1px solid #34322F', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', p: 2 } }}
+          >
+            <div className="space-y-3">
+              <p className="text-sm font-bold text-white">Remove this {pendingBlockDelete.payload.childKind} attachment?</p>
+              <p className="text-xs text-white/60">This removes the object block from content and detaches the relation. This cannot be undone.</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="h-9 px-3 rounded-lg border border-white/10 text-white/80 text-sm font-bold"
+                  onClick={() => setPendingBlockDelete(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="h-9 px-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-bold hover:bg-red-500/30 transition-colors"
+                  onClick={() => {
+                    const block = pendingBlockDelete;
+                    const next = content.slice(0, block.start) + content.slice(block.end);
+                    setContent(next.replace(/\n{3,}/g, '\n\n'));
+                    markDirty();
+                    setPendingBlockDelete(null);
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          </Drawer>
+        )}
+
+        {/* Hidden file input for upload */}
+        <input
+          ref={fileUploadRef}
+          type="file"
+          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
+          className="hidden"
+          onChange={onPickFile}
+        />
       </div>
   );
 }
