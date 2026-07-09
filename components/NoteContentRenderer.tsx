@@ -3,6 +3,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import {
+  FileText,
+  File as FileIcon,
+  Link2,
+  StickyNote,
+  ListTodo,
+  ClipboardList,
+  Shield,
+} from 'lucide-react';
 import { Box, Typography, alpha } from '@/lib/openbricks/primitives';
 import { preProcessMarkdown } from '@/lib/markdown';
 import { VoiceNotePlayer } from '@/components/LinkRenderer';
@@ -10,6 +19,19 @@ import { parseObjectBlocks, type SecondaryObjectPayload } from '@/lib/note-objec
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { StorageService } from '@/lib/services/storage';
 import { getNoteInheritedFileBlob, getNoteSecondaryObjectPreview } from '@/lib/actions/client-ops';
+import {
+  fetchNoteObjectPreviewCached,
+  noteObjectPreviewCacheKey,
+  readCachedNoteObjectPreview,
+  writeCachedNoteObjectPreview,
+  type NoteObjectPreviewResult,
+} from '@/lib/note-object-preview-cache';
+import {
+  inferAttachmentMimeType,
+  linkHostname,
+  resolveAttachmentVisualKind,
+  type AttachmentVisualKind,
+} from '@/lib/note-object-visual';
 
 marked.setOptions({
   gfm: true,
@@ -21,8 +43,11 @@ interface NoteContentRendererProps {
   format?: string | null;
   emptyFallback?: React.ReactNode;
   preview?: boolean;
-  /** When set, attached objects inherit this note's read permission. */
   primaryNoteId?: string;
+}
+
+function isEphemeralNoteId(noteId?: string) {
+  return !noteId || noteId.startsWith('live-') || noteId.startsWith('ghost-');
 }
 
 export function NoteContentRenderer({
@@ -54,7 +79,6 @@ export function NoteContentRenderer({
   const parts = useMemo(() => {
     const trimmed = content?.trim();
     if (!trimmed) return [];
-
     const voiceNoteRegex = /(\[voice:[a-zA-Z0-9_-]+\])/g;
     return trimmed.split(voiceNoteRegex);
   }, [content]);
@@ -109,29 +133,9 @@ export function NoteContentRenderer({
         fontSize: '1.125rem',
         lineHeight: 1.75,
         '& p': { mb: 3 },
-        '& h1': {
-          fontSize: '2.25rem',
-          fontWeight: 900,
-          mb: 4,
-          mt: 4,
-          color: 'white',
-          letterSpacing: '-0.02em',
-        },
-        '& h2': {
-          fontSize: '1.875rem',
-          fontWeight: 800,
-          mb: 3,
-          mt: 4,
-          color: 'white',
-          letterSpacing: '-0.01em',
-        },
-        '& h3': {
-          fontSize: '1.5rem',
-          fontWeight: 700,
-          mb: 2,
-          mt: 3,
-          color: 'white',
-        },
+        '& h1': { fontSize: '2.25rem', fontWeight: 900, mb: 4, mt: 4, color: 'white', letterSpacing: '-0.02em' },
+        '& h2': { fontSize: '1.875rem', fontWeight: 800, mb: 3, mt: 4, color: 'white', letterSpacing: '-0.01em' },
+        '& h3': { fontSize: '1.5rem', fontWeight: 700, mb: 2, mt: 3, color: 'white' },
         '& ul, & ol': { mb: 3, pl: 4 },
         '& li': { mb: 1 },
         '& blockquote': {
@@ -160,31 +164,17 @@ export function NoteContentRenderer({
           overflowX: 'auto',
           border: '1px solid rgba(255, 255, 255, 0.05)',
           my: 4,
-          '& code': {
-            bgcolor: 'transparent',
-            p: 0,
-            color: 'inherit',
-          },
+          '& code': { bgcolor: 'transparent', p: 0, color: 'inherit' },
         },
-        '& img': {
-          maxWidth: '100%',
-          borderRadius: '16px',
-          my: 4,
-        },
-        '& hr': {
-          border: 'none',
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          my: 6,
-        },
+        '& img': { maxWidth: '100%', borderRadius: '16px', my: 4 },
+        '& hr': { border: 'none', borderTop: '1px solid rgba(255, 255, 255, 0.1)', my: 6 },
         '& a': {
           color: '#6366F1',
           textDecoration: 'none',
           fontWeight: 600,
           borderBottom: '1px solid transparent',
           transition: 'all 0.2s ease',
-          '&:hover': {
-            borderBottomColor: '#6366F1',
-          },
+          '&:hover': { borderBottomColor: '#6366F1' },
         },
       }}
     >
@@ -194,7 +184,7 @@ export function NoteContentRenderer({
         }
         return (
           <SecondaryObjectShell
-            key={`obj-${index}`}
+            key={`obj-${primaryNoteId || 'note'}-${node.payload.childKind}-${node.payload.childId}`}
             payload={node.payload}
             primaryNoteId={primaryNoteId}
           />
@@ -211,164 +201,330 @@ function SecondaryObjectShell({
   payload: SecondaryObjectPayload;
   primaryNoteId?: string;
 }) {
-  const fallbackTitle = payload.label || payload.href || `${payload.childKind}:${payload.childId}`;
-  const [title, setTitle] = useState(fallbackTitle);
-  const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
-  const [href, setHref] = useState<string | null>(payload.href || (payload.childKind === 'link' ? payload.childId : null));
-  const [status, setStatus] = useState<'loading' | 'ready'>('loading');
-  const [opening, setOpening] = useState(false);
   const bucketId = payload.bucketId || APPWRITE_CONFIG.BUCKETS.GENERAL_STORAGE;
-  const isImage = payload.childKind === 'image';
-  const isVoice = payload.childKind === 'voice';
-  const inheritsPrimary = Boolean(primaryNoteId);
+  const mimeType = inferAttachmentMimeType(payload.label, payload.metadata, payload.childKind);
+  const visualKind = resolveAttachmentVisualKind(mimeType, payload.childKind, payload.label);
+  const cacheKey = primaryNoteId ? noteObjectPreviewCacheKey(primaryNoteId, payload) : '';
+
+  const [preview, setPreview] = useState<NoteObjectPreviewResult | null>(null);
+  const [directSrc, setDirectSrc] = useState<string | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ready'>('loading');
 
   useEffect(() => {
     let active = true;
 
-    const hydrateInherited = async () => {
-      if (!primaryNoteId) return false;
-      const preview = await getNoteSecondaryObjectPreview({
-        noteId: primaryNoteId,
-        childKind: payload.childKind,
-        childId: payload.childId,
-        bucketId: payload.bucketId,
-        label: payload.label,
-        href: payload.href,
+    const loadClientDirectMedia = () => {
+      try {
+        if (visualKind === 'image') {
+          setDirectSrc(StorageService.getFilePreview(payload.childId, bucketId, 960, 540).toString());
+        } else if (visualKind === 'video' || visualKind === 'pdf') {
+          setDirectSrc(StorageService.getFileView(payload.childId, bucketId).toString());
+        }
+        if (active) setStatus('ready');
+      } catch {
+        if (active) setStatus('ready');
+      }
+    };
+
+    const cached = cacheKey ? readCachedNoteObjectPreview(cacheKey) : null;
+    if (cached) {
+      setPreview(cached);
+      setStatus('ready');
+      return () => {
+        active = false;
+      };
+    }
+
+    const load = async () => {
+      if (!primaryNoteId || isEphemeralNoteId(primaryNoteId)) {
+        if (payload.childKind === 'link') {
+          if (active) setStatus('ready');
+          return;
+        }
+        loadClientDirectMedia();
+        return;
+      }
+
+      const result = await fetchNoteObjectPreviewCached(cacheKey, async () => {
+        const res = await getNoteSecondaryObjectPreview({
+          noteId: primaryNoteId,
+          childKind: payload.childKind,
+          childId: payload.childId,
+          bucketId: payload.bucketId,
+          label: payload.label,
+          href: payload.href,
+          mimeType: typeof payload.metadata?.mimeType === 'string' ? payload.metadata.mimeType : undefined,
+        });
+        return {
+          ok: res.ok,
+          title: res.ok ? res.title : payload.label,
+          href: res.ok ? res.href : payload.href,
+          previewDataUrl: res.ok ? res.previewDataUrl : null,
+          childKind: res.ok ? res.childKind : payload.childKind,
+          bucketId: res.ok ? res.bucketId : bucketId,
+          fileId: res.ok ? res.fileId : payload.childId,
+          mimeType: res.ok ? res.mimeType : mimeType,
+          visualKind: res.ok ? res.visualKind : visualKind,
+        };
       });
-      if (!active) return true;
-      if (!preview.ok) {
-        setTitle(fallbackTitle);
-        setStatus('ready');
-        return true;
-      }
-      setTitle(preview.title || fallbackTitle);
-      if (preview.href) setHref(preview.href);
-      if (preview.previewDataUrl) setPreviewDataUrl(preview.previewDataUrl);
-      setStatus('ready');
-      return true;
-    };
 
-    const hydrateLegacy = async () => {
-      if (payload.childKind === 'link') {
+      if (!active) return;
+
+      if (result.previewDataUrl) {
+        setPreview(result);
         setStatus('ready');
         return;
       }
-      if (payload.childKind === 'file' || payload.childKind === 'image' || payload.childKind === 'voice') {
-        setStatus('ready');
+
+      const needsMedia = visualKind === 'image' || visualKind === 'video' || visualKind === 'pdf' || visualKind === 'audio';
+      if (needsMedia && primaryNoteId && !isEphemeralNoteId(primaryNoteId)) {
+        try {
+          const blob = await getNoteInheritedFileBlob(primaryNoteId, payload.childId, bucketId);
+          const enriched: NoteObjectPreviewResult = {
+            ...result,
+            ok: true,
+            previewDataUrl: blob.dataUrl,
+            mimeType: blob.mimeType,
+          };
+          writeCachedNoteObjectPreview(cacheKey, enriched);
+          setPreview(enriched);
+          setStatus('ready');
+          return;
+        } catch {
+          // fall through to client URLs
+        }
+      }
+
+      setPreview(result);
+      if (visualKind === 'image' || visualKind === 'video' || visualKind === 'pdf') {
+        loadClientDirectMedia();
         return;
       }
-      setTitle(fallbackTitle);
+
       setStatus('ready');
     };
 
-    void (async () => {
-      const usedInherited = await hydrateInherited();
-      if (!usedInherited) await hydrateLegacy();
-    })();
+    void load();
 
     return () => {
       active = false;
     };
-  }, [primaryNoteId, payload, fallbackTitle]);
+  }, [
+    primaryNoteId,
+    cacheKey,
+    payload.childId,
+    payload.childKind,
+    payload.bucketId,
+    payload.label,
+    payload.href,
+    payload.metadata,
+    bucketId,
+    mimeType,
+    visualKind,
+  ]);
 
+  const resolvedVisual = (preview?.visualKind as AttachmentVisualKind | undefined) || visualKind;
+  const mediaSrc = preview?.previewDataUrl || directSrc;
+  const href = preview?.href || payload.href || (payload.childKind === 'link' ? payload.childId : null);
   const themeColor = payload.appTheme === 'vault' ? '#10B981' : payload.appTheme === 'flow' ? '#22C55E' : '#6366F1';
 
-  const imageSrc = previewDataUrl
-    || (!inheritsPrimary && isImage
-      ? StorageService.getFilePreview(payload.childId, bucketId, 720, 420).toString()
-      : null);
+  return (
+    <Box sx={{ my: 2, borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(255,255,255,0.02)' }}>
+      {status === 'loading' ? (
+        <Box sx={{ p: 3, color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem' }}>Loading attachment…</Box>
+      ) : (
+        <AttachmentVisual
+          visualKind={resolvedVisual}
+          mediaSrc={mediaSrc}
+          href={href}
+          label={payload.label}
+          childKind={payload.childKind}
+          themeColor={themeColor}
+          primaryNoteId={primaryNoteId}
+          fileId={payload.childId}
+          bucketId={bucketId}
+        />
+      )}
+    </Box>
+  );
+}
 
-  const openInheritedFile = async () => {
-    if (!primaryNoteId || opening) return;
+function AttachmentVisual({
+  visualKind,
+  mediaSrc,
+  href,
+  label,
+  childKind,
+  themeColor,
+  primaryNoteId,
+  fileId,
+  bucketId,
+}: {
+  visualKind: AttachmentVisualKind;
+  mediaSrc: string | null;
+  href: string | null;
+  label?: string;
+  childKind: string;
+  themeColor: string;
+  primaryNoteId?: string;
+  fileId: string;
+  bucketId: string;
+}) {
+  const [opening, setOpening] = useState(false);
+
+  const openFile = async () => {
+    if (opening) return;
     setOpening(true);
     try {
-      const blob = await getNoteInheritedFileBlob(primaryNoteId, payload.childId, bucketId);
-      const link = document.createElement('a');
-      link.href = blob.dataUrl;
-      link.download = blob.name || payload.label || 'attachment';
-      link.target = '_blank';
-      link.rel = 'noreferrer';
-      link.click();
-    } catch (err) {
-      console.error('[SecondaryObjectShell] Failed to open inherited file:', err);
+      if (primaryNoteId && !isEphemeralNoteId(primaryNoteId)) {
+        const blob = await getNoteInheritedFileBlob(primaryNoteId, fileId, bucketId);
+        const link = document.createElement('a');
+        link.href = blob.dataUrl;
+        link.download = blob.name || label || 'attachment';
+        link.target = '_blank';
+        link.rel = 'noreferrer';
+        link.click();
+        return;
+      }
+      window.open(StorageService.getFileView(fileId, bucketId).toString(), '_blank', 'noopener,noreferrer');
     } finally {
       setOpening(false);
     }
   };
 
-  return (
-    <Box sx={{ my: 2, p: 1.5, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.02)' }}>
-      {isImage && imageSrc ? (
-        <Box
-          component="img"
-          src={imageSrc}
-          alt={payload.label || 'Attached image'}
-          sx={{ maxWidth: '100%', borderRadius: '10px', display: 'block' }}
-        />
-      ) : isVoice ? (
-        <Box onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}>
-          {inheritsPrimary ? (
-            <InheritedVoicePlayer
-              noteId={primaryNoteId!}
-              fileId={payload.childId}
-              bucketId={bucketId}
-            />
+  if (visualKind === 'image') {
+    if (!mediaSrc) {
+      return <Box sx={{ p: 3, color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem' }}>Loading image…</Box>;
+    }
+    return (
+      <Box
+        component="img"
+        src={mediaSrc}
+        alt={label || 'Attached image'}
+        sx={{ width: '100%', maxHeight: 480, objectFit: 'contain', display: 'block', bgcolor: '#0B0A09' }}
+      />
+    );
+  }
+
+  if (visualKind === 'video') {
+    if (!mediaSrc) {
+      return <Box sx={{ p: 3, color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem' }}>Loading video…</Box>;
+    }
+    return (
+      <Box component="video" src={mediaSrc} controls playsInline sx={{ width: '100%', maxHeight: 420, display: 'block', bgcolor: '#000' }} />
+    );
+  }
+
+  if (visualKind === 'audio' || childKind === 'voice') {
+    return (
+      <Box sx={{ p: 2 }} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+        {mediaSrc ? (
+          <VoiceNotePlayer fileId={fileId} audioSrc={mediaSrc} />
+        ) : primaryNoteId && !isEphemeralNoteId(primaryNoteId) ? (
+          <InheritedVoiceLoader noteId={primaryNoteId} fileId={fileId} bucketId={bucketId} />
+        ) : (
+          <VoiceNotePlayer fileId={fileId} />
+        )}
+      </Box>
+    );
+  }
+
+  if (visualKind === 'pdf') {
+    if (!mediaSrc) {
+      return <Box sx={{ p: 3, color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem' }}>Loading PDF…</Box>;
+    }
+    return (
+      <Box sx={{ width: '100%', height: 420, bgcolor: '#111' }}>
+        <Box component="iframe" src={mediaSrc} title={label || 'PDF preview'} sx={{ width: '100%', height: '100%', border: 0 }} />
+      </Box>
+    );
+  }
+
+  if (visualKind === 'link' && href) {
+    const host = linkHostname(href);
+    return (
+      <Box
+        component="a"
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          p: 2,
+          textDecoration: 'none',
+          color: 'inherit',
+          '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' },
+        }}
+      >
+        <Box sx={{ width: 44, height: 44, borderRadius: '12px', bgcolor: 'rgba(99,102,241,0.12)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+          {host ? (
+            <Box component="img" src={`https://www.google.com/s2/favicons?domain=${host}&sz=64`} alt="" sx={{ width: 22, height: 22 }} />
           ) : (
-            <VoiceNotePlayer fileId={payload.childId} />
+            <Link2 size={20} color={themeColor} />
           )}
         </Box>
-      ) : (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontSize: '0.8rem', fontWeight: 800, color: themeColor, textTransform: 'uppercase' }}>
-              {payload.childKind}
-            </Typography>
-            <Typography sx={{ fontSize: '0.92rem', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {status === 'loading' ? 'Loading preview...' : title}
-            </Typography>
-          </Box>
-          {(payload.childKind === 'file' || payload.childKind === 'voice') && (
-            inheritsPrimary ? (
-              <Box
-                component="button"
-                type="button"
-                onClick={() => void openInheritedFile()}
-                disabled={opening}
-                sx={{
-                  color: themeColor,
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  background: 'none',
-                  border: 'none',
-                  cursor: opening ? 'wait' : 'pointer',
-                }}
-              >
-                {opening ? 'Opening...' : 'Open'}
-              </Box>
-            ) : (
-              <Box
-                component="a"
-                href={StorageService.getFileView(payload.childId, bucketId).toString()}
-                target="_blank"
-                rel="noreferrer"
-                sx={{ color: themeColor, fontSize: '0.8rem', fontWeight: 700 }}
-              >
-                Open
-              </Box>
-            )
-          )}
-          {payload.childKind === 'link' && href && (
-            <Box component="a" href={href} target="_blank" rel="noreferrer" sx={{ color: themeColor, fontSize: '0.8rem', fontWeight: 700 }}>
-              Visit
-            </Box>
-          )}
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {host || 'Link'}
+          </Typography>
+          <Typography sx={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {href}
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  const Icon = ecosystemIcon(childKind) || (visualKind === 'document' ? FileText : FileIcon);
+
+  return (
+    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+      <Box sx={{ width: 72, height: 72, borderRadius: '16px', bgcolor: `${themeColor}18`, display: 'grid', placeItems: 'center' }}>
+        <Icon size={34} color={themeColor} strokeWidth={1.75} />
+      </Box>
+      {(visualKind === 'document' || visualKind === 'icon') && (
+        <Box
+          component="button"
+          type="button"
+          onClick={() => void openFile()}
+          disabled={opening}
+          sx={{
+            px: 2.5,
+            py: 1,
+            borderRadius: '10px',
+            border: `1px solid ${themeColor}55`,
+            color: themeColor,
+            fontSize: '0.8rem',
+            fontWeight: 800,
+            bgcolor: 'transparent',
+            cursor: opening ? 'wait' : 'pointer',
+          }}
+        >
+          {opening ? 'Opening…' : 'Open file'}
         </Box>
       )}
     </Box>
   );
 }
 
-function InheritedVoicePlayer({
+function ecosystemIcon(childKind: string) {
+  switch (childKind) {
+    case 'task':
+      return ListTodo;
+    case 'form':
+      return ClipboardList;
+    case 'note':
+      return StickyNote;
+    case 'vault':
+      return Shield;
+    default:
+      return null;
+  }
+}
+
+function InheritedVoiceLoader({
   noteId,
   fileId,
   bucketId,
@@ -378,29 +534,30 @@ function InheritedVoicePlayer({
   bucketId: string;
 }) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const cacheKey = `blob:${noteId}:${fileId}:${bucketId}`;
 
   useEffect(() => {
     let active = true;
+    const cached = readCachedNoteObjectPreview(cacheKey);
+    if (cached?.previewDataUrl) {
+      setAudioUrl(cached.previewDataUrl);
+      return;
+    }
     void getNoteInheritedFileBlob(noteId, fileId, bucketId)
       .then((blob) => {
-        if (active) setAudioUrl(blob.dataUrl);
+        if (!active) return;
+        writeCachedNoteObjectPreview(cacheKey, { ok: true, previewDataUrl: blob.dataUrl });
+        setAudioUrl(blob.dataUrl);
       })
-      .catch((err) => {
-        console.error('[InheritedVoicePlayer] Failed to load voice note:', err);
-      });
+      .catch(() => {});
     return () => {
       active = false;
     };
-  }, [noteId, fileId, bucketId]);
+  }, [noteId, fileId, bucketId, cacheKey]);
 
   if (!audioUrl) {
-    return (
-      <Typography sx={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>
-        Loading voice note...
-      </Typography>
-    );
+    return <Typography sx={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Loading audio…</Typography>;
   }
-
   return <VoiceNotePlayer fileId={fileId} audioSrc={audioUrl} />;
 }
 

@@ -1020,6 +1020,7 @@ export function NoteDetailSidebar({
         label: file.name,
         line: getCursorLineNumber(),
         appTheme: 'idea',
+        metadata: { mimeType: file.type, fileName: file.name },
       }));
       const { getObjectsByParent } = await import('@/lib/actions/client-ops');
       setAttachedObjects(await getObjectsByParent(liveNote.$id, 'note'));
@@ -1392,42 +1393,47 @@ export function NoteDetailSidebar({
               </button>
             ) : liveNote.format === 'doodle' ? (
               <NoteContentRenderer content={content} format="doodle" primaryNoteId={liveNote.$id} />
-            ) : contentMode === 'preview' ? (
-              <div className="note-markdown-preview min-h-[240px]">
-                {content.trim() ? (
-                  <NoteContentRenderer
-                    content={content}
-                    format={liveNote.format || 'markdown'}
-                    primaryNoteId={liveNote.$id}
-                  />
-                ) : (
-                  <p className="text-[#9B9691] text-sm font-semibold italic leading-relaxed">
-                    Nothing to preview yet. Switch to Write and add markdown.
-                  </p>
-                )}
-              </div>
             ) : (
-              <div
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  setIsContextDrawerOpen(true);
-                }}
-                className="w-full flex flex-col min-h-[240px]"
-              >
-                <textarea
-                  value={content}
-                  onChange={(e) => {
-                    setContent(e.target.value);
-                    markDirty();
+              <>
+                <div
+                  className={`note-markdown-preview min-h-[240px] ${contentMode !== 'preview' ? 'hidden' : ''}`}
+                  aria-hidden={contentMode !== 'preview'}
+                >
+                  {content.trim() ? (
+                    <NoteContentRenderer
+                      content={content}
+                      format={liveNote.format || 'markdown'}
+                      primaryNoteId={liveNote.$id}
+                    />
+                  ) : (
+                    <p className="text-[#9B9691] text-sm font-semibold italic leading-relaxed">
+                      Nothing to preview yet. Switch to Write and add markdown.
+                    </p>
+                  )}
+                </div>
+                <div
+                  className={contentMode === 'preview' ? 'hidden' : 'w-full flex flex-col min-h-[240px]'}
+                  aria-hidden={contentMode === 'preview'}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setIsContextDrawerOpen(true);
                   }}
-                  ref={contentTextareaRef}
-                  onKeyDown={onEditorKeyDown}
-                  className="w-full min-h-[320px] bg-transparent text-white/92 text-[15px] leading-[1.75] border-none focus:outline-none resize-y scrollbar-thin placeholder:text-[#9B9691]/45 font-satoshi"
-                  placeholder="Write in markdown — headings, lists, links, and voice tags are supported."
-                  spellCheck
-                />
-              </div>
+                >
+                  <textarea
+                    value={content}
+                    onChange={(e) => {
+                      setContent(e.target.value);
+                      markDirty();
+                    }}
+                    ref={contentTextareaRef}
+                    onKeyDown={onEditorKeyDown}
+                    className="w-full min-h-[320px] bg-transparent text-white/92 text-[15px] leading-[1.75] border-none focus:outline-none resize-y scrollbar-thin placeholder:text-[#9B9691]/45 font-satoshi"
+                    placeholder="Write in markdown — headings, lists, links, and voice tags are supported."
+                    spellCheck
+                  />
+                </div>
+              </>
             )}
 
             {!shouldMaskEncrypted && (

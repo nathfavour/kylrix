@@ -266,7 +266,7 @@ export default function NoteEditorPageClient() {
               {/* Markdown Rendered Content */}
               <div className="prose prose-invert max-w-none text-white/90 leading-relaxed font-satoshi text-[15px] min-h-[150px] break-words pt-2">
                 {content.trim() ? (
-                  <NoteContentRenderer content={content} format={rawNote.format || 'markdown'} />
+                  <NoteContentRenderer content={content} format={rawNote.format || 'markdown'} primaryNoteId={id as string} />
                 ) : (
                   <p className="text-white/20 italic font-medium">Empty note.</p>
                 )}

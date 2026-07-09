@@ -286,6 +286,7 @@ export default function CreateNoteForm({
         bucketId,
         label: file.name,
         appTheme: 'idea',
+        metadata: { mimeType: file.type, fileName: file.name },
       }));
       showSuccess('File attached', file.name);
     } catch (err: any) {

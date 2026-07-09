@@ -109,6 +109,7 @@ export async function getNoteSecondaryObjectPreview(input: {
   bucketId?: string;
   label?: string;
   href?: string;
+  mimeType?: string;
 }) {
   const jwt = await getJwt();
   const { getNoteSecondaryObjectPreviewSecure } = await import('./secure-ops');

@@ -30,6 +30,7 @@ import { verifyCreatorDeletionProof } from '@/lib/ephemeral/ephemeral-proof';
 import { verifyTurnstileToken } from '@/lib/turnstile';
 import { validatePublicNoteAccess } from '@/lib/appwrite/note';
 import { buildPublicResourceUrl } from '@/lib/share/public-url';
+import { inferAttachmentMimeType, resolveAttachmentVisualKind } from '@/lib/note-object-visual';
 import { PublicResourceType } from '@/lib/share/resource-types';
 import {
   MutatePermissionsSchema,
@@ -379,6 +380,7 @@ export async function getNoteSecondaryObjectPreviewSecure(
     bucketId?: string;
     label?: string;
     href?: string;
+    mimeType?: string;
   },
   jwt?: string,
 ) {
@@ -392,6 +394,8 @@ export async function getNoteSecondaryObjectPreviewSecure(
   const childKind = String(input.childKind || '').trim();
   const childId = String(input.childId || '').trim();
   const fallbackTitle = String(input.label || input.href || childId || 'Attached object').trim();
+  const mimeType = inferAttachmentMimeType(input.label, { mimeType: input.mimeType }, childKind);
+  const visualKind = resolveAttachmentVisualKind(mimeType, childKind, input.label);
 
   if (childKind === 'link') {
     const href = String(input.href || childId || '').trim();
@@ -401,16 +405,33 @@ export async function getNoteSecondaryObjectPreviewSecure(
       href,
       previewDataUrl: null as string | null,
       childKind,
+      mimeType,
+      visualKind,
     };
   }
 
   if (childKind === 'file' || childKind === 'image' || childKind === 'voice') {
     const bucketId = input.bucketId || (childKind === 'voice' ? 'voice' : APPWRITE_CONFIG.BUCKETS.GENERAL_STORAGE);
     const { getFilePreviewSecure } = await import('./misc');
-    const previewDataUrl =
-      childKind === 'image'
-        ? await getFilePreviewSecure(bucketId, childId, 960, 540)
-        : null;
+    let previewDataUrl: string | null = null;
+
+    const needsRasterPreview = visualKind === 'image' || visualKind === 'video' || childKind === 'image';
+    if (needsRasterPreview) {
+      previewDataUrl = await getFilePreviewSecure(bucketId, childId, 960, 540);
+    }
+
+    const needsFullBlob =
+      !previewDataUrl &&
+      (visualKind === 'image' || visualKind === 'pdf' || visualKind === 'video' || visualKind === 'audio');
+    if (needsFullBlob) {
+      try {
+        const blob = await getNoteInheritedFileBlobSecure(input.noteId, childId, bucketId, validatedJwt);
+        if (blob.dataUrl) previewDataUrl = blob.dataUrl;
+      } catch {
+        // best effort
+      }
+    }
+
     return {
       ok: true as const,
       title: fallbackTitle,
@@ -419,6 +440,8 @@ export async function getNoteSecondaryObjectPreviewSecure(
       childKind,
       bucketId,
       fileId: childId,
+      mimeType: blobMimeFromPreview(previewDataUrl) || mimeType,
+      visualKind,
     };
   }
 
@@ -436,6 +459,8 @@ export async function getNoteSecondaryObjectPreviewSecure(
       href: null as string | null,
       previewDataUrl: null as string | null,
       childKind,
+      mimeType,
+      visualKind,
     };
   }
 
@@ -452,6 +477,8 @@ export async function getNoteSecondaryObjectPreviewSecure(
       href: null as string | null,
       previewDataUrl: null as string | null,
       childKind,
+      mimeType,
+      visualKind,
     };
   } catch {
     return {
@@ -460,8 +487,17 @@ export async function getNoteSecondaryObjectPreviewSecure(
       href: null as string | null,
       previewDataUrl: null as string | null,
       childKind,
+      mimeType,
+      visualKind,
     };
   }
+}
+
+function blobMimeFromPreview(dataUrl: string | null | undefined): string | null {
+  if (!dataUrl || !dataUrl.startsWith('data:')) return null;
+  const semi = dataUrl.indexOf(';');
+  if (semi <= 5) return null;
+  return dataUrl.slice(5, semi);
 }
 
 export async function getNoteInheritedFileBlobSecure(
