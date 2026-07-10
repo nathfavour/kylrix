@@ -108,7 +108,7 @@ export function NewProjectDrawer() {
   // Form State
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
-  const [visibility, setVisibility] = useState<'private' | 'public'>('private');
+  const [visibility, setVisibility] = useState<'private' | 'public'>('public');
   const [isGuest, setIsGuest] = useState(true);
   const [isGuestExpanded, setIsGuestExpanded] = useState(false);
 
@@ -134,7 +134,7 @@ export function NewProjectDrawer() {
     if (isOpen) {
       setTitle(template?.title || '');
       setSummary(template?.summary || '');
-      setVisibility('private');
+      setVisibility('public');
       setIsExpanded(false);
       setIsGuest(true);
       setIsGuestExpanded(false);

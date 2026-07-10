@@ -139,7 +139,7 @@ export default function ProjectDetailPage() {
   const { openSecondarySidebar } = useLayout();
   const { openOverlay, closeOverlay } = useOverlay();
   const { openProUpgrade } = useProUpgrade();
-  const { fetchOptimized, getCachedDataAsync, setCachedData } = useDataNexus();
+  const { fetchOptimized, getCachedDataAsync, setCachedData, invalidate } = useDataNexus();
 
   useEffect(() => {
       if (projectId) {
@@ -182,6 +182,7 @@ export default function ProjectDetailPage() {
   const handleSaveSettings = async (title: string, summary: string, status: 'active' | 'completed' | 'archived' | 'paused' | 'on_hold') => {
     if (!project) return;
     try {
+      invalidate(projectMetaCacheKey(project.$id));
       await ProjectsService.updateProject(project.$id, {
         title,
         summary,
@@ -198,8 +199,10 @@ export default function ProjectDetailPage() {
   const handleSaveVisibility = async (visibility: 'public' | 'private', isGuest: boolean) => {
     if (!project) return;
     try {
+      invalidate(projectMetaCacheKey(project.$id));
       await ProjectsService.updateProject(project.$id, {
-        visibility
+        visibility,
+        isGuest
       });
       showSuccess('Project visibility updated successfully!');
       fetchProjectData();
