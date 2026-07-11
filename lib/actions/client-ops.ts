@@ -524,4 +524,11 @@ export async function createStandaloneTag(tagName: string) {
   return createStandaloneTagSecure(tagName, jwt);
 }
 
+export async function toggleTaskReminder(taskId: string, enabled: boolean) {
+  const jwt = await getJwt();
+  const { toggleTaskReminderSecure } = await import('./secure-ops');
+  return toggleTaskReminderSecure(taskId, enabled, jwt);
+}
+
+
 

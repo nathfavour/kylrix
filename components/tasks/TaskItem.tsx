@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import {
   Flag,
   Clock,
@@ -19,7 +19,10 @@ import {
   Settings,
   Tag,
   FolderKanban,
+  Bell,
+  ChevronLeft,
 } from 'lucide-react';
+import { Drawer, Box, Typography } from '@/lib/openbricks/primitives';
 import { formatTime, isToday, isTomorrow, isPast, isThisWeek } from '@/lib/time-util';
 import { Task, Priority } from '@/types';
 import { useTask } from '@/context/TaskContext';
@@ -66,12 +69,33 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
     deleteTask,
     updateTask,
     togglePinTask,
+    toggleTaskReminder,
     addTask,
     labels,
     projects,
     selectTask,
     getTagFilterOptions,
   } = useTask();
+
+  const [isMenuDrawerOpen, setIsMenuDrawerOpen] = useState(false);
+  const [drawerMenuStack, setDrawerMenuStack] = useState<any[][]>([]);
+
+  const handleToggleReminder = async () => {
+    try {
+      const nextScheduled = !task.scheduled;
+      await toggleTaskReminder(task.id, nextScheduled);
+      showSuccess(nextScheduled ? 'Reminder turned on' : 'Reminder turned off');
+    } catch (err: any) {
+      console.error(err);
+      showError(err.message || 'Failed to toggle reminder');
+    }
+  };
+
+  useEffect(() => {
+    if (isMenuDrawerOpen) {
+      setDrawerMenuStack([contextMenuItems]);
+    }
+  }, [isMenuDrawerOpen, contextMenuItems]);
   const { isPinned: isResourcePinned } = useResourcePins();
   const { showSuccess, showError } = useToast();
   const taskPinned = isResourcePinned('task', task.id, task.creatorId, task.isPinned);
@@ -181,118 +205,122 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
     }
   });
 
-interface SubmenuItem {
-    label: string;
-    icon: React.ReactNode;
-    onClick?: () => void;
-    submenu?: SubmenuItem[];
-}
-
-const contextMenuItems = useMemo(() => ([
-    ...accessControlItems,
-    { 
-        label: 'Synergy', 
-        icon: <Sparkles size={16} className="text-[#A855F7]" />,
-        submenu: [
-            { 
-                label: 'Assign Goal', 
-                icon: <AssignIcon size={16} />, 
-                onClick: () => openUnified('share-note', {
-                    resourceId: task.id,
-                    resourceType: 'goal',
-                    resourceTitle: task.title,
-                    actorName: user?.name || 'A Kylrix User'
-                })
-            },
-            { 
-                label: 'Start Huddle', 
-                icon: <Video size={16} />, 
-                onClick: () => {
-                    const participantIds = Array.from(new Set([task.creatorId, ...(task.assigneeIds || [])].filter(Boolean)));
-                    openCallLauncher({
-                      source: 'task',
+  const contextMenuItems = useMemo(() => {
+    const items = [
+      ...accessControlItems,
+      { 
+          label: 'Synergy', 
+          icon: <Sparkles size={16} className="text-[#A855F7]" />,
+          submenu: [
+              { 
+                  label: 'Assign Goal', 
+                  icon: <AssignIcon size={16} />, 
+                  onClick: () => openUnified('share-note', {
+                      resourceId: task.id,
+                      resourceType: 'goal',
+                      resourceTitle: task.title,
+                      actorName: user?.name || 'A Kylrix User'
+                  })
+              },
+              { 
+                  label: 'Start Huddle', 
+                  icon: <Video size={16} />, 
+                  onClick: () => {
+                      const participantIds = Array.from(new Set([task.creatorId, ...(task.assigneeIds || [])].filter(Boolean)));
+                      openCallLauncher({
+                        source: 'task',
+                        taskId: task.id,
+                        participantIds,
+                        title: task.title ? `Task Huddle: ${task.title}` : 'Task Huddle',
+                      });
+                  }
+              },
+          ]
+      },
+      {
+          label: 'Project',
+          icon: <FolderKanban size={16} className="text-[#6366F1]" />,
+          submenu: [
+              {
+                  label: 'Add to Project',
+                  icon: <FolderKanban size={16} />,
+                  onClick: () => openUnified('task-add-to-project', {
                       taskId: task.id,
-                      participantIds,
-                      title: task.title ? `Task Huddle: ${task.title}` : 'Task Huddle',
-                    });
-                }
-            },
-        ]
-    },
-    {
-        label: 'Project',
-        icon: <FolderKanban size={16} className="text-[#6366F1]" />,
-        submenu: [
-            {
-                label: 'Add to Project',
-                icon: <FolderKanban size={16} />,
-                onClick: () => openUnified('task-add-to-project', {
-                    taskId: task.id,
-                    taskTitle: task.title,
-                }),
-            },
-        ],
-    },
-    {
-        label: 'Tags',
-        icon: <Tag size={16} className="text-[#A855F7]" />,
-        submenu: tagMenuOptions.length > 0
-          ? tagMenuOptions.map((tagName) => ({
-              label: tagName,
-              icon: task.labels.includes(tagName)
-                ? <Check size={16} className="text-[#A855F7]" />
-                : <Tag size={14} className="opacity-30" />,
-              keepOpen: true,
-              onClick: () => toggleTaskTag(tagName),
-            }))
-          : [{ label: 'No tags available', onClick: () => undefined }],
-    },
-    { 
-        label: 'Workflow', 
-        icon: <Settings size={16} />,
-        submenu: [
-            { 
-                label: 'Duplicate', 
-                icon: <Copy size={16} />, 
-                onClick: () => {
-                    addTask({
-                        title: `${task.title} (Copy)`,
-                        description: task.description,
-                        status: task.status,
-                        priority: task.priority,
-                        projectId: task.projectId,
-                        labels: task.labels,
-                        dueDate: task.dueDate,
-                        comments: [],
-                        isPinned: false,
-                        isArchived: false,
-                        attachments: [],
-                        reminders: [],
-                        timeEntries: [],
-                        subtasks: [],
-                        creatorId: task.creatorId,
-                        assigneeIds: task.assigneeIds || []
-                    });
-                }
-            },
-            { 
-                label: 'Archive', 
-                icon: <Archive size={16} />, 
-                onClick: () => updateTask(task.id, { isArchived: true })
-            },
-        ]
-    },
-    { 
-        label: 'Edit Task', 
-        icon: <Edit size={16} />, 
-        onClick: () => {
-            selectTask(task.id);
-            openSecondarySidebar('task', task.id);
-        }
-    },
-    { 
+                      taskTitle: task.title,
+                  }),
+              },
+          ],
+      },
+      {
+          label: 'Tags',
+          icon: <Tag size={16} className="text-[#A855F7]" />,
+          submenu: tagMenuOptions.length > 0
+            ? tagMenuOptions.map((tagName) => ({
+                label: tagName,
+                icon: task.labels.includes(tagName)
+                  ? <Check size={16} className="text-[#A855F7]" />
+                  : <Tag size={14} className="opacity-30" />,
+                keepOpen: true,
+                onClick: () => toggleTaskTag(tagName),
+              }))
+            : [{ label: 'No tags available', onClick: () => undefined }],
+      },
+      { 
+          label: 'Workflow', 
+          icon: <Settings size={16} />,
+          submenu: [
+              { 
+                  label: 'Duplicate', 
+                  icon: <Copy size={16} />, 
+                  onClick: () => {
+                      addTask({
+                          title: `${task.title} (Copy)`,
+                          description: task.description,
+                          status: task.status,
+                          priority: task.priority,
+                          projectId: task.projectId,
+                          labels: task.labels,
+                          dueDate: task.dueDate,
+                          comments: [],
+                          isPinned: false,
+                          isArchived: false,
+                          attachments: [],
+                          reminders: [],
+                          timeEntries: [],
+                          subtasks: [],
+                          creatorId: task.creatorId,
+                          assigneeIds: task.assigneeIds || []
+                      });
+                  }
+              },
+              { 
+                  label: 'Archive', 
+                  icon: <Archive size={16} />, 
+                  onClick: () => updateTask(task.id, { isArchived: true })
+              },
+          ]
+      },
+      { 
+          label: 'Edit Goal', 
+          icon: <Edit size={16} />, 
+          onClick: () => {
+              selectTask(task.id);
+              openSecondarySidebar('task', task.id);
+          }
+      },
+    ];
+
+    if (task.dueDate) {
+      items.push({
+        label: task.scheduled ? 'Turn off reminder' : 'Turn on reminder',
+        icon: task.scheduled ? <Check size={16} className="text-green-500" /> : <Bell size={16} />,
+        onClick: handleToggleReminder
+      } as any);
+    }
+
+    items.push({ 
         label: 'Delete', 
-        icon: <Trash2 size={16} />, 
+        icon: <Trash2 size={16} className="text-red-500" />, 
         onClick: () => openUnified('delete-confirm', {
             title: `Delete goal: "${task.title}"?`,
             description: 'This will permanently remove this goal and all its subtasks, comments, and history from your domain.',
@@ -302,40 +330,39 @@ const contextMenuItems = useMemo(() => ([
               await deleteTask(task.id);
             }
         })
-    },
-] as SubmenuItem[]), [
+    } as any);
+
+    return items;
+  }, [
     accessControlItems, 
     task.id, 
     task.title, 
-    user?.name, 
-    openUnified, 
-    openCallLauncher, 
-    task.creatorId, 
-    task.assigneeIds,
-    task.labels,
-    task.description,
-    task.status,
-    task.priority,
-    task.projectId,
     task.dueDate,
+    task.scheduled,
+    user?.name, 
+    task.creatorId, 
+    task.assigneeIds, 
+    openCallLauncher, 
+    openUnified, 
     tagMenuOptions, 
     toggleTaskTag, 
     addTask, 
+    task.description, 
+    task.status, 
+    task.priority, 
+    task.projectId, 
+    task.labels, 
     updateTask, 
     selectTask, 
     openSecondarySidebar, 
-    deleteTask
-]);
+    deleteTask,
+    handleToggleReminder
+  ]);
 
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    openMenu({
-        x: event.clientX,
-        y: event.clientY,
-        items: contextMenuItems,
-        appType: 'flow'
-    });
+    setIsMenuDrawerOpen(true);
   };
 
   const handleComplete = (event: React.MouseEvent) => {
@@ -557,6 +584,92 @@ const contextMenuItems = useMemo(() => ([
           task={task}
           taskId={task.id}
         />
+      )}
+
+      {isMenuDrawerOpen && (
+        <Drawer
+          anchor="bottom"
+          open={isMenuDrawerOpen}
+          onClose={() => setIsMenuDrawerOpen(false)}
+          PaperProps={{
+            sx: {
+              position: 'fixed !important',
+              bottom: '0 !important',
+              left: '0 !important',
+              right: '0 !important',
+              borderTopLeftRadius: '24px',
+              borderTopRightRadius: '24px',
+              bgcolor: '#161412',
+              borderTop: '1px solid #34322F',
+              backgroundImage: 'none',
+              maxWidth: 720,
+              width: '100%',
+              mx: 'auto',
+              p: 2,
+              pb: 4,
+              height: '60dvh',
+              pointerEvents: 'auto',
+            }
+          }}
+          ModalProps={{
+            keepMounted: false,
+            disableScrollLock: false,
+            disablePortal: true,
+          }}
+        >
+          <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: '#3D3A36', mx: 'auto', mb: 1 }} aria-hidden />
+          <Typography sx={{ fontSize: '0.9rem', fontWeight: 950, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', tracking: '0.05em', fontFamily: 'var(--font-mono)', mb: 1, textAlign: 'center' }}>
+            Goal Actions
+          </Typography>
+
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 1.5, 
+              pointerEvents: 'auto',
+              flex: 1,
+              overflowY: 'auto'
+            }}
+          >
+            {drawerMenuStack.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setDrawerMenuStack(prev => prev.slice(0, -1))}
+                className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-white/50 hover:text-white transition-colors text-left"
+              >
+                <ChevronLeft size={14} />
+                <span>Back</span>
+              </button>
+            )}
+
+            {(drawerMenuStack[drawerMenuStack.length - 1] || []).map((item: any, idx: number) => {
+              const isDestructive = item.variant === 'destructive';
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    if (item.submenu) {
+                      setDrawerMenuStack(prev => [...prev, item.submenu]);
+                    } else {
+                      setIsMenuDrawerOpen(false);
+                      item.onClick?.();
+                    }
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-bold transition-all text-left cursor-pointer ${
+                    isDestructive 
+                      ? 'bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500/20' 
+                      : 'bg-white/[0.02] border-white/5 text-white hover:bg-white/5'
+                  }`}
+                >
+                  {item.icon && <span className="opacity-70">{item.icon}</span>}
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </Box>
+        </Drawer>
       )}
     </>
   );

@@ -140,6 +140,7 @@ import {
   syncMasterpassToAccountPasswordAction,
   checkEmailAuthMethodAction,
   createStandaloneTagSecure,
+  toggleTaskReminderSecure,
 } from './secure-ops/misc';
 
 import {
@@ -273,6 +274,7 @@ export {
   syncMasterpassToAccountPasswordAction,
   checkEmailAuthMethodAction,
   createStandaloneTagSecure,
+  toggleTaskReminderSecure,
   getNostrIdentityAction,
   registerNostrIdentityAction,
   resolveNostrPubkeysAction,

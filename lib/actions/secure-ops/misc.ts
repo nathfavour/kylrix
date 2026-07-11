@@ -2408,3 +2408,116 @@ export async function createStandaloneTagSecure(tagName: string, jwt?: string) {
     ]
   );
 }
+
+export async function toggleTaskReminderSecure(taskId: string, enabled: boolean, jwt?: string) {
+  const actor = await getActor(jwt);
+  if (!actor?.$id) throw new Error('Unauthorized');
+
+  const { createSystemClient } = await import('@/lib/appwrite-admin');
+  const { messaging, users } = createSystemClient();
+  const tables = createSystemTablesDB();
+  const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
+  const TASKS_TABLE = APPWRITE_CONFIG.TABLES.FLOW.TASKS;
+
+  const task = await tables.getRow({
+    databaseId: FLOW_DATABASE_ID,
+    tableId: TASKS_TABLE,
+    rowId: taskId,
+  }) as any;
+
+  if (!task) throw new Error('Task not found');
+  
+  // Security verification
+  if (task.userId !== actor.$id) {
+    const collabs = await tables.listRows({
+      databaseId: FLOW_DATABASE_ID,
+      tableId: APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS,
+      queries: [
+        Query.equal('resourceId', taskId),
+        Query.equal('userId', actor.$id)
+      ] as any
+    });
+    if (collabs.total === 0) {
+      throw new Error('Forbidden: Insufficient permissions');
+    }
+  }
+
+  const now = new Date();
+
+  if (enabled) {
+    if (!task.dueDate) {
+      throw new Error('Goal has no deadline attached to it.');
+    }
+    const deadline = new Date(task.dueDate);
+    const diffMs = deadline.getTime() - now.getTime();
+    if (diffMs <= 0) {
+      throw new Error('Deadline is in the past.');
+    }
+
+    let scheduledTime: Date;
+    if (diffMs > 24 * 60 * 60 * 1000) {
+      scheduledTime = new Date(deadline.getTime() - 24 * 60 * 60 * 1000);
+    } else if (diffMs > 60 * 60 * 1000) {
+      scheduledTime = new Date(deadline.getTime() - 60 * 60 * 1000);
+    } else {
+      throw new Error('Deadline is less than an hour away. Cannot schedule reminder.');
+    }
+
+    if (task.recurrenceRule?.startsWith('reminder_msg_id:')) {
+      const oldMsgId = task.recurrenceRule.split(':')[1];
+      try {
+        await messaging.delete(oldMsgId);
+      } catch (err) {
+        console.error('Failed to delete old reminder message:', err);
+      }
+    }
+
+    const msgId = ID.unique();
+    const recipientUser = await users.get(actor.$id);
+    if (!recipientUser.email) {
+      throw new Error('User has no email address configured.');
+    }
+
+    await messaging.createEmail({
+      messageId: msgId,
+      subject: `Goal Reminder: ${task.title}`,
+      content: `Hi!\n\nThis is a reminder for your goal: "${task.title}".\n\nThe deadline is on ${deadline.toLocaleString()}.\n\nGood luck!`,
+      users: [actor.$id],
+      scheduledAt: scheduledTime.toISOString(),
+    });
+
+    const updated = await tables.updateRow({
+      databaseId: FLOW_DATABASE_ID,
+      tableId: TASKS_TABLE,
+      rowId: taskId,
+      data: {
+        scheduled: true,
+        recurrenceRule: `reminder_msg_id:${msgId}`,
+      }
+    });
+
+    return JSON.parse(JSON.stringify(updated));
+  } else {
+    if (task.recurrenceRule?.startsWith('reminder_msg_id:')) {
+      const oldMsgId = task.recurrenceRule.split(':')[1];
+      try {
+        await messaging.delete(oldMsgId);
+      } catch (err) {
+        console.error('Failed to delete reminder message:', err);
+      }
+    }
+
+    const updated = await tables.updateRow({
+      databaseId: FLOW_DATABASE_ID,
+      tableId: TASKS_TABLE,
+      rowId: taskId,
+      data: {
+        scheduled: false,
+        recurrenceRule: null,
+      }
+    });
+
+    return JSON.parse(JSON.stringify(updated));
+  }
+}
+

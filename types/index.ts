@@ -99,6 +99,7 @@ export interface Task {
   linkedEvents?: string[]; // KylrixEvents integration
   linkedMeetings?: string[]; // KylrixMeet integration
   linkedCalendarEvents?: string[]; // KylrixCal integration
+  scheduled?: boolean;
 }
 
 export type CollaboratorPermission = 'read' | 'write' | 'admin';

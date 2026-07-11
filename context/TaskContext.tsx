@@ -69,6 +69,7 @@ const mapAppwriteTaskToTask = (doc: AppwriteTask): Task => {
     isPublic: raw.isPublic === true || String(raw.isPublic) === 'true',
     isGuest: raw.isGuest === true || String(raw.isGuest) === 'true',
     discussionId: raw.discussionId || null,
+    scheduled: raw.scheduled === true || String(raw.scheduled) === 'true',
   };
 };
 
@@ -530,6 +531,7 @@ interface TaskContextType extends TaskState {
   completeTask: (id: string) => void;
   selectTask: (id: string | null) => void;
   togglePinTask: (id: string) => Promise<void>;
+  toggleTaskReminder: (id: string, enabled: boolean) => Promise<void>;
   // Subtask actions
   addSubtask: (taskId: string, title: string) => void;
   updateSubtask: (taskId: string, subtaskId: string, updates: Partial<Subtask>) => void;
@@ -1230,6 +1232,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       if (updates.isPinned !== undefined) apiUpdates.isPinned = updates.isPinned;
       if (updates.isPublic !== undefined) apiUpdates.isPublic = updates.isPublic;
       if (updates.isGuest !== undefined) apiUpdates.isGuest = updates.isGuest;
+      if (updates.scheduled !== undefined) apiUpdates.scheduled = updates.scheduled;
 
       if (updates.labels !== undefined || updates.linkedNotes !== undefined || updates.projectId !== undefined) {
         const projectId = updates.projectId || currentTask.projectId;
@@ -1304,6 +1307,29 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [state.tasks, state.userId, isResourcePinned, togglePin, setLocalPin, invalidateTasksNexus]);
+
+  const toggleTaskReminder = useCallback(async (id: string, enabled: boolean) => {
+    try {
+      const { toggleTaskReminder: toggleAction } = await import('@/lib/actions/client-ops');
+      const updatedDoc = await toggleAction(id, enabled);
+      if (updatedDoc) {
+        dispatch({
+          type: 'UPDATE_TASK',
+          payload: {
+            id,
+            updates: {
+              scheduled: updatedDoc.scheduled,
+              recurrenceRule: updatedDoc.recurrenceRule,
+            }
+          }
+        });
+        invalidateTasksNexus(state.userId || 'guest');
+      }
+    } catch (error: any) {
+      console.error('Failed to toggle task reminder', error);
+      throw error;
+    }
+  }, [state.userId, invalidateTasksNexus]);
 
   const togglePinProject = useCallback(async (id: string) => {
     const project = state.projects.find(p => p.id === id);
@@ -1813,6 +1839,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     completeTask,
     selectTask,
     togglePinTask,
+    toggleTaskReminder,
     addSubtask,
     updateSubtask,
     deleteSubtask,
@@ -1854,6 +1881,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     completeTask,
     selectTask,
     togglePinTask,
+    toggleTaskReminder,
     addSubtask,
     updateSubtask,
     deleteSubtask,

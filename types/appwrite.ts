@@ -417,6 +417,7 @@ export type Tasks = Models.Row & {
     source?: string | null;
     isDeleted?: boolean;
     updatedAt?: string | null;
+    scheduled?: boolean | null;
 }
 
 export type Stickers = Models.Row & { name: string; description: string | null; creatorId: string | null; packId: string | null; imageUrl: string; imageFileId: string | null; animatedUrl: string | null; animatedFileId: string | null; tags: string[]; category: string | null; isPremium: boolean; isAnimated: boolean; usageCount: number; isPublic: boolean; createdAt: string | null; }
