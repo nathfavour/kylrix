@@ -2,7 +2,7 @@
 
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { deleteNote } from '@/lib/actions/client-ops';
-import { useNotes } from '@/context/NotesContext';
+import { useNotes, isLiveDraftNoteId } from '@/context/NotesContext';
 import { useOverlay } from '@/components/ui/OverlayContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Suspense } from 'react';
@@ -335,7 +335,7 @@ export default function NotesPage() {
   }, [paginatedNotes]);
 
   const handleNoteCreated = useCallback((newNote: Notes) => {
-    if (newNote.$id) {
+    if (newNote.$id && isLiveDraftNoteId(newNote.$id)) {
       registerComposeSession(newNote.$id);
       pushLiveNote(newNote);
     }

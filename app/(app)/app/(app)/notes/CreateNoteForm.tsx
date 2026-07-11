@@ -80,7 +80,7 @@ export default function CreateNoteForm({
 }: CreateNoteFormProps) {
   const { closeOverlay } = useOverlay();
   const { showSuccess, showError } = useToast();
-  const { notes: allNotes, pushLiveNote, removeNote, registerComposeSession, unregisterComposeSession } = useNotes();
+  const { notes: allNotes, pushLiveNote, removeNote, registerComposeSession, unregisterComposeSession, migrateDraftNoteId } = useNotes();
   const { fetchOptimized, getCachedData, setCachedData } = useDataNexus();
   const { promptSudo } = useSudo();
   const { setActiveDetail } = useSection();
@@ -709,18 +709,15 @@ export default function CreateNoteForm({
     }));
   }, [composerKind]);
 
-  const { notes: currentNotes, setNotes } = useNotes() as any;
-
   const migrateDraftId = useCallback((savedId: string, ephemeralId: string | undefined) => {
     if (savedId) registerComposeSession(savedId);
     if (ephemeralId && ephemeralId !== savedId) {
-      // In-place replacement of ephemeral card with server saved note to prevent reloading glitch
-      setNotes((prev: Notes[]) => prev.map(n => n.$id === ephemeralId ? { ...n, $id: savedId } : n));
+      migrateDraftNoteId(ephemeralId, savedId);
       unregisterComposeSession(ephemeralId);
     }
     liveDraftIdRef.current = savedId;
     setResolvedNoteId(savedId);
-  }, [registerComposeSession, unregisterComposeSession, setNotes]);
+  }, [registerComposeSession, unregisterComposeSession, migrateDraftNoteId]);
 
   const saveComposerNote = useCallback(async (source: Notes): Promise<Notes> => {
     if (!source.$id) {

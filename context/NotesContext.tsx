@@ -30,8 +30,17 @@ type LiveEditGuard = {
   at: number;
 };
 
-function isLiveDraftNoteId(noteId?: string | null): boolean {
+export function isLiveDraftNoteId(noteId?: string | null): boolean {
   return Boolean(noteId?.startsWith('live-'));
+}
+
+function dedupeNotesById(rows: Notes[]): Notes[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    if (!row.$id || seen.has(row.$id)) return false;
+    seen.add(row.$id);
+    return true;
+  });
 }
 
 function mergeServerWithLiveGuard(serverNote: Notes, guard: LiveEditGuard): Notes {
@@ -58,6 +67,7 @@ interface NotesContextType {
   unregisterComposeSession: (noteId: string) => void;
   clearLiveNoteGuard: (noteId: string) => void;
   removeNote: (noteId: string) => void;
+  migrateDraftNoteId: (ephemeralId: string, savedId: string) => void;
   pinnedIds: string[];
   pinNote: (noteId: string) => Promise<void>;
   unpinNote: (noteId: string) => Promise<void>;
@@ -78,6 +88,7 @@ const NotesContext = createContext<NotesContextType>({
   unregisterComposeSession: () => {},
   clearLiveNoteGuard: () => {},
   removeNote: () => {},
+  migrateDraftNoteId: () => {},
   pinnedIds: [],
   pinNote: async () => {},
   unpinNote: async () => {},
@@ -490,20 +501,32 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const liveEditGuardsRef = useRef(new Map<string, LiveEditGuard>());
   const activeComposeNoteIdsRef = useRef(new Set<string>());
 
+  const transferComposeSession = useCallback((ephemeralId: string, savedId: string) => {
+    const guard = liveEditGuardsRef.current.get(ephemeralId);
+    if (guard) {
+      liveEditGuardsRef.current.set(savedId, guard);
+      liveEditGuardsRef.current.delete(ephemeralId);
+    }
+    if (activeComposeNoteIdsRef.current.has(ephemeralId)) {
+      activeComposeNoteIdsRef.current.delete(ephemeralId);
+    }
+    activeComposeNoteIdsRef.current.add(savedId);
+  }, []);
+
   const upsertNote = useCallback((note: Notes) => {
     const normalized = normalizeVisibility(note);
-    const existed = notesRef.current.some((n) => n.$id === note.$id);
+    let added = false;
     setNotes((prev) => {
-      if (existed) {
-        return prev.map((item) => (item.$id === normalized.$id ? normalized : item));
+      if (prev.some((n) => n.$id === normalized.$id)) {
+        return dedupeNotesById(prev.map((item) => (item.$id === normalized.$id ? normalized : item)));
       }
-      return [normalized, ...prev];
+      added = true;
+      return dedupeNotesById([normalized, ...prev]);
     });
-    if (!existed) {
+    if (added) {
       setTotalNotes((prev) => prev + 1);
       if (INITIAL_NOTES_CACHE_KEY) invalidate(INITIAL_NOTES_CACHE_KEY);
     }
-    // Update individual note cache
     setCachedData(`note_${normalized.$id}`, normalized);
   }, [setCachedData, INITIAL_NOTES_CACHE_KEY, invalidate]);
 
@@ -579,6 +602,42 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     if (INITIAL_NOTES_CACHE_KEY) invalidate(INITIAL_NOTES_CACHE_KEY);
   }, [invalidate, INITIAL_NOTES_CACHE_KEY]);
 
+  const migrateDraftNoteId = useCallback((ephemeralId: string, savedId: string) => {
+    if (!ephemeralId || !savedId || ephemeralId === savedId) return;
+
+    transferComposeSession(ephemeralId, savedId);
+
+    setNotes((prev) => {
+      const hasSaved = prev.some((n) => n.$id === savedId);
+      const hasEphemeral = prev.some((n) => n.$id === ephemeralId);
+      const guard = liveEditGuardsRef.current.get(savedId) || liveEditGuardsRef.current.get(ephemeralId);
+
+      if (hasSaved && !hasEphemeral) {
+        if (!guard) return dedupeNotesById(prev);
+        return dedupeNotesById(prev.map((n) => (
+          n.$id === savedId ? mergeServerWithLiveGuard(n, guard) : n
+        )));
+      }
+
+      let migratedNote: Notes | undefined;
+      const mapped = prev.flatMap((note) => {
+        if (note.$id === ephemeralId) {
+          migratedNote = normalizeVisibility({ ...note, $id: savedId });
+          return [migratedNote];
+        }
+        if (note.$id === savedId && hasEphemeral) {
+          return [];
+        }
+        return [note];
+      });
+
+      const next = dedupeNotesById(mapped);
+      if (migratedNote) setCachedData(`note_${savedId}`, migratedNote);
+      return next;
+    });
+    invalidate(`note_${ephemeralId}`);
+  }, [invalidate, setCachedData, transferComposeSession]);
+
   const scheduleInvalidateInitialNotesPage = useCallback(() => {
     if (INITIAL_NOTES_CACHE_KEY) invalidate(INITIAL_NOTES_CACHE_KEY);
   }, [invalidate, INITIAL_NOTES_CACHE_KEY]);
@@ -606,20 +665,38 @@ export function NotesProvider({ children }: { children: ReactNode }) {
           setNotes(prev => {
             const guard = liveEditGuardsRef.current.get(payload.$id);
             const merged = guard ? mergeServerWithLiveGuard(payload, guard) : normalizeVisibility(payload);
-            return prev.map(n => n.$id === payload.$id ? merged : n);
+            return dedupeNotesById(prev.map(n => n.$id === payload.$id ? merged : n));
           });
           const guard = liveEditGuardsRef.current.get(payload.$id);
           const merged = guard ? mergeServerWithLiveGuard(payload, guard) : normalizeVisibility(payload);
           setCachedData(`note_${payload.$id}`, merged);
           return;
         }
+
+        const liveComposeId = [...activeComposeNoteIdsRef.current].find(
+          (id) => isLiveDraftNoteId(id) && notesRef.current.some((n) => n.$id === id),
+        );
+        if (liveComposeId) {
+          transferComposeSession(liveComposeId, payload.$id);
+          const guard = liveEditGuardsRef.current.get(payload.$id);
+          const merged = guard ? mergeServerWithLiveGuard(payload, guard) : normalizeVisibility(payload);
+          setNotes((prev) => dedupeNotesById([
+            merged,
+            ...prev.filter((n) => n.$id !== liveComposeId && n.$id !== payload.$id),
+          ]));
+          setCachedData(`note_${payload.$id}`, merged);
+          if (INITIAL_NOTES_CACHE_KEY) invalidate(INITIAL_NOTES_CACHE_KEY);
+          void opportunisticallyDecryptNote(payload);
+          return;
+        }
+
         setNotes(prev => {
           const guard = liveEditGuardsRef.current.get(payload.$id);
           const merged = guard ? mergeServerWithLiveGuard(payload, guard) : normalizeVisibility(payload);
           if (prev.some(n => n.$id === payload.$id)) {
-            return prev.map(n => n.$id === payload.$id ? merged : n);
+            return dedupeNotesById(prev.map(n => n.$id === payload.$id ? merged : n));
           }
-          return [merged, ...prev];
+          return dedupeNotesById([merged, ...prev]);
         });
         const guard = liveEditGuardsRef.current.get(payload.$id);
         const merged = guard ? mergeServerWithLiveGuard(payload, guard) : normalizeVisibility(payload);
@@ -661,7 +738,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
         (sub as any).unsubscribe();
       }
     };
-  }, [isAuthenticated, user?.$id, setCachedData, invalidate, opportunisticallyDecryptNote, INITIAL_NOTES_CACHE_KEY, scheduleInvalidateInitialNotesPage]);
+  }, [isAuthenticated, user?.$id, setCachedData, invalidate, opportunisticallyDecryptNote, INITIAL_NOTES_CACHE_KEY, scheduleInvalidateInitialNotesPage, transferComposeSession]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -864,6 +941,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       unregisterComposeSession,
       clearLiveNoteGuard,
       removeNote,
+      migrateDraftNoteId,
       pinnedIds: effectivePinnedIds,
       pinNote,
       unpinNote,
@@ -883,6 +961,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       unregisterComposeSession,
       clearLiveNoteGuard,
       removeNote,
+      migrateDraftNoteId,
       effectivePinnedIds,
       pinNote,
       unpinNote,
