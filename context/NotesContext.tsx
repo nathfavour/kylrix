@@ -630,7 +630,6 @@ export function NotesProvider({ children }: { children: ReactNode }) {
         setCachedData(`note_${payload.$id}`, merged);
         if (INITIAL_NOTES_CACHE_KEY) invalidate(INITIAL_NOTES_CACHE_KEY);
         void opportunisticallyDecryptNote(payload);
-      }
       } else if (isUpdate) {
         if (activeComposeNoteIdsRef.current.has(payload.$id) && !liveEditGuardsRef.current.has(payload.$id)) {
           return;
