@@ -710,15 +710,12 @@ export default function CreateNoteForm({
   }, [composerKind]);
 
   const migrateDraftId = useCallback((savedId: string, ephemeralId: string | undefined) => {
-    if (!ephemeralId || !isLiveDraftNoteId(ephemeralId) || ephemeralId === savedId) {
-      if (savedId) registerComposeSession(savedId);
-      liveDraftIdRef.current = savedId;
-      setResolvedNoteId(savedId);
-      return;
+    if (savedId) registerComposeSession(savedId);
+    if (ephemeralId && ephemeralId !== savedId) {
+      // Direct in-place migration in NotesContext to avoid duplicates
+      removeNote(ephemeralId);
+      unregisterComposeSession(ephemeralId);
     }
-    removeNote(ephemeralId);
-    unregisterComposeSession(ephemeralId);
-    registerComposeSession(savedId);
     liveDraftIdRef.current = savedId;
     setResolvedNoteId(savedId);
   }, [registerComposeSession, removeNote, unregisterComposeSession]);

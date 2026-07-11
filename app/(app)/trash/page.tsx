@@ -40,10 +40,26 @@ export default function TrashPage() {
   const [purging, setPurging] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchTrash = useCallback(async () => {
+  const fetchTrash = useCallback(async (forceFetch = false) => {
     if (!user?.$id) return;
     try {
-      setLoading(true);
+      const cacheKey = `kylrix:trash:cache:${user.$id}`;
+      if (!forceFetch) {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          try {
+            setItems(JSON.parse(cached));
+            setLoading(false);
+          } catch (e) {
+            console.error('Failed to parse cached trash contents:', e);
+          }
+        }
+      }
+
+      if (forceFetch || !localStorage.getItem(cacheKey)) {
+        setLoading(true);
+      }
+
       const trashList: TrashItem[] = [];
 
       // Query config mapping
@@ -159,7 +175,9 @@ export default function TrashPage() {
         );
       }
 
-      setItems(trashList.filter(item => new Date(item.deletedAt).getTime() >= thirtyDaysAgo).sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime()));
+      const activeTrash = trashList.filter(item => new Date(item.deletedAt).getTime() >= thirtyDaysAgo).sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime());
+      setItems(activeTrash);
+      localStorage.setItem(cacheKey, JSON.stringify(activeTrash));
     } catch (e: any) {
       toast.error('Failed to load trash contents.');
     } finally {
@@ -173,7 +191,7 @@ export default function TrashPage() {
       return;
     }
     if (user?.$id) {
-      fetchTrash();
+      fetchTrash(false);
     }
   }, [isAuthenticated, user, fetchTrash, openIDMWindow]);
 
@@ -182,7 +200,7 @@ export default function TrashPage() {
       toast.loading('Restoring item...', { id: `restore-${item.id}` });
       await databases.updateRow(item.databaseId, item.tableId, item.id, { isTrash: false });
       toast.success(`${item.type} restored successfully!`, { id: `restore-${item.id}` });
-      await fetchTrash();
+      await fetchTrash(true);
     } catch (e: any) {
       toast.error(`Failed to restore: ${e.message}`, { id: `restore-${item.id}` });
     }
@@ -198,7 +216,7 @@ export default function TrashPage() {
           toast.loading('Deleting permanently...', { id: `del-${item.id}` });
           await databases.deleteRow(item.databaseId, item.tableId, item.id);
           toast.success('Deleted permanently!', { id: `del-${item.id}` });
-          await fetchTrash();
+          await fetchTrash(true);
         } catch (e: any) {
           toast.error(`Deletion failed: ${e.message}`, { id: `del-${item.id}` });
         }
@@ -220,7 +238,7 @@ export default function TrashPage() {
             items.map(item => databases.deleteRow(item.databaseId, item.tableId, item.id).catch(() => null))
           );
           toast.success('Trash bin emptied!', { id: 'empty-trash' });
-          await fetchTrash();
+          await fetchTrash(true);
         } catch (e: any) {
           toast.error('Failed to empty trash entirely.');
         } finally {
@@ -232,7 +250,7 @@ export default function TrashPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchTrash();
+    await fetchTrash(true);
     setRefreshing(false);
   };
 
