@@ -10174,6 +10174,13 @@
                     "size": 16383,
                     "default": null,
                     "encrypt": false
+                },
+                {
+                    "key": "isMemory",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
                 }
             ],
             "indexes": [

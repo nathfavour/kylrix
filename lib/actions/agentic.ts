@@ -308,14 +308,20 @@ export async function executeInstantRequestAction(
     }
   } catch {}
 
-  // 2. Load historical compressed session context and recent messages
+  // 2. Load historical compressed session context, recent messages, and lifetime Memory (C0)
   let sessionContext = "";
   let recentMessagesStr = "";
   let sessionData: any = null;
+  let lifetimeMemoryContext = "";
 
   if (historyEnabled) {
-    sessionData = await TelemetryService.loadSession(user.$id);
+    const [sessionLoad, memoryLoad] = await Promise.all([
+      TelemetryService.loadSession(user.$id),
+      TelemetryService.loadMemory(user.$id)
+    ]);
+    sessionData = sessionLoad;
     sessionContext = sessionData.context || "";
+    lifetimeMemoryContext = memoryLoad.context || "";
     try {
       const historyArr = JSON.parse(sessionData.chatHistory || '[]');
       // Only append the last 15 chats for context to avoid overloading the model
@@ -409,6 +415,13 @@ ${recentMessagesStr}
 `
     : "";
 
+  const memoryBlock = historyEnabled && lifetimeMemoryContext
+    ? `
+[LIFETIME LONG-TERM MEMORY (C0)]
+${lifetimeMemoryContext}
+`
+    : "";
+
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
     model: process.env.GEMINI_MODEL_NAME || 'gemini-2.0-flash',
@@ -417,16 +430,40 @@ ${recentMessagesStr}
       'Respond with concise, actionable output. Prefer bullet steps when planning.',
       'Stay grounded in the current page context and Kylrix apps: Ideas, Flow, Vault, Connect, Projects.',
       'NEVER suggest that the user manually create resources, schedule, or guess parameters if they can be scheduled directly.',
+      'You MUST return your response as a valid, stringified JSON object matching this schema:',
+      '{',
+      '  "response": "Your visible workspace reply to the user (contains markdown). Required.",',
+      '  "sessionContextUpdate": "Additional context facts to append to the current active session. Optional.",',
+      '  "lifetimeMemoryUpdate": "HIGH QUALITY memory to persist FOREVER about the user (e.g. name, work preferences, recurring systems). Be extremely strict. Leave empty/blank if no high-quality insights exist. Optional."',
+      '}',
       DATA_STRUCTURES_GUIDE,
       contextBlock || 'No page context supplied.',
       sessionBlock,
+      memoryBlock,
     ].join('\n'),
+    generationConfig: {
+      responseMimeType: 'application/json'
+    }
   });
 
   const response = await model.generateContent(prompt);
-  const responseText = response.response.text().trim();
+  const responseTextRaw = response.response.text().trim();
 
-  await debitComputeBalance(user.$id, balanceRow, prompt, responseText);
+  let visibleResponse = responseTextRaw;
+  let sessionUpdate = "";
+  let memoryUpdate = "";
+
+  try {
+    const parsed = JSON.parse(responseTextRaw);
+    visibleResponse = parsed.response || responseTextRaw;
+    sessionUpdate = parsed.sessionContextUpdate || "";
+    memoryUpdate = parsed.lifetimeMemoryUpdate || "";
+  } catch {
+    // Fallback if AI output doesn't match JSON structure perfectly
+    visibleResponse = responseTextRaw;
+  }
+
+  await debitComputeBalance(user.$id, balanceRow, prompt, visibleResponse);
 
   // 3. Compact and update session data
   if (historyEnabled) {
@@ -437,9 +474,13 @@ ${recentMessagesStr}
       } catch {}
 
       historyArr.push({ role: 'user', content: prompt });
-      historyArr.push({ role: 'assistant', content: responseText });
+      historyArr.push({ role: 'assistant', content: visibleResponse });
 
       let nextContext = sessionContext;
+      if (sessionUpdate) {
+        nextContext = nextContext ? `${nextContext}\n- ${sessionUpdate}` : `- ${sessionUpdate}`;
+      }
+
       // Metamorphose / Compact context if message queue exceeds 6 items (using old_context * new_chats formula)
       if (historyArr.length >= 6) {
         const compactModel = genAI.getGenerativeModel({
@@ -448,7 +489,7 @@ ${recentMessagesStr}
         });
         const compactorPrompt = `
 Old Context:
-${sessionContext}
+${nextContext}
 
 New Chats Added:
 ${historyArr.slice(-6).map((m: any) => `${m.role === 'user' ? 'User' : 'Agent'}: ${m.content}`).join('\n')}
@@ -460,6 +501,14 @@ ${historyArr.slice(-6).map((m: any) => `${m.role === 'user' ? 'User' : 'Agent'}:
       }
 
       await TelemetryService.saveSession(user.$id, nextContext, JSON.stringify(historyArr), false);
+
+      // Save high-quality lifetime memory updates if specified
+      if (memoryUpdate) {
+        const nextLifetimeMemory = lifetimeMemoryContext 
+          ? `${lifetimeMemoryContext}\n- ${memoryUpdate}` 
+          : `- ${memoryUpdate}`;
+        await TelemetryService.saveMemory(user.$id, nextLifetimeMemory);
+      }
     } catch (err) {
       console.error('[executeInstantRequestAction] Failed to update session:', err);
     }
@@ -475,7 +524,7 @@ ${historyArr.slice(-6).map((m: any) => `${m.role === 'user' ? 'User' : 'Agent'}:
       pointers: activeRoutePointers,
       metadata: {
         promptLength: prompt.length,
-        responseLength: responseText.length,
+        responseLength: visibleResponse.length,
         historyEnabled
       }
     });
@@ -485,6 +534,6 @@ ${historyArr.slice(-6).map((m: any) => `${m.role === 'user' ? 'User' : 'Agent'}:
 
   return {
     success: true,
-    response: responseText
+    response: visibleResponse
   };
 }

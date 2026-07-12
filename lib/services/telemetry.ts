@@ -257,7 +257,11 @@ export const TelemetryService = {
       const res = await tables.listRows({
         databaseId: DATABASE_ID,
         tableId: 'agentic_sessions',
-        queries: [Query.equal('userId', userId), Query.limit(1)]
+        queries: [
+          Query.equal('userId', userId),
+          Query.notEqual('isMemory', true),
+          Query.limit(1)
+        ]
       });
       const row = res.rows[0];
       if (row) {
@@ -287,7 +291,8 @@ export const TelemetryService = {
         userId,
         context,
         chatHistory,
-        seen
+        seen,
+        isMemory: false
       };
 
       if (session.rowId) {
@@ -307,6 +312,69 @@ export const TelemetryService = {
       }
     } catch (err) {
       console.error('[TelemetryService] Failed to save session:', err);
+    }
+  },
+
+  /**
+   * Retrieves the high-level lifetime memory context (C0) for the user.
+   */
+  async loadMemory(userId: string): Promise<{ context: string; rowId?: string }> {
+    try {
+      const tables = createSystemTablesDB();
+      const res = await tables.listRows({
+        databaseId: DATABASE_ID,
+        tableId: 'agentic_sessions',
+        queries: [
+          Query.equal('userId', userId),
+          Query.equal('isMemory', true),
+          Query.limit(1)
+        ]
+      });
+      const row = res.rows[0];
+      if (row) {
+        return {
+          context: row.context || '',
+          rowId: row.$id
+        };
+      }
+      return { context: '' };
+    } catch (err) {
+      console.error('[TelemetryService] Failed to load memory:', err);
+      return { context: '' };
+    }
+  },
+
+  /**
+   * Updates or inserts the persistent user memory context record.
+   */
+  async saveMemory(userId: string, context: string): Promise<void> {
+    try {
+      const tables = createSystemTablesDB();
+      const memory = await this.loadMemory(userId);
+      const payload = {
+        userId,
+        context,
+        isMemory: true,
+        seen: true
+      };
+
+      if (memory.rowId) {
+        await tables.updateRow({
+          databaseId: DATABASE_ID,
+          tableId: 'agentic_sessions',
+          rowId: memory.rowId,
+          data: payload
+        });
+      } else {
+        await tables.createRow({
+          databaseId: DATABASE_ID,
+          tableId: 'agentic_sessions',
+          rowId: ID.unique(),
+          data: payload
+        });
+      }
+    } catch (err) {
+      console.error('[TelemetryService] Failed to save memory:', err);
     }
   },
 
