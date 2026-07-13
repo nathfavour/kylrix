@@ -17,8 +17,6 @@ execution:
     contributor:container:
       backend: container
       lifecycle: persistent
-      container:
-        image: node@sha256:a25c9934ff6382cd4f08b6bc26c82bf4ea69b1e6f8dabfb2ead457374127c365
       attachments:
         isolated_paths: [node_modules, .next, .pnpm-store]
 
