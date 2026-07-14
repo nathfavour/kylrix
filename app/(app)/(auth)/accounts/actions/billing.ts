@@ -318,7 +318,7 @@ export async function createBillingCheckoutSessionAction(input: {
   return session;
 }
 
-export async function claimCouponAction(couponIdInput?: string, jwtInput?: string) {
+export async function claimCouponAction(couponIdInput?: string, jwtInput?: string, checkOnly = false) {
   const user = await getAuthenticatedUserForBillingAction({ jwt: jwtInput });
   if (!user) throw new Error('Authentication required');
 
@@ -438,6 +438,21 @@ export async function claimCouponAction(couponIdInput?: string, jwtInput?: strin
     claimedAt: new Date().toISOString(),
     redemptionIndex: newRedemptionCount,
   };
+
+  if (checkOnly) {
+    return {
+      ok: true,
+      claimed: false,
+      requiresPayment: discountPercent < 100,
+      couponId: coupon.$id,
+      discountPercent,
+      planId,
+      months,
+      currentPeriodEnd: currentPeriodEnd.toISOString(),
+      payerUserId: payerUserId || null,
+      message: `Valid coupon for ${discountPercent}% discount over ${months} month(s).`,
+    };
+  }
 
   if (discountPercent < 100) {
     return {

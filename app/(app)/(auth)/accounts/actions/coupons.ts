@@ -116,7 +116,7 @@ export async function createCouponAction(input: {
   return { count: created.length, coupons: created };
 }
 
-async function getMyCouponsAction(jwt?: string) {
+export async function getMyCouponsAction(jwt?: string) {
   const user = await getActor(jwt);
   if (!user) {
     throw new Error('Unauthorized');
