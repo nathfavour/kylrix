@@ -62,6 +62,8 @@ export default function AdminCouponsPage() {
     title: '',
     note: '',
     redemptionLimit: '1',
+    months: '1',
+    planId: 'PRO_MONTH',
   });
 
   const loadCoupons = async () => {
@@ -147,6 +149,8 @@ export default function AdminCouponsPage() {
         title: form.title || undefined,
         note: form.note || undefined,
         redemptionLimit: Number.parseInt(form.redemptionLimit, 10) || 1,
+        months: Number.parseInt(form.months, 10) || 1,
+        planId: form.planId || 'PRO_MONTH',
         metadata: {
           scope: targetUserIds.length > 0 ? 'targeted' : 'open',
         },
@@ -154,7 +158,14 @@ export default function AdminCouponsPage() {
       if (data) {
         setSuccess(`Created ${data.count || 1} coupon(s).`);
       }
-      setForm((prev) => ({ ...prev, title: '', note: '', redemptionLimit: '1' }));
+      setForm((prev) => ({ 
+        ...prev, 
+        title: '', 
+        note: '', 
+        redemptionLimit: '1',
+        months: '1',
+        planId: 'PRO_MONTH'
+      }));
       setSelectedTargets([]);
       await loadCoupons();
     } catch (err: any) {
@@ -355,7 +366,7 @@ export default function AdminCouponsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="space-y-1.5">
               <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Title</span>
               <input
@@ -384,6 +395,30 @@ export default function AdminCouponsPage() {
                 onChange={(event) => setForm((prev) => ({ ...prev, expiresAt: event.target.value }))}
                 className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Active Months</span>
+              <input
+                type="number"
+                value={form.months}
+                onChange={(event) => setForm((prev) => ({ ...prev, months: event.target.value }))}
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Target Plan</span>
+              <select
+                value={form.planId}
+                onChange={(event) => setForm((prev) => ({ ...prev, planId: event.target.value }))}
+                className="w-full bg-[#0A0908] px-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
+              >
+                <option value="PRO_MONTH">Pro Monthly (default)</option>
+                <option value="PRO_YEAR">Pro Yearly</option>
+                <option value="TEAMS_MONTH">Teams Monthly</option>
+                <option value="TEAMS_YEAR">Teams Yearly</option>
+              </select>
             </div>
           </div>
 
@@ -433,6 +468,12 @@ export default function AdminCouponsPage() {
                     </span>
                     <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border bg-indigo-500/10 border-indigo-500/20 text-indigo-400">
                       {coupon.discountPercent || parseMetadata(coupon.metadata)?.coupon?.discountPercent || 0}% Off
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border bg-amber-500/10 border-amber-500/20 text-amber-400">
+                      {parseMetadata(coupon.metadata)?.planId || 'PRO_MONTH'}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
+                      {parseMetadata(coupon.metadata)?.months || 1} Month(s)
                     </span>
                     <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border bg-white/5 border-white/10 text-white/60">
                       {String(coupon.status || 'active')}

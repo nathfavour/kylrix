@@ -43,6 +43,8 @@ export async function createCouponAction(input: {
   title?: string;
   note?: string;
   redemptionLimit?: number;
+  months?: number;
+  planId?: string;
   metadata?: Record<string, unknown>;
 }, jwt?: string) {
   const user = await getActor(jwt);
@@ -77,6 +79,8 @@ export async function createCouponAction(input: {
           ...(input.metadata || {}),
           scope,
           source: 'admin.coupons.action',
+          months: input.months ? Number(input.months) : 1,
+          planId: input.planId || 'PRO_MONTH',
         }),
       },
       targetUserId ? [Permission.read(Role.user(targetUserId))] : [Permission.read(Role.user(user.$id))],
