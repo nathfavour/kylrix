@@ -867,9 +867,9 @@ export default function ProjectDetailPage() {
           resourceId: projectId as string,
           resourceType: 'project',
           resourceTitle: project?.title || 'Project',
-          onShared: (userId: string, permission: string) => {
-              ProjectsService.addCollaborator(projectId as string, userId, permission);
-              fetchProjectData();
+          onShared: async (userId: string, permission: string) => {
+              await ProjectsService.addCollaborator(projectId as string, userId, permission);
+              await fetchProjectData();
           }
       });
   };

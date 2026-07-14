@@ -53,6 +53,7 @@ import {
   normalizeCollaboratorResourceType,
   resolveResourceOwnerId,
 } from '@/lib/utils/resource-ids';
+import { buildPublicResourceUrl } from '@/lib/share/public-url';
 
 // Import interfaces / types from shared
 import { PermissionChangeInput, PermissionLevel, TokenAction } from './shared';
@@ -97,6 +98,84 @@ async function resolveCollaboratorBillingUserId(
   } catch {
     return requesterId;
   }
+}
+
+function membershipIsAccepted(membership: { confirm?: boolean; joined?: string | boolean }): boolean {
+  if (membership.confirm === true) return true;
+  if (typeof membership.joined === 'string' && membership.joined.trim()) return true;
+  return membership.joined === true;
+}
+
+function mapTeamMembership(membership: {
+  userId?: string;
+  roles?: string[];
+  confirm?: boolean;
+  joined?: string | boolean;
+}) {
+  const accepted = membershipIsAccepted(membership);
+  return {
+    userId: String(membership.userId || ''),
+    level: membership.roles?.includes('admin')
+      ? 'admin'
+      : (membership.roles?.includes('editor') || membership.roles?.includes('write') ? 'editor' : 'viewer'),
+    status: accepted ? 'accepted' : 'pending',
+    accepted,
+  };
+}
+
+async function upsertProjectCollaboratorRow(
+  tables: ReturnType<typeof createSystemTablesDB>,
+  projectId: string,
+  targetUserId: string,
+  permissionLevel: string,
+  status: 'pending' | 'accepted',
+) {
+  const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
+  const COLLABORATORS_TABLE = APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators';
+  const permission = permissionLevel === 'admin'
+    ? 'admin'
+    : (permissionLevel === 'editor' || permissionLevel === 'write' ? 'write' : 'read');
+  const accepted = status === 'accepted';
+
+  const existing = await tables.listRows({
+    databaseId: FLOW_DATABASE_ID,
+    tableId: COLLABORATORS_TABLE,
+    queries: [
+      Query.equal('resourceId', projectId),
+      Query.equal('resourceType', 'project'),
+      Query.equal('userId', targetUserId),
+    ] as any,
+  });
+
+  const payload = {
+    permission,
+    accepted,
+    status,
+    invitedAt: new Date().toISOString(),
+    role: 'collaborator',
+  };
+
+  if (existing.rows.length > 0) {
+    await tables.updateRow({
+      databaseId: FLOW_DATABASE_ID,
+      tableId: COLLABORATORS_TABLE,
+      rowId: existing.rows[0].$id,
+      data: payload,
+    });
+    return;
+  }
+
+  await tables.createRow({
+    databaseId: FLOW_DATABASE_ID,
+    tableId: COLLABORATORS_TABLE,
+    rowId: ID.unique(),
+    data: {
+      resourceId: projectId,
+      resourceType: 'project',
+      userId: targetUserId,
+      ...payload,
+    },
+  });
 }
 
 export async function mutatePermissionsSecure(body: any, jwt?: string) {
@@ -184,11 +263,12 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
 
   // Handle Project Team synchronization
   if (resourceType === 'project') {
+    const inviteUrl = buildPublicResourceUrl('project', input.resourceId);
     try {
         await teams.createMembership(
             input.resourceId, 
             [input.permission], 
-            `${window.location.origin}/project/${input.resourceId}`, 
+            inviteUrl, 
             !isEcosystemUser ? input.targetUserId : undefined, 
             isEcosystemUser ? targetUserIdToUse : undefined
         );
@@ -272,6 +352,8 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
     });
 
     const permission = input.permission === 'admin' ? 'admin' : (input.permission === 'editor' ? 'write' : 'read');
+    const inviteStatus = resourceType === 'project' && isEcosystemUser ? 'pending' : (isEcosystemUser ? 'accepted' : 'pending');
+    const inviteAccepted = inviteStatus === 'accepted';
 
     if (existingCollab.rows.length > 0) {
       await tables.updateRow({
@@ -280,8 +362,8 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
         rowId: existingCollab.rows[0].$id,
         data: {
           permission,
-          status: isEcosystemUser ? 'accepted' : 'pending',
-          accepted: isEcosystemUser
+          status: inviteStatus,
+          accepted: inviteAccepted,
         }
       });
     } else {
@@ -295,8 +377,8 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
           userId: targetUserIdToUse,
           permission,
           invitedAt: new Date().toISOString(),
-          accepted: isEcosystemUser,
-          status: isEcosystemUser ? 'accepted' : 'pending',
+          accepted: inviteAccepted,
+          status: inviteStatus,
           role: 'collaborator'
         }
       });
@@ -512,20 +594,54 @@ export async function getResourceCollaboratorsSecure(input: {
     let filteredCollabs: Array<{ userId: string, level: string, status: string, accepted: boolean }> = [];
     
     if (resourceType === 'project') {
-        // Query native Appwrite Team members directly
+        const merged = new Map<string, { userId: string; level: string; status: string; accepted: boolean }>();
+
+        try {
+            const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
+            const COLLABORATORS_TABLE = APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators';
+            const collabsRes = await tables.listRows({
+                databaseId: FLOW_DATABASE_ID,
+                tableId: COLLABORATORS_TABLE,
+                queries: [
+                    Query.equal('resourceId', input.resourceId),
+                    Query.equal('resourceType', 'project'),
+                ] as any,
+            });
+
+            for (const collab of collabsRes.rows) {
+                const userId = String(collab.userId || '').trim();
+                if (!userId) continue;
+                merged.set(userId, {
+                    userId,
+                    level: collab.permission === 'admin' ? 'admin' : (collab.permission === 'write' ? 'editor' : 'viewer'),
+                    status: collab.status === 'requested' ? 'requested' : (collab.status || (collab.accepted ? 'accepted' : 'pending')),
+                    accepted: collab.accepted ?? false,
+                });
+            }
+        } catch (polyErr: any) {
+            console.warn('[getResourceCollaboratorsSecure] Failed to query polymorphic project collaborators:', polyErr?.message);
+        }
+
         try {
             const { teams } = createSystemClient();
-            // Project ID is the Team ID
             const memberships = await teams.listMemberships(input.resourceId);
-            filteredCollabs = memberships.memberships.map((m: any) => ({
-                userId: m.userId,
-                level: m.roles.includes('admin') ? 'admin' : (m.roles.includes('write') ? 'editor' : 'viewer'),
-                status: m.confirm ? 'accepted' : 'pending',
-                accepted: m.confirm
-            }));
+            for (const membership of memberships.memberships) {
+                const userId = String(membership.userId || '').trim();
+                if (!userId) continue;
+                const teamCollab = mapTeamMembership(membership);
+                const existing = merged.get(userId);
+                merged.set(userId, existing ? {
+                    ...existing,
+                    level: teamCollab.level || existing.level,
+                    status: teamCollab.accepted ? 'accepted' : (existing.status === 'requested' ? 'requested' : 'pending'),
+                    accepted: teamCollab.accepted || existing.accepted,
+                } : teamCollab);
+            }
         } catch (teamErr: any) {
             console.warn('[getResourceCollaboratorsSecure] Failed to query native team:', teamErr?.message);
         }
+
+        filteredCollabs = [...merged.values()];
     } else if (resourceType === 'note' || resourceType === 'event' || resourceType === 'form' || resourceType === 'huddle' || resourceType === 'call' || resourceType === 'secret' || resourceType === 'totp') {
         // Query polymorphic collaborators table as the single source of truth
         try {
@@ -655,24 +771,50 @@ export async function addProjectCollaboratorSecure(projectId: string, targetUser
     ? 'admin'
     : (permissionLevel === 'editor' || permissionLevel === 'write' ? 'editor' : 'viewer');
 
-  // Create native Appwrite Team membership directly (discards polymorphic table for projects)
+  const inviteUrl = buildPublicResourceUrl('project', projectId);
+
+  // Create native Appwrite Team membership and mirror status into Collaborators table.
   try {
-    const inviteUrl = `${window.location.origin}/project/${projectId}`;
     try {
       await teams.get(projectId);
     } catch {
       await teams.create(projectId, project.title || 'Project Team');
     }
-    await teams.createMembership(
-      projectId,
-      [teamRole],
-      inviteUrl,
-      undefined,
-      targetUserId
-    );
+    try {
+      await teams.createMembership(
+        projectId,
+        [teamRole],
+        inviteUrl,
+        undefined,
+        targetUserId
+      );
+    } catch (membershipErr: any) {
+      const message = String(membershipErr?.message || '').toLowerCase();
+      const alreadyMember = message.includes('already') || message.includes('duplicate') || message.includes('member');
+      if (!alreadyMember) {
+        throw membershipErr;
+      }
+    }
   } catch (err: any) {
     console.error('[addProjectCollaboratorSecure] Appwrite Team membership creation failed:', err?.message);
     throw err;
+  }
+
+  let inviteStatus: 'pending' | 'accepted' = 'pending';
+  try {
+    const memberships = await teams.listMemberships(projectId);
+    const membership = memberships.memberships.find((m) => m.userId === targetUserId);
+    if (membership && membershipIsAccepted(membership)) {
+      inviteStatus = 'accepted';
+    }
+  } catch {
+    // keep pending
+  }
+
+  try {
+    await upsertProjectCollaboratorRow(tables, projectId, targetUserId, permissionLevel, inviteStatus);
+  } catch (err) {
+    console.error('[addProjectCollaboratorSecure] Collaborators row sync failed:', err);
   }
 
   // 3. Dispatch structured notification email + companion Telegram alert
