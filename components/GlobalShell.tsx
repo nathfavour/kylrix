@@ -107,29 +107,14 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     !isVaultResetRoute &&
     !isLandingPage &&
     !isConnectChatPage &&
-    !isSpecificPostPage &&
-    unifiedDrawerActive === 'navbar' &&
-    mode !== 'compact' &&
-    !isDrawerOpen &&
-    !isNoteFullPageDetail &&
-    !isConnectCallDetail &&
-    !isCallLauncherOpen &&
-    !isOverlayOpen
+    !isSpecificPostPage
   ), [
     isAppRoute,
     isSharedPage,
     isVaultResetRoute,
     isLandingPage,
     isConnectChatPage,
-    isSpecificPostPage,
-    pathname,
-    unifiedDrawerActive,
-    mode,
-    isDrawerOpen,
-    isNoteFullPageDetail,
-    isConnectCallDetail,
-    isCallLauncherOpen,
-    isOverlayOpen
+    isSpecificPostPage
   ]);
 
   const mainClassName = useMemo(() => {

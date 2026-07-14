@@ -605,7 +605,7 @@ export default function CreateNoteForm({
       $createdAt: now,
       $updatedAt: now,
       updatedAt: now,
-    } as Notes;
+    } as unknown as Notes;
 
     pushLiveNote(shell);
     setCachedData(`note_${id}`, shell);
