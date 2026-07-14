@@ -119,6 +119,8 @@ export default function CreateNoteForm({
   const liveDraftIdRef = useRef<string | undefined>(noteId);
   const allNotesRef = useRef<Notes[]>([]);
   const hasAnnouncedCreateRef = useRef(false);
+  const hasBootstrappedDraftRef = useRef(false);
+  const composeHasContentRef = useRef(false);
   const isPastedRef = useRef(false);
   const pasteTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pushLiveNoteTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -559,39 +561,80 @@ export default function CreateNoteForm({
   }, [allNotes]);
 
   useEffect(() => {
-    if (!isHydrated) return;
-    const hasDraftContent = Boolean(title || content || tags.length);
-    if (!hasDraftContent) return;
-    if (resolvedNoteId || liveDraftIdRef.current) return;
+    composeHasContentRef.current = Boolean(title.trim() || content.trim() || tags.length);
+  }, [title, content, tags]);
 
-    const noteId = ID.unique();
-    liveDraftIdRef.current = noteId;
-    registerComposeSession(noteId);
-    setResolvedNoteId(noteId);
-  }, [title, content, tags, isHydrated, resolvedNoteId, registerComposeSession]);
-
+  // Local-first: allocate a real Appwrite ID and show the card the moment compose opens.
   useEffect(() => {
-    if (title || content || tags.length) return;
-    hasAnnouncedDraftRef.current = false;
-    hasAnnouncedCreateRef.current = false;
+    if (!isHydrated || noteId || hasBootstrappedDraftRef.current) return;
+    if (resolvedNoteId || liveDraftIdRef.current) {
+      hasBootstrappedDraftRef.current = true;
+      return;
+    }
 
-    const noteId = liveDraftIdRef.current;
-    if (!noteId || !isEphemeralComposeNoteId(noteId)) return;
+    hasBootstrappedDraftRef.current = true;
+    const id = ID.unique();
+    liveDraftIdRef.current = id;
+    setResolvedNoteId(id);
+    registerComposeSession(id);
 
-    removeNote(noteId);
-    unregisterComposeSession(noteId);
-    liveDraftIdRef.current = undefined;
-    setResolvedNoteId(undefined);
-    setLastSavedSnapshot('');
-  }, [title, content, tags, removeNote, unregisterComposeSession]);
+    const shellTitle = composerKind === 'project' ? 'Untitled Project' : 'Untitled Thought';
+    const now = new Date().toISOString();
+    const shell: Notes = {
+      $id: id,
+      title: shellTitle,
+      content: '',
+      tags: [],
+      format: 'text',
+      userId: user?.$id || '',
+      isPublic,
+      isGuest,
+      ...(composerKind === 'project' ? { kind: 'project' } as Partial<Notes> : {}),
+      $createdAt: now,
+      $updatedAt: now,
+      updatedAt: now,
+    };
+
+    pushLiveNote(shell);
+    setCachedData(`note_${id}`, shell);
+    setLastSavedSnapshot(JSON.stringify({
+      title: '',
+      content: '',
+      format: 'text',
+      tags: [],
+      composerKind,
+      isPublic,
+      isGuest,
+      hasPaywall: false,
+      paywallAmount: 0,
+      resolvedNoteId: id,
+    }));
+
+    if (!hasAnnouncedDraftRef.current) {
+      hasAnnouncedDraftRef.current = true;
+      onNoteCreated(shell);
+    }
+  }, [
+    composerKind,
+    isGuest,
+    isHydrated,
+    isPublic,
+    noteId,
+    onNoteCreated,
+    pushLiveNote,
+    registerComposeSession,
+    resolvedNoteId,
+    setCachedData,
+    user?.$id,
+  ]);
 
   const candidateNote = useMemo((): Notes | null => {
     const noteId = resolvedNoteId || liveDraftIdRef.current;
     if (!isHydrated || !noteId) return null;
-    if (!title && !content && !tags.length) return null;
 
     const existing = allNotesRef.current.find((candidate) => candidate.$id === noteId);
     const normalizedTags = normalizeTags(tags);
+    const fallbackTitle = composerKind === 'project' ? 'Untitled Project' : 'Untitled Thought';
     return {
       ...(existing || {
         $id: noteId,
@@ -602,14 +645,14 @@ export default function CreateNoteForm({
         $createdAt: new Date().toISOString(),
       } as Notes),
       $id: noteId,
-      title: resolveNoteCardTitle(title, content),
+      title: resolveNoteCardTitle(title, content) || fallbackTitle,
       content,
       tags: normalizedTags,
       format: 'text',
       isPublic,
       isGuest,
     };
-  }, [title, content, tags, resolvedNoteId, isHydrated, isPublic, isGuest, user?.$id]);
+  }, [title, content, tags, resolvedNoteId, isHydrated, isPublic, isGuest, composerKind, user?.$id]);
 
   const candidateNoteRef = useRef<Notes | null>(null);
   candidateNoteRef.current = candidateNote;
@@ -640,10 +683,16 @@ export default function CreateNoteForm({
 
   useEffect(() => {
     return () => {
-      const noteId = liveDraftIdRef.current || resolvedNoteId;
-      if (noteId) unregisterComposeSession(noteId);
+      const draftId = liveDraftIdRef.current;
+      if (!draftId || !isUnpersistedComposeDraft(draftId)) return;
+      if (composeHasContentRef.current) {
+        unregisterComposeSession(draftId);
+        return;
+      }
+      removeNote(draftId);
+      unregisterComposeSession(draftId);
     };
-  }, [resolvedNoteId, unregisterComposeSession]);
+  }, [removeNote, unregisterComposeSession]);
 
   const appendTag = useCallback((tag: string) => {
     const next = tag.trim();
@@ -970,8 +1019,19 @@ export default function CreateNoteForm({
         onNoteCreated(finalDraft);
       }
       void forceSave(finalDraft);
-    } else if (isDirty && candidateNoteRef.current?.$id) {
-      void forceSave(candidateNoteRef.current);
+    } else {
+      const draftId = liveDraftIdRef.current || resolvedNoteId;
+      if (draftId && isUnpersistedComposeDraft(draftId)) {
+        removeNote(draftId);
+        unregisterComposeSession(draftId);
+        liveDraftIdRef.current = undefined;
+        setResolvedNoteId(undefined);
+        setLastSavedSnapshot('');
+        hasBootstrappedDraftRef.current = false;
+        hasAnnouncedDraftRef.current = false;
+      } else if (isDirty && candidateNoteRef.current?.$id) {
+        void forceSave(candidateNoteRef.current);
+      }
     }
     if (typeof window !== 'undefined') {
       localStorage.removeItem('kylrix:draft:note');
@@ -981,7 +1041,7 @@ export default function CreateNoteForm({
     } else {
       closeOverlay();
     }
-  }, [closeOverlay, content, ensureLiveDraftId, forceSave, isDirty, isGuest, isPublic, onClose, onNoteCreated, pushLiveNote, setCachedData, tags, title]);
+  }, [closeOverlay, content, ensureLiveDraftId, forceSave, isDirty, isGuest, isPublic, onClose, onNoteCreated, pushLiveNote, removeNote, resolvedNoteId, setCachedData, tags, title, unregisterComposeSession]);
 
   const handlePaste = useCallback(() => {
     isPastedRef.current = true;
