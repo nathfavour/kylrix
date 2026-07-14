@@ -4,7 +4,7 @@ import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 export const SweptService = {
   async getConfig(projectId: string) {
     if (typeof window === 'undefined') {
-      return { enabled: true, scopeType: 'project', anchorKind: 'tag' };
+      return { enabled: false, scopeType: 'project', anchorKind: 'tag' };
     }
     const { account } = await import('@/lib/appwrite/client');
     const { jwt } = await account.createJWT();

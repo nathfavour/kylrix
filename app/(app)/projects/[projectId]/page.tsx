@@ -182,13 +182,13 @@ export default function ProjectDetailPage() {
   const [tabMenuAnchorEl, setTabMenuAnchorEl] = useState<{ x: number, y: number } | null>(null);
   const [activeTabMenuIndex, setActiveTabMenuIndex] = useState<number | null>(null);
   const [ownerProfile, setOwnerProfile] = useState<any | null>(null);
-  const [autoSweepEnabled, setAutoSweepEnabled] = useState(true);
+  const [autoSweepEnabled, setAutoSweepEnabled] = useState(false);
 
   useEffect(() => {
     if (!projectId) return;
     SweptService.getConfig(projectId as string)
-      .then((config) => setAutoSweepEnabled(config.enabled !== false))
-      .catch(() => setAutoSweepEnabled(true));
+      .then((config) => setAutoSweepEnabled(config.enabled === true))
+      .catch(() => setAutoSweepEnabled(false));
   }, [projectId]);
 
   const handleOpenAutoSweepSettings = () => {
@@ -1346,10 +1346,28 @@ export default function ProjectDetailPage() {
                           </div>
                       </div>
                       
-                      <div className="px-6 py-3 bg-[#6366F1]/5 border-b border-white/4 flex items-center gap-2.5">
-                          <ShieldCheck size={14} className="text-[#10B981] flex-shrink-0" />
-                          <p className="text-[10px] text-white/50 font-bold leading-tight">
-                            By default, tagged items keep their permissions. You must manually allow project permission for shared visibility.
+                      <div className={`px-6 py-3 border-b border-white/4 flex items-start gap-2.5 ${
+                        autoSweepEnabled ? 'bg-[#6366F1]/5' : 'bg-[#10B981]/5'
+                      }`}>
+                          {autoSweepEnabled ? (
+                            <RefreshCw size={14} className="text-[#6366F1] flex-shrink-0 mt-0.5" />
+                          ) : (
+                            <ShieldCheck size={14} className="text-[#10B981] flex-shrink-0 mt-0.5" />
+                          )}
+                          <p className="text-[10px] text-white/55 font-bold leading-relaxed">
+                            {autoSweepEnabled ? (
+                              <>
+                                <span className="text-[#6366F1]">Auto-sweep is ON for you.</span>{' '}
+                                Every object you own with this project&apos;s tags can appear here for members.
+                                Object permissions stay as you set them — use the settings gear to turn this off.
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-[#10B981]">Auto-sweep is OFF (default).</span>{' '}
+                                Your tagged items stay private to your account and are not listed here unless you
+                                explicitly enable auto-sweep in settings.
+                              </>
+                            )}
                           </p>
                       </div>
 

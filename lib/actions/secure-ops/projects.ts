@@ -902,11 +902,11 @@ export async function listProjectTaggedResourcesSecure(
     queries: [Query.equal('projectId', projectId), Query.limit(500)] as any,
   });
   const sweptByUser = new Map<string, boolean>(
-    sweptRes.rows.map((row: any) => [row.userId, row.enabled !== false]),
+    sweptRes.rows.map((row: any) => [row.userId, row.enabled === true]),
   );
   const isSweepEnabled = (ownerId?: string | null) => {
-    if (!ownerId) return true;
-    return sweptByUser.has(ownerId) ? sweptByUser.get(ownerId)! : true;
+    if (!ownerId) return false;
+    return sweptByUser.get(ownerId) === true;
   };
 
   const [pivotById, pivotByName] = await Promise.all([
@@ -1047,7 +1047,7 @@ export async function getSweptConfigSecure(projectId: string, jwt?: string) {
   return {
     userId: actor.$id,
     projectId,
-    enabled: true,
+    enabled: false,
     scopeType: 'project',
     anchorKind: 'tag',
     anchors: null,
@@ -1083,6 +1083,25 @@ export async function upsertSweptConfigSecure(
     ] as any,
   });
 
+  if (patch.enabled === false) {
+    if (existing.rows[0]) {
+      await tables.deleteRow({
+        databaseId: APPWRITE_CONFIG.DATABASE_ID,
+        tableId,
+        rowId: existing.rows[0].$id,
+      });
+    }
+    return JSON.parse(JSON.stringify({
+      userId: actor.$id,
+      projectId,
+      enabled: false,
+      scopeType: patch.scopeType ?? 'project',
+      anchorKind: patch.anchorKind ?? 'tag',
+      anchors: null,
+      policy: null,
+    }));
+  }
+
   if (existing.rows[0]) {
     const row = await tables.updateRow({
       databaseId: APPWRITE_CONFIG.DATABASE_ID,
@@ -1090,6 +1109,7 @@ export async function upsertSweptConfigSecure(
       rowId: existing.rows[0].$id,
       data: {
         ...patch,
+        enabled: true,
         updatedAt: now,
       },
     });
@@ -1103,7 +1123,7 @@ export async function upsertSweptConfigSecure(
     data: {
       userId: actor.$id,
       projectId,
-      enabled: patch.enabled ?? true,
+      enabled: true,
       scopeType: patch.scopeType ?? 'project',
       anchorKind: patch.anchorKind ?? 'tag',
       anchors: patch.anchors ?? null,
