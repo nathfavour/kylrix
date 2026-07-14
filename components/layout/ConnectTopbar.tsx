@@ -61,6 +61,7 @@ import { useLocalContext } from '@/lib/context-engine';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { useNotes } from '@/context/NotesContext';
 import { useTask } from '@/context/TaskContext';
+import { useSidebar } from '@/components/ui/SidebarContext';
 
 interface PageMatch {
   text: string;
@@ -221,6 +222,7 @@ export default function ConnectTopbar({
   const { isDrawerOpen } = useDrawerState();
   const { notes = [] } = useNotes();
   const { tasks = [], projects = [] } = useTask();
+  const { setIsCollapsed } = useSidebar();
   
   // To let any drawer communicate full state expansion globally:
   const isDrawerExpanded = typeof window !== 'undefined' && document.body.classList.contains('drawer-expanded');
@@ -2159,7 +2161,18 @@ export default function ConnectTopbar({
             
             {/* Left: App Logo / Menu Trigger */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <Box onClick={user ? openAppMenu : () => openUnified('login')} sx={{ cursor: 'pointer', flexShrink: 0 }}>
+              <Box 
+                onClick={(e: React.MouseEvent<HTMLElement>) => {
+                  if (isDesktop) {
+                    setIsCollapsed(prev => !prev);
+                  } else if (user) {
+                    openAppMenu(e);
+                  } else {
+                    openUnified('login');
+                  }
+                }} 
+                sx={{ cursor: 'pointer', flexShrink: 0 }}
+              >
                 <Logo app={activeApp} size={32} variant="full" />
               </Box>
             </Box>

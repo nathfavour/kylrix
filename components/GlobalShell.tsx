@@ -108,7 +108,6 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
     !isLandingPage &&
     !isConnectChatPage &&
     !isSpecificPostPage &&
-    !pathname?.includes('/settings') &&
     unifiedDrawerActive === 'navbar' &&
     mode !== 'compact' &&
     !isDrawerOpen &&
@@ -217,11 +216,13 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
           pt: isSpecificPostPage ? 0 : isNoteFullPageDetail ? '72px' : '88px',
           pb: isSpecificPostPage ? 0 : (isLandingPage ? 0 : { xs: 12, md: 4 }),
           px: isProjectDetailPage ? { xs: 1, sm: 1, md: 2 } : isNoteFullPageDetail ? { xs: 0, sm: 0, md: 0 } : { xs: 2, sm: 2, md: 4 },
+          pl: showLeftSidebar ? { xs: 2, md: isCollapsed ? '112px' : '272px' } : undefined,
           // Authoritative padding is now handled by CSS classes for 100% rigidity
           maxWidth: 1800,
           mx: 'auto',
           minHeight: '100vh',
           pointerEvents: 'auto',
+          transition: 'padding-left 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         {children}

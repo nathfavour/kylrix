@@ -17,6 +17,7 @@ import { useAppChrome } from '@/components/providers/AppChromeProvider';
 import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { useCallLauncher } from '@/context/CallLauncherContext';
 import { useOverlay } from '@/components/ui/OverlayContext';
+import { useSidebar } from '@/components/ui/SidebarContext';
 
 type NavId = 'note' | 'flow' | 'vault' | 'connect' | 'projects' | 'tags';
 
@@ -39,6 +40,7 @@ export function UnifiedLeftSidebar() {
   const { isDrawerOpen } = useDrawerState();
   const { isOpen: isCallLauncherOpen } = useCallLauncher();
   const { isOpen: isOverlayOpen } = useOverlay();
+  const { isCollapsed } = useSidebar();
 
   const appContext = useMemo((): NavId | null => {
     if (pathname?.startsWith('/tags')) return 'tags';
@@ -83,8 +85,6 @@ export function UnifiedLeftSidebar() {
 
   if (
     isConnectChatPage ||
-    pathname?.includes('/settings') ||
-    activeContent !== 'navbar' ||
     mode === 'compact' ||
     isDrawerOpen ||
     isNoteFullPageDetail ||
@@ -114,9 +114,10 @@ export function UnifiedLeftSidebar() {
         left: 0,
         top: '88px',
         bottom: 0,
-        width: 80,
+        width: isCollapsed ? 80 : 240,
         zIndex: 1100,
         display: { xs: 'none', md: 'block' },
+        transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
       <Paper
@@ -130,72 +131,97 @@ export function UnifiedLeftSidebar() {
           borderRadius: 0,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
+          alignItems: isCollapsed ? 'center' : 'stretch',
           py: 2.5,
+          px: isCollapsed ? 0 : 2,
           boxSizing: 'border-box',
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
-        <Stack spacing={2} sx={{ width: '100%', alignItems: 'center' }}>
+        <Stack spacing={2} sx={{ width: '100%', alignItems: isCollapsed ? 'center' : 'stretch' }}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isSelected = currentTab === item.id;
             const itemColor = NAV_COLORS[item.id];
-            return (
-              <Tooltip key={item.id} title={item.label} placement="right" arrow>
-                <Box
-                  onClick={() => handleNavChange(item.id)}
-                  sx={{
-                    position: 'relative',
-                    width: 46,
-                    height: 46,
-                    borderRadius: '14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: isSelected ? itemColor : 'rgba(255, 255, 255, 0.4)',
-                    bgcolor: isSelected ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    border: isSelected ? `1px solid ${itemColor}33` : '1px solid transparent',
-                    '&:hover': {
-                      color: isSelected ? itemColor : '#fff',
-                      bgcolor: 'rgba(255, 255, 255, 0.04)',
-                      transform: 'translateY(-1px)',
-                      ...(isSelected ? {} : { borderColor: 'rgba(255,255,255,0.08)' }),
-                    },
-                    '&:active': {
-                      transform: 'translateY(0px)',
-                    },
-                  }}
-                >
-                  {isSelected && (
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        left: -16,
-                        width: 4,
-                        height: 22,
-                        borderRadius: '0 4px 4px 0',
-                        bgcolor: itemColor,
-                        boxShadow: `0 0 12px ${itemColor}`,
-                      }}
-                    />
-                  )}
-
-                  <Icon
-                    size={20}
-                    strokeWidth={1.5}
-                    style={{
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      ...(isSelected && {
-                        transform: 'scale(1.1)',
-                        filter: `drop-shadow(0 0 6px ${itemColor}60)`,
-                      }),
+            
+            const itemContent = (
+              <Box
+                onClick={() => handleNavChange(item.id)}
+                sx={{
+                  position: 'relative',
+                  width: isCollapsed ? 46 : '100%',
+                  height: 46,
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: isCollapsed ? 'center' : 'flex-start',
+                  px: isCollapsed ? 0 : 2,
+                  gap: isCollapsed ? 0 : 2,
+                  cursor: 'pointer',
+                  color: isSelected ? itemColor : 'rgba(255, 255, 255, 0.4)',
+                  bgcolor: isSelected ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  border: isSelected ? `1px solid ${itemColor}33` : '1px solid transparent',
+                  boxSizing: 'border-box',
+                  '&:hover': {
+                    color: isSelected ? itemColor : '#fff',
+                    bgcolor: 'rgba(255, 255, 255, 0.04)',
+                    transform: 'translateY(-1px)',
+                    ...(isSelected ? {} : { borderColor: 'rgba(255,255,255,0.08)' }),
+                  },
+                  '&:active': {
+                    transform: 'translateY(0px)',
+                  },
+                }}
+              >
+                {isSelected && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      left: isCollapsed ? -16 : 0,
+                      width: 4,
+                      height: 22,
+                      borderRadius: '0 4px 4px 0',
+                      bgcolor: itemColor,
+                      boxShadow: `0 0 12px ${itemColor}`,
                     }}
                   />
-                </Box>
-              </Tooltip>
+                )}
+
+                <Icon
+                  size={20}
+                  strokeWidth={1.5}
+                  style={{
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    ...(isSelected && {
+                      transform: 'scale(1.1)',
+                      filter: `drop-shadow(0 0 6px ${itemColor}60)`,
+                    }),
+                  }}
+                />
+
+                {!isCollapsed && (
+                  <span style={{ 
+                    fontFamily: 'var(--font-satoshi)', 
+                    fontWeight: isSelected ? 800 : 600, 
+                    fontSize: '0.86rem',
+                    letterSpacing: '0.01em'
+                  }}>
+                    {item.label}
+                  </span>
+                )}
+              </Box>
             );
+
+            if (isCollapsed) {
+              return (
+                <Tooltip key={item.id} title={item.label} placement="right" arrow>
+                  {itemContent}
+                </Tooltip>
+              );
+            }
+
+            return React.cloneElement(itemContent, { key: item.id });
           })}
         </Stack>
       </Paper>
