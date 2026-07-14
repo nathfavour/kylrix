@@ -1518,7 +1518,7 @@ export default function ConnectTopbar({
 
     const profileContent = (
       <Box
-        sx={{ px: { xs: 2.25, md: 4 }, py: 1.25, maxHeight: isDesktop ? 'calc(100vh - 120px)' : '45vh', overflowY: 'auto' }}
+        sx={{ px: { xs: 2.25, md: 4 }, py: 1.25, maxHeight: isDesktop ? 'none' : '45vh', overflowY: isDesktop ? 'visible' : 'auto' }}
       >
           <Paper
             elevation={0}
@@ -1550,7 +1550,7 @@ export default function ConnectTopbar({
                 </IconButton>
               </Box>
 
-                <Box sx={{ display: 'grid', gap: 1.25, maxHeight: '58vh', overflowY: 'auto', pr: 0.5, pb: 0.5 }}>
+                <Box sx={{ display: 'grid', gap: 1.25, maxHeight: isDesktop ? 'none' : '58vh', overflowY: isDesktop ? 'visible' : 'auto', pr: 0.5, pb: 0.5 }}>
                 <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', p: 0.75 }}>
                   <IdentityAvatar
                     userId={user?.$id}
@@ -2359,12 +2359,12 @@ export default function ConnectTopbar({
           </Box>
         </Box>
 
-        {renderSearchPanel()}
-        {renderNotificationDrawer()}
-        {renderAppPanel()}
-        {renderProfilePanel()}
-        {renderShortcutsPanel()}
       </AppBar>
+      {renderSearchPanel()}
+      {renderNotificationDrawer()}
+      {renderAppPanel()}
+      {renderProfilePanel()}
+      {renderShortcutsPanel()}
     </>
   );
 }
