@@ -592,20 +592,20 @@ export default function CreateNoteForm({
 
     const shellTitle = composerKind === 'project' ? 'Untitled Project' : 'Untitled Thought';
     const now = new Date().toISOString();
-    const shell: Notes = {
+    const shell = {
       $id: id,
       title: shellTitle,
       content: '',
       tags: [],
-      format: 'text',
+      format: 'text' as const,
       userId: user?.$id || '',
       isPublic,
       isGuest,
-      ...(composerKind === 'project' ? { kind: 'project' } as Partial<Notes> : {}),
+      ...(composerKind === 'project' ? { kind: 'project' as const } : {}),
       $createdAt: now,
       $updatedAt: now,
       updatedAt: now,
-    };
+    } as Notes;
 
     pushLiveNote(shell);
     setCachedData(`note_${id}`, shell);

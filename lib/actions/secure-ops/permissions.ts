@@ -53,7 +53,6 @@ import {
   normalizeCollaboratorResourceType,
   resolveResourceOwnerId,
 } from '@/lib/utils/resource-ids';
-import { buildPublicResourceUrl } from '@/lib/share/public-url';
 
 // Import interfaces / types from shared
 import { PermissionChangeInput, PermissionLevel, TokenAction } from './shared';
