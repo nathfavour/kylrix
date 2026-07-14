@@ -112,6 +112,7 @@ export async function createCouponAction(input: {
       } catch (err) {
         console.warn('[Admin] Failed to send coupon email to target:', err);
       }
+    }
   }
   return { count: created.length, coupons: created };
 }
@@ -129,5 +130,4 @@ export async function getMyCouponsAction(jwt?: string) {
     Query.limit(50)
   ]);
   return result.rows;
-}
 }
