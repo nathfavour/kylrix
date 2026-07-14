@@ -858,7 +858,7 @@ export default function ProjectDetailPage() {
 
   const handleAddCollaborator = () => {
       if (!hasTeamsKylrixPlan(user, currentTier)) {
-          showError('Project collaboration requires a Teams subscription.');
+          showError('Project collaboration requires a Teams subscription on the project owner account.');
           openProUpgrade('Project Collaboration');
           return;
       }

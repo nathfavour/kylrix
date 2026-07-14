@@ -6,6 +6,7 @@ import {
   isSelfHostedDeployment,
   resolveEffectiveBillingTier,
 } from '@/lib/entitlements';
+import { maxBillingUiTier, type BillingUiTier } from '@/lib/subscription/tier-resolution';
 import { BillingCacheService } from '@/lib/services/billing';
 
 // Safely get a user field preferring top-level value, then legacy prefs
@@ -48,6 +49,7 @@ export function getUserSubscriptionTier(user: any): string {
 
   if (!user) return 'FREE';
 
+  let cacheTier: BillingUiTier | null = null;
   if (typeof window !== 'undefined') {
     const cached = localStorage.getItem(`kylrix_entitlement_${user.$id}`);
     if (cached) {
@@ -56,20 +58,17 @@ export function getUserSubscriptionTier(user: any): string {
         if (parsed.expiresAt) {
           const end = new Date(parsed.expiresAt);
           if (end > new Date()) {
-            return parsed.uiTier;
+            cacheTier = String(parsed.uiTier || 'FREE').toUpperCase() as BillingUiTier;
           }
         } else if (parsed.active && (parsed.uiTier === 'PRO' || parsed.uiTier === 'TEAMS' || parsed.uiTier === 'LIFETIME' || parsed.uiTier === 'ORG')) {
-          return parsed.uiTier;
+          cacheTier = parsed.uiTier as BillingUiTier;
         }
       } catch {}
     }
   }
 
-  if (user.prefs) {
-    return resolveEffectiveBillingTier(user.prefs);
-  }
-
-  return 'FREE';
+  const prefsTier = user.prefs ? resolveEffectiveBillingTier(user.prefs) : 'FREE';
+  return maxBillingUiTier(cacheTier || 'FREE', prefsTier);
 }
 
 /** Prefer this over comparing to PRO only — includes ORG/LIFETIME. Self-hosted always true. */

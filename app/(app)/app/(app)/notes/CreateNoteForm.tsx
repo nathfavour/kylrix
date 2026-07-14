@@ -47,7 +47,7 @@ import { useProUpgrade } from '@/context/ProUpgradeContext';
 import { hasPaidKylrixPlan } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import { useAutosave } from '@/hooks/useAutosave';
-import { isEphemeralComposeNoteId, isUnpersistedComposeDraft, markComposePersisted } from '@/lib/notes/compose-draft-registry';
+import { isEphemeralComposeNoteId, isUnpersistedComposeDraft, markNotePersistedRemote, shouldCreateComposeNote, withNotePersistLock, isAlreadyExistsAppwriteError } from '@/lib/notes/compose-draft-registry';
 import { isValidAppwriteRowId } from '@/lib/utils/resource-ids';
 
 interface CreateNoteFormProps {
@@ -62,6 +62,8 @@ interface CreateNoteFormProps {
   noteKind?: 'note' | 'project';
   noteId?: string;
   onClose?: () => void;
+  /** Parent can invoke the composer's save-and-close handler (e.g. drawer backdrop / header check). */
+  onRegisterClose?: (close: (() => void) | null) => void;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
 }
@@ -74,6 +76,7 @@ export default function CreateNoteForm({
   noteKind = 'note',
   noteId,
   onClose,
+  onRegisterClose,
   isExpanded: controlledIsExpanded,
   onToggleExpand,
 }: CreateNoteFormProps) {
@@ -121,9 +124,17 @@ export default function CreateNoteForm({
   const hasAnnouncedCreateRef = useRef(false);
   const hasBootstrappedDraftRef = useRef(false);
   const composeHasContentRef = useRef(false);
+  const composeCloseHandledRef = useRef(false);
+  const editorStateRef = useRef({
+    title,
+    content,
+    tags,
+    isPublic,
+    isGuest,
+    composerKind,
+  });
   const isPastedRef = useRef(false);
   const pasteTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const pushLiveNoteTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
@@ -562,7 +573,8 @@ export default function CreateNoteForm({
 
   useEffect(() => {
     composeHasContentRef.current = Boolean(title.trim() || content.trim() || tags.length);
-  }, [title, content, tags]);
+    editorStateRef.current = { title, content, tags, isPublic, isGuest, composerKind };
+  }, [title, content, tags, isPublic, isGuest, composerKind]);
 
   // Local-first: allocate a real Appwrite ID and show the card the moment compose opens.
   useEffect(() => {
@@ -657,38 +669,55 @@ export default function CreateNoteForm({
   const candidateNoteRef = useRef<Notes | null>(null);
   candidateNoteRef.current = candidateNote;
 
-  // Mirror note detail: card always reflects editor keystrokes; server save is separate.
-  // Debounced to 80ms to batch rapid keystrokes into a single push, preventing
-  // partial-content truncation from multiple concurrent writes to card state.
+  const flushLiveNoteDraft = useCallback((): Notes | null => {
+    const noteId = resolvedNoteId || liveDraftIdRef.current;
+    if (!noteId || !isHydrated) return null;
+
+    const editor = editorStateRef.current;
+    const hasAnyDraft = Boolean(editor.title.trim() || editor.content.trim() || editor.tags.length);
+    if (!hasAnyDraft) return null;
+
+    const fallbackTitle = editor.composerKind === 'project' ? 'Untitled Project' : 'Untitled Thought';
+    const draftNote: Notes = {
+      ...(candidateNoteRef.current || ({} as Notes)),
+      $id: noteId,
+      title: resolveNoteCardTitle(editor.title, editor.content) || fallbackTitle,
+      content: editor.content,
+      tags: normalizeTags(editor.tags),
+      format: 'text',
+      userId: user?.$id || candidateNoteRef.current?.userId || '',
+      isPublic: editor.isPublic,
+      isGuest: editor.isGuest,
+      $updatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    pushLiveNote(draftNote);
+    setCachedData(`note_${noteId}`, draftNote);
+    return draftNote;
+  }, [isHydrated, pushLiveNote, resolvedNoteId, setCachedData, user?.$id]);
+
+  const flushLiveNoteDraftRef = useRef(flushLiveNoteDraft);
+  flushLiveNoteDraftRef.current = flushLiveNoteDraft;
+
+  // Mirror editor state to the card on every keystroke — no debounce so close never drops content.
   useEffect(() => {
     if (!candidateNote?.$id) return;
     registerComposeSession(candidateNote.$id);
-
-    if (pushLiveNoteTimerRef.current) clearTimeout(pushLiveNoteTimerRef.current);
-    pushLiveNoteTimerRef.current = setTimeout(() => {
-      const draftNote: Notes = {
-        ...candidateNote,
-        $updatedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      pushLiveNote(draftNote);
-      setCachedData(`note_${candidateNote.$id}`, draftNote);
-    }, 80);
-
-    return () => {
-      if (pushLiveNoteTimerRef.current) clearTimeout(pushLiveNoteTimerRef.current);
+    const draftNote: Notes = {
+      ...candidateNote,
+      $updatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candidateNote?.$id, candidateNote?.title, candidateNote?.content, candidateNote?.tags, candidateNote?.isPublic]);
+    pushLiveNote(draftNote);
+    setCachedData(`note_${candidateNote.$id}`, draftNote);
+  }, [candidateNote, pushLiveNote, registerComposeSession, setCachedData]);
 
   useEffect(() => {
     return () => {
+      flushLiveNoteDraftRef.current();
       const draftId = liveDraftIdRef.current;
       if (!draftId || !isUnpersistedComposeDraft(draftId)) return;
-      if (composeHasContentRef.current) {
-        unregisterComposeSession(draftId);
-        return;
-      }
+      if (composeHasContentRef.current) return;
       removeNote(draftId);
       unregisterComposeSession(draftId);
     };
@@ -764,7 +793,7 @@ export default function CreateNoteForm({
       unregisterComposeSession(ephemeralId);
     }
     if (savedId) {
-      markComposePersisted(savedId);
+      markNotePersistedRemote(savedId);
       unregisterComposeSession(savedId);
     }
     liveDraftIdRef.current = savedId;
@@ -776,9 +805,10 @@ export default function CreateNoteForm({
       throw new Error('Missing note id for save');
     }
 
+    return withNotePersistLock(source.$id, async () => {
     const normalizedTags = normalizeTags((source.tags || []) as string[]);
     const autosaveFields = pickNoteAutosavePayload({
-      title: isTitleManuallyEdited ? title : '',
+      title: isTitleManuallyEdited ? (source.title || title) : '',
       content: source.content || '',
       format: 'text',
       tags: normalizedTags,
@@ -868,34 +898,50 @@ export default function CreateNoteForm({
     }
 
     let saved: Notes;
-    const shouldCreate = isUnpersistedComposeDraft(source.$id) || source.$id.startsWith('live-');
+    const shouldCreate = shouldCreateComposeNote(source.$id);
 
-    if (!shouldCreate) {
-      saved = (await updateNote(source.$id, {
-        ...payload,
-        isPublic: persistedIsPublic,
-        isGuest: persistedIsGuest,
-        title: generatedTitle,
-      })) as Notes;
-    } else {
-      const ephemeralId = source.$id;
-      saved = (await createNote({
-        ...payload,
-        $id: isValidAppwriteRowId(source.$id) ? source.$id : undefined,
-        isPublic: payload.isPublic,
-        isGuest: payload.isGuest,
-        title: generatedTitle,
-      })) as Notes;
-      markComposePersisted(saved.$id);
-      migrateDraftId(saved.$id, ephemeralId);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('kylrix:draft:note');
+    try {
+      if (!shouldCreate) {
+        saved = (await updateNote(source.$id, {
+          ...payload,
+          isPublic: persistedIsPublic,
+          isGuest: persistedIsGuest,
+          title: generatedTitle,
+        })) as Notes;
+      } else {
+        const ephemeralId = source.$id;
+        saved = (await createNote({
+          ...payload,
+          $id: isValidAppwriteRowId(source.$id) ? source.$id : undefined,
+          isPublic: payload.isPublic,
+          isGuest: payload.isGuest,
+          title: generatedTitle,
+        })) as Notes;
+        markNotePersistedRemote(saved.$id);
+        migrateDraftId(saved.$id, ephemeralId);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('kylrix:draft:note');
+        }
+        if (!hasAnnouncedCreateRef.current) {
+          hasAnnouncedCreateRef.current = true;
+          onNoteCreated(saved);
+        }
       }
-      if (!hasAnnouncedCreateRef.current) {
-        hasAnnouncedCreateRef.current = true;
-        onNoteCreated(saved);
+    } catch (error) {
+      if (shouldCreate && isAlreadyExistsAppwriteError(error)) {
+        markNotePersistedRemote(source.$id);
+        saved = (await updateNote(source.$id, {
+          ...payload,
+          isPublic: persistedIsPublic,
+          isGuest: persistedIsGuest,
+          title: generatedTitle,
+        })) as Notes;
+      } else {
+        throw error;
       }
     }
+
+    markNotePersistedRemote(saved.$id);
 
     if (isPublic !== persistedIsPublic) {
       try {
@@ -918,7 +964,22 @@ export default function CreateNoteForm({
     }
 
     applyPersistSnapshot(saved, source);
+
+    const fallbackTitle = composerKind === 'project' ? 'Untitled Project' : 'Untitled Thought';
+    const cardTitle = resolveNoteCardTitle(source.title || title, source.content) || fallbackTitle;
+    const localNote: Notes = {
+      ...saved,
+      title: cardTitle,
+      content: source.content || saved.content || '',
+      tags: normalizedTags,
+      $updatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    pushLiveNote(localNote);
+    setCachedData(`note_${saved.$id}`, localNote);
+
     return saved;
+    });
   }, [
     applyPersistSnapshot,
     composerKind,
@@ -933,6 +994,8 @@ export default function CreateNoteForm({
     persistedIsGuest,
     persistedIsPublic,
     promptSudo,
+    pushLiveNote,
+    setCachedData,
     showSuccess,
     title,
     user?.$id,
@@ -974,10 +1037,15 @@ export default function CreateNoteForm({
 
   useEffect(() => {
     return () => {
-      if (!isDirty || !candidateNoteRef.current?.$id) return;
-      void forceSave(candidateNoteRef.current);
+      if (composeCloseHandledRef.current) return;
+      const finalDraft = flushLiveNoteDraftRef.current() || candidateNoteRef.current;
+      if (!finalDraft?.$id) return;
+      const editor = editorStateRef.current;
+      const hasAnyDraft = Boolean(editor.title.trim() || editor.content.trim() || editor.tags.length);
+      if (!hasAnyDraft) return;
+      void forceSave(finalDraft);
     };
-  }, [forceSave, isDirty]);
+  }, [forceSave]);
 
   const isSaving = isAutosaving || isUploadingVoice;
 
@@ -997,23 +1065,9 @@ export default function CreateNoteForm({
   }, [forceSave, setActiveDetail, closeOverlay, onClose, resolvedNoteId]);
 
   const handleClose = useCallback(() => {
-    const hasAnyDraft = Boolean(title.trim() || content.trim() || tags.length);
-    if (hasAnyDraft) {
-      const noteId = ensureLiveDraftId();
-      const finalDraft: Notes = {
-        ...(candidateNoteRef.current || ({} as Notes)),
-        $id: noteId,
-        title: resolveNoteCardTitle(title, content),
-        content,
-        tags: normalizeTags(tags),
-        format: 'text',
-        isPublic,
-        isGuest,
-        $updatedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      pushLiveNote(finalDraft);
-      setCachedData(`note_${noteId}`, finalDraft);
+    composeCloseHandledRef.current = true;
+    const finalDraft = flushLiveNoteDraft();
+    if (finalDraft) {
       if (!hasAnnouncedDraftRef.current && !hasAnnouncedCreateRef.current) {
         hasAnnouncedDraftRef.current = true;
         onNoteCreated(finalDraft);
@@ -1041,7 +1095,12 @@ export default function CreateNoteForm({
     } else {
       closeOverlay();
     }
-  }, [closeOverlay, content, ensureLiveDraftId, forceSave, isDirty, isGuest, isPublic, onClose, onNoteCreated, pushLiveNote, removeNote, resolvedNoteId, setCachedData, tags, title, unregisterComposeSession]);
+  }, [closeOverlay, flushLiveNoteDraft, forceSave, isDirty, onClose, onNoteCreated, removeNote, resolvedNoteId, unregisterComposeSession]);
+
+  useEffect(() => {
+    onRegisterClose?.(handleClose);
+    return () => onRegisterClose?.(null);
+  }, [handleClose, onRegisterClose]);
 
   const handlePaste = useCallback(() => {
     isPastedRef.current = true;

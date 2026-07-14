@@ -221,7 +221,7 @@ export function ShareNoteDrawer({ isOpen, onClose, noteId, noteTitle, resourceTy
     if (selectedUsers.length === 0 || !user?.$id) return;
 
     if (resourceType === 'project' && !hasTeamsKylrixPlan(user, currentTier)) {
-      toast.error('Project collaboration requires a Teams subscription.');
+      toast.error('Project collaboration requires a Teams subscription on the project owner account.');
       openProUpgrade('Project Collaboration');
       return;
     }

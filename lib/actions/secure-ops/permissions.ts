@@ -80,6 +80,25 @@ const {
   cookies
 } = shared;
 
+async function resolveCollaboratorBillingUserId(
+  resourceType: string,
+  resourceId: string,
+  requesterId: string,
+): Promise<string> {
+  if (resourceType !== 'project') return requesterId;
+  try {
+    const tables = createSystemTablesDB();
+    const project = await tables.getRow({
+      databaseId: APPWRITE_CONFIG.DATABASES.CHAT,
+      tableId: 'projects',
+      rowId: resourceId,
+    }) as { ownerId?: string | null; userId?: string | null };
+    return String(project.ownerId || project.userId || requesterId).trim() || requesterId;
+  } catch {
+    return requesterId;
+  }
+}
+
 export async function mutatePermissionsSecure(body: any, jwt?: string) {
   const actor = await getActor(jwt);
   if (!actor?.$id) throw new Error('Unauthorized');
@@ -226,10 +245,11 @@ export async function grantPermissionSecure(input: PermissionChangeInput) {
       ] as any
     });
 
-    const userTier = await getUserSubscriptionTierServer(requester.$id);
+    const billingUserId = await resolveCollaboratorBillingUserId(resourceType, input.resourceId, requester.$id);
+    const userTier = await getUserSubscriptionTierServer(billingUserId);
     if (!allowsCollaboratorSharing(userTier, resourceType)) {
       if (resourceType === 'project') {
-        throw new Error('Project collaboration is a TEAMS feature. Upgrade to TEAMS to collaborate on projects.');
+        throw new Error('Project collaboration is a TEAMS feature. Upgrade the project owner to TEAMS to collaborate on projects.');
       }
       throw new Error(`Adding collaborators is a premium feature. Upgrade to PRO or TEAMS to collaborate on your ${resourceType}.`);
     }
