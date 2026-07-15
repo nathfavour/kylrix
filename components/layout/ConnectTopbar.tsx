@@ -1911,7 +1911,7 @@ export default function ConnectTopbar({
 
             {/* Join Discord CTA */}
             <a
-              href="https://discord.gg/J8n5DhDnmw"
+              href="https://discord.gg/YjF5yCBCmx"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-between gap-3 px-4 py-3 mb-3 rounded-2xl border border-[#5865F2]/20 bg-[#5865F2]/5 hover:bg-[#5865F2]/10 transition-all font-satoshi text-xs font-bold text-[#5865F2]"

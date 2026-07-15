@@ -222,7 +222,7 @@ export function UnifiedLeftSidebar() {
         <Box sx={{ mt: 'auto', width: '100%', display: 'flex', justifyContent: isCollapsed ? 'center' : 'flex-start', px: isCollapsed ? 0 : 2 }}>
           <Tooltip title="Join our Discord Community" placement="right" arrow={isCollapsed}>
             <a
-              href="https://discord.gg/J8n5DhDnmw"
+              href="https://discord.gg/YjF5yCBCmx"
               target="_blank"
               rel="noopener noreferrer"
               style={{
