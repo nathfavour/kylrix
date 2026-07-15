@@ -155,7 +155,13 @@ export const NotesErrorBoundary: React.FC<{ children: ReactNode }> = ({ children
 );
 
 export const AuthErrorBoundary: React.FC<{ children: ReactNode }> = ({ children }) => (
-  <>{children}</>
+  <ErrorBoundary
+    onError={(error, errorInfo) => {
+      console.error('Authentication section error:', error, errorInfo);
+    }}
+  >
+    {children}
+  </ErrorBoundary>
 );
 
 export const useErrorHandler = () => {

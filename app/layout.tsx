@@ -8,6 +8,7 @@ import { DataNexusProvider } from '@/context/DataNexusContext';
 import { LayoutProvider } from '@/context/LayoutContext';
 import { ClientProviders } from './ClientProviders';
 import { AuthProvider } from '@/context/auth/AuthContext';
+import { AuthErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 const mono = JetBrains_Mono({
   subsets: ["latin"],
@@ -124,19 +125,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={mono.className}>
-        <AuthProvider>
-            <ThemeRegistry>
-              <DataNexusProvider>
-                <LayoutProvider>
-                  <ClientProviders>
-                    <GlobalShell>
-                      {children}
-                    </GlobalShell>
-                  </ClientProviders>
-                </LayoutProvider>
-              </DataNexusProvider>
-            </ThemeRegistry>
-        </AuthProvider>
+        <AuthErrorBoundary>
+          <AuthProvider>
+              <ThemeRegistry>
+                <DataNexusProvider>
+                  <LayoutProvider>
+                    <ClientProviders>
+                      <GlobalShell>
+                        {children}
+                      </GlobalShell>
+                    </ClientProviders>
+                  </LayoutProvider>
+                </DataNexusProvider>
+              </ThemeRegistry>
+          </AuthProvider>
+        </AuthErrorBoundary>
       </body>
     </html>
   );
