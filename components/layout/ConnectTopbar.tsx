@@ -489,8 +489,8 @@ export default function ConnectTopbar({
     // 1. Dynamic recommendations based on current app route
     const routeSuggestions = {
       note: [
-        { id: 'create-note', title: 'Write a New Note', description: 'Create a private note inside your workspace', href: '/app', kind: 'note', accent: '#EC4899' },
-        { id: 'view-settings', title: 'Security Preferences', description: 'Adjust your notes security & encryption rules', href: '/settings', kind: 'system', accent: '#6366F1' }
+        { id: 'create-note', title: 'Write a New Idea', description: 'Create a private idea inside your workspace', href: '/app', kind: 'note', accent: '#EC4899' },
+        { id: 'view-settings', title: 'Security Preferences', description: 'Adjust your ideas security & encryption rules', href: '/settings', kind: 'system', accent: '#6366F1' }
       ],
       projects: [
         { id: 'create-proj', title: 'Start Fresh Project', description: 'Spin up outcome-aware container', href: '/projects', kind: 'flow', accent: '#6366F1' },
@@ -528,8 +528,8 @@ export default function ConnectTopbar({
     if (topNiche === 'workspace' && activeApp !== 'note') {
       historicalSuggestions.push({
         id: 'hist-note',
-        title: 'Review Recent Notes',
-        description: 'You spent a lot of time in workspace notes recently. Resume writing?',
+        title: 'Review Recent Ideas',
+        description: 'You spent a lot of time in workspace ideas recently. Resume writing?',
         href: '/app',
         kind: 'note',
         accent: '#EC4899'
@@ -581,16 +581,12 @@ export default function ConnectTopbar({
 
   const connectApps = useMemo(
     () => {
-      const items = createEcosystemPanelItems(activeApp).map((item) => ({
+      return createEcosystemPanelItems(activeApp).map((item) => ({
         ...item,
         href: getEcosystemUrl(item.app),
       }));
-      if (!isDesktop) {
-        return items.filter(item => item.id !== 'projects');
-      }
-      return items;
     },
-    [activeApp, isDesktop],
+    [activeApp],
   );
 
   const appPanelMotion = useMemo(() => createTopbarPanelMotion(), []);
@@ -991,7 +987,7 @@ export default function ConnectTopbar({
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.25 }}>
                   {[
-                    { name: 'note', label: 'Note', color: '#EC4899', href: '/app' },
+                    { name: 'note', label: 'Ideas', color: '#EC4899', href: '/app' },
                     { name: 'flow', label: 'Flow', color: '#A855F7', href: '/flow' },
                     { name: 'vault', label: 'Vault', color: '#10B981', href: '/vault' },
                     { name: 'connect', label: 'Connect', color: '#F59E0B', href: '/connect' }
@@ -1130,7 +1126,7 @@ export default function ConnectTopbar({
               {localNoteResults.length > 0 && (
                 <Box sx={{ display: 'grid', gap: 0.75 }}>
                   <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', px: 0.5 }}>
-                    Notes ({localNoteResults.length})
+                    Ideas ({localNoteResults.length})
                   </Typography>
                   <Box sx={{ display: 'grid', gap: 0.75 }}>
                     {localNoteResults.slice(0, 4).map((note) => (
@@ -1997,13 +1993,13 @@ export default function ConnectTopbar({
     if (!shortcutsOpen) return null;
 
     const shortcutsList = [
-      { key: 'Ctrl + F', desc: 'Search Ecosystem / Notes' },
+      { key: 'Ctrl + F', desc: 'Search Ecosystem / Ideas' },
       { key: 'Ctrl + S', desc: 'Ecosystem Apps Directory' },
       { key: 'Ctrl + M', desc: 'Profile System Panel' },
       { key: 'Ctrl + A', desc: 'Agentic Assistant' },
       { key: 'Ctrl + K', desc: 'Keyboard Shortcuts Console' },
       { key: 'Ctrl + P', desc: 'Navigate to Workspaces' },
-      { key: 'Ctrl + N', desc: 'Navigate to Notes' },
+      { key: 'Ctrl + N', desc: 'Navigate to Ideas' },
       { key: 'Ctrl + T', desc: 'Navigate to Tags' },
       { key: 'Ctrl + X', desc: 'Navigate to Settings' },
       { key: 'Ctrl + Shift + V', desc: 'Navigate to Vault' },

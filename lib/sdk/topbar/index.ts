@@ -172,7 +172,7 @@ export function createTopbarPanelSurface(params: {
 
 export function createEcosystemPanelItems(currentApp: KylrixApp = 'note'): TopbarPanelItem[] {
   return [
-    { id: 'note', app: 'note', label: 'Note', description: 'Secure notes and research.', selected: currentApp === 'note' },
+    { id: 'note', app: 'note', label: 'Ideas', description: 'Secure ideas and research.', selected: currentApp === 'note' },
     { id: 'vault', app: 'vault', label: 'Vault', description: 'Passwords, 2FA, and keys.', selected: currentApp === 'vault' },
     { id: 'flow', app: 'flow', label: 'Flow', description: 'Goals, plans, and follow-through.', selected: currentApp === 'flow' },
     { id: 'connect', app: 'connect', label: 'Connect', description: 'Secure messages and sharing.', selected: currentApp === 'connect' },
