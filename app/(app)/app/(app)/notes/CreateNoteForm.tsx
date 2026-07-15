@@ -576,7 +576,7 @@ export default function CreateNoteForm({
     editorStateRef.current = { title, content, tags, isPublic, isGuest, composerKind };
   }, [title, content, tags, isPublic, isGuest, composerKind]);
 
-  // Local-first: allocate a real Appwrite ID and show the card the moment compose opens.
+  // Local-first: allocate a real Appwrite ID when typing content starts.
   useEffect(() => {
     if (!isHydrated || noteId || hasBootstrappedDraftRef.current) return;
     if (resolvedNoteId || liveDraftIdRef.current) {
@@ -584,19 +584,21 @@ export default function CreateNoteForm({
       return;
     }
 
+    const hasContent = Boolean(title.trim() || content.trim() || tags.length);
+    if (!hasContent) return;
+
     hasBootstrappedDraftRef.current = true;
     const id = ID.unique();
     liveDraftIdRef.current = id;
     setResolvedNoteId(id);
     registerComposeSession(id);
 
-    const shellTitle = '';
     const now = new Date().toISOString();
     const shell = {
       $id: id,
-      title: shellTitle,
-      content: '',
-      tags: [],
+      title: title,
+      content: content,
+      tags: tags,
       format: 'text' as const,
       userId: user?.$id || '',
       isPublic,
@@ -610,10 +612,10 @@ export default function CreateNoteForm({
     pushLiveNote(shell);
     setCachedData(`note_${id}`, shell);
     setLastSavedSnapshot(JSON.stringify({
-      title: '',
-      content: '',
+      title: title.trim(),
+      content: content.trim(),
       format: 'text',
-      tags: [],
+      tags: normalizeTags(tags),
       composerKind,
       isPublic,
       isGuest,
@@ -638,6 +640,9 @@ export default function CreateNoteForm({
     resolvedNoteId,
     setCachedData,
     user?.$id,
+    title,
+    content,
+    tags,
   ]);
 
   const candidateNote = useMemo((): Notes | null => {
@@ -701,16 +706,29 @@ export default function CreateNoteForm({
 
   // Mirror editor state to the card on every keystroke — no debounce so close never drops content.
   useEffect(() => {
+    const hasContent = Boolean(title.trim() || content.trim() || tags.length);
+    if (!hasContent) return;
+
+    let draftId = resolvedNoteId || liveDraftIdRef.current;
+    if (!draftId) {
+      draftId = ID.unique();
+      liveDraftIdRef.current = draftId;
+      setResolvedNoteId(draftId);
+      registerComposeSession(draftId);
+      hasBootstrappedDraftRef.current = true;
+    }
+
     if (!candidateNote?.$id) return;
     registerComposeSession(candidateNote.$id);
     const draftNote: Notes = {
       ...candidateNote,
+      $id: draftId,
       $updatedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     pushLiveNote(draftNote);
-    setCachedData(`note_${candidateNote.$id}`, draftNote);
-  }, [candidateNote, pushLiveNote, registerComposeSession, setCachedData]);
+    setCachedData(`note_${draftId}`, draftNote);
+  }, [candidateNote, title, content, tags, resolvedNoteId, pushLiveNote, registerComposeSession, setCachedData]);
 
   useEffect(() => {
     return () => {
