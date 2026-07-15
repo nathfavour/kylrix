@@ -27,6 +27,7 @@ interface AuthContextType {
   verifyEmailOTP: (email: string, userId: string, secret: string) => Promise<void>;
   verifyMFA: (challengeId: string, otp: string) => Promise<void>;
   getJWT: () => Promise<string | null>;
+  updatePreferences: (prefs: Record<string, any>) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -327,6 +328,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  const updatePreferences = useCallback(async (prefs: Record<string, any>) => {
+    try {
+      const res = await account.updatePrefs({
+        ...(user?.prefs || {}),
+        ...prefs
+      });
+      // Invalidate cache and trigger local updates
+      invalidateCurrentUserCache();
+      await refreshUser(true);
+      return res;
+    } catch (e) {
+      console.error('Failed to update user preferences:', e);
+      throw e;
+    }
+  }, [user, refreshUser]);
+
   const value = useMemo(() => ({
     user,
     isLoading,
@@ -340,7 +357,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     verifyEmailOTP,
     verifyMFA,
     getJWT,
-  }), [user, isLoading, isAuthenticating, logout, refreshUser, openIDMWindow, idmWindowOpen, loginWithEmailOTP, verifyEmailOTP, verifyMFA, getJWT]);
+    updatePreferences,
+  }), [user, isLoading, isAuthenticating, logout, refreshUser, openIDMWindow, idmWindowOpen, loginWithEmailOTP, verifyEmailOTP, verifyMFA, getJWT, updatePreferences]);
 
   return (
     <AuthContext.Provider value={value}>

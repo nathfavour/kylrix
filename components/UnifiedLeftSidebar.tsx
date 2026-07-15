@@ -18,6 +18,7 @@ import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { useCallLauncher } from '@/context/CallLauncherContext';
 import { useOverlay } from '@/components/ui/OverlayContext';
 import { useSidebar } from '@/components/ui/SidebarContext';
+import { useAuth } from '@/context/auth/AuthContext';
 
 type NavId = 'note' | 'flow' | 'vault' | 'connect' | 'projects' | 'tags';
 
@@ -41,6 +42,7 @@ export function UnifiedLeftSidebar() {
   const { isOpen: isCallLauncherOpen } = useCallLauncher();
   const { isOpen: isOverlayOpen } = useOverlay();
   const { isCollapsed } = useSidebar();
+  const { user, updatePreferences } = useAuth();
 
   const appContext = useMemo((): NavId | null => {
     if (pathname?.startsWith('/tags')) return 'tags';
@@ -219,60 +221,65 @@ export function UnifiedLeftSidebar() {
           })}
         </Stack>
 
-        <Box sx={{ mt: 'auto', width: '100%', display: 'flex', justifyContent: isCollapsed ? 'center' : 'flex-start', px: isCollapsed ? 0 : 2 }}>
-          <Tooltip title="Join our Discord Community" placement="right" arrow={isCollapsed}>
-            <a
-              href="https://discord.gg/YjF5yCBCmx"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: isCollapsed ? 'center' : 'flex-start',
-                gap: isCollapsed ? '0px' : '16px',
-                width: isCollapsed ? '46px' : '100%',
-                height: '46px',
-                borderRadius: '14px',
-                cursor: 'pointer',
-                color: 'rgba(255, 255, 255, 0.4)',
-                backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(88, 101, 242, 0.2)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                textDecoration: 'none',
-                boxSizing: 'border-box',
-                paddingLeft: isCollapsed ? '0px' : '16px',
-                paddingRight: isCollapsed ? '0px' : '16px',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#5865F2';
-                e.currentTarget.style.backgroundColor = 'rgba(88, 101, 242, 0.08)';
-                e.currentTarget.style.borderColor = 'rgba(88, 101, 242, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.4)';
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
-                e.currentTarget.style.borderColor = 'rgba(88, 101, 242, 0.2)';
-              }}
-            >
-              <svg 
-                style={{ width: '20px', height: '20px', fill: 'currentColor', flexShrink: 0, transition: 'all 0.3s' }} 
-                viewBox="0 0 127.14 96.36"
+        {!user?.prefs?.discordJoined && (
+          <Box sx={{ mt: 'auto', width: '100%', display: 'flex', justifyContent: isCollapsed ? 'center' : 'flex-start', px: isCollapsed ? 0 : 2 }}>
+            <Tooltip title="Join our Discord Community" placement="right" arrow={isCollapsed}>
+              <a
+                href="https://discord.gg/YjF5yCBCmx"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  void updatePreferences({ discordJoined: true }).catch(() => {});
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: isCollapsed ? 'center' : 'flex-start',
+                  gap: isCollapsed ? '0px' : '16px',
+                  width: isCollapsed ? '46px' : '100%',
+                  height: '46px',
+                  borderRadius: '14px',
+                  cursor: 'pointer',
+                  color: 'rgba(255, 255, 255, 0.4)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid rgba(88, 101, 242, 0.2)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  textDecoration: 'none',
+                  boxSizing: 'border-box',
+                  paddingLeft: isCollapsed ? '0px' : '16px',
+                  paddingRight: isCollapsed ? '0px' : '16px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#5865F2';
+                  e.currentTarget.style.backgroundColor = 'rgba(88, 101, 242, 0.08)';
+                  e.currentTarget.style.borderColor = 'rgba(88, 101, 242, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.4)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
+                  e.currentTarget.style.borderColor = 'rgba(88, 101, 242, 0.2)';
+                }}
               >
-                <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36c2.65-3.6,5-7.46,7-11.5a68.88,68.88,0,0,1-11-5.26c.92-.68,1.82-1.39,2.69-2.13A75.14,75.14,0,0,0,96.5,77.47c.87.74,1.77,1.45,2.69,2.13a68.88,68.88,0,0,1-11,5.26c2,4,4.35,7.9,7,11.5a105.73,105.73,0,0,0,31-18.83C129,54.65,122.68,31.58,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.9,46,53.9,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.14,46,96.14,53,91,65.69,84.69,65.69Z"/>
-              </svg>
-              {!isCollapsed && (
-                <span style={{ 
-                  fontFamily: 'var(--font-satoshi)', 
-                  fontWeight: 600, 
-                  fontSize: '0.86rem',
-                  letterSpacing: '0.01em'
-                }}>
-                  Join Discord
-                </span>
-              )}
-            </a>
-          </Tooltip>
-        </Box>
+                <svg 
+                  style={{ width: '20px', height: '20px', fill: 'currentColor', flexShrink: 0, transition: 'all 0.3s' }} 
+                  viewBox="0 0 127.14 96.36"
+                >
+                  <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36c2.65-3.6,5-7.46,7-11.5a68.88,68.88,0,0,1-11-5.26c.92-.68,1.82-1.39,2.69-2.13A75.14,75.14,0,0,0,96.5,77.47c.87.74,1.77,1.45,2.69,2.13a68.88,68.88,0,0,1-11,5.26c2,4,4.35,7.9,7,11.5a105.73,105.73,0,0,0,31-18.83C129,54.65,122.68,31.58,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.9,46,53.9,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.14,46,96.14,53,91,65.69,84.69,65.69Z"/>
+                </svg>
+                {!isCollapsed && (
+                  <span style={{ 
+                    fontFamily: 'var(--font-satoshi)', 
+                    fontWeight: 600, 
+                    fontSize: '0.86rem',
+                    letterSpacing: '0.01em'
+                  }}>
+                    Join Discord
+                  </span>
+                )}
+              </a>
+            </Tooltip>
+          </Box>
+        )}
       </Paper>
     </Box>
   );
