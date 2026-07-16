@@ -157,7 +157,7 @@ export default function CreateNoteForm({
   const ensureLiveDraftId = useCallback(() => {
     const existingId = resolvedNoteId || liveDraftIdRef.current;
     if (existingId) return existingId;
-    const noteId = ID.unique();
+    const noteId = Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
     liveDraftIdRef.current = noteId;
     registerComposeSession(noteId);
     setResolvedNoteId(noteId);
@@ -588,7 +588,7 @@ export default function CreateNoteForm({
     if (!hasContent) return;
 
     hasBootstrappedDraftRef.current = true;
-    const id = ID.unique();
+    const id = Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
     liveDraftIdRef.current = id;
     setResolvedNoteId(id);
     registerComposeSession(id);
@@ -718,7 +718,7 @@ export default function CreateNoteForm({
 
     let draftId = resolvedNoteId || liveDraftIdRef.current;
     if (!draftId) {
-      draftId = ID.unique();
+      draftId = Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
       liveDraftIdRef.current = draftId;
       setResolvedNoteId(draftId);
       registerComposeSession(draftId);
