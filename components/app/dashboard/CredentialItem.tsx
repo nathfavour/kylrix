@@ -62,8 +62,27 @@ export default function CredentialItem({
     }
   });
 
+  const handleShareLink = async () => {
+    try {
+      let keyFragment = '';
+      if (credential.dek) {
+        const { decryptField } = await import('@/lib/masterpass-crypto');
+        const dekBase64 = await decryptField(credential.dek);
+        keyFragment = `/${encodeURIComponent(dekBase64)}`;
+      }
+      const { buildPublicResourceUrl } = await import('@/lib/share/public-url');
+      const baseUrl = buildPublicResourceUrl('credential', credential.$id);
+      const fullUrl = keyFragment ? `${baseUrl}${keyFragment}` : baseUrl;
+      await navigator.clipboard.writeText(fullUrl);
+      import('react-hot-toast').then((t) => t.default.success('Public sharing link copied.'));
+    } catch (err: any) {
+      import('react-hot-toast').then((t) => t.default.error('Failed to copy share link: ' + err.message));
+    }
+  };
+
   const contextMenuItems = [
     { label: pinned ? "Unpin Secret" : "Pin Secret", icon: <Pin size={16} className={pinned ? "text-[#F59E0B]" : ""} />, onClick: () => onTogglePin?.() },
+    { label: "Copy Public Link (DEK)", icon: <Share2 size={16} className="text-emerald-500" />, onClick: handleShareLink },
     ...accessControlItems,
     { 
         label: "Identity", 

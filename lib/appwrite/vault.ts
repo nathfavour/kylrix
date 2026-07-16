@@ -3426,3 +3426,63 @@ export async function toggleTOTPPin(id: string) {
     return await VaultService.toggleTOTPPin(id);
 }
 
+/**
+ * validatePublicVaultAccess — server-side only.
+ * Loads a credential row from the admin SDK and returns it
+ * only when isPublic === true. Fields remain encrypted;
+ * the shared page will decrypt using the DEK passed in the URL.
+ */
+export async function validatePublicVaultAccess(credentialId: string): Promise<Credentials | null> {
+  try {
+    if (typeof window === 'undefined') {
+      const { createSystemClient } = await import('@/lib/appwrite-admin');
+      const { databases: adminDbs } = createSystemClient();
+      const doc = await adminDbs.getRow(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_COLLECTION_CREDENTIALS_ID,
+        credentialId
+      ) as any;
+      if (doc && doc.isPublic === true) {
+        return doc as Credentials;
+      }
+      return null;
+    }
+    // Client-side: use regular user-scoped request
+    const doc = await appwriteDatabases.getRow(APPWRITE_DATABASE_ID, APPWRITE_COLLECTION_CREDENTIALS_ID, credentialId);
+    return (doc as any)?.isPublic === true ? (doc as unknown as Credentials) : null;
+  } catch (err) {
+    console.error(`validatePublicVaultAccess failed for ${credentialId}:`, err);
+    return null;
+  }
+}
+
+/**
+ * validatePublicTotpAccess — server-side only.
+ * Loads a TOTP secret row from the admin SDK and returns it
+ * only when isPublic === true. secretKey remains encrypted;
+ * the shared page will decrypt using the DEK from the URL
+ * (or derive the 60-second code from the temp-encoded params).
+ */
+export async function validatePublicTotpAccess(totpId: string): Promise<TotpSecrets | null> {
+  try {
+    if (typeof window === 'undefined') {
+      const { createSystemClient } = await import('@/lib/appwrite-admin');
+      const { databases: adminDbs } = createSystemClient();
+      const doc = await adminDbs.getRow(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_COLLECTION_TOTPSECRETS_ID,
+        totpId
+      ) as any;
+      if (doc && doc.isPublic === true) {
+        return doc as TotpSecrets;
+      }
+      return null;
+    }
+    const doc = await appwriteDatabases.getRow(APPWRITE_DATABASE_ID, APPWRITE_COLLECTION_TOTPSECRETS_ID, totpId);
+    return (doc as any)?.isPublic === true ? (doc as unknown as TotpSecrets) : null;
+  } catch (err) {
+    console.error(`validatePublicTotpAccess failed for ${totpId}:`, err);
+    return null;
+  }
+}
+

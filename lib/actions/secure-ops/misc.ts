@@ -2081,10 +2081,6 @@ export async function toggleResourcePublicGuestSecure(params: {
     isPublic = true;
   }
 
-  // Constraint: TOTP cannot be shared
-  if ((isPublic || isGuest) && resourceType === 'totp') {
-    throw new Error("TOTP codes can't be shared publicly");
-  }
 
   const updateData: Record<string, unknown> = {
     isPublic,

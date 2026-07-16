@@ -222,8 +222,60 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
       }
     };
 
+    const handleShareDecryptedKey = async () => {
+      try {
+        let keyFragment = '';
+        if ((totp as any).dek) {
+          const { decryptField } = await import('@/lib/masterpass-crypto');
+          const dekBase64 = await decryptField((totp as any).dek);
+          keyFragment = `/${encodeURIComponent(dekBase64)}`;
+        }
+        const { buildPublicResourceUrl } = await import('@/lib/share/public-url');
+        const baseUrl = buildPublicResourceUrl('totp', totp.$id);
+        const fullUrl = keyFragment ? `${baseUrl}${keyFragment}` : baseUrl;
+        await navigator.clipboard.writeText(fullUrl);
+        toast.success('Public seed sharing link copied.');
+      } catch (err: any) {
+        toast.error('Failed to share: ' + err.message);
+      }
+    };
+
+    const handleShareSixtySeconds = async () => {
+      try {
+        // Build sixty seconds TOTP share parameters containing key metrics: start unix timestamp, digits, step, algorithm
+        const now = Math.floor(Date.now() / 1000);
+        const seedValue = totp.secretKey; // Already client-decrypted in list mapping
+        const options = {
+          start: now,
+          digits: totp.digits || 6,
+          step: totp.period || 30,
+          algo: totp.algorithm || 'SHA1'
+        };
+        const encodedParams = btoa(JSON.stringify({
+          seed: seedValue,
+          ...options
+        })).replace(/=/g, ''); // Trim base64 padding for url safety
+        
+        const { buildPublicResourceUrl } = await import('@/lib/share/public-url');
+        const baseUrl = buildPublicResourceUrl('totp', totp.$id);
+        const fullUrl = `${baseUrl}/temp/${encodedParams}`;
+        await navigator.clipboard.writeText(fullUrl);
+        toast.success('Temporary sixty second sharing link copied.');
+      } catch (err: any) {
+        toast.error('Failed to copy sixty second link: ' + err.message);
+      }
+    };
+
     const contextMenuItems = useMemo(() => [
         { label: pinned ? 'Unpin Code' : 'Pin Code', icon: <Pin size={16} className={pinned ? 'rotate-45 text-[#F59E0B]' : ''} />, onClick: handlePinToggle },
+        { 
+          label: 'Share Options', 
+          icon: <LinkIcon size={16} className="text-emerald-500" />,
+          submenu: [
+            { label: 'Share Seed (DEK)', icon: <LinkIcon size={14} />, onClick: handleShareDecryptedKey },
+            { label: 'Share Sixty Seconds Only', icon: <LinkIcon size={14} className="text-[#F59E0B]" />, onClick: handleShareSixtySeconds }
+          ]
+        },
         { label: 'Edit', icon: <Pencil size={16} />, onClick: () => openEditDialog(totp) },
         { label: 'Delete', icon: <Trash2 size={16} />, variant: 'destructive' as const, onClick: () => openDeleteDialog(totp.$id) }
     ], [pinned, totp]);

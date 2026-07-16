@@ -15,8 +15,11 @@ import {
   ShieldCheck, 
   ShieldAlert, 
   ExternalLink, 
-  Folder 
+  Folder,
+  Share2
 } from 'lucide-react';
+import { buildPublicResourceUrl } from '@/lib/share/public-url';
+import toast from 'react-hot-toast';
 
 export default function CredentialDetail({
   credential,
@@ -33,6 +36,25 @@ export default function CredentialDetail({
   const [showProjectLinker, setShowProjectLinker] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const { requestSudo } = useSudo();
+
+  const handleShareLink = useCallback(async () => {
+    try {
+      let keyFragment = '';
+      if (credential.dek) {
+        // If DEK exists, decrypt the DEK value using user masterpass structure
+        const { decryptField } = await import('@/lib/masterpass-crypto');
+        const dekBase64 = await decryptField(credential.dek);
+        keyFragment = `/${encodeURIComponent(dekBase64)}`;
+      }
+      
+      const baseUrl = buildPublicResourceUrl('credential', credential.$id);
+      const fullUrl = keyFragment ? `${baseUrl}${keyFragment}` : baseUrl;
+      await navigator.clipboard.writeText(fullUrl);
+      toast.success('Public sharing link copied with credentials DEK payload.');
+    } catch (err: any) {
+      toast.error('Failed to copy share link: ' + err.message);
+    }
+  }, [credential]);
 
   const { analyze } = useAI();
   const [urlSafety, setUrlSafety] = useState<{ safe: boolean; riskLevel: string; reason: string } | null>(null);
@@ -150,6 +172,13 @@ export default function CredentialDetail({
         <h3 className="text-lg font-black text-white flex-1 font-space-grotesk">
           Credential Details
         </h3>
+        <button 
+          onClick={handleShareLink}
+          className="p-2 rounded-lg text-emerald-500 bg-[#10B981]/5 border border-[#10B981]/20 hover:bg-[#10B981]/15 transition-all mr-1"
+          title="Share Password"
+        >
+          <Share2 className="w-[18px] h-[18px]" />
+        </button>
         <button 
           onClick={() => setShowProjectLinker(true)} 
           className="p-2 rounded-lg text-[#10B981] bg-[#10B981]/5 border border-[#10B981]/20 hover:bg-[#10B981]/15 transition-all"
