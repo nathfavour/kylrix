@@ -598,9 +598,14 @@ export default function CreateNoteForm({
     registerComposeSession(id);
 
     const now = new Date().toISOString();
+    const previewTitle = resolveNoteCardTitle(
+      isTitleManuallyEdited ? title : null,
+      content,
+    ) || '';
+
     const shell = {
       $id: id,
-      title: title,
+      title: previewTitle,
       content: content,
       tags: tags,
       format: 'text' as const,
