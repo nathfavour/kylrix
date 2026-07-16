@@ -497,7 +497,7 @@ export default function CreateNoteForm({
         setHasPaywall(!!paywall?.enabled);
         setPaywallAmount(paywall?.amount || 0);
         setLastSavedSnapshot(JSON.stringify({
-          title: cached.isTitleManuallyEdited || isTitleManuallyEdited ? (cached.title || '').trim() : '',
+          title: (cached as any).isTitleManuallyEdited || isTitleManuallyEdited ? (cached.title || '').trim() : '',
           content: cached.content || '',
           format: 'text',
           tags: normalizeTags(cached.tags || []),
