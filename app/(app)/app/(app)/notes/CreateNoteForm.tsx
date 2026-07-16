@@ -462,8 +462,12 @@ export default function CreateNoteForm({
     return available.filter((t) => t.toLowerCase().includes(query));
   }, [existingTags, tags, currentTag]);
 
+  // Exclude auto-derived title from dirty tracking: when the user hasn't manually
+  // edited the title, `title` is auto-set by the auto-title effect on every content
+  // change. Including it in the snapshot causes isDirty=true after just the first
+  // character, which fires the autosave with only that one character.
   const snapshot = useMemo(() => JSON.stringify({
-    title: title.trim(),
+    title: isTitleManuallyEdited ? title.trim() : '',
     content: content.trim(),
     format: 'text',
     tags: normalizeTags(tags),
@@ -473,7 +477,7 @@ export default function CreateNoteForm({
     hasPaywall,
     paywallAmount: typeof paywallAmount === 'number' ? paywallAmount : parseFloat(paywallAmount as any) || 0,
     resolvedNoteId: resolvedNoteId || null,
-  }), [title, content, tags, composerKind, isPublic, isGuest, hasPaywall, paywallAmount, resolvedNoteId]);
+  }), [isTitleManuallyEdited, title, content, tags, composerKind, isPublic, isGuest, hasPaywall, paywallAmount, resolvedNoteId]);
 
   const isDirty = snapshot !== lastSavedSnapshot;
 
@@ -588,7 +592,7 @@ export default function CreateNoteForm({
     if (!hasContent) return;
 
     hasBootstrappedDraftRef.current = true;
-    const id = Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
+    const id = ID.unique();
     liveDraftIdRef.current = id;
     setResolvedNoteId(id);
     registerComposeSession(id);
@@ -612,7 +616,9 @@ export default function CreateNoteForm({
     pushLiveNote(shell);
     setCachedData(`note_${id}`, shell);
     setLastSavedSnapshot(JSON.stringify({
-      title: title.trim(),
+      // Match the snapshot formula: only use title when manually edited,
+      // otherwise '' so that the auto-title effect never makes isDirty=true.
+      title: isTitleManuallyEdited ? title.trim() : '',
       content: content.trim(),
       format: 'text',
       tags: normalizeTags(tags),
