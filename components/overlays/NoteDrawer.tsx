@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { Box, Typography, IconButton } from '@/lib/openbricks/primitives';
 import { Check } from 'lucide-react';
 import { Drawer } from '@/lib/openbricks/primitives';
@@ -21,11 +21,20 @@ export function NoteDrawer() {
   const { isOpen, close } = useNoteDrawer();
   const { setIsDrawerOpen } = useDrawerState();
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const composerCloseRef = React.useRef<(() => void) | null>(null);
 
-  const handleClose = useCallback(() => {
+  const closeDrawerShell = React.useCallback(() => {
     setIsDrawerOpen(false);
     close();
   }, [close, setIsDrawerOpen]);
+
+  const requestComposerClose = React.useCallback(() => {
+    if (composerCloseRef.current) {
+      composerCloseRef.current();
+      return;
+    }
+    closeDrawerShell();
+  }, [closeDrawerShell]);
 
   React.useEffect(() => {
     setIsDrawerOpen(isOpen);
@@ -36,7 +45,7 @@ export function NoteDrawer() {
     <Drawer 
       anchor="bottom" 
       open={isOpen} 
-      onClose={handleClose}
+      onClose={requestComposerClose}
       PaperProps={{ 
           sx: { 
             ...DRAWER_SX,
@@ -70,20 +79,21 @@ export function NoteDrawer() {
           <Typography sx={{ fontWeight: 900, fontSize: '1.2rem', color: '#fff', fontFamily: 'var(--font-clash)' }}>
             {isExpanded ? 'Full Screen Note' : 'New Note'}
           </Typography>
-          <IconButton onClick={handleClose} sx={{ color: '#9B9691' }}>
+          <IconButton onClick={requestComposerClose} sx={{ color: '#9B9691' }}>
             <Check size={20} />
           </IconButton>
         </Box>
 
         <CreateNoteForm
             onNoteCreated={() => {
-              // CreateNoteForm now handles live-push internally via pushLiveNote.
-              // Only collapse expanded view on first create event.
               setIsExpanded(false);
+            }}
+            onRegisterClose={(close) => {
+              composerCloseRef.current = close;
             }}
             isExpanded={isExpanded}
             onToggleExpand={() => setIsExpanded(!isExpanded)}
-            onClose={handleClose}
+            onClose={closeDrawerShell}
         />
       </Box>
     </Drawer>

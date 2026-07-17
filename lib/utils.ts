@@ -6,6 +6,8 @@ import {
   isSelfHostedDeployment,
   resolveEffectiveBillingTier,
 } from '@/lib/entitlements';
+import { maxBillingUiTier, type BillingUiTier } from '@/lib/subscription/tier-resolution';
+import { BillingCacheService } from '@/lib/services/billing';
 
 // Safely get a user field preferring top-level value, then legacy prefs
 // Example: getUserField(user, 'profilePicId') will return user.profilePicId || user.prefs?.profilePicId
@@ -47,6 +49,7 @@ export function getUserSubscriptionTier(user: any): string {
 
   if (!user) return 'FREE';
 
+  let cacheTier: BillingUiTier | null = null;
   if (typeof window !== 'undefined') {
     const cached = localStorage.getItem(`kylrix_entitlement_${user.$id}`);
     if (cached) {
@@ -55,20 +58,17 @@ export function getUserSubscriptionTier(user: any): string {
         if (parsed.expiresAt) {
           const end = new Date(parsed.expiresAt);
           if (end > new Date()) {
-            return parsed.uiTier;
+            cacheTier = String(parsed.uiTier || 'FREE').toUpperCase() as BillingUiTier;
           }
         } else if (parsed.active && (parsed.uiTier === 'PRO' || parsed.uiTier === 'TEAMS' || parsed.uiTier === 'LIFETIME' || parsed.uiTier === 'ORG')) {
-          return parsed.uiTier;
+          cacheTier = parsed.uiTier as BillingUiTier;
         }
       } catch {}
     }
   }
 
-  if (user.prefs) {
-    return resolveEffectiveBillingTier(user.prefs);
-  }
-
-  return 'FREE';
+  const prefsTier = user.prefs ? resolveEffectiveBillingTier(user.prefs) : 'FREE';
+  return maxBillingUiTier(cacheTier || 'FREE', prefsTier);
 }
 
 /** Prefer this over comparing to PRO only — includes ORG/LIFETIME. Self-hosted always true. */
@@ -77,6 +77,60 @@ export function hasPaidKylrixPlan(user: any): boolean {
     return true;
   }
   return effectiveTierHasPaidAccess(getUserSubscriptionTier(user));
+}
+
+const TEAMS_TIERS = new Set(['TEAMS', 'ORG', 'LIFETIME']);
+
+function cachedEntitlementGrantsTeams(
+  ent: { uiTier?: string; active?: boolean; expiresAt?: string | null },
+): boolean {
+  const tier = String(ent.uiTier || 'FREE').trim().toUpperCase();
+  if (!TEAMS_TIERS.has(tier)) return false;
+  if (ent.expiresAt) {
+    const end = new Date(ent.expiresAt);
+    return !Number.isNaN(end.getTime()) && end > new Date();
+  }
+  return ent.active !== false;
+}
+
+/** Project collaboration, group channels, and team workspaces require Teams (or higher). */
+export function hasTeamsKylrixPlan(
+  user: any,
+  subscriptionTier?: string | null,
+): boolean {
+  if (isSelfHostedDeployment()) {
+    return true;
+  }
+  if (subscriptionTier && TEAMS_TIERS.has(String(subscriptionTier).trim().toUpperCase())) {
+    return true;
+  }
+  if (user?.$id && typeof window !== 'undefined') {
+    const peeked = BillingCacheService.peekEntitlement(user.$id);
+    if (peeked && cachedEntitlementGrantsTeams(peeked)) {
+      return true;
+    }
+  }
+  if (TEAMS_TIERS.has(getUserSubscriptionTier(user))) {
+    return true;
+  }
+  if (user?.prefs) {
+    const prefsTier = resolveEffectiveBillingTier(user.prefs);
+    if (TEAMS_TIERS.has(prefsTier)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Paid access from subscription context and/or user prefs/cache. */
+export function hasEffectivePaidAccess(user: any, subscriptionTier?: string | null): boolean {
+  if (isSelfHostedDeployment()) {
+    return true;
+  }
+  if (subscriptionTier && effectiveTierHasPaidAccess(subscriptionTier)) {
+    return true;
+  }
+  return hasPaidKylrixPlan(user);
 }
 
 export function getUserSubscriptionExpiresAt(user: any): string | null {

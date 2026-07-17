@@ -132,6 +132,90 @@ function readShareMetadata(metadata: string | null | undefined): Record<string, 
   }
 }
 
+/** Compound indexes split rows across idx_userId, (userId,isPublic), (userId,isPinned). */
+function getCredentialOwnerIndexQueries(userId: string): string[] {
+  return [
+    Query.equal("userId", userId),
+    Query.and([Query.equal("userId", userId), Query.equal("isPublic", true)]),
+    Query.and([Query.equal("userId", userId), Query.equal("isPinned", true)]),
+  ];
+}
+
+function buildCredentialOwnerFilterQueries(
+  userId: string,
+  resourceIds: string[] = [],
+): string[] {
+  const queries = getCredentialOwnerIndexQueries(userId);
+  if (resourceIds.length > 0) {
+    queries.push(Query.equal("$id", resourceIds));
+  }
+  return queries;
+}
+
+async function listRowsMergedAcrossFilters(
+  tableId: string,
+  filterQueries: string[],
+  extraQueries: string[] = [],
+): Promise<Models.Row[]> {
+  const byId = new Map<string, Models.Row>();
+  const pageSize = 100;
+
+  await Promise.all(
+    filterQueries.map(async (filterQuery) => {
+      let offset = 0;
+      let response: Models.RowList<Models.Row>;
+      do {
+        response = await listRowsWithRetry(tableId, [
+          filterQuery,
+          Query.limit(pageSize),
+          Query.offset(offset),
+          ...extraQueries,
+        ]);
+        for (const row of response.rows) {
+          byId.set(row.$id, row);
+        }
+        offset += pageSize;
+      } while (response.rows.length > 0 && offset < response.total);
+    }),
+  );
+
+  return Array.from(byId.values());
+}
+
+function sortMergedRows(rows: Models.Row[], queries: string[]): Models.Row[] {
+  if (rows.length <= 1) return rows;
+
+  let attribute: string | null = null;
+  let direction: "asc" | "desc" = "asc";
+  for (const q of queries) {
+    try {
+      const parsed = JSON.parse(q) as { method?: string; attribute?: string };
+      if (parsed.method === "orderAsc" && parsed.attribute) {
+        attribute = parsed.attribute;
+        direction = "asc";
+        break;
+      }
+      if (parsed.method === "orderDesc" && parsed.attribute) {
+        attribute = parsed.attribute;
+        direction = "desc";
+        break;
+      }
+    } catch {
+      // ignore non-JSON query strings
+    }
+  }
+
+  if (!attribute) return rows;
+
+  const sorted = [...rows].sort((a, b) => {
+    const av = (a as Record<string, unknown>)[attribute!];
+    const bv = (b as Record<string, unknown>)[attribute!];
+    const cmp = String(av ?? "").localeCompare(String(bv ?? ""));
+    return direction === "desc" ? -cmp : cmp;
+  });
+  return sorted;
+}
+
 async function importX25519PublicKey(publicKeyBase64: string): Promise<CryptoKey> {
   return await crypto.subtle.importKey(
     "raw",
@@ -1195,31 +1279,18 @@ export class VaultService {
   ): Promise<{ total: number; rows: Credentials[] }> {
     const resourceIds = await this.getCollaboratedResourceIds(userId, 'secret');
     
-    const baseQueries = [
-      Query.orderAsc("name"),
-      Query.limit(limit),
-      Query.offset(offset),
-      ...queries
-    ];
-    
-    let filterQuery;
-    if (resourceIds.length > 0) {
-      filterQuery = Query.or([
-        Query.equal("userId", userId),
-        Query.equal("$id", resourceIds)
-      ]);
-    } else {
-      filterQuery = Query.equal("userId", userId);
-    }
-
-    const response = await appwriteDatabases.listRows(
-      APPWRITE_DATABASE_ID,
-      APPWRITE_COLLECTION_CREDENTIALS_ID,
-      [filterQuery, ...baseQueries],
+    const filterQueries = buildCredentialOwnerFilterQueries(userId, resourceIds);
+    const mergedRows = sortMergedRows(
+      await listRowsMergedAcrossFilters(
+        APPWRITE_COLLECTION_CREDENTIALS_ID,
+        filterQueries,
+      ),
+      [Query.orderAsc("name"), ...queries],
     );
+    const pageRows = mergedRows.slice(offset, offset + limit);
 
     const decryptedRows = await Promise.all(
-      response.rows.map(
+      pageRows.map(
         (doc: Models.Row) =>
           this.decryptRowFields(
             doc,
@@ -1229,7 +1300,7 @@ export class VaultService {
     );
 
     return {
-      total: response.total,
+      total: mergedRows.length,
       rows: decryptedRows,
     };
   }
@@ -1241,20 +1312,19 @@ export class VaultService {
     limit: number = 50,
     offset: number = 0,
   ): Promise<{ total: number; rows: Credentials[] }> {
-    // Use database search on non-encrypted name field for better performance
-    const response = await appwriteDatabases.listRows(
-      APPWRITE_DATABASE_ID,
-      APPWRITE_COLLECTION_CREDENTIALS_ID,
-      [
-        Query.equal("userId", userId),
-        Query.search("name", searchTerm),
-        Query.orderAsc("name"),
-        Query.limit(limit),
-        Query.offset(offset)],
+    const filterQueries = buildCredentialOwnerFilterQueries(userId);
+    const mergedRows = sortMergedRows(
+      await listRowsMergedAcrossFilters(
+        APPWRITE_COLLECTION_CREDENTIALS_ID,
+        filterQueries,
+        [Query.search("name", searchTerm)],
+      ),
+      [Query.orderAsc("name")],
     );
+    const pageRows = mergedRows.slice(offset, offset + limit);
 
     const decryptedRows = await Promise.all(
-      response.rows.map(
+      pageRows.map(
         (doc: Models.Row) =>
           this.decryptRowFields(
             doc,
@@ -1264,7 +1334,7 @@ export class VaultService {
     );
 
     return {
-      total: response.total,
+      total: mergedRows.length,
       rows: decryptedRows,
     };
   }
@@ -1290,47 +1360,25 @@ export class VaultService {
     }
 
     const request = (async () => {
-      let rows: Credentials[] = [];
-      let offset = 0;
-      const limit = 100; // Max limit per request
-      let response;
-
       const resourceIds = await this.getCollaboratedResourceIds(userId, 'secret');
-      let filterQuery;
-      if (resourceIds.length > 0) {
-        filterQuery = Query.or([
-          Query.equal("userId", userId),
-          Query.equal("$id", resourceIds)
-        ]);
-      } else {
-        filterQuery = Query.equal("userId", userId);
-      }
-
-      do {
-        response = await listRowsWithRetry(
+      const filterQueries = buildCredentialOwnerFilterQueries(userId, resourceIds);
+      const mergedRows = sortMergedRows(
+        await listRowsMergedAcrossFilters(
           APPWRITE_COLLECTION_CREDENTIALS_ID,
-          [
-            filterQuery,
-            Query.limit(limit),
-            Query.offset(offset),
-            ...queries],
-        );
+          filterQueries,
+          queries,
+        ),
+        queries,
+      );
 
-        const decryptedRows = await Promise.all(
-          response.rows.map(
-            (doc: Models.Row) =>
-              this.decryptRowFields(
-                doc,
-                "credentials",
-              ) as unknown as Credentials,
-          ),
-        );
-
-        rows = rows.concat(decryptedRows);
-        offset += limit;
-      } while (
-        response.rows.length > 0 &&
-        rows.length < response.total
+      const rows = await Promise.all(
+        mergedRows.map(
+          (doc: Models.Row) =>
+            this.decryptRowFields(
+              doc,
+              "credentials",
+            ) as unknown as Credentials,
+        ),
       );
 
       this.credentialsListCache.set(cacheKey, rows);
@@ -1347,15 +1395,34 @@ export class VaultService {
     userId: string,
     limit: number = 5,
   ): Promise<Credentials[]> {
-    const response = await listRowsWithRetry(
-      APPWRITE_COLLECTION_CREDENTIALS_ID,
-      [
-        Query.equal("userId", userId),
-        Query.orderDesc("$updatedAt"),
-        Query.limit(limit)],
+    const filterQueries = getCredentialOwnerIndexQueries(userId);
+    const byId = new Map<string, Models.Row>();
+
+    await Promise.all(
+      filterQueries.map(async (filterQuery) => {
+        const response = await listRowsWithRetry(
+          APPWRITE_COLLECTION_CREDENTIALS_ID,
+          [
+            filterQuery,
+            Query.orderDesc("$updatedAt"),
+            Query.limit(limit),
+          ],
+        );
+        for (const row of response.rows) {
+          byId.set(row.$id, row);
+        }
+      }),
     );
+
+    const recentRows = Array.from(byId.values())
+      .sort(
+        (a, b) =>
+          new Date(b.$updatedAt).getTime() - new Date(a.$updatedAt).getTime(),
+      )
+      .slice(0, limit);
+
     return await Promise.all(
-      response.rows.map(
+      recentRows.map(
         (doc: Models.Row) =>
           this.decryptRowFields(
             doc,
@@ -1634,16 +1701,35 @@ export class VaultService {
     } as any);
   }
 
-  static async toggleCredentialPin(id: string): Promise<boolean> {
-    const existing = await this.getCredential(id);
-    const newPinned = !existing.isPinned;
+  static async setCredentialPinned(id: string, pinned: boolean): Promise<void> {
+    const doc = await appwriteDatabases.getRow(
+      APPWRITE_DATABASE_ID,
+      APPWRITE_COLLECTION_CREDENTIALS_ID,
+      id,
+    ) as Record<string, unknown>;
+    const permissions = Array.isArray(doc.$permissions)
+      ? (doc.$permissions as string[])
+      : undefined;
     await appwriteDatabases.updateRow(
-        APPWRITE_DATABASE_ID,
-        APPWRITE_COLLECTION_CREDENTIALS_ID,
-        id,
-        { isPinned: newPinned }
+      APPWRITE_DATABASE_ID,
+      APPWRITE_COLLECTION_CREDENTIALS_ID,
+      id,
+      { isPinned: pinned },
+      permissions,
     );
-    this.clearCredentialCache(existing.userId);
+    if (typeof doc.userId === 'string') {
+      this.clearCredentialCache(doc.userId);
+    }
+  }
+
+  static async toggleCredentialPin(id: string): Promise<boolean> {
+    const doc = await appwriteDatabases.getRow(
+      APPWRITE_DATABASE_ID,
+      APPWRITE_COLLECTION_CREDENTIALS_ID,
+      id,
+    ) as { isPinned?: boolean };
+    const newPinned = !doc.isPinned;
+    await this.setCredentialPinned(id, newPinned);
     return newPinned;
   }
 
@@ -3418,11 +3504,75 @@ export async function listCredentialAttachments(credentialId: string): Promise<E
   return normalizeCredentialAttachmentsField(credential);
 }
 
+export async function setCredentialPinned(id: string, pinned: boolean) {
+  return await VaultService.setCredentialPinned(id, pinned);
+}
+
 export async function toggleCredentialPin(id: string) {
     return await VaultService.toggleCredentialPin(id);
 }
 
 export async function toggleTOTPPin(id: string) {
     return await VaultService.toggleTOTPPin(id);
+}
+
+/**
+ * validatePublicVaultAccess — server-side only.
+ * Loads a credential row from the admin SDK and returns it
+ * only when isPublic === true. Fields remain encrypted;
+ * the shared page will decrypt using the DEK passed in the URL.
+ */
+export async function validatePublicVaultAccess(credentialId: string): Promise<Credentials | null> {
+  try {
+    if (typeof window === 'undefined') {
+      const { createSystemClient } = await import('@/lib/appwrite-admin');
+      const { databases: adminDbs } = createSystemClient();
+      const doc = await adminDbs.getRow(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_COLLECTION_CREDENTIALS_ID,
+        credentialId
+      ) as any;
+      if (doc && doc.isPublic === true) {
+        return doc as Credentials;
+      }
+      return null;
+    }
+    // Client-side: use regular user-scoped request
+    const doc = await appwriteDatabases.getRow(APPWRITE_DATABASE_ID, APPWRITE_COLLECTION_CREDENTIALS_ID, credentialId);
+    return (doc as any)?.isPublic === true ? (doc as unknown as Credentials) : null;
+  } catch (err) {
+    console.error(`validatePublicVaultAccess failed for ${credentialId}:`, err);
+    return null;
+  }
+}
+
+/**
+ * validatePublicTotpAccess — server-side only.
+ * Loads a TOTP secret row from the admin SDK and returns it
+ * only when isPublic === true. secretKey remains encrypted;
+ * the shared page will decrypt using the DEK from the URL
+ * (or derive the 60-second code from the temp-encoded params).
+ */
+export async function validatePublicTotpAccess(totpId: string): Promise<TotpSecrets | null> {
+  try {
+    if (typeof window === 'undefined') {
+      const { createSystemClient } = await import('@/lib/appwrite-admin');
+      const { databases: adminDbs } = createSystemClient();
+      const doc = await adminDbs.getRow(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_COLLECTION_TOTPSECRETS_ID,
+        totpId
+      ) as any;
+      if (doc && doc.isPublic === true) {
+        return doc as TotpSecrets;
+      }
+      return null;
+    }
+    const doc = await appwriteDatabases.getRow(APPWRITE_DATABASE_ID, APPWRITE_COLLECTION_TOTPSECRETS_ID, totpId);
+    return (doc as any)?.isPublic === true ? (doc as unknown as TotpSecrets) : null;
+  } catch (err) {
+    console.error(`validatePublicTotpAccess failed for ${totpId}:`, err);
+    return null;
+  }
 }
 

@@ -20,7 +20,7 @@ import {
 import { useAuth } from '@/context/auth/AuthContext';
 import { AppwriteService } from '@/lib/appwrite';
 import { account } from '@/lib/appwrite/client';
-import { listCouponsAction as getMyCouponsAction } from '@/app/(app)/(auth)/accounts/actions/coupons';
+import { getMyCouponsAction } from '@/app/(app)/(auth)/accounts/actions/coupons';
 import { listBillingTransactionsAction } from '@/app/(app)/(auth)/accounts/actions/billing';
 import toast from 'react-hot-toast';
 
@@ -330,19 +330,35 @@ export function BillingDrawer({ isOpen, onClose }: BillingDrawerProps) {
             <p className="text-xs text-white/40 font-medium">No coupons active on this account.</p>
           ) : (
             <div className="flex flex-col gap-2">
-              {coupons.map((coupon, idx) => (
-                <div key={idx} className="flex justify-between items-center bg-white/2 border border-white/5 p-3 rounded-xl">
-                  <div>
-                    <span className="text-xs font-bold text-white font-mono">{coupon.code}</span>
-                    <span className="block text-[9px] text-white/40 font-medium mt-0.5">
-                      {coupon.type === 'percent' ? `${coupon.value}% Off` : `$${coupon.value / 100} Off`}
-                    </span>
-                  </div>
-                  <span className="text-[9px] bg-emerald-500/10 text-emerald-400 font-extrabold uppercase px-2 py-0.5 rounded border border-emerald-500/20">
-                    Active
-                  </span>
-                </div>
-              ))}
+              {(() => {
+                const parseMeta = (val: any) => {
+                  try { return JSON.parse(val || '{}'); } catch { return {}; }
+                };
+                return coupons.map((coupon, idx) => {
+                  const meta = parseMeta(coupon.metadata);
+                  const title = meta.coupon?.title || coupon.title || coupon.$id;
+                  const discountPercent = coupon.discountPercent ?? coupon.discountPercentage ?? 0;
+                  const months = meta.months || 1;
+                  return (
+                    <div key={idx} className="flex justify-between items-center bg-white/2 border border-white/5 p-3.5 rounded-xl">
+                      <div>
+                        <span className="text-xs font-bold text-white font-mono uppercase tracking-wider">{title}</span>
+                        <span className="block text-[9px] text-[#A855F7] font-extrabold mt-0.5 uppercase tracking-wider font-mono">
+                          {discountPercent}% Off • {months} Month(s)
+                        </span>
+                        {coupon.$createdAt && (
+                          <span className="block text-[8px] text-white/30 font-medium mt-0.5">
+                            Issued: {new Date(coupon.$createdAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[9px] bg-emerald-500/10 text-emerald-400 font-extrabold uppercase px-2 py-0.5 rounded border border-emerald-500/20 self-start">
+                        {String(coupon.status || 'Active')}
+                      </span>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
         </div>
@@ -435,19 +451,28 @@ export function BillingDrawer({ isOpen, onClose }: BillingDrawerProps) {
             <p className="text-xs text-white/40 font-medium">No transactions found.</p>
           ) : (
             <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto">
-              {filteredTx.map((tx, idx) => (
-                <div key={idx} className="flex justify-between items-center bg-white/2 border border-white/5 p-3 rounded-xl text-xs">
-                  <div>
-                    <span className="font-extrabold text-white">PRO Tier - {tx.monthsBought} Mo</span>
-                    <span className="block text-[9px] text-white/40 mt-0.5">
-                      {new Date(tx.createdAt).toLocaleDateString()} • {tx.status}
+              {filteredTx.map((tx, idx) => {
+                const parseMeta = (val: any) => {
+                  try { return JSON.parse(val || '{}'); } catch { return {}; }
+                };
+                const meta = parseMeta(tx.metadata);
+                const displayMonths = tx.months || tx.monthsBought || meta.months || 1;
+                const displayAmount = tx.amountUsd || (tx.amountPaid ? `$${(tx.amountPaid / 100).toFixed(2)}` : '$0.00');
+                const displayDate = tx.createdAt || tx.$createdAt ? new Date(tx.createdAt || tx.$createdAt).toLocaleDateString() : 'N/A';
+                return (
+                  <div key={idx} className="flex justify-between items-center bg-white/2 border border-white/5 p-3 rounded-xl text-xs">
+                    <div>
+                      <span className="font-extrabold text-white uppercase">{String(tx.plan || 'PRO').replace('_', ' ')} - {displayMonths} Mo</span>
+                      <span className="block text-[9px] text-white/40 mt-0.5">
+                        {displayDate} • {String(tx.status || 'completed')}
+                      </span>
+                    </div>
+                    <span className="font-black text-white font-mono">
+                      {displayAmount}
                     </span>
                   </div>
-                  <span className="font-black text-white font-mono">
-                    $${(tx.amountPaid / 100).toFixed(2)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

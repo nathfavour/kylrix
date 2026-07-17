@@ -22,6 +22,14 @@ import { hasPaidKylrixPlan } from '@/lib/utils';
 import { useDataNexus } from './DataNexusContext';
 import { useResourcePins } from '@/context/ResourcePinContext';
 import { buildAutoTitleFromContent, resolveNoteCardTitle } from '@/constants/noteTitle';
+import {
+  isEphemeralComposeNoteId,
+  markComposeDraft,
+  markComposePersisted,
+  isUnpersistedComposeDraft,
+  isNotePersistedRemote,
+  markNotePersistedRemote,
+} from '@/lib/notes/compose-draft-registry';
 
 type LiveEditGuard = {
   title: string;
@@ -31,7 +39,25 @@ type LiveEditGuard = {
 };
 
 export function isLiveDraftNoteId(noteId?: string | null): boolean {
-  return Boolean(noteId?.startsWith('live-'));
+  return isEphemeralComposeNoteId(noteId);
+}
+
+export { isUnpersistedComposeDraft };
+
+function mergeFetchedNotesWithLocalDrafts(serverBatch: Notes[], localNotes: Notes[], guards: Map<string, LiveEditGuard>): Notes[] {
+  const serverIds = new Set(serverBatch.map((row) => row.$id));
+  const mergedServer = serverBatch.map((serverNote) => {
+    const guard = guards.get(serverNote.$id);
+    return guard ? mergeServerWithLiveGuard(serverNote, guard) : normalizeVisibility(serverNote);
+  });
+
+  const localOnly = localNotes.filter((row) => {
+    if (!row.$id || serverIds.has(row.$id)) return false;
+    if (isUnpersistedComposeDraft(row.$id) && !isNotePersistedRemote(row.$id)) return true;
+    return guards.has(row.$id);
+  });
+
+  return dedupeNotesById([...localOnly, ...mergedServer]);
 }
 
 function dedupeNotesById(rows: Notes[]): Notes[] {
@@ -225,6 +251,8 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const isFetchingRef = useRef(false);
   const notesRef = useRef<Notes[]>([]);
   const cursorRef = useRef<string | null>(null);
+  const liveEditGuardsRef = useRef(new Map<string, LiveEditGuard>());
+  const activeComposeNoteIdsRef = useRef(new Set<string>());
   useEffect(() => { notesRef.current = notes; }, [notes]);
   useEffect(() => { cursorRef.current = cursor; }, [cursor]);
 
@@ -295,17 +323,19 @@ export function NotesProvider({ children }: { children: ReactNode }) {
         res = optimizedRes;
         
         // Update other states based on this initial fetch
-        const batch = [
-          ...ghostNotes,
-          ...(res?.rows || []).map((note: Notes) => normalizeVisibility(note)).filter((n: any) => !deletedIds.has(n.$id))
-        ] as Notes[];
-        setNotes(batch);
+        const batch = mergeFetchedNotesWithLocalDrafts(
+          (res?.rows || []).map((note: Notes) => normalizeVisibility(note)).filter((n: any) => !deletedIds.has(n.$id)),
+          notesRef.current,
+          liveEditGuardsRef.current,
+        );
+        const withGhosts = dedupeNotesById([...ghostNotes, ...batch]) as Notes[];
+        setNotes(withGhosts);
         setTotalNotes(res?.total || 0);
         setHasMore(!!res?.hasMore);
         setCursor(res?.nextCursor || null);
 
         // Also cache individual notes for NoteEditorPage
-        batch.forEach(note => {
+        withGhosts.forEach(note => {
           if (note?.$id) setCachedData(`note_${note.$id}`, note);
         });
 
@@ -317,10 +347,12 @@ export function NotesProvider({ children }: { children: ReactNode }) {
           userId: user?.$id,
         });
 
-        const batch = [
-          ...ghostNotes,
-          ...(res?.rows || []).map((note: Notes) => normalizeVisibility(note)).filter((n: any) => !deletedIds.has(n.$id))
-        ] as Notes[];
+        const mergedBatch = mergeFetchedNotesWithLocalDrafts(
+          (res?.rows || []).map((note: Notes) => normalizeVisibility(note)).filter((n: any) => !deletedIds.has(n.$id)),
+          notesRef.current,
+          liveEditGuardsRef.current,
+        );
+        const batch = dedupeNotesById([...ghostNotes, ...mergedBatch]) as Notes[];
 
         setNotes(prev => {
           if (reset) return batch;
@@ -498,9 +530,6 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', () => { void handleStorage(); });
   }, [isAuthenticated]);
 
-  const liveEditGuardsRef = useRef(new Map<string, LiveEditGuard>());
-  const activeComposeNoteIdsRef = useRef(new Set<string>());
-
   const transferComposeSession = useCallback((ephemeralId: string, savedId: string) => {
     const guard = liveEditGuardsRef.current.get(ephemeralId);
     if (guard) {
@@ -511,6 +540,8 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       activeComposeNoteIdsRef.current.delete(ephemeralId);
     }
     activeComposeNoteIdsRef.current.add(savedId);
+    markNotePersistedRemote(ephemeralId);
+    markNotePersistedRemote(savedId);
   }, []);
 
   const upsertNote = useCallback((note: Notes) => {
@@ -523,9 +554,11 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       added = true;
       return dedupeNotesById([normalized, ...prev]);
     });
-    if (added) {
+    if (added && !isUnpersistedComposeDraft(normalized.$id)) {
       setTotalNotes((prev) => prev + 1);
       if (INITIAL_NOTES_CACHE_KEY) invalidate(INITIAL_NOTES_CACHE_KEY);
+    } else if (added) {
+      setTotalNotes((prev) => prev + 1);
     }
     setCachedData(`note_${normalized.$id}`, normalized);
   }, [setCachedData, INITIAL_NOTES_CACHE_KEY, invalidate]);
@@ -533,15 +566,16 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const pushLiveNote = useCallback((note: Notes) => {
     if (!note?.$id) return;
     const tags = Array.isArray(note.tags) ? note.tags : [];
+    const cardTitle = resolveNoteCardTitle(note.title, note.content) || note.title || '';
     liveEditGuardsRef.current.set(note.$id, {
-      title: note.title || '',
+      title: cardTitle,
       content: note.content || '',
       tags,
       at: Date.now(),
     });
     const stamped: Notes = {
       ...note,
-      title: note.title || '',
+      title: cardTitle,
       content: note.content || '',
       tags,
       $updatedAt: new Date().toISOString(),
@@ -553,12 +587,13 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const registerComposeSession = useCallback((noteId: string) => {
     if (!noteId) return;
     activeComposeNoteIdsRef.current.add(noteId);
+    markComposeDraft(noteId);
   }, []);
 
   const unregisterComposeSession = useCallback((noteId: string) => {
     if (!noteId) return;
     activeComposeNoteIdsRef.current.delete(noteId);
-    liveEditGuardsRef.current.delete(noteId);
+    markComposePersisted(noteId);
   }, []);
 
   const clearLiveNoteGuard = useCallback((noteId: string) => {
@@ -674,7 +709,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
         }
 
         const liveComposeId = [...activeComposeNoteIdsRef.current].find(
-          (id) => isLiveDraftNoteId(id) && notesRef.current.some((n) => n.$id === id),
+          (id) => isUnpersistedComposeDraft(id) && notesRef.current.some((n) => n.$id === id),
         );
         if (liveComposeId) {
           transferComposeSession(liveComposeId, payload.$id);

@@ -78,6 +78,7 @@ import AdminDashboardPage from '@/app/(app)/(auth)/accounts/admin/page';
 import UsersManagement from '@/app/(app)/(auth)/accounts/admin/users/page';
 import EmailOrchestrator from '@/app/(app)/(auth)/accounts/admin/emails/page';
 import AdminCouponsPage from '@/app/(app)/(auth)/accounts/admin/coupons/page';
+import { PasskeySetup } from '@/components/overlays/PasskeySetup';
 
 // Inline Custom Telegram Icon SVG for lucide alignment
 function TelegramIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -138,6 +139,7 @@ export default function SettingsPage() {
     const [minting, setMinting] = useState(false);
   
     // Passkey state
+    const [passkeySetupOpen, setPasskeySetupOpen] = useState(false);
     const [passkeyEntries, setPasskeyEntries] = useState<any[]>([]);
     const [loadingPasskeys, setLoadingPasskeys] = useState(true);
 
@@ -892,12 +894,89 @@ export default function SettingsPage() {
 
                 {activeTab === 'security' && (
                     <div className="flex flex-col gap-8 pb-24 max-w-3xl">
-                        <div id="masterpass" className="space-y-4">
+                        {/* Vault Status Block */}
+                        <div id="vault-status" className="space-y-4">
                             <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
-                                Encryption
+                                Vault Status
                             </h2>
-                            <div className="bg-[#161412] border border-white/5 rounded-[32px] p-6 md:p-10">
-                                {user && <MasterPassManager userId={user.$id} />}
+                            <div className="bg-[#161412] border border-white/5 rounded-[32px] p-6 md:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h4 className="text-base font-extrabold text-white mb-1">
+                                        Vault Status: {isUnlocked ? 'Unlocked' : 'Locked'}
+                                    </h4>
+                                    <p className="text-xs text-[#9B9691] leading-relaxed max-w-[540px]">
+                                        {isUnlocked 
+                                            ? 'Your local cryptographic vault is unlocked. Private records are decrypted in RAM.' 
+                                            : 'Your vault is locked. Secure credentials and keys cannot be decrypted.'}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (isUnlocked) {
+                                            ecosystemSecurity.lock();
+                                            setIsUnlocked(false);
+                                            toast.success('Vault locked successfully');
+                                        } else {
+                                            requestSudo({
+                                                intent: 'unlock',
+                                                forcePrompt: true,
+                                                onSuccess: () => {
+                                                    setIsUnlocked(true);
+                                                    toast.success('Vault unlocked successfully');
+                                                }
+                                            });
+                                        }
+                                    }}
+                                    className={`py-3 px-5 rounded-xl font-black text-xs transition-all cursor-pointer flex-shrink-0 border-none ${
+                                        isUnlocked 
+                                            ? 'bg-amber-500 hover:bg-amber-600 text-black shadow-lg' 
+                                            : 'bg-[#6366F1] hover:bg-[#5458E8] text-white shadow-lg'
+                                    }`}
+                                >
+                                    {isUnlocked ? 'Lock Vault' : 'Unlock Vault'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Passkeys Configuration Section */}
+                        <div id="passkeys-setup" className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h2 className="text-xl font-black font-clash text-white tracking-tight capitalize">
+                                    Passkeys
+                                </h2>
+                                <button
+                                    type="button"
+                                    onClick={() => setPasskeySetupOpen(true)}
+                                    className="py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-white font-extrabold text-xs transition-all border border-white/5 cursor-pointer"
+                                >
+                                    Add Passkey
+                                </button>
+                            </div>
+                            <div className="bg-[#161412] border border-white/5 rounded-[32px] p-6 md:p-8 space-y-4">
+                                {loadingPasskeys ? (
+                                    <p className="text-xs text-[#9B9691]">Loading passkeys...</p>
+                                ) : passkeyEntries.length === 0 ? (
+                                    <p className="text-xs text-[#9B9691]">No passkeys registered yet. Set up a passkey to sign in and unlock your vault securely.</p>
+                                ) : (
+                                    <div className="flex flex-col gap-3">
+                                        {passkeyEntries.map((pk) => (
+                                            <div key={pk.$id} className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl flex justify-between items-center">
+                                                <div>
+                                                    <h4 className="text-sm font-extrabold text-white">{pk.params?.name || 'Registered Passkey'}</h4>
+                                                    <p className="text-[10px] text-[#9B9691] font-mono mt-0.5">ID: {pk.$id}</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemovePasskey(pk.$id)}
+                                                    className="py-2 px-3.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 font-extrabold text-xs transition-all border border-red-500/10 cursor-pointer"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -1128,6 +1207,18 @@ export default function SettingsPage() {
                         });
                     }
                 }}
+            />
+        )}
+        {passkeySetupOpen && (
+            <PasskeySetup
+                open={passkeySetupOpen}
+                onClose={() => setPasskeySetupOpen(false)}
+                userId={user?.$id || ""}
+                onSuccess={() => {
+                    setPasskeySetupOpen(false);
+                    loadPasskeys();
+                }}
+                trustUnlocked={true}
             />
         )}
     </MultiSectionContainer>

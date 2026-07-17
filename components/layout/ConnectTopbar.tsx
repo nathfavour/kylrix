@@ -40,11 +40,12 @@ import {
 } from 'lucide-react';
 
 import Logo from '@/components/common/Logo';
-import { useAuth } from '@/lib/auth';
+import { useAuth } from '@/context/auth/AuthContext';
 import { getProfilePicturePreview } from '@/lib/appwrite';
-import { getUserProfilePicId, hasPaidKylrixPlan } from '@/lib/utils';
+import { getUserProfilePicId, hasEffectivePaidAccess } from '@/lib/utils';
 import { getEcosystemUrl, APP_BASE_PATHS } from '@/lib/constants';
 import { TOPBAR_LAYOUT, getAppTone, type KylrixApp } from '@/lib/sdk/design';
+import { TOPBAR_DRAWER_BACKDROP_SLOT } from '@/lib/ui/topbar-drawer-slot';
 import { createEcosystemPanelItems, createTopbarPanelMotion, createTopbarSearchSurface, isTopbarScrollAtBottom, isTopbarScrollAtTop } from '@/lib/sdk/topbar';
 import { createProfilePreviewManager, getUserProfilePicId as getSdkUserProfilePicId } from '@/lib/sdk/appwrite';
 import { stageProfileView } from '@/lib/profile-handoff';
@@ -58,7 +59,6 @@ import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { useSubscription } from '@/context/subscription/SubscriptionContext';
 import { useProfile } from '@/components/providers/ProfileProvider';
 import { useLocalContext } from '@/lib/context-engine';
-import { useDrawerState } from '@/components/ui/DrawerStateContext';
 import { useNotes } from '@/context/NotesContext';
 import { useTask } from '@/context/TaskContext';
 
@@ -209,19 +209,17 @@ function SyncIndicator() {
 export default function ConnectTopbar({
   className,
 }: ConnectTopbarProps) {
-  const { user, logout, isAuthenticating } = useAuth();
+  const { user, logout, isAuthenticating, updatePreferences } = useAuth();
   const { openWallet } = useWalletOverlay();
   const { openAgenticDrawer, closeAgenticDrawer } = useAgenticDrawer();
   const { open: openUnified } = useUnifiedDrawer();
   const { openProUpgrade } = useProUpgrade();
   const { currentTier } = useSubscription();
-  const isPro = hasPaidKylrixPlan(user) || currentTier === 'PRO';
+  const isPro = hasEffectivePaidAccess(user, currentTier);
   const router = useRouter();
   const pathname = usePathname();
-  const { isDrawerOpen } = useDrawerState();
   const { notes = [] } = useNotes();
   const { tasks = [], projects = [] } = useTask();
-  
   // To let any drawer communicate full state expansion globally:
   const isDrawerExpanded = typeof window !== 'undefined' && document.body.classList.contains('drawer-expanded');
   
@@ -491,8 +489,8 @@ export default function ConnectTopbar({
     // 1. Dynamic recommendations based on current app route
     const routeSuggestions = {
       note: [
-        { id: 'create-note', title: 'Write a New Note', description: 'Create a private note inside your workspace', href: '/app', kind: 'note', accent: '#EC4899' },
-        { id: 'view-settings', title: 'Security Preferences', description: 'Adjust your notes security & encryption rules', href: '/settings', kind: 'system', accent: '#6366F1' }
+        { id: 'create-note', title: 'Write a New Idea', description: 'Create a private idea inside your workspace', href: '/app', kind: 'note', accent: '#EC4899' },
+        { id: 'view-settings', title: 'Security Preferences', description: 'Adjust your ideas security & encryption rules', href: '/settings', kind: 'system', accent: '#6366F1' }
       ],
       projects: [
         { id: 'create-proj', title: 'Start Fresh Project', description: 'Spin up outcome-aware container', href: '/projects', kind: 'flow', accent: '#6366F1' },
@@ -530,8 +528,8 @@ export default function ConnectTopbar({
     if (topNiche === 'workspace' && activeApp !== 'note') {
       historicalSuggestions.push({
         id: 'hist-note',
-        title: 'Review Recent Notes',
-        description: 'You spent a lot of time in workspace notes recently. Resume writing?',
+        title: 'Review Recent Ideas',
+        description: 'You spent a lot of time in workspace ideas recently. Resume writing?',
         href: '/app',
         kind: 'note',
         accent: '#EC4899'
@@ -583,16 +581,12 @@ export default function ConnectTopbar({
 
   const connectApps = useMemo(
     () => {
-      const items = createEcosystemPanelItems(activeApp).map((item) => ({
+      return createEcosystemPanelItems(activeApp).map((item) => ({
         ...item,
         href: getEcosystemUrl(item.app),
       }));
-      if (!isDesktop) {
-        return items.filter(item => item.id !== 'projects');
-      }
-      return items;
     },
-    [activeApp, isDesktop],
+    [activeApp],
   );
 
   const appPanelMotion = useMemo(() => createTopbarPanelMotion(), []);
@@ -602,9 +596,18 @@ export default function ConnectTopbar({
   useEffect(() => {
     if (!activePanel) return;
 
+    const isInsideTopbarSurface = (target: EventTarget | null) => {
+      if (!(target instanceof Element)) return false;
+      if (headerRef.current?.contains(target)) return true;
+      return Boolean(
+        target.closest(
+          '[data-kylrix-topbar-panel], .ob-drawer-root, .ob-drawer-panel, .kylrix-sidebar',
+        ),
+      );
+    };
+
     const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (!target || (headerRef.current && headerRef.current.contains(target))) return;
+      if (isInsideTopbarSurface(event.target)) return;
       handleCloseAll();
     };
 
@@ -847,7 +850,8 @@ export default function ConnectTopbar({
           open={notificationsOpen}
           onClose={() => setNotificationsOpen(false)}
           keepMounted={false}
-          disablePortal={false} 
+          disablePortal={true}
+          slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
           PaperProps={{
             sx: {
               bgcolor: '#161412',
@@ -868,6 +872,7 @@ export default function ConnectTopbar({
 
     return (
       <Box
+        data-kylrix-topbar-panel
         sx={{
           width: '100%',
           borderTop: '1px solid rgba(255,255,255,0.05)',
@@ -982,7 +987,7 @@ export default function ConnectTopbar({
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.25 }}>
                   {[
-                    { name: 'note', label: 'Note', color: '#EC4899', href: '/app' },
+                    { name: 'note', label: 'Ideas', color: '#EC4899', href: '/app' },
                     { name: 'flow', label: 'Flow', color: '#A855F7', href: '/flow' },
                     { name: 'vault', label: 'Vault', color: '#10B981', href: '/vault' },
                     { name: 'connect', label: 'Connect', color: '#F59E0B', href: '/connect' }
@@ -1121,7 +1126,7 @@ export default function ConnectTopbar({
               {localNoteResults.length > 0 && (
                 <Box sx={{ display: 'grid', gap: 0.75 }}>
                   <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', px: 0.5 }}>
-                    Notes ({localNoteResults.length})
+                    Ideas ({localNoteResults.length})
                   </Typography>
                   <Box sx={{ display: 'grid', gap: 0.75 }}>
                     {localNoteResults.slice(0, 4).map((note) => (
@@ -1165,11 +1170,11 @@ export default function ConnectTopbar({
                 </Box>
               )}
 
-              {/* Local Tasks & Projects Matches */}
+              {/* Local Tasks & Workspaces Matches */}
               {(localTaskResults.length > 0 || localProjectResults.length > 0) && (
                 <Box sx={{ display: 'grid', gap: 0.75 }}>
                   <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', px: 0.5 }}>
-                    Flow & Projects
+                    Flow & Workspaces
                   </Typography>
                   <Box sx={{ display: 'grid', gap: 0.75 }}>
                     {localProjectResults.slice(0, 2).map((proj) => (
@@ -1417,7 +1422,8 @@ export default function ConnectTopbar({
           open={searchOpen}
           onClose={handleCloseAll}
           keepMounted={false}
-          disablePortal={false}
+          disablePortal={true}
+          slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
           PaperProps={{
             sx: {
               bgcolor: '#161412',
@@ -1497,6 +1503,7 @@ export default function ConnectTopbar({
 
     return (
       <Box
+        data-kylrix-topbar-panel
         data-note-search-surface="true"
         sx={{
           width: '100%',
@@ -1518,7 +1525,7 @@ export default function ConnectTopbar({
 
     const profileContent = (
       <Box
-        sx={{ px: { xs: 2.25, md: 4 }, py: 1.25, maxHeight: isDesktop ? 'calc(100vh - 120px)' : '45vh', overflowY: 'auto' }}
+        sx={{ px: { xs: 2.25, md: 4 }, py: 1.25, maxHeight: isDesktop ? 'none' : '45vh', overflowY: isDesktop ? 'visible' : 'auto' }}
       >
           <Paper
             elevation={0}
@@ -1548,9 +1555,8 @@ export default function ConnectTopbar({
                 <IconButton onClick={handleCloseAll} size="small" sx={{ width: 30, height: 30, borderRadius: '999px', color: alpha('#fff', 0.8), bgcolor: alpha('#fff', 0.05), border: '1px solid rgba(255,255,255,0.06)' }}>
                   ✕
                 </IconButton>
-              </Box>
-
-                <Box sx={{ display: 'grid', gap: 1.25, maxHeight: '58vh', overflowY: 'auto', pr: 0.5, pb: 0.5 }}>
+               </Box>
+              <Box sx={{ display: 'grid', gap: 1.25, maxHeight: isDesktop ? 'none' : '58vh', overflowY: isDesktop ? 'visible' : 'auto', pr: 0.5, pb: 0.5 }}>
                 <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', p: 0.75 }}>
                   <IdentityAvatar
                     userId={user?.$id}
@@ -1726,224 +1732,29 @@ export default function ConnectTopbar({
           open={Boolean(profileMenuAnchorEl)}
           onClose={() => setProfileMenuAnchorEl(null)}
           keepMounted={false}
-          disablePortal={false}
+          disablePortal={true}
+          slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
           PaperProps={{
             sx: {
               bgcolor: '#161412',
               width: 320,
               height: '100vh',
               borderRight: '1px solid rgba(255, 255, 255, 0.06)',
-              p: 2.75,
+              p: 0,
               display: 'flex',
               flexDirection: 'column',
               boxSizing: 'border-box',
             }
           }}
         >
-          {/* Header */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3.5 }}>
-            <Typography variant="h6" sx={{ fontFamily: 'var(--font-clash)', fontWeight: 900, color: '#fff', letterSpacing: '0.02em', fontSize: '1.1rem' }}>
-              Secure Space
-            </Typography>
-            <IconButton onClick={() => setProfileMenuAnchorEl(null)} sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.06)' }, width: 32, height: 32 }}>
-              <CloseIcon size={16} />
-            </IconButton>
-          </Box>
-
-          {/* Scrollable Content */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3, overflowY: 'auto', mx: -2.75, px: 2.75 }}>
-            {/* User Profile Info Card */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 1.75, p: 2, borderRadius: '26px', bgcolor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)' }}>
-              <Box sx={{ position: 'relative' }}>
-                <IdentityAvatar
-                  userId={user?.$id}
-                  size={88}
-                  pro={isPro}
-                  fallback={profileName.slice(0, 1).toUpperCase()}
-                  borderRadius="26px"
-                />
-                {/* Active Indicator dot */}
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    bottom: -1,
-                    right: -1,
-                    width: 14,
-                    height: 14,
-                    borderRadius: '50%',
-                    bgcolor: '#10B981',
-                    border: '2.5px solid #161412',
-                  }}
-                />
-              </Box>
-
-              <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
-                  <Box
-                    onClick={profileUsername ? handleCopyUsername : undefined}
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      px: 1.25,
-                      py: 0.35,
-                      borderRadius: '999px',
-                      bgcolor: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      cursor: profileUsername ? 'pointer' : 'default',
-                      transition: 'all 0.2s',
-                      '&:hover': profileUsername ? { bgcolor: 'rgba(255,255,255,0.08)' } : {},
-                    }}
-                  >
-                    <Typography component="span" sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: '0.78rem', lineHeight: 1.35 }}>
-                      {profileUsername ? `@${String(profileUsername).replace(/^@+/, '')}` : profileName}
-                    </Typography>
-                    {profileUsername && (
-                      <CopyIcon size={11} style={{ color: copyState === 'copied-username' ? '#10B981' : 'rgba(255, 255, 255, 0.3)' }} />
-                    )}
-                  </Box>
-                </Box>
-
-                {!isPro && (
-                  <Button
-                    onClick={() => {
-                      setProfileMenuAnchorEl(null);
-                      openProUpgrade();
-                    }}
-                    sx={{
-                      width: '100%',
-                      py: 1,
-                      borderRadius: '12px',
-                      bgcolor: '#6366F1',
-                      color: 'white',
-                      fontWeight: 900,
-                      fontSize: '0.75rem',
-                      textTransform: 'uppercase',
-                      '&:hover': { bgcolor: '#5254E8' }
-                    }}
-                  >
-                    Upgrade Pro
-                  </Button>
-                )}
-              </Box>
-            </Box>
-
-            {/* System Identification details */}
-            <Box sx={{ borderRadius: '22px', border: '1px solid rgba(255,255,255,0.04)', bgcolor: 'rgba(255,255,255,0.005)', p: 2 }}>
-                    <Typography component="span" sx={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.75, display: 'block', lineHeight: 1.3 }}>
-                System Key
-              </Typography>
-              
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Typography component="span" sx={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'var(--font-mono)', fontSize: '0.74rem', fontWeight: 600, minWidth: 0, flex: 1, wordBreak: 'break-all', lineHeight: 1.45 }}>
-                  {profileSeed.userId || 'No ID'}
-                </Typography>
-                <IconButton
-                  onClick={handleCopyUserId}
-                  size="small"
-                  sx={{
-                    flexShrink: 0,
-                    width: 26,
-                    height: 26,
-                    bgcolor: 'rgba(255,255,255,0.03)',
-                    color: copyState === 'copied-userid' ? '#10B981' : 'rgba(255, 255, 255, 0.3)',
-                    '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.06)' }
-                  }}
-                >
-                  <CopyIcon size={12} />
-                </IconButton>
-              </Box>
-            </Box>
-
-            {/* Large styled navigation lists */}
-            <Stack spacing={1.25}>
-              <Button
-                fullWidth
-                onClick={() => {
-                  handleCloseAll();
-                  openWallet();
-                }}
-                variant="contained"
-                sx={{
-                  borderRadius: '16px',
-                  bgcolor: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid rgba(255,255,255,0.04)',
-                  color: 'white',
-                  py: 1.25,
-                  px: 2.25,
-                  textTransform: 'none',
-                  fontWeight: 800,
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  justifyContent: 'flex-start',
-                  gap: 1.75,
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.08)', transform: 'translateX(2px)' },
-                }}
-              >
-                <Wallet size={16} style={{ color: appAccent }} />
-                Manage Wallet
-              </Button>
-
-              <Button
-                fullWidth
-                onClick={() => {
-                  handleCloseAll();
-                  router.push('/settings');
-                }}
-                variant="contained"
-                sx={{
-                  borderRadius: '16px',
-                  bgcolor: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid rgba(255,255,255,0.04)',
-                  color: 'white',
-                  py: 1.25,
-                  px: 2.25,
-                  textTransform: 'none',
-                  fontWeight: 800,
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  justifyContent: 'flex-start',
-                  gap: 1.75,
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.08)', transform: 'translateX(2px)' },
-                }}
-              >
-                <UserIcon size={16} style={{ color: '#F59E0B' }} />
-                Account Settings
-              </Button>
-
-            </Stack>
-          </Box>
-
-          {/* Sign Out Button strictly aligned at the bottom */}
-          <Box sx={{ mt: 'auto', pt: 2.5, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-            <Button
-              fullWidth
-              onClick={() => {
-                handleCloseAll();
-                void logout();
-              }}
-              variant="contained"
-              sx={{
-                borderRadius: '12px',
-                bgcolor: 'rgba(255, 77, 77, 0.05)',
-                border: '1px solid rgba(255, 77, 77, 0.12)',
-                color: '#FF4D4D',
-                py: 1.15,
-                textTransform: 'none',
-                fontWeight: 800,
-                fontSize: '0.86rem',
-                '&:hover': { bgcolor: 'rgba(255, 77, 77, 0.12)', borderColor: 'rgba(255, 77, 77, 0.2)' },
-              }}
-            >
-              Sign Out
-            </Button>
-          </Box>
+          {profileContent}
         </Drawer>
       );
     }
 
     return (
       <Box
+        data-kylrix-topbar-panel
         sx={{
           width: '100%',
           borderTop: '1px solid rgba(255,255,255,0.04)',
@@ -1969,7 +1780,8 @@ export default function ConnectTopbar({
           open={Boolean(appMenuAnchorEl)}
           onClose={() => setAppMenuAnchorEl(null)}
           keepMounted={false}
-          disablePortal={false}
+          disablePortal={true}
+          slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
           PaperProps={{
             sx: {
               bgcolor: '#161412',
@@ -2063,6 +1875,7 @@ export default function ConnectTopbar({
         style={{ width: '100%', transformOrigin: 'top center' }}
       >
         <Box 
+          data-kylrix-topbar-panel
           sx={{ 
             width: '100%', 
             bgcolor: '#161412', 
@@ -2091,6 +1904,30 @@ export default function ConnectTopbar({
                 <CloseIcon size={16} />
               </IconButton>
             </Box>
+
+            {/* Join Discord CTA */}
+            {!user?.prefs?.discordJoined && (
+              <a
+                href="https://discord.gg/YjF5yCBCmx"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  handleCloseAll();
+                  if (typeof updatePreferences === 'function') {
+                    void updatePreferences({ discordJoined: true }).catch(() => {});
+                  }
+                }}
+                className="flex items-center justify-between gap-3 px-4 py-3 mb-3 rounded-2xl border border-[#5865F2]/20 bg-[#5865F2]/5 hover:bg-[#5865F2]/10 transition-all font-satoshi text-xs font-bold text-[#5865F2]"
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 127.14 96.36">
+                    <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36c2.65-3.6,5-7.46,7-11.5a68.88,68.88,0,0,1-11-5.26c.92-.68,1.82-1.39,2.69-2.13A75.14,75.14,0,0,0,96.5,77.47c.87.74,1.77,1.45,2.69,2.13a68.88,68.88,0,0,1-11,5.26c2,4,4.35,7.9,7,11.5a105.73,105.73,0,0,0,31-18.83C129,54.65,122.68,31.58,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.9,46,53.9,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.14,46,96.14,53,91,65.69,84.69,65.69Z"/>
+                  </svg>
+                  <span>Join our Discord Community</span>
+                </div>
+                <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-md bg-[#5865F2]/10 border border-[#5865F2]/25">Join</span>
+              </a>
+            )}
 
             <Box sx={{ display: 'grid', gap: 0.75 }}>
               {connectApps.map((item) => {
@@ -2156,13 +1993,13 @@ export default function ConnectTopbar({
     if (!shortcutsOpen) return null;
 
     const shortcutsList = [
-      { key: 'Ctrl + F', desc: 'Search Ecosystem / Notes' },
+      { key: 'Ctrl + F', desc: 'Search Ecosystem / Ideas' },
       { key: 'Ctrl + S', desc: 'Ecosystem Apps Directory' },
       { key: 'Ctrl + M', desc: 'Profile System Panel' },
       { key: 'Ctrl + A', desc: 'Agentic Assistant' },
       { key: 'Ctrl + K', desc: 'Keyboard Shortcuts Console' },
-      { key: 'Ctrl + P', desc: 'Navigate to Projects' },
-      { key: 'Ctrl + N', desc: 'Navigate to Notes' },
+      { key: 'Ctrl + P', desc: 'Navigate to Workspaces' },
+      { key: 'Ctrl + N', desc: 'Navigate to Ideas' },
       { key: 'Ctrl + T', desc: 'Navigate to Tags' },
       { key: 'Ctrl + X', desc: 'Navigate to Settings' },
       { key: 'Ctrl + Shift + V', desc: 'Navigate to Vault' },
@@ -2274,7 +2111,8 @@ export default function ConnectTopbar({
           open={shortcutsOpen}
           onClose={handleCloseAll}
           keepMounted={false}
-          disablePortal={false}
+          disablePortal={true}
+          slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
           PaperProps={{
             sx: {
               bgcolor: '#161412',
@@ -2310,6 +2148,7 @@ export default function ConnectTopbar({
 
     return (
       <Box
+        data-kylrix-topbar-panel
         sx={{
           width: '100%',
           borderTop: '1px solid rgba(255,255,255,0.05)',
@@ -2356,7 +2195,16 @@ export default function ConnectTopbar({
             
             {/* Left: App Logo / Menu Trigger */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <Box onClick={user ? openAppMenu : () => openUnified('login')} sx={{ cursor: 'pointer', flexShrink: 0 }}>
+              <Box 
+                onClick={(e: React.MouseEvent<HTMLElement>) => {
+                  if (!user) {
+                    openUnified('login');
+                    return;
+                  }
+                  openAppMenu(e);
+                }} 
+                sx={{ cursor: 'pointer', flexShrink: 0 }}
+              >
                 <Logo app={activeApp} size={32} variant="full" />
               </Box>
             </Box>
@@ -2536,8 +2384,8 @@ export default function ConnectTopbar({
               <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flexShrink: 0 }}>
                 {user ? (
                   <>
-                    <IconButton onClick={openAgenticFromTopbar} sx={{ color: appAccent, bgcolor: '#0A0908', border: '1px solid', borderColor: alpha(appAccent, 0.2), borderRadius: '50%', width: 38, height: 38, boxShadow: `0 8px 22px ${alpha(appAccent, 0.15)}`, '&:hover': { bgcolor: '#111' } }}>
-                      <Bot size={16} strokeWidth={2} />
+                    <IconButton onClick={openAgenticFromTopbar} sx={{ color: appAccent, bgcolor: '#0B0A09', border: '1px solid', borderColor: alpha(appAccent, 0.35), borderRadius: '14px', width: 44, height: 44, boxShadow: `0 8px 24px ${alpha(appAccent, 0.25)}`, '&:hover': { bgcolor: '#1C1A18', transform: 'scale(1.05)' }, transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+                      <Bot size={20} strokeWidth={2.2} />
                     </IconButton>
                     <ButtonBase onClick={openProfileMenu} sx={{ borderRadius: '50%', transition: 'all 0.2s', '&:hover': { transform: 'scale(1.05)' } }}>
                       <IdentityAvatar 
@@ -2556,12 +2404,12 @@ export default function ConnectTopbar({
           </Box>
         </Box>
 
-        {renderSearchPanel()}
-        {renderNotificationDrawer()}
-        {renderAppPanel()}
-        {renderProfilePanel()}
-        {renderShortcutsPanel()}
       </AppBar>
+      {renderSearchPanel()}
+      {renderNotificationDrawer()}
+      {renderAppPanel()}
+      {renderProfilePanel()}
+      {renderShortcutsPanel()}
     </>
   );
 }

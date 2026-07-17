@@ -43,6 +43,8 @@ export async function createCouponAction(input: {
   title?: string;
   note?: string;
   redemptionLimit?: number;
+  months?: number;
+  planId?: string;
   metadata?: Record<string, unknown>;
 }, jwt?: string) {
   const user = await getActor(jwt);
@@ -77,6 +79,8 @@ export async function createCouponAction(input: {
           ...(input.metadata || {}),
           scope,
           source: 'admin.coupons.action',
+          months: input.months ? Number(input.months) : 1,
+          planId: input.planId || 'PRO_MONTH',
         }),
       },
       targetUserId ? [Permission.read(Role.user(targetUserId))] : [Permission.read(Role.user(user.$id))],
@@ -108,11 +112,12 @@ export async function createCouponAction(input: {
       } catch (err) {
         console.warn('[Admin] Failed to send coupon email to target:', err);
       }
+    }
   }
   return { count: created.length, coupons: created };
 }
 
-async function getMyCouponsAction(jwt?: string) {
+export async function getMyCouponsAction(jwt?: string) {
   const user = await getActor(jwt);
   if (!user) {
     throw new Error('Unauthorized');
@@ -125,5 +130,4 @@ async function getMyCouponsAction(jwt?: string) {
     Query.limit(50)
   ]);
   return result.rows;
-}
 }

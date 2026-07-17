@@ -777,6 +777,29 @@ export async function createNoteSecure(data: any, jwt?: string) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
 
+  const { isValidAppwriteRowId } = await import('@/lib/utils/resource-ids');
+  const reservedRowId = [data?.$id, data?.id].find(
+    (id) => typeof id === 'string' && isValidAppwriteRowId(id),
+  ) as string | undefined;
+
+  // Idempotent compose: if the reserved ID already exists for this actor, update instead of create.
+  if (reservedRowId) {
+    try {
+      const tablesProbe = createSystemTablesDB();
+      const existing = await tablesProbe.getRow({
+        databaseId: APPWRITE_CONFIG.DATABASES.NOTE,
+        tableId: APPWRITE_CONFIG.TABLES.NOTE.NOTES,
+        rowId: reservedRowId,
+      }) as { userId?: string | null; creatorId?: string | null };
+      const ownerId = String(existing.creatorId || existing.userId || '').trim();
+      if (ownerId && ownerId === actor.$id) {
+        return updateNoteSecure(reservedRowId, data, jwt);
+      }
+    } catch {
+      // Row not found — proceed with create using reserved ID.
+    }
+  }
+
   // Rigorous runtime validation
   const validated = NoteSchema.parse(data);
 
@@ -915,7 +938,7 @@ export async function createNoteSecure(data: any, jwt?: string) {
   const noteCreationServiceServer = createNoteCreationService({
     databaseId: APPWRITE_DATABASE_ID,
     tableId: APPWRITE_TABLE_ID_NOTES,
-    generateId: () => ID.unique(),
+    generateId: () => reservedRowId || ID.unique(),
     getCurrentUser: async () => ({ $id: actor.$id }),
     createRow: async (databaseId, tableId, data, rowId, permissions) => {
       return tables.createRow({
@@ -955,8 +978,17 @@ export async function createNoteSecure(data: any, jwt?: string) {
     syncTags,
   });
 
-  const note = await noteCreationServiceServer.createNote(noteData);
-  return JSON.parse(JSON.stringify(note));
+  try {
+    const note = await noteCreationServiceServer.createNote(noteData);
+    return JSON.parse(JSON.stringify(note));
+  } catch (error: any) {
+    const message = String(error?.message || '').toLowerCase();
+    const isDuplicate = message.includes('already exists') || message.includes('duplicate');
+    if (reservedRowId && isDuplicate) {
+      return updateNoteSecure(reservedRowId, data, jwt);
+    }
+    throw error;
+  }
 }
 
 export async function updateNoteSecure(noteId: string, data: any, jwt?: string) {
@@ -1198,14 +1230,28 @@ export async function deleteNoteSecure(noteId: string, jwt?: string) {
     throw new Error('Unauthorized: Session expired or invalid');
   }
 
-  const isAllowed = await verifyNotePermission(noteId, actor.$id, 'admin');
-  if (!isAllowed) {
-    throw new Error('Forbidden: Insufficient permissions to delete this note');
+  const { isValidAppwriteRowId } = await import('@/lib/utils/resource-ids');
+  if (!isValidAppwriteRowId(noteId)) {
+    throw new Error('This idea has not been saved yet.');
   }
 
   const tables = createSystemTablesDB();
   const APPWRITE_DATABASE_ID = APPWRITE_CONFIG.DATABASES.NOTE;
   const APPWRITE_TABLE_ID_NOTES = APPWRITE_CONFIG.TABLES.NOTE.NOTES;
+
+  const isAllowed = await verifyNotePermission(noteId, actor.$id, 'admin');
+  if (!isAllowed) {
+    try {
+      await tables.getRow({
+        databaseId: APPWRITE_DATABASE_ID,
+        tableId: APPWRITE_TABLE_ID_NOTES,
+        rowId: noteId,
+      });
+    } catch {
+      return JSON.parse(JSON.stringify({ $id: noteId, localOnly: true }));
+    }
+    throw new Error('Forbidden: Insufficient permissions to delete this note');
+  }
 
   const result = await tables.updateRow({
       databaseId: APPWRITE_DATABASE_ID,

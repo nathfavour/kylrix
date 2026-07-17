@@ -31,6 +31,7 @@ export default function CouponLandingPage(props: { params: Promise<{ id: string 
   const [message, setMessage] = useState<string>('Resolving coupon...');
   const [coupon, setCoupon] = useState<CouponClaimResponse | null>(null);
   const claimStartedRef = useRef(false);
+  const [isClaiming, setIsClaiming] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -45,42 +46,60 @@ export default function CouponLandingPage(props: { params: Promise<{ id: string 
     if (claimStartedRef.current) return;
     claimStartedRef.current = true;
 
-    const run = async () => {
+    const checkCoupon = async () => {
       try {
         const jwt = await account.createJWT().then((res: any) => res?.jwt || '').catch(() => '');
-        const data = (await claimCouponAction(couponId, jwt || undefined)) as CouponClaimResponse;
-
+        // Verify target availability first without performing redemption logic
+        const data = (await claimCouponAction(couponId, jwt || undefined, true)) as CouponClaimResponse;
+        
         setCoupon(data);
-
-        if (data.requiresPayment && data.couponId) {
-          const checkoutUrl = new URL('/accounts/subscription/pro/checkout', window.location.origin);
-          checkoutUrl.searchParams.set('planId', data.planId || 'PRO_MONTH');
-          checkoutUrl.searchParams.set('months', String(data.months || 1));
-          checkoutUrl.searchParams.set('countryCode', (user?.prefs as any)?.region || 'US');
-          checkoutUrl.searchParams.set('couponId', data.couponId);
-          router.push(checkoutUrl.toString());
+        if (data.alreadyClaimed) {
+          setState('claimed');
+          setMessage(data.message || 'This coupon is already active on your account.');
           return;
         }
-
-        if (data.claimed === false) {
-          setState('error');
-          setMessage(data.message || 'No active coupon found for this account.');
-          return;
-        }
-
-        setState('claimed');
-        setMessage(data.message || 'Coupon applied successfully.');
-        const successUrl = new URL('/accounts/pro/success', window.location.origin);
-        successUrl.searchParams.set('success', 'true');
-        router.replace(successUrl.toString());
+        setState('ready');
+        setMessage(data.message || `You qualify for this discount!`);
       } catch (error: any) {
         setState('error');
-        setMessage(error?.message || 'Coupon could not be applied.');
+        setMessage(error?.message || 'Coupon check failed.');
       }
     };
 
-    void run();
+    void checkCoupon();
   }, [couponId, isLoading, user, router]);
+
+  const handleClaim = async () => {
+    if (!couponId || isClaiming) return;
+    setIsClaiming(true);
+    try {
+      const jwt = await account.createJWT().then((res: any) => res?.jwt || '').catch(() => '');
+      const data = (await claimCouponAction(couponId, jwt || undefined, false)) as CouponClaimResponse;
+
+      setCoupon(data);
+
+      if (data.requiresPayment && data.couponId) {
+        const checkoutUrl = new URL('/accounts/subscription/pro/checkout', window.location.origin);
+        checkoutUrl.searchParams.set('planId', data.planId || 'PRO_MONTH');
+        checkoutUrl.searchParams.set('months', String(data.months || 1));
+        checkoutUrl.searchParams.set('countryCode', (user?.prefs as any)?.region || 'US');
+        checkoutUrl.searchParams.set('couponId', data.couponId);
+        router.push(checkoutUrl.toString());
+        return;
+      }
+
+      setState('claimed');
+      setMessage(data.message || 'Coupon applied successfully.');
+      const successUrl = new URL('/accounts/pro/success', window.location.origin);
+      successUrl.searchParams.set('success', 'true');
+      router.replace(successUrl.toString());
+    } catch (error: any) {
+      setState('error');
+      setMessage(error?.message || 'Coupon could not be claimed.');
+    } finally {
+      setIsClaiming(false);
+    }
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#0A0908', color: '#fff', display: 'flex', alignItems: 'center', py: 8 }}>
@@ -105,12 +124,22 @@ export default function CouponLandingPage(props: { params: Promise<{ id: string 
             </Typography>
 
             <Typography component="h1" sx={{ fontFamily: 'var(--font-clash)', fontSize: '2.2rem', lineHeight: 1, fontWeight: 900 }}>
-              {state === 'loading' ? 'Redeeming coupon...' : state === 'claimed' ? 'Coupon applied' : 'Coupon unavailable'}
+              {state === 'loading' ? 'Resolving coupon...' : state === 'ready' ? 'Ready to Claim' : state === 'claimed' ? 'Coupon applied' : 'Coupon unavailable'}
             </Typography>
 
             <Typography sx={{ color: 'rgba(255,255,255,0.68)', lineHeight: 1.7 }}>
               {message}
             </Typography>
+
+            {state === 'ready' && coupon && (
+              <Box sx={{ py: 1.5, px: 3, border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', bgcolor: 'rgba(255,255,255,0.02)', width: '100%' }}>
+                <Stack spacing={1} textAlign="left">
+                  <Typography variant="body2" sx={{ color: '#6366F1', fontWeight: 800 }}>Discount Value: {coupon.discountPercent}% Off</Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>Plan Duration: {coupon.months || 1} Month(s)</Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>Applicable Plan: {coupon.planId || 'PRO_MONTH'}</Typography>
+                </Stack>
+              </Box>
+            )}
 
             {state === 'loading' && (
               <Stack direction="row" spacing={1.5} alignItems="center" sx={{ color: 'rgba(255,255,255,0.55)' }}>
@@ -125,28 +154,59 @@ export default function CouponLandingPage(props: { params: Promise<{ id: string 
               </Alert>
             )}
 
-            {coupon?.requiresPayment && (
-              <Alert icon={<ShieldCheck size={18} />} severity="info" sx={{ width: '100%', bgcolor: alpha('#10B981', 0.08), color: '#fff', border: '1px solid rgba(255,255,255,0.06)' }}>
-                Coupon reserved. Checkout will apply the discount server-side.
-              </Alert>
+            {state === 'ready' && (
+              <Button
+                variant="contained"
+                onClick={handleClaim}
+                disabled={isClaiming}
+                sx={{
+                  bgcolor: '#6366F1',
+                  color: '#fff',
+                  borderRadius: 999,
+                  px: 4,
+                  py: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 900,
+                  fontSize: '0.95rem',
+                  '&:hover': { bgcolor: '#4F46E5' },
+                  '&:disabled': { opacity: 0.5 },
+                }}
+                startIcon={isClaiming ? <Loader2 size={16} className="animate-spin" /> : <Ticket size={16} />}
+              >
+                {isClaiming ? 'Claiming...' : 'Redeem Coupon'}
+              </Button>
             )}
 
-            <Button
-              variant="contained"
-              href="/accounts/subscription/pro/checkout"
-              sx={{
-                bgcolor: '#6366F1',
-                color: '#fff',
-                borderRadius: 999,
-                px: 3,
-                textTransform: 'none',
-                fontWeight: 800,
-                '&:hover': { bgcolor: '#4F46E5' },
-              }}
-              startIcon={state === 'loading' ? <Loader2 size={16} /> : <CheckCircle2 size={16} />}
-            >
-              Continue
-            </Button>
+            {state === 'claimed' && (
+              <Button
+                variant="contained"
+                onClick={() => {
+                  if (coupon?.requiresPayment && coupon.couponId) {
+                    const checkoutUrl = new URL('/accounts/subscription/pro/checkout', window.location.origin);
+                    checkoutUrl.searchParams.set('planId', coupon.planId || 'PRO_MONTH');
+                    checkoutUrl.searchParams.set('months', String(coupon.months || 1));
+                    checkoutUrl.searchParams.set('couponId', coupon.couponId);
+                    router.push(checkoutUrl.toString());
+                  } else {
+                    router.push('/settings');
+                  }
+                }}
+                sx={{
+                  bgcolor: '#10B981',
+                  color: '#fff',
+                  borderRadius: 999,
+                  px: 4,
+                  py: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 900,
+                  fontSize: '0.95rem',
+                  '&:hover': { bgcolor: '#059669' },
+                }}
+                startIcon={<CheckCircle2 size={16} />}
+              >
+                {coupon?.requiresPayment ? 'Proceed to Checkout' : 'Go to Settings'}
+              </Button>
+            )}
           </Stack>
         </Paper>
       </Container>

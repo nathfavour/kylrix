@@ -15,8 +15,12 @@ import {
   ShieldCheck, 
   ShieldAlert, 
   ExternalLink, 
-  Folder 
+  Folder,
+  Share2
 } from 'lucide-react';
+import { buildPublicResourceUrl } from '@/lib/share/public-url';
+import { toggleResourcePublicGuest } from '@/lib/actions/client-ops';
+import toast from 'react-hot-toast';
 
 export default function CredentialDetail({
   credential,
@@ -32,7 +36,80 @@ export default function CredentialDetail({
   const [showPassword, setShowPassword] = useState(false);
   const [showProjectLinker, setShowProjectLinker] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [isPublic, setIsPublic] = useState(!!credential.isPublic);
   const { requestSudo } = useSudo();
+
+  const handleShareLink = useCallback(async () => {
+    try {
+      if (!isPublic) {
+        const res = await toggleResourcePublicGuest({
+          resourceType: 'credential',
+          resourceId: credential.$id,
+          mode: 'publish'
+        });
+        if (!res?.success) {
+          toast.error('Failed to make credential public for sharing.');
+          return;
+        }
+        setIsPublic(true);
+        if (credential) {
+          credential.isPublic = true;
+        }
+      }
+
+      let currentDek = credential.dek;
+      if (!currentDek) {
+        const { decryptField, encryptField } = await import('@/lib/masterpass-crypto');
+        const { VaultService } = await import('@/lib/appwrite/vault');
+        
+        const { ecosystemSecurity } = await import('@/lib/ecosystem/security');
+        const newDek = await ecosystemSecurity.generateRandomMEK();
+        const rawKey = await crypto.subtle.exportKey("raw", newDek);
+        const dekBase64 = btoa(String.fromCharCode(...new Uint8Array(rawKey)));
+        const wrappedDek = await encryptField(dekBase64);
+        
+        // Decrypt fields currently encrypted with MEK
+        const plaintextFields: Record<string, any> = { dek: wrappedDek };
+        const fieldsToProcess = ['name', 'url', 'username', 'password', 'notes', 'customFields'];
+        for (const field of fieldsToProcess) {
+          const val = (credential as any)[field];
+          if (val && typeof val === 'string' && val.length > 20 && /^[A-Za-z0-9+/=]+$/.test(val)) {
+            try {
+              plaintextFields[field] = await decryptField(val);
+            } catch {
+              plaintextFields[field] = val;
+            }
+          } else {
+            plaintextFields[field] = val;
+          }
+        }
+        
+        // Pass plaintext + new wrappedDek — VaultService.updateCredential will re-encrypt with new DEK
+        await VaultService.updateCredential(credential.$id, plaintextFields as any);
+        credential.dek = wrappedDek;
+        for (const field of fieldsToProcess) {
+          if (plaintextFields[field] !== undefined) (credential as any)[field] = plaintextFields[field];
+        }
+        currentDek = wrappedDek;
+      }
+
+      let keyFragment = '';
+      if (currentDek) {
+        // If DEK exists, decrypt the DEK value using user masterpass structure
+        const { decryptField } = await import('@/lib/masterpass-crypto');
+        const dekBase64 = await decryptField(currentDek);
+        const urlSafeDek = dekBase64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        keyFragment = `/${urlSafeDek}`;
+      }
+      
+      const baseUrl = buildPublicResourceUrl('credential', credential.$id);
+      const fullUrl = keyFragment ? `${baseUrl}${keyFragment}` : baseUrl;
+      await navigator.clipboard.writeText(fullUrl);
+      toast.success('Public sharing link copied with credentials DEK payload.');
+    } catch (err: any) {
+      toast.error('Failed to copy share link: ' + err.message);
+    }
+  }, [credential, isPublic]);
 
   const { analyze } = useAI();
   const [urlSafety, setUrlSafety] = useState<{ safe: boolean; riskLevel: string; reason: string } | null>(null);
@@ -151,6 +228,17 @@ export default function CredentialDetail({
           Credential Details
         </h3>
         <button 
+          onClick={handleShareLink}
+          className={`p-2 rounded-lg transition-all mr-1 border ${
+            isPublic 
+              ? 'text-emerald-500 bg-[#10B981]/15 border-[#10B981]/30 hover:bg-[#10B981]/25' 
+              : 'text-white/40 bg-white/5 border-white/[0.08] hover:bg-white/10 hover:text-white'
+          }`}
+          title={isPublic ? "Copy Sharing Link" : "Publish & Share Link"}
+        >
+          <Share2 className="w-[18px] h-[18px]" />
+        </button>
+        <button 
           onClick={() => setShowProjectLinker(true)} 
           className="p-2 rounded-lg text-[#10B981] bg-[#10B981]/5 border border-[#10B981]/20 hover:bg-[#10B981]/15 transition-all"
         >
@@ -212,6 +300,11 @@ export default function CredentialDetail({
         </div>
 
         <div className="flex flex-col gap-6">
+          <div>
+            <FieldLabel label="Item ID" onCopy={() => handleCopy(credential.$id, "itemId")} fieldId="itemId" />
+            <FieldValue>{credential.$id}</FieldValue>
+          </div>
+
           <div>
             <FieldLabel label="Username / Email" onCopy={() => handleCopy(credential.username || '', "username")} fieldId="username" />
             <FieldValue>{credential.username || "N/A"}</FieldValue>

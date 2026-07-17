@@ -18,6 +18,7 @@ export default function CredentialItem({
   isSelectMode = false,
   isSelected = false,
   onToggleSelect,
+  onShared,
 }: {
   credential: Credentials;
   onCopy: (value: string) => void;
@@ -30,10 +31,13 @@ export default function CredentialItem({
   isSelectMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: () => void;
+  onShared?: (id: string) => void;
 }) {
   const { isPinned: isResourcePinned } = useResourcePins();
   const pinned = isResourcePinned('credential', credential.$id, credential.userId, credential.isPinned);
   const { openMenu } = useContextMenu();
+  const [localIsPublic, setLocalIsPublic] = useState(!!credential.isPublic);
+  const [localIsGuest, setLocalIsGuest] = useState(!!credential.isGuest);
 
   const handleCopy = (value: string) => {
     onCopy(value);
@@ -62,8 +66,46 @@ export default function CredentialItem({
     }
   });
 
+  const handleShareLink = async () => {
+    try {
+      if (!localIsPublic) {
+        const { toggleResourcePublicGuest } = await import('@/lib/actions/client-ops');
+        const res = await toggleResourcePublicGuest({
+          resourceType: 'credential',
+          resourceId: credential.$id,
+          mode: 'publish'
+        });
+        if (!res?.success) {
+          const t = await import('react-hot-toast');
+          t.default.error('Failed to make credential public.');
+          return;
+        }
+        credential.isPublic = true;
+        setLocalIsPublic(true);
+        setLocalIsGuest(true);
+      }
+
+      let keyFragment = '';
+      if (credential.dek) {
+        const { decryptField } = await import('@/lib/masterpass-crypto');
+        const dekBase64 = await decryptField(credential.dek);
+        keyFragment = `/${encodeURIComponent(dekBase64)}`;
+      }
+      const { buildPublicResourceUrl } = await import('@/lib/share/public-url');
+      const baseUrl = buildPublicResourceUrl('credential', credential.$id);
+      const fullUrl = keyFragment ? `${baseUrl}${keyFragment}` : baseUrl;
+      await navigator.clipboard.writeText(fullUrl);
+      const t = await import('react-hot-toast');
+      t.default.success('Public sharing link copied with DEK.');
+    } catch (err: any) {
+      const t = await import('react-hot-toast');
+      t.default.error('Failed to copy share link: ' + err.message);
+    }
+  };
+
   const contextMenuItems = [
     { label: pinned ? "Unpin Secret" : "Pin Secret", icon: <Pin size={16} className={pinned ? "text-[#F59E0B]" : ""} />, onClick: () => onTogglePin?.() },
+    { label: "Copy Public Link (DEK)", icon: <Share2 size={16} className="text-emerald-500" />, onClick: handleShareLink },
     ...accessControlItems,
     { 
         label: "Identity", 
@@ -178,10 +220,64 @@ export default function CredentialItem({
         <ShareLockButton 
           resourceType="credential"
           resourceId={credential.$id}
-          isPublic={!!credential.isPublic}
-          isGuest={!!credential.isGuest}
+          isPublic={localIsPublic}
+          isGuest={localIsGuest}
           accentColor="#10B981"
-          onPublished={() => {}}
+          onPublished={(result) => {
+            setLocalIsPublic(result?.isPublic ?? true);
+            setLocalIsGuest(result?.isGuest ?? true);
+            credential.isPublic = result?.isPublic ?? true;
+            credential.isGuest = result?.isGuest ?? true;
+            onShared?.(credential.$id);
+          }}
+          getCustomShareUrl={async () => {
+            let keyFragment = '';
+            let currentDek = credential.dek;
+            if (!currentDek) {
+              const { decryptField, encryptField } = await import('@/lib/masterpass-crypto');
+              const { ecosystemSecurity } = await import('@/lib/ecosystem/security');
+              const { VaultService } = await import('@/lib/appwrite/vault');
+              
+              const newDek = await ecosystemSecurity.generateRandomMEK();
+              const rawKey = await crypto.subtle.exportKey("raw", newDek);
+              const dekBase64 = btoa(String.fromCharCode(...new Uint8Array(rawKey)));
+              const wrappedDek = await encryptField(dekBase64);
+              
+              // Collect plaintext fields (credential is already decrypted on client)
+              const plaintextFields: Record<string, any> = { dek: wrappedDek };
+              const fieldsToProcess = ['name', 'url', 'username', 'password', 'notes', 'customFields'];
+              for (const field of fieldsToProcess) {
+                const val = (credential as any)[field];
+                if (val && typeof val === 'string' && val.length > 20 && /^[A-Za-z0-9+/=]+$/.test(val)) {
+                  try {
+                    plaintextFields[field] = await decryptField(val);
+                  } catch {
+                    plaintextFields[field] = val;
+                  }
+                } else {
+                  plaintextFields[field] = val;
+                }
+              }
+              
+              // VaultService.updateCredential will encrypt fields with the new DEK
+              await VaultService.updateCredential(credential.$id, plaintextFields as any);
+              credential.dek = wrappedDek;
+              for (const field of fieldsToProcess) {
+                if (plaintextFields[field] !== undefined) (credential as any)[field] = plaintextFields[field];
+              }
+              currentDek = wrappedDek;
+            }
+
+            if (currentDek) {
+              const { decryptField } = await import('@/lib/masterpass-crypto');
+              const dekBase64 = await decryptField(currentDek);
+              const urlSafeDek = dekBase64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+              keyFragment = `/${urlSafeDek}`;
+            }
+            const { buildPublicResourceUrl } = await import('@/lib/share/public-url');
+            const baseUrl = buildPublicResourceUrl('credential', credential.$id);
+            return keyFragment ? `${baseUrl}${keyFragment}` : baseUrl;
+          }}
         />
       </div>
     </div>

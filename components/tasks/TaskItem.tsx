@@ -356,14 +356,9 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
+    setDrawerMenuStack([contextMenuItems]);
     setIsMenuDrawerOpen(true);
   };
-
-  useEffect(() => {
-    if (isMenuDrawerOpen) {
-      setDrawerMenuStack([contextMenuItems]);
-    }
-  }, [isMenuDrawerOpen, contextMenuItems]);
 
   const handleComplete = (event: React.MouseEvent) => {
     event.stopPropagation();

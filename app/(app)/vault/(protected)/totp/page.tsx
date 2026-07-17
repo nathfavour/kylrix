@@ -41,6 +41,10 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
     folderId?: string | null;
     sharedFrom?: string | null;
     url?: string | null;
+    isPublic?: boolean | null;
+    isGuest?: boolean | null;
+    isPinned?: boolean | null;
+    dek?: string | null;
   };
   
   const [totpCodes, setTotpCodes] = useState<TotpItem[]>([]);
@@ -222,8 +226,128 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
       }
     };
 
+    const handleShareDecryptedKey = async () => {
+      try {
+        if (!totp.isPublic) {
+          const { toggleResourcePublicGuest } = await import('@/lib/actions/client-ops');
+          const res = await toggleResourcePublicGuest({
+            resourceType: 'totp',
+            resourceId: totp.$id,
+            mode: 'publish'
+          });
+          if (!res?.success) {
+            toast.error('Failed to make TOTP public.');
+            return;
+          }
+          totp.isPublic = true;
+        }
+
+        let currentDek = (totp as any).dek;
+        if (!currentDek) {
+          const { decryptField, encryptField } = await import('@/lib/masterpass-crypto');
+          const { ecosystemSecurity } = await import('@/lib/ecosystem/security');
+          const { VaultService } = await import('@/lib/appwrite/vault');
+          
+          const newDek = await ecosystemSecurity.generateRandomMEK();
+          const rawKey = await crypto.subtle.exportKey("raw", newDek);
+          const dekBase64 = btoa(String.fromCharCode(...new Uint8Array(rawKey)));
+          const wrappedDek = await encryptField(dekBase64);
+          
+          let decryptedSecret = totp.secretKey;
+          if (decryptedSecret && typeof decryptedSecret === 'string' && decryptedSecret.length > 20 && /^[A-Za-z0-9+/=]+$/.test(decryptedSecret)) {
+            decryptedSecret = await decryptField(decryptedSecret);
+          }
+          
+          let decryptedIssuer = totp.issuer;
+          if (decryptedIssuer && typeof decryptedIssuer === 'string' && decryptedIssuer.length > 20 && /^[A-Za-z0-9+/=]+$/.test(decryptedIssuer)) {
+            decryptedIssuer = await decryptField(decryptedIssuer);
+          }
+
+          let decryptedAccount = totp.accountName;
+          if (decryptedAccount && typeof decryptedAccount === 'string' && decryptedAccount.length > 20 && /^[A-Za-z0-9+/=]+$/.test(decryptedAccount)) {
+            decryptedAccount = await decryptField(decryptedAccount);
+          }
+          
+          // Pass plaintext fields + wrappedDek; VaultService will encrypt with new DEK
+          await VaultService.updateTOTPSecret(totp.$id, {
+            dek: wrappedDek,
+            secretKey: decryptedSecret,
+            issuer: decryptedIssuer ?? undefined,
+            accountName: decryptedAccount ?? undefined,
+          });
+          
+          totp.dek = wrappedDek;
+          totp.secretKey = decryptedSecret;
+          currentDek = wrappedDek;
+        }
+
+        let keyFragment = '';
+        if (currentDek) {
+          const { decryptField } = await import('@/lib/masterpass-crypto');
+          const dekBase64 = await decryptField(currentDek);
+          const urlSafeDek = dekBase64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+          keyFragment = `/${urlSafeDek}`;
+        }
+        const { buildPublicResourceUrl } = await import('@/lib/share/public-url');
+        const baseUrl = buildPublicResourceUrl('totp', totp.$id);
+        const fullUrl = keyFragment ? `${baseUrl}${keyFragment}` : baseUrl;
+        await navigator.clipboard.writeText(fullUrl);
+        toast.success('Public seed sharing link copied.');
+      } catch (err: any) {
+        toast.error('Failed to share: ' + err.message);
+      }
+    };
+
+    const handleShareSixtySeconds = async () => {
+      try {
+        if (!totp.isPublic) {
+          const { toggleResourcePublicGuest } = await import('@/lib/actions/client-ops');
+          const res = await toggleResourcePublicGuest({
+            resourceType: 'totp',
+            resourceId: totp.$id,
+            mode: 'publish'
+          });
+          if (!res?.success) {
+            toast.error('Failed to make TOTP public.');
+            return;
+          }
+          totp.isPublic = true;
+        }
+
+        // Build sixty seconds TOTP share parameters containing key metrics: start unix timestamp, digits, step, algorithm
+        const now = Math.floor(Date.now() / 1000);
+        const seedValue = totp.secretKey; // Already client-decrypted in list mapping
+        const options = {
+          start: now,
+          digits: totp.digits || 6,
+          step: totp.period || 30,
+          algo: totp.algorithm || 'SHA1'
+        };
+        const encodedParams = btoa(JSON.stringify({
+          seed: seedValue,
+          ...options
+        })).replace(/=/g, ''); // Trim base64 padding for url safety
+        
+        const { buildPublicResourceUrl } = await import('@/lib/share/public-url');
+        const baseUrl = buildPublicResourceUrl('totp', totp.$id);
+        const fullUrl = `${baseUrl}/temp/${encodedParams}`;
+        await navigator.clipboard.writeText(fullUrl);
+        toast.success('Temporary sixty second sharing link copied.');
+      } catch (err: any) {
+        toast.error('Failed to copy sixty second link: ' + err.message);
+      }
+    };
+
     const contextMenuItems = useMemo(() => [
         { label: pinned ? 'Unpin Code' : 'Pin Code', icon: <Pin size={16} className={pinned ? 'rotate-45 text-[#F59E0B]' : ''} />, onClick: handlePinToggle },
+        { 
+          label: 'Share Options', 
+          icon: <LinkIcon size={16} className="text-emerald-500" />,
+          submenu: [
+            { label: 'Share Seed (DEK)', icon: <LinkIcon size={14} />, onClick: handleShareDecryptedKey },
+            { label: 'Share Sixty Seconds Only', icon: <LinkIcon size={14} className="text-[#F59E0B]" />, onClick: handleShareSixtySeconds }
+          ]
+        },
         { label: 'Edit', icon: <Pencil size={16} />, onClick: () => openEditDialog(totp) },
         { label: 'Delete', icon: <Trash2 size={16} />, variant: 'destructive' as const, onClick: () => openDeleteDialog(totp.$id) }
     ], [pinned, totp]);
@@ -366,11 +490,61 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
             <ShareLockButton 
                 resourceType="totp"
                 resourceId={totp.$id}
-                isPublic={false}
-                isGuest={false}
+                isPublic={!!totp.isPublic}
+                isGuest={!!totp.isGuest}
                 accentColor="#10B981"
-                canPublish={false}
-                blockReason="TOTP codes cannot be shared publicly"
+                canPublish={true}
+                getCustomShareUrl={async () => {
+                  let currentDek = (totp as any).dek;
+                  if (!currentDek) {
+                    const { decryptField, encryptField } = await import('@/lib/masterpass-crypto');
+                    const { ecosystemSecurity } = await import('@/lib/ecosystem/security');
+                    const { VaultService } = await import('@/lib/appwrite/vault');
+                    
+                    const newDek = await ecosystemSecurity.generateRandomMEK();
+                    const rawKey = await crypto.subtle.exportKey("raw", newDek);
+                    const dekBase64 = btoa(String.fromCharCode(...new Uint8Array(rawKey)));
+                    const wrappedDek = await encryptField(dekBase64);
+                    
+                    let decryptedSecret = totp.secretKey;
+                    if (decryptedSecret && typeof decryptedSecret === 'string' && decryptedSecret.length > 20 && /^[A-Za-z0-9+/=]+$/.test(decryptedSecret)) {
+                      decryptedSecret = await decryptField(decryptedSecret);
+                    }
+                    
+                    let decryptedIssuer = totp.issuer;
+                    if (decryptedIssuer && typeof decryptedIssuer === 'string' && decryptedIssuer.length > 20 && /^[A-Za-z0-9+/=]+$/.test(decryptedIssuer)) {
+                      decryptedIssuer = await decryptField(decryptedIssuer);
+                    }
+
+                    let decryptedAccount = totp.accountName;
+                    if (decryptedAccount && typeof decryptedAccount === 'string' && decryptedAccount.length > 20 && /^[A-Za-z0-9+/=]+$/.test(decryptedAccount)) {
+                      decryptedAccount = await decryptField(decryptedAccount);
+                    }
+                    
+                    // Pass plaintext fields + wrappedDek; VaultService will encrypt with new DEK
+                    await VaultService.updateTOTPSecret(totp.$id, {
+                      dek: wrappedDek,
+                      secretKey: decryptedSecret,
+                      issuer: decryptedIssuer ?? undefined,
+                      accountName: decryptedAccount ?? undefined,
+                    });
+                    
+                    totp.dek = wrappedDek;
+                    totp.secretKey = decryptedSecret;
+                    currentDek = wrappedDek;
+                  }
+
+                  let keyFragment = '';
+                  if (currentDek) {
+                    const { decryptField } = await import('@/lib/masterpass-crypto');
+                    const dekBase64 = await decryptField(currentDek);
+                    const urlSafeDek = dekBase64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                    keyFragment = `/${urlSafeDek}`;
+                  }
+                  const { buildPublicResourceUrl } = await import('@/lib/share/public-url');
+                  const baseUrl = buildPublicResourceUrl('totp', totp.$id);
+                  return keyFragment ? `${baseUrl}${keyFragment}` : baseUrl;
+                }}
             />
           </div>
         </div>
