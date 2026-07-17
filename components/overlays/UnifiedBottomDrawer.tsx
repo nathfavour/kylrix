@@ -148,8 +148,34 @@ export function UnifiedBottomDrawer() {
   const content = renderContent();
   if (!content) return null;
 
+  if (activeContent === 'delete-confirm') {
+    return (
+      <Drawer
+        anchor="bottom"
+        open={true}
+        onClose={close}
+        ModalProps={{ keepMounted: false, disableScrollLock: false, disablePortal: true }}
+        PaperProps={{
+          sx: {
+            borderTopLeftRadius: '24px',
+            borderTopRightRadius: '24px',
+            bgcolor: '#161412',
+            borderTop: '1px solid #34322F',
+            maxWidth: 720,
+            width: '100%',
+            mx: 'auto',
+            maxHeight: '60vh',
+            overflowY: 'auto'
+          }
+        }}
+      >
+        {content}
+      </Drawer>
+    );
+  }
+
   // Authoritative Drawer Wrapper with Rigid Viewport Isolation
-  if (['secure-chat-setup', 'passkey-setup', 'delete-confirm', 'security-confirm', 'project-invite', 'project-join-request-confirm'].includes(activeContent)) {
+  if (['secure-chat-setup', 'passkey-setup', 'security-confirm', 'project-invite', 'project-join-request-confirm'].includes(activeContent)) {
     return (
         <>
             {/* Mobile-Only Authoritative Bottom Drawer */}
