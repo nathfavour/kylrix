@@ -76,9 +76,7 @@ export function AccessControlDrawer({
         setLocalIsPublic(nextPublic);
         setLocalIsGuest(nextGuest);
         onUpdate?.({ isPublic: nextPublic, isGuest: nextGuest });
-        if (!enable) {
-          onClose();
-        }
+        onClose();
       }
     } catch (err: any) {
       showError('Failed to update public access: ' + err.message);
@@ -101,23 +99,13 @@ export function AccessControlDrawer({
         showSuccess(enable ? 'Guest access enabled' : 'Guest access disabled');
         setLocalIsGuest(enable);
         onUpdate?.({ isPublic: localIsPublic, isGuest: enable });
-        if (!enable) {
-          onClose();
-        }
+        onClose();
       }
     } catch (err: any) {
       showError('Failed to update guest access: ' + err.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleStopSharingGuests = async () => {
-    await handleToggleGuest(false);
-  };
-
-  const handleStopSharingEntirely = async () => {
-    await handleTogglePublic(false);
   };
 
   const isActive = localIsPublic || localIsGuest;
@@ -172,75 +160,49 @@ export function AccessControlDrawer({
           )}
 
           {/* Public Access Panel */}
-          <div className="flex items-center justify-between p-4 bg-white/2 border border-white/5 rounded-2xl">
+          <div 
+            onClick={() => !loading && handleTogglePublic(!localIsPublic)}
+            className="flex items-center justify-between p-4 bg-white/2 hover:bg-white/4 border border-white/5 rounded-2xl cursor-pointer transition-all select-none"
+          >
             <div className="flex items-center gap-3">
               <Globe size={20} className={localIsPublic ? 'text-[#10B981]' : 'text-white/20'} />
               <div className="flex flex-col">
-                <span className="text-sm font-extrabold text-white">Public Access</span>
-                <span className="text-[11px] text-white/40 font-semibold mt-0.5">Anyone with the link can view this.</span>
+                <span className="text-sm font-extrabold text-white font-satoshi">Public Access</span>
+                <span className="text-[11px] text-white/40 font-semibold font-satoshi mt-0.5">Anyone with the link can view this.</span>
               </div>
             </div>
-            <button
-              onClick={() => handleTogglePublic(!localIsPublic)}
-              disabled={loading}
-              className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${
-                localIsPublic 
-                  ? 'bg-[#10B981] text-black hover:bg-[#0D9488]' 
-                  : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              {localIsPublic ? 'Enabled' : 'Enable'}
-            </button>
+            <div className={`w-8 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+              localIsPublic ? 'bg-[#10B981]' : 'bg-white/10'
+            }`}>
+              <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-200 ${
+                localIsPublic ? 'translate-x-3' : 'translate-x-0'
+              }`} />
+            </div>
           </div>
 
           {/* Guest Access Panel */}
-          <div className={`flex items-center justify-between p-4 bg-white/2 border border-white/5 rounded-2xl transition-all ${
-            !localIsPublic ? 'opacity-40 cursor-not-allowed' : ''
-          }`}>
+          <div 
+            onClick={() => !loading && localIsPublic && handleToggleGuest(!localIsGuest)}
+            className={`flex items-center justify-between p-4 bg-white/2 hover:bg-white/4 border border-white/5 rounded-2xl transition-all select-none ${
+              !localIsPublic ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'
+            }`}
+          >
             <div className="flex items-center gap-3">
               <ShieldCheck size={20} className={localIsGuest && localIsPublic ? 'text-[#10B981]' : 'text-white/20'} />
               <div className="flex flex-col">
-                <span className="text-sm font-extrabold text-white">Guest Access</span>
-                <span className="text-[11px] text-white/40 font-semibold mt-0.5">Allows anonymous visitors guest interaction rights.</span>
+                <span className="text-sm font-extrabold text-white font-satoshi">Guest Access</span>
+                <span className="text-[11px] text-white/40 font-semibold font-satoshi mt-0.5">Allows anonymous visitors guest interaction rights.</span>
               </div>
             </div>
-            <button
-              onClick={() => handleToggleGuest(!localIsGuest)}
-              disabled={loading || !localIsPublic}
-              className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${
-                localIsGuest && localIsPublic 
-                  ? 'bg-[#10B981] text-black hover:bg-[#0D9488]' 
-                  : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              {localIsGuest && localIsPublic ? 'Enabled' : 'Enable'}
-            </button>
+            <div className={`w-8 h-5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+              localIsGuest && localIsPublic ? 'bg-[#10B981]' : 'bg-white/10'
+            }`}>
+              <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-200 ${
+                localIsGuest && localIsPublic ? 'translate-x-3' : 'translate-x-0'
+              }`} />
+            </div>
           </div>
         </div>
-
-        {/* Destructive / Quick Actions */}
-        {isActive && (
-          <div className="flex flex-col gap-3 mt-2">
-            {localIsGuest && (
-              <button
-                onClick={handleStopSharingGuests}
-                disabled={loading}
-                className="flex items-center justify-center gap-2 w-full py-3.5 bg-red-500/10 hover:bg-red-500/15 border border-red-500/20 text-red-500 text-xs font-black rounded-2xl transition-all"
-              >
-                <Ban size={15} />
-                <span>Stop sharing to guests</span>
-              </button>
-            )}
-            <button
-              onClick={handleStopSharingEntirely}
-              disabled={loading}
-              className="flex items-center justify-center gap-2 w-full py-3.5 bg-red-500 text-black hover:bg-red-500/90 text-xs font-black rounded-2xl transition-all"
-            >
-              <X size={15} />
-              <span>Stop sharing entirely</span>
-            </button>
-          </div>
-        )}
       </div>
     </>
   );
