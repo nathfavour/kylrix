@@ -680,30 +680,10 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
         gap: 2.5
       }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-          <TextField
-            fullWidth
-            variant="standard"
-            value={title}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
-            placeholder="Form Title..."
-            InputProps={{ 
-              disableUnderline: true, 
-              sx: { 
-                fontSize: '1.25rem', 
-                fontWeight: 900, 
-                fontFamily: 'var(--font-clash)',
-                letterSpacing: '-0.02em',
-                color: 'white',
-                px: 2,
-                py: 1.25,
-                borderRadius: '12px',
-                bgcolor: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-                '&::placeholder': { color: 'rgba(255,255,255,0.25)' }
-              } 
-            }}
-          />
-          <IconButton onClick={handleClose} size="small" sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' }, flexShrink: 0 }}>
+          <Typography sx={{ fontSize: '1.25rem', fontWeight: 900, fontFamily: 'var(--font-clash)', letterSpacing: '-0.02em', color: 'white' }}>
+            {form ? 'Edit Form' : 'Create New Form'}
+          </Typography>
+          <IconButton onClick={handleClose} size="small" sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' }, flexShrink: 0, color: 'white' }}>
               <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -760,33 +740,23 @@ export default function FormDialog({ open, onClose, form, initialDraft, onSaved 
             <Stack spacing={3}>
 
 
-              <Stack spacing={1}>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '0.05em', ml: 1 }}>
-                  FORM DESCRIPTION
-                </Typography>
-                <TextField
-                  fullWidth
-                  variant="standard"
-                  multiline
-                  rows={2}
-                  value={description}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
-                  placeholder="Briefly describe the purpose of this form..."
-                  InputProps={{ 
-                    disableUnderline: true, 
-                    sx: { 
-                      borderRadius: '16px',
-                      bgcolor: '#0B0A09',
-                      border: '1px solid rgba(255, 255, 255, 0.05)',
-                      px: 2.5,
-                      py: 1.5,
-                      color: 'white',
-                      '&:hover': { bgcolor: '#0B0A09' },
-                      '&.ob-focused': { bgcolor: '#0B0A09', borderColor: 'var(--color-primary)' }
-                    } 
-                  }}
+              <div className="bg-[#1C1A18] border border-[#2C2A28] rounded-[24px] p-5 flex flex-col gap-3 shadow-[0_12px_32px_rgba(0,0,0,0.4)] mb-4">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Name this form..."
+                  className="w-full bg-transparent border-0 outline-none text-base font-black text-[#F5F2ED] focus:ring-0 font-clash"
                 />
-              </Stack>
+                <div className="h-px bg-white/5" />
+                <textarea
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Briefly describe the purpose of this form..."
+                  className="w-full bg-transparent border-0 outline-none text-sm text-[#9B9691] focus:ring-0 resize-none font-satoshi"
+                />
+              </div>
 
               <Stack spacing={1}>
                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 800, letterSpacing: '0.05em', ml: 1 }}>
