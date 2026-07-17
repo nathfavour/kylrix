@@ -41,6 +41,9 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
     folderId?: string | null;
     sharedFrom?: string | null;
     url?: string | null;
+    isPublic?: boolean | null;
+    isPinned?: boolean | null;
+    dek?: string | null;
   };
   
   const [totpCodes, setTotpCodes] = useState<TotpItem[]>([]);

@@ -301,14 +301,8 @@ function DashboardPageContent() {
         ownerId,
         rowIsPinned: credential.isPinned,
         setOwnerRowPin: async (pinned) => {
-          const { databases } = await import('@/lib/appwrite/client');
-          const { APPWRITE_CONFIG } = await import('@/lib/appwrite/config');
-          await databases.updateRow(
-            APPWRITE_CONFIG.DATABASES.VAULT,
-            APPWRITE_CONFIG.TABLES.VAULT.CREDENTIALS,
-            id,
-            { isPinned: pinned },
-          );
+          const { setCredentialPinned } = await import('@/lib/appwrite');
+          await setCredentialPinned(id, pinned);
         },
       });
       if (isOwner) {

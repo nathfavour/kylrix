@@ -301,6 +301,11 @@ export default function CredentialDetail({
 
         <div className="flex flex-col gap-6">
           <div>
+            <FieldLabel label="Item ID" onCopy={() => handleCopy(credential.$id, "itemId")} fieldId="itemId" />
+            <FieldValue>{credential.$id}</FieldValue>
+          </div>
+
+          <div>
             <FieldLabel label="Username / Email" onCopy={() => handleCopy(credential.username || '', "username")} fieldId="username" />
             <FieldValue>{credential.username || "N/A"}</FieldValue>
           </div>
