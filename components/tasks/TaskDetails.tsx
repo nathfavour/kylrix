@@ -167,9 +167,6 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
   const [pendingCollaboratorPermission, setPendingCollaboratorPermission] = useState<CollaboratorPermission>('write');
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
-  const [isEditingDeadline, setIsEditingDeadline] = useState(false);
-  const [editDate, setEditDate] = useState('');
-  const [editTime, setEditTime] = useState('');
   const { ecosystemTags, refreshEcosystemTags } = useTask();
 
   // High-Fidelity Discussion State & Effects
@@ -506,23 +503,6 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
   const handlePriorityChange = (priority: Priority) => {
     updateTask(task.id, { priority });
     setIsPriorityOpen(false);
-  };
-
-  const handleSaveDeadline = () => {
-    if (!task) return;
-    if (!editDate) {
-      updateTask(task.id, { dueDate: null });
-    } else {
-      const d = new Date(editDate);
-      if (editTime) {
-        const [hours, minutes] = editTime.split(':').map(Number);
-        d.setHours(hours, minutes, 0, 0);
-      } else {
-        d.setHours(0, 0, 0, 0);
-      }
-      updateTask(task.id, { dueDate: d.toISOString() });
-    }
-    setIsEditingDeadline(false);
   };
 
   const handleAddCollaborators = async () => {
@@ -887,161 +867,60 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
               </div>
             </button>
           </div>
-          {task.dueDate ? (
-            <div>
-              {isEditingDeadline ? (
-                <div className="flex flex-col gap-1.5 z-20">
-                  <span className="text-[10px] font-black text-[#A855F7] uppercase tracking-wider block font-mono">Target Deadline</span>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
-                      <input
-                        type="date"
-                        value={editDate}
-                        onChange={(e) => setEditDate(e.target.value)}
-                        className="bg-[#161412] border border-[#34322F] rounded-lg px-2 py-1 text-xs text-[#F5F2ED] focus:outline-none w-28 cursor-pointer"
-                      />
-                      <input
-                        type="time"
-                        value={editTime}
-                        disabled={!editDate}
-                        onChange={(e) => setEditTime(e.target.value)}
-                        className="bg-[#161412] border border-[#34322F] rounded-lg px-2 py-1 text-xs text-[#F5F2ED] focus:outline-none disabled:opacity-40 w-24 cursor-pointer"
-                      />
-                    </div>
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={handleSaveDeadline}
-                        className="px-2 py-1 bg-[#A855F7] text-black text-[10px] font-bold rounded-lg hover:bg-[#b975ff]"
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          updateTask(task.id, { dueDate: null });
-                          setIsEditingDeadline(false);
-                        }}
-                        className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold rounded-lg hover:bg-red-500/20"
-                      >
-                        Clear
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingDeadline(false)}
-                        className="px-2 py-1 bg-white/5 border border-white/10 text-white text-[10px] font-bold rounded-lg hover:bg-white/10"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const d = new Date(task.dueDate);
-                    setEditDate(d.toISOString().split('T')[0]);
-                    const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
-                    if (hasTime) {
-                      const hh = String(d.getHours()).padStart(2, '0');
-                      const mm = String(d.getMinutes()).padStart(2, '0');
-                      setEditTime(`${hh}:${mm}`);
+          <div>
+            <span className="text-[10px] font-black text-[#A855F7] uppercase tracking-wider mb-1.5 block font-mono">Target Deadline</span>
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-[#A855F7] shrink-0" />
+              <div className="flex items-center gap-1">
+                <input
+                  type="date"
+                  value={task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) {
+                      updateTask(task.id, { dueDate: null });
                     } else {
-                      setEditTime('');
+                      const d = new Date(val);
+                      if (task.dueDate) {
+                        const existingDate = new Date(task.dueDate);
+                        d.setHours(existingDate.getHours(), existingDate.getMinutes(), 0, 0);
+                      } else {
+                        d.setHours(0, 0, 0, 0);
+                      }
+                      updateTask(task.id, { dueDate: d.toISOString() });
                     }
-                    setIsEditingDeadline(true);
                   }}
-                  className="flex flex-col items-start gap-1 w-full text-left bg-transparent border-0 outline-none p-0 cursor-pointer group"
-                >
-                  <span className="text-[10px] font-black text-[#A855F7] group-hover:text-[#b975ff] transition-colors uppercase tracking-wider block font-mono">Target Deadline</span>
-                  <div className="flex items-center gap-2 text-[#F5F2ED]">
-                    <Calendar className="w-4 h-4 text-[#A855F7]" />
-                    <span className="text-sm font-bold group-hover:underline">
-                      {(() => {
-                        const d = new Date(task.dueDate);
-                        const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
-                        if (hasTime) {
-                          return d.toLocaleDateString(undefined, { 
-                            year: 'numeric', 
-                            month: 'short', 
-                            day: 'numeric' 
-                          }) + ' ' + d.toLocaleTimeString(undefined, {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: true
-                          });
-                        } else {
-                          return d.toLocaleDateString(undefined, { 
-                            year: 'numeric', 
-                            month: 'short', 
-                            day: 'numeric' 
-                          });
-                        }
-                      })()}
-                    </span>
-                  </div>
-                </button>
-              )}
-            </div>
-          ) : (
-            <div>
-              {isEditingDeadline ? (
-                <div className="flex flex-col gap-1.5 z-20">
-                  <span className="text-[10px] font-black text-[#A855F7] uppercase tracking-wider block font-mono">Target Deadline</span>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
-                      <input
-                        type="date"
-                        value={editDate}
-                        onChange={(e) => setEditDate(e.target.value)}
-                        className="bg-[#161412] border border-[#34322F] rounded-lg px-2 py-1 text-xs text-[#F5F2ED] focus:outline-none w-28 cursor-pointer"
-                      />
-                      <input
-                        type="time"
-                        value={editTime}
-                        disabled={!editDate}
-                        onChange={(e) => setEditTime(e.target.value)}
-                        className="bg-[#161412] border border-[#34322F] rounded-lg px-2 py-1 text-xs text-[#F5F2ED] focus:outline-none disabled:opacity-40 w-24 cursor-pointer"
-                      />
-                    </div>
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={handleSaveDeadline}
-                        className="px-2 py-1 bg-[#A855F7] text-black text-[10px] font-bold rounded-lg hover:bg-[#b975ff]"
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingDeadline(false)}
-                        className="px-2 py-1 bg-white/5 border border-white/10 text-white text-[10px] font-bold rounded-lg hover:bg-white/10"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditDate('');
-                    setEditTime('');
-                    setIsEditingDeadline(true);
+                  className="bg-transparent border-0 outline-none text-sm font-bold text-[#F5F2ED] focus:ring-0 p-0 w-[110px] cursor-pointer hover:underline"
+                />
+                <input
+                  type="time"
+                  disabled={!task.dueDate}
+                  value={(() => {
+                    if (!task.dueDate) return '';
+                    const d = new Date(task.dueDate);
+                    const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
+                    if (!hasTime) return '';
+                    const hh = String(d.getHours()).padStart(2, '0');
+                    const mm = String(d.getMinutes()).padStart(2, '0');
+                    return `${hh}:${mm}`;
+                  })()}
+                  onChange={(e) => {
+                    if (!task.dueDate) return;
+                    const val = e.target.value;
+                    const d = new Date(task.dueDate);
+                    if (!val) {
+                      d.setHours(0, 0, 0, 0);
+                    } else {
+                      const [hours, minutes] = val.split(':').map(Number);
+                      d.setHours(hours, minutes, 0, 0);
+                    }
+                    updateTask(task.id, { dueDate: d.toISOString() });
                   }}
-                  className="flex flex-col items-start gap-1 w-full text-left bg-transparent border-0 outline-none p-0 cursor-pointer group"
-                >
-                  <span className="text-[10px] font-black text-white/30 group-hover:text-[#A855F7] transition-colors uppercase tracking-wider block font-mono">Target Deadline</span>
-                  <div className="flex items-center gap-2 text-white/40 group-hover:text-white transition-colors">
-                    <Calendar className="w-4 h-4" />
-                    <span className="text-sm font-bold group-hover:underline">Add Deadline</span>
-                  </div>
-                </button>
-              )}
+                  className="bg-transparent border-0 outline-none text-sm font-bold text-[#F5F2ED] focus:ring-0 p-0 w-[70px] cursor-pointer hover:underline disabled:opacity-30 disabled:hover:no-underline"
+                />
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Tags Section */}
