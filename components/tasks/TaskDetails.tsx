@@ -808,7 +808,7 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
                       className="w-4 h-4 mt-0.5 rounded border-[#34322F] bg-transparent text-[#A855F7] focus:ring-0 focus:ring-offset-0 focus:outline-none cursor-pointer shrink-0"
                     />
                     <span 
-                      onClick={() => openSecondarySidebar('task', subtask.id)}
+                      onClick={() => openUnified('milestone-details', { taskId: subtask.id })}
                       className={`text-sm flex-1 min-w-0 break-words [overflow-wrap:anywhere] hover:underline cursor-pointer ${
                         subtask.completed ? 'text-[#9B9691] line-through' : 'text-[#F5F2ED]'
                       }`}

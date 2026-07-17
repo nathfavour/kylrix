@@ -141,6 +141,8 @@ export function UnifiedBottomDrawer() {
                 projectId={drawerData?.projectId}
                 onUpdate={drawerData?.onUpdate}
             />;
+        case 'milestone-details':
+            return <TaskDetails taskId={drawerData?.taskId} onBack={close} />;
         default: return null;
     }
   };
@@ -148,7 +150,7 @@ export function UnifiedBottomDrawer() {
   const content = renderContent();
   if (!content) return null;
 
-  if (activeContent === 'delete-confirm') {
+  if (activeContent === 'delete-confirm' || activeContent === 'milestone-details') {
     return (
       <Drawer
         anchor="bottom"
