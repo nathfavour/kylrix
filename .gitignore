@@ -28,10 +28,17 @@ yarn-error.log*
 .env*.local
 .env
 *.env*
+sqlite.json
+.ota/state/
+.ota/contracts/
+.ota/receipts/
+.ota/proof/
+# Ota-generated self-hosted Compose profile; contains local secrets.
+.ota/kylrix.selfhost.env
+.pnpm-store/
 
 # vercel
 .vercel
-
 # security & data
 .data/
 *.txt
@@ -56,3 +63,5 @@ functions/**/.env.*
 
 # Added by Autocommiter SECURE_MODE:
 app/(app)/note/shared/[noteid]/[[...key]]/page.tsx
+/.idea/*
+/=11.5.1
