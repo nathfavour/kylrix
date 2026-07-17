@@ -39,6 +39,7 @@ interface DecryptedCredential {
 }
 
 const ENCRYPTED_FIELDS_CREDENTIALS = ['name', 'url', 'username', 'password', 'notes', 'customFields'];
+const DEK_IV_SIZE = 16;
 
 async function importDek(dekBase64Safe: string): Promise<CryptoKey> {
   // Input is URL-safe base64 (- → +, _ → /, no padding)
@@ -53,8 +54,8 @@ async function decryptWithDek(ciphertext: string, dek: CryptoKey): Promise<strin
   try {
     // Format: base64(iv + ciphertext) — matches ecosystemSecurity.decryptWithKey
     const buf = Uint8Array.from(atob(ciphertext), (c) => c.charCodeAt(0));
-    const iv = buf.slice(0, 12);
-    const data = buf.slice(12);
+    const iv = buf.slice(0, DEK_IV_SIZE);
+    const data = buf.slice(DEK_IV_SIZE);
     const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, dek, data);
     return new TextDecoder().decode(plain);
   } catch (e) {

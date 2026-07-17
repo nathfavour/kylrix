@@ -28,6 +28,8 @@ interface TempTotpParams {
   algo: string;       // SHA1, SHA256, SHA512
 }
 
+const DEK_IV_SIZE = 16;
+
 // ----- TOTP computation (RFC 6238) -----
 async function computeTotpCode(secret: string, algo: string, digits: number, step: number, t?: number): Promise<string> {
   const now = t ?? Date.now();
@@ -94,8 +96,8 @@ async function importDek(dekBase64Safe: string): Promise<CryptoKey> {
 async function decryptWithDek(ciphertext: string, dek: CryptoKey): Promise<string> {
   try {
     const buf = Uint8Array.from(atob(ciphertext), (c) => c.charCodeAt(0));
-    const iv = buf.slice(0, 12);
-    const data = buf.slice(12);
+    const iv = buf.slice(0, DEK_IV_SIZE);
+    const data = buf.slice(DEK_IV_SIZE);
     const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, dek, data);
     return new TextDecoder().decode(plain);
   } catch (e) {
