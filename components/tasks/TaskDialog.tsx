@@ -104,6 +104,7 @@ export default function TaskDialog() {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<User[]>([]);
   const [dueDate, setDueDate] = useState<Date | null>(null);
+  const [dueTime, setDueTime] = useState<string>('');
   const [estimatedTime, setEstimatedTime] = useState('');
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => {
@@ -138,7 +139,22 @@ export default function TaskDialog() {
         if (draft.status) setStatus(draft.status);
         if (draft.projectId) setProjectId(draft.projectId);
         if (draft.selectedLabels) setSelectedLabels(draft.selectedLabels);
-        if (draft.dueDate) setDueDate(new Date(draft.dueDate));
+        if (draft.dueDate) {
+          const d = new Date(draft.dueDate);
+          setDueDate(d);
+          if (draft.dueTime) {
+            setDueTime(draft.dueTime);
+          } else {
+            const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
+            if (hasTime) {
+              const hh = String(d.getHours()).padStart(2, '0');
+              const mm = String(d.getMinutes()).padStart(2, '0');
+              setDueTime(`${hh}:${mm}`);
+            } else {
+              setDueTime('');
+            }
+          }
+        }
         if (draft.estimatedTime) setEstimatedTime(draft.estimatedTime);
         if (draft.selectedAssignees) setSelectedAssignees(draft.selectedAssignees);
       } catch (e) {
@@ -160,6 +176,7 @@ export default function TaskDialog() {
       projectId,
       selectedLabels,
       dueDate: dueDate ? dueDate.toISOString() : null,
+      dueTime,
       estimatedTime,
       selectedAssignees,
     };
@@ -168,7 +185,7 @@ export default function TaskDialog() {
     } else {
       localStorage.removeItem('kylrix:draft:task');
     }
-  }, [taskDialogOpen, isHydrated, title, description, isTitleManuallyEdited, priority, status, projectId, selectedLabels, dueDate, estimatedTime, selectedAssignees]);
+  }, [taskDialogOpen, isHydrated, title, description, isTitleManuallyEdited, priority, status, projectId, selectedLabels, dueDate, dueTime, estimatedTime, selectedAssignees]);
 
   // Auto-generate title from description
   useEffect(() => {
@@ -198,12 +215,25 @@ export default function TaskDialog() {
     setProjectId(selectedProjectId || 'inbox');
     setSelectedLabels([]);
     setDueDate(null);
+    setDueTime('');
     setEstimatedTime('');
     setSelectedAssignees([]);
   };
 
   const handleMorphToDetail = async () => {
     const finalTitle = title.trim() || buildAutoTitleFromContent(description) || 'Untitled Goal';
+
+    let finalDueDate: Date | undefined = undefined;
+    if (dueDate) {
+      const d = new Date(dueDate);
+      if (dueTime) {
+        const [hours, minutes] = dueTime.split(':').map(Number);
+        d.setHours(hours, minutes, 0, 0);
+      } else {
+        d.setHours(0, 0, 0, 0);
+      }
+      finalDueDate = d;
+    }
 
     const newTask = await addTask({
       title: finalTitle,
@@ -212,7 +242,7 @@ export default function TaskDialog() {
       status,
       projectId,
       labels: selectedLabels,
-      dueDate: dueDate || undefined,
+      dueDate: finalDueDate || undefined,
       estimatedTime: estimatedTime ? parseInt(estimatedTime, 10) : undefined,
       subtasks: [],
       comments: [],
@@ -251,6 +281,18 @@ export default function TaskDialog() {
   const handleSubmit = () => {
     const finalTitle = title.trim() || buildAutoTitleFromContent(description) || 'Untitled Goal';
 
+    let finalDueDate: Date | undefined = undefined;
+    if (dueDate) {
+      const d = new Date(dueDate);
+      if (dueTime) {
+        const [hours, minutes] = dueTime.split(':').map(Number);
+        d.setHours(hours, minutes, 0, 0);
+      } else {
+        d.setHours(0, 0, 0, 0);
+      }
+      finalDueDate = d;
+    }
+
     addTask({
       title: finalTitle,
       description: description.trim() || undefined,
@@ -258,7 +300,7 @@ export default function TaskDialog() {
       status,
       projectId,
       labels: selectedLabels,
-      dueDate: dueDate || undefined,
+      dueDate: finalDueDate || undefined,
       estimatedTime: estimatedTime ? parseInt(estimatedTime, 10) : undefined,
       subtasks: [],
       comments: [],
@@ -430,15 +472,35 @@ export default function TaskDialog() {
             </div>
 
             {/* Due Date & Status Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Due Date */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-[#9B9691] tracking-wider uppercase font-clash">DEADLINE</label>
+                <label className="text-[10px] font-bold text-[#9B9691] tracking-wider uppercase font-clash">DEADLINE DATE</label>
                 <input
                   type="date"
                   value={dueDate ? dueDate.toISOString().split('T')[0] : ''}
-                  onChange={(e) => setDueDate(e.target.value ? new Date(e.target.value) : null)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) {
+                      setDueDate(null);
+                      setDueTime('');
+                    } else {
+                      setDueDate(new Date(val));
+                    }
+                  }}
                   className="w-full bg-[#161412] border border-[#2C2A28] rounded-xl px-3 py-2.5 text-sm text-[#F5F2ED] font-semibold focus:outline-none focus:border-[#A855F7] transition-colors cursor-pointer"
+                />
+              </div>
+
+              {/* Due Time */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-[#9B9691] tracking-wider uppercase font-clash">DEADLINE TIME</label>
+                <input
+                  type="time"
+                  value={dueTime}
+                  disabled={!dueDate}
+                  onChange={(e) => setDueTime(e.target.value)}
+                  className="w-full bg-[#161412] border border-[#2C2A28] rounded-xl px-3 py-2.5 text-sm text-[#F5F2ED] font-semibold focus:outline-none focus:border-[#A855F7] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 />
               </div>
 

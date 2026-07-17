@@ -366,10 +366,12 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
   };
 
   const formatDueDate = (date: Date) => {
-    if (isToday(date)) return 'Today';
-    if (isTomorrow(date)) return 'Tomorrow';
-    if (isThisWeek(date)) return formatTime(date, { weekday: 'long' });
-    return formatTime(date, { month: 'short', day: 'numeric' });
+    const hasTime = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0;
+    const timeStr = hasTime ? ' at ' + date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+    if (isToday(date)) return `Today${timeStr}`;
+    if (isTomorrow(date)) return `Tomorrow${timeStr}`;
+    if (isThisWeek(date)) return formatTime(date, { weekday: 'long' }) + timeStr;
+    return formatTime(date, { month: 'short', day: 'numeric' }) + timeStr;
   };
 
   const getDueDateColor = () => {

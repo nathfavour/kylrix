@@ -873,11 +873,27 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
               <div className="flex items-center gap-2 text-[#F5F2ED]">
                 <Calendar className="w-4 h-4 text-[#A855F7]" />
                 <span className="text-sm font-bold text-[#F5F2ED]">
-                  {new Date(task.dueDate).toLocaleDateString(undefined, { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric' 
-                  })}
+                  {(() => {
+                    const d = new Date(task.dueDate);
+                    const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
+                    if (hasTime) {
+                      return d.toLocaleDateString(undefined, { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      }) + ' ' + d.toLocaleTimeString(undefined, {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      });
+                    } else {
+                      return d.toLocaleDateString(undefined, { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      });
+                    }
+                  })()}
                 </span>
               </div>
             </div>
