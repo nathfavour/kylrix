@@ -137,10 +137,18 @@ export function ShareLockButton({
         sx={{
           width: 32,
           height: 32,
-          color: isActive ? accentColor : 'rgba(255, 255, 255, 0.15)',
+          color: isPublic && isGuest 
+            ? accentColor 
+            : isPublic 
+              ? `color-mix(in srgb, ${accentColor} 50%, transparent)` 
+              : 'rgba(255, 255, 255, 0.15)',
           transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
           '&:hover': {
-            color: isActive ? accentColor : 'white',
+            color: isPublic && isGuest 
+              ? accentColor 
+              : isPublic 
+                ? `color-mix(in srgb, ${accentColor} 70%, transparent)` 
+                : 'white',
             bgcolor: 'rgba(255, 255, 255, 0.05)',
             transform: 'scale(1.1)',
           },
