@@ -109,7 +109,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
 
   React.useEffect(() => setMounted(true), []);
 
-  const isPublic = getNotePublicState(note);
+  const isPublic = getNotePublicState(liveNote);
   const isPro = hasPaidKylrixPlan(user);
   const noteMeta = React.useMemo(() => {
     try {
@@ -382,8 +382,8 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
               <ShareLockButton 
                 resourceType="note"
                 resourceId={note.$id}
-                isPublic={getNotePublicState(note)}
-                isGuest={!!note.isGuest}
+                isPublic={getNotePublicState(liveNote)}
+                isGuest={!!liveNote.isGuest}
                 accentColor="#EC4899"
                 onPublished={({ isPublic, isGuest }) => {
                   const updated = { ...note, isPublic, isGuest };

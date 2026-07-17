@@ -83,7 +83,11 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
 
   const { openMenu } = useContextMenu();
   const { openSidebar } = useDynamicSidebar();
-  const { isPinned, pinNote, unpinNote, upsertNote } = useNotes();
+  const { isPinned, pinNote, unpinNote, upsertNote, notes: contextNotes } = useNotes();
+  const liveNote = React.useMemo(
+    () => contextNotes?.find((candidate) => candidate.$id === note.$id) || note,
+    [contextNotes, note],
+  );
   const { user } = useAuth();
   const { setActiveDetail } = useSection();
   const { promptSudo } = useSudo();
@@ -98,7 +102,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
 
   useEffect(() => setMounted(true), []);
 
-  const isPublic = getNotePublicState(note);
+  const isPublic = getNotePublicState(liveNote);
   const isPro = hasPaidKylrixPlan(user);
   const noteMeta = (() => {
     try {
@@ -389,8 +393,8 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
               <ShareLockButton 
                 resourceType="note"
                 resourceId={note.$id}
-                isPublic={getNotePublicState(note)}
-                isGuest={!!note.isGuest}
+                isPublic={getNotePublicState(liveNote)}
+                isGuest={!!liveNote.isGuest}
                 accentColor="#EC4899"
                 onPublished={({ isPublic, isGuest }) => {
                   const updated = { ...note, isPublic, isGuest };
