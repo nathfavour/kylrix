@@ -32,6 +32,8 @@ const ProjectSettingsDrawer = dynamic(() => import('../projects/ProjectSettingsD
 const ProjectVisibilityDrawer = dynamic(() => import('../projects/ProjectVisibilityDrawer'), { ssr: false });
 const ProjectAutoSweepDrawer = dynamic(() => import('../projects/ProjectAutoSweepDrawer'), { ssr: false });
 const JoinRequestConfirmDrawer = dynamic(() => import('./JoinRequestConfirmDrawer').then(mod => mod.JoinRequestConfirmDrawer), { ssr: false });
+const AccessControlDrawer = dynamic(() => import('./AccessControlDrawer').then(mod => mod.AccessControlDrawer), { ssr: false });
+
 
 export function UnifiedBottomDrawer() {
   const { activeContent, drawerData, close } = useUnifiedDrawer();
@@ -127,6 +129,18 @@ export function UnifiedBottomDrawer() {
             return <MomentComposerDrawer onClose={close} />;
         case 'project-join-request-confirm':
             return <JoinRequestConfirmDrawer />;
+        case 'access-control':
+            return <AccessControlDrawer
+                isOpen={true}
+                onClose={close}
+                resourceType={drawerData?.resourceType}
+                resourceId={drawerData?.resourceId}
+                isPublic={drawerData?.isPublic}
+                isGuest={drawerData?.isGuest}
+                resourceTitle={drawerData?.resourceTitle}
+                projectId={drawerData?.projectId}
+                onUpdate={drawerData?.onUpdate}
+            />;
         default: return null;
     }
   };

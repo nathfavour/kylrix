@@ -1,21 +1,9 @@
 'use client';
 
 import React from 'react';
-import { 
-  Link, 
-  ShieldX, 
-  ShieldCheck, 
-  Lock,
-  Globe,
-  Users,
-  Settings2,
-  Check
-} from 'lucide-react';
-import { toggleResourcePublicGuest } from '@/lib/actions/client-ops';
-import { buildPublicResourceUrl } from '@/lib/share/public-url';
-import { PublicResourceType } from '@/lib/share/resource-types';
-import { useToast } from '@/hooks/useToast';
+import { Share2, ShieldAlert } from 'lucide-react';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+import { PublicResourceType } from '@/lib/share/resource-types';
 
 interface AccessControlMenuItemsProps {
   resourceType: PublicResourceType;
@@ -27,9 +15,6 @@ interface AccessControlMenuItemsProps {
   onUpdate?: () => void;
 }
 
-/**
- * Ruthless Sharing: Context menu items for public resources and collaborators.
- */
 export function useAccessControlMenuItems({
   resourceType,
   resourceId,
@@ -39,83 +24,25 @@ export function useAccessControlMenuItems({
   projectId,
   onUpdate
 }: AccessControlMenuItemsProps) {
-  const { showSuccess, showError } = useToast();
   const { open: openUnified } = useUnifiedDrawer();
-
-  const handleCopyLink = async () => {
-    try {
-      const publicUrl = buildPublicResourceUrl(resourceType, resourceId, { projectId });
-      await navigator.clipboard.writeText(publicUrl);
-      showSuccess('Link copied');
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Try again in a moment.';
-      showError('Could not copy link: ' + message);
-    }
-  };
-
-  const handleToggleGuest = async (enable: boolean) => {
-    try {
-      const res = await toggleResourcePublicGuest({
-        resourceType,
-        resourceId,
-        mode: enable ? 'guest_on' : 'guest_off',
-        projectId
-      });
-      if (res.success) {
-        showSuccess(
-          enable ? 'Guest access enabled' : 'Guest access disabled'
-        );
-        if (onUpdate) onUpdate();
-      }
-    } catch (err: any) {
-      showError('Failed to update access: ' + err.message);
-    }
-  };
-
-  const handleTogglePublic = async (enable: boolean) => {
-    try {
-      const res = await toggleResourcePublicGuest({
-        resourceType,
-        resourceId,
-        mode: enable ? 'publish' : 'make_private',
-        projectId
-      });
-      if (res.success) {
-        showSuccess(
-          enable ? 'Public access enabled' : 'Public access disabled'
-        );
-        if (onUpdate) onUpdate();
-      }
-    } catch (err: any) {
-      showError('Failed to update access: ' + err.message);
-    }
-  };
 
   const isActive = isPublic || isGuest;
 
   return [
     {
-      label: 'Access Control',
-      icon: <Settings2 size={16} />,
-      submenu: [
-        ...(isActive ? [
-          {
-            label: 'Copy public link',
-            icon: <Link size={16} />,
-            onClick: handleCopyLink
-          }
-        ] : []),
-        {
-          label: 'Public access',
-          icon: isPublic ? <Check size={16} className="text-[#10B981]" /> : <Globe size={16} />,
-          onClick: () => handleTogglePublic(!isPublic)
-        },
-        {
-          label: 'Guest access',
-          icon: isGuest ? <Check size={16} className="text-[#10B981]" /> : <ShieldCheck size={16} />,
-          onClick: () => handleToggleGuest(!isGuest)
-        }
-      ]
+      label: isActive ? 'Stop Sharing' : 'Share',
+      icon: isActive ? <ShieldAlert size={16} className="text-red-500" /> : <Share2 size={16} />,
+      onClick: () => {
+        openUnified('access-control', {
+          resourceType,
+          resourceId,
+          isPublic,
+          isGuest,
+          resourceTitle: resourceTitle || 'Item',
+          projectId,
+          onUpdate
+        });
+      }
     }
   ];
 }

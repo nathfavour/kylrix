@@ -319,7 +319,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
       { label: 'AI Fix Grammar', icon: <GrammarIcon size={16} className="text-[#6366F1]" />, onClick: () => { handleAIAction('grammar'); } },
       { label: 'Convert To Todo', icon: <TodoIcon size={16} className="text-[#6366F1]" />, onClick: () => { handleCreateTodo(); } }
     ] : []),
-    { label: 'Share with...', icon: <ShareIcon size={16} />, onClick: openShare },
+    { label: 'Collaborators', icon: <ShareIcon size={16} />, onClick: openShare },
     { label: 'Delete', icon: <TrashIcon size={16} className="text-red-500" />, onClick: openDelete, variant: 'destructive' as const }
   ], [pinned, accessControlItems, isPro, handlePinToggle, handleDuplicate, isLockedT5, handleLockToggle, setIsPaywallDialogOpen, handleAIAction, handleCreateTodo, openShare, openDelete]);
 

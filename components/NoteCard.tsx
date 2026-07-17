@@ -314,7 +314,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
     ] : []),
     { label: 'Duplicate', icon: <DuplicateIcon size={16} />, onClick: () => { handleDuplicate(); } },
     { label: 'Add Paywall', icon: <LocalOfferIcon size={16} className="text-[#EC4899]" />, onClick: () => { setIsPaywallDialogOpen(true); } },
-    { label: 'Share with...', icon: <ShareIcon size={16} />, onClick: () => setIsShareDrawerOpen(true) },
+    { label: 'Collaborators', icon: <ShareIcon size={16} />, onClick: () => setIsShareDrawerOpen(true) },
     { label: 'Delete', icon: <TrashIcon size={16} className="text-red-500" />, onClick: () => setIsDeleteDrawerOpen(true), variant: 'destructive' as const }
   ], [accessControlItems, isPro, handleAIAction, handleCreateTodo, handleDuplicate, isLockedT5, handleLockToggle]);
 
