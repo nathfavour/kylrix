@@ -378,8 +378,8 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
       if (title.length > 50) {
         title = title.substring(0, 50) + '...';
       }
-      await addSubtask(currentTask.id, title, rawInput);
       setNewSubtask('');
+      await addSubtask(currentTask.id, title, rawInput);
     }
   };
 
