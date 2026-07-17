@@ -1219,7 +1219,11 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       if (updates.description !== undefined) apiUpdates.description = updates.description;
       if (updates.status !== undefined) apiUpdates.status = updates.status;
       if (updates.priority !== undefined) apiUpdates.priority = updates.priority;
-      if (updates.dueDate !== undefined) apiUpdates.dueDate = updates.dueDate?.toISOString();
+      if (updates.dueDate !== undefined) {
+        apiUpdates.dueDate = updates.dueDate 
+          ? (typeof updates.dueDate === 'string' ? updates.dueDate : updates.dueDate.toISOString()) 
+          : null;
+      }
       if (updates.parentTaskId !== undefined) {
         apiUpdates.parentId = updates.parentTaskId || null;
       }
