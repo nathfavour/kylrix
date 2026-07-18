@@ -565,3 +565,9 @@ ${historyArr.slice(-6).map((m: any) => `${m.role === 'user' ? 'User' : 'Agent'}:
     toolCalls: parsedToolCalls
   };
 }
+
+export async function getAgentSession(jwt?: string) {
+  const user = await requireUser(jwt);
+  const { TelemetryService } = await import('@/lib/services/telemetry');
+  return TelemetryService.loadSession(user.$id);
+}

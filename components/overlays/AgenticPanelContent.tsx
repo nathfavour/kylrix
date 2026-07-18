@@ -221,8 +221,10 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
     // Load session chat history on panel open
     const loadSessionHistory = async () => {
       try {
-        const { TelemetryService } = await import('@/lib/services/telemetry');
-        const session = await TelemetryService.loadSession(user.$id);
+        const { account } = await import('@/lib/appwrite/client');
+        const jwt = await account.createJWT().then((res: { jwt?: string }) => res?.jwt || '').catch(() => undefined);
+        const { getAgentSession } = await import('@/lib/actions/agentic');
+        const session = await getAgentSession(jwt);
         const historyArr = JSON.parse(session.chatHistory || '[]');
         if (Array.isArray(historyArr) && historyArr.length > 0) {
           const formatted = historyArr.map((h: any, idx: number) => ({
