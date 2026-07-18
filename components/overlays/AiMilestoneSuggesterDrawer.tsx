@@ -4,8 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { useAI } from '@/context/AIContext';
 import { useTask } from '@/context/TaskContext';
-import { useToast } from '@/context/ToastContext';
-import { Sparkles, Check, X, Send } from '@/lib/openbricks/icons';
+import { useToast } from '@/components/ui/Toast';
+import { Sparkles, Check, X, Send } from 'lucide-react';
 
 interface SuggestedMilestone {
   title: string;
