@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
-import { useAI } from '@/context/AIContext';
+import { useAI } from '@/hooks/useAI';
 import { useTask } from '@/context/TaskContext';
 import { useToast } from '@/components/ui/Toast';
 import { Sparkles, Check, X, Send } from 'lucide-react';

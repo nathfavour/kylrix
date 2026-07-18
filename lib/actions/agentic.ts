@@ -372,9 +372,11 @@ export async function executeInstantRequestAction(
     }
   }
 
-  // Load dynamic ecosystem database information and telemetry background for contextual reasoning
   let telemetrySnippet = "No recent behavior patterns logged.";
   let userResourceSummaries = "No active resources loaded.";
+  let notesRes: any = null;
+  let tasksRes: any = null;
+  let projectsRes: any = null;
 
   try {
     // Fetch recent activity for anonymized pattern matches
@@ -388,7 +390,7 @@ export async function executeInstantRequestAction(
     }
 
     // Fetch basic structural context for Notes/Goals/Projects to allow AI to know about active records
-    const [notesRes, tasksRes, projectsRes] = await Promise.all([
+    const resolved = await Promise.all([
       databases.listRows('passwordManagerDb', '67ff05f3002502ef239e', [
         Query.equal('userId', user.$id),
         Query.orderDesc('$updatedAt'),
@@ -404,15 +406,13 @@ export async function executeInstantRequestAction(
         Query.equal('ownerId', user.$id),
         Query.notEqual('isTrash', true),
         Query.orderDesc('$updatedAt'),
-        Query.limit(5),
       ]),
-    ]).catch(() => [
-      { rows: [], total: 0 },
-      { rows: [], total: 0 },
-      { rows: [], total: 0 },
     ]);
+    notesRes = resolved[0];
+    tasksRes = resolved[1];
+    projectsRes = resolved[2];
 
-    const recentIdeaTitles = (notesRes.rows || [])
+    const recentIdeaTitles = (notesRes?.rows || [])
       .filter((n: any) => n.isTrash !== true)
       .map((n: any) => String(n.title || '').trim())
       .filter(Boolean)
@@ -449,7 +449,7 @@ ${activeProjects || 'None'}
 
   // Pre-analyze delete/modify intent to feed the AI hint context
   let hintContext = "";
-  const userMsgText = String(meta?.userMessage || "").trim();
+  const userMsgText = String(pageContext?.userMessage || options?.userMessage || prompt || "").trim();
   const isDeleteIntent = /\b(delete|remove|trash|purge|discard|destroy|clear)\b/i.test(userMsgText);
   if (isDeleteIntent) {
     const matchedResources: string[] = [];
