@@ -1,8 +1,12 @@
-/** Tracks compose-session note IDs that exist in UI but are not yet persisted to Appwrite. */
-const unpersistedDraftIds = new Set<string>();
-
-/** Note IDs that have a confirmed remote row (create or update succeeded). */
-const persistedRemoteIds = new Set<string>();
+const globalAny = typeof globalThis !== 'undefined' ? (globalThis as any) : (window as any);
+if (!globalAny.__unpersistedDraftIds) {
+  globalAny.__unpersistedDraftIds = new Set<string>();
+}
+if (!globalAny.__persistedRemoteIds) {
+  globalAny.__persistedRemoteIds = new Set<string>();
+}
+const unpersistedDraftIds: Set<string> = globalAny.__unpersistedDraftIds;
+const persistedRemoteIds: Set<string> = globalAny.__persistedRemoteIds;
 
 const PERSISTED_SESSION_KEY = 'kylrix:compose:persisted';
 
