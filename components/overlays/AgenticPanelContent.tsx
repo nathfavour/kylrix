@@ -55,6 +55,7 @@ import { useAgenticDrawer } from '@/context/AgenticDrawerContext';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useNotes } from '@/context/NotesContext';
 import { useTask } from '@/context/TaskContext';
+import { useDataNexus } from '@/context/DataNexusContext';
 import { AgenticService } from '@/lib/services/agentic';
 import {
   buildInstantPrompt,
@@ -218,6 +219,7 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
   const { consumePendingPrompt } = useAgenticDrawer();
   const { user } = useAuth();
   const { notes: allNotes, pushLiveNote, registerComposeSession, unregisterComposeSession, migrateDraftNoteId, removeNote } = useNotes();
+  const { setCachedData } = useDataNexus();
   const { addTask, updateTask, deleteTask } = useTask();
   const { openProUpgrade } = useProUpgrade();
   const pathname = usePathname() || '/';
@@ -663,7 +665,8 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
                     if (saved.$id) unregisterComposeSession(saved.$id);
                     pushLiveNote(saved, { pending: false });
                     const { autonomicSyncEngine } = await import('@/lib/services/sync-engine');
-                    autonomicSyncEngine.ack(saved.$id);
+                    autonomicSyncEngine.ack(saved.$id, saved.updatedAt || now);
+                    setCachedData(`note_${saved.$id}`, saved);
 
                     await recordSessionObject({
                       objectId: saved.$id,
