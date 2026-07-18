@@ -264,6 +264,15 @@ export function NotesProvider({ children }: { children: ReactNode }) {
                 setCursor(cachedNotes.cursor || null);
                 setHasMore(cachedNotes.hasMore ?? true);
                 setIsLoading(false); // Stop loading immediately on local hit
+                // Restore on-device amber after reload from live/RxDB rows.
+                let restored = 0;
+                for (const note of cachedNotes.notes) {
+                  if (note?.$id && note.pendingSync) {
+                    if (markComposeDraft(note.$id)) restored += 1;
+                    activeComposeNoteIdsRef.current.add(note.$id);
+                  }
+                }
+                if (restored > 0) setComposeSyncEpoch((n) => n + 1);
                 console.log('[NotesContext] Sub-millisecond cold start via RxDB substrate.');
             }
         }
@@ -653,11 +662,16 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       tags,
       at: Date.now(),
     });
+    const pending =
+      note.pendingSync === true ||
+      isUnpersistedComposeDraft(note.$id) ||
+      activeComposeNoteIdsRef.current.has(note.$id);
     const stamped: Notes = {
       ...note,
       title: cardTitle,
       content: note.content || '',
       tags,
+      pendingSync: pending || undefined,
       $updatedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -667,24 +681,44 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const registerComposeSession = useCallback((noteId: string) => {
     if (!noteId) return;
     activeComposeNoteIdsRef.current.add(noteId);
-    if (markComposeDraft(noteId)) {
+    const live = notesRef.current.find((n) => n.$id === noteId);
+    const wasRowPending = !!live?.pendingSync;
+    const newlyPending = markComposeDraft(noteId);
+    if (live && !wasRowPending) {
+      const next = { ...live, pendingSync: true as const };
+      setNotes((prev) => prev.map((n) => (n.$id === noteId ? next : n)));
+      setCachedData(`note_${noteId}`, next);
+    } else if (live) {
+      setCachedData(`note_${noteId}`, { ...live, pendingSync: true });
+    }
+    if (newlyPending || !wasRowPending) {
       setComposeSyncEpoch((n) => n + 1);
     }
-  }, []);
+  }, [setCachedData]);
 
   const unregisterComposeSession = useCallback((noteId: string) => {
     if (!noteId) return;
     activeComposeNoteIdsRef.current.delete(noteId);
-    if (markComposePersisted(noteId)) {
+    const cleared = markComposePersisted(noteId);
+    const live = notesRef.current.find((n) => n.$id === noteId);
+    const wasRowPending = !!live?.pendingSync;
+    if (live && wasRowPending) {
+      const next = { ...live, pendingSync: false as const };
+      setNotes((prev) => prev.map((n) => (n.$id === noteId ? next : n)));
+      setCachedData(`note_${noteId}`, next);
+    }
+    if (cleared || wasRowPending) {
       setComposeSyncEpoch((n) => n + 1);
     }
-  }, []);
+  }, [setCachedData]);
 
   const isPendingSync = useCallback((noteId?: string | null) => {
     const id = String(noteId || '').trim();
     if (!id) return false;
     if (id.startsWith('live-') || id.startsWith('ghost-')) return true;
-    return isUnpersistedComposeDraft(id);
+    if (isUnpersistedComposeDraft(id)) return true;
+    const live = notesRef.current.find((n) => n.$id === id);
+    return !!live?.pendingSync;
   }, [composeSyncEpoch]);
 
   const markPendingSync = useCallback((noteId: string) => {
@@ -694,7 +728,6 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const clearPendingSync = useCallback((noteId: string) => {
     unregisterComposeSession(noteId);
     markNotePersistedRemote(noteId);
-    setComposeSyncEpoch((n) => n + 1);
   }, [unregisterComposeSession]);
 
   // Sync engine reads live-copy payloads from here — never from a detail-owned cache.

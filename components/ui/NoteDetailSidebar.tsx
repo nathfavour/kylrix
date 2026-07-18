@@ -147,7 +147,7 @@ export function NoteDetailSidebar({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { setCachedData } = useDataNexus();
-  const { notes: allNotes, isPinned, pinNote, unpinNote, pushLiveNote, markPendingSync, isPendingSync, composeSyncEpoch } = useNotes();
+  const { notes: allNotes, isPinned, pinNote, unpinNote, pushLiveNote, registerComposeSession, isPendingSync, composeSyncEpoch } = useNotes();
   const isPinnedFunc = useMemo(() => typeof isPinned === 'function' ? isPinned : () => false, [isPinned]);
   const pinNoteFunc = useMemo(() => typeof pinNote === 'function' ? pinNote : async () => {}, [pinNote]);
   const unpinNoteFunc = useMemo(() => typeof unpinNote === 'function' ? unpinNote : async () => {}, [unpinNote]);
@@ -229,28 +229,30 @@ export function NoteDetailSidebar({
   const markDirty = useCallback(() => {
     isDirtyRef.current = true;
     if (liveNote?.$id) {
-      markPendingSync(liveNote.$id);
-      // Detail never writes Appwrite — sync engine flushes pending live copy.
+      // Same contract as CreateNoteForm: register compose session on local mutate.
+      registerComposeSession(liveNote.$id);
       autonomicSyncEngine.nudge();
     }
-  }, [liveNote?.$id, markPendingSync]);
+  }, [liveNote?.$id, registerComposeSession]);
 
   /** Push draft into live copy + pending flag. Never calls updateNote. */
   const commitLocalEdit = useCallback(
     (patch: Partial<Notes>) => {
       if (!liveNote?.$id) return;
+      registerComposeSession(liveNote.$id);
       const draftNote: Notes = {
         ...liveNote,
         ...patch,
+        pendingSync: true,
         updatedAt: new Date().toISOString(),
         $updatedAt: new Date().toISOString(),
       };
       pushLiveNote(draftNote);
-      void setCachedData(`note_${liveNote.$id}`, draftNote);
+      void setCachedData(`note_${liveNote.$id}`, { ...draftNote, pendingSync: true });
       onUpdate(draftNote);
-      markDirty();
+      autonomicSyncEngine.nudge();
     },
-    [liveNote, pushLiveNote, setCachedData, onUpdate, markDirty],
+    [liveNote, pushLiveNote, setCachedData, onUpdate, registerComposeSession],
   );
   
   useEffect(() => {
@@ -612,7 +614,7 @@ export function NoteDetailSidebar({
   const handleBackClick = useCallback(() => {
     // Pending edits stay in live copy; sync engine flushes — do not force-save on leave.
     if (isDirtyRef.current && liveNote.$id) {
-      markPendingSync(liveNote.$id);
+      registerComposeSession(liveNote.$id);
       autonomicSyncEngine.nudge();
     }
     if (onBack) {
@@ -620,15 +622,15 @@ export function NoteDetailSidebar({
     } else {
       closeSidebar();
     }
-  }, [onBack, closeSidebar, liveNote.$id, markPendingSync]);
+  }, [onBack, closeSidebar, liveNote.$id, registerComposeSession]);
 
   const handleDismiss = useCallback(() => {
     if (isDirtyRef.current && liveNote.$id) {
-      markPendingSync(liveNote.$id);
+      registerComposeSession(liveNote.$id);
       autonomicSyncEngine.nudge();
     }
     closeSidebar();
-  }, [closeSidebar, liveNote.$id, markPendingSync]);
+  }, [closeSidebar, liveNote.$id, registerComposeSession]);
 
   const handleCreateTaskFromNote = useCallback(async () => {
     setIsCreatingTaskFromNote(true);

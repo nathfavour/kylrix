@@ -312,6 +312,8 @@ const NOTE_VIRTUAL_ATTRIBUTE_KEYS = new Set([
   'sharedFrom',
   'keepPermission',
   'source',
+  // Client-only: never sent to Appwrite (on-device amber / pending flush).
+  'pendingSync',
 ]);
 
 const NOTE_UPDATE_FIELD_KEYS = [

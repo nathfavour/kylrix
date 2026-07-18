@@ -33,7 +33,7 @@ function writePersistedSessionId(noteId: string): void {
 export function hydratePersistedRemoteIds(): void {
   for (const id of readPersistedSessionIds()) {
     persistedRemoteIds.add(id);
-    unpersistedDraftIds.delete(id);
+    // Do NOT clear unpersistedDraftIds — "has remote row" ≠ "no local pending edits".
   }
 }
 
@@ -57,11 +57,13 @@ export function markComposePersisted(noteId: string): boolean {
   return true;
 }
 
-/** Call when Appwrite has accepted a row for this ID (create or update). */
+/**
+ * Mark that Appwrite has a row for this ID (create-vs-update gate only).
+ * Never clears pending — that is unregisterComposeSession / markComposePersisted only.
+ */
 export function markNotePersistedRemote(noteId: string): void {
   const id = String(noteId || '').trim();
   if (!id) return;
-  unpersistedDraftIds.delete(id);
   persistedRemoteIds.add(id);
   writePersistedSessionId(id);
 }
