@@ -80,7 +80,7 @@ export interface Task {
   timeEntries: TimeEntry[];
   assigneeIds: string[];
   creatorId: string;
-  dueDate?: Date;
+  dueDate?: Date | null;
   startDate?: Date;
   estimatedTime?: number; // in minutes
   actualTime?: number; // in minutes

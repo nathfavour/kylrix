@@ -899,7 +899,7 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
                       } else {
                         d.setHours(0, 0, 0, 0);
                       }
-                      updateTask(task.id, { dueDate: d.toISOString() });
+                      updateTask(task.id, { dueDate: d });
                     }
                   }}
                   className="bg-transparent border-0 outline-none text-sm font-bold text-[#F5F2ED] focus:ring-0 p-0 w-[110px] cursor-pointer hover:underline"
@@ -926,7 +926,7 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
                       const [hours, minutes] = val.split(':').map(Number);
                       d.setHours(hours, minutes, 0, 0);
                     }
-                    updateTask(task.id, { dueDate: d.toISOString() });
+                    updateTask(task.id, { dueDate: d });
                   }}
                   className="bg-transparent border-0 outline-none text-sm font-bold text-[#F5F2ED] focus:ring-0 p-0 w-[70px] cursor-pointer hover:underline disabled:opacity-30 disabled:hover:no-underline"
                 />

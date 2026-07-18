@@ -132,7 +132,7 @@ export function AccessControlDrawer({
               {isActive ? 'Stop Sharing' : 'Share'}
             </h3>
             <p className="text-white/40 text-[11px] font-bold mt-1">
-              Configure visibility settings for "{resourceTitle}"
+              Configure visibility settings for &quot;{resourceTitle}&quot;
             </p>
           </div>
           <button 
