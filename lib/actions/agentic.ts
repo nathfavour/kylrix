@@ -636,3 +636,97 @@ export async function startNewAgentSession(jwt?: string) {
   await account.updatePrefs({ ...prefs, activeAgentSessionId: newSessionId }).catch(() => {});
   return { success: true, sessionId: newSessionId };
 }
+
+export async function listAgentSessions(jwt?: string) {
+  const user = await requireUser(jwt);
+  const { createSystemTablesDB } = await import('@/lib/appwrite-admin');
+  const tables = createSystemTablesDB();
+  const res = await tables.listRows({
+    databaseId: 'passwordManagerDb',
+    tableId: 'agentic_sessions',
+    queries: [
+      Query.equal('userId', user.$id),
+      Query.notEqual('isMemory', true),
+      Query.orderDesc('$createdAt'),
+      Query.limit(100)
+    ]
+  });
+  return res.rows.map((row: any) => ({
+    id: row.$id,
+    context: row.context || '',
+    chatHistory: row.chatHistory || '[]',
+    createdAt: row.$createdAt,
+    updatedAt: row.$updatedAt
+  }));
+}
+
+export async function deleteAgentSession(sessionId: string, jwt?: string) {
+  const user = await requireUser(jwt);
+  const { createSystemTablesDB } = await import('@/lib/appwrite-admin');
+  const tables = createSystemTablesDB();
+  
+  const row = await tables.getRow({
+    databaseId: 'passwordManagerDb',
+    tableId: 'agentic_sessions',
+    rowId: sessionId
+  });
+  if (row.userId !== user.$id) {
+    throw new Error('Unauthorized');
+  }
+
+  await tables.deleteRow({
+    databaseId: 'passwordManagerDb',
+    tableId: 'agentic_sessions',
+    rowId: sessionId
+  });
+
+  const { createServerClient } = await import('@/lib/appwrite');
+  const { account } = await createServerClient(jwt);
+  const prefs = await account.getPrefs().catch(() => ({}));
+  if (prefs?.activeAgentSessionId === sessionId) {
+    const listRes = await tables.listRows({
+      databaseId: 'passwordManagerDb',
+      tableId: 'agentic_sessions',
+      queries: [
+        Query.equal('userId', user.$id),
+        Query.notEqual('isMemory', true),
+        Query.limit(1)
+      ]
+    });
+    const nextSessionId = listRes.rows[0]?.$id || null;
+    await account.updatePrefs({ ...prefs, activeAgentSessionId: nextSessionId }).catch(() => {});
+  }
+
+  return { success: true };
+}
+
+export async function selectAgentSession(sessionId: string, jwt?: string) {
+  const user = await requireUser(jwt);
+  const { createSystemTablesDB } = await import('@/lib/appwrite-admin');
+  const tables = createSystemTablesDB();
+  
+  const row = await tables.getRow({
+    databaseId: 'passwordManagerDb',
+    tableId: 'agentic_sessions',
+    rowId: sessionId
+  });
+  if (row.userId !== user.$id) {
+    throw new Error('Unauthorized');
+  }
+
+  const { createServerClient } = await import('@/lib/appwrite');
+  const { account } = await createServerClient(jwt);
+  const prefs = await account.getPrefs().catch(() => ({}));
+  await account.updatePrefs({ ...prefs, activeAgentSessionId: sessionId }).catch(() => {});
+
+  return {
+    success: true,
+    session: {
+      id: row.$id,
+      context: row.context || '',
+      chatHistory: row.chatHistory || '[]',
+      createdAt: row.$createdAt,
+      updatedAt: row.$updatedAt
+    }
+  };
+}

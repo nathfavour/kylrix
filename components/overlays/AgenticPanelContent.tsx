@@ -17,6 +17,7 @@ import {
   FilePlus,
   Flag,
   FolderKanban,
+  History,
   Kanban,
   KeyRound,
   Lightbulb,
@@ -40,6 +41,7 @@ import {
   Sunrise,
   Tags,
   Target,
+  Trash2,
   User,
   Users,
   Video,
@@ -159,6 +161,9 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
   const [pendingPayment, setPendingPayment] = useState<{ agentId: string; amount: number; intentId: string; chainId: number } | null>(null);
   const [signing, setSigning] = useState(false);
   const [pendingToolAuth, setPendingToolAuth] = useState<{ toolKey: string; name: string; specifier?: string; args?: any } | null>(null);
+  const [showSessionsDrawer, setShowSessionsDrawer] = useState(false);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
 
   useEffect(() => {
     const handlePaymentRequest = (e: CustomEvent) => {
@@ -221,6 +226,61 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
     } catch (err) {
       console.error('Failed to start new session:', err);
       toast.error('Could not start new session.');
+    }
+  };
+
+  const handleOpenSessions = async () => {
+    setShowSessionsDrawer(true);
+    setLoadingSessions(true);
+    try {
+      const { listAgentSessions } = await import('@/lib/actions/agentic');
+      const { account } = await import('@/lib/appwrite/client');
+      const jwt = await account.createJWT().then((res: { jwt?: string }) => res?.jwt || '').catch(() => undefined);
+      const list = await listAgentSessions(jwt);
+      setSessions(list);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load sessions list');
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  const handleSelectSession = async (sessionId: string) => {
+    try {
+      const { selectAgentSession } = await import('@/lib/actions/agentic');
+      const { account } = await import('@/lib/appwrite/client');
+      const jwt = await account.createJWT().then((res: { jwt?: string }) => res?.jwt || '').catch(() => undefined);
+      const res = await selectAgentSession(sessionId, jwt);
+      if (res.success) {
+        const historyArr = JSON.parse(res.session.chatHistory || '[]');
+        const formatted = historyArr.map((h: any, idx: number) => ({
+          id: `${Date.now()}-hist-${idx}`,
+          role: h.role,
+          content: h.content
+        }));
+        setMessages(formatted);
+        setShowSessionsDrawer(false);
+        toast.success('Switched agent session.');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to select session');
+    }
+  };
+
+  const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation();
+    try {
+      const { deleteAgentSession } = await import('@/lib/actions/agentic');
+      const { account } = await import('@/lib/appwrite/client');
+      const jwt = await account.createJWT().then((res: { jwt?: string }) => res?.jwt || '').catch(() => undefined);
+      await deleteAgentSession(sessionId, jwt);
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      toast.success('Session deleted successfully.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete session');
     }
   };
 
@@ -478,11 +538,11 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
           </div>
           <button
             type="button"
-            onClick={handleStartNewSession}
-            title="Start New Session"
+            onClick={handleOpenSessions}
+            title="Agent Sessions"
             className="w-8 h-8 rounded-lg flex items-center justify-center text-white/45 hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 flex-shrink-0 mr-1"
           >
-            <RefreshCw size={16} />
+            <History size={16} />
           </button>
           <button
             type="button"
@@ -740,6 +800,90 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
           </div>
         </form>
       </div>
+
+      {/* Sessions Bottom Drawer (Capped at 60% height permanently) */}
+      {showSessionsDrawer && (
+        <div className="absolute inset-0 bg-black/60 z-50 flex flex-col justify-end transition-opacity duration-300">
+          <div className="bg-[#0B0A09] border-t border-white/10 rounded-t-[20px] w-full max-h-[60%] min-h-[40%] flex flex-col overflow-hidden animate-slide-up">
+            {/* Header */}
+            <div className="flex-shrink-0 px-5 py-4 border-b border-white/5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <History size={16} style={{ color: accent }} />
+                <h3 className="text-white font-extrabold text-[14px] font-clash tracking-tight">
+                  Conversation History
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCreateNewSessionFromDrawer}
+                  title="New Session"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white/60 hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/5"
+                >
+                  <Plus size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSessionsDrawer(false)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white/45 hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/5"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-2">
+              {loadingSessions ? (
+                <div className="flex items-center justify-center py-8 gap-2">
+                  <RefreshCw size={14} className="animate-spin text-[#9B9691]" />
+                  <span className="text-[#9B9691] text-xs font-semibold">Loading sessions…</span>
+                </div>
+              ) : sessions.length === 0 ? (
+                <div className="text-center py-8 text-[#9B9691] text-xs font-semibold">
+                  No active session threads. Click + to start one.
+                </div>
+              ) : (
+                sessions.map((sess) => {
+                  let previewText = "Empty session thread";
+                  try {
+                    const parsed = JSON.parse(sess.chatHistory || '[]');
+                    const lastMsg = parsed[parsed.length - 1];
+                    if (lastMsg) {
+                      previewText = `${lastMsg.role === 'user' ? 'You' : 'Agent'}: ${lastMsg.content}`;
+                    }
+                  } catch {}
+
+                  return (
+                    <div
+                      key={sess.id}
+                      onClick={() => handleSelectSession(sess.id)}
+                      className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-white/10 transition cursor-pointer text-left group"
+                    >
+                      <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                        <span className="text-white text-xs font-bold leading-tight truncate">
+                          {sess.context ? sess.context.split('\n')[0].replace(/^- /, '') : `Session ${new Date(sess.createdAt).toLocaleDateString()}`}
+                        </span>
+                        <span className="text-[#9B9691] text-[10px] leading-snug line-clamp-1">
+                          {previewText}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteSession(e, sess.id)}
+                        title="Delete Session"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-red-500 hover:bg-red-500/10 border border-transparent transition opacity-0 group-hover:opacity-100 flex-shrink-0"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
