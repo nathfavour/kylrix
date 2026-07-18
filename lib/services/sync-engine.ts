@@ -2,7 +2,7 @@
 
 /**
  * Autonomic sync engine — source of truth for note amber/green.
- * Pending queue is client-only (never Appwrite columns / payloads).
+ * Pending queue is client-only in RxDB cache (never Appwrite columns / payloads).
  */
 
 import { markNotePersistedRemote, markComposePersisted, markComposeDraft } from '@/lib/notes/compose-draft-registry';
@@ -23,6 +23,7 @@ let lastKeystrokeTime = 0;
 let lastPullAt = 0;
 let syncTimeout: NodeJS.Timeout | null = null;
 let isSyncing = false;
+let persistWriteChain: Promise<void> = Promise.resolve();
 
 const activityListeners = new Set<(intensity: number) => void>();
 
@@ -30,39 +31,82 @@ function notifyStatusListeners() {
   statusListeners.forEach((l) => l());
 }
 
-function readPersistedQueue(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
-  try {
-    const raw = sessionStorage.getItem(PENDING_QUEUE_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
+function queueSnapshot(): Record<string, string> {
+  const obj: Record<string, string> = {};
+  pendingById.forEach((rev, id) => {
+    obj[id] = rev;
+  });
+  return obj;
 }
 
-function writePersistedQueue() {
+/** One-shot bridge: older builds used sessionStorage. */
+function absorbSessionStorageQueue() {
   if (typeof window === 'undefined') return;
   try {
-    const obj: Record<string, string> = {};
-    pendingById.forEach((rev, id) => {
-      obj[id] = rev;
-    });
-    sessionStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(obj));
+    const raw = sessionStorage.getItem(PENDING_QUEUE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      for (const [id, rev] of Object.entries(parsed)) {
+        if (id && rev) pendingById.set(id, String(rev));
+      }
+    }
+    sessionStorage.removeItem(PENDING_QUEUE_KEY);
   } catch {
-    // ignore quota
+    // ignore
   }
 }
 
-function hydratePendingQueue() {
-  const stored = readPersistedQueue();
-  for (const [id, rev] of Object.entries(stored)) {
-    if (id && rev) pendingById.set(id, String(rev));
-  }
+/** Persist pending queue in RxDB cache (IndexedDB) — survives browser close / offline. */
+function writePersistedQueue() {
+  if (typeof window === 'undefined') return;
+  persistWriteChain = persistWriteChain.then(async () => {
+    const snapshot = queueSnapshot();
+    try {
+      const { getRxDB } = await import('@/lib/webrtc/RxDBManager');
+      const db = await getRxDB();
+      await db.cache.upsert({
+        id: PENDING_QUEUE_KEY,
+        data: snapshot,
+        timestamp: Date.now(),
+      });
+    } catch {
+      // ignore storage failures — in-memory map still drives the UI
+    }
+  });
+}
+
+async function hydratePendingQueue() {
+  if (typeof window === 'undefined') return;
+  absorbSessionStorageQueue();
+  persistWriteChain = persistWriteChain.then(async () => {
+    try {
+      const { getRxDB } = await import('@/lib/webrtc/RxDBManager');
+      const db = await getRxDB();
+      const doc = await db.cache.findOne(PENDING_QUEUE_KEY).exec();
+      const stored = (doc?.data && typeof doc.data === 'object' ? doc.data : {}) as Record<
+        string,
+        string
+      >;
+      for (const [id, rev] of Object.entries(stored)) {
+        if (id && rev) pendingById.set(id, String(rev));
+      }
+      await db.cache.upsert({
+        id: PENDING_QUEUE_KEY,
+        data: queueSnapshot(),
+        timestamp: Date.now(),
+      });
+    } catch {
+      // RxDB unavailable — memory (+ absorbed session) still works this session
+    }
+    notifyStatusListeners();
+  });
+  await persistWriteChain;
 }
 
 if (typeof window !== 'undefined') {
-  hydratePendingQueue();
+  absorbSessionStorageQueue();
+  void hydratePendingQueue();
 
   const handleUserActivity = (e: Event) => {
     const now = Date.now();

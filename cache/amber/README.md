@@ -159,7 +159,7 @@ Attempted a direct, dedicated state channel:
 
 ## Resolution direction (2026-07-18 scorched earth)
 
-**Dot SoT = sync engine pending queue** (`autonomicSyncEngine.markPending` / `isPending` / `ack`), persisted in `sessionStorage` so remount keeps amber until flush.
+**Dot SoT = sync engine pending queue** (`autonomicSyncEngine.markPending` / `isPending` / `ack`), persisted in **RxDB cache** (IndexedDB) so close-browser / offline reopen keeps amber until flush. One-time migrate from legacy `sessionStorage`.
 
 - Live copy = content (`pushLiveNote` enqueues a revision).
 - Engine flushes with `pickNoteAutosavePayload` only — no pending fields in Appwrite.
