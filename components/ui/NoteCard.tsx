@@ -27,7 +27,7 @@ import { useContextMenu } from './ContextMenuContext';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { NoteDetailSidebar } from './NoteDetailSidebar';
 import { useNotes } from '@/context/NotesContext';
-import { isUnpersistedComposeDraft } from '@/lib/notes/compose-draft-registry';
+import { SyncStatusDot } from '@/components/ui/SyncStatusDot';
 import type { Notes } from '@/types/appwrite';
 import { sidebarIgnoreProps } from '@/constants/sidebar';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
@@ -79,7 +79,7 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
   
   const { openMenu } = useContextMenu();
   const { openSidebar } = useDynamicSidebar();
-  const { isPinned, pinNote, unpinNote, upsertNote, notes: contextNotes } = useNotes();
+  const { isPinned, pinNote, unpinNote, upsertNote, notes: contextNotes, composeSyncEpoch, isPendingSync } = useNotes();
   const liveNote = React.useMemo(
     () => contextNotes?.find((candidate) => candidate.$id === note.$id) || note,
     [contextNotes, note],
@@ -401,24 +401,11 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/4 flex-shrink-0 select-none">
             {/* Sync Status Dot */}
             <div className="flex items-center gap-1.5">
-              {(() => {
-                const isSynced = !note.$id || !note.$id.startsWith('live-') && !note.$id.startsWith('ghost-') && !isUnpersistedComposeDraft(note.$id);
-                if (isSynced) {
-                  return (
-                    <span 
-                      className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" 
-                      title="Synced to database"
-                    />
-                  );
-                } else {
-                  return (
-                    <span 
-                      className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]" 
-                      title="Local-only draft"
-                    />
-                  );
-                }
-              })()}
+              <SyncStatusDot
+                noteId={note.$id}
+                pending={isPendingSync(note.$id)}
+                epoch={composeSyncEpoch}
+              />
             </div>
 
             {/* Attachments / Tag Badges */}

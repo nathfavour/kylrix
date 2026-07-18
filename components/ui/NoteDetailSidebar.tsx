@@ -88,12 +88,12 @@ import { StorageService } from '@/lib/services/storage';
 import { useCallLauncher } from '@/context/CallLauncherContext';
 import { ShareLockButton } from '@/components/share/ShareLockButton';
 import { ecosystemSecurity } from '@/lib/ecosystem/security';
-import { useAutosave } from '@/hooks/useAutosave';
 import { resolveResourceOwnerId, isValidAppwriteRowId } from '@/lib/utils/resource-ids';
-import { pickNoteAutosavePayload } from '@/lib/appwrite/note';
 import { attachObject } from '@/lib/actions/client-ops';
 import ProjectLinker from '@/components/projects/ProjectLinker';
 import ProjectAddObjectModal from '@/components/projects/ProjectAddObjectModal';
+import { SyncStatusDot } from '@/components/ui/SyncStatusDot';
+import { autonomicSyncEngine } from '@/lib/services/sync-engine';
 import {
   applyMarkdownWrap,
   getRemovedObjectBlocks,
@@ -147,7 +147,7 @@ export function NoteDetailSidebar({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { setCachedData } = useDataNexus();
-  const { notes: allNotes, isPinned, pinNote, unpinNote, pushLiveNote } = useNotes();
+  const { notes: allNotes, isPinned, pinNote, unpinNote, pushLiveNote, markPendingSync, isPendingSync, composeSyncEpoch } = useNotes();
   const isPinnedFunc = useMemo(() => typeof isPinned === 'function' ? isPinned : () => false, [isPinned]);
   const pinNoteFunc = useMemo(() => typeof pinNote === 'function' ? pinNote : async () => {}, [pinNote]);
   const unpinNoteFunc = useMemo(() => typeof unpinNote === 'function' ? unpinNote : async () => {}, [unpinNote]);
@@ -223,15 +223,46 @@ export function NoteDetailSidebar({
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const [isDirty, setIsDirty] = useState(false);
   const isDirtyRef = useRef(false);
   const loadedNoteIdRef = useRef<string | null>(null);
   const lastAppliedServerTsRef = useRef('');
   const markDirty = useCallback(() => {
     isDirtyRef.current = true;
-    setIsDirty(true);
-  }, []);
+    if (liveNote?.$id) {
+      markPendingSync(liveNote.$id);
+      // Detail never writes Appwrite — sync engine flushes pending live copy.
+      autonomicSyncEngine.nudge();
+    }
+  }, [liveNote?.$id, markPendingSync]);
+
+  /** Push draft into live copy + pending flag. Never calls updateNote. */
+  const commitLocalEdit = useCallback(
+    (patch: Partial<Notes>) => {
+      if (!liveNote?.$id) return;
+      const draftNote: Notes = {
+        ...liveNote,
+        ...patch,
+        updatedAt: new Date().toISOString(),
+        $updatedAt: new Date().toISOString(),
+      };
+      pushLiveNote(draftNote);
+      void setCachedData(`note_${liveNote.$id}`, draftNote);
+      onUpdate(draftNote);
+      markDirty();
+    },
+    [liveNote, pushLiveNote, setCachedData, onUpdate, markDirty],
+  );
   
+  useEffect(() => {
+    const onSyncComplete = (event: Event) => {
+      const noteId = String((event as CustomEvent)?.detail?.noteId || '').trim();
+      if (!noteId || noteId !== liveNote?.$id) return;
+      isDirtyRef.current = false;
+    };
+    window.addEventListener('kylrix:sync-complete', onSyncComplete as EventListener);
+    return () => window.removeEventListener('kylrix:sync-complete', onSyncComplete as EventListener);
+  }, [liveNote?.$id]);
+
   const [title, setTitle] = useState(liveNote.title || '');
   const [content, setContent] = useState(liveNote.content || '');
   const [tags, setTags] = useState(liveNote.tags?.join(', ') || '');
@@ -496,42 +527,6 @@ export function NoteDetailSidebar({
     return () => { active = false; };
   }, [liveNote.$id]);
 
-  const candidateNote = useMemo<Notes>(() => ({
-    ...liveNote,
-    title,
-    content,
-    format: liveNote.format || 'markdown',
-    tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-  }), [liveNote, title, content, tags]);
-
-  const candidateNoteRef = useRef(candidateNote);
-  candidateNoteRef.current = candidateNote;
-
-  const canEditNote = Boolean(liveNote.$id) && !shouldMaskEncrypted && !isLoading && !readOnly;
-
-  const { isSaving: isAutosaving, forceSave } = useAutosave(candidateNote, {
-    onSave: (savedNote: Notes) => {
-      if (candidateNoteRef.current.content === savedNote.content && candidateNoteRef.current.title === savedNote.title) {
-        isDirtyRef.current = false;
-        setIsDirty(false);
-      }
-      lastAppliedServerTsRef.current = String(savedNote.updatedAt || savedNote.$updatedAt || '');
-      updateLocalAndParentNote(savedNote);
-    },
-    onError: () => {
-      showError('Save failed', 'Your changes are still on screen. We will retry automatically.');
-    },
-    enabled: canEditNote && isDirty && !readOnly,
-    isDirty: isDirty,
-  });
-
-  useEffect(() => {
-    return () => {
-      if (!isDirtyRef.current || !candidateNoteRef.current.$id || shouldMaskEncrypted) return;
-      void forceSave(candidateNoteRef.current);
-    };
-  }, [forceSave, shouldMaskEncrypted]);
-
   // Handlers
   const handlePinToggle = useCallback(async () => {
     const pinned = isPinnedFunc(liveNote.$id);
@@ -614,24 +609,26 @@ export function NoteDetailSidebar({
     setShowDeleteConfirm(false);
   }, [onDelete, liveNote.$id]);
 
-  const handleBackClick = useCallback(async () => {
-    if (isDirtyRef.current && liveNote.$id && !shouldMaskEncrypted) {
-      await forceSave(candidateNote);
+  const handleBackClick = useCallback(() => {
+    // Pending edits stay in live copy; sync engine flushes — do not force-save on leave.
+    if (isDirtyRef.current && liveNote.$id) {
+      markPendingSync(liveNote.$id);
+      autonomicSyncEngine.nudge();
     }
-
     if (onBack) {
       onBack();
     } else {
       closeSidebar();
     }
-  }, [onBack, closeSidebar, liveNote.$id, shouldMaskEncrypted, forceSave, candidateNote]);
+  }, [onBack, closeSidebar, liveNote.$id, markPendingSync]);
 
-  const handleDismiss = useCallback(async () => {
-    if (isDirtyRef.current && liveNote.$id && !shouldMaskEncrypted) {
-      await forceSave(candidateNote);
+  const handleDismiss = useCallback(() => {
+    if (isDirtyRef.current && liveNote.$id) {
+      markPendingSync(liveNote.$id);
+      autonomicSyncEngine.nudge();
     }
     closeSidebar();
-  }, [closeSidebar, liveNote.$id, shouldMaskEncrypted, forceSave, candidateNote]);
+  }, [closeSidebar, liveNote.$id, markPendingSync]);
 
   const handleCreateTaskFromNote = useCallback(async () => {
     setIsCreatingTaskFromNote(true);
@@ -803,7 +800,11 @@ export function NoteDetailSidebar({
       const end = textarea.selectionEnd;
       nextContent = content.substring(0, start) + text + content.substring(end);
       setContent(nextContent);
-      markDirty();
+      commitLocalEdit({
+        content: nextContent,
+        title,
+        tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+      });
 
       setTimeout(() => {
         textarea.focus();
@@ -812,53 +813,22 @@ export function NoteDetailSidebar({
     } else {
       nextContent = content + text;
       setContent(nextContent);
-      markDirty();
+      commitLocalEdit({
+        content: nextContent,
+        title,
+        tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+      });
     }
-
-    try {
-      const { updateNote: apiUpdateNote } = await import('@/lib/actions/client-ops');
-      const saved = await apiUpdateNote(
-        liveNote.$id,
-        pickNoteAutosavePayload({
-          content: nextContent,
-          title,
-          format: liveNote.format || 'markdown',
-          tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-        })
-      );
-      if (saved) {
-        isDirtyRef.current = false;
-        lastAppliedServerTsRef.current = String(saved.updatedAt || saved.$updatedAt || '');
-        updateLocalAndParentNote(saved as Notes);
-      }
-    } catch (err) {
-      console.error('Failed to run immediate save on voice note insert:', err);
-    }
-  }, [content, liveNote.$id, updateLocalAndParentNote, title, tags, markDirty]);
+  }, [content, title, tags, commitLocalEdit]);
 
   const replaceContentWithSave = useCallback(async (nextContent: string) => {
     setContent(nextContent);
-    markDirty();
-    try {
-      const { updateNote: apiUpdateNote } = await import('@/lib/actions/client-ops');
-      const saved = await apiUpdateNote(
-        liveNote.$id,
-        pickNoteAutosavePayload({
-          content: nextContent,
-          title,
-          format: liveNote.format || 'markdown',
-          tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-        })
-      );
-      if (saved) {
-        isDirtyRef.current = false;
-        lastAppliedServerTsRef.current = String(saved.updatedAt || saved.$updatedAt || '');
-        updateLocalAndParentNote(saved as Notes);
-      }
-    } catch (err) {
-      console.error('Failed to save content update:', err);
-    }
-  }, [liveNote.$id, title, liveNote.format, tags, markDirty, updateLocalAndParentNote]);
+    commitLocalEdit({
+      content: nextContent,
+      title,
+      tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+    });
+  }, [title, tags, commitLocalEdit]);
 
   const insertObjectBlockAtCursor = useCallback(async (block: string) => {
     const textarea = contentTextareaRef.current;
@@ -996,12 +966,16 @@ export function NoteDetailSidebar({
     const end = textarea.selectionEnd;
     const { next, cursorStart, cursorEnd } = applyMarkdownWrap(content, start, end, left, right);
     setContent(next);
-    markDirty();
+    commitLocalEdit({
+      content: next,
+      title,
+      tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+    });
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(cursorStart, cursorEnd);
     }, 0);
-  }, [content, markDirty]);
+  }, [content, title, tags, commitLocalEdit]);
 
   const onEditorKeyDown = useCallback((event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== 'Backspace' && event.key !== 'Delete') return;
@@ -1114,21 +1088,11 @@ export function NoteDetailSidebar({
                 onChange={(e) => {
                   const nextTitle = e.target.value;
                   setTitle(nextTitle);
-                  markDirty();
-
-                  if (liveNote.$id) {
-                    const draftNote: Notes = {
-                      ...liveNote,
-                      title: nextTitle,
-                      content,
-                      tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-                      updatedAt: new Date().toISOString(),
-                      $updatedAt: new Date().toISOString(),
-                    };
-                    pushLiveNote(draftNote);
-                    void setCachedData(`note_${liveNote.$id}`, draftNote);
-                    onUpdate(draftNote);
-                  }
+                  commitLocalEdit({
+                    title: nextTitle,
+                    content,
+                    tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+                  });
                 }}
                 className="w-full min-w-0 bg-transparent text-[#6366F1] font-extrabold text-lg font-clash tracking-tight leading-tight border-none focus:outline-none placeholder:text-white/25"
                 placeholder="Untitled note"
@@ -1282,9 +1246,16 @@ export function NoteDetailSidebar({
               <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#6366F1] font-clash">
                 Content
               </span>
-              {isAutosaving && (
-                <span className="text-[10px] font-semibold text-[#9B9691]">Saving…</span>
-              )}
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <SyncStatusDot
+                  noteId={liveNote.$id}
+                  pending={isPendingSync(liveNote.$id)}
+                  epoch={composeSyncEpoch}
+                />
+                <span className="text-[10px] font-semibold text-[#9B9691]">
+                  {isPendingSync(liveNote.$id) ? 'Not saved yet' : 'Saved'}
+                </span>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -1412,21 +1383,11 @@ export function NoteDetailSidebar({
                     onChange={(e) => {
                       const nextContent = e.target.value;
                       setContent(nextContent);
-                      markDirty();
-
-                      if (liveNote.$id) {
-                        const draftNote: Notes = {
-                          ...liveNote,
-                          title,
-                          content: nextContent,
-                          tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-                          updatedAt: new Date().toISOString(),
-                          $updatedAt: new Date().toISOString(),
-                        };
-                        pushLiveNote(draftNote);
-                        void setCachedData(`note_${liveNote.$id}`, draftNote);
-                        onUpdate(draftNote);
-                      }
+                      commitLocalEdit({
+                        title,
+                        content: nextContent,
+                        tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+                      });
                     }}
                     ref={contentTextareaRef}
                     onKeyDown={onEditorKeyDown}
@@ -1476,7 +1437,11 @@ export function NoteDetailSidebar({
                       onClick={() => {
                         const newTags = displayTags.filter((t) => t !== tag);
                         setTags(newTags.join(', '));
-                        markDirty();
+                        commitLocalEdit({
+                          title,
+                          content,
+                          tags: newTags,
+                        });
                       }}
                       className="hover:text-white"
                     >
@@ -1925,7 +1890,11 @@ export function NoteDetailSidebar({
                         nextTagsArray = nextTagsArray.filter(n => n !== tag.name);
                       }
                       setTags(nextTagsArray.join(', '));
-                      markDirty();
+                      commitLocalEdit({
+                        title,
+                        content,
+                        tags: nextTagsArray,
+                      });
                       setIsTagSelectorOpen(false);
                     }}
                     sx={{ 
@@ -2054,11 +2023,19 @@ export function NoteDetailSidebar({
                     const end = textarea.selectionEnd;
                     if (start === 0 && end === textarea.value.length) {
                       setContent(text);
-                      markDirty();
+                      commitLocalEdit({
+                        title,
+                        content: text,
+                        tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+                      });
                     } else {
                       const nextContent = content.substring(0, start) + text + content.substring(end);
                       setContent(nextContent);
-                      markDirty();
+                      commitLocalEdit({
+                        title,
+                        content: nextContent,
+                        tags: tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+                      });
                       setTimeout(() => {
                         textarea.focus();
                         textarea.setSelectionRange(start + text.length, start + text.length);

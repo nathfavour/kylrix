@@ -41,16 +41,20 @@ if (typeof window !== 'undefined') {
   hydratePersistedRemoteIds();
 }
 
-export function markComposeDraft(noteId: string): void {
+export function markComposeDraft(noteId: string): boolean {
   const id = String(noteId || '').trim();
-  if (!id) return;
+  if (!id) return false;
+  if (unpersistedDraftIds.has(id)) return false;
   unpersistedDraftIds.add(id);
+  return true;
 }
 
-export function markComposePersisted(noteId: string): void {
+export function markComposePersisted(noteId: string): boolean {
   const id = String(noteId || '').trim();
-  if (!id) return;
+  if (!id) return false;
+  if (!unpersistedDraftIds.has(id)) return false;
   unpersistedDraftIds.delete(id);
+  return true;
 }
 
 /** Call when Appwrite has accepted a row for this ID (create or update). */
@@ -70,7 +74,7 @@ export function isNotePersistedRemote(noteId?: string | null): boolean {
     const sessionIds = readPersistedSessionIds();
     if (sessionIds.includes(id)) {
       persistedRemoteIds.add(id);
-      unpersistedDraftIds.delete(id);
+      // Keep unpersistedDraftIds intact — a remote row can still have pending local edits.
       return true;
     }
   }
@@ -80,8 +84,14 @@ export function isNotePersistedRemote(noteId?: string | null): boolean {
 export function isUnpersistedComposeDraft(noteId?: string | null): boolean {
   const id = String(noteId || '').trim();
   if (!id) return false;
-  if (isNotePersistedRemote(id)) return false;
+  // Pending local edits (including edits to already-remote rows) live in this set.
+  // Do NOT short-circuit on isNotePersistedRemote — that only gates create vs update.
   return unpersistedDraftIds.has(id);
+}
+
+/** Snapshot of client-only pending ids for the sync engine (never sent to Appwrite). */
+export function listUnpersistedComposeDraftIds(): string[] {
+  return Array.from(unpersistedDraftIds);
 }
 
 /** Whether the next save should call create (vs update) for this compose note ID. */

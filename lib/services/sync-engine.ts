@@ -1,13 +1,16 @@
 'use client';
 
-import { isUnpersistedComposeDraft, markNotePersistedRemote } from '@/lib/notes/compose-draft-registry';
+import { isUnpersistedComposeDraft, listUnpersistedComposeDraftIds, markNotePersistedRemote, markComposePersisted } from '@/lib/notes/compose-draft-registry';
 import { updateNote, createNote } from '@/lib/actions/client-ops';
 import { getNote, getNotePublicState } from '@/lib/appwrite';
+import { pickNoteAutosavePayload } from '@/lib/appwrite/note';
+import { getLiveNoteForSync } from '@/lib/sync/pending-sync-bridge';
 import type { Notes } from '@/types/appwrite';
 
 // Global user activity tracking properties
 let globalIntensity = 0;
 let lastKeystrokeTime = 0;
+let lastPullAt = 0;
 let syncTimeout: NodeJS.Timeout | null = null;
 let isSyncing = false;
 
@@ -91,91 +94,123 @@ export const autonomicSyncEngine = {
     return globalIntensity;
   },
 
+  /** Schedule a push cycle soon (after local edits mark pending). */
+  nudge() {
+    triggerAutonomicSyncScheduler();
+  },
+
+  /** Last successful soft/hard pull timestamp (ms). */
+  getLastPullAt() {
+    return lastPullAt;
+  },
+
+  /** Call after a live-copy pull completes (success or soft fail with retained local). */
+  markPullComplete(at = Date.now()) {
+    lastPullAt = at;
+  },
+
   /**
-   * Scan and sync unpersisted compose drafts securely
+   * Scan pending live-copy notes and push to Appwrite.
+   * Payload comes from live copy (preferred) or RxDB cache — never ships pending flags.
    */
   async runCycle() {
     if (isSyncing) return;
     isSyncing = true;
 
     try {
-      // Retrieve the current data cache and drafts registry
+      const pendingIds = listUnpersistedComposeDraftIds();
+      if (pendingIds.length === 0) return;
+
+      console.log(`[SyncEngine] Spun up. Found ${pendingIds.length} pending live notes.`);
+
       const { getRxDB } = await import('@/lib/webrtc/RxDBManager');
-      const db = await getRxDB();
-      const allCachedDocs = await db.cache.find().exec();
+      const db = await getRxDB().catch(() => null);
 
-      // Find draft items prefix (e.g. note_)
-      const draftsToSync = allCachedDocs.filter((doc) => {
-        const id = doc.id;
-        if (!id.startsWith('note_')) return false;
-        const noteId = id.replace('note_', '');
-        return isUnpersistedComposeDraft(noteId);
-      });
+      for (const noteId of pendingIds) {
+        if (!isUnpersistedComposeDraft(noteId)) continue;
 
-      if (draftsToSync.length === 0) return;
+        let payload: Notes | null = getLiveNoteForSync(noteId);
 
-      console.log(`[SyncEngine] Spun up. Found ${draftsToSync.length} drafts to sync.`);
+        if (!payload && db) {
+          try {
+            const doc = await db.cache.findOne(`note_${noteId}`).exec();
+            payload = (doc?.data as Notes) || null;
+          } catch {
+            payload = null;
+          }
+        }
 
-      for (const doc of draftsToSync) {
-        const noteId = doc.id.replace('note_', '');
-        const payload = doc.data as Notes;
+        if (!payload) {
+          console.warn(`[SyncEngine] No live payload for pending id: ${noteId}`);
+          continue;
+        }
 
-        // Extra verification schema check to prevent data corruption
-        if (!payload.content || payload.content.trim() === '') {
-          console.warn(`[SyncEngine] Ignored empty draft: ${noteId}`);
+        // Remote payload: strip anything that is not a real note column.
+        const dataPayload = {
+          ...pickNoteAutosavePayload(payload),
+          isPublic: getNotePublicState(payload),
+          isGuest: !!payload.isGuest,
+        };
+
+        if (!String(dataPayload.content || '').trim() && !String(dataPayload.title || '').trim()) {
+          console.warn(`[SyncEngine] Ignored empty pending note: ${noteId}`);
           continue;
         }
 
         try {
-          // Check if remote row already exists
           let remoteNote: Notes | null = null;
           try {
             remoteNote = await getNote(noteId);
           } catch {
-            // Note doesn't exist on server yet
+            remoteNote = null;
           }
 
           let syncedNote: Notes;
-          const isPublic = getNotePublicState(payload);
-
-          const dataPayload = {
-            title: payload.title || '',
-            content: payload.content || '',
-            tags: payload.tags || [],
-            format: 'text',
-            isPublic,
-            isGuest: !!payload.isGuest,
-          };
-
           if (remoteNote) {
-            // Update existing remote note
             syncedNote = await updateNote(noteId, dataPayload);
           } else {
-            // Create a new remote note with matching client-allocated ID
             syncedNote = await createNote({
               ...dataPayload,
               $id: noteId,
             });
           }
 
+          markComposePersisted(noteId);
           markNotePersistedRemote(noteId);
+
+          if (db) {
+            await db.cache.upsert({
+              id: `note_${noteId}`,
+              data: syncedNote as any,
+              timestamp: Date.now(),
+            }).catch(() => {});
+          }
+
+          // If the user edited again while this flush ran, keep amber / pending.
+          const liveAfter = getLiveNoteForSync(noteId);
+          const flushedAt = String(payload.updatedAt || payload.$updatedAt || '');
+          const liveAt = String(liveAfter?.updatedAt || liveAfter?.$updatedAt || '');
+          const stillDirty =
+            !!liveAfter &&
+            flushedAt &&
+            liveAt &&
+            liveAt !== flushedAt;
+
+          if (stillDirty) {
+            const { markComposeDraft } = await import('@/lib/notes/compose-draft-registry');
+            markComposeDraft(noteId);
+            window.dispatchEvent(new CustomEvent('kylrix:sync-pending', {
+              detail: { noteId },
+            }));
+            console.log(`[SyncEngine] Re-queued note after concurrent edit: ${noteId}`);
+          } else {
+            window.dispatchEvent(new CustomEvent('kylrix:sync-complete', {
+              detail: { noteId, syncedNote },
+            }));
+          }
           console.log(`[SyncEngine] Successfully synced note: ${noteId}`);
-
-          // Update cached timestamp to match server
-          await db.cache.upsert({
-            id: doc.id,
-            data: syncedNote as any,
-            timestamp: Date.now(),
-          });
-
-          // Dispatch event to notify listeners (e.g. NoteCard dot color updates)
-          window.dispatchEvent(new CustomEvent('kylrix:sync-complete', {
-            detail: { noteId }
-          }));
-
         } catch (err) {
           console.error(`[SyncEngine] Sync failed for item ${noteId}:`, err);
-          // Isolated: failed draft stays local to prevent halting other synchronizations
         }
       }
     } catch (error) {

@@ -1,110 +1,31 @@
 ---
 name: rxdb-appwrite-sync
-description: Heavy-duty local storage with RxDB and Appwrite synchronization. Use when the application needs to bypass localStorage limits (5MB) using IndexedDB, implement CRDT-based conflict-free collaboration on shared notes, or support offline-first data persistence.
+description: RxDB/IndexedDB substrate for local-first storage. For object list/detail sync architecture (pendingSync, upsert merge, detail-must-not-autosave), follow the canonical `sync` skill first.
 ---
 
-# RxDB & Appwrite Sync Guide
+# RxDB / Appwrite substrate
 
-This skill provides architectural guidance and implementation patterns for heavy-duty offline storage and conflict-free collaboration in the Kylrix ecosystem.
+**Canonical object sync rules live in `.agents/skills/sync/SKILL.md`.** Read and follow that skill before wiring CRUD for notes, goals, vault, projects, etc.
 
-## 1. Architecture: The Dual-Engine Nexus
+This skill covers the **storage substrate** (RxDB cache, IndexedDB, replication helpers). Do not implement list wipe/merge or pending-dot behavior from here alone.
 
-To achieve pure HTML loading velocities and sub-millisecond execution speeds, the Data Nexus uses a two-tier storage model:
+## Pointers
 
-1.  **Synchronous Mirror (Volatile Map)**: A reactive, in-memory JavaScript Map that provides 0ms access for UI components.
-2.  **Local Substrate (RxDB/IndexedDB)**: A persistent, heavy-duty browser database that handles data scaling beyond the 5MB localStorage wall.
+| Concern | Where |
+|---------|--------|
+| Live copy SoT, pendingSync, detail no-autosave, merge, sort | **`sync` skill** |
+| Merge / soft-pull helpers | `lib/sync/local-copy-sync.ts` |
+| Push cycle | `lib/services/sync-engine.ts` |
+| Notes live-copy context | `context/NotesContext.tsx` |
 
-## 2. RxDB Setup & Collections
+## Substrate notes
 
-Register the CRDT plugin and initialize the RxDatabase.
+- Prefer RxDB/cache as cold-start hydrate before network.
+- Upsert cache rows by `note_${id}` (or object-equivalent) after confirmed sync — never treat cache write as “remove from UI list.”
+- Pending flags stay **out of** Appwrite and preferably out of persisted row payloads; they are client memory + epoch (see `sync` skill).
 
-```typescript
-import { addRxPlugin, createRxDatabase } from 'rxdb';
-import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
-import { RxDBPluginsCRDTPlugin, getCRDTSchemaPart } from 'rxdb/plugins/crdt';
+## Lessons (summary — full list in `sync`)
 
-addRxPlugin(RxDBPluginsCRDTPlugin);
+Do not: wipe list on page pull, clear pending on detail leave, Appwrite columns for sync status, detail `useAutosave` / immediate `updateNote` on typing, clear pending on “is remote?” reads.
 
-const db = await createRxDatabase({
-    name: 'kylrix_nexus_db',
-    storage: getRxStorageDexie()
-});
-
-await db.addCollections({
-    notes: {
-        schema: {
-            version: 0,
-            primaryKey: 'id',
-            type: 'object',
-            properties: {
-                id: { type: 'string', maxLength: 100 },
-                title: { type: 'string' },
-                content: { type: 'string' },
-                userId: { type: 'string' },
-                metadata: { type: 'string' },
-                updatedAt: { type: 'string', format: 'date-time' },
-                _deleted: { type: 'boolean' },
-                crdt: getCRDTSchemaPart()
-            },
-            crdt: { field: 'crdt' }
-        }
-    }
-});
-```
-
-## 3. Appwrite Replication Protocol
-
-Implement the Push-Pull protocol using Secure Server Actions.
-
-### Pull Handler (Server -> Client)
-Fetches changes since the last checkpoint. Uses `listDocuments` with an `updatedAt` filter.
-
-### Push Handler (Client -> Server)
-Sends local changes to the server. Performs conflict resolution by returning the master state if a mismatch is detected.
-
-```typescript
-const replicationState = replicateRxCollection({
-    collection: db.notes,
-    replicationIdentifier: 'appwrite-notes',
-    live: true,
-    pull: {
-        handler: async (lastCheckpoint, batchSize) => {
-            const { pullNotesDeltaSecure } = await import('@/lib/actions/secure-ops');
-            return await pullNotesDeltaSecure({
-                lastCheckpoint: lastCheckpoint?.updatedAt || null,
-                limit: batchSize
-            });
-        }
-    },
-    push: {
-        handler: async (rows) => {
-            const { pushNotesDeltaSecure } = await import('@/lib/actions/secure-ops');
-            return await pushNotesDeltaSecure(rows);
-        },
-        batchSize: 5
-    }
-});
-```
-
-## 4. Conflict-Free Collaboration (CRDTs)
-
-Instead of absolute overwrites, use CRDT operators for character-level or field-level updates.
-
-```typescript
-// Conflict-free text update
-await noteDoc.insertCRDT({
-    ifMatch: {
-        $set: { content: newText }
-    }
-});
-```
-
-## 5. Security Mandates
-
-1.  **Authenticated Sync**: Every replication request MUST include a valid JWT or session cookie.
-2.  **Encrypted Payloads**: Leverage `encrypt: true` in Appwrite columns for signaling data and SDP strings.
-3.  **Authoritative Checkpoints**: Checkpoints MUST be verified server-side against the user's actual update history.
-
-## 6. Self-Cleaning GC
-
-Periodically prune CRDT operation history using the RxDB `cleanup` plugin to maintain performance.
+Do: merge by id, shared `SyncStatusDot`, `markPendingSync` + engine `nudge`, clear only on `kylrix:sync-complete`, re-queue on concurrent edit.

@@ -30,6 +30,13 @@ import {
   isNotePersistedRemote,
   markNotePersistedRemote,
 } from '@/lib/notes/compose-draft-registry';
+import {
+  mergeServerPageWithLocalCopy,
+  sortPinnedThenCreatedAt,
+  shouldSoftPull,
+} from '@/lib/sync/local-copy-sync';
+import { autonomicSyncEngine } from '@/lib/services/sync-engine';
+import { registerLiveNoteGetter } from '@/lib/sync/pending-sync-bridge';
 
 type LiveEditGuard = {
   title: string;
@@ -44,20 +51,26 @@ export function isLiveDraftNoteId(noteId?: string | null): boolean {
 
 export { isUnpersistedComposeDraft };
 
-function mergeFetchedNotesWithLocalDrafts(serverBatch: Notes[], localNotes: Notes[], guards: Map<string, LiveEditGuard>): Notes[] {
-  const serverIds = new Set(serverBatch.map((row) => row.$id));
-  const mergedServer = serverBatch.map((serverNote) => {
-    const guard = guards.get(serverNote.$id);
-    return guard ? mergeServerWithLiveGuard(serverNote, guard) : normalizeVisibility(serverNote);
+function mergeFetchedNotesWithLocalDrafts(
+  serverBatch: Notes[],
+  localNotes: Notes[],
+  guards: Map<string, LiveEditGuard>,
+  deletedIds?: Set<string>,
+): Notes[] {
+  return mergeServerPageWithLocalCopy<Notes>({
+    serverBatch,
+    localNotes,
+    guards,
+    deletedIds,
+    normalize: normalizeVisibility,
+    applyGuard: (serverNote, guard) =>
+      mergeServerWithLiveGuard(serverNote, {
+        title: guard.title || '',
+        content: guard.content || '',
+        tags: Array.isArray(guard.tags) ? guard.tags : [],
+        at: guard.at || Date.now(),
+      }),
   });
-
-  const localOnly = localNotes.filter((row) => {
-    if (!row.$id || serverIds.has(row.$id)) return false;
-    if (isUnpersistedComposeDraft(row.$id) && !isNotePersistedRemote(row.$id)) return true;
-    return guards.has(row.$id);
-  });
-
-  return dedupeNotesById([...localOnly, ...mergedServer]);
 }
 
 function dedupeNotesById(rows: Notes[]): Notes[] {
@@ -94,6 +107,14 @@ interface NotesContextType {
   clearLiveNoteGuard: (noteId: string) => void;
   removeNote: (noteId: string) => void;
   migrateDraftNoteId: (ephemeralId: string, savedId: string) => void;
+  /** Bumps when client-only pending-sync set changes — cards/detail subscribe for dots. */
+  composeSyncEpoch: number;
+  /** Client-only: true when live copy has edits not yet confirmed by remote flush. */
+  isPendingSync: (noteId?: string | null) => boolean;
+  /** Mark note pending (never written to Appwrite). */
+  markPendingSync: (noteId: string) => void;
+  /** Clear pending after sync engine confirms remote write. */
+  clearPendingSync: (noteId: string) => void;
   pinnedIds: string[];
   pinNote: (noteId: string) => Promise<void>;
   unpinNote: (noteId: string) => Promise<void>;
@@ -115,6 +136,10 @@ const NotesContext = createContext<NotesContextType>({
   clearLiveNoteGuard: () => {},
   removeNote: () => {},
   migrateDraftNoteId: () => {},
+  composeSyncEpoch: 0,
+  isPendingSync: () => false,
+  markPendingSync: () => {},
+  clearPendingSync: () => {},
   pinnedIds: [],
   pinNote: async () => {},
   unpinNote: async () => {},
@@ -182,6 +207,7 @@ const sweepInFlightRef = { current: false };
 
 export function NotesProvider({ children }: { children: ReactNode }) {
   const [notes, setNotes] = useState<Notes[]>([]);
+  const [composeSyncEpoch, setComposeSyncEpoch] = useState(0);
   const [totalNotes, setTotalNotes] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -251,6 +277,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const isFetchingRef = useRef(false);
   const notesRef = useRef<Notes[]>([]);
   const cursorRef = useRef<string | null>(null);
+  const lastPullAtRef = useRef(0);
   const liveEditGuardsRef = useRef(new Map<string, LiveEditGuard>());
   const activeComposeNoteIdsRef = useRef(new Set<string>());
   useEffect(() => { notesRef.current = notes; }, [notes]);
@@ -266,7 +293,8 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     if (isFetchingRef.current) return;
 
     if (!isAuthenticated) {
-      if (!isAuthLoading) {
+      // Never flash-wipe the live copy during auth bootstrap. Only clear on confirmed logout.
+      if (!isAuthLoading && !user?.$id) {
         setNotes([]);
         setTotalNotes(0);
         setIsLoading(false);
@@ -327,9 +355,17 @@ export function NotesProvider({ children }: { children: ReactNode }) {
           (res?.rows || []).map((note: Notes) => normalizeVisibility(note)).filter((n: any) => !deletedIds.has(n.$id)),
           notesRef.current,
           liveEditGuardsRef.current,
+          deletedIds,
         );
         const withGhosts = dedupeNotesById([...ghostNotes, ...batch]) as Notes[];
-        setNotes(withGhosts);
+        setNotes((prev) =>
+          mergeFetchedNotesWithLocalDrafts(
+            withGhosts,
+            Array.isArray(prev) ? prev : [],
+            liveEditGuardsRef.current,
+            deletedIds,
+          ),
+        );
         setTotalNotes(res?.total || 0);
         setHasMore(!!res?.hasMore);
         setCursor(res?.nextCursor || null);
@@ -351,15 +387,19 @@ export function NotesProvider({ children }: { children: ReactNode }) {
           (res?.rows || []).map((note: Notes) => normalizeVisibility(note)).filter((n: any) => !deletedIds.has(n.$id)),
           notesRef.current,
           liveEditGuardsRef.current,
+          deletedIds,
         );
         const batch = dedupeNotesById([...ghostNotes, ...mergedBatch]) as Notes[];
 
         setNotes(prev => {
-          if (reset) return batch;
+          // Soft upsert: even on reset, fold remote into existing live copy — never discard local presence.
           const safePrev = Array.isArray(prev) ? prev : [];
+          if (reset) {
+            return mergeFetchedNotesWithLocalDrafts(batch, safePrev, liveEditGuardsRef.current, deletedIds);
+          }
           const existingIds = new Set(safePrev.map(n => n.$id));
           const newOnes = batch.filter(n => !existingIds.has(n.$id));
-          return [...safePrev, ...newOnes];
+          return dedupeNotesById([...safePrev, ...newOnes]);
         });
 
         setTotalNotes(res?.total || 0);
@@ -382,6 +422,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch notes');
+      // Never wipe a populated live copy on a failed pull.
       if (reset && notesRef.current.length === 0) {
         setNotes([]);
         setTotalNotes(0);
@@ -390,6 +431,8 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     } finally {
       isFetchingRef.current = false;
       setIsLoading(false);
+      lastPullAtRef.current = Date.now();
+      autonomicSyncEngine.markPullComplete();
     }
   }, [isAuthenticated, isAuthLoading, user?.$id, PAGE_SIZE, fetchOptimized, fetchPinnedIds, setCachedData, PINNED_CACHE_KEY, INITIAL_NOTES_CACHE_KEY]);
 
@@ -406,6 +449,43 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     if (INITIAL_NOTES_CACHE_KEY) invalidate(INITIAL_NOTES_CACHE_KEY);
     fetchBatch(true);
   }, [fetchBatch, INITIAL_NOTES_CACHE_KEY, invalidate]);
+
+  // Soft pull heartbeat: activity-aware + visibility. Relies on merge upserts — never a wipe.
+  useEffect(() => {
+    if (!isAuthenticated || !user?.$id) return;
+
+    const maybeSoftPull = () => {
+      if (isFetchingRef.current) return;
+      if (
+        !shouldSoftPull({
+          lastPullAt: lastPullAtRef.current || autonomicSyncEngine.getLastPullAt(),
+          activityIntensity: autonomicSyncEngine.getActivityIntensity(),
+        })
+      ) {
+        return;
+      }
+      void fetchBatch(true);
+    };
+
+    const unsub = autonomicSyncEngine.subscribeToActivity(() => {
+      maybeSoftPull();
+    });
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') maybeSoftPull();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+
+    const interval = window.setInterval(maybeSoftPull, 20_000);
+
+    return () => {
+      unsub();
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+      window.clearInterval(interval);
+    };
+  }, [isAuthenticated, user?.$id, fetchBatch]);
 
   // Initial fetch logic - decoupled from reload if cache exists
   const hasInitiallyFetched = useRef(false);
@@ -587,14 +667,60 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const registerComposeSession = useCallback((noteId: string) => {
     if (!noteId) return;
     activeComposeNoteIdsRef.current.add(noteId);
-    markComposeDraft(noteId);
+    if (markComposeDraft(noteId)) {
+      setComposeSyncEpoch((n) => n + 1);
+    }
   }, []);
 
   const unregisterComposeSession = useCallback((noteId: string) => {
     if (!noteId) return;
     activeComposeNoteIdsRef.current.delete(noteId);
-    markComposePersisted(noteId);
+    if (markComposePersisted(noteId)) {
+      setComposeSyncEpoch((n) => n + 1);
+    }
   }, []);
+
+  const isPendingSync = useCallback((noteId?: string | null) => {
+    const id = String(noteId || '').trim();
+    if (!id) return false;
+    if (id.startsWith('live-') || id.startsWith('ghost-')) return true;
+    return isUnpersistedComposeDraft(id);
+  }, [composeSyncEpoch]);
+
+  const markPendingSync = useCallback((noteId: string) => {
+    registerComposeSession(noteId);
+  }, [registerComposeSession]);
+
+  const clearPendingSync = useCallback((noteId: string) => {
+    unregisterComposeSession(noteId);
+    markNotePersistedRemote(noteId);
+    setComposeSyncEpoch((n) => n + 1);
+  }, [unregisterComposeSession]);
+
+  // Sync engine reads live-copy payloads from here — never from a detail-owned cache.
+  useEffect(() => {
+    registerLiveNoteGetter((noteId) => notesRef.current.find((n) => n.$id === noteId) || null);
+    return () => registerLiveNoteGetter(null);
+  }, []);
+
+  useEffect(() => {
+    const onSyncComplete = (event: Event) => {
+      const noteId = String((event as CustomEvent)?.detail?.noteId || '').trim();
+      if (!noteId) return;
+      clearPendingSync(noteId);
+    };
+    const onSyncPending = (event: Event) => {
+      const noteId = String((event as CustomEvent)?.detail?.noteId || '').trim();
+      if (!noteId) return;
+      markPendingSync(noteId);
+    };
+    window.addEventListener('kylrix:sync-complete', onSyncComplete as EventListener);
+    window.addEventListener('kylrix:sync-pending', onSyncPending as EventListener);
+    return () => {
+      window.removeEventListener('kylrix:sync-complete', onSyncComplete as EventListener);
+      window.removeEventListener('kylrix:sync-pending', onSyncPending as EventListener);
+    };
+  }, [clearPendingSync, markPendingSync]);
 
   const clearLiveNoteGuard = useCallback((noteId: string) => {
     liveEditGuardsRef.current.delete(noteId);
@@ -948,13 +1074,9 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   }, [applyNotePin]);
 
   const sortedNotes = useMemo(() => {
-    return [...notes].sort((a, b) => {
-      const aPinned = isResourcePinned('note', a.$id, noteOwnerId(a), a.isPinned);
-      const bPinned = isResourcePinned('note', b.$id, noteOwnerId(b), b.isPinned);
-      if (aPinned && !bPinned) return -1;
-      if (!aPinned && bPinned) return 1;
-      return 0;
-    });
+    return sortPinnedThenCreatedAt(notes, (row) =>
+      isResourcePinned('note', row.$id, noteOwnerId(row), row.isPinned),
+    );
   }, [notes, isResourcePinned, noteOwnerId]);
 
   /**
@@ -977,6 +1099,10 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       clearLiveNoteGuard,
       removeNote,
       migrateDraftNoteId,
+      composeSyncEpoch,
+      isPendingSync,
+      markPendingSync,
+      clearPendingSync,
       pinnedIds: effectivePinnedIds,
       pinNote,
       unpinNote,
@@ -997,6 +1123,10 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       clearLiveNoteGuard,
       removeNote,
       migrateDraftNoteId,
+      composeSyncEpoch,
+      isPendingSync,
+      markPendingSync,
+      clearPendingSync,
       effectivePinnedIds,
       pinNote,
       unpinNote,
