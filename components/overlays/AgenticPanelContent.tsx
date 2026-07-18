@@ -184,7 +184,7 @@ function zoneLabel(zone: string): string {
     connect: 'Connect',
     projects: 'Projects',
     settings: 'Settings',
-    agents: 'Smart System',
+    agents: 'Kyle',
     accounts: 'Accounts',
   };
   return labels[zone] || 'Workspace';
@@ -198,7 +198,7 @@ interface AgenticPanelContentProps {
 export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentProps) {
   const { consumePendingPrompt } = useAgenticDrawer();
   const { user } = useAuth();
-  const { notes: allNotes, pushLiveNote } = useNotes();
+  const { notes: allNotes, pushLiveNote, registerComposeSession, unregisterComposeSession, migrateDraftNoteId } = useNotes();
   const { addTask, updateTask } = useTask();
   const { openProUpgrade } = useProUpgrade();
   const pathname = usePathname() || '/';
@@ -395,7 +395,7 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
       if (!trimmed) return;
 
       if (!isPro) {
-        openProUpgrade('Smart System request');
+        openProUpgrade('Kyle request');
         return;
       }
 
@@ -519,15 +519,54 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
                       await recordToolCall(call, 'error', 'Missing content');
                       continue;
                     }
+
+                    const tags = Array.isArray(call.args.tags)
+                      ? call.args.tags
+                      : (call.args.tags ? [call.args.tags] : []);
+                    const isPublic = call.args.isPublic === true || call.args.isPublic === 'true';
+
+                    // Local-first (same as CreateNoteForm): paint the card before cloud write.
+                    const { ID } = await import('appwrite');
+                    const { resolveNoteCardTitle } = await import('@/constants/noteTitle');
+                    const { markNotePersistedRemote } = await import('@/lib/notes/compose-draft-registry');
+                    const { isValidAppwriteRowId } = await import('@/lib/utils/resource-ids');
+                    const draftId = ID.unique();
+                    const now = new Date().toISOString();
+                    const draftNote = {
+                      $id: draftId,
+                      title: resolveNoteCardTitle(title, content) || title,
+                      content,
+                      tags,
+                      format: 'text',
+                      isPublic,
+                      isGuest: isPublic,
+                      userId: user?.$id || '',
+                      $createdAt: now,
+                      $updatedAt: now,
+                      updatedAt: now,
+                    } as any;
+
+                    registerComposeSession(draftId);
+                    pushLiveNote(draftNote);
+
                     const { createNote } = await import('@/lib/actions/client-ops');
                     const saved = await createNote({
+                      $id: isValidAppwriteRowId(draftId) ? draftId : undefined,
                       title,
                       content,
-                      tags: Array.isArray(call.args.tags) ? call.args.tags : (call.args.tags ? [call.args.tags] : []),
-                      isPublic: call.args.isPublic === true || call.args.isPublic === 'true',
-                      isGuest: call.args.isPublic === true || call.args.isPublic === 'true',
-                    });
+                      tags,
+                      isPublic,
+                      isGuest: isPublic,
+                    }) as any;
+
+                    markNotePersistedRemote(saved.$id);
+                    if (saved.$id && saved.$id !== draftId) {
+                      migrateDraftNoteId(draftId, saved.$id);
+                    }
+                    unregisterComposeSession(draftId);
+                    if (saved.$id) unregisterComposeSession(saved.$id);
                     pushLiveNote(saved);
+
                     await recordSessionObject({
                       objectId: saved.$id,
                       objectType: 'idea',
@@ -626,11 +665,11 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
                     router.push(call.args.route);
                   }
                   await recordToolCall(call, 'success', resultSummary);
-                  toast.success(`Agent executed ${toolDef.name} successfully.`);
+                  toast.success(`Kyle ran ${toolDef.name}.`);
                 } catch (err: any) {
                   console.error(`Failed to execute tool ${call.toolKey}:`, err);
                   await recordToolCall(call, 'error', err?.message || 'Failed');
-                  toast.error(`Failed to execute ${toolDef.name}`);
+                  toast.error(`Kyle couldn't run ${toolDef.name}`);
                 }
               }
             }
@@ -649,7 +688,7 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
         setRunningWorkflowId(null);
       }
     },
-    [appendMessage, isPro, openProUpgrade, pageContext, addTask, updateTask, pushLiveNote, user?.$id, onClose, router],
+    [appendMessage, isPro, openProUpgrade, pageContext, addTask, updateTask, pushLiveNote, registerComposeSession, unregisterComposeSession, migrateDraftNoteId, user?.$id, onClose, router],
   );
 
   useEffect(() => {
@@ -704,27 +743,33 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Sticky header */}
-      <div className="flex-shrink-0 px-5 pt-1 pb-3 border-b border-white/5">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="flex-shrink-0 px-5 pt-2 pb-3.5 border-b border-white/5 relative overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-90"
+          style={{
+            background: `radial-gradient(ellipse 80% 120% at 0% 0%, ${accent}18 0%, transparent 55%)`,
+          }}
+        />
+        <div className="relative flex items-center gap-3 min-w-0">
           <div
-            className="w-10 h-10 rounded-[12px] flex items-center justify-center flex-shrink-0 border"
-            style={{ borderColor: `${accent}40`, backgroundColor: `${accent}14`, color: accent }}
+            className="w-11 h-11 rounded-[14px] flex items-center justify-center flex-shrink-0 border shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
+            style={{ borderColor: `${accent}50`, backgroundColor: `${accent}18`, color: accent }}
           >
-            <Bot size={18} strokeWidth={2.2} />
+            <span className="font-clash font-black text-[17px] leading-none tracking-tight">K</span>
           </div>
           <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-            <h2 className="text-white font-extrabold text-[15px] font-clash tracking-tight leading-tight truncate">
-              Smart System
+            <h2 className="text-white font-extrabold text-[16px] font-clash tracking-tight leading-tight truncate">
+              Kyle
             </h2>
             <p className="text-[#9B9691] text-xs font-semibold leading-snug truncate">
-              {zoneLabel(pageContext.zone)} · {pageContext.title}
-              {agentCount > 0 ? ` · ${agentCount} agent${agentCount === 1 ? '' : 's'}` : ''}
+              Here for {zoneLabel(pageContext.zone).toLowerCase()}
+              {agentCount > 0 ? ` · ${agentCount} helper${agentCount === 1 ? '' : 's'}` : ''}
             </p>
           </div>
           <button
             type="button"
             onClick={handleOpenSessions}
-            title="Agent Sessions"
+            title="Past chats with Kyle"
             className="w-8 h-8 rounded-lg flex items-center justify-center text-white/45 hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 flex-shrink-0 mr-1"
           >
             <History size={16} />
@@ -738,7 +783,7 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
             <X size={16} />
           </button>
         </div>
-        <p className="mt-2.5 text-[#9B9691] text-xs font-semibold leading-relaxed line-clamp-2">
+        <p className="relative mt-2.5 text-[#9B9691] text-xs font-semibold leading-relaxed line-clamp-2">
           {pageContext.subtitle}
         </p>
       </div>
@@ -748,7 +793,7 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
         <div className="flex-shrink-0 border-b border-white/5 bg-[#161412] px-5 py-3 flex flex-col min-h-0 max-h-[min(240px,36%)]">
           <div className="flex items-center justify-between gap-2 mb-2.5 flex-shrink-0">
             <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#9B9691] font-clash">
-              Suggested here
+              Try with Kyle
             </span>
             <span className="text-[10px] font-semibold text-white/25">{workflows.length} actions</span>
           </div>
@@ -798,23 +843,39 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
       <div ref={chatScrollRef} className="flex-1 min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-3">
         {messages.length === 0 && !executing && (
           <div className="rounded-[16px] border border-white/5 bg-[#0B0A09] px-4 py-3.5">
+            <p className="text-white/80 text-[13px] font-bold font-clash leading-snug mb-1">
+              Hey — I&apos;m Kyle.
+            </p>
             <p className="text-[#9B9691] text-xs font-semibold leading-relaxed">
-              Pick a suggestion above or type below. Your conversation stays in this panel.
+              Pick a suggestion above or just ask. I&apos;ll keep this chat right here.
             </p>
           </div>
         )}
 
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-2`}>
+            {msg.role === 'assistant' && (
+              <div
+                className="mt-1 w-7 h-7 rounded-[9px] flex items-center justify-center flex-shrink-0 border text-[11px] font-clash font-black"
+                style={{ borderColor: `${accent}40`, backgroundColor: `${accent}14`, color: accent }}
+              >
+                K
+              </div>
+            )}
             <div
-              className={`max-w-[92%] rounded-[16px] px-4 py-3 ${
+              className={`max-w-[88%] rounded-[16px] px-4 py-3 ${
                 msg.role === 'user'
                   ? 'bg-[#1C1A18] border border-white/8 text-white'
                   : 'bg-[#0B0A09] border border-white/5 text-white/92'
               }`}
+              style={
+                msg.role === 'assistant'
+                  ? { boxShadow: `inset 3px 0 0 0 ${accent}55` }
+                  : undefined
+              }
             >
-              <p className="text-[10px] font-black uppercase tracking-wider text-[#9B9691] mb-1.5 leading-none">
-                {msg.role === 'user' ? 'You' : 'System'}
+              <p className="text-[10px] font-black tracking-wider text-[#9B9691] mb-1.5 leading-none">
+                {msg.role === 'user' ? 'You' : 'Kyle'}
               </p>
               <p className="text-[13px] font-semibold leading-relaxed whitespace-pre-wrap break-words">
                 {msg.content}
@@ -850,10 +911,16 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
         ))}
 
         {executing && (
-          <div className="flex justify-start">
+          <div className="flex justify-start gap-2">
+            <div
+              className="mt-1 w-7 h-7 rounded-[9px] flex items-center justify-center flex-shrink-0 border text-[11px] font-clash font-black"
+              style={{ borderColor: `${accent}40`, backgroundColor: `${accent}14`, color: accent }}
+            >
+              K
+            </div>
             <div className="rounded-[16px] px-4 py-3 bg-[#0B0A09] border border-white/5 flex items-center gap-2">
               <RefreshCw size={14} className="animate-spin" style={{ color: accent }} />
-              <span className="text-[#9B9691] text-xs font-semibold leading-snug">Working…</span>
+              <span className="text-[#9B9691] text-xs font-semibold leading-snug">Kyle is on it…</span>
             </div>
           </div>
         )}
@@ -902,9 +969,9 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
                 <Shield size={16} />
               </div>
               <div className="flex-1 text-left">
-                <h3 className="text-white text-xs font-bold leading-tight">Authorize Kylrix Agent</h3>
+                <h3 className="text-white text-xs font-bold leading-tight">Allow Kyle</h3>
                 <p className="text-[#9B9691] text-[10px] leading-snug mt-0.5">
-                  Agent requests permission to execute <strong>{pendingToolAuth.name}</strong>.
+                  Kyle wants to run <strong>{pendingToolAuth.name}</strong>.
                 </p>
               </div>
             </div>
@@ -971,7 +1038,7 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={handleComposerKeyDown}
-              placeholder={pageContext.placeholder}
+              placeholder="Ask Kyle to help you with anything…"
               disabled={executing}
               rows={isDesktop ? 2 : 2}
               className="flex-1 min-w-0 resize-none bg-transparent text-white text-[13px] font-semibold leading-relaxed placeholder:text-[#9B9691]/50 focus:outline-none disabled:opacity-50 max-h-[96px] py-1.5 px-1"
@@ -1021,7 +1088,7 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
               <div className="flex items-center gap-2">
                 <History size={16} style={{ color: accent }} />
                 <h3 className="text-white font-extrabold text-[14px] font-clash tracking-tight">
-                  Conversation History
+                  Chats with Kyle
                 </h3>
               </div>
               <div className="flex items-center gap-2">
@@ -1067,7 +1134,7 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
                     }
                     if (lastMsg) {
                       const body = visibleChatContent(lastMsg.role, lastMsg.content);
-                      previewText = `${lastMsg.role === 'user' ? 'You' : 'System'}: ${body}`;
+                      previewText = `${lastMsg.role === 'user' ? 'You' : 'Kyle'}: ${body}`;
                     }
                   } catch {}
 
