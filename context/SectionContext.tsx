@@ -19,9 +19,8 @@ import { ChatWindow } from '@/components/chat/ChatWindow';
 import { HuddleChatWindow } from '@/components/chat/HuddleChatWindow';
 import { GithubIntegrationDrawer } from '@/components/overlays/GithubIntegrationDrawer';
 
-// Helper imports for note detail fetching
+// Helper imports for note detail (live-copy plugin — no open-path getNote)
 import { Notes } from '@/types/appwrite';
-import { getNote } from '@/lib/appwrite';
 import { deleteNote } from '@/lib/actions/client-ops';
 import { useDataNexus } from '@/context/DataNexusContext';
 import { useToast } from '@/components/ui/Toast';
@@ -29,6 +28,7 @@ import CommentsSection from '@/app/(app)/app/(app)/notes/Comments';
 import NoteReactions from '@/app/(app)/app/(app)/notes/NoteReactions';
 import { useAuth } from '@/context/auth/AuthContext';
 import { getNote as getChatNote } from '@/lib/appwrite/note';
+import { useNotes } from '@/context/NotesContext';
 
 export interface ActiveDetail {
   type: 'note' | 'moment' | 'goal' | 'form' | 'event' | 'tag' | 'secret' | 'chat' | 'call' | 'github' | 'huddle';
@@ -416,69 +416,67 @@ export function useSection() {
 
 /**
  * NoteDetailContainer
- * Surgical replication of NoteEditorPage for unified responsive detail rendering.
+ * Stateful plugin on the notes live copy — no open-path getNote.
  */
-export function NoteDetailContainer({ noteId, onBack }: { noteId: string; onBack: () => void }) {
-  const [note, setNote] = useState<Notes | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function NoteDetailContainer({
+  noteId,
+  onBack,
+  seed = null,
+}: {
+  noteId: string;
+  onBack: () => void;
+  seed?: Notes | null;
+}) {
   const { showSuccess, showError } = useToast();
-  const { fetchOptimized, setCachedData, invalidate, getCachedData } = useDataNexus();
+  const { setCachedData, invalidate, getCachedData } = useDataNexus();
+  const { notes, pushLiveNote, removeNote } = useNotes();
 
-  const CACHE_KEY = useMemo(() => noteId ? `note_${noteId}` : null, [noteId]);
+  const liveNote = useMemo(() => {
+    const fromLive = (notes || []).find((n) => n.$id === noteId);
+    if (fromLive) return fromLive;
+    if (seed?.$id === noteId) return seed;
+    return getCachedData<Notes>(`note_${noteId}`) || null;
+  }, [notes, noteId, seed, getCachedData]);
 
+  // Seed live copy from card/cache once — network hydrate belongs to NotesContext sync.
   useEffect(() => {
-    let mounted = true;
-    if (!noteId || !CACHE_KEY) {
-      setIsLoading(false);
-      return;
-    }
-    const cached = getCachedData<Notes>(CACHE_KEY);
-    if (cached) {
-      setNote(cached);
-      setIsLoading(false);
-    }
-    (async () => {
-      if (!cached) setIsLoading(true);
+    if (!noteId) return;
+    if ((notes || []).some((n) => n.$id === noteId)) return;
+    const seedNote = (seed?.$id === noteId ? seed : null) || getCachedData<Notes>(`note_${noteId}`);
+    if (!seedNote?.$id) return;
+    pushLiveNote(seedNote);
+    setCachedData(`note_${noteId}`, seedNote);
+  }, [noteId, notes, seed, pushLiveNote, setCachedData, getCachedData]);
+
+  const handleUpdate = useCallback(
+    (updated: Notes) => {
+      // Sidebar already pushLiveNote'd; keep per-id cache aligned.
+      if (updated?.$id) setCachedData(`note_${updated.$id}`, updated);
+    },
+    [setCachedData],
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
       try {
-        const fetched = await fetchOptimized(CACHE_KEY, () => getNote(noteId));
-        if (mounted) setNote(fetched);
-      } catch (error: any) {
-        showError('Failed to load note', 'Please try again later.');
-      } finally {
-        if (mounted) setIsLoading(false);
+        await deleteNote(id);
+        removeNote(id);
+        invalidate(`note_${id}`);
+        showSuccess('Deleted', 'Note removed');
+        onBack();
+      } catch {
+        showError('Delete failed', 'Could not delete the note.');
       }
-    })();
-    return () => { mounted = false; };
-  }, [noteId, CACHE_KEY, fetchOptimized, getCachedData, showError]);
+    },
+    [invalidate, onBack, removeNote, showError, showSuccess],
+  );
 
-  const handleUpdate = (updated: Notes) => {
-    setNote(updated);
-    if (CACHE_KEY) setCachedData(CACHE_KEY, updated);
-  };
-
-  const handleDelete = async (noteId: string) => {
-    try {
-      await deleteNote(noteId);
-      if (CACHE_KEY) invalidate(CACHE_KEY);
-      showSuccess('Deleted', 'Note removed');
-      onBack();
-    } catch (error: any) {
-      showError('Delete failed', 'Could not delete the note.');
-    }
-  };
-
-  if (isLoading) {
+  if (!liveNote) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 8, height: '100%' }}>
-        <CircularProgress color="primary" />
-      </Box>
-    );
-  }
-
-  if (!note) {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 8, height: '100%' }}>
-        <Typography color="text.secondary">Note not found.</Typography>
+        <Typography color="text.secondary">
+          {noteId ? 'Opening note…' : 'Note not found.'}
+        </Typography>
       </Box>
     );
   }
@@ -486,7 +484,7 @@ export function NoteDetailContainer({ noteId, onBack }: { noteId: string; onBack
   return (
     <Box sx={{ height: '100%', overflowY: 'auto', p: 3 }}>
       <NoteDetailSidebar
-        note={note}
+        note={liveNote}
         onUpdate={handleUpdate}
         onDelete={handleDelete}
         onBack={onBack}
@@ -566,7 +564,7 @@ export function DetailSectionWrapper({ detail, onClose }: { detail: ActiveDetail
     case 'moment':
       return <PostViewClient id={detail.id} onBack={onClose} />;
     case 'note':
-      return <NoteDetailContainer noteId={detail.id} onBack={onClose} />;
+      return <NoteDetailContainer noteId={detail.id} seed={detail.data || null} onBack={onClose} />;
     case 'goal':
       return <TaskDetails taskId={detail.id} onBack={onClose} />;
     case 'event':
