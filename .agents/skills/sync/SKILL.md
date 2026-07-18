@@ -93,13 +93,11 @@ Detail is **not** a second sync engine.
 - Soft **pull** uses `shouldSoftPull({ lastPullAt, activityIntensity })` plus visibility/focus.
 
 ### Draft / pending isolation
-- Pending local edits use a pending-id set (`registerComposeSession` / `markComposeDraft`) **and** client-only `pendingSync` on the live/RxDB row.
-- Card amber/green reads `isPendingSync` (set **or** live `pendingSync`) plus epoch.
-- **`markNotePersistedRemote` must never clear pending** — it only means “remote row exists” (create vs update). Clear pending solely via `unregisterComposeSession` / sync-complete.
-- Detail edits use the **same create contract**: `registerComposeSession(id)` then `pushLiveNote({ …, pendingSync: true })`. No detail-owned autosave.
-- On cache hydrate, re-`markComposeDraft` for rows with `pendingSync` so amber survives reload on this device.
-- Push failures **isolate** that row; other rows keep syncing.
-- After flush: if live moved while the network call ran, re-queue — do not green prematurely.
+- **One signal:** `registerComposeSession` / `unregisterComposeSession` → `unpersistedDraftIds` + `composeSyncEpoch`.
+- Create already does this; detail edits must call the same `registerComposeSession(id)` on mutate.
+- Card/detail dots read `isUnpersistedComposeDraft(id)` (via `SyncStatusDot` + epoch) — do not invent a parallel pending API.
+- `markNotePersistedRemote` only means “remote row exists” (create vs update). It must **never** clear the pending set.
+- Clear pending only via `unregisterComposeSession` (create after save, or `kylrix:sync-complete` after flush).
 
 ### 4. Upsert merge — never wipe
 Pulls return **pages**. Replacing the live list with `serverPage` drops local rows missing from that page → “card vanished after sync.”
