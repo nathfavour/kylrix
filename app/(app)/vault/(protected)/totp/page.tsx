@@ -618,7 +618,7 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
           </div>
         ) : (
           <div className="flex flex-col gap-3.5 max-w-3xl">
-            {totpCodes
+            {[...totpCodes]
               .filter((totp) => {
                 const q = search.trim().toLowerCase();
                 if (!q) return true;
@@ -627,6 +627,13 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
                   (totp.accountName &&
                     totp.accountName.toLowerCase().includes(q))
                 );
+              })
+              .sort((a, b) => {
+                const aPinned = isResourcePinned('totp', a.$id, a.userId || user?.$id || '', a.isPinned);
+                const bPinned = isResourcePinned('totp', b.$id, b.userId || user?.$id || '', b.isPinned);
+                if (aPinned && !bPinned) return -1;
+                if (!aPinned && bPinned) return 1;
+                return 0;
               })
               .map((totp) => (
                 <TOTPCard key={totp.$id} totp={totp} />
