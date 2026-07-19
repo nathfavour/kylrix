@@ -217,6 +217,9 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
     const [testnetMode, setTestnetMode] = useState(false);
     const [onChainBalances, setOnChainBalances] = useState<Record<string, string>>({});
     const [balancesLoading, setBalancesLoading] = useState(false);
+    const [pinnedToken, setPinnedToken] = useState<string>('SOL');
+    const [longPressedToken, setLongPressedToken] = useState<string | null>(null);
+    const pressTimerRef = React.useRef<NodeJS.Timeout | null>(null);
     
     // Additional settings states
     const [smartDelegation, setSmartDelegation] = useState(false);
@@ -237,6 +240,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
             setSmartDelegation(localStorage.getItem('kylrix_wallet_smart_delegation') === '1');
             setGasRelay(localStorage.getItem('kylrix_wallet_gas_relay') === '1');
             setRecurringBilling(localStorage.getItem('kylrix_wallet_recurring_billing') === '1');
+            setPinnedToken(localStorage.getItem('kylrix_pinned_token') || 'SOL');
         }
     }, []);
 
@@ -339,6 +343,10 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                         const val = prefs.kylrix_wallet_recurring_billing === '1' || prefs.kylrix_wallet_recurring_billing === true;
                         setRecurringBilling(val);
                         localStorage.setItem('kylrix_wallet_recurring_billing', val ? '1' : '0');
+                    }
+                    if (prefs.kylrix_pinned_token) {
+                        setPinnedToken(prefs.kylrix_pinned_token);
+                        localStorage.setItem('kylrix_pinned_token', prefs.kylrix_pinned_token);
                     }
                 }
             }).catch(() => {});
@@ -549,6 +557,31 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
     const handleCopyAddress = (address: string) => {
         navigator.clipboard.writeText(address);
         toast.success('Address copied');
+    };
+
+    const handlePinToken = async (token: string) => {
+        setPinnedToken(token);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('kylrix_pinned_token', token);
+            toast.success(`${token} pinned to dashboard`);
+        }
+        if (user) {
+            await account.updatePrefs({ kylrix_pinned_token: token }).catch(() => {});
+        }
+        setLongPressedToken(null);
+    };
+
+    const handlePressStart = (token: string) => {
+        if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+        pressTimerRef.current = setTimeout(() => {
+            setLongPressedToken(token);
+        }, 600);
+    };
+
+    const handlePressEnd = () => {
+        if (pressTimerRef.current) {
+            clearTimeout(pressTimerRef.current);
+        }
     };
 
     const handleAddNetwork = async (chain: SupportedWalletChain) => {
@@ -1509,6 +1542,8 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
     );
 
     const renderWalletContent = () => {
+        const pinnedWallet = pinnedToken === 'KYLRIX' ? null : orderedWallets.find((wallet) => wallet.chain === pinnedToken.toLowerCase()) || null;
+
         if (showSignConfirmation) {
             return renderSignConfirmation();
         }
@@ -1851,12 +1886,19 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                             </Typography>
                             <Paper
                                 sx={{
+                                onMouseDown={() => handlePressStart(pinnedToken)}
+                                onMouseUp={handlePressEnd}
+                                onMouseLeave={handlePressEnd}
+                                onTouchStart={() => handlePressStart(pinnedToken)}
+                                onTouchEnd={handlePressEnd}
+                                sx={{
                                     px: 2.25,
                                     py: 1.5,
                                     borderRadius: '18px',
                                     bgcolor: HIGHLIGHT,
                                     border: `1px solid ${EDGE}`,
                                     transition: 'all 0.2s ease',
+                                    cursor: 'pointer',
                                     '&:hover': { bgcolor: SURFACE, borderColor: '#4A4743', transform: 'translateX(4px)' }
                                 }}
                             >
@@ -1869,34 +1911,38 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                         display: 'grid',
                                         placeItems: 'center',
                                         flexShrink: 0,
+                                        color: getNetworkColor(pinnedToken.toLowerCase() as any) || ACCENT,
+                                        fontWeight: 800,
+                                        fontSize: '16px'
                                     }}>
-                                        <PinnedNetworkIconSolana size={20} />
+                                        {pinnedToken === 'SOL' ? <PinnedNetworkIconSolana size={20} /> : pinnedToken === 'KYLRIX' ? <Logo app="root" variant="icon" size={20} /> : (getNetworkLogo(pinnedToken.toLowerCase() as any) || pinnedToken[0])}
                                     </Box>
                                     <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
                                         <Typography component="span" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)', fontSize: '0.88rem', lineHeight: 1.25 }}>
-                                            {solWallet?.label || 'Solana'}
+                                            {pinnedToken === 'KYLRIX' ? 'Kylrix' : (pinnedWallet?.label || pinnedToken)}
                                         </Typography>
                                         <Typography component="span" sx={{ color: MUTED, fontFamily: 'var(--font-mono)', fontSize: '0.76rem', lineHeight: 1.35 }}>
-                                            {solWallet ? shortenAddress(solWallet.address) : 'Provisioning required'}
+                                            {pinnedToken === 'KYLRIX' ? (user?.$id ? shortenUserId(user.$id) : '—') : (pinnedWallet ? shortenAddress(pinnedWallet.address) : 'Provisioning required')}
                                         </Typography>
                                     </Box>
                                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5, flexShrink: 0 }}>
-                                        <Typography component="span" sx={{ fontWeight: 900, color: getNetworkColor('sol'), fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: 1.2 }}>
-                                            {onChainBalances['SOL'] || '0.00'} {solWallet?.symbol || 'SOL'}
+                                        <Typography component="span" sx={{ fontWeight: 900, color: getNetworkColor(pinnedToken.toLowerCase() as any) || 'white', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: 1.2 }}>
+                                            {pinnedToken === 'KYLRIX' ? (tokenBalance?.amount || '0') : (onChainBalances[pinnedToken.toUpperCase()] || '0.00')} {pinnedToken === 'KYLRIX' ? kylrixTicker(tokenBalance?.symbol) : pinnedToken}
                                         </Typography>
-                                        {solWallet ? (
+                                        {pinnedToken !== 'KYLRIX' && pinnedWallet ? (
                                             <Stack direction="row" gap={0.5}>
                                                 <IconButton
                                                     size="small"
-                                                    onClick={() => handleCopyAddress(solWallet.address)}
-                                                    sx={{ p: 0.5, color: MUTED, '&:hover': { color: getNetworkColor('sol') } }}
+                                                    onClick={(e) => { e.stopPropagation(); handleCopyAddress(pinnedWallet.address); }}
+                                                    sx={{ p: 0.5, color: MUTED, '&:hover': { color: getNetworkColor(pinnedToken.toLowerCase() as any) } }}
                                                 >
                                                     <Copy size={12} />
                                                 </IconButton>
                                                 <IconButton
                                                     size="small"
-                                                    onClick={() => {
-                                                        const explorerUrl = getExplorerUrl(solWallet);
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const explorerUrl = getExplorerUrl(pinnedWallet);
                                                         if (explorerUrl) {
                                                             window.open(explorerUrl, '_blank', 'noopener,noreferrer');
                                                         }
@@ -1906,11 +1952,11 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                                     <ExternalLink size={12} />
                                                 </IconButton>
                                             </Stack>
-                                        ) : (
+                                        ) : pinnedToken !== 'KYLRIX' ? (
                                             <Button
                                                 size="small"
                                                 variant="outlined"
-                                                onClick={() => handleAddNetwork('sol')}
+                                                onClick={(e) => { e.stopPropagation(); handleAddNetwork(pinnedToken.toLowerCase() as any); }}
                                                 disabled={pendingChain !== null}
                                                 sx={{
                                                     borderRadius: '8px',
@@ -1932,6 +1978,11 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                             </Paper>
                             
                             <Paper
+                                onMouseDown={() => handlePressStart('KYLRIX')}
+                                onMouseUp={handlePressEnd}
+                                onMouseLeave={handlePressEnd}
+                                onTouchStart={() => handlePressStart('KYLRIX')}
+                                onTouchEnd={handlePressEnd}
                                 sx={{
                                     px: 2.25,
                                     py: 1.5,
@@ -1939,6 +1990,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                     bgcolor: HIGHLIGHT,
                                     border: `1px solid ${EDGE}`,
                                     transition: 'all 0.2s ease',
+                                    cursor: 'pointer',
                                     '&:hover': { bgcolor: SURFACE, borderColor: '#4A4743', transform: 'translateX(4px)' },
                                 }}
                             >
@@ -2000,6 +2052,11 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                 {orderedWallets.filter(w => w.chain !== 'sol').map((wallet) => (
                                     <Paper
                                         key={wallet.chain}
+                                        onMouseDown={() => handlePressStart(wallet.symbol)}
+                                        onMouseUp={handlePressEnd}
+                                        onMouseLeave={handlePressEnd}
+                                        onTouchStart={() => handlePressStart(wallet.symbol)}
+                                        onTouchEnd={handlePressEnd}
                                         sx={{
                                             px: 2.25,
                                             py: 1.5,
@@ -2007,6 +2064,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                             bgcolor: HIGHLIGHT,
                                             border: `1px solid ${EDGE}`,
                                             transition: 'all 0.2s ease',
+                                            cursor: 'pointer',
                                             '&:hover': { bgcolor: SURFACE, borderColor: '#4A4743', transform: 'translateX(4px)' }
                                         }}
                                     >
@@ -2160,84 +2218,161 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
         );
     };
 
+    const renderPinDrawer = () => (
+        <Drawer
+            anchor="bottom"
+            open={longPressedToken !== null}
+            onClose={() => setLongPressedToken(null)}
+            PaperProps={{
+                sx: {
+                    bgcolor: SURFACE,
+                    borderTop: `1px solid ${EDGE}`,
+                    borderRadius: '32px 32px 0 0',
+                    backgroundImage: 'none',
+                    p: 3,
+                    maxHeight: '40dvh',
+                    zIndex: 1600,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2.5
+                }
+            }}
+            ModalProps={{
+                sx: {
+                    zIndex: 1590
+                }
+            }}
+        >
+            <Box sx={{ width: 40, height: 4, bgcolor: '#4A4743', borderRadius: '2px', alignSelf: 'center', mb: 1 }} />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: 'white' }}>
+                    Manage {longPressedToken}
+                </Typography>
+                <IconButton size="small" onClick={() => setLongPressedToken(null)} sx={{ color: MUTED, '&:hover': { color: 'white', bgcolor: HIGHLIGHT } }}>
+                    <X size={20} />
+                </IconButton>
+            </Box>
+            <Stack gap={1.5}>
+                <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={() => longPressedToken && handlePinToken(longPressedToken)}
+                    sx={{
+                        bgcolor: ACCENT,
+                        color: 'black',
+                        borderRadius: '14px',
+                        fontWeight: 800,
+                        textTransform: 'none',
+                        py: 1.5,
+                        '&:hover': { bgcolor: '#eab308' }
+                    }}
+                >
+                    Pin {longPressedToken} to Dashboard
+                </Button>
+                <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => setLongPressedToken(null)}
+                    sx={{
+                        borderColor: EDGE,
+                        color: 'white',
+                        borderRadius: '14px',
+                        fontWeight: 700,
+                        textTransform: 'none',
+                        py: 1.5,
+                        '&:hover': { bgcolor: HIGHLIGHT }
+                    }}
+                >
+                    Cancel
+                </Button>
+            </Stack>
+        </Drawer>
+    );
+
     if (isMobile) {
         return (
+            <>
+                <Drawer
+                    anchor="bottom"
+                    open={isOpen}
+                    onClose={onClose}
+                    slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
+                    PaperProps={{
+                        sx: {
+                            height: isExpanded ? '100dvh' : '60dvh',
+                            maxHeight: '100dvh',
+                            bgcolor: SURFACE,
+                            borderTop: isExpanded ? 'none' : `1px solid ${EDGE}`,
+                            borderRadius: isExpanded ? '0' : '32px 32px 0 0',
+                            backgroundImage: 'none',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            overflow: 'hidden',
+                            p: 0,
+                            margin: 0,
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }
+                    }}
+                >
+                    <Box
+                        sx={{
+                            width: '100%',
+                            pt: 2,
+                            pb: 1,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            flexShrink: 0
+                        }}
+                        onClick={() => setIsExpanded(!isExpanded)}
+                    >
+                        {isExpanded ? (
+                            <Stack direction="row" alignItems="center" gap={1} sx={{ color: MUTED }}>
+                                <ChevronLeft size={20} />
+                                <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', fontFamily: 'var(--font-satoshi)' }}>Back</Typography>
+                            </Stack>
+                        ) : (
+                            <Box sx={{ width: 40, height: 4, bgcolor: '#4A4743', borderRadius: '2px' }} />
+                        )}
+                    </Box>
+                    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+                        {renderHeader()}
+                        {renderWalletContent()}
+                    </Box>
+                </Drawer>
+                {renderPinDrawer()}
+            </>
+        );
+    }
+
+    return (
+        <>
             <Drawer
-                anchor="bottom"
+                anchor="right"
                 open={isOpen}
                 onClose={onClose}
                 slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
                 PaperProps={{
                     sx: {
-                        height: isExpanded ? '100dvh' : '60dvh',
-                        maxHeight: '100dvh',
+                        width: 400,
                         bgcolor: SURFACE,
-                        borderTop: isExpanded ? 'none' : `1px solid ${EDGE}`,
-                        borderRadius: isExpanded ? '0' : '32px 32px 0 0',
+                        borderLeft: `1px solid ${EDGE}`,
                         backgroundImage: 'none',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        overflow: 'hidden',
+                        boxShadow: 'none',
+                        top: '88px',
+                        height: 'calc(100dvh - 88px)',
                         p: 0,
-                        margin: 0,
                         display: 'flex',
                         flexDirection: 'column'
                     }
                 }}
             >
-                <Box
-                    sx={{
-                        width: '100%',
-                        pt: 2,
-                        pb: 1,
-                        display: 'flex',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        flexShrink: 0
-                    }}
-                    onClick={() => setIsExpanded(!isExpanded)}
-                >
-                    {isExpanded ? (
-                        <Stack direction="row" alignItems="center" gap={1} sx={{ color: MUTED }}>
-                            <ChevronLeft size={20} />
-                            <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', fontFamily: 'var(--font-satoshi)' }}>Back</Typography>
-                        </Stack>
-                    ) : (
-                        <Box sx={{ width: 40, height: 4, bgcolor: '#4A4743', borderRadius: '2px' }} />
-                    )}
-                </Box>
                 <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
                     {renderHeader()}
                     {renderWalletContent()}
                 </Box>
             </Drawer>
-        );
-    }
-
-    return (
-        <Drawer
-            anchor="right"
-            open={isOpen}
-            onClose={onClose}
-            slotProps={TOPBAR_DRAWER_BACKDROP_SLOT}
-            PaperProps={{
-                sx: {
-                    width: 400,
-                    bgcolor: SURFACE,
-                    borderLeft: `1px solid ${EDGE}`,
-                    backgroundImage: 'none',
-                    boxShadow: 'none',
-                    top: '88px',
-                    height: 'calc(100dvh - 88px)',
-                    p: 0,
-                    display: 'flex',
-                    flexDirection: 'column'
-                }
-            }}
-        >
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
-                {renderHeader()}
-                {renderWalletContent()}
-            </Box>
-        </Drawer>
+            {renderPinDrawer()}
+        </>
     );
 };
