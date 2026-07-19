@@ -828,8 +828,8 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
     };
 
     const renderSettingsContent = () => (
-        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 3 }}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 4 }}>
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 0 }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ pt: 3.5, px: 3, pb: 2, mb: 1 }}>
                 <Stack direction="row" alignItems="center" gap={1.5}>
                     <Box sx={{
                         p: 1,
@@ -859,7 +859,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                 </IconButton>
             </Stack>
 
-            <Stack gap={2.5} sx={{ flex: 1, overflowY: 'auto', pr: 0.5 }}>
+            <Stack gap={2.5} sx={{ flex: 1, overflowY: 'auto', px: 3, pb: 3, '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: '#2A2825', borderRadius: '10px' } }}>
                 {/* Testnet Mode Toggle */}
                 <Box
                     sx={{
@@ -1105,8 +1105,8 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
     );
 
     const renderSignConfirmation = () => (
-        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 3, bgcolor: SURFACE }}>
-            <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 4 }}>
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 0, bgcolor: SURFACE }}>
+            <Stack direction="row" alignItems="center" gap={1.5} sx={{ pt: 3.5, px: 3, pb: 2, mb: 1 }}>
                 <Box sx={{
                     p: 1,
                     borderRadius: '12px',
@@ -1127,7 +1127,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                 </Box>
             </Stack>
 
-            <Stack gap={2.5} sx={{ flex: 1, overflowY: 'auto' }}>
+            <Stack gap={2.5} sx={{ flex: 1, overflowY: 'auto', px: 3, pb: 3, '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: '#2A2825', borderRadius: '10px' } }}>
                 <Paper sx={{ px: 2.25, py: 1.5, borderRadius: '18px', bgcolor: HIGHLIGHT, border: `1px solid ${EDGE}`, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
                     <Typography component="span" sx={{ color: MUTED, fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em', fontFamily: 'var(--font-satoshi)' }}>
                         Origin / Invoker
@@ -1169,7 +1169,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
 
             <Divider sx={{ borderColor: EDGE, my: 2 }} />
 
-            <Stack direction="row" gap={2}>
+            <Stack direction="row" gap={2} sx={{ px: 3, pb: 3 }}>
                 <Button
                     variant="outlined"
                     onClick={() => setShowSignConfirmation(false)}
@@ -1215,8 +1215,8 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
             return renderSettingsContent();
         }
         return (
-            <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 3 }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 4 }}>
+            <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 0 }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ pt: 3.5, px: 3, pb: 2, mb: 1 }}>
                     <Stack direction="row" alignItems="center" gap={1.5}>
                         <Box sx={{
                             p: 1,
@@ -1243,7 +1243,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                 </Stack>
 
                 {!user ? (
-                    <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', px: 2 }}>
+                    <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', px: 3 }}>
                         <Typography variant="body2" sx={{ color: MUTED, maxWidth: 260, fontFamily: 'var(--font-satoshi)' }}>
                             Sign in to initialize your wallet mesh.
                         </Typography>
@@ -1256,7 +1256,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                         alignItems: 'center',
                         justifyContent: 'center',
                         textAlign: 'center',
-                        px: 2
+                        px: 3
                     }}>
                         <Box sx={{
                             width: 64,
@@ -1315,7 +1315,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                             alignItems: 'center',
                             justifyContent: 'center',
                             textAlign: 'center',
-                            px: 2,
+                            px: 3,
                             cursor: 'pointer',
                             transition: 'opacity 0.2s',
                             '&:hover': { opacity: 0.8 }
@@ -1350,7 +1350,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                         alignItems: 'center',
                         justifyContent: 'center',
                         textAlign: 'center',
-                        px: 2
+                        px: 3
                     }}>
                         <CircularProgress sx={{ color: ACCENT, mb: 3 }} />
                         <Typography variant="body1" sx={{ fontWeight: 700, mb: 1, fontFamily: 'var(--font-satoshi)', color: 'white' }}>
@@ -1395,13 +1395,13 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                 ) : showKylrixDetail ? (
                     renderKylrixDetail()
                 ) : (
-                    <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.5, '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: '#2A2825', borderRadius: '10px' } }}>
+                    <Box sx={{ flex: 1, overflowY: 'auto', px: 1.5, '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: '#2A2825', borderRadius: '10px' } }}>
                         {/* Simplified Balance Header */}
                         <Box sx={{ 
                             p: 3, 
                             mb: 3, 
                             textAlign: 'center',
-                            bgcolor: SURFACE,
+                            bgcolor: HIGHLIGHT,
                             borderRadius: '24px',
                             position: 'relative',
                             overflow: 'hidden',
@@ -1691,10 +1691,10 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                             px: 2.25,
                                             py: 1.5,
                                             borderRadius: '18px',
-                                            bgcolor: SURFACE,
+                                            bgcolor: HIGHLIGHT,
                                             border: `1px solid ${EDGE}`,
                                             transition: 'all 0.2s ease',
-                                            '&:hover': { bgcolor: HIGHLIGHT, transform: 'translateX(4px)' }
+                                            '&:hover': { bgcolor: SURFACE, borderColor: '#4A4743', transform: 'translateX(4px)' }
                                         }}
                                     >
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
@@ -1838,7 +1838,8 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                         borderRadius: isExpanded ? '0' : '32px 32px 0 0',
                         backgroundImage: 'none',
                         transition: 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        p: 0
                     }
                 }}
             >
@@ -1881,7 +1882,8 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                     backgroundImage: 'none',
                     boxShadow: 'none',
                     top: '88px',
-                    height: 'calc(100dvh - 88px)'
+                    height: 'calc(100dvh - 88px)',
+                    p: 0
                 }
             }}
         >
