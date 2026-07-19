@@ -1932,14 +1932,14 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                             <Stack direction="row" gap={0.5}>
                                                 <IconButton
                                                     size="small"
-                                                    onClick={(e) => { e.stopPropagation(); handleCopyAddress(pinnedWallet.address); }}
+                                                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleCopyAddress(pinnedWallet.address); }}
                                                     sx={{ p: 0.5, color: MUTED, '&:hover': { color: getNetworkColor(pinnedToken.toLowerCase() as any) } }}
                                                 >
                                                     <Copy size={12} />
                                                 </IconButton>
                                                 <IconButton
                                                     size="small"
-                                                    onClick={(e) => {
+                                                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                                                         e.stopPropagation();
                                                         const explorerUrl = getExplorerUrl(pinnedWallet);
                                                         if (explorerUrl) {
@@ -1955,7 +1955,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                             <Button
                                                 size="small"
                                                 variant="outlined"
-                                                onClick={(e) => { e.stopPropagation(); handleAddNetwork(pinnedToken.toLowerCase() as any); }}
+                                                onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleAddNetwork(pinnedToken.toLowerCase() as any); }}
                                                 disabled={pendingChain !== null}
                                                 sx={{
                                                     borderRadius: '8px',
