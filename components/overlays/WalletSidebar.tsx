@@ -1956,7 +1956,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                                 <Stack direction="row" gap={0.5}>
                                                     <IconButton
                                                         size="small"
-                                                        onClick={(e) => { e.stopPropagation(); handleCopyAddress(user.$id); }}
+                                                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleCopyAddress(user.$id); }}
                                                         sx={{ p: 0.5, color: MUTED, '&:hover': { color: ACCENT } }}
                                                         aria-label="Copy Kylrix wallet id"
                                                     >
@@ -1964,7 +1964,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                                     </IconButton>
                                                     <IconButton
                                                         size="small"
-                                                        onClick={(e) => { e.stopPropagation(); handleKylrixCardClick(); }}
+                                                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleKylrixCardClick(); }}
                                                         sx={{ p: 0.5, color: MUTED, '&:hover': { color: 'white' } }}
                                                         aria-label="Open Kylrix ledger"
                                                     >
