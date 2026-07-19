@@ -554,6 +554,26 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
         });
     };
 
+    const tokenToChain = (token: string): SupportedWalletChain => {
+        const map: Record<string, SupportedWalletChain> = {
+            'sol': 'sol',
+            'solana': 'sol',
+            'btc': 'btc',
+            'bitcoin': 'btc',
+            'eth': 'eth',
+            'ethereum': 'eth',
+            'usdc': 'usdc',
+            'base': 'base',
+            'polygon': 'polygon',
+            'pol': 'polygon',
+            'sui': 'sui',
+            'arbitrum': 'arbitrum',
+            'arb': 'arbitrum',
+            'kylrix': 'sol'
+        };
+        return map[token.toLowerCase()] || (token.toLowerCase() as SupportedWalletChain);
+    };
+
     const handleCopyAddress = (address: string) => {
         navigator.clipboard.writeText(address);
         toast.success('Address copied');
@@ -1545,7 +1565,9 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
     );
 
     const renderWalletContent = () => {
-        const pinnedWallet = pinnedToken === 'KYLRIX' ? null : orderedWallets.find((wallet) => wallet.chain === pinnedToken.toLowerCase()) || null;
+        const pinnedWallet = pinnedToken === 'KYLRIX' || pinnedToken === 'SOL'
+            ? null 
+            : orderedWallets.find((wallet) => wallet.chain === tokenToChain(pinnedToken)) || null;
 
         if (showSignConfirmation) {
             return renderSignConfirmation();
@@ -1882,168 +1904,266 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                         </Stack>
                         ) : (
                         <>
-                        {/* Pinned Solana + KYLRIX */}
-                        <Stack gap={1.5} sx={{ mb: 4 }}>
-                            <Typography variant="caption" sx={{ fontWeight: 800, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-satoshi)' }}>
-                                Pinned Network
-                            </Typography>
-                            <Paper
-                                onMouseDown={() => handlePressStart(pinnedToken)}
-                                onMouseUp={handlePressEnd}
-                                onMouseLeave={handlePressEnd}
-                                onTouchStart={() => handlePressStart(pinnedToken)}
-                                onTouchEnd={handlePressEnd}
-                                sx={{
-                                    px: 2.25,
-                                    py: 1.5,
-                                    borderRadius: '18px',
-                                    bgcolor: HIGHLIGHT,
-                                    border: `1px solid ${EDGE}`,
-                                    transition: 'all 0.2s ease',
-                                    cursor: 'pointer',
-                                    '&:hover': { bgcolor: SURFACE, borderColor: '#4A4743', transform: 'translateX(4px)' }
-                                }}
-                            >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
-                                    <Box sx={{
-                                        width: 38,
-                                        height: 38,
-                                        borderRadius: '12px',
-                                        bgcolor: '#252321',
-                                        display: 'grid',
-                                        placeItems: 'center',
-                                        flexShrink: 0,
-                                        color: getNetworkColor(pinnedToken.toLowerCase() as any) || ACCENT,
-                                        fontWeight: 800,
-                                        fontSize: '16px'
-                                    }}>
-                                        {pinnedToken === 'SOL' ? <PinnedNetworkIconSolana size={20} /> : pinnedToken === 'KYLRIX' ? <Logo app="root" variant="icon" size={20} /> : (getNetworkLogo(pinnedToken.toLowerCase() as any) || pinnedToken[0])}
+                            {/* Pinned Solana + KYLRIX */}
+                            <Stack gap={1.5} sx={{ mb: 4 }}>
+                                <Typography variant="caption" sx={{ fontWeight: 800, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-satoshi)' }}>
+                                    Pinned Network
+                                </Typography>
+                                
+                                {/* 1. Kylrix Card (Always Visible, Default Pinned) */}
+                                <Paper
+                                    onMouseDown={() => handlePressStart('KYLRIX')}
+                                    onMouseUp={handlePressEnd}
+                                    onMouseLeave={handlePressEnd}
+                                    onTouchStart={() => handlePressStart('KYLRIX')}
+                                    onTouchEnd={handlePressEnd}
+                                    sx={{
+                                        px: 2.25,
+                                        py: 1.5,
+                                        borderRadius: '18px',
+                                        bgcolor: HIGHLIGHT,
+                                        border: `1px solid ${EDGE}`,
+                                        transition: 'all 0.2s ease',
+                                        cursor: 'pointer',
+                                        '&:hover': { bgcolor: SURFACE, borderColor: '#4A4743', transform: 'translateX(4px)' },
+                                    }}
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                                        <Box sx={{
+                                            width: 38,
+                                            height: 38,
+                                            borderRadius: '12px',
+                                            bgcolor: '#252321',
+                                            display: 'grid',
+                                            placeItems: 'center',
+                                            flexShrink: 0,
+                                        }}>
+                                            <Logo app="root" variant="icon" size={20} />
+                                        </Box>
+                                        <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                                            <Typography component="span" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)', fontSize: '0.88rem', lineHeight: 1.25 }}>
+                                                Kylrix
+                                            </Typography>
+                                            <Typography component="span" sx={{ color: MUTED, fontFamily: 'var(--font-mono)', fontSize: '0.76rem', lineHeight: 1.35 }}>
+                                                {user?.$id ? shortenUserId(user.$id) : '—'}
+                                            </Typography>
+                                        </Box>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5, flexShrink: 0 }}>
+                                            <Typography component="span" sx={{ fontWeight: 900, color: ACCENT, fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: 1.2 }}>
+                                                {tokenBalance?.amount || '0'} {kylrixTicker(tokenBalance?.symbol)}
+                                            </Typography>
+                                            {user?.$id ? (
+                                                <Stack direction="row" gap={0.5}>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => { e.stopPropagation(); handleCopyAddress(user.$id); }}
+                                                        sx={{ p: 0.5, color: MUTED, '&:hover': { color: ACCENT } }}
+                                                        aria-label="Copy Kylrix wallet id"
+                                                    >
+                                                        <Copy size={12} />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => { e.stopPropagation(); handleKylrixCardClick(); }}
+                                                        sx={{ p: 0.5, color: MUTED, '&:hover': { color: 'white' } }}
+                                                        aria-label="Open Kylrix ledger"
+                                                    >
+                                                        <PanelRight size={12} />
+                                                    </IconButton>
+                                                </Stack>
+                                            ) : null}
+                                        </Box>
                                     </Box>
-                                    <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
-                                        <Typography component="span" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)', fontSize: '0.88rem', lineHeight: 1.25 }}>
-                                            {pinnedToken === 'KYLRIX' ? 'Kylrix' : (pinnedWallet?.label || pinnedToken)}
-                                        </Typography>
-                                        <Typography component="span" sx={{ color: MUTED, fontFamily: 'var(--font-mono)', fontSize: '0.76rem', lineHeight: 1.35 }}>
-                                            {pinnedToken === 'KYLRIX' ? (user?.$id ? shortenUserId(user.$id) : '—') : (pinnedWallet ? shortenAddress(pinnedWallet.address) : 'Provisioning required')}
-                                        </Typography>
-                                    </Box>
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5, flexShrink: 0 }}>
-                                        <Typography component="span" sx={{ fontWeight: 900, color: getNetworkColor(pinnedToken.toLowerCase() as any) || 'white', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: 1.2 }}>
-                                            {pinnedToken === 'KYLRIX' ? (tokenBalance?.amount || '0') : (onChainBalances[pinnedToken.toUpperCase()] || '0.00')} {pinnedToken === 'KYLRIX' ? kylrixTicker(tokenBalance?.symbol) : pinnedToken}
-                                        </Typography>
-                                        {pinnedToken !== 'KYLRIX' && pinnedWallet ? (
-                                            <Stack direction="row" gap={0.5}>
-                                                <IconButton
+                                </Paper>
+
+                                {/* 2. Solana Card (Always Visible, Default Pinned) */}
+                                <Paper
+                                    onMouseDown={() => handlePressStart('SOL')}
+                                    onMouseUp={handlePressEnd}
+                                    onMouseLeave={handlePressEnd}
+                                    onTouchStart={() => handlePressStart('SOL')}
+                                    onTouchEnd={handlePressEnd}
+                                    sx={{
+                                        px: 2.25,
+                                        py: 1.5,
+                                        borderRadius: '18px',
+                                        bgcolor: HIGHLIGHT,
+                                        border: `1px solid ${EDGE}`,
+                                        transition: 'all 0.2s ease',
+                                        cursor: 'pointer',
+                                        '&:hover': { bgcolor: SURFACE, borderColor: '#4A4743', transform: 'translateX(4px)' }
+                                    }}
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                                        <Box sx={{
+                                            width: 38,
+                                            height: 38,
+                                            borderRadius: '12px',
+                                            bgcolor: '#252321',
+                                            display: 'grid',
+                                            placeItems: 'center',
+                                            flexShrink: 0,
+                                            color: getNetworkColor('sol') || ACCENT,
+                                            fontWeight: 800,
+                                            fontSize: '16px'
+                                        }}>
+                                            <PinnedNetworkIconSolana size={20} />
+                                        </Box>
+                                        <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                                            <Typography component="span" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)', fontSize: '0.88rem', lineHeight: 1.25 }}>
+                                                {solWallet?.label || 'Solana'}
+                                            </Typography>
+                                            <Typography component="span" sx={{ color: MUTED, fontFamily: 'var(--font-mono)', fontSize: '0.76rem', lineHeight: 1.35 }}>
+                                                {solWallet ? shortenAddress(solWallet.address) : 'Provisioning required'}
+                                            </Typography>
+                                        </Box>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5, flexShrink: 0 }}>
+                                            <Typography component="span" sx={{ fontWeight: 900, color: getNetworkColor('sol'), fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: 1.2 }}>
+                                                {onChainBalances['SOL'] || '0.00'} SOL
+                                            </Typography>
+                                            {solWallet ? (
+                                                <Stack direction="row" gap={0.5}>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleCopyAddress(solWallet.address); }}
+                                                        sx={{ p: 0.5, color: MUTED, '&:hover': { color: getNetworkColor('sol') } }}
+                                                    >
+                                                        <Copy size={12} />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                                            e.stopPropagation();
+                                                            const explorerUrl = getExplorerUrl(solWallet);
+                                                            if (explorerUrl) {
+                                                                window.open(explorerUrl, '_blank', 'noopener,noreferrer');
+                                                            }
+                                                        }}
+                                                        sx={{ p: 0.5, color: MUTED, '&:hover': { color: 'white' } }}
+                                                    >
+                                                        <ExternalLink size={12} />
+                                                    </IconButton>
+                                                </Stack>
+                                            ) : (
+                                                <Button
                                                     size="small"
-                                                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleCopyAddress(pinnedWallet.address); }}
-                                                    sx={{ p: 0.5, color: MUTED, '&:hover': { color: getNetworkColor(pinnedToken.toLowerCase() as any) } }}
-                                                >
-                                                    <Copy size={12} />
-                                                </IconButton>
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                                                        e.stopPropagation();
-                                                        const explorerUrl = getExplorerUrl(pinnedWallet);
-                                                        if (explorerUrl) {
-                                                            window.open(explorerUrl, '_blank', 'noopener,noreferrer');
-                                                        }
+                                                    variant="outlined"
+                                                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleAddNetwork('sol'); }}
+                                                    disabled={pendingChain !== null}
+                                                    sx={{
+                                                        borderRadius: '8px',
+                                                        borderColor: EDGE,
+                                                        color: 'white',
+                                                        textTransform: 'none',
+                                                        fontSize: '0.72rem',
+                                                        px: 1.5,
+                                                        py: 0.5,
+                                                        fontFamily: 'var(--font-satoshi)',
+                                                        '&:hover': { bgcolor: HIGHLIGHT, borderColor: '#4A4743' }
                                                     }}
-                                                    sx={{ p: 0.5, color: MUTED, '&:hover': { color: 'white' } }}
                                                 >
-                                                    <ExternalLink size={12} />
-                                                </IconButton>
-                                            </Stack>
-                                        ) : pinnedToken !== 'KYLRIX' ? (
-                                            <Button
-                                                size="small"
-                                                variant="outlined"
-                                                onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleAddNetwork(pinnedToken.toLowerCase() as any); }}
-                                                disabled={pendingChain !== null}
-                                                sx={{
-                                                    borderRadius: '8px',
-                                                    borderColor: EDGE,
-                                                    color: 'white',
-                                                    textTransform: 'none',
-                                                    fontSize: '0.72rem',
-                                                    px: 1.5,
-                                                    py: 0.5,
-                                                    fontFamily: 'var(--font-satoshi)',
-                                                    '&:hover': { bgcolor: HIGHLIGHT, borderColor: '#4A4743' }
-                                                }}
-                                            >
-                                                Add {pinnedToken}
-                                            </Button>
-                                        ) : null}
+                                                    Add SOL
+                                                </Button>
+                                            )}
+                                        </Box>
                                     </Box>
-                                </Box>
-                            </Paper>
-                            
-                            <Paper
-                                onMouseDown={() => handlePressStart('KYLRIX')}
-                                onMouseUp={handlePressEnd}
-                                onMouseLeave={handlePressEnd}
-                                onTouchStart={() => handlePressStart('KYLRIX')}
-                                onTouchEnd={handlePressEnd}
-                                sx={{
-                                    px: 2.25,
-                                    py: 1.5,
-                                    borderRadius: '18px',
-                                    bgcolor: HIGHLIGHT,
-                                    border: `1px solid ${EDGE}`,
-                                    transition: 'all 0.2s ease',
-                                    cursor: 'pointer',
-                                    '&:hover': { bgcolor: SURFACE, borderColor: '#4A4743', transform: 'translateX(4px)' },
-                                }}
-                            >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
-                                    <Box sx={{
-                                        width: 38,
-                                        height: 38,
-                                        borderRadius: '12px',
-                                        bgcolor: '#252321',
-                                        display: 'grid',
-                                        placeItems: 'center',
-                                        flexShrink: 0,
-                                    }}>
-                                        <Logo app="root" variant="icon" size={20} />
-                                    </Box>
-                                    <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
-                                        <Typography component="span" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)', fontSize: '0.88rem', lineHeight: 1.25 }}>
-                                            Kylrix
-                                        </Typography>
-                                        <Typography component="span" sx={{ color: MUTED, fontFamily: 'var(--font-mono)', fontSize: '0.76rem', lineHeight: 1.35 }}>
-                                            {user?.$id ? shortenUserId(user.$id) : '—'}
-                                        </Typography>
-                                    </Box>
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5, flexShrink: 0 }}>
-                                        <Typography component="span" sx={{ fontWeight: 900, color: ACCENT, fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: 1.2 }}>
-                                            {tokenBalance?.amount || '0'} {kylrixTicker(tokenBalance?.symbol)}
-                                        </Typography>
-                                        {user?.$id ? (
-                                            <Stack direction="row" gap={0.5}>
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() => handleCopyAddress(user.$id)}
-                                                    sx={{ p: 0.5, color: MUTED, '&:hover': { color: ACCENT } }}
-                                                    aria-label="Copy Kylrix wallet id"
-                                                >
-                                                    <Copy size={12} />
-                                                </IconButton>
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() => handleKylrixCardClick()}
-                                                    sx={{ p: 0.5, color: MUTED, '&:hover': { color: 'white' } }}
-                                                    aria-label="Open Kylrix ledger"
-                                                >
-                                                    <PanelRight size={12} />
-                                                </IconButton>
-                                            </Stack>
-                                        ) : null}
-                                    </Box>
-                                </Box>
-                            </Paper>
-                        </Stack>
+                                </Paper>
+
+                                {/* 3. Custom Pinned Card (Rendered if pinnedToken is not KYLRIX and not SOL) */}
+                                {pinnedToken !== 'KYLRIX' && pinnedToken !== 'SOL' && (
+                                    <Paper
+                                        onMouseDown={() => handlePressStart(pinnedToken)}
+                                        onMouseUp={handlePressEnd}
+                                        onMouseLeave={handlePressEnd}
+                                        onTouchStart={() => handlePressStart(pinnedToken)}
+                                        onTouchEnd={handlePressEnd}
+                                        sx={{
+                                            px: 2.25,
+                                            py: 1.5,
+                                            borderRadius: '18px',
+                                            bgcolor: HIGHLIGHT,
+                                            border: `1px solid ${EDGE}`,
+                                            transition: 'all 0.2s ease',
+                                            cursor: 'pointer',
+                                            '&:hover': { bgcolor: SURFACE, borderColor: '#4A4743', transform: 'translateX(4px)' }
+                                        }}
+                                    >
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                                            <Box sx={{
+                                                width: 38,
+                                                height: 38,
+                                                borderRadius: '12px',
+                                                bgcolor: '#252321',
+                                                display: 'grid',
+                                                placeItems: 'center',
+                                                flexShrink: 0,
+                                                color: getNetworkColor(tokenToChain(pinnedToken)) || ACCENT,
+                                                fontWeight: 800,
+                                                fontSize: '16px'
+                                            }}>
+                                                {getNetworkLogo(tokenToChain(pinnedToken)) || pinnedToken[0]}
+                                            </Box>
+                                            <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                                                <Typography component="span" sx={{ fontWeight: 800, color: 'white', fontFamily: 'var(--font-satoshi)', fontSize: '0.88rem', lineHeight: 1.25 }}>
+                                                    {pinnedWallet?.label || pinnedToken}
+                                                </Typography>
+                                                <Typography component="span" sx={{ color: MUTED, fontFamily: 'var(--font-mono)', fontSize: '0.76rem', lineHeight: 1.35 }}>
+                                                    {pinnedWallet ? shortenAddress(pinnedWallet.address) : 'Provisioning required'}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5, flexShrink: 0 }}>
+                                                <Typography component="span" sx={{ fontWeight: 900, color: getNetworkColor(tokenToChain(pinnedToken)) || 'white', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: 1.2 }}>
+                                                    {onChainBalances[pinnedToken.toUpperCase()] || '0.00'} {pinnedToken}
+                                                </Typography>
+                                                {pinnedWallet ? (
+                                                    <Stack direction="row" gap={0.5}>
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleCopyAddress(pinnedWallet.address); }}
+                                                            sx={{ p: 0.5, color: MUTED, '&:hover': { color: getNetworkColor(tokenToChain(pinnedToken)) } }}
+                                                        >
+                                                            <Copy size={12} />
+                                                        </IconButton>
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                                                e.stopPropagation();
+                                                                const explorerUrl = getExplorerUrl(pinnedWallet);
+                                                                if (explorerUrl) {
+                                                                    window.open(explorerUrl, '_blank', 'noopener,noreferrer');
+                                                                }
+                                                            }}
+                                                            sx={{ p: 0.5, color: MUTED, '&:hover': { color: 'white' } }}
+                                                        >
+                                                            <ExternalLink size={12} />
+                                                        </IconButton>
+                                                    </Stack>
+                                                ) : (
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleAddNetwork(tokenToChain(pinnedToken)); }}
+                                                        disabled={pendingChain !== null}
+                                                        sx={{
+                                                            borderRadius: '8px',
+                                                            borderColor: EDGE,
+                                                            color: 'white',
+                                                            textTransform: 'none',
+                                                            fontSize: '0.72rem',
+                                                            px: 1.5,
+                                                            py: 0.5,
+                                                            fontFamily: 'var(--font-satoshi)',
+                                                            '&:hover': { bgcolor: HIGHLIGHT, borderColor: '#4A4743' }
+                                                        }}
+                                                    >
+                                                        Add {pinnedToken}
+                                                    </Button>
+                                                )}
+                                            </Box>
+                                        </Box>
+                                    </Paper>
+                                )}
+                            </Stack>
 
                         {/* Other Live Networks */}
                         {orderedWallets.filter(w => w.chain !== 'sol').length > 0 && (
