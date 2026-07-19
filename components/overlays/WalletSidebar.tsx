@@ -1208,7 +1208,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
             return renderKylrixDetail();
         }
         return (
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
                 {!user ? (
                     <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', px: 3 }}>
@@ -1877,7 +1877,9 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         overflow: 'hidden',
                         p: 0,
-                        margin: 0
+                        margin: 0,
+                        display: 'flex',
+                        flexDirection: 'column'
                     }
                 }}
             >
@@ -1888,7 +1890,8 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                         pb: 1,
                         display: 'flex',
                         justifyContent: 'center',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        flexShrink: 0
                     }}
                     onClick={() => setIsExpanded(!isExpanded)}
                 >
@@ -1901,7 +1904,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                         <Box sx={{ width: 40, height: 4, bgcolor: '#4A4743', borderRadius: '2px' }} />
                     )}
                 </Box>
-                <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
                     {renderHeader()}
                     {renderWalletContent()}
                 </Box>
@@ -1924,11 +1927,13 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                     boxShadow: 'none',
                     top: '88px',
                     height: 'calc(100dvh - 88px)',
-                    p: 0
+                    p: 0,
+                    display: 'flex',
+                    flexDirection: 'column'
                 }
             }}
         >
-            <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
                 {renderHeader()}
                 {renderWalletContent()}
             </Box>
