@@ -560,13 +560,16 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
     };
 
     const handlePinToken = async (token: string) => {
-        setPinnedToken(token);
+        const isCurrentPin = pinnedToken === token;
+        const targetToken = isCurrentPin ? 'SOL' : token;
+        
+        setPinnedToken(targetToken);
         if (typeof window !== 'undefined') {
-            localStorage.setItem('kylrix_pinned_token', token);
-            toast.success(`${token} pinned to dashboard`);
+            localStorage.setItem('kylrix_pinned_token', targetToken);
+            toast.success(isCurrentPin ? `${token} unpinned from dashboard` : `${token} pinned to dashboard`);
         }
         if (user) {
-            await account.updatePrefs({ kylrix_pinned_token: token }).catch(() => {});
+            await account.updatePrefs({ kylrix_pinned_token: targetToken }).catch(() => {});
         }
         setLongPressedToken(null);
     };
@@ -1969,7 +1972,7 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                                                     '&:hover': { bgcolor: HIGHLIGHT, borderColor: '#4A4743' }
                                                 }}
                                             >
-                                                Add SOL
+                                                Add {pinnedToken}
                                             </Button>
                                         ) : null}
                                     </Box>
@@ -2242,11 +2245,16 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                 }
             }}
         >
-            <Box sx={{ width: 40, height: 4, bgcolor: '#4A4743', borderRadius: '2px', alignSelf: 'center', mb: 1 }} />
+            <Box sx={{ width: 40, height: 4, bgcolor: '#3E3B37', borderRadius: '2px', alignSelf: 'center', mb: 1 }} />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: 'white' }}>
-                    Manage {longPressedToken}
-                </Typography>
+                <Box>
+                    <Typography sx={{ color: MUTED, fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--font-satoshi)', mb: 0.5 }}>
+                        Dashboard Settings
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 900, fontFamily: 'var(--font-clash)', color: 'white', fontSize: '1.2rem', lineHeight: 1.1 }}>
+                        Manage {longPressedToken}
+                    </Typography>
+                </Box>
                 <IconButton size="small" onClick={() => setLongPressedToken(null)} sx={{ color: MUTED, '&:hover': { color: 'white', bgcolor: HIGHLIGHT } }}>
                     <X size={20} />
                 </IconButton>
@@ -2257,16 +2265,16 @@ export const WalletSidebar = ({ isOpen, onClose, tokenIntent = null, onConsumeTo
                     variant="contained"
                     onClick={() => longPressedToken && handlePinToken(longPressedToken)}
                     sx={{
-                        bgcolor: ACCENT,
-                        color: 'black',
+                        bgcolor: pinnedToken === longPressedToken ? '#b91c1c' : ACCENT,
+                        color: pinnedToken === longPressedToken ? 'white' : 'black',
                         borderRadius: '14px',
                         fontWeight: 800,
                         textTransform: 'none',
                         py: 1.5,
-                        '&:hover': { bgcolor: '#eab308' }
+                        '&:hover': { bgcolor: pinnedToken === longPressedToken ? '#991b1b' : '#eab308' }
                     }}
                 >
-                    Pin {longPressedToken} to Dashboard
+                    {pinnedToken === longPressedToken ? `Unpin ${longPressedToken} from Dashboard` : `Pin ${longPressedToken} to Dashboard`}
                 </Button>
                 <Button
                     fullWidth
