@@ -160,6 +160,7 @@ async function flushGoalPending(
   goalId: string,
   queuedRevision: string,
   db: Awaited<ReturnType<typeof import('@/lib/webrtc/RxDBManager').getRxDB>> | null,
+  activeUserId: string | null
 ) {
   let payload: Task | null = getLiveGoalForSync(goalId);
 
@@ -177,7 +178,23 @@ async function flushGoalPending(
     return;
   }
 
-  if (goalId.startsWith('ghost-') || goalId.startsWith('live-')) {
+  if (activeUserId) {
+    if (!payload.userId || payload.userId === 'guest' || payload.userId === 'ghost') {
+      payload.userId = activeUserId;
+      if (db) {
+        await db.cache.upsert({
+          id: `goal_${goalId}`,
+          data: payload as any,
+          timestamp: Date.now()
+        }).catch(() => {});
+      }
+    } else if (payload.userId !== activeUserId) {
+      console.warn(`[SyncEngine] Skipped goal belonging to different user: ${payload.userId}`);
+      return;
+    }
+  }
+
+  if ((goalId.startsWith('ghost-') || goalId.startsWith('live-')) && !activeUserId) {
     // Guest/ephemeral — stay pending until claimed/migrated; do not hit Appwrite.
     return;
   }
@@ -271,6 +288,7 @@ async function flushNotePending(
   noteId: string,
   queuedRevision: string,
   db: Awaited<ReturnType<typeof import('@/lib/webrtc/RxDBManager').getRxDB>> | null,
+  activeUserId: string | null
 ) {
   let payload: Notes | null = getLiveNoteForSync(noteId);
 
@@ -285,6 +303,27 @@ async function flushNotePending(
 
   if (!payload) {
     console.warn(`[SyncEngine] No live payload for pending id: ${noteId}`);
+    return;
+  }
+
+  if (activeUserId) {
+    if (!payload.userId || payload.userId === 'guest' || payload.userId === 'ghost') {
+      payload.userId = activeUserId;
+      if (db) {
+        await db.cache.upsert({
+          id: `note_${noteId}`,
+          data: payload as any,
+          timestamp: Date.now()
+        }).catch(() => {});
+      }
+    } else if (payload.userId !== activeUserId) {
+      console.warn(`[SyncEngine] Skipped note belonging to different user: ${payload.userId}`);
+      return;
+    }
+  }
+
+  if ((noteId.startsWith('ghost-') || noteId.startsWith('live-')) && !activeUserId) {
+    // Guest/ephemeral — stay pending until claimed/migrated; do not hit Appwrite.
     return;
   }
 
@@ -437,6 +476,17 @@ export const autonomicSyncEngine = {
    */
   async runCycle() {
     if (isSyncing) return;
+
+    const { hasAuthSessionHint, getCurrentUserSnapshot } = await import('@/lib/appwrite');
+    const hasSession = hasAuthSessionHint();
+    const activeUser = getCurrentUserSnapshot();
+    const activeUserId = activeUser?.$id || null;
+
+    if (!hasSession && !activeUserId) {
+      // No account detected, stay offline
+      return;
+    }
+
     isSyncing = true;
 
     try {
@@ -468,9 +518,9 @@ export const autonomicSyncEngine = {
         try {
           const goalId = parseGoalPendingKey(pendingId);
           if (goalId) {
-            await flushGoalPending(pendingId, goalId, queuedRevision, db);
+            await flushGoalPending(pendingId, goalId, queuedRevision, db, activeUserId);
           } else {
-            await flushNotePending(pendingId, queuedRevision, db);
+            await flushNotePending(pendingId, queuedRevision, db, activeUserId);
           }
         } catch (err: any) {
           console.error(`[SyncEngine] Sync failed for item ${pendingId}:`, err);

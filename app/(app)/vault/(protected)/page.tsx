@@ -94,69 +94,7 @@ function DashboardPageContent() {
     if (!background) setLoading(true);
     try {
       if (!user?.$id) {
-        // Load ghost credentials from localStorage
-        const historyRaw = typeof window !== 'undefined' ? localStorage.getItem('kylrix_ghost_notes_v2') : null;
-        const ghostCreds: Credentials[] = [];
-        if (historyRaw) {
-          try {
-            const history = JSON.parse(historyRaw);
-            if (Array.isArray(history)) {
-              const { decryptGhostData } = await import('@/lib/encryption/ghost-crypto');
-              for (const item of history) {
-                const meta = (() => {
-                  try { return JSON.parse(item.metadata || '{}'); } catch { return {}; }
-                })();
-                if (meta?.send_object?.kind === 'password' || meta?.send_object?.kind === 'totp') {
-                  const decryptedContent = (item.content && item.decryptionKey)
-                    ? await decryptGhostData(item.content, item.decryptionKey)
-                    : (item.content || '');
-                  const payload = (() => {
-                    try { return JSON.parse(decryptedContent); } catch { return null; }
-                  })();
-                  if (payload) {
-                    ghostCreds.push({
-                      $id: item.id,
-                      $createdAt: item.createdAt,
-                      $updatedAt: item.createdAt,
-                      userId: 'ghost',
-                      itemType: meta.send_object.kind === 'password' ? 'login' : 'totp',
-                      name: item.title,
-                      url: null,
-                      notes: null,
-                      totpId: meta.send_object.kind === 'password' ? payload.totpSecret : payload.secret,
-                      username: meta.send_object.kind === 'password' ? payload.username : null,
-                      password: meta.send_object.kind === 'password' ? payload.password : null,
-                      cardNumber: null,
-                      cardholderName: null,
-                      cardExpiry: null,
-                      cardCVV: null,
-                      cardPIN: null,
-                      cardType: null,
-                      folderId: null,
-                      tags: [],
-                      customFields: null,
-                      faviconUrl: null,
-                      isFavorite: false,
-                      isDeleted: false,
-                      deletedAt: null,
-                      lastAccessedAt: null,
-                      passwordChangedAt: null,
-                      createdAt: item.createdAt,
-                      updatedAt: item.createdAt,
-                      attachments: null,
-                      isPinned: false,
-                      isPublic: false,
-                      isGuest: false,
-                    } as any);
-                  }
-                }
-              }
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        }
-        setAllCredentials(ghostCreds);
+        setAllCredentials([]);
         return;
       }
       const credentials = await listAllCredentials(user.$id);
@@ -195,16 +133,9 @@ function DashboardPageContent() {
       void hydrateVaultData();
     };
 
-    const handleGhostClaimed = () => {
-      console.log('[Vault] Ghost items claimed. Hydrating vault data...');
-      void hydrateVaultData();
-    };
-
     window.addEventListener('online', handleOnline);
-    window.addEventListener('kylrix:ghost-claimed', handleGhostClaimed);
     return () => {
       window.removeEventListener('online', handleOnline);
-      window.removeEventListener('kylrix:ghost-claimed', handleGhostClaimed);
     };
   }, [hydrateVaultData]);
 
