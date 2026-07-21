@@ -145,7 +145,7 @@ function triggerAutonomicSyncScheduler() {
 
 function revisionOf(note: Notes | null | undefined): string {
   if (!note) return '';
-  const u = note.updatedAt || note.$updatedAt;
+  const u: unknown = note.updatedAt || note.$updatedAt;
   if (!u) return '';
   try {
     if (typeof u === 'string') return u.trim();
@@ -161,7 +161,7 @@ function revisionOf(note: Notes | null | undefined): string {
 
 function goalRevisionOf(task: Task | null | undefined): string {
   if (!task) return '';
-  const u = task.updatedAt;
+  const u: unknown = task.updatedAt;
   if (!u) return '';
   try {
     if (typeof u === 'string') return u.trim();

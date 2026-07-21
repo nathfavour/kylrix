@@ -1481,10 +1481,11 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const getFilteredTasks = useCallback(() => {
     let sourceTasks = state.tasks;
     if (state.userId && state.userId !== 'guest') {
+      const activeId = state.userId;
       sourceTasks = state.tasks.filter((t) =>
-        !t.userId || t.userId === 'guest' || t.userId === state.userId ||
-        !t.creatorId || t.creatorId === 'guest' || t.creatorId === state.userId ||
-        (Array.isArray(t.assigneeIds) && t.assigneeIds.includes(state.userId))
+        !t.userId || t.userId === 'guest' || t.userId === activeId ||
+        !t.creatorId || t.creatorId === 'guest' || t.creatorId === activeId ||
+        (Boolean(activeId) && Array.isArray(t.assigneeIds) && t.assigneeIds.includes(activeId!))
       );
     } else {
       sourceTasks = state.tasks.filter((t) =>
