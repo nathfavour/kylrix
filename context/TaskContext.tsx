@@ -62,6 +62,7 @@ const mapAppwriteTaskToTask = (doc: AppwriteTask): Task => {
     timeEntries: [],
     assigneeIds: raw.assigneeIds || [],
     creatorId: raw.userId,
+    userId: raw.userId || 'guest',
     parentTaskId: raw.parentId || null,
     dueDate: raw.dueDate ? new Date(raw.dueDate) : undefined,
     createdAt: new Date(doc.$createdAt),
@@ -838,31 +839,32 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
         ghostTasksRef.current = [];
 
-        if (userId === 'guest') {
-            dispatchSyncedData({
-                tasks: [],
-                projects: [],
-            });
-            dispatch({ type: 'SET_LOADING', payload: false });
-            return;
-        }
-
-        // 1. Proactive Hydration (RxDB Substrate)
         const tasksKey = `f_tasks_${userId}`;
         const calsKey = `f_calendars_${userId}`;
         const COLD_START_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days authoritative window
 
-        const [cachedTasksRes, cachedCalsRes] = await Promise.all([
+        const [cachedTasksRes, cachedCalsRes, guestTasksRes] = await Promise.all([
             getCachedDataAsync<any>(tasksKey, COLD_START_TTL),
-            getCachedDataAsync<any>(calsKey, COLD_START_TTL)
+            getCachedDataAsync<any>(calsKey, COLD_START_TTL),
+            userId !== 'guest' ? getCachedDataAsync<any>('f_tasks_guest', COLD_START_TTL) : Promise.resolve(null),
         ]);
 
-        if (cachedTasksRes || cachedCalsRes) {
+        const combinedTasks = [
+          ...(cachedTasksRes?.rows || []),
+          ...(guestTasksRes?.rows || []),
+        ];
+
+        if (cachedTasksRes || cachedCalsRes || guestTasksRes) {
             console.log('[TaskContext] Cold-start hydration triggered via RxDB.');
             dispatchSyncedData({
-              tasks: (cachedTasksRes?.rows || []).map(mapAppwriteTaskToTask),
+              tasks: combinedTasks.map(mapAppwriteTaskToTask),
               projects: (cachedCalsRes?.rows || []).map(mapAppwriteCalendarToProject),
             });
+        }
+
+        if (userId === 'guest') {
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return;
         }
 
         // 2. Standard Background Refresh
@@ -1477,7 +1479,19 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
   // Computed values
   const getFilteredTasks = useCallback(() => {
-    let filtered = buildTaskHierarchy(state.tasks);
+    let sourceTasks = state.tasks;
+    if (state.userId && state.userId !== 'guest') {
+      sourceTasks = state.tasks.filter((t) =>
+        !t.userId || t.userId === 'guest' || t.userId === state.userId ||
+        !t.creatorId || t.creatorId === 'guest' || t.creatorId === state.userId ||
+        (Array.isArray(t.assigneeIds) && t.assigneeIds.includes(state.userId))
+      );
+    } else {
+      sourceTasks = state.tasks.filter((t) =>
+        !t.userId || t.userId === 'guest' || !t.creatorId || t.creatorId === 'guest'
+      );
+    }
+    let filtered = buildTaskHierarchy(sourceTasks);
 
     // Apply filters
     if (state.filter.status?.length) {
