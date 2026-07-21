@@ -28,6 +28,10 @@ import { ecosystemSecurity } from '@/lib/ecosystem/security';
 import { usePresence } from '@/components/providers/PresenceProvider';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { useCollaborativeNote } from '@/hooks/useCollaborativeNote';
+import { useAuth } from '@/context/auth/AuthContext';
+import { useNotes } from '@/context/NotesContext';
+import { autonomicSyncEngine } from '@/lib/services/sync-engine';
+import type { Notes } from '@/types/appwrite';
 
 interface AttachmentMeta { id: string; name: string; size: number; mime: string | null; }
 
@@ -142,6 +146,8 @@ export default function NoteEditor({
   const { fetchOptimized, setCachedData, getCachedData } = useDataNexus();
   const { promptSudo } = useSudo();
   const { joinResource, resourcePresence } = usePresence();
+  const { user } = useAuth();
+  const { pushLiveNote } = useNotes();
 
   useEffect(() => {
       if (effectiveNoteId) {
@@ -164,6 +170,35 @@ export default function NoteEditor({
     try {
       setIsSaving(true);
       setError(null);
+
+      if (!user?.$id) {
+        const id = effectiveNoteId || `note_${crypto.randomUUID()}`;
+        const localNote = {
+          $id: id,
+          $createdAt: new Date().toISOString(),
+          $updatedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          title: title.trim() || 'Untitled Thought',
+          content: content.trim() || '',
+          format: 'text',
+          tags: [],
+          userId: '',
+          isPublic: false,
+          isGuest: false,
+          metadata: '{}',
+        } as unknown as Notes;
+
+        pushLiveNote(localNote, { pending: true });
+        setCachedData(`note_${id}`, localNote);
+        autonomicSyncEngine.markPending(id, localNote.updatedAt);
+        if (!effectiveNoteId) {
+          setInternalNoteId(id);
+          onNoteCreated?.(localNote);
+        }
+        setIsSaving(false);
+        return;
+      }
+
       let saved: any;
       if (effectiveNoteId) {
         saved = await updateNote(effectiveNoteId, { 

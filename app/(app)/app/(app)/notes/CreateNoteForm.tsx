@@ -905,6 +905,34 @@ export default function CreateNoteForm({
       return saved;
     }
 
+    if (!user?.$id) {
+      const fallbackTitle = '';
+      const cardTitle = resolveNoteCardTitle(source.title || title, source.content) || fallbackTitle;
+      const localNote = {
+        $id: source.$id,
+        $createdAt: new Date().toISOString(),
+        $updatedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        title: cardTitle,
+        content: source.content || '',
+        format: 'text',
+        tags: normalizedTags,
+        userId: '',
+        isPublic: false,
+        isGuest: false,
+        metadata: '{}',
+      } as unknown as Notes;
+
+      pushLiveNote(localNote, { pending: true });
+      setCachedData(`note_${source.$id}`, localNote);
+      autonomicSyncEngine.markPending(source.$id, localNote.updatedAt);
+      if (!hasAnnouncedCreateRef.current) {
+        hasAnnouncedCreateRef.current = true;
+        onNoteCreated(localNote);
+      }
+      return localNote;
+    }
+
     let saved: Notes;
     const shouldCreate = shouldCreateComposeNote(source.$id);
 

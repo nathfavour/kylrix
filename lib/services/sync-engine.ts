@@ -199,8 +199,8 @@ async function flushGoalPending(
     }
   }
 
-  if ((goalId.startsWith('ghost-') || goalId.startsWith('live-')) && !activeUserId) {
-    // Guest/ephemeral — stay pending until claimed/migrated; do not hit Appwrite.
+  if (!activeUserId) {
+    // Guest mode — stay pending until claimed/migrated by a logged in user; do not hit Appwrite.
     return;
   }
 
@@ -327,8 +327,8 @@ async function flushNotePending(
     }
   }
 
-  if ((noteId.startsWith('ghost-') || noteId.startsWith('live-')) && !activeUserId) {
-    // Guest/ephemeral — stay pending until claimed/migrated; do not hit Appwrite.
+  if (!activeUserId) {
+    // Guest mode — stay pending until claimed/migrated by a logged in user; do not hit Appwrite.
     return;
   }
 
