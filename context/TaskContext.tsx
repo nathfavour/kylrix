@@ -764,29 +764,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   }, [fetchOptimized]);
 
   const dispatchSyncedData = useCallback((data: { tasks: Task[]; projects: Project[] }) => {
-    const historyRaw = typeof window !== 'undefined' ? localStorage.getItem('kylrix_ghost_notes_v2') : null;
-    const deletedIds = new Set<string>();
-    if (historyRaw) {
-      try {
-        const history = JSON.parse(historyRaw);
-        if (Array.isArray(history)) {
-          history.forEach((item: any) => {
-            const meta = (() => {
-              try { return JSON.parse(item.metadata || '{}'); } catch { return {}; }
-            })();
-            if (meta?._deleted === true) {
-              deletedIds.add(item.id);
-            }
-          });
-        }
-      } catch {}
-    }
-
-    // Same shape as pre-port hydrate: ghosts + server page (restores list).
-    const mergedTasks = [
-      ...ghostTasksRef.current,
-      ...data.tasks.filter((t) => !deletedIds.has(t.id)),
-    ];
+    const mergedTasks = data.tasks;
 
     // 1:1 with notes live guards: prefer in-memory live copy when engine still owes a flush
     // or local updatedAt is newer; keep local-only ids missing from this page.
@@ -809,7 +787,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     }
 
     for (const live of tasksRef.current) {
-      if (deletedIds.has(live.id)) continue;
       if (!byId.has(live.id)) byId.set(live.id, live);
     }
 
@@ -859,63 +836,11 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_USER', payload: userId });
         flowWarmOwnerRef.current = userId;
 
-        // Load ghost tasks and deleted IDs for ALL users (including guest and authenticated)
-        const historyRaw = typeof window !== 'undefined' ? localStorage.getItem('kylrix_ghost_notes_v2') : null;
-        let ghostTasks: Task[] = [];
-        const deletedIds = new Set<string>();
-        if (historyRaw) {
-            try {
-                const history = JSON.parse(historyRaw);
-                if (Array.isArray(history)) {
-                    const { decryptGhostData } = await import('@/lib/encryption/ghost-crypto');
-                    for (const item of history) {
-                        const meta = (() => {
-                            try { return JSON.parse(item.metadata || '{}'); } catch { return {}; }
-                        })();
-                        if (meta?._deleted === true) {
-                            deletedIds.add(item.id);
-                        } else if (meta?.send_object?.kind === 'task') {
-                            const decryptedContent = (item.content && item.decryptionKey)
-                                ? await decryptGhostData(item.content, item.decryptionKey)
-                                : (item.content || '');
-                            const payload = (() => {
-                                try { return JSON.parse(decryptedContent); } catch { return null; }
-                            })();
-                            if (payload) {
-                                ghostTasks.push({
-                                    id: item.id,
-                                    title: payload.title || item.title,
-                                    description: payload.detail || '',
-                                    status: payload.status || 'todo',
-                                    priority: payload.priority || 'medium',
-                                    labels: [],
-                                    subtasks: [],
-                                    comments: [],
-                                    attachments: [],
-                                    reminders: [],
-                                    timeEntries: [],
-                                    assigneeIds: [userId],
-                                    creatorId: userId,
-                                    dueDate: payload.dueAt ? new Date(payload.dueAt) : undefined,
-                                    createdAt: new Date(item.createdAt),
-                                    updatedAt: new Date(item.createdAt),
-                                    position: 0,
-                                    isArchived: false,
-                                    isPinned: false,
-                                });
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to load ghost tasks', e);
-            }
-        }
-        ghostTasksRef.current = ghostTasks;
+        ghostTasksRef.current = [];
 
         if (userId === 'guest') {
             dispatchSyncedData({
-                tasks: ghostTasks,
+                tasks: [],
                 projects: [],
             });
             dispatch({ type: 'SET_LOADING', payload: false });
@@ -1064,83 +989,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'position'>) => {
       try {
         const userId = state.userId || 'guest';
-        const isOffline = typeof window !== 'undefined' && !window.navigator.onLine;
-
-        if (userId === 'guest' || isOffline) {
-          // Save as ghost task in localStorage
-          const secret = localStorage.getItem('kylrix_ghost_secret_v2') || crypto.randomUUID();
-          const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-          const deletionSecret = crypto.randomUUID();
-          const { sha256HexUtf8 } = await import('@/lib/crypto/sha256-hex');
-          const creatorDeletionProofHash = await sha256HexUtf8(deletionSecret);
-
-          const taskPayload = {
-            title: task.title,
-            detail: task.description || '',
-            dueAt: task.dueDate ? task.dueDate.toISOString() : undefined,
-            priority: task.priority || 'medium',
-          };
-
-          const { encryptGhostData } = await import('@/lib/encryption/ghost-crypto');
-          const { encrypted: encTitle, key: noteKey } = await encryptGhostData(task.title);
-          const { encrypted: encContent } = await encryptGhostData(JSON.stringify(taskPayload), noteKey);
-
-          const id = `ghost-${crypto.randomUUID()}`;
-          const newRef = {
-            id,
-            title: encTitle,
-            content: encContent,
-            metadata: JSON.stringify({
-              isGhost: true,
-              ghostSecret: secret,
-              expiresAt,
-              isEncrypted: true,
-              creatorDeletionProofHash,
-              send_object: { kind: 'task' }
-            }),
-            createdAt: new Date().toISOString(),
-            expiresAt,
-            decryptionKey: noteKey,
-            deletionSecret,
-          };
-
-          const historyRaw = localStorage.getItem('kylrix_ghost_notes_v2');
-          let history = historyRaw ? JSON.parse(historyRaw) : [];
-          if (!Array.isArray(history)) history = [];
-          history.unshift(newRef);
-          localStorage.setItem('kylrix_ghost_notes_v2', JSON.stringify(history));
-          window.dispatchEvent(new Event('storage'));
-
-          const mappedTask: Task = {
-            id,
-            title: task.title,
-            description: task.description || '',
-            status: task.status,
-            priority: task.priority,
-            labels: task.labels || [],
-            subtasks: [],
-            comments: [],
-            attachments: [],
-            reminders: [],
-            timeEntries: [],
-            assigneeIds: ['guest'],
-            creatorId: 'guest',
-            dueDate: task.dueDate,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            position: 0,
-            isArchived: false,
-            isPinned: false,
-          };
-
-          dispatch({ type: 'ADD_TASK', payload: mappedTask });
-          void setCachedData(`goal_${id}`, mappedTask);
-          autonomicSyncEngine.markPending(goalPendingKey(id), mappedTask.updatedAt.toISOString());
-          autonomicSyncEngine.nudge();
-          return mappedTask;
-        }
-
-        // 1:1 ideas: live copy first (amber) — engine create/update. Do not await Appwrite here.
         const id = ID.unique();
         const mappedTask: Task = {
           id,
@@ -1156,7 +1004,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           attachments: [],
           reminders: [],
           timeEntries: [],
-          assigneeIds: task.assigneeIds || [],
+          assigneeIds: task.assigneeIds || (userId !== 'guest' ? [userId] : ['guest']),
           creatorId: userId,
           parentTaskId: task.parentTaskId || null,
           dueDate: task.dueDate,
@@ -1183,99 +1031,15 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   );
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
-    const isOffline = typeof window !== 'undefined' && !window.navigator.onLine;
-
-    if ((id.startsWith('ghost-') || isOffline) && typeof window !== 'undefined') {
-      const historyRaw = localStorage.getItem('kylrix_ghost_notes_v2');
-      if (historyRaw) {
-        try {
-          const history = JSON.parse(historyRaw);
-          const index = history.findIndex((n: any) => n.id === id);
-          if (index !== -1) {
-            const match = history[index];
-            const payload = JSON.parse(match.content || '{}');
-            const updatedPayload = {
-              ...payload,
-              title: updates.title !== undefined ? updates.title : payload.title,
-              detail: updates.description !== undefined ? updates.description : payload.detail,
-              dueAt: updates.dueDate !== undefined ? (updates.dueDate ? updates.dueDate.toISOString() : undefined) : payload.dueAt,
-              priority: updates.priority !== undefined ? updates.priority : payload.priority,
-              status: updates.status !== undefined ? updates.status : payload.status,
-            };
-
-            const { encryptGhostData } = await import('@/lib/encryption/ghost-crypto');
-            const { encrypted: encTitle, key: noteKey } = await encryptGhostData(updatedPayload.title);
-            const { encrypted: encContent } = await encryptGhostData(JSON.stringify(updatedPayload), noteKey);
-
-            history[index] = {
-              ...match,
-              title: encTitle,
-              content: encContent,
-              decryptionKey: noteKey,
-            };
-            localStorage.setItem('kylrix_ghost_notes_v2', JSON.stringify(history));
-            window.dispatchEvent(new Event('storage'));
-          } else {
-            // Standard task edited offline -> save as ghost note with standard ID!
-            const currentTask = state.tasks.find(t => t.id === id);
-            const taskPayload = {
-              title: updates.title !== undefined ? updates.title : (currentTask?.title || ''),
-              detail: updates.description !== undefined ? updates.description : (currentTask?.description || ''),
-              dueAt: updates.dueDate !== undefined ? (updates.dueDate ? updates.dueDate.toISOString() : undefined) : (currentTask?.dueDate ? currentTask.dueDate.toISOString() : undefined),
-              priority: updates.priority !== undefined ? updates.priority : (currentTask?.priority || 'medium'),
-              status: updates.status !== undefined ? updates.status : (currentTask?.status || 'todo'),
-            };
-
-            const { encryptGhostData } = await import('@/lib/encryption/ghost-crypto');
-            const noteKey = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
-            const { encrypted: encTitle } = await encryptGhostData(taskPayload.title, noteKey);
-            const { encrypted: encContent } = await encryptGhostData(JSON.stringify(taskPayload), noteKey);
-
-            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-            const deletionSecret = crypto.randomUUID();
-
-            const newRef = {
-              id,
-              title: encTitle,
-              content: encContent,
-              metadata: JSON.stringify({
-                isGhost: true,
-                expiresAt,
-                isEncrypted: true,
-                send_object: { kind: 'task' }
-              }),
-              createdAt: new Date().toISOString(),
-              expiresAt,
-              decryptionKey: noteKey,
-              deletionSecret,
-            };
-
-            history.unshift(newRef);
-            localStorage.setItem('kylrix_ghost_notes_v2', JSON.stringify(history));
-            window.dispatchEvent(new Event('storage'));
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      dispatch({ type: 'UPDATE_TASK', payload: { id, updates } });
-      const current = tasksRef.current.find((t) => t.id === id);
-      if (current) {
-        pushLiveGoal({ ...current, ...updates, id, updatedAt: new Date() });
-      } else {
-        autonomicSyncEngine.markPending(goalPendingKey(id), new Date().toISOString());
-      }
-      return;
-    }
-
     const currentTask = state.tasks.find(t => t.id === id);
-    if (!currentTask) return;
 
     const shareOnly =
       (updates.isPublic !== undefined || updates.isGuest !== undefined) &&
       Object.keys(updates).every((key) => key === 'isPublic' || key === 'isGuest');
+
+    dispatch({ type: 'UPDATE_TASK', payload: { id, updates } });
+
     if (shareOnly) {
-      dispatch({ type: 'UPDATE_TASK', payload: { id, updates } });
       return;
     }
 
@@ -1287,13 +1051,16 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       );
     }
 
-    // 1:1 notes: mutate live copy + engine pending — no detail-owned Appwrite write.
-    pushLiveGoal({
-      ...currentTask,
-      ...updates,
-      id,
-      updatedAt: new Date(),
-    });
+    if (currentTask) {
+      pushLiveGoal({
+        ...currentTask,
+        ...updates,
+        id,
+        updatedAt: new Date(),
+      });
+    } else {
+      autonomicSyncEngine.markPending(goalPendingKey(id), new Date().toISOString());
+    }
   }, [state.tasks, registerPendingStatus, pushLiveGoal]);
 
   const togglePinTask = useCallback(async (id: string) => {
@@ -1383,43 +1150,12 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   }, [state.projects, state.userId, isResourcePinned, togglePin, setLocalPin, invalidateTasksNexus]);
 
   const deleteTask = useCallback(async (id: string) => {
-    const isOffline = typeof window !== 'undefined' && !window.navigator.onLine;
-
-    if ((id.startsWith('ghost-') || isOffline) && typeof window !== 'undefined') {
-      const historyRaw = localStorage.getItem('kylrix_ghost_notes_v2');
-      if (historyRaw) {
-        try {
-          const history = JSON.parse(historyRaw);
-          const filtered = history.filter((n: any) => n.id !== id);
-          
-          if (isOffline && !id.startsWith('ghost-')) {
-            // Save deletion as a ghost note with _deleted: true
-            const newRef = {
-              id,
-              title: '',
-              content: '',
-              metadata: JSON.stringify({
-                isGhost: true,
-                _deleted: true,
-                send_object: { kind: 'task' }
-              }),
-              createdAt: new Date().toISOString(),
-              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-              decryptionKey: '',
-              deletionSecret: '',
-            };
-            filtered.unshift(newRef);
-          }
-
-          localStorage.setItem('kylrix_ghost_notes_v2', JSON.stringify(filtered));
-          window.dispatchEvent(new Event('storage'));
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      dispatch({ type: 'DELETE_TASK', payload: id });
-      return;
-    }
+    dispatch({ type: 'DELETE_TASK', payload: id });
+    try {
+      const { getRxDB } = await import('@/lib/webrtc/RxDBManager');
+      const db = await getRxDB();
+      await db.cache.findOne(`goal_${id}`).remove().catch(() => {});
+    } catch {}
 
     try {
       const collectDescendants = (taskId: string): string[] => {

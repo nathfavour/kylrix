@@ -59,32 +59,8 @@ export const ProjectsService = {
 
     const user = await getCurrentUser().catch(() => null);
     if (!user?.$id) {
-      const id = `ghost-project-${crypto.randomUUID()}`;
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-      const metadata = JSON.stringify({
-        isGhost: true,
-        send_object: { kind: 'project' }
-      });
-      
-      const historyRaw = localStorage.getItem('kylrix_ghost_notes_v2');
-      let history = historyRaw ? JSON.parse(historyRaw) : [];
-      if (!Array.isArray(history)) history = [];
-      
-      history.unshift({
-        id,
-        title: data.title || 'Untitled Project',
-        content: JSON.stringify({
-          description: data.summary || '',
-          status: data.status || 'active'
-        }),
-        metadata,
-        createdAt: new Date().toISOString(),
-        expiresAt
-      });
-      
-      localStorage.setItem('kylrix_ghost_notes_v2', JSON.stringify(history));
-      import('react-hot-toast').then(t => t.default.success('Project saved locally.'));
-      return { $id: id, title: data.title, summary: data.summary, status: data.status } as any;
+      const id = `project-${crypto.randomUUID()}`;
+      return { $id: id, title: data.title || 'Untitled Project', summary: data.summary || '', status: data.status || 'active', ownerId: 'guest' } as any;
     }
 
     if (typeof window !== 'undefined') {
