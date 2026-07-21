@@ -801,6 +801,9 @@ export async function createNoteSecure(data: any, jwt?: string) {
   }
 
   const { clampNoteTitle } = await import('@/constants/noteTitle');
+  if (data && typeof data === 'object') {
+    data.title = clampNoteTitle((data as any).title, 'Untitled Thought');
+  }
   const validated = NoteSchema.parse(data);
 
   // Mathematically tie the create operation to the current user
