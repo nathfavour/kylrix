@@ -285,6 +285,31 @@ export default function FormsDashboard() {
 
     return (
         <div className="animate-fadeIn p-4 md:px-0 md:py-8 min-h-screen bg-black">
+            {/* Tab Switcher */}
+            <div className="flex items-center gap-2 p-1 bg-white/[0.02] border border-white/5 rounded-2xl w-fit select-none mb-8">
+              <button
+                type="button"
+                onClick={() => router.push('/flow')}
+                className="px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all text-white/50 hover:text-white hover:bg-white/5"
+              >
+                Goals
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/flow/forms')}
+                className="px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all bg-[#A855F7] text-white shadow-[0_4px_12px_rgba(168,85,247,0.25)]"
+              >
+                Forms
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/flow/events')}
+                className="px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all text-white/50 hover:text-white hover:bg-white/5"
+              >
+                Events
+              </button>
+            </div>
+
             <MultiSectionContainer panels={['projects', 'huddles', 'goals']}>
                 <div className="flex justify-between items-center mb-8">
                     <div>

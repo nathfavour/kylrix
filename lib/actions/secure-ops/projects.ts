@@ -1208,7 +1208,9 @@ export async function createFormSecure(data: any, jwt?: string) {
       data: {
       ...data,
       userId: actor.$id,
-      status: data.status || 'draft',
+      status: data.status || 'published',
+      isPublic: data.isPublic !== undefined ? data.isPublic : true,
+      isGuest: data.isGuest !== undefined ? data.isGuest : true,
     },
       permissions: permissions,
     });
