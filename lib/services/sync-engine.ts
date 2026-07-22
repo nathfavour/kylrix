@@ -237,46 +237,36 @@ async function flushGoalPending(
   const flushRevision = goalRevisionOf(payload) || queuedRevision;
   const { tasks: taskApi, buildTaskPermissions } = await import('@/lib/kylrixflow');
 
-  let remote: Awaited<ReturnType<typeof taskApi.get>> | null = null;
-  try {
-    remote = await taskApi.get(goalId);
-  } catch {
-    remote = null;
-  }
-
-  const creatorId = payload.creatorId || activeUserId || (remote as any)?.userId || 'guest';
+  const creatorId = payload.creatorId || activeUserId || 'guest';
   const assignees = (payload.assigneeIds || []).filter(Boolean);
-  let permissions: string[] | undefined;
-  try {
-    const collab = remote ? await (await import('@/lib/kylrixflow')).taskCollaborators.list(goalId).catch(() => []) : [];
-    permissions = buildTaskPermissions(creatorId, assignees, collab as any);
-  } catch {
-    permissions = buildTaskPermissions(creatorId, assignees, []);
-  }
+  const permissions = buildTaskPermissions(creatorId, assignees, []);
 
   let synced: Awaited<ReturnType<typeof taskApi.update>>;
-  if (remote) {
+  try {
     synced = await taskApi.update(goalId, dataPayload as any, permissions);
-  } else {
-    synced = await taskApi.create(
-      {
-        ...(dataPayload as any),
-        $id: goalId,
-        userId: creatorId,
-      },
-      permissions,
-    );
-    // Match former addTask post-create: assignee collaborator rows
-    try {
-      const { taskCollaborators } = await import('@/lib/kylrixflow');
-      for (const assigneeId of assignees) {
-        if (!assigneeId || assigneeId === creatorId || assigneeId === 'guest') continue;
-        await taskCollaborators
-          .create(goalId, assigneeId, 'read', creatorId, permissions)
-          .catch(() => null);
-      }
-    } catch {
-      // non-fatal — row exists; access sync can retry later
+  } catch (err: any) {
+    const msg = String(err?.message || '').toLowerCase();
+    const isNotFound = msg.includes('not found') || err?.code === 404 || err?.status === 404;
+    if (isNotFound) {
+      synced = await taskApi.create(
+        {
+          ...(dataPayload as any),
+          $id: goalId,
+          userId: creatorId,
+        },
+        permissions,
+      );
+      try {
+        const { taskCollaborators } = await import('@/lib/kylrixflow');
+        for (const assigneeId of assignees) {
+          if (!assigneeId || assigneeId === creatorId || assigneeId === 'guest') continue;
+          await taskCollaborators
+            .create(goalId, assigneeId, 'read', creatorId, permissions)
+            .catch(() => null);
+        }
+      } catch {}
+    } else {
+      throw err;
     }
   }
 
@@ -369,21 +359,20 @@ async function flushNotePending(
 
   const flushRevision = revisionOf(payload) || queuedRevision;
 
-  let remoteNote: Notes | null = null;
-  try {
-    remoteNote = await getNote(noteId);
-  } catch {
-    remoteNote = null;
-  }
-
   let syncedNote: Notes;
-  if (remoteNote) {
+  try {
     syncedNote = await updateNote(noteId, dataPayload);
-  } else {
-    syncedNote = await createNote({
-      ...dataPayload,
-      $id: noteId,
-    });
+  } catch (err: any) {
+    const msg = String(err?.message || '').toLowerCase();
+    const isNotFound = msg.includes('not found') || err?.code === 404 || err?.status === 404;
+    if (isNotFound) {
+      syncedNote = await createNote({
+        ...dataPayload,
+        $id: noteId,
+      });
+    } else {
+      throw err;
+    }
   }
 
   if (db) {

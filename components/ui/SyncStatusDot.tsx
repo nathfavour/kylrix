@@ -29,7 +29,7 @@ export function SyncStatusDot({
     return (
       <span
         className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]"
-        title="Not saved yet"
+        title="Not synced"
       />
     );
   }
@@ -37,7 +37,7 @@ export function SyncStatusDot({
   return (
     <span
       className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"
-      title="Saved"
+      title="Synced"
     />
   );
 }
@@ -53,7 +53,7 @@ export function SyncStatusLabel({
   const pending = useEnginePending(resourceId ?? noteId);
   return (
     <span className="text-[10px] font-semibold text-[#9B9691]">
-      {pending ? 'Not saved yet' : 'Saved'}
+      {pending ? 'Not synced' : 'Synced'}
     </span>
   );
 }

@@ -470,7 +470,7 @@ export default function VaultTopbar({
 
             <Stack direction="row" alignItems="center" spacing={1.25} sx={{ flexShrink: 0 }}>
               {!user && (
-                <Tooltip title={loading ? 'Checking account...' : 'Connect'}>
+                <Tooltip title={loading ? 'Checking account...' : 'Sync'}>
                                     <Button
                                       onClick={() => {
                                         if (loading) return;
@@ -494,7 +494,7 @@ export default function VaultTopbar({
                     {loading ? (
                       <CircularProgress size={16} sx={{ color: 'inherit' }} />
                     ) : (
-                      <span>Connect</span>
+                      <span>Sync</span>
                     )}
                   </Button>
                 </Tooltip>
