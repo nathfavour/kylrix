@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useSection } from '@/context/SectionContext';
 import { buildAutoTitleFromContent } from '@/constants/noteTitle';
+import { toLocalDateInputString } from '@/lib/utils';
 import { useDynamicSidebar } from '@/components/ui/DynamicSidebar';
 import { useOverlay } from '@/components/ui/OverlayContext';
 import TaskDetails from './TaskDetails';
@@ -478,7 +479,7 @@ export default function TaskDialog() {
                 <label className="text-[10px] font-bold text-[#9B9691] tracking-wider uppercase font-clash">DEADLINE DATE</label>
                 <input
                   type="date"
-                  value={dueDate ? dueDate.toISOString().split('T')[0] : ''}
+                  value={toLocalDateInputString(dueDate)}
                   onChange={(e) => {
                     const val = e.target.value;
                     if (!val) {

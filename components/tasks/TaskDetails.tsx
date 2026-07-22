@@ -33,6 +33,7 @@ import {
   initGoalDiscussion,
   getResourceCollaborators,
 } from '@/lib/actions/client-ops';
+import { toLocalDateInputString } from '@/lib/utils';
 import { createComment, listComments, getNote } from '@/lib/appwrite/note';
 import { formatNoteCreatedDate } from '@/lib/date-utils';
 import { useAuth } from '@/context/auth/AuthContext';
@@ -939,7 +940,7 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
               <div className="flex items-center gap-1">
                 <input
                   type="date"
-                  value={task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''}
+                  value={toLocalDateInputString(task.dueDate)}
                   onChange={(e) => {
                     const val = e.target.value;
                     if (!val) {

@@ -444,9 +444,15 @@ export const autonomicSyncEngine = {
    * Also mirrors compose-draft membership for create-lifecycle helpers.
    */
   markPending(noteId: string, revision?: string | null) {
-    const id = String(noteId || '').trim();
-    if (!id) return;
+    const rawId = String(noteId || '').trim();
+    if (!rawId) return;
     const rev = String(revision || Date.now()).trim() || String(Date.now());
+
+    let id = rawId;
+    if (!parseGoalPendingKey(rawId) && getLiveGoalForSync(rawId)) {
+      id = goalPendingKey(rawId);
+    }
+
     pendingById.set(id, rev);
     if (!parseGoalPendingKey(id)) {
       markComposeDraft(id);
@@ -461,7 +467,8 @@ export const autonomicSyncEngine = {
     const id = String(noteId || '').trim();
     if (!id) return false;
     if (id.startsWith('live-') || id.startsWith('ghost-')) return true;
-    return pendingById.has(id);
+    if (pendingById.has(id)) return true;
+    return pendingById.has(goalPendingKey(id));
   },
 
   listPendingIds(): string[] {

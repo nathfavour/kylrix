@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { toLocalDateInputString } from '@/lib/utils';
 import {
   Box,
   Paper,
@@ -331,7 +332,7 @@ export default function CalendarView() {
     const byDate: Record<string, Task[]> = {};
     tasks.forEach(task => {
       if (task.dueDate && !task.isArchived) {
-        const dateKey = new Date(task.dueDate).toISOString().split('T')[0];
+        const dateKey = toLocalDateInputString(task.dueDate);
         if (!byDate[dateKey]) byDate[dateKey] = [];
         byDate[dateKey].push(task);
       }
