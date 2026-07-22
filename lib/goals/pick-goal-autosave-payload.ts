@@ -2,6 +2,7 @@
  * Goal (tasks table) autosave payload — never includes pending/sync UI fields.
  */
 
+import type { Task } from '@/types';
 import { clampNoteTitle } from '@/constants/noteTitle';
 
 export function pickGoalAutosavePayload(task: Task): Record<string, unknown> {

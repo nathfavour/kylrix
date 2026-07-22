@@ -29,7 +29,7 @@ import {
 import { buildPublicResourceUrl } from '@/lib/share/public-url';
 import { toggleResourcePublicGuest } from '@/lib/actions/client-ops';
 import { SyncStatusDot, SyncStatusLabel } from '@/components/ui/SyncStatusDot';
-import { useOverlay } from '@/components/ui/OverlayContext';
+import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import toast from 'react-hot-toast';
 
 export default function CredentialDetail({
@@ -48,7 +48,7 @@ export default function CredentialDetail({
   const [copied, setCopied] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(!!credential.isPublic);
   const { requestSudo } = useSudo();
-  const { openUnified } = useOverlay();
+  const { open: openUnified } = useUnifiedDrawer();
 
   const handleShareLink = useCallback(async () => {
     try {

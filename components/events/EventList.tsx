@@ -170,6 +170,8 @@ export default function EventList() {
 
       const newDoc = await eventApi.create(
         {
+          userId: currentUserId || 'guest',
+          calendarId: '',
           title: eventData.title,
           description: eventData.description || '',
           startTime: eventData.startTime.toISOString(),
