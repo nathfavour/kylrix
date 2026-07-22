@@ -3,10 +3,10 @@
 /**
  * UnifiedFileAttachmentDrawer — 3-Tab Unified Attachment Drawer.
  * Tabs:
- *   1. 'objects' (Default) with sub-tabs: Goals, Ideas, Forms, Events, Vault, Tags.
- *      Hydrates 0ms from RxDB & LocalEngine local stores. Displays "Encrypted" badge when items are encrypted.
- *   2. 'synced': Synced Media from Storage Buckets cached in LocalEngine (0ms Local Copy).
- *   3. 'upload': Drag-and-drop or upload new file.
+ *   1. 'objects' (Default) with sub-tabs: Goals, Ideas, Projects, Threads, TOTPs, Forms, Events, Vault, Tags.
+ *      Fully hydrated from live SDK getters + RxDB + LocalEngine. Displays "Encrypted" badge when items are encrypted.
+ *   2. 'synced': Synced Media from Storage Buckets cached in LocalEngine (0ms Local Copy + Live Refresh).
+ *   3. 'upload': Drag-and-drop or file uploader.
  *
  * Fullscreen Expansion Supported.
  */
@@ -32,6 +32,9 @@ import {
   Minimize2,
   Lock,
   Sparkles,
+  FolderKanban,
+  MessageSquare,
+  ShieldAlert,
 } from 'lucide-react';
 import { useUnifiedFileDrawer, SyncedMediaFile } from '@/context/UnifiedFileDrawerContext';
 import { LocalEngine } from '@/lib/services/LocalEngine';
@@ -39,6 +42,10 @@ import { StorageService } from '@/lib/services/storage';
 import { getRxDB } from '@/lib/webrtc/RxDBManager';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useNotes } from '@/context/NotesContext';
+import { getAllTags, listNotesPaginated } from '@/lib/appwrite';
+import { ProjectsService } from '@/lib/appwrite/projects';
+import { listVaultItems } from '@/lib/appwrite/vault';
+import { tasks, calendars } from '@/lib/kylrixflow';
 
 const BUCKETS = [
   'notes_attachments',
@@ -49,7 +56,16 @@ const BUCKETS = [
 ];
 
 type MainTab = 'objects' | 'synced' | 'upload';
-type ObjectSubTab = 'goals' | 'ideas' | 'forms' | 'events' | 'vault' | 'tags';
+type ObjectSubTab =
+  | 'goals'
+  | 'ideas'
+  | 'projects'
+  | 'threads'
+  | 'totps'
+  | 'forms'
+  | 'events'
+  | 'vault'
+  | 'tags';
 
 export function UnifiedFileAttachmentDrawer() {
   const { isOpen, options, closeFileDrawer } = useUnifiedFileDrawer();
@@ -69,7 +85,7 @@ export function UnifiedFileAttachmentDrawer() {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<SyncedMediaFile | null>(null);
 
-  // 1. Direct Local Copy Hydration from RxDB + LocalEngine + Context
+  // 1. Comprehensive Local & Live SDK Hydration for All Object Types
   const loadLocalObjects = useCallback(async () => {
     setLoading(true);
     try {
@@ -77,31 +93,72 @@ export function UnifiedFileAttachmentDrawer() {
       const db = await getRxDB();
 
       if (activeSubTab === 'ideas') {
-        // Pull ideas/notes directly from RxDB & NotesContext
-        const rxNotes = (await db.notes.find().exec()).map((d) => d.toJSON());
-        items = rxNotes.length > 0 ? rxNotes : localContextNotes || [];
+        // Ideas / Notes
+        items = localContextNotes && localContextNotes.length > 0 ? localContextNotes : [];
+        if (items.length === 0) {
+          const rxNotes = (await db.notes.find().exec()).map((d) => d.toJSON());
+          items = rxNotes;
+        }
+        if (items.length === 0) {
+          const res = await listNotesPaginated({ limit: 100 });
+          items = res.rows || [];
+        }
       } else if (activeSubTab === 'goals') {
-        // Pull goals/tasks directly from RxDB
-        items = (await db.tasks.find().exec()).map((d) => d.toJSON());
+        // Goals / Tasks
+        try {
+          const res = await tasks.list();
+          items = res.rows || [];
+        } catch (_e) {
+          items = (await db.tasks.find().exec()).map((d) => d.toJSON());
+        }
+      } else if (activeSubTab === 'projects') {
+        // Projects
+        try {
+          const res = await ProjectsService.listProjects(true);
+          items = res.rows || [];
+        } catch (_e) {
+          items = (await LocalEngine.cacheGet<any[]>('f_projects_list')) || [];
+        }
+      } else if (activeSubTab === 'threads') {
+        // Threads / Discussions
+        const allNotes = (await db.notes.find().exec()).map((d) => d.toJSON());
+        items = allNotes.filter((n: any) => n.isThread || n.isDiscussion || n.isGhost);
+        if (items.length === 0) {
+          items = (await LocalEngine.cacheGet<any[]>('f_threads_list')) || [];
+        }
+      } else if (activeSubTab === 'totps') {
+        // TOTPs / Credentials
+        try {
+          const res = await listVaultItems();
+          items = (res.rows || []).filter((item: any) => item.type === 'totp' || item.secret || item.totpSecret);
+        } catch (_e) {
+          items = (await LocalEngine.cacheGet<any[]>(`f_keychain_${userId}`)) || [];
+        }
+      } else if (activeSubTab === 'vault') {
+        // Vault Items / Secrets
+        try {
+          const res = await listVaultItems();
+          items = res.rows || [];
+        } catch (_e) {
+          items = (await LocalEngine.cacheGet<any[]>(`f_keychain_${userId}`)) || [];
+        }
+      } else if (activeSubTab === 'tags') {
+        // Tags
+        try {
+          const res = await getAllTags();
+          items = res.rows || [];
+        } catch (_e) {
+          items = (await db.tags.find().exec()).map((d) => d.toJSON());
+        }
       } else if (activeSubTab === 'forms') {
         items = (await db.forms.find().exec()).map((d) => d.toJSON());
       } else if (activeSubTab === 'events') {
-        items = (await db.events.find().exec()).map((d) => d.toJSON());
-      } else if (activeSubTab === 'tags') {
-        items = (await db.tags.find().exec()).map((d) => d.toJSON());
-      } else if (activeSubTab === 'vault') {
-        const cacheItems = (await db.cache.find().exec()).map((d) => d.toJSON());
-        items = cacheItems.filter((c: any) => c.id?.includes('vault') || c.id?.includes('keychain'));
-      }
-
-      // Fallback to LocalEngine cache key if RxDB array empty
-      if (items.length === 0) {
-        const fallback =
-          (await LocalEngine.cacheGet<any[]>(`f_${activeSubTab}_${userId}`)) ||
-          (await LocalEngine.cacheGet<any[]>(`f_user_${activeSubTab}_${userId}`)) ||
-          (await LocalEngine.cacheGet<any[]>(`f_${activeSubTab}_list`)) ||
-          [];
-        items = fallback;
+        try {
+          const res = await calendars.list();
+          items = res.rows || [];
+        } catch (_e) {
+          items = (await db.events.find().exec()).map((d) => d.toJSON());
+        }
       }
 
       setObjectItems(items);
@@ -112,7 +169,7 @@ export function UnifiedFileAttachmentDrawer() {
     }
   }, [activeSubTab, userId, localContextNotes]);
 
-  // Load Synced Media from LocalEngine + Storage
+  // Load Synced Media from LocalEngine + Storage Buckets
   const loadSyncedMedia = useCallback(async () => {
     try {
       const cachedMedia = await LocalEngine.cacheGet<SyncedMediaFile[]>(`f_user_media_${userId}`);
@@ -120,30 +177,30 @@ export function UnifiedFileAttachmentDrawer() {
         setMediaFiles(cachedMedia);
       }
 
-      if (typeof navigator !== 'undefined' && navigator.onLine) {
-        const fetchedFiles: SyncedMediaFile[] = [];
-        for (const bucketId of BUCKETS) {
-          try {
-            const listRes = await StorageService.listFiles(bucketId, [], 50);
-            if (listRes?.files) {
-              listRes.files.forEach((f: any) => {
-                fetchedFiles.push({
-                  $id: f.$id,
-                  name: f.name,
-                  bucketId,
-                  sizeOriginal: f.sizeOriginal || f.size || 0,
-                  mimeType: f.mimeType,
-                  createdAt: f.$createdAt || f.createdAt,
-                  fileUrl: StorageService.getFileView(f.$id, bucketId),
-                });
+      // Live fetch across storage buckets
+      const fetchedFiles: SyncedMediaFile[] = [];
+      for (const bucketId of BUCKETS) {
+        try {
+          const listRes = await StorageService.listFiles(bucketId, [], 50);
+          if (listRes?.files) {
+            listRes.files.forEach((f: any) => {
+              fetchedFiles.push({
+                $id: f.$id,
+                name: f.name,
+                bucketId,
+                sizeOriginal: f.sizeOriginal || f.size || 0,
+                mimeType: f.mimeType,
+                createdAt: f.$createdAt || f.createdAt,
+                fileUrl: StorageService.getFileView(f.$id, bucketId),
               });
-            }
-          } catch (_e) {}
-        }
-        if (fetchedFiles.length > 0) {
-          setMediaFiles(fetchedFiles);
-          await LocalEngine.cacheSet(`f_user_media_${userId}`, fetchedFiles);
-        }
+            });
+          }
+        } catch (_e) {}
+      }
+
+      if (fetchedFiles.length > 0) {
+        setMediaFiles(fetchedFiles);
+        await LocalEngine.cacheSet(`f_user_media_${userId}`, fetchedFiles);
       }
     } catch (_err) {}
   }, [userId]);
@@ -170,8 +227,12 @@ export function UnifiedFileAttachmentDrawer() {
       rawReference = `[Idea: ${itemTitle}](file://notes/${item.$id || item.id})`;
     } else if (activeSubTab === 'goals') {
       rawReference = `[Goal: ${itemTitle}](source:kylrixgoal:${item.$id || item.id})`;
-    } else if (activeSubTab === 'forms') {
-      rawReference = `[Form: ${itemTitle}](source:kylrixform:${item.$id || item.id})`;
+    } else if (activeSubTab === 'projects') {
+      rawReference = `[Project: ${itemTitle}](source:kylrixproject:${item.$id || item.id})`;
+    } else if (activeSubTab === 'threads') {
+      rawReference = `[Thread: ${itemTitle}](source:kylrixthread:${item.$id || item.id})`;
+    } else if (activeSubTab === 'totps') {
+      rawReference = `[TOTP: ${itemTitle}](source:kylrixvault:${item.$id || item.id})`;
     }
 
     options.onSelectFile({
@@ -279,7 +340,7 @@ export function UnifiedFileAttachmentDrawer() {
           </div>
         </div>
 
-        {/* Main 3-Tab Switcher */}
+        {/* Main 3-Tab Switcher (Objects, Synced, Upload) */}
         <div className="flex items-center gap-2 mt-4 p-1.5 bg-[#0A0908] rounded-2xl border border-[#1C1A18]">
           <button
             onClick={() => setActiveTab('objects')}
@@ -299,7 +360,7 @@ export function UnifiedFileAttachmentDrawer() {
                 : 'text-[#9B9691] hover:text-[#F5F2ED]'
             }`}
           >
-            Synced Media ({mediaFiles.length})
+            Synced ({mediaFiles.length})
           </button>
           <button
             onClick={() => setActiveTab('upload')}
@@ -309,11 +370,11 @@ export function UnifiedFileAttachmentDrawer() {
                 : 'text-[#9B9691] hover:text-[#F5F2ED]'
             }`}
           >
-            Upload New
+            Upload
           </button>
         </div>
 
-        {/* Tab 1: Objects (Goals, Ideas, Forms, Events, Vault, Tags) */}
+        {/* Tab 1: Objects */}
         {activeTab === 'objects' && (
           <div className="flex-1 flex flex-col overflow-hidden mt-4">
             {/* Scrollable Sub-Tabs */}
@@ -321,6 +382,9 @@ export function UnifiedFileAttachmentDrawer() {
               {[
                 { id: 'goals', label: 'Goals', icon: Target },
                 { id: 'ideas', label: 'Ideas', icon: FileText },
+                { id: 'projects', label: 'Projects', icon: FolderKanban },
+                { id: 'threads', label: 'Threads', icon: MessageSquare },
+                { id: 'totps', label: 'TOTPs', icon: ShieldAlert },
                 { id: 'forms', label: 'Forms', icon: FileCode },
                 { id: 'events', label: 'Events', icon: Calendar },
                 { id: 'vault', label: 'Vault', icon: Key },
@@ -363,7 +427,7 @@ export function UnifiedFileAttachmentDrawer() {
                 </div>
               ) : filteredObjects.length === 0 ? (
                 <div className="text-center py-16 text-[#9B9691] text-xs">
-                  No local {activeSubTab} found in local engine.
+                  No local {activeSubTab} found.
                 </div>
               ) : (
                 filteredObjects.map((item, idx) => {
@@ -409,7 +473,7 @@ export function UnifiedFileAttachmentDrawer() {
           </div>
         )}
 
-        {/* Tab 2: Synced Media (0ms Instant Selection) */}
+        {/* Tab 2: Synced */}
         {activeTab === 'synced' && (
           <div className="flex-1 flex flex-col overflow-hidden mt-4">
             <div className="relative mb-3">
@@ -424,9 +488,15 @@ export function UnifiedFileAttachmentDrawer() {
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar">
-              {mediaFiles.length === 0 ? (
-                <div className="text-center py-16 text-[#9B9691] text-xs">
-                  No synced media found.
+              {filteredMedia.length === 0 ? (
+                <div className="text-center py-16 text-[#9B9691] text-xs flex flex-col items-center gap-2">
+                  <span>No synced media files found in local storage.</span>
+                  <button
+                    onClick={() => void loadSyncedMedia()}
+                    className="mt-2 px-3 py-1.5 rounded-xl bg-[#0A0908] border border-[#1C1A18] text-[#A855F7] text-xs font-bold hover:bg-[#161412]"
+                  >
+                    Refresh Media Storage
+                  </button>
                 </div>
               ) : (
                 filteredMedia.map((file) => {
@@ -478,7 +548,7 @@ export function UnifiedFileAttachmentDrawer() {
           </div>
         )}
 
-        {/* Tab 3: Upload New */}
+        {/* Tab 3: Upload */}
         {activeTab === 'upload' && (
           <div className="flex-1 flex flex-col items-center justify-center py-16 mt-4 border-2 border-dashed border-[#1C1A18] rounded-2xl bg-[#0A0908]">
             {uploading ? (
