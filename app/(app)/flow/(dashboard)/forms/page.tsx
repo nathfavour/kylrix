@@ -28,6 +28,7 @@ import { useAuth } from '@/context/auth/AuthContext';
 import { useResourcePins } from '@/context/ResourcePinContext';
 import { useRouter } from 'next/navigation';
 import { useDataNexus } from '@/context/DataNexusContext';
+import { SyncStatusDot } from '@/components/ui/SyncStatusDot';
 import { toast } from 'react-hot-toast';
 
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
@@ -452,22 +453,23 @@ export default function FormsDashboard() {
                                                 >
                                                     <div>
                                                         <div className="flex justify-between items-center mb-4">
-                                                            <div className="flex items-center gap-2">
-                                                                <span 
-                                                                    className="text-[9px] font-bold font-mono px-2 py-0.5 rounded border tracking-wider" 
-                                                                    style={{ 
-                                                                        color: getStatusColor(form.status || 'draft'),
-                                                                        borderColor: getStatusColor(form.status || 'draft')
-                                                                    }}
-                                                                >
-                                                                    {(form.status || 'draft').toUpperCase()}
-                                                                </span>
-                                                                {formDraftStatus[form.$id] && (
-                                                                    <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded border bg-[#1C1A18] text-[#FFB020] border-[#FFB020] tracking-wider">
-                                                                        UNSYNCED
-                                                                    </span>
-                                                                )}
-                                                            </div>
+                                                             <div className="flex items-center gap-2">
+                                                                 <span 
+                                                                     className="text-[9px] font-bold font-mono px-2 py-0.5 rounded border tracking-wider" 
+                                                                     style={{ 
+                                                                         color: getStatusColor(form.status || 'draft'),
+                                                                         borderColor: getStatusColor(form.status || 'draft')
+                                                                     }}
+                                                                 >
+                                                                     {(form.status || 'draft').toUpperCase()}
+                                                                 </span>
+                                                                 <SyncStatusDot resourceId={form.$id} />
+                                                                 {formDraftStatus[form.$id] && (
+                                                                     <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded border bg-[#1C1A18] text-[#FFB020] border-[#FFB020] tracking-wider">
+                                                                         UNSYNCED
+                                                                     </span>
+                                                                 )}
+                                                             </div>
                                                             <div className="flex items-center gap-0.5">
                                                                 <button
                                                                     type="button"

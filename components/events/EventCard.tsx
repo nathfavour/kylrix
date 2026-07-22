@@ -24,6 +24,7 @@ import { useContextMenu } from '@/components/ui/ContextMenuContext';
 import { ShareLockButton } from '@/components/share/ShareLockButton';
 import { useAccessControlMenuItems } from '@/components/share/AccessControlMenuItems';
 import { events as eventApi } from '@/lib/kylrixflow';
+import { SyncStatusDot } from '@/components/ui/SyncStatusDot';
 import toast from 'react-hot-toast';
 
 interface EventCardProps {
@@ -214,9 +215,12 @@ export default function EventCard({ event, onClick, onDelete }: EventCardProps) 
 
       <div className="flex-grow p-6 flex flex-col justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold font-clash text-white tracking-tight leading-snug line-clamp-2 mb-2">
-            {event.title}
-          </h2>
+          <div className="flex items-center gap-1.5 min-w-0 mb-2">
+            <h2 className="text-base font-bold font-clash text-white tracking-tight leading-snug line-clamp-2">
+              {event.title}
+            </h2>
+            <SyncStatusDot resourceId={event.id} />
+          </div>
           <div className="flex items-center gap-2 text-[#9B9691] mb-1.5">
             <Clock size={14} className="shrink-0" />
             <span className="text-[11px] font-semibold font-satoshi">

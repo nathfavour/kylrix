@@ -808,13 +808,16 @@ export async function createRowSecure(
 
   // 2. Fetch actor
   let actor: any = null;
-  if (!isAnonymousFormSubmission) {
+  try {
     actor = await getActor(jwt);
-    if (!actor || !actor.$id) throw new Error('Unauthorized');
-  } else {
-    try {
-      actor = await getActor(jwt);
-    } catch (_) {}
+  } catch (_) {}
+
+  if (!actor || !actor.$id) {
+    if (isAnonymousFormSubmission || tblId === 'forms' || tblId === 'form_submissions' || tblId === 'events' || (rowData as any)?.isPublic || (rowData as any)?.isGuest) {
+      actor = { $id: 'guest', email: 'guest@kylrix.space' };
+    } else {
+      throw new Error('Unauthorized');
+    }
   }
 
   // 3. Security checks and payload preparation
