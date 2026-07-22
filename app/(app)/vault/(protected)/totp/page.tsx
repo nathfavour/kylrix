@@ -17,6 +17,7 @@ import { ShareLockButton } from '@/components/share/ShareLockButton';
 import { useAccessControlMenuItems } from '@/components/share/AccessControlMenuItems';
 import { useMemo, useCallback } from 'react';
 import SudoModal from '@/components/overlays/SudoModal';
+import { SyncStatusDot } from '@/components/ui/SyncStatusDot';
 
 export const dynamic = 'force-dynamic';
 
@@ -96,16 +97,41 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
 
   useEffect(() => {
     if (!user?.$id) return;
+    if (!isVaultUnlocked()) return;
 
-    if (!isVaultUnlocked()) {
-      return;
-    }
+    const cacheKey = `vault_totp_${user.$id}`;
+    let isCancelled = false;
 
-    setLoading(true);
+    (async () => {
+      try {
+        const { getRxDB } = await import('@/lib/webrtc/RxDBManager');
+        const db = await getRxDB().catch(() => null);
+        if (db) {
+          const cachedDoc = await db.cache.findOne(cacheKey).exec().catch(() => null);
+          if (cachedDoc?.data && Array.isArray(cachedDoc.data) && !isCancelled) {
+            setTotpCodes(cachedDoc.data as TotpItem[]);
+            setLoading(false);
+          }
+        }
+      } catch {}
+    })();
+
     Promise.allSettled([listTotpSecrets(user.$id), listFolders(user.$id)])
-      .then(([secretsResult, foldersResult]) => {
+      .then(async ([secretsResult, foldersResult]) => {
+        if (isCancelled) return;
         if (secretsResult.status === "fulfilled") {
           setTotpCodes(secretsResult.value);
+          try {
+            const { getRxDB } = await import('@/lib/webrtc/RxDBManager');
+            const db = await getRxDB().catch(() => null);
+            if (db) {
+              await db.cache.upsert({
+                id: cacheKey,
+                data: secretsResult.value as any,
+                timestamp: Date.now(),
+              }).catch(() => {});
+            }
+          } catch {}
         } else {
           console.error("Failed to fetch TOTP secrets", secretsResult.reason);
         }
@@ -118,9 +144,14 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
       })
       .catch((err) => {
         console.error("Error loading TOTP data:", err);
-        toast.error("Failed to load data.");
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!isCancelled) setLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [user, showNew, isVaultUnlocked]);
 
   useEffect(() => {
@@ -417,8 +448,11 @@ export function TOTPPageContent({ isTabMode = false }: { isTabMode?: boolean }) 
           )}
 
           <div className="min-w-0 flex-1">
-            <div className="text-[1.05rem] font-extrabold text-white font-clash leading-tight truncate">
-              {totp.issuer || "Smart Code"}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="text-[1.05rem] font-extrabold text-white font-clash leading-tight truncate">
+                {totp.issuer || "Smart Code"}
+              </div>
+              <SyncStatusDot resourceId={totp.$id} />
             </div>
             <div 
               className="text-sm font-medium text-[#9B9691] font-satoshi mt-0.5 truncate transition-[filter] duration-300"

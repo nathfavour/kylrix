@@ -5,6 +5,7 @@ import { useContextMenu } from '@/components/ui/ContextMenuContext';
 import { useResourcePins } from '@/context/ResourcePinContext';
 import { ShareLockButton } from '@/components/share/ShareLockButton';
 import { useAccessControlMenuItems } from '@/components/share/AccessControlMenuItems';
+import { SyncStatusDot } from '@/components/ui/SyncStatusDot';
 
 export default function CredentialItem({
   credential,
@@ -204,6 +205,7 @@ export default function CredentialItem({
           <span className="font-black text-white leading-tight font-clash text-base truncate">
             {credential.name}
           </span>
+          <SyncStatusDot resourceId={credential.$id} />
         </div>
         <span 
           className="text-[#9B9691] font-medium text-[0.85rem] leading-[1.35] font-satoshi truncate transition-[filter] duration-300"

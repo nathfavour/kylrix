@@ -91,21 +91,48 @@ function DashboardPageContent() {
   }, []);
 
   const loadAllCredentials = useCallback(async (background = false) => {
-    if (!background) setLoading(true);
+    if (!user?.$id) {
+      setAllCredentials([]);
+      setLoading(false);
+      return;
+    }
+    const cacheKey = `vault_credentials_${user.$id}`;
     try {
-      if (!user?.$id) {
-        setAllCredentials([]);
-        return;
+      const { getRxDB } = await import('@/lib/webrtc/RxDBManager');
+      const db = await getRxDB().catch(() => null);
+      if (db) {
+        const cachedDoc = await db.cache.findOne(cacheKey).exec().catch(() => null);
+        if (cachedDoc?.data && Array.isArray(cachedDoc.data)) {
+          setAllCredentials(cachedDoc.data as Credentials[]);
+          setLoading(false);
+        }
       }
+    } catch {}
+
+    if (!background && allCredentials.length === 0) setLoading(true);
+    try {
       const credentials = await listAllCredentials(user.$id);
       setAllCredentials(credentials);
+      try {
+        const { getRxDB } = await import('@/lib/webrtc/RxDBManager');
+        const db = await getRxDB().catch(() => null);
+        if (db) {
+          await db.cache.upsert({
+            id: cacheKey,
+            data: credentials as any,
+            timestamp: Date.now(),
+          }).catch(() => {});
+        }
+      } catch {}
     } catch (error: unknown) {
-      toast.error("Failed to load secrets. Please try again.");
+      if (allCredentials.length === 0) {
+        toast.error("Failed to load secrets. Please try again.");
+      }
       console.error("Failed to load credentials:", error);
     } finally {
-      if (!background) setLoading(false);
+      setLoading(false);
     }
-  }, [user]);
+  }, [user, allCredentials.length]);
 
   const hydrateVaultData = useCallback(async () => {
     if (!user?.$id) {
