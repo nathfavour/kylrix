@@ -38,6 +38,7 @@ const DynamicSidebar = dynamic(() => import('./ui/DynamicSidebarPanel').then(m =
 const RightSidebar = dynamic(() => import('./layout/RightSidebar'), { ssr: false });
 const UnifiedLeftSidebar = dynamic(() => import('./UnifiedLeftSidebar').then(m => m.UnifiedLeftSidebar), { ssr: false });
 const AccountHealthDrawers = dynamic(() => import('./onboarding/AccountHealthDrawers').then(m => m.AccountHealthDrawers), { ssr: false });
+const UnifiedFileAttachmentDrawer = dynamic(() => import('./overlays/UnifiedFileAttachmentDrawer').then(m => m.UnifiedFileAttachmentDrawer), { ssr: false });
 
 export default function GlobalShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -263,6 +264,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
       {isDynamicSidebarOpen && !isAppRoute && <DynamicSidebar />}
       {secondarySidebar.isOpen && <RightSidebar />}
       <AccountHealthDrawers />
+      <UnifiedFileAttachmentDrawer />
     </Box>
     );
     };

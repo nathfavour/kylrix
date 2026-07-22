@@ -47,6 +47,7 @@ function ComposeProviders({ providers, children }: ComposeProvidersProps) {
 }
 
 import { SecurityProvider } from '@/context/SecurityContext';
+import { UnifiedFileDrawerProvider } from '@/context/UnifiedFileDrawerContext';
 
 /**
  * Tier 1: Root Providers
@@ -57,6 +58,7 @@ const rootProvidersList: Array<React.ComponentType<{ children: ReactNode }>> = [
   SpineProvider,
   NeuralProvider,
   SecurityProvider,
+  UnifiedFileDrawerProvider,
   DrawerStateProvider,
   AppwriteProvider,
   SudoProvider,
