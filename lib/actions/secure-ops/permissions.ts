@@ -128,6 +128,7 @@ async function upsertProjectCollaboratorRow(
   targetUserId: string,
   permissionLevel: string,
   status: 'pending' | 'accepted',
+  inviterUserId?: string,
 ) {
   const FLOW_DATABASE_ID = APPWRITE_CONFIG.DATABASES.FLOW;
   const COLLABORATORS_TABLE = APPWRITE_CONFIG.TABLES.FLOW.COLLABORATORS || 'Collaborators';
@@ -146,13 +147,16 @@ async function upsertProjectCollaboratorRow(
     ] as any,
   });
 
-  const payload = {
+  const payload: any = {
     permission,
     accepted,
     status,
     invitedAt: new Date().toISOString(),
     role: 'collaborator',
   };
+  if (inviterUserId) {
+    payload.inviterId = inviterUserId;
+  }
 
   if (existing.rows.length > 0) {
     await tables.updateRow({
@@ -610,10 +614,13 @@ export async function getResourceCollaboratorsSecure(input: {
             for (const collab of collabsRes.rows) {
                 const userId = String(collab.userId || '').trim();
                 if (!userId) continue;
+                // Distinguish between an outbound invite ('pending'), an inbound join request ('requested'), or confirmed ('accepted')
+                const isJoinRequest = collab.status === 'requested' || (collab.status === 'pending' && (!collab.inviterId || collab.inviterId === ''));
+                const rawStatus = isJoinRequest ? 'requested' : (collab.accepted ? 'accepted' : 'pending');
                 merged.set(userId, {
                     userId,
                     level: collab.permission === 'admin' ? 'admin' : (collab.permission === 'write' ? 'editor' : 'viewer'),
-                    status: collab.status === 'requested' ? 'requested' : (collab.status || (collab.accepted ? 'accepted' : 'pending')),
+                    status: rawStatus,
                     accepted: collab.accepted ?? false,
                 });
             }
@@ -629,12 +636,20 @@ export async function getResourceCollaboratorsSecure(input: {
                 if (!userId) continue;
                 const teamCollab = mapTeamMembership(membership);
                 const existing = merged.get(userId);
-                merged.set(userId, existing ? {
-                    ...existing,
-                    level: teamCollab.level || existing.level,
-                    status: teamCollab.accepted ? 'accepted' : (existing.status === 'requested' ? 'requested' : 'pending'),
-                    accepted: teamCollab.accepted || existing.accepted,
-                } : teamCollab);
+                if (existing) {
+                    // Do not override an inbound 'requested' status with a pending team invitation
+                    const resolvedStatus = teamCollab.accepted
+                      ? 'accepted'
+                      : (existing.status === 'requested' ? 'requested' : existing.status || 'pending');
+                    merged.set(userId, {
+                        ...existing,
+                        level: teamCollab.level || existing.level,
+                        status: resolvedStatus,
+                        accepted: teamCollab.accepted || existing.accepted,
+                    });
+                } else {
+                    merged.set(userId, teamCollab);
+                }
             }
         } catch (teamErr: any) {
             console.warn('[getResourceCollaboratorsSecure] Failed to query native team:', teamErr?.message);
@@ -811,7 +826,7 @@ export async function addProjectCollaboratorSecure(projectId: string, targetUser
   }
 
   try {
-    await upsertProjectCollaboratorRow(tables, projectId, targetUserId, permissionLevel, inviteStatus);
+    await upsertProjectCollaboratorRow(tables, projectId, targetUserId, permissionLevel, inviteStatus, actor.$id);
   } catch (err) {
     console.error('[addProjectCollaboratorSecure] Collaborators row sync failed:', err);
   }

@@ -117,7 +117,8 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
   const { open: openUnified } = useUnifiedDrawer();
   const { openSidebar } = useDynamicSidebar();
   const { openOverlay, closeOverlay } = useOverlay();
-  const { openMenu } = useContextMenu();
+  const contextMenu = useContextMenu();
+  const openMenu = contextMenu?.openMenu;
   const { openAgenticDrawer } = useAgenticDrawer();
 
   const handleHireAgentClick = async (e: React.MouseEvent) => {
@@ -358,8 +359,17 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    setDrawerMenuStack([contextMenuItems]);
-    setIsMenuDrawerOpen(true);
+    if (openMenu) {
+      openMenu({
+        x: event.clientX,
+        y: event.clientY,
+        items: contextMenuItems,
+        appType: 'flow',
+      });
+    } else {
+      setDrawerMenuStack([contextMenuItems]);
+      setIsMenuDrawerOpen(true);
+    }
   };
 
   const handleComplete = (event: React.MouseEvent) => {
@@ -555,6 +565,16 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
                   <Clock className="h-3 w-3" style={{ color: getDueDateColor() }} />
                   <span className="font-mono font-bold text-[9px] tracking-wider" style={{ color: getDueDateColor() }}>
                     {formatDueDate(new Date(task.dueDate)).toUpperCase()}
+                  </span>
+                </div>
+              )}
+
+              {/* Reminder Turned On Badge */}
+              {task.scheduled && (
+                <div className="flex items-center gap-1 rounded-lg border border-[#A855F7]/30 bg-[#A855F7]/10 px-2 py-0.5 text-[#A855F7]">
+                  <Bell className="h-3 w-3" />
+                  <span className="font-mono font-bold text-[9px] tracking-wider uppercase">
+                    Reminder turned on
                   </span>
                 </div>
               )}

@@ -33,7 +33,7 @@ export default function TaskList() {
   } = useTask();
   const { setConfiguration, resetConfiguration } = useFAB();
   const { open } = useUnifiedDrawer();
-  const router = React.useRef(useRouter()).current;
+  const router = useRouter();
 
   React.useEffect(() => {
     setConfiguration({

@@ -2530,37 +2530,21 @@ export async function toggleTaskReminderSecure(taskId: string, enabled: boolean,
       throw new Error('Deadline is in the past.');
     }
 
-    let scheduledTime: Date;
-    if (diffMs > 24 * 60 * 60 * 1000) {
-      scheduledTime = new Date(deadline.getTime() - 24 * 60 * 60 * 1000);
-    } else if (diffMs > 60 * 60 * 1000) {
-      scheduledTime = new Date(deadline.getTime() - 60 * 60 * 1000);
-    } else {
-      throw new Error('Deadline is less than an hour away. Cannot schedule reminder.');
-    }
+    const { functions } = createSystemClient();
+    const functionId = 'goal-reminder-dispatch';
 
-    if (task.recurrenceRule?.startsWith('reminder_msg_id:')) {
-      const oldMsgId = task.recurrenceRule.split(':')[1];
-      try {
-        await messaging.delete(oldMsgId);
-      } catch (err) {
-        console.error('Failed to delete old reminder message:', err);
-      }
+    // Trigger/schedule execution of goal-reminder-dispatch function
+    try {
+      await functions.createExecution(
+        functionId,
+        JSON.stringify({ taskId, userId: actor.$id }),
+        false, // async execution
+        '/',
+        'POST'
+      );
+    } catch (fnErr: any) {
+      console.warn('[toggleTaskReminderSecure] Direct function execution error, registering scheduled state:', fnErr?.message);
     }
-
-    const msgId = ID.unique();
-    const recipientUser = await users.get(actor.$id);
-    if (!recipientUser.email) {
-      throw new Error('User has no email address configured.');
-    }
-
-    await messaging.createEmail({
-      messageId: msgId,
-      subject: `Goal Reminder: ${task.title}`,
-      content: `Hi!\n\nThis is a reminder for your goal: "${task.title}".\n\nThe deadline is on ${deadline.toLocaleString()}.\n\nGood luck!`,
-      users: [actor.$id],
-      scheduledAt: scheduledTime.toISOString(),
-    });
 
     const updated = await tables.updateRow({
       databaseId: FLOW_DATABASE_ID,
@@ -2568,21 +2552,12 @@ export async function toggleTaskReminderSecure(taskId: string, enabled: boolean,
       rowId: taskId,
       data: {
         scheduled: true,
-        recurrenceRule: `reminder_msg_id:${msgId}`,
+        recurrenceRule: `reminder_fn_id:${functionId}`,
       }
     });
 
     return JSON.parse(JSON.stringify(updated));
   } else {
-    if (task.recurrenceRule?.startsWith('reminder_msg_id:')) {
-      const oldMsgId = task.recurrenceRule.split(':')[1];
-      try {
-        await messaging.delete(oldMsgId);
-      } catch (err) {
-        console.error('Failed to delete reminder message:', err);
-      }
-    }
-
     const updated = await tables.updateRow({
       databaseId: FLOW_DATABASE_ID,
       tableId: TASKS_TABLE,
