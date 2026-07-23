@@ -255,7 +255,11 @@ export default function AdminCouponsPage() {
     });
   };
 
-  const totalCoupons = useMemo(() => coupons.length, [coupons]);
+  const activeCoupons = useMemo(() => coupons.filter(c => {
+    const s = String(c.status || '').toLowerCase();
+    return s === 'active';
+  }), [coupons]);
+  const totalCoupons = activeCoupons.length;
 
   return (
     <AdminLayout>
@@ -519,7 +523,7 @@ export default function AdminCouponsPage() {
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-white/50 text-sm">{totalCoupons} coupons</span>
+          <span className="text-white/50 text-sm">{totalCoupons} active coupons</span>
         </div>
 
         {/* Coupons List */}
@@ -528,8 +532,8 @@ export default function AdminCouponsPage() {
             <div className="flex justify-center items-center py-16">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6366F1]" />
             </div>
-          ) : coupons.length ? (
-            coupons.map((coupon) => (
+          ) : activeCoupons.length ? (
+            activeCoupons.map((coupon) => (
               <div key={coupon.$id} className="p-6 rounded-[28px] bg-[#161412] border border-white/5 flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
