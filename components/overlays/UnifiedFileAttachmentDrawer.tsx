@@ -68,6 +68,23 @@ type ObjectSubTab =
   | 'vault'
   | 'tags';
 
+function isLikelyEncrypted(str?: string | null): boolean {
+  if (!str || typeof str !== 'string') return false;
+  const s = str.trim();
+  if (
+    s.startsWith('[DECRYPTION_') ||
+    s.startsWith('{"iv"') ||
+    s.startsWith('{"ct"') ||
+    s.startsWith('{"v"') ||
+    s.startsWith('{"data"')
+  ) {
+    return true;
+  }
+  if (s.includes('::') && s.length > 20) return true;
+  if (s.length > 40 && !s.includes(' ') && /^[a-zA-Z0-9+/=_-]+$/.test(s)) return true;
+  return false;
+}
+
 export function UnifiedFileAttachmentDrawer() {
   const { isOpen, options, closeFileDrawer } = useUnifiedFileDrawer();
   const { user } = useAuth();
@@ -431,10 +448,14 @@ export function UnifiedFileAttachmentDrawer() {
                 </div>
               ) : (
                 filteredObjects.map((item, idx) => {
-                  const isEncrypted = item.isEncrypted || item.encrypted || item.locked;
-                  const titleText = isEncrypted
-                    ? 'Encrypted Item'
-                    : item.title || item.name || item.label || 'Untitled Item';
+                  const rawTitle = item.title || item.name || item.label || item.serviceName || item.issuer || item.accountName || '';
+                  const isEncrypted = item.isEncrypted || item.encrypted || item.locked || isLikelyEncrypted(rawTitle);
+                  let titleText = rawTitle;
+                  if (isEncrypted) {
+                    titleText = `Encrypted ${activeSubTab.charAt(0).toUpperCase() + activeSubTab.slice(1)}`;
+                  } else if (!titleText || titleText.trim() === '') {
+                    titleText = 'Untitled Item';
+                  }
 
                   return (
                     <div
