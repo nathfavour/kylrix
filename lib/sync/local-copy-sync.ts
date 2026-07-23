@@ -115,9 +115,9 @@ export function sortPinnedThenCreatedAt<T extends SyncableRow>(
 }
 
 /** Soft-pull cadence helpers (activity / heartbeat). */
-export const SYNC_PULL_IDLE_MS = 45_000;
-export const SYNC_PULL_ACTIVE_MS = 120_000;
-export const SYNC_PULL_MIN_GAP_MS = 15_000;
+export const SYNC_PULL_IDLE_MS = 60_000;
+export const SYNC_PULL_ACTIVE_MS = 10_000;
+export const SYNC_PULL_MIN_GAP_MS = 5_000;
 
 export function shouldSoftPull(params: {
   lastPullAt: number;
@@ -127,6 +127,7 @@ export function shouldSoftPull(params: {
   const now = params.now ?? Date.now();
   const elapsed = now - (params.lastPullAt || 0);
   if (elapsed < SYNC_PULL_MIN_GAP_MS) return false;
-  const threshold = params.activityIntensity >= 5 ? SYNC_PULL_ACTIVE_MS : SYNC_PULL_IDLE_MS;
+  const isVisible = typeof document !== 'undefined' && document.visibilityState === 'visible';
+  const threshold = isVisible || params.activityIntensity > 0 ? SYNC_PULL_ACTIVE_MS : SYNC_PULL_IDLE_MS;
   return elapsed >= threshold;
 }

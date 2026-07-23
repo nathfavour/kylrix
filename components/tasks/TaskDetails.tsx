@@ -66,7 +66,7 @@ import {
   alpha,
 } from '@/lib/openbricks/primitives';
 import { SyncStatusDot, SyncStatusLabel } from '@/components/ui/SyncStatusDot';
-import { goalPendingKey } from '@/lib/sync/goal-keys';
+import { autonomicSyncEngine } from '@/lib/services/sync-engine';
 
 const priorityColors: Record<Priority, string> = {
   low: '#A1A1AA',
@@ -103,13 +103,17 @@ export default function TaskDetails({ taskId, onBack }: TaskDetailsProps) {
   const { joinResource, resourcePresence } = usePresence();
 
   useEffect(() => {
-      if (taskId) {
-          return joinResource(
-              APPWRITE_CONFIG.DATABASES.FLOW,
-              APPWRITE_CONFIG.TABLES.FLOW.TASKS,
-              taskId
-          );
-      }
+    if (taskId) {
+      const unsub = joinResource(
+        APPWRITE_CONFIG.DATABASES.FLOW,
+        APPWRITE_CONFIG.TABLES.FLOW.TASKS,
+        taskId
+      );
+      return () => {
+        if (typeof unsub === 'function') unsub();
+        autonomicSyncEngine.flushImmediately();
+      };
+    }
   }, [taskId, joinResource]);
 
   const {

@@ -602,9 +602,7 @@ export const autonomicSyncEngine = {
         if (failInfo) {
           const delay = Math.min(2000, 200 * Math.pow(1.5, failInfo.count));
           if (Date.now() - failInfo.lastFailedAt < delay) {
-            if (lastSuccessfulSyncTime > 0 && Date.now() - lastSuccessfulSyncTime < 300000) {
-              continue;
-            }
+            continue;
           }
         }
 

@@ -31,6 +31,7 @@ import {
 } from '@/types';
 import { registerLiveGoalGetter } from '@/lib/sync/pending-sync-bridge';
 import { goalPendingKey } from '@/lib/sync/goal-keys';
+import { shouldSoftPull } from '@/lib/sync/local-copy-sync';
 import { autonomicSyncEngine } from '@/lib/services/sync-engine';
 
 // Mappers
@@ -935,6 +936,56 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('kylrix:ghost-claimed', handleGhostClaimed);
     };
   }, [state.userId, refreshTasks]);
+
+  // Active soft-pull heartbeat for Tasks & Goals (multi-device sync)
+  const lastTaskPullAtRef = useRef<number>(0);
+  const isFetchingTasksRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!state.userId || state.userId === 'guest') return;
+
+    const maybeSoftPull = async () => {
+      if (isFetchingTasksRef.current) return;
+      if (
+        !shouldSoftPull({
+          lastPullAt: lastTaskPullAtRef.current,
+          activityIntensity: autonomicSyncEngine.getActivityIntensity(),
+        })
+      ) {
+        return;
+      }
+      isFetchingTasksRef.current = true;
+      try {
+        const data = await fetchBatch(state.userId, true);
+        dispatchSyncedData(data);
+        lastTaskPullAtRef.current = Date.now();
+      } catch (err) {
+        console.warn('[TaskContext] Soft-pull failed:', err);
+      } finally {
+        isFetchingTasksRef.current = false;
+      }
+    };
+
+    const unsub = autonomicSyncEngine.subscribeToActivity(() => {
+      void maybeSoftPull();
+    });
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void maybeSoftPull();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+
+    const interval = window.setInterval(() => void maybeSoftPull(), 10_000);
+
+    return () => {
+      unsub();
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+      window.clearInterval(interval);
+    };
+  }, [state.userId, fetchBatch, dispatchSyncedData]);
+
   // Realtime Subscriptions
   useEffect(() => {
     if (!state.userId) return;
@@ -945,7 +996,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     const initRealtime = async () => {
       // Subscribe to Tasks
       unsubTasks = await subscribeToTable<AppwriteTask>(APPWRITE_CONFIG.TABLES.TASKS, ({ type, payload }) => {
-        if (payload.userId !== state.userId) return;
+        const isBelonging = payload.userId === state.userId || (Array.isArray(payload.assigneeIds) && payload.assigneeIds.includes(state.userId));
+        if (!isBelonging) return;
         if (type === 'create') {
           dispatch({ type: 'ADD_TASK', payload: mapAppwriteTaskToTask(payload) });
         } else if (type === 'update') {
@@ -1048,15 +1100,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
     const currentTask = state.tasks.find(t => t.id === id);
 
-    const shareOnly =
-      (updates.isPublic !== undefined || updates.isGuest !== undefined) &&
-      Object.keys(updates).every((key) => key === 'isPublic' || key === 'isGuest');
-
     dispatch({ type: 'UPDATE_TASK', payload: { id, updates } });
-
-    if (shareOnly) {
-      return;
-    }
 
     if (updates.status !== undefined) {
       registerPendingStatus(
@@ -1066,17 +1110,40 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       );
     }
 
-    if (currentTask) {
-      pushLiveGoal({
-        ...currentTask,
-        ...updates,
+    const mergedTask: Task = {
+      ...(currentTask || {
         id,
+        title: updates.title || '',
+        description: updates.description || '',
+        status: updates.status || 'todo',
+        priority: updates.priority || 'medium',
+        projectId: updates.projectId || 'inbox',
+        labels: updates.labels || [],
+        subtasks: updates.subtasks || [],
+        comments: updates.comments || [],
+        attachments: [],
+        reminders: [],
+        timeEntries: [],
+        assigneeIds: updates.assigneeIds || [],
+        creatorId: state.userId || 'guest',
+        userId: state.userId || 'guest',
+        parentTaskId: updates.parentTaskId || null,
+        dueDate: updates.dueDate,
+        createdAt: new Date(),
         updatedAt: new Date(),
-      });
-    } else {
-      autonomicSyncEngine.markPending(goalPendingKey(id), new Date().toISOString());
-    }
-  }, [state.tasks, registerPendingStatus, pushLiveGoal]);
+        position: 0,
+        isArchived: false,
+        isPinned: false,
+        isPublic: false,
+        isGuest: false,
+      }),
+      ...updates,
+      id,
+      updatedAt: new Date(),
+    };
+
+    pushLiveGoal(mergedTask);
+  }, [state.tasks, state.userId, registerPendingStatus, pushLiveGoal]);
 
   const togglePinTask = useCallback(async (id: string) => {
     const task = state.tasks.find(t => t.id === id);
