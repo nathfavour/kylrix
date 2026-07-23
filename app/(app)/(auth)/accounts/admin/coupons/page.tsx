@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Copy, RefreshCw, Ticket, Search, Check, X, Loader2 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { createCouponAction, listCouponsAction, invalidateCouponAction } from '../../actions/coupons';
-import { getAdminUserByIdAction } from '../../actions/admin';
+import { getAdminUserByIdAction, searchAdminUserByIdAction, searchAdminUserByEmailAction } from '../../actions/admin';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
 import { AppwriteService } from '@/lib/appwrite';
@@ -54,6 +54,8 @@ export default function AdminCouponsPage() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchingProfiles, setSearchingProfiles] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<any[]>([]);
+  type SearchMode = 'username' | 'userid' | 'email';
+  const [searchMode, setSearchMode] = useState<SearchMode>('username');
 
   const [form, setForm] = useState({
     discountPercent: '50',
@@ -90,6 +92,11 @@ export default function AdminCouponsPage() {
       setSearchResults([]);
       return;
     }
+    if (searchMode !== 'username') {
+      // userid and email modes use manual trigger – clear dropdown
+      setSearchResults([]);
+      return;
+    }
     const t = setTimeout(async () => {
       setSearchingProfiles(true);
       try {
@@ -105,7 +112,51 @@ export default function AdminCouponsPage() {
       active = false;
       clearTimeout(t);
     };
-  }, [profileQuery]);
+  }, [profileQuery, searchMode]);
+
+  /** Manually trigger search for userid/email modes */
+  const handleManualSearch = async () => {
+    const q = profileQuery.trim();
+    if (!q) return;
+    setSearchingProfiles(true);
+    setError(null);
+    try {
+      const jwt = await getJWT();
+      if (searchMode === 'userid') {
+        const result = await searchAdminUserByIdAction(q, jwt || undefined);
+        setSelectedTargets(prev => {
+          if (prev.some(t => t.id === result.id)) return prev;
+          return [...prev, {
+            id: result.id,
+            name: result.name || result.displayName || result.username || 'User',
+            email: result.email,
+            username: result.username,
+          }];
+        });
+        setProfileQuery('');
+      } else if (searchMode === 'email') {
+        const result = await searchAdminUserByEmailAction(q, jwt || undefined);
+        if (!result) {
+          setError('No account found for that email address.');
+          return;
+        }
+        setSelectedTargets(prev => {
+          if (prev.some(t => t.id === result.id)) return prev;
+          return [...prev, {
+            id: result.id,
+            name: result.name || result.displayName || result.username || 'User',
+            email: result.email,
+            username: result.username,
+          }];
+        });
+        setProfileQuery('');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'User not found.');
+    } finally {
+      setSearchingProfiles(false);
+    }
+  };
 
   const selectProfile = async (profile: any) => {
     if (selectedTargets.some(t => t.id === profile.userId)) {
@@ -244,21 +295,55 @@ export default function AdminCouponsPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-1.5 relative col-span-1 md:col-span-2">
               <span className="text-[10px] text-white/40 font-bold font-mono uppercase tracking-wider block">Target Users</span>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none">
-                  {searchingProfiles ? (
-                    <Loader2 size={14} className="text-[#6366F1] animate-spin" />
-                  ) : (
-                    <Search size={14} className="text-white/40" />
-                  )}
+              {/* Search mode toggle */}
+              <div className="flex gap-1.5 mb-2">
+                {(['username', 'userid', 'email'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => { setSearchMode(mode); setProfileQuery(''); setSearchResults([]); }}
+                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                      searchMode === mode
+                        ? 'bg-[#6366F1] text-black'
+                        : 'bg-white/[0.03] border border-white/10 text-white/40 hover:border-[#6366F1]/30 hover:text-white/70'
+                    }`}
+                  >
+                    {mode === 'username' ? 'Username' : mode === 'userid' ? 'User ID' : 'Email'}
+                  </button>
+                ))}
+              </div>
+              <div className="relative flex gap-2">
+                <div className="relative flex-1">
+                  <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none">
+                    {searchingProfiles ? (
+                      <Loader2 size={14} className="text-[#6366F1] animate-spin" />
+                    ) : (
+                      <Search size={14} className="text-white/40" />
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder={
+                      searchMode === 'username' ? 'Search username or display name...'
+                      : searchMode === 'userid' ? 'Paste exact user ID...'
+                      : 'Enter email address...'
+                    }
+                    value={profileQuery}
+                    onChange={(e) => setProfileQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && searchMode !== 'username') handleManualSearch(); }}
+                    className="w-full bg-[#0A0908] pl-10 pr-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search user profiles..."
-                  value={profileQuery}
-                  onChange={(e) => setProfileQuery(e.target.value)}
-                  className="w-full bg-[#0A0908] pl-10 pr-4 py-3 rounded-xl border border-white/10 text-white text-sm font-semibold focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 focus:outline-none transition-all"
-                />
+                {searchMode !== 'username' && (
+                  <button
+                    type="button"
+                    onClick={handleManualSearch}
+                    disabled={!profileQuery.trim() || searchingProfiles}
+                    className="flex items-center gap-1.5 px-4 py-3 rounded-xl bg-[#6366F1] hover:bg-[#5254E8] disabled:opacity-40 text-black font-black text-xs transition-all cursor-pointer"
+                  >
+                    {searchingProfiles ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                  </button>
+                )}
               </div>
               <span className="text-[10px] text-white/30 block">Leave blank for open claim</span>
               
