@@ -1,36 +1,68 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNostrFeed } from '@/hooks/useNostrFeed';
 import { useNostrIdentity } from '@/hooks/useNostrIdentity';
 import { resolveNostrPubkeysAction } from '@/lib/actions/secure-ops';
 import { bytesToNpub, hexToBytes } from '@/lib/tmp/crypto';
-import { MomentComposer } from './MomentComposer';
-import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
-import { Heart, MessageCircle, Repeat2, Sparkles, Lock, RefreshCw } from 'lucide-react';
+import { SocialService } from '@/lib/services/social';
+import { LocalEngine } from '@/lib/services/LocalEngine';
+import { useAuth } from '@/context/auth/AuthContext';
+import { Heart, MessageCircle, Repeat2, Lock, Sparkles, User, Globe, Share2, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+export interface UnifiedFeedItem {
+  id: string;
+  source: 'ecosystem' | 'nostr';
+  authorName: string;
+  authorAvatar?: string;
+  authorUsername?: string;
+  isEcosystemUser: boolean;
+  content: string;
+  createdAt: number; // Unix timestamp ms
+  rawEvent?: any;
+  likesCount?: number;
+  pulsesCount?: number;
+  repliesCount?: number;
+}
+
 export function NostrFeed() {
-  const { identity, loading: identityLoading, isVaultLocked, unlockAndLoad } = useNostrIdentity();
-  const { feed, loading: feedLoading, publishPost, refresh, filterTags } = useNostrFeed();
-  const [publishing, setPublishing] = useState(false);
+  const { user } = useAuth();
+  const { isVaultLocked, unlockAndLoad } = useNostrIdentity();
+  const { feed: nostrFeed, loading: nostrLoading } = useNostrFeed();
+
+  const [ecosystemMoments, setEcosystemMoments] = useState<any[]>([]);
   const [resolvedProfiles, setResolvedProfiles] = useState<Record<string, { username: string; avatarUrl?: string }>>({});
-  const { open: openUnified } = useUnifiedDrawer();
+  const [visibleCount, setVisibleCount] = useState(20);
+  const observerRef = useRef<HTMLDivElement | null>(null);
 
-  // Listen to mobile FAB triggers to open the bottom drawer post composer
+  // 1. Load Ecosystem Moments (0ms Local Copy Hydration)
+  const loadEcosystemMoments = useCallback(async () => {
+    try {
+      const cached = await LocalEngine.cacheGet<any[]>('f_moments_list');
+      if (cached && cached.length > 0) {
+        setEcosystemMoments(cached);
+      }
+
+      const liveMoments = await SocialService.getFeed(user?.$id);
+      if (liveMoments && liveMoments.length > 0) {
+        setEcosystemMoments(liveMoments);
+        await LocalEngine.cacheSet('f_moments_list', liveMoments);
+      }
+    } catch (err) {
+      console.warn('[MomentsFeed] Failed to load ecosystem moments:', err);
+    }
+  }, [user]);
+
   useEffect(() => {
-    const handleOpenComposer = () => {
-      openUnified('moment-composer');
-    };
-    window.addEventListener('kylrix:open-moment-composer', handleOpenComposer);
-    return () => window.removeEventListener('kylrix:open-moment-composer', handleOpenComposer);
-  }, [openUnified]);
+    void loadEcosystemMoments();
+  }, [loadEcosystemMoments]);
 
-  // Resolve profiles from local database mappings asynchronously (UX alignment)
+  // 2. Resolve Nostr Pubkeys to Ecosystem Usernames
   useEffect(() => {
-    if (feed.length === 0) return;
+    if (nostrFeed.length === 0) return;
 
-    const unresolvedNpubs = feed
+    const unresolvedNpubs = nostrFeed
       .map((event) => {
         try {
           return bytesToNpub(hexToBytes(event.pubkey));
@@ -47,163 +79,193 @@ export function NostrFeed() {
         setResolvedProfiles((prev) => ({ ...prev, ...res }));
       }
     });
-  }, [feed, resolvedProfiles]);
+  }, [nostrFeed, resolvedProfiles]);
 
-  const getAuthorDisplay = (pubkeyHex: string) => {
-    try {
-      const npubStr = bytesToNpub(hexToBytes(pubkeyHex));
-      if (resolvedProfiles[npubStr]) {
-        return {
-          name: `@${resolvedProfiles[npubStr].username}`,
-          isEcosystem: true
-        };
+  // 3. Combine Ecosystem Moments & Nostr Feed into Unified Stream
+  const unifiedStream = useMemo<UnifiedFeedItem[]>(() => {
+    const items: UnifiedFeedItem[] = [];
+
+    // Add Ecosystem local copy moments
+    ecosystemMoments.forEach((m) => {
+      const rawDateStr = m.createdAt || m.$createdAt;
+      const createdAtMs = rawDateStr ? new Date(rawDateStr).getTime() : 0;
+
+      items.push({
+        id: `eco_${m.$id || m.id}`,
+        source: 'ecosystem',
+        authorName: m.userName || m.user?.name || m.username || 'Kylrix Engineer',
+        authorUsername: m.username || m.user?.username || 'engineer',
+        authorAvatar: m.userAvatar || m.user?.avatarUrl,
+        isEcosystemUser: true,
+        content: m.caption || m.content || '',
+        createdAt: createdAtMs,
+        likesCount: m.likeCount || 0,
+        pulsesCount: m.pulseCount || 0,
+        repliesCount: m.replyCount || 0,
+        rawEvent: m,
+      });
+    });
+
+    // Add Nostr feed posts
+    nostrFeed.forEach((event) => {
+      let authorName = `npub...${event.pubkey.slice(-8)}`;
+      let isEco = false;
+      try {
+        const npubStr = bytesToNpub(hexToBytes(event.pubkey));
+        if (resolvedProfiles[npubStr]) {
+          authorName = `@${resolvedProfiles[npubStr].username}`;
+          isEco = true;
+        } else {
+          authorName = `npub...${npubStr.slice(-8)}`;
+        }
+      } catch {
+        authorName = `npub...${event.pubkey.slice(-8)}`;
       }
-      return {
-        name: `npub...${npubStr.substring(npubStr.length - 8)}`,
-        isEcosystem: false
-      };
-    } catch {
-      return {
-        name: `npub...${pubkeyHex.substring(pubkeyHex.length - 8)}`,
-        isEcosystem: false
-      };
-    }
-  };
+
+      items.push({
+        id: `nostr_${event.id}`,
+        source: 'nostr',
+        authorName,
+        authorAvatar: resolvedProfiles[authorName]?.avatarUrl,
+        isEcosystemUser: isEco,
+        content: event.content,
+        createdAt: event.created_at * 1000,
+        rawEvent: event,
+      });
+    });
+
+    // Sort newest first
+    return items.sort((a, b) => b.createdAt - a.createdAt);
+  }, [ecosystemMoments, nostrFeed, resolvedProfiles]);
+
+  // 4. Smooth Infinite Scroll IntersectionObserver
+  useEffect(() => {
+    const el = observerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + 15, unifiedStream.length));
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [unifiedStream.length]);
+
+  const displayedItems = unifiedStream.slice(0, visibleCount);
 
   return (
-    <div className="w-full flex flex-col gap-6 max-w-2xl mx-auto font-satoshi text-white select-none">
-      {/* Curation Indicator */}
-      <div className="bg-[#1C1A17] border border-[#F59E0B]/20 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs text-amber-200">
-        <div className="flex items-center gap-3">
-          <Sparkles size={16} className="text-[#F59E0B] flex-shrink-0" />
-          <div>
-            <span className="font-bold">Agentic Curation Active:</span> Filtering global relays for tech-centric topics ({filterTags.map(t => `#${t}`).join(', ')}).
-          </div>
-        </div>
-        <button
-          onClick={refresh}
-          disabled={feedLoading}
-          type="button"
-          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all disabled:opacity-50 flex-shrink-0"
-          title="Refresh Relays"
-        >
-          <RefreshCw size={14} className={feedLoading ? 'animate-spin' : ''} />
-        </button>
-      </div>
-
-      {/* Write Post Box: Gated only for contributing, readable for all. Desktop-only (inmobile opens via FAB bottom drawer) */}
-      <div className="hidden md:block">
-        {isVaultLocked ? (
-          <div className="bg-[#161412] border border-white/5 rounded-3xl p-5 flex items-center justify-between shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40">
-                <Lock size={16} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-white/80">Contribute to the Town Square</span>
-                <span className="text-[10px] text-white/40">Unlock your vault to write and sign public tech posts.</span>
-              </div>
+    <div className="w-full flex flex-col gap-5 max-w-2xl mx-auto font-satoshi text-white select-none pb-12">
+      {/* Vault Unlock Banner if locked */}
+      {isVaultLocked && (
+        <div className="bg-[#161412] border border-[#F59E0B]/20 rounded-3xl p-4 flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-2xl bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center text-[#F59E0B]">
+              <Lock size={18} />
             </div>
-            <button
-              onClick={unlockAndLoad}
-              className="px-4 py-2 bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 border border-[#F59E0B]/20 text-[#F59E0B] font-bold text-xs rounded-xl transition-all"
-            >
-              Unlock Vault
-            </button>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-white/90">Vault Key Encrypted</span>
+              <span className="text-[11px] text-white/40">Unlock vault to sign & broadcast sovereign posts directly to Nostr relays.</span>
+            </div>
           </div>
-        ) : !identity ? (
-          <div className="bg-[#161412] border border-white/5 rounded-3xl p-5 flex items-center justify-center shadow-lg">
-            <span className="animate-spin inline-block w-4 h-4 border-2 border-[#F59E0B] border-t-transparent rounded-full mr-2" />
-            <span className="text-xs text-white/40 font-mono">Deriving sovereign key...</span>
-          </div>
-        ) : (
-          <MomentComposer
-            publishing={publishing}
-            onPublish={async (text) => {
-              setPublishing(true);
-              const success = await publishPost(text);
-              setPublishing(false);
-              if (success) {
-                toast.success('Post published successfully to Nostr!');
-              }
-              return success;
-            }}
-            filterTags={filterTags}
-          />
-        )}
-      </div>
+          <button
+            onClick={unlockAndLoad}
+            className="px-4 py-2 bg-[#F59E0B] hover:bg-amber-600 text-black font-extrabold text-xs rounded-xl transition-all shadow-md"
+          >
+            Unlock Vault
+          </button>
+        </div>
+      )}
 
-      {/* Feed Container */}
+      {/* Feed Stream */}
       <div className="flex flex-col gap-4">
-        {feedLoading && feed.length === 0 ? (
-          <div className="text-center py-12 text-white/40">
-            <span className="animate-spin inline-block w-6 h-6 border-2 border-[#F59E0B] border-t-transparent rounded-full mb-3" />
-            <p className="text-xs font-mono">Syncing Nostr relays...</p>
+        {nostrLoading && unifiedStream.length === 0 ? (
+          <div className="text-center py-16 text-white/40 flex flex-col items-center gap-3">
+            <span className="animate-spin inline-block w-6 h-6 border-2 border-[#F59E0B] border-t-transparent rounded-full" />
+            <p className="text-xs font-mono">Hydrating Moments & Nostr relays...</p>
           </div>
-        ) : feed.length === 0 ? (
-          <div className="text-center py-16 bg-[#161412] border border-white/5 rounded-3xl text-white/30">
-            <Sparkles size={36} className="mx-auto text-white/20 mb-3" />
-            <h4 className="text-sm font-black mb-1 font-clash">Relay Stream Empty</h4>
+        ) : unifiedStream.length === 0 ? (
+          <div className="text-center py-20 bg-[#161412] border border-white/5 rounded-3xl text-white/30 p-8">
+            <Sparkles size={36} className="mx-auto text-[#F59E0B] mb-3 opacity-60" />
+            <h4 className="text-base font-extrabold mb-1 font-clash text-white">No Moments Yet</h4>
             <p className="text-xs max-w-xs mx-auto text-white/40">
-              No matching tech-focused posts found on connected relays yet. Be the first to share!
+              Be the first to share an engineering update or workflow moment with the community!
             </p>
           </div>
         ) : (
-          feed.map(event => {
-            const author = getAuthorDisplay(event.pubkey);
+          displayedItems.map((item) => {
             return (
-              <div 
-                key={event.id}
-                className="bg-[#161412] border border-white/5 rounded-3xl p-5 flex flex-col gap-4 transition-all hover:border-white/10 shadow-md"
+              <div
+                key={item.id}
+                className="bg-[#161412] border border-white/10 rounded-3xl p-5 flex flex-col gap-3.5 hover:border-[#F59E0B]/30 transition-all shadow-xl group"
               >
-                {/* Card Header */}
+                {/* Header */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#F59E0B] to-amber-700 flex items-center justify-center font-black font-mono text-xs text-white">
-                      {author.name.substring(1, 3).toUpperCase()}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#F59E0B] to-amber-700 p-0.5 shrink-0 shadow-md">
+                      <div className="w-full h-full bg-[#0A0908] rounded-[14px] flex items-center justify-center font-black font-mono text-xs text-[#F59E0B]">
+                        {item.authorName.replace('@', '').slice(0, 2).toUpperCase() || 'KY'}
+                      </div>
                     </div>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold truncate max-w-[150px]">
-                          {author.name}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-extrabold text-white truncate group-hover:text-[#F59E0B] transition-colors">
+                          {item.authorName}
                         </span>
-                        {author.isEcosystem && (
-                          <span className="text-[8px] font-bold bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20 px-1 py-0.2 rounded font-mono uppercase">
+                        {item.isEcosystemUser && (
+                          <span className="px-2 py-0.5 rounded-md bg-[#F59E0B]/10 text-[#F59E0B] text-[10px] font-bold border border-[#F59E0B]/20 shrink-0">
                             Kylrix User
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] text-white/30 font-mono">
-                        {new Date(event.created_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                      <p className="text-[11px] text-white/40 font-mono mt-0.5">
+                        {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} •{' '}
+                        {new Date(item.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                      </p>
                     </div>
                   </div>
-                  <span className="text-[9px] font-mono bg-white/5 text-white/40 px-2 py-0.5 rounded-full border border-white/5">
-                    Kind 1
+
+                  <span className="px-2.5 py-1 rounded-xl bg-white/5 border border-white/5 text-[10px] font-mono text-white/50 flex items-center gap-1 shrink-0">
+                    {item.source === 'nostr' ? <Globe size={12} className="text-[#F59E0B]" /> : <Shield size={12} className="text-emerald-400" />}
+                    {item.source === 'nostr' ? 'Nostr' : 'Kylrix'}
                   </span>
                 </div>
 
-                {/* Card Content */}
-                <p className="text-sm text-white/80 leading-relaxed font-sans break-words whitespace-pre-wrap">
-                  {event.content}
+                {/* Content */}
+                <p className="text-sm text-white/90 leading-relaxed font-sans break-words whitespace-pre-wrap px-0.5">
+                  {item.content}
                 </p>
 
-                {/* Card Actions */}
-                <div className="flex items-center gap-6 border-t border-white/[0.03] pt-3 text-white/40 text-xs select-none">
-                  <button 
-                    onClick={() => toast.success('Pulse logged locally!')}
-                    className="flex items-center gap-1.5 hover:text-[#F59E0B] transition-all"
+                {/* Action Bar */}
+                <div className="flex items-center gap-6 border-t border-white/5 pt-3 text-white/40 text-xs select-none">
+                  <button
+                    onClick={() => toast.success('Pulse logged!')}
+                    className="flex items-center gap-1.5 hover:text-[#F59E0B] transition-all font-bold"
                   >
-                    <Heart size={14} />
-                    <span>Pulse</span>
+                    <Heart size={15} />
+                    <span>{item.likesCount || 0} Pulse</span>
                   </button>
-                  <button className="flex items-center gap-1.5 hover:text-white transition-all">
-                    <MessageCircle size={14} />
-                    <span>Reply</span>
+                  <button className="flex items-center gap-1.5 hover:text-white transition-all font-bold">
+                    <MessageCircle size={15} />
+                    <span>{item.repliesCount || 0} Reply</span>
                   </button>
-                  <button className="flex items-center gap-1.5 hover:text-white transition-all">
-                    <Repeat2 size={14} />
-                    <span>Repost</span>
+                  <button
+                    onClick={() => {
+                      if (navigator.share) {
+                        void navigator.share({ text: item.content });
+                      } else {
+                        void navigator.clipboard.writeText(item.content);
+                        toast.success('Copied moment link to clipboard');
+                      }
+                    }}
+                    className="flex items-center gap-1.5 hover:text-white transition-all font-bold"
+                  >
+                    <Share2 size={15} />
+                    <span>Share</span>
                   </button>
                 </div>
               </div>
@@ -211,6 +273,14 @@ export function NostrFeed() {
           })
         )}
       </div>
+
+      {/* Infinite Scroll Bottom Trigger Element */}
+      {visibleCount < unifiedStream.length && (
+        <div ref={observerRef} className="py-6 flex items-center justify-center text-white/40 gap-2">
+          <span className="animate-spin w-4 h-4 border-2 border-[#F59E0B] border-t-transparent rounded-full" />
+          <span className="text-xs font-mono">Loading more moments...</span>
+        </div>
+      )}
     </div>
   );
 }
