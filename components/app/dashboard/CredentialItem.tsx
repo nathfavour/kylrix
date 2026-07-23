@@ -36,7 +36,8 @@ export default function CredentialItem({
 }) {
   const { isPinned: isResourcePinned } = useResourcePins();
   const pinned = isResourcePinned('credential', credential.$id, credential.userId, credential.isPinned);
-  const { openMenu } = useContextMenu();
+  const contextMenu = useContextMenu();
+  const openMenu = contextMenu?.openMenu;
   const [localIsPublic, setLocalIsPublic] = useState(!!credential.isPublic);
   const [localIsGuest, setLocalIsGuest] = useState(!!credential.isGuest);
 

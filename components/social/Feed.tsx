@@ -873,7 +873,8 @@ const creatorAvatar = isOwnPost ? userAvatarUrl : (moment.creator?.avatar || cac
 const { isPinned: isResourcePinned, togglePin } = useResourcePins();
 
 const bookmarked = isResourcePinned('moment', moment.$id, creatorId, moment.isPinned);
-const { openMenu } = useContextMenu();
+const contextMenu = useContextMenu();
+const openMenu = contextMenu?.openMenu;
 
 const handlePinToggle = async (e?: React.MouseEvent) => {
   if (e) {

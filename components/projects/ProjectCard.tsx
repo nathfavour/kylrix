@@ -39,7 +39,8 @@ interface ProjectCardProps {
 }
 
 export default function ProjectCard({ project, onClick, onDelete, onTogglePin, onUpdate }: ProjectCardProps) {
-  const { openMenu } = useContextMenu();
+  const contextMenu = useContextMenu();
+  const openMenu = contextMenu?.openMenu;
   const { isPinned: isResourcePinned } = useResourcePins();
   const pinned = (project as any).isPinned || isResourcePinned('project', project.$id, project.ownerId, (project as any).isPinned);
 

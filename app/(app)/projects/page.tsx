@@ -251,6 +251,7 @@ function LocalProjectCard({ project, onClick, onDelete, onTogglePin, onUpdate }:
   onUpdate?: (updated: Projects) => void;
 }) {
   const { isPinned: isResourcePinned } = useResourcePins();
+  const pinned = isResourcePinned('project', project.$id, project.ownerId, project.isPinned);
   const contextMenu = useContextMenu();
   const openMenu = contextMenu?.openMenu;
 

@@ -81,7 +81,8 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ note, onUpdate, onDelete
     }
   }, [isMenuDrawerOpen]);
 
-  const { openMenu } = useContextMenu();
+  const contextMenu = useContextMenu();
+  const openMenu = contextMenu?.openMenu;
   const { openSidebar } = useDynamicSidebar();
   const { isPinned, pinNote, unpinNote, upsertNote, notes: contextNotes } = useNotes();
   const liveNote = React.useMemo(

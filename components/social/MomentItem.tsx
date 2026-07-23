@@ -8,7 +8,8 @@ import { useAccessControlMenuItems } from '@/components/share/AccessControlMenuI
 export function MomentItem({ moment, isOwnPost, creatorId, creatorAvatar, momentCardSx, handleEditMoment, handleDeletePost }: any) {
   const { isPinned: isResourcePinned, togglePin } = useResourcePins();
   const bookmarked = isResourcePinned('moment', moment.$id, creatorId, moment.isPinned);
-  const { openMenu } = useContextMenu();
+  const contextMenu = useContextMenu();
+  const openMenu = contextMenu?.openMenu;
 
   const handlePinToggle = async (e?: React.MouseEvent) => {
     if (e) {

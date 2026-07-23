@@ -38,7 +38,8 @@ export default function EventCard({ event, onClick, onDelete }: EventCardProps) 
   const router = useRouter();
   const { user } = useAuth();
   const { open: openUnified } = useUnifiedDrawer();
-  const { openMenu } = useContextMenu();
+  const contextMenu = useContextMenu();
+  const openMenu = contextMenu?.openMenu;
   const { isPinned: isResourcePinned, togglePin } = useResourcePins();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
