@@ -686,7 +686,7 @@ export function ProjectDiscussionSidebar({
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, alignSelf: isOutgoing ? 'flex-end' : 'flex-start', px: 0.5, position: 'relative', zIndex: 2 }}>
               <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
-                {formatTime(new Date(msg.timestamp), { hour: 'numeric', minute: '2-digit', hour12: true })}
+                {new Date(msg.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
               </Typography>
             </Box>
           </Box>

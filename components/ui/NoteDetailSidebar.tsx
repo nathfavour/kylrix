@@ -232,47 +232,28 @@ export function NoteDetailSidebar({
   const [tags, setTags] = useState(liveNote.tags?.join(', ') || '');
   const [isPublic, setIsPublic] = useState(getNotePublicState(liveNote));
 
-  // Same dirty contract as CreateNoteForm (snapshot vs last saved).
-  const [lastSavedSnapshot, setLastSavedSnapshot] = useState(() =>
-    JSON.stringify({
-      title: (liveNote.title || '').trim(),
-      content: (liveNote.content || '').trim(),
-      tags: (liveNote.tags || []).join(', '),
-    }),
-  );
-
-  const editorSnapshot = useMemo(
-    () =>
-      JSON.stringify({
-        title: title.trim(),
-        content: content.trim(),
-        tags,
-      }),
-    [title, content, tags],
-  );
-  const isDirty = editorSnapshot !== lastSavedSnapshot;
-  const isDirtyRef = useRef(false);
-  useEffect(() => {
-    isDirtyRef.current = isDirty;
-  }, [isDirty]);
-
-  const loadedNoteIdRef = useRef<string | null>(null);
-  const lastAppliedServerTsRef = useRef('');
-
   /**
-   * Mirror CreateNoteForm: dirty editor → pushLiveNote (engine enqueues amber).
+   * Direct Funnel to Local Copy: Any edit in detail immediately updates NotesContext live copy & triggers sync cycle.
    */
   useEffect(() => {
     if (readOnly) return;
     const noteId = liveNoteRef.current?.$id;
-    if (!noteId || !isDirty) return;
-
-    registerComposeSession(noteId);
+    if (!noteId) return;
 
     const normalizedTags = tags
       .split(',')
       .map((t: string) => t.trim())
       .filter(Boolean);
+
+    const hasChanged =
+      title !== (liveNoteRef.current.title || '') ||
+      content !== (liveNoteRef.current.content || '') ||
+      JSON.stringify(normalizedTags) !== JSON.stringify(liveNoteRef.current.tags || []);
+
+    if (!hasChanged) return;
+
+    registerComposeSession(noteId);
+
     const draftNote: Notes = {
       ...liveNoteRef.current,
       title,
@@ -281,6 +262,7 @@ export function NoteDetailSidebar({
       updatedAt: new Date().toISOString(),
       $updatedAt: new Date().toISOString(),
     };
+
     pushLiveNote(draftNote);
     void setCachedData(`note_${noteId}`, draftNote);
     onUpdate(draftNote);
@@ -288,29 +270,12 @@ export function NoteDetailSidebar({
     title,
     content,
     tags,
-    isDirty,
     readOnly,
     registerComposeSession,
     pushLiveNote,
     setCachedData,
     onUpdate,
   ]);
-
-  useEffect(() => {
-    const onSyncComplete = (event: Event) => {
-      const noteId = String((event as CustomEvent)?.detail?.noteId || '').trim();
-      if (!noteId || noteId !== liveNoteRef.current?.$id) return;
-      setLastSavedSnapshot(
-        JSON.stringify({
-          title: title.trim(),
-          content: content.trim(),
-          tags,
-        }),
-      );
-    };
-    window.addEventListener('kylrix:sync-complete', onSyncComplete as EventListener);
-    return () => window.removeEventListener('kylrix:sync-complete', onSyncComplete as EventListener);
-  }, [title, content, tags]);
 
   const [isLoadingCollaborators, setIsLoadingCollaborators] = useState(false);
   const [collaboratorProfiles, setCollaboratorProfiles] = useState<any[]>([]);
@@ -351,37 +316,20 @@ export function NoteDetailSidebar({
   const isT4EncryptedPublicNote = useMemo(() => isPublic && isT4Encrypted, [isPublic, isT4Encrypted]);
   const shouldMaskEncrypted = useMemo(() => isEncryptedNote && !vaultUnlocked, [isEncryptedNote, vaultUnlocked]);
 
-  // Sync local fields from server only when switching notes or when not dirty.
+  // Sync state when switching to a different note in detail view
+  const loadedNoteIdRef = useRef<string | null>(null);
   useEffect(() => {
     const noteId = liveNote.$id;
     if (!noteId) return;
 
-    const serverTs = String(liveNote.updatedAt || liveNote.$updatedAt || '');
-
     if (loadedNoteIdRef.current !== noteId) {
       loadedNoteIdRef.current = noteId;
-      lastAppliedServerTsRef.current = serverTs;
       setTitle(liveNote.title || '');
       setContent(liveNote.content || '');
       setTags(liveNote.tags?.join(', ') || '');
       setIsPublic(getNotePublicState(liveNote));
-      setLastSavedSnapshot(
-        JSON.stringify({
-          title: (liveNote.title || '').trim(),
-          content: (liveNote.content || '').trim(),
-          tags: (liveNote.tags || []).join(', '),
-        }),
-      );
-      return;
     }
-
-    if (isDirtyRef.current) return;
-    lastAppliedServerTsRef.current = serverTs;
-    setTitle(liveNote.title || '');
-    setContent(liveNote.content || '');
-    setTags(liveNote.tags?.join(', ') || '');
-    setIsPublic(getNotePublicState(liveNote));
-  }, [liveNote]);
+  }, [liveNote.$id, liveNote.title, liveNote.content, liveNote.tags]);
 
 
 
@@ -396,8 +344,6 @@ export function NoteDetailSidebar({
             setContent(decrypted.content || '');
             setTags(decrypted.tags?.join(', ') || '');
             setIsLocallyDecrypted(true);
-            isDirtyRef.current = false;
-            lastAppliedServerTsRef.current = String(decrypted.updatedAt || decrypted.$updatedAt || '');
             updateLocalAndParentNote(decrypted);
             showSuccess('Note decrypted', 'Content is now visible.');
           }
@@ -541,8 +487,8 @@ export function NoteDetailSidebar({
       }
 
       if (!isCreate && !isUpdate) return;
-      // Collaborator remote edits enter the unified local copy — never a detail-only overlay.
-      if (isDirtyRef.current) return;
+      // Collaborator remote edits enter the unified local copy — local pending wins.
+      if (autonomicSyncEngine.isPending(payload.$id)) return;
       const base = allNotesRef.current.find((n) => n.$id === payload.$id) || noteRef.current;
       const merged = base ? { ...base, ...payload } : payload;
       pushLiveNote(merged);

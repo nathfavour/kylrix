@@ -42,9 +42,10 @@ import { StorageService } from '@/lib/services/storage';
 import { getRxDB } from '@/lib/webrtc/RxDBManager';
 import { useAuth } from '@/context/auth/AuthContext';
 import { useNotes } from '@/context/NotesContext';
+import { storage } from '@/lib/appwrite/client';
 import { getAllTags, listNotesPaginated } from '@/lib/appwrite';
 import { ProjectsService } from '@/lib/appwrite/projects';
-import { listVaultItems } from '@/lib/appwrite/vault';
+import { VaultService } from '@/lib/appwrite/vault';
 import { tasks, calendars } from '@/lib/kylrixflow';
 
 const BUCKETS = [
@@ -129,16 +130,15 @@ export function UnifiedFileAttachmentDrawer() {
       } else if (activeSubTab === 'totps') {
         // TOTPs / Credentials
         try {
-          const res = await listVaultItems();
-          items = (res.rows || []).filter((item: any) => item.type === 'totp' || item.secret || item.totpSecret);
+          const res = await VaultService.listTOTPSecrets(userId);
+          items = Array.isArray(res) ? res : [];
         } catch (_e) {
           items = (await LocalEngine.cacheGet<any[]>(`f_keychain_${userId}`)) || [];
         }
       } else if (activeSubTab === 'vault') {
         // Vault Items / Secrets
         try {
-          const res = await listVaultItems();
-          items = res.rows || [];
+          items = await VaultService.listAllCredentials(userId);
         } catch (_e) {
           items = (await LocalEngine.cacheGet<any[]>(`f_keychain_${userId}`)) || [];
         }
@@ -181,7 +181,7 @@ export function UnifiedFileAttachmentDrawer() {
       const fetchedFiles: SyncedMediaFile[] = [];
       for (const bucketId of BUCKETS) {
         try {
-          const listRes = await StorageService.listFiles(bucketId, [], 50);
+          const listRes = await storage.listFiles(bucketId);
           if (listRes?.files) {
             listRes.files.forEach((f: any) => {
               fetchedFiles.push({

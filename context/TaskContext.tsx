@@ -994,6 +994,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       void setCachedData(`goal_${stamped.id}`, stamped);
       if (options?.pending !== false) {
         autonomicSyncEngine.markPending(goalPendingKey(stamped.id), stamped.updatedAt.toISOString());
+        autonomicSyncEngine.runCycle();
       }
     },
     [setCachedData],
