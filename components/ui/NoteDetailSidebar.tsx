@@ -1832,8 +1832,8 @@ export function NoteDetailSidebar({
                     title: 'Attach Object or Media',
                     onSelectFile: (file) => {
                       const fileMarkdown = file.mimeType?.startsWith('image/')
-                        ? `\n![${file.name}](${file.fileUrl || StorageService.getFileView(file.$id, file.bucketId)})\n`
-                        : `\n[${file.name}](${file.fileUrl || StorageService.getFileView(file.$id, file.bucketId)})\n`;
+                        ? `\n\n![${file.name}](${file.fileUrl || StorageService.getFileView(file.$id, file.bucketId)})\n\n`
+                        : `\n\n${file.fileUrl || `[${file.name}](${StorageService.getFileView(file.$id, file.bucketId)})`}\n\n`;
                       setContent((prev) => prev + fileMarkdown);
                     },
                   });

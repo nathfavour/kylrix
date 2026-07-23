@@ -368,17 +368,21 @@ export function UnifiedFileAttachmentDrawer() {
       ? 'Encrypted Item'
       : item.title || item.name || item.label || 'Attached Item';
 
-    let rawReference = `[${itemTitle}](source:kylrix${activeSubTab}:${item.$id || item.id})`;
+    let rawReference = `\n\n[${itemTitle}](source:kylrix${activeSubTab}:${item.$id || item.id})\n\n`;
     if (activeSubTab === 'ideas') {
-      rawReference = `[Idea: ${itemTitle}](file://notes/${item.$id || item.id})`;
+      rawReference = `\n\n[Idea: ${itemTitle}](source:kylrixnote:${item.$id || item.id})\n\n`;
     } else if (activeSubTab === 'goals') {
-      rawReference = `[Goal: ${itemTitle}](source:kylrixgoal:${item.$id || item.id})`;
+      rawReference = `\n\n[Goal: ${itemTitle}](source:kylrixgoal:${item.$id || item.id})\n\n`;
     } else if (activeSubTab === 'projects') {
-      rawReference = `[Project: ${itemTitle}](source:kylrixproject:${item.$id || item.id})`;
+      rawReference = `\n\n[Project: ${itemTitle}](source:kylrixproject:${item.$id || item.id})\n\n`;
     } else if (activeSubTab === 'threads') {
-      rawReference = `[Thread: ${itemTitle}](source:kylrixthread:${item.$id || item.id})`;
+      rawReference = `\n\n[Thread: ${itemTitle}](source:kylrixthread:${item.$id || item.id})\n\n`;
     } else if (activeSubTab === 'totps') {
-      rawReference = `[TOTP: ${itemTitle}](source:kylrixvault:${item.$id || item.id})`;
+      rawReference = `\n\n[TOTP: ${itemTitle}](source:kylrixvault:${item.$id || item.id})\n\n`;
+    } else if (activeSubTab === 'vault') {
+      rawReference = `\n\n[Secret: ${itemTitle}](source:kylrixvault:${item.$id || item.id})\n\n`;
+    } else if (activeSubTab === 'forms') {
+      rawReference = `\n\n[Form: ${itemTitle}](source:kylrixform:${item.$id || item.id})\n\n`;
     }
 
     options.onSelectFile({
