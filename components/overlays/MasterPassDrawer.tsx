@@ -825,11 +825,13 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
       anchor={isMobile ? "bottom" : "right"}
       open={isOpen}
       onClose={() => { }} // Prevent closing by clicking outside
+      sx={{ zIndex: 9999999 }}
       slotProps={{
         backdrop: {
           sx: { 
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(4px)'
+            backdropFilter: 'blur(4px)',
+            zIndex: 9999999
           },
         },
       }}
@@ -843,6 +845,7 @@ export function MasterPassDrawer({ isOpen, onClose, intent = 'unlock' }: MasterP
           maxHeight: '100dvh',
           height: '100dvh',
           top: 0,
+          zIndex: 9999999
         }
       }}
     >

@@ -75,6 +75,7 @@ import SudoModal from '../overlays/SudoModal';
 import { usePresence } from '../providers/PresenceProvider';
 import type { AttachmentMetadata } from '@/types/p2p';
 import { useUnifiedDrawer } from '@/context/UnifiedDrawerContext';
+import { useUnifiedFileDrawer } from '@/context/UnifiedFileDrawerContext';
 import { toast } from 'react-hot-toast';
 
 import { fetchProfilePreview } from '@/lib/profile-preview';
@@ -498,6 +499,7 @@ export const ChatWindow = ({ conversationId, onBack }: { conversationId: string;
     const [reactionPopoverAnchorEl, setReactionPopoverAnchorEl] = useState<HTMLElement | null>(null);
     const [reactionPopoverMessageId, setReactionPopoverMessageId] = useState<string | null>(null);
     const initialLoadRef = useRef<string | null>(null);
+    const { openFileDrawer } = useUnifiedFileDrawer();
     const [isPending, startTransition] = useTransition();
     const isProPlan = hasPaidKylrixPlan(user);
     const { openWalletWithIntent } = useWalletOverlay();
@@ -2202,7 +2204,7 @@ export const ChatWindow = ({ conversationId, onBack }: { conversationId: string;
                                         sx={{ width: '100%', maxWidth: '80%' }}
                                     >
                                         <IdentityAvatar
-                                            userId={senderId}
+                                            userId={msg.senderId}
                                             fileId={senderProfile?.avatar || null}
                                             alt={senderName}
                                             fallback={senderName.slice(0, 1).toUpperCase()}
@@ -2530,7 +2532,7 @@ export const ChatWindow = ({ conversationId, onBack }: { conversationId: string;
                         enableMentions={conversation?.type === 'group'}
                         mentionTargets={groupMentionTargets}
                         onAttach={() => {
-                            openUnified('file-attachment', {
+                            openFileDrawer({
                                 onSelectFile: (file: any) => {
                                     const objectType = file.type || file.subType || (file.issuer ? 'totp' : file.secret ? 'vault' : 'file');
                                     const title = file.name || file.title || file.label || file.issuer || 'Object';

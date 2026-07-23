@@ -56,8 +56,7 @@ import { useTask } from '@/context/TaskContext';
 import { ProjectsService } from '@/lib/appwrite/projects';
 import { VaultService } from '@/lib/appwrite/vault';
 import { tasks, events } from '@/lib/kylrixflow';
-import { MasterPassDrawer } from '@/components/overlays/MasterPassDrawer';
-import { useAppwriteVault } from '@/context/appwrite-context';
+import { useSudo } from '@/context/SudoContext';
 
 const BUCKETS = [
   'general_storage',
@@ -101,7 +100,7 @@ function isLikelyEncrypted(str?: string | null): boolean {
 export function UnifiedFileAttachmentDrawer() {
   const { isOpen, options, closeFileDrawer } = useUnifiedFileDrawer();
   const { user } = useAuth();
-  const { isVaultUnlocked } = useAppwriteVault();
+  const { promptSudo, isUnlocked } = useSudo();
   const userId = user?.$id || 'guest';
   const { notes: localContextNotes } = useNotes();
 
@@ -110,17 +109,16 @@ export function UnifiedFileAttachmentDrawer() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeTab, setActiveTab] = useState<MainTab>('objects');
   const [activeSubTab, setActiveSubTab] = useState<ObjectSubTab>('goals');
-  const [showMasterPassDrawer, setShowMasterPassDrawer] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Auto-trigger masterpassword drawer if user switches to encrypted sub-tabs and vault is locked
+  // Auto-trigger unified Masterpass SudoModal when switching to encrypted sub-tabs if locked
   useEffect(() => {
     if (isOpen && activeTab === 'objects' && (activeSubTab === 'totps' || activeSubTab === 'vault')) {
-      if (!isVaultUnlocked()) {
-        setShowMasterPassDrawer(true);
+      if (!isUnlocked) {
+        promptSudo('unlock');
       }
     }
-  }, [isOpen, activeTab, activeSubTab, isVaultUnlocked]);
+  }, [isOpen, activeTab, activeSubTab, isUnlocked, promptSudo]);
 
   const [mediaFiles, setMediaFiles] = useState<SyncedMediaFile[]>([]);
   const [objectItems, setObjectItems] = useState<any[]>([]);
@@ -441,25 +439,42 @@ export function UnifiedFileAttachmentDrawer() {
     return <FileText className="w-5 h-5 text-[#F59E0B]" />;
   };
 
+  const getSubTabIcon = (subTab: ObjectSubTab) => {
+    switch (subTab) {
+      case 'goals': return Target;
+      case 'ideas': return FileText;
+      case 'projects': return FolderKanban;
+      case 'threads': return MessageSquare;
+      case 'totps': return ShieldAlert;
+      case 'forms': return FileCode;
+      case 'events': return Calendar;
+      case 'vault': return Key;
+      case 'tags': return TagIcon;
+      default: return Layers;
+    }
+  };
+
+  const CurrentSubTabIcon = getSubTabIcon(activeSubTab);
+
   return (
-    <div className="fixed inset-0 z-[999999] flex items-end justify-center bg-black/80 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-[999999] flex items-end justify-center bg-black/80 backdrop-blur-md animate-fadeIn p-0 sm:p-4">
       <div
-        className={`w-full max-w-3xl bg-[#161412] border-t border-[#34322F] rounded-t-[28px] p-6 shadow-2xl font-satoshi flex flex-col transition-all ${
-          isFullscreen ? 'h-[96vh]' : 'max-h-[85vh]'
+        className={`w-full max-w-3xl bg-[#161412] border-t sm:border border-[#34322F] rounded-t-[28px] sm:rounded-[28px] p-6 shadow-2xl font-satoshi flex flex-col transition-all duration-300 ${
+          isFullscreen ? 'h-[92vh]' : 'h-[60vh] max-h-[600px]'
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#1C1A18]">
+        <div className="flex items-center justify-between pb-4 border-b border-[#1C1A18] shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-[#0A0908] border border-[#1C1A18] text-[#A855F7]">
               <Layers className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-clash font-extrabold text-xl text-[#F5F2ED]">
-                {options.title || 'Attach Object or Media'}
+                Attach
               </h3>
-              <p className="text-xs text-[#9B9691] font-mono mt-0.5">
-                0ms Local Copy Engine
+              <p className="text-xs text-[#9B9691] font-mono mt-0.5 capitalize">
+                Select {activeTab === 'objects' ? activeSubTab : activeTab} to attach
               </p>
             </div>
           </div>
@@ -482,7 +497,7 @@ export function UnifiedFileAttachmentDrawer() {
         </div>
 
         {/* Main 3-Tab Switcher (Objects, Synced, Upload) */}
-        <div className="flex items-center gap-2 mt-4 p-1.5 bg-[#0A0908] rounded-2xl border border-[#1C1A18]">
+        <div className="flex items-center gap-2 mt-4 p-1.5 bg-[#0A0908] rounded-2xl border border-[#1C1A18] shrink-0">
           <button
             onClick={() => setActiveTab('objects')}
             className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
@@ -519,7 +534,7 @@ export function UnifiedFileAttachmentDrawer() {
         {activeTab === 'objects' && (
           <div className="flex-1 flex flex-col overflow-hidden mt-4">
             {/* Scrollable Sub-Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar shrink-0">
               {[
                 { id: 'goals', label: 'Goals', icon: Target },
                 { id: 'ideas', label: 'Ideas', icon: FileText },
@@ -550,11 +565,11 @@ export function UnifiedFileAttachmentDrawer() {
               })}
             </div>
 
-            <div className="relative my-3">
+            <div className="relative my-3 shrink-0">
               <Search className="absolute left-3.5 top-3 w-4 h-4 text-[#9B9691]" />
               <input
                 type="text"
-                placeholder={`Search local ${activeSubTab}...`}
+                placeholder={`Search ${activeSubTab}...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-[#0A0908] border border-[#1C1A18] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#F5F2ED] focus:outline-none focus:border-[#A855F7] transition-all"
@@ -568,7 +583,7 @@ export function UnifiedFileAttachmentDrawer() {
                 </div>
               ) : filteredObjects.length === 0 ? (
                 <div className="text-center py-16 text-[#9B9691] text-xs">
-                  No local {activeSubTab} found.
+                  No {activeSubTab} found.
                 </div>
               ) : (
                 filteredObjects.map((item, idx) => {
@@ -589,7 +604,7 @@ export function UnifiedFileAttachmentDrawer() {
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
                         <div className="p-2.5 rounded-xl bg-[#161412] border border-[#1C1A18] text-[#A855F7] shrink-0">
-                          {isEncrypted ? <Lock className="w-4 h-4 text-amber-400" /> : <Sparkles className="w-4 h-4" />}
+                          {isEncrypted ? <Lock className="w-4 h-4 text-amber-400" /> : <CurrentSubTabIcon className="w-4 h-4" />}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
@@ -603,7 +618,7 @@ export function UnifiedFileAttachmentDrawer() {
                             )}
                           </div>
                           <p className="text-xs text-[#9B9691] font-mono mt-0.5 capitalize">
-                            {activeSubTab} • Local Copy
+                            {activeSubTab}
                           </p>
                         </div>
                       </div>
@@ -938,18 +953,6 @@ export function UnifiedFileAttachmentDrawer() {
             </div>
           </div>
         </div>
-      )}
-
-      {showMasterPassDrawer && (
-        <MasterPassDrawer
-          isOpen={showMasterPassDrawer}
-          onClose={() => {
-            setShowMasterPassDrawer(false);
-            if (isVaultUnlocked()) {
-              loadLocalObjects();
-            }
-          }}
-        />
       )}
     </div>
   );
