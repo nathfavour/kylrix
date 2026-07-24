@@ -456,11 +456,13 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
                   task.status === 'done' ? 'text-[#9B9691] line-through' : 'text-[#F5F2ED]'
                 }`}
               >
-                <span className="inline-flex items-start gap-1.5 flex-wrap break-words [overflow-wrap:anywhere] line-clamp-2">
+                <div className="flex items-center gap-1.5 min-w-0">
                   {taskPinned && (
-                    <Pin className="h-3.5 w-3.5 text-[#F59E0B] rotate-45 shrink-0 mt-0.5" style={{ color: '#F59E0B' }} />
+                    <Pin className="h-3.5 w-3.5 text-[#F59E0B] rotate-45 shrink-0" style={{ color: '#F59E0B' }} />
                   )}
-                  <span className="line-clamp-2">{task.title}</span>
+                  <h3 className="text-[#F5F2ED] font-extrabold text-sm sm:text-base tracking-tight truncate line-clamp-2 flex-1 min-w-0 font-mono">
+                    {task.title}
+                  </h3>
                   <SyncStatusDot resourceId={goalPendingKey(task.id)} />
                   {hasPresence && (
                     <span
@@ -469,10 +471,10 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
                         e.preventDefault();
                         setIsFlapOverOpen(true);
                       }}
-                      className="inline-block w-2 h-2 rounded-full bg-[#A1A1AA] shadow-[0_0_6px_rgba(161,161,170,0.6)] cursor-pointer animate-pulse shrink-0 mt-1.5"
+                      className="inline-block w-2 h-2 rounded-full bg-[#A1A1AA] shadow-[0_0_6px_rgba(161,161,170,0.6)] cursor-pointer animate-pulse shrink-0"
                     />
                   )}
-                </span>
+                </div>
               </div>
 
               <div className="flex gap-0.5 items-start shrink-0 relative pt-0.5">
