@@ -57,10 +57,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setSessionProjectsList(rows as any);
 
       const customItems: WorkspaceItem[] = rows.map((p: any) => ({
-        id: p.$id,
-        title: p.title || 'Untitled Workspace',
-        ownerId: p.ownerId || userId,
-        isPersonal: p.$id === userId,
+        id: p.$id || p.id,
+        title: p.title || p.name || 'Untitled Workspace',
+        ownerId: p.ownerId || p.userId || userId,
+        isPersonal: (p.$id || p.id) === userId,
       }));
 
       setWorkspaces([personalWorkspace, ...customItems.filter((w) => w.id !== personalWorkspace.id)]);

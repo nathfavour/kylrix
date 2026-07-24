@@ -216,10 +216,11 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
             flex: 1,
             minWidth: 0,
             width: '100%',
+            ml: showLeftSidebar ? { md: isCollapsed ? '72px' : '240px' } : 0,
             position: 'relative',
             zIndex: 1,
             pb: isSpecificPostPage ? 0 : (isLandingPage ? 0 : { xs: 12, md: 4 }),
-            px: isProjectDetailPage ? { xs: 1, sm: 1, md: 2 } : isNoteFullPageDetail ? { xs: 0, sm: 0, md: 0 } : { xs: 2, sm: 2, md: 3 },
+            px: isProjectDetailPage ? { xs: 1, sm: 1, md: 2 } : isNoteFullPageDetail ? { xs: 0, sm: 0, md: 0 } : { xs: 1.5, sm: 2, md: 2.5 },
             pointerEvents: 'auto',
             transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
