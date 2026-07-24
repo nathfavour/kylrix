@@ -230,12 +230,13 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const { fetchOptimized, setCachedData, invalidate, getCachedData, getCachedDataAsync } = useDataNexus();
   const { pinSets, isPinned: isResourcePinned, togglePin } = useResourcePins();
 
-  const PINNED_CACHE_KEY = useMemo(() => user?.$id ? `pinned_ids_${user.$id}` : null, [user?.$id]);
-  const INITIAL_NOTES_CACHE_KEY = useMemo(() => user?.$id ? `initial_notes_${user.$id}` : null, [user?.$id]);
+  const activeUserId = user?.$id || 'guest';
+  const PINNED_CACHE_KEY = useMemo(() => `pinned_ids_${activeUserId}`, [activeUserId]);
+  const INITIAL_NOTES_CACHE_KEY = useMemo(() => `initial_notes_${activeUserId}`, [activeUserId]);
 
   // Load from cache on mount (Instant Cold-Start Hydration)
   useEffect(() => {
-    if (!user?.$id || isCacheLoaded) return;
+    if (isCacheLoaded) return;
 
     const hydrateFromCache = async () => {
         if (PINNED_CACHE_KEY && INITIAL_NOTES_CACHE_KEY) {
@@ -254,7 +255,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
                 setPinnedIds(cachedPinned);
             }
 
-            if (cachedNotes && Array.isArray(cachedNotes.notes)) {
+            if (cachedNotes && Array.isArray(cachedNotes.notes) && cachedNotes.notes.length > 0) {
                 setNotes(cachedNotes.notes);
                 setTotalNotes(cachedNotes.totalNotes || 0);
                 setCursor(cachedNotes.cursor || null);
@@ -267,7 +268,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     };
     
     void hydrateFromCache();
-  }, [user?.$id, isCacheLoaded, getCachedDataAsync, PINNED_CACHE_KEY, INITIAL_NOTES_CACHE_KEY]);
+  }, [isCacheLoaded, getCachedDataAsync, PINNED_CACHE_KEY, INITIAL_NOTES_CACHE_KEY]);
 
   // Refs to avoid unnecessary re-creations / dependency loops
   const isFetchingRef = useRef(false);
