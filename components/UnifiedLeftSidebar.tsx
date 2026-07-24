@@ -33,6 +33,9 @@ const NAV_COLORS: Record<NavId, string> = {
 
 const NOTE_DETAIL_EXCLUDED = 'shared|landing|admin|pitch|popout|notes|extensions';
 
+import { useWorkspace } from '@/context/WorkspaceContext';
+import { ChevronDown as WorkspaceChevronIcon, Plus as PlusIcon, Check as CheckIcon } from 'lucide-react';
+
 export function UnifiedLeftSidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -43,6 +46,8 @@ export function UnifiedLeftSidebar() {
   const { isOpen: isOverlayOpen } = useOverlay();
   const { isCollapsed } = useSidebar();
   const { user, updatePreferences } = useAuth();
+  const { activeWorkspace, workspaces, setActiveWorkspaceId } = useWorkspace();
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = React.useState(false);
 
   const appContext = useMemo((): NavId | null => {
     if (pathname?.startsWith('/tags')) return 'tags';
@@ -135,6 +140,149 @@ export function UnifiedLeftSidebar() {
           transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
+        {/* Workspace Switcher Header */}
+        <Box sx={{ mb: 2, px: isCollapsed ? 0 : 0.5, width: '100%' }}>
+          <Tooltip title={isCollapsed ? activeWorkspace.title : ''} placement="right">
+            <Box
+              onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
+              sx={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: isCollapsed ? 'center' : 'space-between',
+                p: isCollapsed ? 1 : '10px 12px',
+                borderRadius: '14px',
+                bgcolor: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  bgcolor: 'rgba(255, 255, 255, 0.06)',
+                  borderColor: 'rgba(255, 255, 255, 0.12)',
+                },
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                <Box
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '8px',
+                    bgcolor: 'rgba(245, 158, 11, 0.15)',
+                    color: '#F59E0B',
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontWeight: 900,
+                    fontSize: '0.8rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  {activeWorkspace.title.charAt(0).toUpperCase()}
+                </Box>
+                {!isCollapsed && (
+                  <Box sx={{ minWidth: 0, textAlign: 'left' }}>
+                    <span style={{ display: 'block', color: '#fff', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'var(--font-satoshi)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {activeWorkspace.title}
+                    </span>
+                    <span style={{ display: 'block', color: 'rgba(255, 255, 255, 0.4)', fontWeight: 600, fontSize: '0.68rem', fontFamily: 'var(--font-satoshi)' }}>
+                      Workspace
+                    </span>
+                  </Box>
+                )}
+              </Box>
+              {!isCollapsed && (
+                <WorkspaceChevronIcon
+                  size={16}
+                  style={{
+                    color: 'rgba(255, 255, 255, 0.4)',
+                    transition: 'transform 0.2s',
+                    transform: workspaceMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+            </Box>
+          </Tooltip>
+
+          {/* Workspace Dropdown Panel */}
+          {workspaceMenuOpen && !isCollapsed && (
+            <Box
+              sx={{
+                mt: 1,
+                p: 1,
+                borderRadius: '16px',
+                bgcolor: '#1E1B18',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 0.5,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              }}
+            >
+              <Box sx={{ px: 1, py: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Workspaces
+                </span>
+                <Box
+                  onClick={() => {
+                    setWorkspaceMenuOpen(false);
+                    router.push('/workspaces');
+                  }}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    color: '#F59E0B',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
+                >
+                  <PlusIcon size={12} /> New
+                </Box>
+              </Box>
+              {workspaces.map((w) => {
+                const isActive = w.id === activeWorkspace.id;
+                return (
+                  <Box
+                    key={w.id}
+                    onClick={() => {
+                      setActiveWorkspaceId(w.id);
+                      setWorkspaceMenuOpen(false);
+                      if (w.isPersonal || w.id === user?.$id) {
+                        router.push('/app');
+                      } else {
+                        router.push(`/workspaces/${w.id}`);
+                      }
+                    }}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      px: 1.5,
+                      py: 1,
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      bgcolor: isActive ? 'rgba(245, 158, 11, 0.12)' : 'transparent',
+                      color: isActive ? '#F59E0B' : 'rgba(255, 255, 255, 0.7)',
+                      '&:hover': {
+                        bgcolor: isActive ? 'rgba(245, 158, 11, 0.18)' : 'rgba(255, 255, 255, 0.04)',
+                        color: '#fff',
+                      },
+                    }}
+                  >
+                    <span style={{ fontSize: '0.78rem', fontWeight: isActive ? 800 : 600, fontFamily: 'var(--font-satoshi)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {w.title}
+                    </span>
+                    {isActive && <CheckIcon size={14} color="#F59E0B" />}
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+        </Box>
+
         <Stack spacing={2} sx={{ width: '100%', alignItems: isCollapsed ? 'center' : 'stretch' }}>
           {navItems.map((item) => {
             const Icon = item.icon;
