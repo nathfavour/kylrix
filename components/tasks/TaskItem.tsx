@@ -397,15 +397,13 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
   return (
     <>
       <div
-        className={`task-list-item cursor-pointer rounded-3xl transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] relative group ${
+        className={`task-list-item cursor-pointer relative flex flex-col justify-between p-5 sm:p-6 w-full min-h-[196px] h-[220px] rounded-[28px] transition-all duration-300 ease-out border shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9)] hover:shadow-[0_8px_10px_-8px_rgba(0,0,0,1)] hover:-translate-y-0.5 select-none overflow-hidden group ${
           compact
             ? (isHovered ? 'bg-[#22201E] border-[#3E3C3A]' : 'bg-[#1C1A18] border-[#2C2A28]')
             : (isHovered ? 'bg-[#1C1A18] border-[#34322F]' : 'bg-[#161412] border-[#1C1A18]')
         } ${
-          compact ? 'p-4' : 'p-4 sm:p-5'
-        } ${
           task.status === 'done' ? 'opacity-60' : 'opacity-100'
-        } border shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9)] hover:shadow-[0_8px_10px_-8px_rgba(0,0,0,1)] hover:-translate-y-0.5 select-none`}
+        }`}
         onClick={() => {
           selectTask(task.id);
           if (isDesktop) {
@@ -448,7 +446,7 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
           </button>
 
           {/* Main Content */}
-          <div className="flex-grow min-w-0">
+          <div className="flex-1 flex flex-col justify-between min-w-0 w-full">
             <div className="flex items-start justify-between gap-2 mb-1">
               {/* Title */}
               <div
