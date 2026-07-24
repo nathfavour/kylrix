@@ -2,9 +2,11 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/context/auth/AuthContext';
+import { useDataNexus } from '@/context/DataNexusContext';
 import { ProjectsService } from '@/lib/appwrite/projects';
 import { attachObjectToProject } from '@/lib/projects/object-attachment';
 import { getSessionProjectsList, setSessionProjectsList } from '@/lib/projects/projects-cache';
+import { warmProjectsList } from '@/lib/projects/warm-projects-list';
 
 export interface WorkspaceItem {
   id: string;
@@ -27,6 +29,7 @@ const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefin
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const { getCachedDataAsync, fetchOptimized } = useDataNexus();
   const userId = user?.$id || 'guest';
   const userName = user?.name || user?.email?.split('@')[0] || 'My';
 
@@ -41,7 +44,19 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   );
 
   const [activeWorkspaceId, setActiveWorkspaceIdState] = useState<string>(userId);
-  const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([personalWorkspace]);
+
+  const initialItems = useMemo<WorkspaceItem[]>(() => {
+    const sessionRows = getSessionProjectsList() || [];
+    const mapped = sessionRows.map((p: any) => ({
+      id: p.$id || p.id,
+      title: p.title || p.name || 'Untitled Workspace',
+      ownerId: p.ownerId || p.userId || userId,
+      isPersonal: (p.$id || p.id) === userId,
+    }));
+    return [personalWorkspace, ...mapped.filter((w) => w.id !== personalWorkspace.id)];
+  }, [personalWorkspace, userId]);
+
+  const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>(initialItems);
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(false);
 
   useEffect(() => {
@@ -52,11 +67,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     if (!userId || userId === 'guest') return;
     setLoadingWorkspaces(true);
     try {
-      const res = await ProjectsService.listProjects(true);
-      const rows = res.rows || [];
-      setSessionProjectsList(rows as any);
+      const rows = await warmProjectsList({
+        userId,
+        getCachedDataAsync,
+        fetchOptimized,
+      });
 
-      const customItems: WorkspaceItem[] = rows.map((p: any) => ({
+      const customItems: WorkspaceItem[] = (rows || []).map((p: any) => ({
         id: p.$id || p.id,
         title: p.title || p.name || 'Untitled Workspace',
         ownerId: p.ownerId || p.userId || userId,
@@ -69,7 +86,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoadingWorkspaces(false);
     }
-  }, [userId, personalWorkspace]);
+  }, [userId, personalWorkspace, getCachedDataAsync, fetchOptimized]);
 
   useEffect(() => {
     void refreshWorkspaces();
