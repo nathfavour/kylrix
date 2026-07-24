@@ -64,11 +64,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, [userId]);
 
   const refreshWorkspaces = useCallback(async () => {
-    if (!userId || userId === 'guest') return;
     setLoadingWorkspaces(true);
     try {
       const rows = await warmProjectsList({
-        userId,
+        userId: userId || 'guest',
         getCachedDataAsync,
         fetchOptimized,
       });
