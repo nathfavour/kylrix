@@ -740,9 +740,7 @@ export function MultiSectionContainer({ children, panels, contextId }: MultiSect
                 }}>
                   <DetailSectionWrapper detail={activeDetail} onClose={() => setActiveDetail(null)} />
                 </Box>
-              ) : (
-                <DesktopRightSection panels={section.panels} contextId={contextId} />
-              )}
+              ) : null}
             </Box>
           );
         })}
