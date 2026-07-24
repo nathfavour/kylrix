@@ -14,27 +14,7 @@
 
 /* Authoritative Main Content Isolation */
 .kylrix-main-content {
-    --sidebar-width: 80px;
-    --sidebar-gap: 32px;
-    --mobile-px: 16px;
-    --desktop-px: 32px;
-    
-    padding-left: var(--mobile-px) !important;
-    padding-right: var(--mobile-px) !important;
-    transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Mathematically guaranteed desktop-only offset */
-@media (min-width: 900px) {
-    .kylrix-main-content.with-sidebar {
-        padding-left: calc(var(--sidebar-width) + var(--sidebar-gap)) !important;
-        padding-right: var(--desktop-px) !important;
-    }
-    
-    .kylrix-main-content:not(.with-sidebar) {
-        padding-left: var(--desktop-px) !important;
-        padding-right: var(--desktop-px) !important;
-    }
+    transition: padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Project Detail Specialized Rigidity */
