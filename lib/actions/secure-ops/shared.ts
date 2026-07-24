@@ -540,11 +540,11 @@ export async function verifyResourcePermissionSecure(params: {
     if (!row) {
       try {
         const systemTables = createSystemTablesDB();
-        row = await systemTables.getRow(
+        row = await systemTables.getRow({
           databaseId,
           tableId,
-          rowId
-        );
+          rowId,
+        });
       } catch (err) {
         console.warn('[verifyResourcePermissionSecure] Admin fallback fetch failed:', err);
       }
