@@ -405,7 +405,7 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
           compact ? 'p-4' : 'p-4 sm:p-5'
         } ${
           task.status === 'done' ? 'opacity-60' : 'opacity-100'
-        } border shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9)] hover:shadow-[0_8px_10px_-8px_rgba(0,0,0,1)] hover:-translate-y-0.5 mb-3 select-none`}
+        } border shadow-[0_4px_4px_-4px_rgba(0,0,0,0.9)] hover:shadow-[0_8px_10px_-8px_rgba(0,0,0,1)] hover:-translate-y-0.5 select-none`}
         onClick={() => {
           selectTask(task.id);
           if (isDesktop) {

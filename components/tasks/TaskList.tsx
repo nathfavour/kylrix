@@ -410,7 +410,9 @@ export default function TaskList() {
                         </span>
                         <div className="flex-1 h-px bg-gradient-to-r from-[#A855F7]/20 to-transparent" />
                       </div>
-                      {activeTasks.map((task) => <TaskItem key={task.id} task={task} />)}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {activeTasks.map((task) => <TaskItem key={task.id} task={task} />)}
+                      </div>
                     </div>
                   )}
 
@@ -455,7 +457,7 @@ export default function TaskList() {
                              </button>
                           </div>
 
-                          <div className="space-y-3 opacity-60 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-500">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 opacity-60 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-500">
                             {completedTasks.map((task) => <TaskItem key={task.id} task={task} />)}
                           </div>
                         </>
