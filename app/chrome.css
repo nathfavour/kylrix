@@ -1,9 +1,15 @@
 /* Kylrix Absolute Layout Isolation */
 .kylrix-sidebar, .kylrix-topbar, .kylrix-bottombar {
-  contain: layout size style;
+  contain: layout style;
   will-change: transform;
   background-color: #000000;
   border-color: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 899px) {
+  .kylrix-sidebar {
+    display: none !important;
+  }
 }
 
 /* Authoritative Main Content Isolation */
