@@ -1043,9 +1043,9 @@ export class VaultService {
         Permission.read(Role.user(data.userId))]
     );
     const created = doc as unknown as Keychain;
-    const { getLocalKeychainCache, setLocalKeychainCache } = await import('./client');
-    const existing = getLocalKeychainCache(data.userId);
-    setLocalKeychainCache(data.userId, [created, ...existing.filter(e => e.$id !== created.$id)]);
+    const { LocalEngine } = await import('@/lib/services/LocalEngine');
+    const existing = (await LocalEngine.cacheGet<Keychain[]>(`kylrix_keychain_${data.userId}`)) || [];
+    await LocalEngine.cacheSet(`kylrix_keychain_${data.userId}`, [created, ...existing.filter(e => e.$id !== created.$id)]);
     // Invalidate ecosystem security snapshot
     const { ecosystemSecurity } = await import("../ecosystem/security");
     ecosystemSecurity.fetchSecuritySnapshot(data.userId, true);
@@ -1056,8 +1056,8 @@ export class VaultService {
   static async listKeychainEntries(
     userId: string,
   ): Promise<Keychain[]> {
-    const { getLocalKeychainCache, setLocalKeychainCache } = await import('./client');
-    const cached = getLocalKeychainCache(userId);
+    const { LocalEngine } = await import('@/lib/services/LocalEngine');
+    const cached = (await LocalEngine.cacheGet<Keychain[]>(`kylrix_keychain_${userId}`)) || [];
     try {
       const response = await appwriteDatabases.listRows(
         APPWRITE_DATABASE_ID,
@@ -1066,12 +1066,12 @@ export class VaultService {
       );
       const rows = response.rows as unknown as Keychain[];
       if (rows && rows.length > 0) {
-        setLocalKeychainCache(userId, rows);
+        await LocalEngine.cacheSet(`kylrix_keychain_${userId}`, rows);
         return rows;
       }
-      return cached.length > 0 ? (cached as unknown as Keychain[]) : rows;
+      return cached.length > 0 ? cached : rows;
     } catch (err) {
-      if (cached.length > 0) return cached as unknown as Keychain[];
+      if (cached.length > 0) return cached;
       throw err;
     }
   }
@@ -1096,9 +1096,9 @@ export class VaultService {
     );
     const updated = doc as unknown as Keychain;
     if (updated.userId) {
-      const { getLocalKeychainCache, setLocalKeychainCache } = await import('./client');
-      const existing = getLocalKeychainCache(updated.userId);
-      setLocalKeychainCache(updated.userId, existing.map(e => e.$id === id ? { ...e, ...updated } : e));
+      const { LocalEngine } = await import('@/lib/services/LocalEngine');
+      const existing = (await LocalEngine.cacheGet<Keychain[]>(`kylrix_keychain_${updated.userId}`)) || [];
+      await LocalEngine.cacheSet(`kylrix_keychain_${updated.userId}`, existing.map(e => e.$id === id ? { ...e, ...updated } : e));
     }
     return updated;
   }

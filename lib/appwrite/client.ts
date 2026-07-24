@@ -341,28 +341,36 @@ export class AppwriteService {
                 databaseId: FLOW_DB,
                 tableId: USERS_TABLE,
                 queries: [Query.equal("userId", userId)]
-            });
+            }).catch(() => null);
 
-            if (res.total > 0 && res.rows[0].hasMasterpass) {
+            if (res && res.total > 0 && res.rows[0].hasMasterpass) {
                 return true;
             }
             const entries = await this.listKeychainEntries(userId);
-            return entries.some(e => e.type === 'password');
+            return entries.some(e => e.type === 'password' || e.type === 'passkey');
         } catch (_e: unknown) {
-            console.error('hasMasterpass error', _e);
-            return false;
+            const { LocalEngine } = await import('@/lib/services/LocalEngine');
+            const entries = (await LocalEngine.cacheGet<any[]>(`kylrix_keychain_${userId}`)) || [];
+            return entries.some(e => e.type === 'password' || e.type === 'passkey');
         }
     }
 
     static async listKeychainEntries(userId: string): Promise<any[]> {
+        const { LocalEngine } = await import('@/lib/services/LocalEngine');
+        const cached = (await LocalEngine.cacheGet<any[]>(`kylrix_keychain_${userId}`)) || [];
         try {
             const res = await tablesDB.listRows<any>({
                 databaseId: APPWRITE_DATABASE_ID,
                 tableId: APPWRITE_COLLECTION_KEYCHAIN_ID,
                 queries: [Query.equal("userId", userId)]
             });
-            return res.rows;
+            if (res.rows && res.rows.length > 0) {
+                await LocalEngine.cacheSet(`kylrix_keychain_${userId}`, res.rows);
+                return res.rows;
+            }
+            return cached.length > 0 ? cached : res.rows;
         } catch (_e: unknown) {
+            if (cached.length > 0) return cached;
             console.error('listKeychainEntries error', _e);
             return [];
         }

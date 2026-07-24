@@ -46,7 +46,7 @@ export function UnifiedLeftSidebar() {
 
   const appContext = useMemo((): NavId | null => {
     if (pathname?.startsWith('/tags')) return 'tags';
-    if (pathname?.startsWith('/projects')) return 'projects';
+    if (pathname?.startsWith('/workspaces') || pathname?.startsWith('/projects')) return 'projects';
     if (pathname?.startsWith('/app')) return 'note';
     if (pathname?.startsWith('/vault')) return 'vault';
     if (pathname?.startsWith('/flow')) return 'flow';
@@ -56,7 +56,7 @@ export function UnifiedLeftSidebar() {
 
   const getCurrentTab = (): NavId | null => {
     if (pathname?.startsWith('/tags')) return 'tags';
-    if (pathname?.startsWith('/projects')) return 'projects';
+    if (pathname?.startsWith('/workspaces') || pathname?.startsWith('/projects')) return 'projects';
     if (pathname?.startsWith('/app')) return 'note';
     if (pathname?.startsWith('/flow')) return 'flow';
     if (pathname?.startsWith('/vault')) return 'vault';
@@ -65,7 +65,7 @@ export function UnifiedLeftSidebar() {
   };
 
   useEffect(() => {
-    ['/app', '/flow', '/vault', '/connect', '/projects', '/tags'].forEach((route) => {
+    ['/app', '/flow', '/vault', '/connect', '/workspaces', '/tags'].forEach((route) => {
       router.prefetch(route);
     });
   }, [router]);
@@ -76,7 +76,7 @@ export function UnifiedLeftSidebar() {
       flow: '/flow',
       vault: '/vault',
       connect: '/connect',
-      projects: '/projects',
+      projects: '/workspaces',
       tags: '/tags',
     };
     router.push(routes[navId] || '/app');
@@ -113,9 +113,9 @@ export function UnifiedLeftSidebar() {
       sx={{
         position: 'fixed',
         left: 0,
-        top: '88px',
+        top: '72px',
         bottom: 0,
-        width: isCollapsed ? 80 : 240,
+        width: isCollapsed ? 72 : 240,
         zIndex: 1100,
         display: { xs: 'none', md: 'block' },
         transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',

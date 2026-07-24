@@ -42,7 +42,7 @@ export function UnifiedBottomBar() {
     if (pathname?.startsWith('/vault')) return 'vault';
     if (pathname?.startsWith('/flow')) return 'flow';
     if (pathname?.startsWith('/connect')) return 'connect';
-    if (pathname?.startsWith('/projects')) return 'projects';
+    if (pathname?.startsWith('/workspaces') || pathname?.startsWith('/projects')) return 'projects';
     return null;
   }, [pathname]);
 
@@ -67,12 +67,12 @@ export function UnifiedBottomBar() {
     if (pathname?.startsWith('/flow')) return 'flow';
     if (pathname?.startsWith('/vault')) return 'vault';
     if (pathname?.startsWith('/connect')) return 'connect';
-    if (pathname?.startsWith('/projects')) return 'projects';
+    if (pathname?.startsWith('/workspaces') || pathname?.startsWith('/projects')) return 'projects';
     return null;
   };
 
   React.useEffect(() => {
-    ['/app', '/flow', '/vault', '/connect', '/projects'].forEach((route) => {
+    ['/app', '/flow', '/vault', '/connect', '/workspaces'].forEach((route) => {
       router.prefetch(route);
     });
   }, [router]);
@@ -83,7 +83,7 @@ export function UnifiedBottomBar() {
       flow: '/flow',
       vault: '/vault',
       connect: '/connect',
-      projects: '/projects',
+      projects: '/workspaces',
     };
     
     const target = routes[newValue];

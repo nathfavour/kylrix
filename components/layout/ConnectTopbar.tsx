@@ -61,6 +61,8 @@ import { useProfile } from '@/components/providers/ProfileProvider';
 import { useLocalContext } from '@/lib/context-engine';
 import { useNotes } from '@/context/NotesContext';
 import { useTask } from '@/context/TaskContext';
+import { useSidebar } from '@/components/ui/SidebarContext';
+import { useWorkspace } from '@/context/WorkspaceContext';
 
 interface PageMatch {
   text: string;
@@ -218,6 +220,8 @@ export default function ConnectTopbar({
   const isPro = hasEffectivePaidAccess(user, currentTier);
   const router = useRouter();
   const pathname = usePathname();
+  const { setIsCollapsed } = useSidebar();
+  const { activeWorkspace, workspaces, setActiveWorkspaceId, createWorkspace } = useWorkspace();
   const { notes = [] } = useNotes();
   const { tasks = [], projects = [] } = useTask();
   // To let any drawer communicate full state expansion globally:
@@ -1929,8 +1933,75 @@ export default function ConnectTopbar({
               </a>
             )}
 
+            {/* Workspaces Section on Mobile App Dropdown */}
+            <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                <Typography sx={{ fontFamily: 'var(--font-clash)', fontWeight: 800, color: '#9B9691', fontSize: '0.75rem', uppercase: true, tracking: '0.1em' }}>
+                  Workspaces
+                </Typography>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    handleCloseAll();
+                    router.push('/workspaces');
+                  }}
+                  sx={{ color: '#6366F1', fontWeight: 800, fontSize: '0.75rem', textTransform: 'none' }}
+                >
+                  + New Workspace
+                </Button>
+              </Box>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {workspaces.map((w) => {
+                  const isActive = activeWorkspace?.id === w.id;
+                  return (
+                    <Box
+                      key={w.id}
+                      component="button"
+                      onClick={() => {
+                        setActiveWorkspaceId(w.id);
+                        handleCloseAll();
+                        if (w.isPersonal || w.id === user?.$id) {
+                          router.push('/app');
+                        } else {
+                          router.push(`/workspaces/${w.id}`);
+                        }
+                      }}
+                      sx={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        px: 2,
+                        py: 1.25,
+                        borderRadius: '14px',
+                        bgcolor: isActive ? 'rgba(99, 102, 241, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid',
+                        borderColor: isActive ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255, 255, 255, 0.04)',
+                        color: 'white',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: isActive ? '#6366F1' : '#fff' }} noWrap>
+                          {w.title}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>
+                          {w.isPersonal ? 'Personal Workspace' : 'Workspace'}
+                        </Typography>
+                      </Box>
+                      {isActive && (
+                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#6366F1', boxShadow: '0 0 8px #6366F1' }} />
+                      )}
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Box>
+
             <Box sx={{ display: 'grid', gap: 0.75 }}>
-              {connectApps.map((item) => {
+              {connectApps.filter((item) => !['note', 'flow', 'vault'].includes(item.app)).map((item) => {
                 const appTone = getAppTone(item.app);
                 return (
                   <Box
@@ -2201,7 +2272,11 @@ export default function ConnectTopbar({
                     openUnified('login');
                     return;
                   }
-                  openAppMenu(e);
+                  if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+                    setIsCollapsed((prev: boolean) => !prev);
+                  } else {
+                    openAppMenu(e);
+                  }
                 }} 
                 sx={{ cursor: 'pointer', flexShrink: 0 }}
               >

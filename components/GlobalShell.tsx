@@ -206,10 +206,10 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
           minWidth: 0,
           position: 'relative',
           zIndex: 1,
-          pt: isSpecificPostPage ? 0 : isNoteFullPageDetail ? '72px' : '88px',
+          pt: isSpecificPostPage ? 0 : '72px',
           pb: isSpecificPostPage ? 0 : (isLandingPage ? 0 : { xs: 12, md: 4 }),
           px: isProjectDetailPage ? { xs: 1, sm: 1, md: 2 } : isNoteFullPageDetail ? { xs: 0, sm: 0, md: 0 } : { xs: 2, sm: 2, md: 4 },
-          pl: showLeftSidebar ? { xs: 2, md: isCollapsed ? '112px' : '272px' } : undefined,
+          pl: showLeftSidebar ? { xs: 2, md: isCollapsed ? '96px' : '264px' } : undefined,
           // Authoritative padding is now handled by CSS classes for 100% rigidity
           maxWidth: 1800,
           mx: 'auto',

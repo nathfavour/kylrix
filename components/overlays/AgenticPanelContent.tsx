@@ -400,16 +400,14 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
       .then((rows) => setAgentCount(rows.length))
       .catch(() => setAgentCount(0));
 
-    // Load session chat history on panel open (local copy first)
+    // Load session chat history on panel open (local copy first via LocalEngine/RxDB)
     const loadSessionHistory = async () => {
       if (typeof window !== 'undefined' && user?.$id) {
         try {
-          const localHistory = localStorage.getItem(`kylrix_agentic_chat_history_${user.$id}`);
-          if (localHistory) {
-            const parsed = JSON.parse(localHistory);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setMessages(parsed);
-            }
+          const { LocalEngine } = await import('@/lib/services/LocalEngine');
+          const localHistory = await LocalEngine.cacheGet<any[]>(`kylrix_agentic_chat_history_${user.$id}`);
+          if (localHistory && Array.isArray(localHistory) && localHistory.length > 0) {
+            setMessages(localHistory);
           }
         } catch {}
       }
@@ -427,7 +425,8 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
           const formatted = formatHistoryMessages(historyArr, toolCalls);
           setMessages(formatted);
           if (typeof window !== 'undefined' && user?.$id) {
-            localStorage.setItem(`kylrix_agentic_chat_history_${user.$id}`, JSON.stringify(formatted));
+            const { LocalEngine } = await import('@/lib/services/LocalEngine');
+            void LocalEngine.cacheSet(`kylrix_agentic_chat_history_${user.$id}`, formatted);
           }
         }
       } catch (err) {
@@ -437,13 +436,14 @@ export function AgenticPanelContent({ onClose, isDesktop }: AgenticPanelContentP
     void loadSessionHistory();
   }, [user?.$id]);
 
-  // Load local copy of draft prompt instantly on mount
+  // Load local copy of draft prompt instantly on mount via LocalEngine
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const localDraft = localStorage.getItem('kylrix_kylie_live_input') || '';
-      if (localDraft) {
-        setChatInput(localDraft);
-      }
+      import('@/lib/services/LocalEngine').then(({ LocalEngine }) => {
+        LocalEngine.cacheGet<string>('kylrix_kylie_live_input').then((localDraft) => {
+          if (localDraft) setChatInput(localDraft);
+        });
+      });
     }
   }, []);
 

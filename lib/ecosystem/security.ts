@@ -113,33 +113,23 @@ export class EcosystemSecurity {
       let userDoc = (userRowsRes.rows || [])[0] || null;
       let keychainEntries = Array.isArray(keychainRowsRes.rows) ? keychainRowsRes.rows : [];
 
-      if (keychainEntries.length > 0 && typeof localStorage !== 'undefined') {
-        try {
-          localStorage.setItem(`kylrix_keychain_${resolvedUserId}`, JSON.stringify(keychainEntries));
-        } catch {}
-      } else if (keychainEntries.length === 0 && typeof localStorage !== 'undefined') {
-        try {
-          const cachedKeychain = localStorage.getItem(`kylrix_keychain_${resolvedUserId}`);
-          if (cachedKeychain) {
-            const parsed = JSON.parse(cachedKeychain);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              keychainEntries = parsed;
-            }
-          }
-        } catch {}
+      const { LocalEngine } = await import('@/lib/services/LocalEngine');
+      if (keychainEntries.length > 0) {
+        await LocalEngine.cacheSet(`kylrix_keychain_${resolvedUserId}`, keychainEntries);
+      } else {
+        const cachedKeychain = await LocalEngine.cacheGet<any[]>(`kylrix_keychain_${resolvedUserId}`);
+        if (cachedKeychain && Array.isArray(cachedKeychain) && cachedKeychain.length > 0) {
+          keychainEntries = cachedKeychain;
+        }
       }
 
-      if (userDoc && typeof localStorage !== 'undefined') {
-        try {
-          localStorage.setItem(`kylrix_userdoc_${resolvedUserId}`, JSON.stringify(userDoc));
-        } catch {}
-      } else if (!userDoc && typeof localStorage !== 'undefined') {
-        try {
-          const cachedUserDoc = localStorage.getItem(`kylrix_userdoc_${resolvedUserId}`);
-          if (cachedUserDoc) {
-            userDoc = JSON.parse(cachedUserDoc);
-          }
-        } catch {}
+      if (userDoc) {
+        await LocalEngine.cacheSet(`kylrix_userdoc_${resolvedUserId}`, userDoc);
+      } else {
+        const cachedUserDoc = await LocalEngine.cacheGet<any>(`kylrix_userdoc_${resolvedUserId}`);
+        if (cachedUserDoc) {
+          userDoc = cachedUserDoc;
+        }
       }
 
       this.hasMasterpassState = !!(userDoc?.masterpass === true || keychainEntries.some((entry: any) => entry?.type === 'password'));
@@ -896,13 +886,11 @@ export class EcosystemSecurity {
   }
 
   async fetchKeychain(userId: string): Promise<any | null> {
-    const getLocalCache = () => {
-      if (typeof localStorage === 'undefined') return null;
+    const { LocalEngine } = await import('@/lib/services/LocalEngine');
+    const getLocalCache = async () => {
       try {
-        const raw = localStorage.getItem(`kylrix_keychain_${userId}`);
-        if (!raw) return null;
-        const rows = JSON.parse(raw);
-        if (!Array.isArray(rows) || rows.length === 0) return null;
+        const rows = await LocalEngine.cacheGet<any[]>(`kylrix_keychain_${userId}`);
+        if (!rows || !Array.isArray(rows) || rows.length === 0) return null;
         const passwordEntries = rows.filter((r: any) => r.type === 'password');
         if (passwordEntries.length === 0) return rows[0];
         const stableEntry = passwordEntries.find((r: any) => !r.isPending);
@@ -919,13 +907,11 @@ export class EcosystemSecurity {
         [Query.equal('userId', userId), Query.limit(10)]
       );
       const rows = res.rows || [];
-      if (rows.length > 0 && typeof localStorage !== 'undefined') {
-        try {
-          localStorage.setItem(`kylrix_keychain_${userId}`, JSON.stringify(rows));
-        } catch {}
+      if (rows.length > 0) {
+        await LocalEngine.cacheSet(`kylrix_keychain_${userId}`, rows);
       }
       if (rows.length === 0) {
-        return getLocalCache();
+        return await getLocalCache();
       }
 
       const passwordEntries = rows.filter((r: any) => r.type === 'password');
@@ -934,7 +920,7 @@ export class EcosystemSecurity {
       const stableEntry = passwordEntries.find((r: any) => !r.isPending);
       return stableEntry || passwordEntries[0];
     } catch {
-      return getLocalCache();
+      return await getLocalCache();
     }
   }
 
