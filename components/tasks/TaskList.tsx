@@ -166,7 +166,7 @@ export default function TaskList() {
       isLoading={isLoading}
       onHeal={refreshTasks}
     >
-      <div className="animate-fadeIn min-h-screen bg-[#0A0908] p-2 sm:p-4 md:p-6 pointer-events-auto w-full">
+      <div className="animate-fadeIn pointer-events-auto w-full">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-10 gap-4 sm:gap-6">
           <div>

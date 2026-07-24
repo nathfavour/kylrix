@@ -456,11 +456,11 @@ export default React.memo(function TaskItem({ task, onClick, compact = false }: 
                   task.status === 'done' ? 'text-[#9B9691] line-through' : 'text-[#F5F2ED]'
                 }`}
               >
-                <span className="inline-flex items-start gap-1.5 flex-wrap break-words [overflow-wrap:anywhere]">
+                <span className="inline-flex items-start gap-1.5 flex-wrap break-words [overflow-wrap:anywhere] line-clamp-2">
                   {taskPinned && (
                     <Pin className="h-3.5 w-3.5 text-[#F59E0B] rotate-45 shrink-0 mt-0.5" style={{ color: '#F59E0B' }} />
                   )}
-                  <span>{task.title}</span>
+                  <span className="line-clamp-2">{task.title}</span>
                   <SyncStatusDot resourceId={goalPendingKey(task.id)} />
                   {hasPresence && (
                     <span

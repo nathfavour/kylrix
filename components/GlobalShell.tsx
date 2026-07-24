@@ -219,7 +219,7 @@ export default function GlobalShell({ children }: { children: ReactNode }) {
             position: 'relative',
             zIndex: 1,
             pb: isSpecificPostPage ? 0 : (isLandingPage ? 0 : { xs: 12, md: 4 }),
-            px: isProjectDetailPage ? { xs: 1, sm: 1, md: 1.5 } : isNoteFullPageDetail ? { xs: 0, sm: 0, md: 0 } : { xs: 1.5, sm: 1.5, md: 2 },
+            px: isProjectDetailPage ? { xs: 1, sm: 1, md: 2 } : isNoteFullPageDetail ? { xs: 0, sm: 0, md: 0 } : { xs: 2, sm: 2, md: 3 },
             pointerEvents: 'auto',
             transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
