@@ -48,7 +48,7 @@ const mapAppwriteTaskToTask = (doc: AppwriteTask): Task => {
     : [];
 
   return {
-    id: doc.$id,
+    id: doc.$id || raw.id,
     title: doc.title,
     description: doc.description,
     status: (doc.status as TaskStatus) || 'todo',
@@ -66,8 +66,8 @@ const mapAppwriteTaskToTask = (doc: AppwriteTask): Task => {
     userId: raw.userId || 'guest',
     parentTaskId: raw.parentId || null,
     dueDate: raw.dueDate ? new Date(raw.dueDate) : undefined,
-    createdAt: new Date(doc.$createdAt),
-    updatedAt: new Date(doc.$updatedAt),
+    createdAt: doc.$createdAt ? new Date(doc.$createdAt) : raw.createdAt ? new Date(raw.createdAt) : new Date(),
+    updatedAt: doc.$updatedAt ? new Date(doc.$updatedAt) : raw.updatedAt ? new Date(raw.updatedAt) : new Date(),
     position: 0,
     isArchived: raw.isArchived === true || String(raw.isArchived) === 'true',
     isPinned: raw.isPinned === true || String(raw.isPinned) === 'true',
@@ -168,7 +168,7 @@ const buildTaskHierarchy = (tasks: Task[]) => {
 };
 
 const mapAppwriteCalendarToProject = (doc: AppwriteCalendar): Project => ({
-  id: doc.$id,
+  id: doc.$id || (doc as any).id,
   name: doc.name,
   color: doc.color,
   description: '',
@@ -179,8 +179,8 @@ const mapAppwriteCalendarToProject = (doc: AppwriteCalendar): Project => ({
   isFavorite: doc.isDefault,
   isPinned: (doc as any).isPinned === true || String((doc as any).isPinned) === 'true',
   defaultView: 'list',
-  createdAt: new Date(doc.$createdAt),
-  updatedAt: new Date(doc.$updatedAt),
+  createdAt: doc.$createdAt ? new Date(doc.$createdAt) : (doc as any).createdAt ? new Date((doc as any).createdAt) : new Date(),
+  updatedAt: doc.$updatedAt ? new Date(doc.$updatedAt) : (doc as any).updatedAt ? new Date((doc as any).updatedAt) : new Date(),
   position: 0,
   settings: {
     defaultPriority: 'medium',

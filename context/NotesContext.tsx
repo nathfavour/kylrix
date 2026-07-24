@@ -142,8 +142,13 @@ const NotesContext = createContext<NotesContextType>({
 });
 
 function normalizeVisibility(note: Notes): Notes {
+  const raw = note as any;
+  const id = note?.$id || raw?.id || ID.unique();
   return {
     ...note,
+    $id: id,
+    $createdAt: note?.$createdAt || raw?.createdAt || new Date().toISOString(),
+    $updatedAt: note?.$updatedAt || raw?.updatedAt || new Date().toISOString(),
     isPublic: getNotePublicState(note)
   };
 }
@@ -239,37 +244,34 @@ export function NotesProvider({ children }: { children: ReactNode }) {
 
     const hydrateFromCache = async () => {
         if (PINNED_CACHE_KEY && INITIAL_NOTES_CACHE_KEY) {
-            const syncNotes = getCachedData<{ notes: Notes[]; totalNotes: number; cursor: string | null; hasMore: boolean }>(INITIAL_NOTES_CACHE_KEY);
+            const syncNotes = getCachedData<any>(INITIAL_NOTES_CACHE_KEY);
             const syncPinned = getCachedData<string[]>(PINNED_CACHE_KEY);
             if (syncPinned && Array.isArray(syncPinned)) setPinnedIds(syncPinned);
-            if (syncNotes && Array.isArray(syncNotes.notes) && syncNotes.notes.length > 0) {
-                setNotes(syncNotes.notes);
-                setTotalNotes(syncNotes.totalNotes || 0);
-                setCursor(syncNotes.cursor || null);
-                setHasMore(syncNotes.hasMore ?? true);
+            const rawSyncList = Array.isArray(syncNotes?.rows) ? syncNotes.rows : Array.isArray(syncNotes) ? syncNotes : null;
+            if (rawSyncList && rawSyncList.length > 0) {
+                setNotes(rawSyncList);
+                setTotalNotes(syncNotes?.total ?? rawSyncList.length);
+                setCursor(syncNotes?.cursor || null);
+                setHasMore(syncNotes?.hasMore ?? true);
                 setIsLoading(false);
             }
 
             // Try Async hit (checks memory then RxDB/IndexedDB)
             const [cachedPinned, cachedNotes] = await Promise.all([
                 getCachedDataAsync<string[]>(PINNED_CACHE_KEY),
-                getCachedDataAsync<{
-                    notes: Notes[];
-                    totalNotes: number;
-                    cursor: string | null;
-                    hasMore: boolean;
-                }>(INITIAL_NOTES_CACHE_KEY)
+                getCachedDataAsync<any>(INITIAL_NOTES_CACHE_KEY)
             ]);
 
             if (cachedPinned && Array.isArray(cachedPinned)) {
                 setPinnedIds(cachedPinned);
             }
 
-            if (cachedNotes && Array.isArray(cachedNotes.notes)) {
-                setNotes(cachedNotes.notes);
-                setTotalNotes(cachedNotes.totalNotes || 0);
-                setCursor(cachedNotes.cursor || null);
-                setHasMore(cachedNotes.hasMore ?? true);
+            const rawAsyncList = Array.isArray(cachedNotes?.rows) ? cachedNotes.rows : Array.isArray(cachedNotes) ? cachedNotes : null;
+            if (rawAsyncList && rawAsyncList.length > 0) {
+                setNotes(rawAsyncList);
+                setTotalNotes(cachedNotes?.total ?? rawAsyncList.length);
+                setCursor(cachedNotes?.cursor || null);
+                setHasMore(cachedNotes?.hasMore ?? true);
                 setIsLoading(false); // Stop loading immediately on local hit
                 console.log('[NotesContext] Sub-millisecond cold start via RxDB substrate.');
             }
@@ -350,9 +352,9 @@ export function NotesProvider({ children }: { children: ReactNode }) {
         const optimizedRes = await fetchOptimized(INITIAL_NOTES_CACHE_KEY, fetcher);
         res = optimizedRes;
         
-        // Update other states based on this initial fetch
+        const rawResRows = Array.isArray(res?.rows) ? res.rows : Array.isArray(res) ? res : [];
         const batch = mergeFetchedNotesWithLocalDrafts(
-          (res?.rows || []).map((note: Notes) => normalizeVisibility(note)).filter((n: any) => !deletedIds.has(n.$id) && !isGhostNote(n)),
+          rawResRows.map((note: Notes) => normalizeVisibility(note)).filter((n: any) => !deletedIds.has(n.$id) && !isGhostNote(n)),
           notesRef.current,
           liveEditGuardsRef.current,
           deletedIds,
@@ -366,7 +368,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
             deletedIds,
           ),
         );
-        setTotalNotes(res?.total || 0);
+        setTotalNotes(res?.total ?? rawResRows.length);
         setHasMore(!!res?.hasMore);
         setCursor(res?.nextCursor || null);
 
@@ -383,8 +385,9 @@ export function NotesProvider({ children }: { children: ReactNode }) {
           userId: user?.$id,
         });
 
+        const rawFetchRows = Array.isArray(res?.rows) ? res.rows : Array.isArray(res) ? res : [];
         const mergedBatch = mergeFetchedNotesWithLocalDrafts(
-          (res?.rows || []).map((note: Notes) => normalizeVisibility(note)).filter((n: any) => !deletedIds.has(n.$id)),
+          rawFetchRows.map((note: Notes) => normalizeVisibility(note)).filter((n: any) => !deletedIds.has(n.$id)),
           notesRef.current,
           liveEditGuardsRef.current,
           deletedIds,
@@ -402,7 +405,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
           return dedupeNotesById([...safePrev, ...newOnes]);
         });
 
-        setTotalNotes(res?.total || 0);
+        setTotalNotes(res?.total ?? rawFetchRows.length);
         setHasMore(!!res?.hasMore);
         if (res?.nextCursor) {
           setCursor(res.nextCursor);
@@ -413,8 +416,8 @@ export function NotesProvider({ children }: { children: ReactNode }) {
         // Cache the first page result if it was a reset
         if (reset && INITIAL_NOTES_CACHE_KEY) {
             setCachedData(INITIAL_NOTES_CACHE_KEY, {
-                notes: batch,
-                totalNotes: res?.total || 0,
+                rows: batch,
+                total: res?.total ?? batch.length,
                 cursor: res?.nextCursor || null,
                 hasMore: !!res?.hasMore
             });

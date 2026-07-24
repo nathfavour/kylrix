@@ -83,17 +83,22 @@ import { LocalEngine } from '@/lib/services/LocalEngine';
 export function getSessionProjectsList(): Projects[] | null {
   if (sessionProjectsList) return sessionProjectsList;
   if (typeof window === 'undefined') return null;
-  void LocalEngine.cacheGet<Projects[]>('kylrix_session_projects_list').then((cached) => {
-    if (cached && !sessionProjectsList) {
-      sessionProjectsList = cached;
+  try {
+    const raw = localStorage.getItem('kylrix_session_projects_list');
+    if (raw) {
+      sessionProjectsList = JSON.parse(raw);
+      return sessionProjectsList;
     }
-  });
-  return sessionProjectsList;
+  } catch {}
+  return null;
 }
 
 export function setSessionProjectsList(rows: Projects[]): void {
   sessionProjectsList = rows;
   if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('kylrix_session_projects_list', JSON.stringify(rows));
+    } catch {}
     void LocalEngine.cacheSet('kylrix_session_projects_list', rows);
   }
 }
