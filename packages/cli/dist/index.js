@@ -215,7 +215,8 @@ var init_client = __esm({
         revokePat: (patId) => this.request("DELETE", `/pats/${patId}`),
         signin: (credentials) => this.request("POST", "/auth/signin", { body: credentials }),
         signup: (data) => this.request("POST", "/auth/signup", { body: data }),
-        status: () => this.request("GET", "/auth/status")
+        status: () => this.request("GET", "/auth/status"),
+        logout: () => this.request("DELETE", "/token")
       };
       // ── 2. Workspaces ──
       workspaces = {
@@ -3005,23 +3006,41 @@ async function whoamiCommand(opts) {
     process.exit(1);
   }
 }
-function logoutCommand(opts = {}) {
+async function logoutCommand(opts = {}) {
   const env = resolveEnvironment({ url: opts.url });
   if (opts.purge) {
+    if (env.token) {
+      try {
+        await getClient({ url: env.apiUrl, token: env.token }).auth.logout();
+      } catch {
+      }
+    }
     clearConfig();
-    printSuccess("Purged all stored servers, account profiles, and local sessions.");
+    printSuccess("Purged all stored servers, account profiles, and local sessions (server token revoked).");
     return;
   }
   if (opts.all) {
+    if (env.token) {
+      try {
+        await getClient({ url: env.apiUrl, token: env.token }).auth.logout();
+      } catch {
+      }
+    }
     clearServerAccounts(env.apiUrl);
-    printSuccess(`Removed all stored accounts for server ${pc3.cyan(env.apiUrl)}.`);
+    printSuccess(`Removed all stored accounts for server ${pc3.cyan(env.apiUrl)} (server token revoked).`);
     return;
   }
   if (env.activeAccountId) {
     const targetId = env.activeAccountId;
+    if (env.token) {
+      try {
+        await getClient({ url: env.apiUrl, token: env.token }).auth.logout();
+      } catch {
+      }
+    }
     removeAccount(targetId, env.apiUrl);
     const updated = resolveEnvironment({ url: env.apiUrl });
-    printSuccess(`Logged out active account ${pc3.bold(targetId)} from ${pc3.cyan(env.apiUrl)}.`);
+    printSuccess(`Logged out active account ${pc3.bold(targetId)} from ${pc3.cyan(env.apiUrl)} (server token revoked).`);
     if (updated.activeAccountId) {
       printInfo(`Active account switched to ${pc3.bold(updated.email || updated.activeAccountId)}.`);
     }
@@ -5586,7 +5605,7 @@ import * as os3 from "os";
 import { spawn } from "child_process";
 import pc22 from "picocolors";
 var PACKAGE_NAME = "@kylrix/cli";
-var CURRENT_VERSION = "1.0.7";
+var CURRENT_VERSION = "1.0.8";
 var CACHE_DIR = path6.join(os3.homedir(), ".kylrix");
 var CACHE_FILE = path6.join(CACHE_DIR, "update-cache.json");
 var CHECK_INTERVAL_MS = 12 * 60 * 60 * 1e3;
@@ -22045,7 +22064,7 @@ program.hook("preAction", (_thisCommand, actionCommand) => {
 program.command("login").description("1-Click Web Login / Device Pairing (opens browser and pairs automatically)").option("-u, --url <url>", "Custom backend base URL (e.g. http://localhost:3005 or https://my-selfhost.example.com)").option("-t, --token <token>", "Personal Access Token (PAT) or Agent Key").action((cmdOpts) => loginCommand({ ...program.opts(), ...cmdOpts }));
 program.command("pair").description("Authenticate using RFC 8628 browser device pairing code").option("-u, --url <url>", "Custom backend base URL").action((cmdOpts) => pairCommand({ ...program.opts(), ...cmdOpts }));
 program.command("whoami").alias("me").description("Display currently authenticated identity, scopes, and session status").action((cmdOpts) => whoamiCommand({ ...program.opts(), ...cmdOpts }));
-program.command("logout").description("Log out and remove stored local authentication credentials").option("--all", "Log out all accounts on the current server base URI").option("--purge", "Purge all server base URIs, account profiles, and local sessions").option("-u, --url <url>", "Target server base URL").action((cmdOpts) => logoutCommand({ ...program.opts(), ...cmdOpts }));
+program.command("logout").description("Log out and remove stored local authentication credentials").option("--all", "Log out all accounts on the current server base URI").option("--purge", "Purge all server base URIs, account profiles, and local sessions").option("-u, --url <url>", "Target server base URL").action(async (cmdOpts) => await logoutCommand({ ...program.opts(), ...cmdOpts }));
 var accounts = program.command("accounts").alias("account").description("Manage multi-account profiles and switch active identities under base URI silos");
 accounts.command("list").alias("ls").description("List all accounts under the current base URI partition").option("--all", "List accounts across all configured server base URIs").action((cmdOpts) => listAccountsCommand({ ...program.opts(), ...cmdOpts }));
 accounts.command("switch <idOrEmail>").alias("use").description("Switch active account profile for the current base URI").action((idOrEmail, cmdOpts) => switchAccountCommand(idOrEmail, { ...program.opts(), ...cmdOpts }));

@@ -27,6 +27,7 @@ export async function dispatchV1(req: NextRequest, parts: string[], actor: ApiAc
 
   // Token self-service
   if (a === S.token && !b && method === 'GET') return jsonOk(await ApiResources.tokenMe(actor));
+  if (a === S.token && !b && method === 'DELETE') return jsonOk(await ApiResources.revokeCurrentToken(actor));
   if (a === S.token && b === SUB.scopes && !c) {
     if (method === 'GET') return jsonOk(await ApiResources.tokenScopeCatalog(actor));
     if (method === 'PATCH' || method === 'PUT') {

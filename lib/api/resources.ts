@@ -883,6 +883,16 @@ export const ApiResources = {
     return shapeTokenRefreshResult(pat, 'New scopes apply on the next request with this same token (no re-mint).');
   },
 
+  /**
+   * Self-service token revocation on the CURRENT bearer PAT or session (logout).
+   */
+  async revokeCurrentToken(actor: ApiActor) {
+    if (actor.patId) {
+      return PatService.revoke({ patId: actor.patId, userId: actor.userId });
+    }
+    return { success: true };
+  },
+
   async listPats(actor: ApiActor) {
     requireScope(actor, 'pats:read');
     return PatService.listForUser(actor.userId);

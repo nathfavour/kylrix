@@ -123,6 +123,7 @@ export function DevelopersTab() {
   const [patDrawerOpen, setPatDrawerOpen] = useState(false);
   const [oauthDrawerOpen, setOauthDrawerOpen] = useState(false);
   const [manageAppId, setManageAppId] = useState<string | null>(null);
+  const [tokenFilter, setTokenFilter] = useState<'all' | 'pats' | 'cli'>('all');
 
   const handleOpenOauthSetup = () => {
     if (!isTeams) {
@@ -322,6 +323,44 @@ export function DevelopersTab() {
           </span>
         </div>
 
+        {pats.length > 0 && (
+          <div className="flex items-center gap-1.5 px-0.5">
+            <button
+              type="button"
+              onClick={() => setTokenFilter('all')}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                tokenFilter === 'all'
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/40 hover:text-white/70'
+              }`}
+            >
+              All ({pats.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTokenFilter('pats')}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                tokenFilter === 'pats'
+                  ? 'bg-indigo-500/20 text-indigo-300'
+                  : 'text-white/40 hover:text-white/70'
+              }`}
+            >
+              API Keys ({pats.filter((p) => p.category !== 'punch_token' && !p.name.includes('(Punch Grant)') && !p.name.toLowerCase().startsWith('cli')).length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTokenFilter('cli')}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                tokenFilter === 'cli'
+                  ? 'bg-emerald-500/20 text-emerald-300'
+                  : 'text-white/40 hover:text-white/70'
+              }`}
+            >
+              CLI Sessions ({pats.filter((p) => p.category === 'punch_token' || p.name.includes('(Punch Grant)') || p.name.toLowerCase().startsWith('cli')).length})
+            </button>
+          </div>
+        )}
+
         {loadingPats ? (
           <p className="text-xs text-white/40 px-1">Loading…</p>
         ) : pats.length === 0 ? (
@@ -340,36 +379,74 @@ export function DevelopersTab() {
             </button>
           </div>
         ) : (
-          pats.map((pat) => (
-            <div
-              key={pat.id}
-              className="flex flex-col gap-2.5 rounded-2xl bg-[#0A0908] border border-white/[0.05] p-3.5"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="p-2 rounded-xl bg-[#161412] border border-white/[0.06] text-[#6366F1] shrink-0">
-                  <KeyRound size={16} />
+          pats
+            .filter((p) => {
+              const isCli = p.category === 'punch_token' || p.name.includes('(Punch Grant)') || p.name.toLowerCase().startsWith('cli');
+              if (tokenFilter === 'pats') return !isCli;
+              if (tokenFilter === 'cli') return isCli;
+              return true;
+            })
+            .map((pat) => {
+              const isCli = pat.category === 'punch_token' || pat.name.includes('(Punch Grant)') || pat.name.toLowerCase().startsWith('cli');
+              const prefix = isCli
+                ? 'kyl_punch_'
+                : pat.category === 'agent_provisioning_key'
+                  ? 'kyl_apk_'
+                  : pat.category === 'agentic_pat'
+                    ? 'kyl_apat_'
+                    : pat.category === 'workspace_pat'
+                      ? 'kyl_wpat_'
+                      : 'kyl_pat_';
+
+              return (
+                <div
+                  key={pat.id}
+                  className="flex flex-col gap-2.5 rounded-2xl bg-[#0A0908] border border-white/[0.05] p-3.5"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={`p-2 rounded-xl border shrink-0 ${
+                        isCli
+                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                          : 'bg-[#161412] border-white/[0.06] text-[#6366F1]'
+                      }`}
+                    >
+                      {isCli ? <Terminal size={16} /> : <KeyRound size={16} />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-white truncate">{pat.name}</p>
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${
+                            isCli
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                          }`}
+                        >
+                          {isCli ? 'CLI Session' : 'API Key'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-white/40 font-mono truncate">
+                        {prefix}{pat.tokenPrefix}_… · {pat.status}
+                        {pat.scopes?.length ? ` · ${pat.scopes.length} perms` : ''}
+                        {pat.expiresAt ? ` · Exp: ${pat.expiresAt.substring(0, 10)}` : ' · No TTL'}
+                      </p>
+                    </div>
+                  </div>
+                  {pat.status === 'active' && (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => confirmRevokePat(pat)}
+                        className="px-3 py-2 rounded-xl text-[11px] font-extrabold bg-[#161412] border border-red-500/25 text-red-300 cursor-pointer"
+                      >
+                        {isCli ? 'Revoke session' : 'Revoke token'}
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-white truncate">{pat.name}</p>
-                  <p className="text-[11px] text-white/40 font-mono truncate">
-                    {pat.category === 'agent_provisioning_key' ? 'kyl_apk_' : pat.category === 'agentic_pat' ? 'kyl_apat_' : pat.category === 'workspace_pat' ? 'kyl_wpat_' : 'kyl_pat_'}{pat.tokenPrefix}_… · {pat.status}
-                    {pat.scopes?.length ? ` · ${pat.scopes.length} perms` : ''}
-                  </p>
-                </div>
-              </div>
-              {pat.status === 'active' && (
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => confirmRevokePat(pat)}
-                    className="px-3 py-2 rounded-xl text-[11px] font-extrabold bg-[#161412] border border-red-500/25 text-red-300 cursor-pointer"
-                  >
-                    Revoke token
-                  </button>
-                </div>
-              )}
-            </div>
-          ))
+              );
+            })
         )}
       </Section>
 

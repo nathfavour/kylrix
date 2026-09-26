@@ -149,7 +149,7 @@ program
   .option('--all', 'Log out all accounts on the current server base URI')
   .option('--purge', 'Purge all server base URIs, account profiles, and local sessions')
   .option('-u, --url <url>', 'Target server base URL')
-  .action((cmdOpts) => logoutCommand({ ...program.opts(), ...cmdOpts }));
+  .action(async (cmdOpts) => await logoutCommand({ ...program.opts(), ...cmdOpts }));
 
 // ── Multi-Account Profiles & Switching ──
 const accounts = program

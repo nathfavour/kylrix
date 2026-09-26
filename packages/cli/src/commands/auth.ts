@@ -202,26 +202,41 @@ export async function whoamiCommand(opts: { url?: string; token?: string; json?:
   }
 }
 
-export function logoutCommand(opts: { all?: boolean; purge?: boolean; url?: string } = {}) {
+export async function logoutCommand(opts: { all?: boolean; purge?: boolean; url?: string } = {}) {
   const env = resolveEnvironment({ url: opts.url });
 
   if (opts.purge) {
+    if (env.token) {
+      try {
+        await getClient({ url: env.apiUrl, token: env.token }).auth.logout();
+      } catch {}
+    }
     clearConfig();
-    printSuccess('Purged all stored servers, account profiles, and local sessions.');
+    printSuccess('Purged all stored servers, account profiles, and local sessions (server token revoked).');
     return;
   }
 
   if (opts.all) {
+    if (env.token) {
+      try {
+        await getClient({ url: env.apiUrl, token: env.token }).auth.logout();
+      } catch {}
+    }
     clearServerAccounts(env.apiUrl);
-    printSuccess(`Removed all stored accounts for server ${pc.cyan(env.apiUrl)}.`);
+    printSuccess(`Removed all stored accounts for server ${pc.cyan(env.apiUrl)} (server token revoked).`);
     return;
   }
 
   if (env.activeAccountId) {
     const targetId = env.activeAccountId;
+    if (env.token) {
+      try {
+        await getClient({ url: env.apiUrl, token: env.token }).auth.logout();
+      } catch {}
+    }
     removeAccount(targetId, env.apiUrl);
     const updated = resolveEnvironment({ url: env.apiUrl });
-    printSuccess(`Logged out active account ${pc.bold(targetId)} from ${pc.cyan(env.apiUrl)}.`);
+    printSuccess(`Logged out active account ${pc.bold(targetId)} from ${pc.cyan(env.apiUrl)} (server token revoked).`);
     if (updated.activeAccountId) {
       printInfo(`Active account switched to ${pc.bold(updated.email || updated.activeAccountId)}.`);
     }

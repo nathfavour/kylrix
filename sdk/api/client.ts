@@ -176,6 +176,7 @@ export class KylrixClient {
     signup: (data: { email: string; password?: string; name?: string }) =>
       this.request<{ token: string; user: any }>('POST', '/auth/signup', { body: data }),
     status: () => this.request<{ authenticated: boolean; user?: any }>('GET', '/auth/status'),
+    logout: () => this.request<{ success: boolean }>('DELETE', '/token'),
   };
 
   // ── 2. Workspaces ──
