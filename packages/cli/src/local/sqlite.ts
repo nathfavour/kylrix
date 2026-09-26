@@ -24,6 +24,19 @@ const dbInstances = new Map<string, any>();
 
 export function getNativeSqlite(): any {
   try {
+    // Intercept and suppress ExperimentalWarning for node:sqlite
+    const origEmit = process.emit;
+    (process as any).emit = function (name: string, data: any, ...args: any[]) {
+      if (
+        name === 'warning' &&
+        typeof data === 'object' &&
+        (data?.name === 'ExperimentalWarning' || String(data?.message || '').includes('SQLite'))
+      ) {
+        return false;
+      }
+      return origEmit.apply(process, [name, data, ...args]);
+    };
+
     const require = createRequire(import.meta.url);
     const sqlite = require('node:sqlite');
     return sqlite.DatabaseSync || sqlite.default?.DatabaseSync;
@@ -74,6 +87,8 @@ function initSqliteSchema(db: any) {
       category TEXT DEFAULT 'general',
       tags TEXT,
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -87,6 +102,8 @@ function initSqliteSchema(db: any) {
       unit TEXT DEFAULT '%',
       status TEXT DEFAULT 'not_started',
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -102,6 +119,8 @@ function initSqliteSchema(db: any) {
       custom_fields TEXT,
       item_type TEXT DEFAULT 'login',
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -113,6 +132,8 @@ function initSqliteSchema(db: any) {
       issuer TEXT,
       account TEXT,
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -123,6 +144,8 @@ function initSqliteSchema(db: any) {
       end_time TEXT NOT NULL,
       description TEXT,
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -132,6 +155,8 @@ function initSqliteSchema(db: any) {
       description TEXT,
       schema TEXT,
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -141,6 +166,8 @@ function initSqliteSchema(db: any) {
       description TEXT,
       status TEXT DEFAULT 'draft',
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -161,4 +188,20 @@ function initSqliteSchema(db: any) {
     CREATE INDEX IF NOT EXISTS idx_ideas_updated ON ideas(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status);
   `);
+
+  // Migrate existing tables if sync_status or cloud_id columns are missing
+  try { db.exec("ALTER TABLE ideas ADD COLUMN sync_status TEXT DEFAULT 'unsynced'"); } catch {}
+  try { db.exec("ALTER TABLE ideas ADD COLUMN cloud_id TEXT"); } catch {}
+  try { db.exec("ALTER TABLE goals ADD COLUMN sync_status TEXT DEFAULT 'unsynced'"); } catch {}
+  try { db.exec("ALTER TABLE goals ADD COLUMN cloud_id TEXT"); } catch {}
+  try { db.exec("ALTER TABLE vault ADD COLUMN sync_status TEXT DEFAULT 'unsynced'"); } catch {}
+  try { db.exec("ALTER TABLE vault ADD COLUMN cloud_id TEXT"); } catch {}
+  try { db.exec("ALTER TABLE totp ADD COLUMN sync_status TEXT DEFAULT 'unsynced'"); } catch {}
+  try { db.exec("ALTER TABLE totp ADD COLUMN cloud_id TEXT"); } catch {}
+  try { db.exec("ALTER TABLE events ADD COLUMN sync_status TEXT DEFAULT 'unsynced'"); } catch {}
+  try { db.exec("ALTER TABLE events ADD COLUMN cloud_id TEXT"); } catch {}
+  try { db.exec("ALTER TABLE forms ADD COLUMN sync_status TEXT DEFAULT 'unsynced'"); } catch {}
+  try { db.exec("ALTER TABLE forms ADD COLUMN cloud_id TEXT"); } catch {}
+  try { db.exec("ALTER TABLE flows ADD COLUMN sync_status TEXT DEFAULT 'unsynced'"); } catch {}
+  try { db.exec("ALTER TABLE flows ADD COLUMN cloud_id TEXT"); } catch {}
 }

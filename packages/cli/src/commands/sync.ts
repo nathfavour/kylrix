@@ -1,11 +1,9 @@
 import pc from 'picocolors';
 import * as clack from '@clack/prompts';
-import { getClient, hasAuth } from '../client';
-import { LocalStore } from '../local/store';
+import { hasAuth } from '../client';
 import { printError, printJson, printSuccess } from '../formatter';
 import { resolveEnvironment, loadConfig, saveMasterConfig } from '../config';
-import { evaluateOfflineAutoSync, migrateOfflineData } from '../local/sync-resolver';
-import { getNativeSqlite, getDatabase } from '../local/sqlite';
+import { evaluateOfflineAutoSync, migrateOfflineData, bidirectionalSync } from '../local/sync-resolver';
 
 export async function syncCommand(opts: { url?: string; token?: string; workspace?: string; json?: boolean }) {
   if (!hasAuth(opts)) {
@@ -30,60 +28,13 @@ export async function syncCommand(opts: { url?: string; token?: string; workspac
     console.log(pc.yellow(`⚠ Warning: ${verdict.reason}`));
   }
 
-  const client = getClient(opts);
-  const localIdeas = LocalStore.listIdeas().items;
-  const localGoals = LocalStore.listGoals().items;
   const spinner = clack.spinner();
   if (!opts.json) {
-    spinner.start('Syncing local-first data with Kylrix Cloud...');
+    spinner.start('Performing two-way sync with Kylrix Cloud...');
   }
 
-  let syncedIdeas = 0;
-  let syncedGoals = 0;
-
-  const DatabaseSync = getNativeSqlite();
-  const db = DatabaseSync ? getDatabase(env.siloDbPath) : null;
-
   try {
-    // Sync local ideas
-    for (const idea of localIdeas) {
-      if (idea.isLocal) {
-        const tags = [...(idea.tags || [])];
-        if (idea.category) {
-          tags.push(`category:${idea.category}`);
-        }
-        await client.ideas.create({
-          title: idea.title,
-          content: idea.content,
-          tags: tags.length > 0 ? tags : undefined,
-          workspaceId: opts.workspace,
-        });
-        if (db) {
-          try {
-            db.prepare('UPDATE ideas SET is_local = 0 WHERE id = ?').run(idea.id);
-          } catch {}
-        }
-        syncedIdeas++;
-      }
-    }
-
-    // Sync local goals
-    for (const goal of localGoals) {
-      if (goal.isLocal) {
-        await client.goals.create({
-          title: goal.title,
-          description: goal.description,
-          status: (goal.status as any) || 'todo',
-          workspaceId: opts.workspace,
-        });
-        if (db) {
-          try {
-            db.prepare('UPDATE goals SET is_local = 0 WHERE id = ?').run(goal.id);
-          } catch {}
-        }
-        syncedGoals++;
-      }
-    }
+    const syncRes = await bidirectionalSync(opts);
 
     if (!opts.json) {
       spinner.stop(pc.green('Sync complete!'));
@@ -97,11 +48,21 @@ export async function syncCommand(opts: { url?: string; token?: string; workspac
     }
 
     if (opts.json) {
-      printJson({ synced: true, syncedIdeas, syncedGoals });
+      printJson({
+        synced: true,
+        pushed: syncRes.pushed,
+        pulled: syncRes.pulled,
+      });
       return;
     }
 
-    printSuccess(`Successfully synced ${syncedIdeas} ideas and ${syncedGoals} goals to your cloud workspace.`);
+    const { pushed, pulled } = syncRes;
+    const pushedTotal = pushed.pushedIdeas + pushed.pushedGoals;
+    console.log();
+    printSuccess('Synchronized with Kylrix Cloud:');
+    console.log(pc.cyan(`  ↑ Pushed to cloud: ${pushedTotal} items (${pushed.pushedIdeas} ideas, ${pushed.pushedGoals} goals)`));
+    console.log(pc.green(`  ↓ Pulled to local: ${pulled.total} items (${pulled.pulledIdeas} ideas, ${pulled.pulledGoals} goals, ${pulled.pulledEvents} events, ${pulled.pulledForms} forms, ${pulled.pulledFlows} flows)`));
+    console.log(pc.dim('  ⚡ Local SQLite database is up to date.\n'));
   } catch (err: any) {
     if (!opts.json) {
       spinner.stop(pc.red('Sync interrupted'));

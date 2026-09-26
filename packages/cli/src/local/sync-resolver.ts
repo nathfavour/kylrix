@@ -14,6 +14,7 @@ import {
 import { getNativeSqlite, getDatabase } from './sqlite';
 import { getClient } from '../client';
 import { printSuccess } from '../formatter';
+import { LocalStore } from './store';
 
 export interface OfflineContainerInfo {
   name: string;
@@ -46,9 +47,14 @@ export function countLocalContainerItems(dbPath: string, fallbackPath: string): 
         const tables = ['ideas', 'goals', 'vault', 'totp', 'events', 'forms', 'flows'];
         for (const tbl of tables) {
           try {
-            const row = db.prepare(`SELECT count(*) as c FROM ${tbl}`).get() as any;
+            const row = db.prepare(`SELECT count(*) as c FROM ${tbl} WHERE sync_status != 'migrated' OR sync_status IS NULL`).get() as any;
             count += Number(row?.c || 0);
-          } catch {}
+          } catch {
+            try {
+              const row = db.prepare(`SELECT count(*) as c FROM ${tbl}`).get() as any;
+              count += Number(row?.c || 0);
+            } catch {}
+          }
         }
         try {
           db.close();
@@ -205,7 +211,7 @@ export function evaluateOfflineAutoSync(targetServerUrl?: string, targetUserId?:
 
 /**
  * Migrates local SQLite rows and fallback store items from an offline container
- * into the authenticated account's silo, and cleans up the source container.
+ * into the authenticated account's silo, marking them migrated without deleting them.
  */
 export function migrateOfflineData(
   sourceContainer: string,
@@ -239,13 +245,13 @@ export function migrateOfflineData(
           for (const r of rows) {
             targetDb
               .prepare(
-                'INSERT OR IGNORE INTO ideas (id, title, content, category, tags, is_local, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)'
+                "INSERT OR IGNORE INTO ideas (id, title, content, category, tags, is_local, sync_status, cloud_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, 'unsynced', ?, ?, ?)"
               )
-              .run(r.id, r.title, r.content, r.category, r.tags, r.created_at, r.updated_at);
+              .run(r.id, r.title, r.content, r.category, r.tags, r.cloud_id || null, r.created_at, r.updated_at);
             ideas++;
             total++;
           }
-          sourceDb.prepare('DELETE FROM ideas').run();
+          try { sourceDb.prepare("UPDATE ideas SET sync_status = 'migrated'").run(); } catch {}
         } catch {}
 
         // Goals
@@ -254,13 +260,13 @@ export function migrateOfflineData(
           for (const r of rows) {
             targetDb
               .prepare(
-                'INSERT OR IGNORE INTO goals (id, title, description, target_value, current_value, unit, status, is_local, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)'
+                "INSERT OR IGNORE INTO goals (id, title, description, target_value, current_value, unit, status, is_local, sync_status, cloud_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'unsynced', ?, ?, ?)"
               )
-              .run(r.id, r.title, r.description, r.target_value, r.current_value, r.unit, r.status, r.created_at, r.updated_at);
+              .run(r.id, r.title, r.description, r.target_value, r.current_value, r.unit, r.status, r.cloud_id || null, r.created_at, r.updated_at);
             goals++;
             total++;
           }
-          sourceDb.prepare('DELETE FROM goals').run();
+          try { sourceDb.prepare("UPDATE goals SET sync_status = 'migrated'").run(); } catch {}
         } catch {}
 
         // Events
@@ -268,12 +274,12 @@ export function migrateOfflineData(
           const rows = sourceDb.prepare('SELECT * FROM events').all() as any[];
           for (const r of rows) {
             targetDb
-              .prepare('INSERT OR IGNORE INTO events (id, title, start_time, end_time, description, is_local, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)')
-              .run(r.id, r.title, r.start_time, r.end_time, r.description, r.created_at);
+              .prepare("INSERT OR IGNORE INTO events (id, title, start_time, end_time, description, is_local, sync_status, cloud_id, created_at) VALUES (?, ?, ?, ?, ?, 1, 'unsynced', ?, ?)")
+              .run(r.id, r.title, r.start_time, r.end_time, r.description, r.cloud_id || null, r.created_at);
             events++;
             total++;
           }
-          sourceDb.prepare('DELETE FROM events').run();
+          try { sourceDb.prepare("UPDATE events SET sync_status = 'migrated'").run(); } catch {}
         } catch {}
 
         // Forms
@@ -281,12 +287,12 @@ export function migrateOfflineData(
           const rows = sourceDb.prepare('SELECT * FROM forms').all() as any[];
           for (const r of rows) {
             targetDb
-              .prepare('INSERT OR IGNORE INTO forms (id, title, description, schema, is_local, created_at) VALUES (?, ?, ?, ?, 1, ?)')
-              .run(r.id, r.title, r.description, r.schema, r.created_at);
+              .prepare("INSERT OR IGNORE INTO forms (id, title, description, schema, is_local, sync_status, cloud_id, created_at) VALUES (?, ?, ?, ?, 1, 'unsynced', ?, ?)")
+              .run(r.id, r.title, r.description, r.schema, r.cloud_id || null, r.created_at);
             forms++;
             total++;
           }
-          sourceDb.prepare('DELETE FROM forms').run();
+          try { sourceDb.prepare("UPDATE forms SET sync_status = 'migrated'").run(); } catch {}
         } catch {}
 
         // Flows
@@ -294,12 +300,12 @@ export function migrateOfflineData(
           const rows = sourceDb.prepare('SELECT * FROM flows').all() as any[];
           for (const r of rows) {
             targetDb
-              .prepare('INSERT OR IGNORE INTO flows (id, title, description, status, is_local, created_at) VALUES (?, ?, ?, ?, 1, ?)')
-              .run(r.id, r.title, r.description, r.status, r.created_at);
+              .prepare("INSERT OR IGNORE INTO flows (id, title, description, status, is_local, sync_status, cloud_id, created_at) VALUES (?, ?, ?, ?, 1, 'unsynced', ?, ?)")
+              .run(r.id, r.title, r.description, r.status, r.cloud_id || null, r.created_at);
             flows++;
             total++;
           }
-          sourceDb.prepare('DELETE FROM flows').run();
+          try { sourceDb.prepare("UPDATE flows SET sync_status = 'migrated'").run(); } catch {}
         } catch {}
 
         // Vault
@@ -308,12 +314,12 @@ export function migrateOfflineData(
           for (const r of rows) {
             targetDb
               .prepare(
-                'INSERT OR IGNORE INTO vault (id, name, username, password, url, notes, is_env, custom_fields, item_type, is_local, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)'
+                "INSERT OR IGNORE INTO vault (id, name, username, password, url, notes, is_env, custom_fields, item_type, is_local, sync_status, cloud_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'unsynced', ?, ?, ?)"
               )
-              .run(r.id, r.name, r.username, r.password, r.url, r.notes, r.is_env, r.custom_fields, r.item_type, r.created_at, r.updated_at);
+              .run(r.id, r.name, r.username, r.password, r.url, r.notes, r.is_env, r.custom_fields, r.item_type, r.cloud_id || null, r.created_at, r.updated_at);
             total++;
           }
-          sourceDb.prepare('DELETE FROM vault').run();
+          try { sourceDb.prepare("UPDATE vault SET sync_status = 'migrated'").run(); } catch {}
         } catch {}
 
         // TOTP
@@ -321,11 +327,11 @@ export function migrateOfflineData(
           const rows = sourceDb.prepare('SELECT * FROM totp').all() as any[];
           for (const r of rows) {
             targetDb
-              .prepare('INSERT OR IGNORE INTO totp (id, name, secret, issuer, account, is_local, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)')
-              .run(r.id, r.name, r.secret, r.issuer, r.account, r.created_at);
+              .prepare("INSERT OR IGNORE INTO totp (id, name, secret, issuer, account, is_local, sync_status, cloud_id, created_at) VALUES (?, ?, ?, ?, ?, 1, 'unsynced', ?, ?)")
+              .run(r.id, r.name, r.secret, r.issuer, r.account, r.cloud_id || null, r.created_at);
             total++;
           }
-          sourceDb.prepare('DELETE FROM totp').run();
+          try { sourceDb.prepare("UPDATE totp SET sync_status = 'migrated'").run(); } catch {}
         } catch {}
       }
 
@@ -352,7 +358,7 @@ export function migrateOfflineData(
           const existingIds = new Set(targetData[key].map((x: any) => x.id));
           for (const item of sourceData[key]) {
             if (!existingIds.has(item.id)) {
-              targetData[key].push({ ...item, isLocal: true });
+              targetData[key].push({ ...item, isLocal: true, syncStatus: 'unsynced' });
               total++;
             }
           }
@@ -360,7 +366,13 @@ export function migrateOfflineData(
       }
 
       fs.writeFileSync(targetFallback, JSON.stringify(targetData, null, 2), { encoding: 'utf-8', mode: 0o600 });
-      fs.writeFileSync(sourceFallback, JSON.stringify({ ideas: [], goals: [] }, null, 2), { encoding: 'utf-8', mode: 0o600 });
+      // Mark source fallback migrated
+      for (const key of Object.keys(sourceData)) {
+        if (Array.isArray(sourceData[key])) {
+          sourceData[key] = sourceData[key].map((item: any) => ({ ...item, syncStatus: 'migrated' }));
+        }
+      }
+      fs.writeFileSync(sourceFallback, JSON.stringify(sourceData, null, 2), { encoding: 'utf-8', mode: 0o600 });
     } catch {}
   }
 
@@ -368,7 +380,8 @@ export function migrateOfflineData(
 }
 
 /**
- * Executes cloud sync for all local items in the active account.
+ * Pushes unsynced local items to Kylrix Cloud and updates their sync_status to 'synced'.
+ * Retains items locally so local SQLite remains the authoritative, offline-first cache.
  */
 export async function pushLocalItemsToCloud(opts: { url?: string; token?: string; workspace?: string } = {}) {
   const client = getClient(opts);
@@ -379,35 +392,43 @@ export async function pushLocalItemsToCloud(opts: { url?: string; token?: string
   let pushedGoals = 0;
 
   if (db) {
-    // Push ideas
+    // Push ideas where sync_status = 'unsynced'
     try {
-      const ideas = db.prepare('SELECT * FROM ideas WHERE is_local = 1').all() as any[];
+      const ideas = db
+        .prepare("SELECT * FROM ideas WHERE sync_status = 'unsynced' OR (sync_status IS NULL AND (cloud_id IS NULL OR cloud_id = ''))")
+        .all() as any[];
       for (const item of ideas) {
-        const tags = item.tags ? JSON.parse(item.tags) : [];
-        if (item.category) tags.push(`category:${item.category}`);
-        await client.ideas.create({
-          title: item.title,
-          content: item.content,
-          tags: tags.length > 0 ? tags : undefined,
-          workspaceId: opts.workspace,
-        });
-        db.prepare('UPDATE ideas SET is_local = 0 WHERE id = ?').run(item.id);
-        pushedIdeas++;
+        try {
+          const tags = item.tags ? JSON.parse(item.tags) : [];
+          if (item.category) tags.push(`category:${item.category}`);
+          const created = await client.ideas.create({
+            title: item.title,
+            content: item.content,
+            tags: tags.length > 0 ? tags : undefined,
+            workspaceId: opts.workspace,
+          });
+          db.prepare("UPDATE ideas SET sync_status = 'synced', cloud_id = ?, is_local = 1 WHERE id = ?").run(created.id, item.id);
+          pushedIdeas++;
+        } catch {}
       }
     } catch {}
 
-    // Push goals
+    // Push goals where sync_status = 'unsynced'
     try {
-      const goals = db.prepare('SELECT * FROM goals WHERE is_local = 1').all() as any[];
+      const goals = db
+        .prepare("SELECT * FROM goals WHERE sync_status = 'unsynced' OR (sync_status IS NULL AND (cloud_id IS NULL OR cloud_id = ''))")
+        .all() as any[];
       for (const item of goals) {
-        await client.goals.create({
-          title: item.title,
-          description: item.description,
-          status: item.status || 'not_started',
-          workspaceId: opts.workspace,
-        });
-        db.prepare('UPDATE goals SET is_local = 0 WHERE id = ?').run(item.id);
-        pushedGoals++;
+        try {
+          const created = await client.goals.create({
+            title: item.title,
+            description: item.description,
+            status: item.status || 'not_started',
+            workspaceId: opts.workspace,
+          });
+          db.prepare("UPDATE goals SET sync_status = 'synced', cloud_id = ?, is_local = 1 WHERE id = ?").run(created.id, item.id);
+          pushedGoals++;
+        } catch {}
       }
     } catch {}
   }
@@ -416,10 +437,90 @@ export async function pushLocalItemsToCloud(opts: { url?: string; token?: string
 }
 
 /**
+ * Pulls remote cloud entities into the local SQLite database with sync_status = 'synced'.
+ */
+export async function pullCloudItemsToLocal(opts: { url?: string; token?: string; workspace?: string } = {}) {
+  const client = getClient(opts);
+  let pulledIdeas = 0;
+  let pulledGoals = 0;
+  let pulledEvents = 0;
+  let pulledForms = 0;
+  let pulledFlows = 0;
+
+  // 1. Ideas
+  try {
+    const res = await client.ideas.list({ limit: 100, workspaceId: opts.workspace });
+    if (res?.items) {
+      for (const item of res.items) {
+        LocalStore.upsertIdeaFromCloud(item);
+        pulledIdeas++;
+      }
+    }
+  } catch {}
+
+  // 2. Goals
+  try {
+    const res = await client.goals.list({ limit: 100, workspaceId: opts.workspace });
+    if (res?.items) {
+      for (const item of res.items) {
+        LocalStore.upsertGoalFromCloud(item);
+        pulledGoals++;
+      }
+    }
+  } catch {}
+
+  // 3. Events
+  try {
+    const res = await client.events.list({ limit: 100, workspaceId: opts.workspace });
+    if (res?.items) {
+      for (const item of res.items) {
+        LocalStore.upsertEventFromCloud(item);
+        pulledEvents++;
+      }
+    }
+  } catch {}
+
+  // 4. Forms
+  try {
+    const res = await client.forms.list({ limit: 100, workspaceId: opts.workspace });
+    if (res?.items) {
+      for (const item of res.items) {
+        LocalStore.upsertFormFromCloud(item);
+        pulledForms++;
+      }
+    }
+  } catch {}
+
+  // 5. Flows
+  try {
+    const res = await client.flows.list(100);
+    if (res?.items) {
+      for (const item of res.items) {
+        LocalStore.upsertFlowFromCloud(item);
+        pulledFlows++;
+      }
+    }
+  } catch {}
+
+  const total = pulledIdeas + pulledGoals + pulledEvents + pulledForms + pulledFlows;
+  return { pulledIdeas, pulledGoals, pulledEvents, pulledForms, pulledFlows, total };
+}
+
+/**
+ * Performs full bidirectional synchronization: pushes local unsynced items up,
+ * and pulls remote cloud items down into local SQLite.
+ */
+export async function bidirectionalSync(opts: { url?: string; token?: string; workspace?: string } = {}) {
+  const pushed = await pushLocalItemsToCloud(opts);
+  const pulled = await pullCloudItemsToLocal(opts);
+  return { pushed, pulled };
+}
+
+/**
  * Handles automatic offline data synchronization when a user logs in:
  * 1. Checks eligibility.
- * 2. If eligible, migrates offline items and pushes to cloud.
- * 3. If ineligible with warnings (e.g. multiple containers, custom partition), saves pending warning.
+ * 2. If eligible, migrates offline items into the account and performs bidirectional sync.
+ * 3. If ineligible with warnings, saves pending warning.
  */
 export async function handlePostLoginAutoSync(serverUrl: string, userId: string, token?: string) {
   const verdict = evaluateOfflineAutoSync(serverUrl, userId);
@@ -428,14 +529,14 @@ export async function handlePostLoginAutoSync(serverUrl: string, userId: string,
     try {
       console.log();
       console.log(
-        pc.cyan(`📦 Found ${verdict.itemCount} offline items in container "${verdict.sourceContainer}". Syncing to your account...`)
+        pc.cyan(`📦 Found ${verdict.itemCount} offline items in container "${verdict.sourceContainer}". Syncing with your account...`)
       );
 
       const migrated = migrateOfflineData(verdict.sourceContainer, userId, 'default');
-      const pushed = await pushLocalItemsToCloud({ url: serverUrl, token });
+      const syncRes = await bidirectionalSync({ url: serverUrl, token });
 
       printSuccess(
-        `Successfully synced ${migrated.total} offline local items (${pushed.pushedIdeas} ideas, ${pushed.pushedGoals} goals) to your cloud account.`
+        `Successfully synced ${migrated.total} local items (${syncRes.pushed.pushedIdeas} ideas pushed) and pulled ${syncRes.pulled.total} items from cloud.`
       );
 
       // Clear any previous pending warning

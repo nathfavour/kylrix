@@ -14,24 +14,50 @@ export async function listGoalsCommand(opts: {
   try {
     const isAuthed = hasAuth(opts);
     const limit = opts.limit ? parseInt(opts.limit, 10) : 25;
-    const res = isAuthed
-      ? await getClient(opts).goals.list({ limit, workspaceId: opts.workspace, status: opts.status })
-      : LocalStore.listGoals();
+
+    // 1. If authed, pull latest goals from cloud into local SQLite in background
+    if (isAuthed) {
+      try {
+        const client = getClient(opts);
+        const cloudRes = await client.goals.list({ limit, workspaceId: opts.workspace, status: opts.status });
+        if (cloudRes?.items) {
+          for (const item of cloudRes.items) {
+            LocalStore.upsertGoalFromCloud(item);
+          }
+        }
+      } catch {
+        // Fall back gracefully to local SQLite
+      }
+    }
+
+    // 2. Read authoritative local store
+    let items = LocalStore.listGoals().items;
+    if (opts.status) {
+      items = items.filter((g: any) => g.status === opts.status);
+    }
 
     if (opts.json) {
-      printJson(res);
+      printJson({ items: items.slice(0, limit), count: items.length });
       return;
     }
 
-    const rows = (res.items || []).map((g: any) => ({
-      id: g.id,
-      title: g.title || '(Untitled Goal)',
-      status: g.status || 'not_started',
-      progress: `${g.currentValue ?? 0}/${g.targetValue ?? 100} ${g.unit || ''}`.trim(),
-      mode: isAuthed ? (g.workspaceId || 'cloud') : pc.dim('local'),
-    }));
+    const rows = items.slice(0, limit).map((g: any) => {
+      let syncBadge = pc.yellow('○ unsynced');
+      if (g.syncStatus === 'synced') {
+        syncBadge = pc.green('● synced');
+      } else if (!isAuthed) {
+        syncBadge = pc.dim('💻 local');
+      }
+      return {
+        id: g.id,
+        title: g.title || '(Untitled Goal)',
+        status: g.status || 'not_started',
+        progress: `${g.currentValue ?? 0}/${g.targetValue ?? 100} ${g.unit || ''}`.trim(),
+        sync: syncBadge,
+      };
+    });
 
-    printTable(rows, ['id', 'title', 'status', 'progress', 'mode']);
+    printTable(rows, ['id', 'title', 'status', 'progress', 'sync']);
     if (!isAuthed) {
       console.log(pc.dim('💡 Local-first mode. Run `kylrix login` to sync goals with cloud.'));
     }
@@ -44,21 +70,41 @@ export async function listGoalsCommand(opts: {
 export async function getGoalCommand(id: string, opts: { url?: string; token?: string; json?: boolean }) {
   try {
     const isAuthed = hasAuth(opts);
-    const item = isAuthed
-      ? await getClient(opts).goals.get(id)
-      : LocalStore.getGoal(id);
+    let item: any;
+
+    try {
+      item = LocalStore.getGoal(id);
+    } catch {
+      if (isAuthed) {
+        item = await getClient(opts).goals.get(id);
+        if (item) {
+          item = LocalStore.upsertGoalFromCloud(item);
+        }
+      }
+    }
+
+    if (!item) {
+      throw new Error(`Goal not found: ${id}`);
+    }
 
     if (opts.json) {
       printJson(item);
       return;
     }
 
+    let syncBadge = pc.yellow('○ unsynced');
+    if (item.syncStatus === 'synced') {
+      syncBadge = pc.green('● synced');
+    } else if (!isAuthed) {
+      syncBadge = pc.dim('💻 local');
+    }
+
     console.log('\n' + pc.bold(item.title || '(Untitled Goal)'));
     console.log(pc.dim('─'.repeat(40)));
     console.log(`ID:        ${item.id}`);
+    console.log(`Sync:      ${syncBadge}`);
     console.log(`Status:    ${item.status || 'not_started'}`);
     console.log(`Progress:  ${item.currentValue ?? 0}/${item.targetValue ?? 100} ${item.unit || ''}`);
-    console.log(`Mode:      ${isAuthed ? 'Cloud' : 'Local-First'}`);
     if (item.description) {
       console.log(pc.dim('─'.repeat(40)));
       console.log(item.description);
@@ -86,27 +132,48 @@ export async function createGoalCommand(
   try {
     const isAuthed = hasAuth(opts);
     const targetValue = opts.targetValue ? parseFloat(opts.targetValue) : 100;
-    const item = isAuthed
-      ? await getClient(opts).goals.create({
+
+    // 1. Create locally first
+    const item = LocalStore.createGoal({
+      title,
+      description: opts.description,
+      targetValue,
+      unit: opts.unit,
+      status: opts.status,
+    });
+
+    let syncStatus = isAuthed ? 'unsynced' : 'local';
+
+    // 2. If authed, push to cloud immediately
+    if (isAuthed) {
+      try {
+        const client = getClient(opts);
+        const cloudItem = await client.goals.create({
           title,
           description: opts.description,
           status: (opts.status as any) || 'todo',
           workspaceId: opts.workspace,
-        })
-      : LocalStore.createGoal({
-          title,
-          description: opts.description,
-          targetValue,
-          unit: opts.unit,
-          status: opts.status,
         });
+        LocalStore.markGoalSynced(item.id, cloudItem.id);
+        item.syncStatus = 'synced';
+        item.cloudId = cloudItem.id;
+        syncStatus = 'synced';
+      } catch {}
+    }
 
     if (opts.json) {
       printJson(item);
       return;
     }
 
-    printSuccess(`Created goal "${pc.bold(item.title || item.id)}" (ID: ${item.id}) [${isAuthed ? 'Cloud' : 'Local'}]`);
+    const badge =
+      syncStatus === 'synced'
+        ? pc.green('● synced')
+        : syncStatus === 'unsynced'
+          ? pc.yellow('○ unsynced')
+          : pc.dim('💻 local');
+
+    printSuccess(`Created goal "${pc.bold(item.title || item.id)}" (ID: ${item.id}) [${badge}]`);
   } catch (err: any) {
     printError('Failed to create goal', err);
     process.exit(1);
@@ -127,16 +194,22 @@ export async function updateGoalCommand(
   try {
     const isAuthed = hasAuth(opts);
     const currentValue = opts.currentValue !== undefined ? parseFloat(opts.currentValue) : undefined;
-    const item = isAuthed
-      ? await getClient(opts).goals.update(id, {
+    const item = LocalStore.updateGoal(id, {
+      title: opts.title,
+      status: opts.status,
+      currentValue,
+    });
+
+    if (isAuthed) {
+      try {
+        const targetId = item.cloudId || id;
+        await getClient(opts).goals.update(targetId, {
           title: opts.title,
           status: opts.status as any,
-        })
-      : LocalStore.updateGoal(id, {
-          title: opts.title,
-          status: opts.status,
-          currentValue,
         });
+        LocalStore.markGoalSynced(id, targetId);
+      } catch {}
+    }
 
     if (opts.json) {
       printJson(item);
@@ -153,10 +226,18 @@ export async function updateGoalCommand(
 export async function deleteGoalCommand(id: string, opts: { url?: string; token?: string; json?: boolean }) {
   try {
     const isAuthed = hasAuth(opts);
+    let targetCloudId: string | null = null;
+    try {
+      const existing = LocalStore.getGoal(id);
+      targetCloudId = existing.cloudId || null;
+    } catch {}
+
+    LocalStore.deleteGoal(id);
+
     if (isAuthed) {
-      await getClient(opts).goals.delete(id);
-    } else {
-      LocalStore.deleteGoal(id);
+      try {
+        await getClient(opts).goals.delete(targetCloudId || id);
+      } catch {}
     }
 
     if (opts.json) {

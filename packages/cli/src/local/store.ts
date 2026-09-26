@@ -41,6 +41,8 @@ export const LocalStore = {
         category: r.category,
         tags: r.tags ? JSON.parse(r.tags) : [],
         isLocal: Boolean(r.is_local),
+        syncStatus: r.sync_status || (r.cloud_id ? 'synced' : 'unsynced'),
+        cloudId: r.cloud_id || null,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
       }));
@@ -53,8 +55,8 @@ export const LocalStore = {
   getIdea(id: string): any {
     const db = getDatabase();
     if (db) {
-      const stmt = db.prepare('SELECT * FROM ideas WHERE id = ?');
-      const r = stmt.get(id) as any;
+      const stmt = db.prepare('SELECT * FROM ideas WHERE id = ? OR cloud_id = ?');
+      const r = stmt.get(id, id) as any;
       if (!r) throw new Error(`Idea not found: ${id}`);
       return {
         id: r.id,
@@ -63,26 +65,30 @@ export const LocalStore = {
         category: r.category,
         tags: r.tags ? JSON.parse(r.tags) : [],
         isLocal: Boolean(r.is_local),
+        syncStatus: r.sync_status || (r.cloud_id ? 'synced' : 'unsynced'),
+        cloudId: r.cloud_id || null,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
       };
     }
     const store = loadFallback();
-    const item = store.ideas.find((i: any) => i.id === id);
+    const item = store.ideas.find((i: any) => i.id === id || i.cloudId === id);
     if (!item) throw new Error(`Idea not found: ${id}`);
     return item;
   },
 
-  createIdea(data: { title: string; content?: string; category?: string; tags?: string[] }): any {
-    const id = generateLocalId('idea');
+  createIdea(data: { id?: string; title: string; content?: string; category?: string; tags?: string[]; syncStatus?: string; cloudId?: string }): any {
+    const id = data.id || generateLocalId('idea');
     const now = new Date().toISOString();
+    const syncStatus = data.syncStatus || 'unsynced';
+    const cloudId = data.cloudId || null;
     const db = getDatabase();
     if (db) {
       const stmt = db.prepare(`
-        INSERT INTO ideas (id, title, content, category, tags, is_local, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+        INSERT INTO ideas (id, title, content, category, tags, is_local, sync_status, cloud_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
       `);
-      stmt.run(id, data.title, data.content || '', data.category || 'general', JSON.stringify(data.tags || []), now, now);
+      stmt.run(id, data.title, data.content || '', data.category || 'general', JSON.stringify(data.tags || []), syncStatus, cloudId, now, now);
       return {
         id,
         title: data.title,
@@ -90,15 +96,65 @@ export const LocalStore = {
         category: data.category || 'general',
         tags: data.tags || [],
         isLocal: true,
+        syncStatus,
+        cloudId,
         createdAt: now,
         updatedAt: now,
       };
     }
     const store = loadFallback();
-    const item = { id, title: data.title, content: data.content || '', category: data.category || 'general', tags: data.tags || [], isLocal: true, createdAt: now, updatedAt: now };
+    const item = { id, title: data.title, content: data.content || '', category: data.category || 'general', tags: data.tags || [], isLocal: true, syncStatus, cloudId, createdAt: now, updatedAt: now };
     store.ideas.unshift(item);
     saveFallback(store);
     return item;
+  },
+
+  upsertIdeaFromCloud(item: { id: string; title: string; content?: string; category?: string; tags?: string[]; createdAt?: string; updatedAt?: string }): any {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    const createdAt = item.createdAt || now;
+    const updatedAt = item.updatedAt || now;
+    const tagsJson = JSON.stringify(item.tags || []);
+    if (db) {
+      const existing = db.prepare('SELECT id FROM ideas WHERE id = ? OR cloud_id = ?').get(item.id, item.id) as any;
+      if (existing) {
+        db.prepare(`
+          UPDATE ideas SET title = ?, content = ?, category = ?, tags = ?, sync_status = 'synced', cloud_id = ?, updated_at = ?
+          WHERE id = ?
+        `).run(item.title, item.content || '', item.category || 'general', tagsJson, item.id, updatedAt, existing.id);
+        return { id: existing.id, ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+      } else {
+        db.prepare(`
+          INSERT INTO ideas (id, title, content, category, tags, is_local, sync_status, cloud_id, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, 1, 'synced', ?, ?, ?)
+        `).run(item.id, item.title, item.content || '', item.category || 'general', tagsJson, item.id, createdAt, updatedAt);
+        return { id: item.id, ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+      }
+    }
+    const store = loadFallback();
+    const idx = store.ideas.findIndex((i: any) => i.id === item.id || i.cloudId === item.id);
+    const enriched = { ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+    if (idx !== -1) {
+      store.ideas[idx] = { ...store.ideas[idx], ...enriched };
+    } else {
+      store.ideas.unshift(enriched);
+    }
+    saveFallback(store);
+    return enriched;
+  },
+
+  markIdeaSynced(localId: string, cloudId: string): void {
+    const db = getDatabase();
+    if (db) {
+      db.prepare(`UPDATE ideas SET sync_status = 'synced', cloud_id = ? WHERE id = ?`).run(cloudId, localId);
+    }
+    const store = loadFallback();
+    const item = store.ideas?.find((i: any) => i.id === localId);
+    if (item) {
+      item.syncStatus = 'synced';
+      item.cloudId = cloudId;
+      saveFallback(store);
+    }
   },
 
   updateIdea(id: string, updates: any): any {
@@ -125,9 +181,9 @@ export const LocalStore = {
   deleteIdea(id: string): { success: boolean } {
     const db = getDatabase();
     if (db) {
-      const existing = db.prepare('SELECT * FROM ideas WHERE id = ?').get(id) as any;
+      const existing = db.prepare('SELECT * FROM ideas WHERE id = ? OR cloud_id = ?').get(id, id) as any;
       if (existing) {
-        db.prepare('DELETE FROM ideas WHERE id = ?').run(id);
+        db.prepare('DELETE FROM ideas WHERE id = ?').run(existing.id);
         db.prepare('INSERT INTO trash (id, kind, title, deleted_at) VALUES (?, ?, ?, ?)').run(
           existing.id,
           'idea',
@@ -138,7 +194,7 @@ export const LocalStore = {
       return { success: true };
     }
     const store = loadFallback();
-    const idx = store.ideas.findIndex((i: any) => i.id === id);
+    const idx = store.ideas.findIndex((i: any) => i.id === id || i.cloudId === id);
     if (idx !== -1) {
       const [deleted] = store.ideas.splice(idx, 1);
       store.trash.unshift({ id: deleted.id, kind: 'idea', title: deleted.title, deletedAt: new Date().toISOString() });
@@ -161,6 +217,8 @@ export const LocalStore = {
         unit: r.unit,
         status: r.status,
         isLocal: Boolean(r.is_local),
+        syncStatus: r.sync_status || (r.cloud_id ? 'synced' : 'unsynced'),
+        cloudId: r.cloud_id || null,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
       }));
@@ -173,7 +231,7 @@ export const LocalStore = {
   getGoal(id: string): any {
     const db = getDatabase();
     if (db) {
-      const r = db.prepare('SELECT * FROM goals WHERE id = ?').get(id) as any;
+      const r = db.prepare('SELECT * FROM goals WHERE id = ? OR cloud_id = ?').get(id, id) as any;
       if (!r) throw new Error(`Goal not found: ${id}`);
       return {
         id: r.id,
@@ -184,24 +242,28 @@ export const LocalStore = {
         unit: r.unit,
         status: r.status,
         isLocal: Boolean(r.is_local),
+        syncStatus: r.sync_status || (r.cloud_id ? 'synced' : 'unsynced'),
+        cloudId: r.cloud_id || null,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
       };
     }
     const store = loadFallback();
-    const item = store.goals.find((g: any) => g.id === id);
+    const item = store.goals.find((g: any) => g.id === id || g.cloudId === id);
     if (!item) throw new Error(`Goal not found: ${id}`);
     return item;
   },
 
   createGoal(data: any): any {
-    const id = generateLocalId('goal');
+    const id = data.id || generateLocalId('goal');
     const now = new Date().toISOString();
+    const syncStatus = data.syncStatus || 'unsynced';
+    const cloudId = data.cloudId || null;
     const db = getDatabase();
     if (db) {
       const stmt = db.prepare(`
-        INSERT INTO goals (id, title, description, target_value, current_value, unit, status, is_local, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+        INSERT INTO goals (id, title, description, target_value, current_value, unit, status, is_local, sync_status, cloud_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
       `);
       stmt.run(
         id,
@@ -211,6 +273,8 @@ export const LocalStore = {
         data.currentValue ?? 0,
         data.unit || '%',
         data.status || 'not_started',
+        syncStatus,
+        cloudId,
         now,
         now
       );
@@ -223,15 +287,85 @@ export const LocalStore = {
         unit: data.unit || '%',
         status: data.status || 'not_started',
         isLocal: true,
+        syncStatus,
+        cloudId,
         createdAt: now,
         updatedAt: now,
       };
     }
     const store = loadFallback();
-    const item = { id, title: data.title, description: data.description || '', targetValue: data.targetValue ?? 100, currentValue: data.currentValue ?? 0, unit: data.unit || '%', status: data.status || 'not_started', isLocal: true, createdAt: now, updatedAt: now };
+    const item = { id, title: data.title, description: data.description || '', targetValue: data.targetValue ?? 100, currentValue: data.currentValue ?? 0, unit: data.unit || '%', status: data.status || 'not_started', isLocal: true, syncStatus, cloudId, createdAt: now, updatedAt: now };
     store.goals.unshift(item);
     saveFallback(store);
     return item;
+  },
+
+  upsertGoalFromCloud(item: any): any {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    const createdAt = item.createdAt || now;
+    const updatedAt = item.updatedAt || now;
+    if (db) {
+      const existing = db.prepare('SELECT id FROM goals WHERE id = ? OR cloud_id = ?').get(item.id, item.id) as any;
+      if (existing) {
+        db.prepare(`
+          UPDATE goals SET title = ?, description = ?, target_value = ?, current_value = ?, unit = ?, status = ?, sync_status = 'synced', cloud_id = ?, updated_at = ?
+          WHERE id = ?
+        `).run(
+          item.title,
+          item.description || '',
+          item.targetValue ?? 100,
+          item.currentValue ?? 0,
+          item.unit || '%',
+          item.status || 'not_started',
+          item.id,
+          updatedAt,
+          existing.id
+        );
+        return { id: existing.id, ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+      } else {
+        db.prepare(`
+          INSERT INTO goals (id, title, description, target_value, current_value, unit, status, is_local, sync_status, cloud_id, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'synced', ?, ?, ?)
+        `).run(
+          item.id,
+          item.title,
+          item.description || '',
+          item.targetValue ?? 100,
+          item.currentValue ?? 0,
+          item.unit || '%',
+          item.status || 'not_started',
+          item.id,
+          createdAt,
+          updatedAt
+        );
+        return { id: item.id, ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+      }
+    }
+    const store = loadFallback();
+    const idx = store.goals.findIndex((g: any) => g.id === item.id || g.cloudId === item.id);
+    const enriched = { ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+    if (idx !== -1) {
+      store.goals[idx] = { ...store.goals[idx], ...enriched };
+    } else {
+      store.goals.unshift(enriched);
+    }
+    saveFallback(store);
+    return enriched;
+  },
+
+  markGoalSynced(localId: string, cloudId: string): void {
+    const db = getDatabase();
+    if (db) {
+      db.prepare(`UPDATE goals SET sync_status = 'synced', cloud_id = ? WHERE id = ?`).run(cloudId, localId);
+    }
+    const store = loadFallback();
+    const item = store.goals?.find((g: any) => g.id === localId);
+    if (item) {
+      item.syncStatus = 'synced';
+      item.cloudId = cloudId;
+      saveFallback(store);
+    }
   },
 
   updateGoal(id: string, updates: any): any {
@@ -267,9 +401,9 @@ export const LocalStore = {
   deleteGoal(id: string): { success: boolean } {
     const db = getDatabase();
     if (db) {
-      const existing = db.prepare('SELECT * FROM goals WHERE id = ?').get(id) as any;
+      const existing = db.prepare('SELECT * FROM goals WHERE id = ? OR cloud_id = ?').get(id, id) as any;
       if (existing) {
-        db.prepare('DELETE FROM goals WHERE id = ?').run(id);
+        db.prepare('DELETE FROM goals WHERE id = ?').run(existing.id);
         db.prepare('INSERT INTO trash (id, kind, title, deleted_at) VALUES (?, ?, ?, ?)').run(
           existing.id,
           'goal',
@@ -280,7 +414,7 @@ export const LocalStore = {
       return { success: true };
     }
     const store = loadFallback();
-    const idx = store.goals.findIndex((g: any) => g.id === id);
+    const idx = store.goals.findIndex((g: any) => g.id === id || g.cloudId === id);
     if (idx !== -1) {
       const [deleted] = store.goals.splice(idx, 1);
       store.trash.unshift({ id: deleted.id, kind: 'goal', title: deleted.title, deletedAt: new Date().toISOString() });
@@ -473,6 +607,8 @@ export const LocalStore = {
         endTime: r.end_time,
         description: r.description,
         isLocal: Boolean(r.is_local),
+        syncStatus: r.sync_status || (r.cloud_id ? 'synced' : 'unsynced'),
+        cloudId: r.cloud_id || null,
         createdAt: r.created_at,
       }));
       return { items: rows, count: rows.length };
@@ -482,31 +618,65 @@ export const LocalStore = {
   },
 
   createEvent(data: any): any {
-    const id = generateLocalId('evt');
+    const id = data.id || generateLocalId('evt');
     const now = new Date().toISOString();
+    const syncStatus = data.syncStatus || 'unsynced';
+    const cloudId = data.cloudId || null;
     const db = getDatabase();
     if (db) {
       db.prepare(`
-        INSERT INTO events (id, title, start_time, end_time, description, is_local, created_at)
-        VALUES (?, ?, ?, ?, ?, 1, ?)
-      `).run(id, data.title, data.startTime, data.endTime, data.description || '', now);
-      return { id, ...data, isLocal: true, createdAt: now };
+        INSERT INTO events (id, title, start_time, end_time, description, is_local, sync_status, cloud_id, created_at)
+        VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)
+      `).run(id, data.title, data.startTime, data.endTime, data.description || '', syncStatus, cloudId, now);
+      return { id, ...data, isLocal: true, syncStatus, cloudId, createdAt: now };
     }
     const store = loadFallback();
-    const item = { id, ...data, isLocal: true, createdAt: now };
+    const item = { id, ...data, isLocal: true, syncStatus, cloudId, createdAt: now };
     store.events.unshift(item);
     saveFallback(store);
     return item;
   },
 
+  upsertEventFromCloud(item: any): any {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    const createdAt = item.createdAt || now;
+    if (db) {
+      const existing = db.prepare('SELECT id FROM events WHERE id = ? OR cloud_id = ?').get(item.id, item.id) as any;
+      if (existing) {
+        db.prepare(`
+          UPDATE events SET title = ?, start_time = ?, end_time = ?, description = ?, sync_status = 'synced', cloud_id = ?
+          WHERE id = ?
+        `).run(item.title, item.startTime || '', item.endTime || '', item.description || '', item.id, existing.id);
+        return { id: existing.id, ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+      } else {
+        db.prepare(`
+          INSERT INTO events (id, title, start_time, end_time, description, is_local, sync_status, cloud_id, created_at)
+          VALUES (?, ?, ?, ?, ?, 1, 'synced', ?, ?)
+        `).run(item.id, item.title, item.startTime || '', item.endTime || '', item.description || '', item.id, createdAt);
+        return { id: item.id, ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+      }
+    }
+    const store = loadFallback();
+    const idx = (store.events || []).findIndex((e: any) => e.id === item.id || e.cloudId === item.id);
+    const enriched = { ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+    if (idx !== -1) {
+      store.events[idx] = { ...store.events[idx], ...enriched };
+    } else {
+      (store.events = store.events || []).unshift(enriched);
+    }
+    saveFallback(store);
+    return enriched;
+  },
+
   deleteEvent(id: string): { success: boolean } {
     const db = getDatabase();
     if (db) {
-      db.prepare('DELETE FROM events WHERE id = ?').run(id);
+      db.prepare('DELETE FROM events WHERE id = ? OR cloud_id = ?').run(id, id);
       return { success: true };
     }
     const store = loadFallback();
-    const idx = store.events.findIndex((e: any) => e.id === id);
+    const idx = store.events.findIndex((e: any) => e.id === id || e.cloudId === id);
     if (idx !== -1) {
       store.events.splice(idx, 1);
       saveFallback(store);
@@ -524,6 +694,8 @@ export const LocalStore = {
         description: r.description,
         schema: r.schema ? JSON.parse(r.schema) : [],
         isLocal: Boolean(r.is_local),
+        syncStatus: r.sync_status || (r.cloud_id ? 'synced' : 'unsynced'),
+        cloudId: r.cloud_id || null,
         createdAt: r.created_at,
       }));
       return { items: rows, count: rows.length };
@@ -535,7 +707,7 @@ export const LocalStore = {
   getForm(id: string): any {
     const db = getDatabase();
     if (db) {
-      const r = db.prepare('SELECT * FROM forms WHERE id = ?').get(id) as any;
+      const r = db.prepare('SELECT * FROM forms WHERE id = ? OR cloud_id = ?').get(id, id) as any;
       if (!r) throw new Error(`Form not found: ${id}`);
       return {
         id: r.id,
@@ -543,40 +715,77 @@ export const LocalStore = {
         description: r.description,
         schema: r.schema ? JSON.parse(r.schema) : [],
         isLocal: Boolean(r.is_local),
+        syncStatus: r.sync_status || (r.cloud_id ? 'synced' : 'unsynced'),
+        cloudId: r.cloud_id || null,
         createdAt: r.created_at,
       };
     }
-    const item = (loadFallback().forms || []).find((f: any) => f.id === id);
+    const item = (loadFallback().forms || []).find((f: any) => f.id === id || f.cloudId === id);
     if (!item) throw new Error(`Form not found: ${id}`);
     return item;
   },
 
   createForm(data: any): any {
-    const id = generateLocalId('form');
+    const id = data.id || generateLocalId('form');
     const now = new Date().toISOString();
+    const syncStatus = data.syncStatus || 'unsynced';
+    const cloudId = data.cloudId || null;
     const db = getDatabase();
     if (db) {
       db.prepare(`
-        INSERT INTO forms (id, title, description, schema, is_local, created_at)
-        VALUES (?, ?, ?, ?, 1, ?)
-      `).run(id, data.title, data.description || '', JSON.stringify(data.schema || []), now);
-      return { id, ...data, isLocal: true, createdAt: now };
+        INSERT INTO forms (id, title, description, schema, is_local, sync_status, cloud_id, created_at)
+        VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+      `).run(id, data.title, data.description || '', JSON.stringify(data.schema || []), syncStatus, cloudId, now);
+      return { id, ...data, isLocal: true, syncStatus, cloudId, createdAt: now };
     }
     const store = loadFallback();
-    const item = { id, ...data, isLocal: true, createdAt: now };
+    const item = { id, ...data, isLocal: true, syncStatus, cloudId, createdAt: now };
     store.forms.unshift(item);
     saveFallback(store);
     return item;
   },
 
+  upsertFormFromCloud(item: any): any {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    const createdAt = item.createdAt || now;
+    const schemaJson = JSON.stringify(item.schema || []);
+    if (db) {
+      const existing = db.prepare('SELECT id FROM forms WHERE id = ? OR cloud_id = ?').get(item.id, item.id) as any;
+      if (existing) {
+        db.prepare(`
+          UPDATE forms SET title = ?, description = ?, schema = ?, sync_status = 'synced', cloud_id = ?
+          WHERE id = ?
+        `).run(item.title, item.description || '', schemaJson, item.id, existing.id);
+        return { id: existing.id, ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+      } else {
+        db.prepare(`
+          INSERT INTO forms (id, title, description, schema, is_local, sync_status, cloud_id, created_at)
+          VALUES (?, ?, ?, ?, 1, 'synced', ?, ?)
+        `).run(item.id, item.title, item.description || '', schemaJson, item.id, createdAt);
+        return { id: item.id, ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+      }
+    }
+    const store = loadFallback();
+    const idx = (store.forms || []).findIndex((f: any) => f.id === item.id || f.cloudId === item.id);
+    const enriched = { ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+    if (idx !== -1) {
+      store.forms[idx] = { ...store.forms[idx], ...enriched };
+    } else {
+      (store.forms = store.forms || []).unshift(enriched);
+    }
+    saveFallback(store);
+    return enriched;
+  },
+
   deleteForm(id: string): { success: boolean } {
     const db = getDatabase();
     if (db) {
-      db.prepare('DELETE FROM forms WHERE id = ?').run(id);
+      db.prepare('DELETE FROM forms WHERE id = ? OR cloud_id = ?').run(id, id);
       return { success: true };
     }
     const store = loadFallback();
-    const idx = store.forms.findIndex((f: any) => f.id === id);
+    const idx = store.forms.findIndex((f: any) => f.id === id || f.cloudId === id);
     if (idx !== -1) {
       store.forms.splice(idx, 1);
       saveFallback(store);
@@ -594,6 +803,8 @@ export const LocalStore = {
         description: r.description,
         status: r.status,
         isLocal: Boolean(r.is_local),
+        syncStatus: r.sync_status || (r.cloud_id ? 'synced' : 'unsynced'),
+        cloudId: r.cloud_id || null,
         createdAt: r.created_at,
       }));
       return { items: rows, count: rows.length };
@@ -605,7 +816,7 @@ export const LocalStore = {
   getFlow(id: string): any {
     const db = getDatabase();
     if (db) {
-      const r = db.prepare('SELECT * FROM flows WHERE id = ?').get(id) as any;
+      const r = db.prepare('SELECT * FROM flows WHERE id = ? OR cloud_id = ?').get(id, id) as any;
       if (!r) throw new Error(`Flow not found: ${id}`);
       return {
         id: r.id,
@@ -613,40 +824,76 @@ export const LocalStore = {
         description: r.description,
         status: r.status,
         isLocal: Boolean(r.is_local),
+        syncStatus: r.sync_status || (r.cloud_id ? 'synced' : 'unsynced'),
+        cloudId: r.cloud_id || null,
         createdAt: r.created_at,
       };
     }
-    const item = (loadFallback().flows || []).find((f: any) => f.id === id);
+    const item = (loadFallback().flows || []).find((f: any) => f.id === id || f.cloudId === id);
     if (!item) throw new Error(`Flow not found: ${id}`);
     return item;
   },
 
   createFlow(data: any): any {
-    const id = generateLocalId('flow');
+    const id = data.id || generateLocalId('flow');
     const now = new Date().toISOString();
+    const syncStatus = data.syncStatus || 'unsynced';
+    const cloudId = data.cloudId || null;
     const db = getDatabase();
     if (db) {
       db.prepare(`
-        INSERT INTO flows (id, title, description, status, is_local, created_at)
-        VALUES (?, ?, ?, ?, 1, ?)
-      `).run(id, data.title, data.description || '', data.status || 'draft', now);
-      return { id, ...data, isLocal: true, createdAt: now };
+        INSERT INTO flows (id, title, description, status, is_local, sync_status, cloud_id, created_at)
+        VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+      `).run(id, data.title, data.description || '', data.status || 'draft', syncStatus, cloudId, now);
+      return { id, ...data, isLocal: true, syncStatus, cloudId, createdAt: now };
     }
     const store = loadFallback();
-    const item = { id, ...data, isLocal: true, createdAt: now };
+    const item = { id, ...data, isLocal: true, syncStatus, cloudId, createdAt: now };
     store.flows.unshift(item);
     saveFallback(store);
     return item;
   },
 
+  upsertFlowFromCloud(item: any): any {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    const createdAt = item.createdAt || now;
+    if (db) {
+      const existing = db.prepare('SELECT id FROM flows WHERE id = ? OR cloud_id = ?').get(item.id, item.id) as any;
+      if (existing) {
+        db.prepare(`
+          UPDATE flows SET title = ?, description = ?, status = ?, sync_status = 'synced', cloud_id = ?
+          WHERE id = ?
+        `).run(item.title, item.description || '', item.status || 'draft', item.id, existing.id);
+        return { id: existing.id, ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+      } else {
+        db.prepare(`
+          INSERT INTO flows (id, title, description, status, is_local, sync_status, cloud_id, created_at)
+          VALUES (?, ?, ?, ?, 1, 'synced', ?, ?)
+        `).run(item.id, item.title, item.description || '', item.status || 'draft', item.id, createdAt);
+        return { id: item.id, ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+      }
+    }
+    const store = loadFallback();
+    const idx = (store.flows || []).findIndex((f: any) => f.id === item.id || f.cloudId === item.id);
+    const enriched = { ...item, syncStatus: 'synced', cloudId: item.id, isLocal: true };
+    if (idx !== -1) {
+      store.flows[idx] = { ...store.flows[idx], ...enriched };
+    } else {
+      (store.flows = store.flows || []).unshift(enriched);
+    }
+    saveFallback(store);
+    return enriched;
+  },
+
   deleteFlow(id: string): { success: boolean } {
     const db = getDatabase();
     if (db) {
-      db.prepare('DELETE FROM flows WHERE id = ?').run(id);
+      db.prepare('DELETE FROM flows WHERE id = ? OR cloud_id = ?').run(id, id);
       return { success: true };
     }
     const store = loadFallback();
-    const idx = store.flows.findIndex((f: any) => f.id === id);
+    const idx = store.flows.findIndex((f: any) => f.id === id || f.cloudId === id);
     if (idx !== -1) {
       store.flows.splice(idx, 1);
       saveFallback(store);
@@ -754,25 +1001,94 @@ export const LocalStore = {
     const db = getDatabase();
     if (db) {
       const results: any[] = [];
-      const ideas = db.prepare('SELECT id, title, content FROM ideas WHERE LOWER(title) LIKE ? OR LOWER(content) LIKE ?').all(q, q) as any[];
-      for (const i of ideas) {
-        results.push({ kind: 'idea', id: i.id, title: i.title, snippet: i.content?.substring(0, 100), isLocal: true });
-      }
+      try {
+        const ideas = db.prepare('SELECT id, title, content, sync_status, cloud_id, is_local FROM ideas WHERE LOWER(title) LIKE ? OR LOWER(content) LIKE ?').all(q, q) as any[];
+        for (const i of ideas) {
+          results.push({
+            kind: 'idea',
+            id: i.id,
+            title: i.title,
+            snippet: i.content?.substring(0, 100),
+            syncStatus: i.sync_status || (i.cloud_id ? 'synced' : 'unsynced'),
+            cloudId: i.cloud_id || null,
+            isLocal: Boolean(i.is_local),
+          });
+        }
+      } catch {}
 
-      const goals = db.prepare('SELECT id, title, description FROM goals WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ?').all(q, q) as any[];
-      for (const g of goals) {
-        results.push({ kind: 'goal', id: g.id, title: g.title, snippet: g.description?.substring(0, 100), isLocal: true });
-      }
+      try {
+        const goals = db.prepare('SELECT id, title, description, sync_status, cloud_id, is_local FROM goals WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ?').all(q, q) as any[];
+        for (const g of goals) {
+          results.push({
+            kind: 'goal',
+            id: g.id,
+            title: g.title,
+            snippet: g.description?.substring(0, 100),
+            syncStatus: g.sync_status || (g.cloud_id ? 'synced' : 'unsynced'),
+            cloudId: g.cloud_id || null,
+            isLocal: Boolean(g.is_local),
+          });
+        }
+      } catch {}
 
-      const secrets = db.prepare('SELECT id, name FROM vault WHERE LOWER(name) LIKE ? OR LOWER(username) LIKE ?').all(q, q) as any[];
-      for (const s of secrets) {
-        results.push({ kind: 'vault', id: s.id, title: s.name, isLocal: true });
-      }
+      try {
+        const secrets = db.prepare('SELECT id, name, sync_status, cloud_id, is_local FROM vault WHERE LOWER(name) LIKE ? OR LOWER(username) LIKE ?').all(q, q) as any[];
+        for (const s of secrets) {
+          results.push({
+            kind: 'vault',
+            id: s.id,
+            title: s.name,
+            syncStatus: s.sync_status || (s.cloud_id ? 'synced' : 'unsynced'),
+            cloudId: s.cloud_id || null,
+            isLocal: Boolean(s.is_local),
+          });
+        }
+      } catch {}
 
-      const events = db.prepare('SELECT id, title FROM events WHERE LOWER(title) LIKE ?').all(q) as any[];
-      for (const e of events) {
-        results.push({ kind: 'event', id: e.id, title: e.title, isLocal: true });
-      }
+      try {
+        const events = db.prepare('SELECT id, title, description, sync_status, cloud_id, is_local FROM events WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ?').all(q, q) as any[];
+        for (const e of events) {
+          results.push({
+            kind: 'event',
+            id: e.id,
+            title: e.title,
+            snippet: e.description?.substring(0, 100),
+            syncStatus: e.sync_status || (e.cloud_id ? 'synced' : 'unsynced'),
+            cloudId: e.cloud_id || null,
+            isLocal: Boolean(e.is_local),
+          });
+        }
+      } catch {}
+
+      try {
+        const forms = db.prepare('SELECT id, title, description, sync_status, cloud_id, is_local FROM forms WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ?').all(q, q) as any[];
+        for (const f of forms) {
+          results.push({
+            kind: 'form',
+            id: f.id,
+            title: f.title,
+            snippet: f.description?.substring(0, 100),
+            syncStatus: f.sync_status || (f.cloud_id ? 'synced' : 'unsynced'),
+            cloudId: f.cloud_id || null,
+            isLocal: Boolean(f.is_local),
+          });
+        }
+      } catch {}
+
+      try {
+        const flows = db.prepare('SELECT id, title, description, sync_status, cloud_id, is_local FROM flows WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ?').all(q, q) as any[];
+        for (const fl of flows) {
+          results.push({
+            kind: 'flow',
+            id: fl.id,
+            title: fl.title,
+            snippet: fl.description?.substring(0, 100),
+            syncStatus: fl.sync_status || (fl.cloud_id ? 'synced' : 'unsynced'),
+            cloudId: fl.cloud_id || null,
+            isLocal: Boolean(fl.is_local),
+          });
+        }
+      } catch {}
 
       return results;
     }
@@ -782,7 +1098,28 @@ export const LocalStore = {
     const plainQ = query.toLowerCase().trim();
     for (const i of store.ideas || []) {
       if (i.title?.toLowerCase().includes(plainQ) || i.content?.toLowerCase().includes(plainQ)) {
-        results.push({ kind: 'idea', id: i.id, title: i.title, snippet: i.content?.substring(0, 100), isLocal: true });
+        results.push({
+          kind: 'idea',
+          id: i.id,
+          title: i.title,
+          snippet: i.content?.substring(0, 100),
+          syncStatus: i.syncStatus || 'unsynced',
+          cloudId: i.cloudId || null,
+          isLocal: true,
+        });
+      }
+    }
+    for (const g of store.goals || []) {
+      if (g.title?.toLowerCase().includes(plainQ) || g.description?.toLowerCase().includes(plainQ)) {
+        results.push({
+          kind: 'goal',
+          id: g.id,
+          title: g.title,
+          snippet: g.description?.substring(0, 100),
+          syncStatus: g.syncStatus || 'unsynced',
+          cloudId: g.cloudId || null,
+          isLocal: true,
+        });
       }
     }
     return results;

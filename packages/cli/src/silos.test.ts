@@ -20,6 +20,7 @@ import {
   DEFAULT_OFFLINE_ACCOUNT,
 } from './config';
 import { evaluateOfflineAutoSync, listOfflineContainers } from './local/sync-resolver';
+import { LocalStore } from './local/store';
 
 describe('CLI Base URI Partitioning and Multi-Account Silos', () => {
   beforeEach(() => {
@@ -236,5 +237,60 @@ describe('CLI Base URI Partitioning and Multi-Account Silos', () => {
       expect(names).not.toContain('authenticated_user_99');
     });
   });
+
+  describe('Local-First Store & Bidirectional Sync Resilience', () => {
+    it('creates ideas locally with sync_status=unsynced and retains them', () => {
+      const idea = LocalStore.createIdea({
+        title: 'Local Test Idea',
+        content: 'Offline first content',
+        category: 'test',
+      });
+
+      expect(idea.id).toBeDefined();
+      expect(idea.title).toBe('Local Test Idea');
+      expect(idea.syncStatus).toBe('unsynced');
+      expect(idea.isLocal).toBe(true);
+
+      const list = LocalStore.listIdeas();
+      const found = list.items.find((i: any) => i.id === idea.id);
+      expect(found).toBeDefined();
+      expect(found?.syncStatus).toBe('unsynced');
+    });
+
+    it('upserts cloud items into local store with sync_status=synced', () => {
+      const cloudItem = {
+        id: 'cloud_note_123',
+        title: 'Cloud Synced Note',
+        content: 'From remote server',
+        category: 'general',
+      };
+
+      const upserted = LocalStore.upsertIdeaFromCloud(cloudItem);
+      expect(upserted.id).toBe('cloud_note_123');
+      expect(upserted.syncStatus).toBe('synced');
+      expect(upserted.cloudId).toBe('cloud_note_123');
+
+      const found = LocalStore.getIdea('cloud_note_123');
+      expect(found).toBeDefined();
+      expect(found.title).toBe('Cloud Synced Note');
+      expect(found.syncStatus).toBe('synced');
+    });
+
+    it('searches across local store and returns syncStatus', () => {
+      LocalStore.createIdea({
+        title: 'Unique Searchable Keyword X7',
+        content: 'Testing local search functionality',
+      });
+
+      const results = LocalStore.search('Keyword X7');
+      expect(results.length).toBeGreaterThan(0);
+      const match = results.find((r: any) => r.title.includes('Keyword X7'));
+      expect(match).toBeDefined();
+      expect(match?.kind).toBe('idea');
+      expect(match?.syncStatus).toBe('unsynced');
+      expect(match?.isLocal).toBe(true);
+    });
+  });
 });
+
 

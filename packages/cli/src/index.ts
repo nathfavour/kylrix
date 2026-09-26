@@ -1,3 +1,16 @@
+// Suppress Node.js ExperimentalWarning for node:sqlite
+const origEmit = process.emit;
+(process as any).emit = function (name: string, data: any, ...args: any[]) {
+  if (
+    name === 'warning' &&
+    typeof data === 'object' &&
+    (data?.name === 'ExperimentalWarning' || String(data?.message || '').includes('SQLite'))
+  ) {
+    return false;
+  }
+  return origEmit.apply(process, [name, data, ...args]);
+};
+
 import { Command } from 'commander';
 import { loginCommand, logoutCommand, pairCommand, whoamiCommand } from './commands/auth';
 import {

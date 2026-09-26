@@ -1018,6 +1018,13 @@ function generateLocalId(_prefix) {
 }
 function getNativeSqlite() {
   try {
+    const origEmit2 = process.emit;
+    process.emit = function(name, data, ...args) {
+      if (name === "warning" && typeof data === "object" && (data?.name === "ExperimentalWarning" || String(data?.message || "").includes("SQLite"))) {
+        return false;
+      }
+      return origEmit2.apply(process, [name, data, ...args]);
+    };
     const require2 = createRequire(import.meta.url);
     const sqlite = require2("node:sqlite");
     return sqlite.DatabaseSync || sqlite.default?.DatabaseSync;
@@ -1053,6 +1060,8 @@ function initSqliteSchema(db) {
       category TEXT DEFAULT 'general',
       tags TEXT,
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -1066,6 +1075,8 @@ function initSqliteSchema(db) {
       unit TEXT DEFAULT '%',
       status TEXT DEFAULT 'not_started',
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -1081,6 +1092,8 @@ function initSqliteSchema(db) {
       custom_fields TEXT,
       item_type TEXT DEFAULT 'login',
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -1092,6 +1105,8 @@ function initSqliteSchema(db) {
       issuer TEXT,
       account TEXT,
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -1102,6 +1117,8 @@ function initSqliteSchema(db) {
       end_time TEXT NOT NULL,
       description TEXT,
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -1111,6 +1128,8 @@ function initSqliteSchema(db) {
       description TEXT,
       schema TEXT,
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -1120,6 +1139,8 @@ function initSqliteSchema(db) {
       description TEXT,
       status TEXT DEFAULT 'draft',
       is_local INTEGER DEFAULT 1,
+      sync_status TEXT DEFAULT 'unsynced',
+      cloud_id TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -1140,6 +1161,62 @@ function initSqliteSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_ideas_updated ON ideas(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status);
   `);
+  try {
+    db.exec("ALTER TABLE ideas ADD COLUMN sync_status TEXT DEFAULT 'unsynced'");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE ideas ADD COLUMN cloud_id TEXT");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE goals ADD COLUMN sync_status TEXT DEFAULT 'unsynced'");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE goals ADD COLUMN cloud_id TEXT");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE vault ADD COLUMN sync_status TEXT DEFAULT 'unsynced'");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE vault ADD COLUMN cloud_id TEXT");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE totp ADD COLUMN sync_status TEXT DEFAULT 'unsynced'");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE totp ADD COLUMN cloud_id TEXT");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE events ADD COLUMN sync_status TEXT DEFAULT 'unsynced'");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE events ADD COLUMN cloud_id TEXT");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE forms ADD COLUMN sync_status TEXT DEFAULT 'unsynced'");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE forms ADD COLUMN cloud_id TEXT");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE flows ADD COLUMN sync_status TEXT DEFAULT 'unsynced'");
+  } catch {
+  }
+  try {
+    db.exec("ALTER TABLE flows ADD COLUMN cloud_id TEXT");
+  } catch {
+  }
 }
 var dbInstances;
 var init_sqlite = __esm({
@@ -1150,22 +1227,1114 @@ var init_sqlite = __esm({
   }
 });
 
+// src/local/store.ts
+import * as fs3 from "fs";
+import * as path3 from "path";
+function loadFallback() {
+  try {
+    const env = resolveEnvironment();
+    const fallbackPath = env.siloFallbackPath;
+    if (!fs3.existsSync(fallbackPath)) {
+      return { ideas: [], goals: [], events: [], forms: [], flows: [], vault: [], totp: [], tags: [], trash: [] };
+    }
+    return JSON.parse(fs3.readFileSync(fallbackPath, "utf-8"));
+  } catch {
+    return { ideas: [], goals: [], events: [], forms: [], flows: [], vault: [], totp: [], tags: [], trash: [] };
+  }
+}
+function saveFallback(data) {
+  try {
+    const env = resolveEnvironment();
+    const fallbackPath = env.siloFallbackPath;
+    const dir = path3.dirname(fallbackPath);
+    if (!fs3.existsSync(dir)) {
+      fs3.mkdirSync(dir, { recursive: true });
+    }
+    fs3.writeFileSync(fallbackPath, JSON.stringify(data, null, 2), { encoding: "utf-8", mode: 384 });
+  } catch {
+  }
+}
+var LocalStore;
+var init_store = __esm({
+  "src/local/store.ts"() {
+    "use strict";
+    init_sqlite();
+    init_config();
+    LocalStore = {
+      // ── Ideas ──
+      listIdeas() {
+        const db = getDatabase();
+        if (db) {
+          const stmt = db.prepare("SELECT * FROM ideas ORDER BY updated_at DESC");
+          const rows = stmt.all().map((r2) => ({
+            id: r2.id,
+            title: r2.title,
+            content: r2.content,
+            category: r2.category,
+            tags: r2.tags ? JSON.parse(r2.tags) : [],
+            isLocal: Boolean(r2.is_local),
+            syncStatus: r2.sync_status || (r2.cloud_id ? "synced" : "unsynced"),
+            cloudId: r2.cloud_id || null,
+            createdAt: r2.created_at,
+            updatedAt: r2.updated_at
+          }));
+          return { items: rows, count: rows.length };
+        }
+        const store = loadFallback();
+        return { items: store.ideas || [], count: store.ideas?.length || 0 };
+      },
+      getIdea(id) {
+        const db = getDatabase();
+        if (db) {
+          const stmt = db.prepare("SELECT * FROM ideas WHERE id = ? OR cloud_id = ?");
+          const r2 = stmt.get(id, id);
+          if (!r2) throw new Error(`Idea not found: ${id}`);
+          return {
+            id: r2.id,
+            title: r2.title,
+            content: r2.content,
+            category: r2.category,
+            tags: r2.tags ? JSON.parse(r2.tags) : [],
+            isLocal: Boolean(r2.is_local),
+            syncStatus: r2.sync_status || (r2.cloud_id ? "synced" : "unsynced"),
+            cloudId: r2.cloud_id || null,
+            createdAt: r2.created_at,
+            updatedAt: r2.updated_at
+          };
+        }
+        const store = loadFallback();
+        const item = store.ideas.find((i) => i.id === id || i.cloudId === id);
+        if (!item) throw new Error(`Idea not found: ${id}`);
+        return item;
+      },
+      createIdea(data) {
+        const id = data.id || generateLocalId("idea");
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const syncStatus = data.syncStatus || "unsynced";
+        const cloudId = data.cloudId || null;
+        const db = getDatabase();
+        if (db) {
+          const stmt = db.prepare(`
+        INSERT INTO ideas (id, title, content, category, tags, is_local, sync_status, cloud_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+      `);
+          stmt.run(id, data.title, data.content || "", data.category || "general", JSON.stringify(data.tags || []), syncStatus, cloudId, now, now);
+          return {
+            id,
+            title: data.title,
+            content: data.content || "",
+            category: data.category || "general",
+            tags: data.tags || [],
+            isLocal: true,
+            syncStatus,
+            cloudId,
+            createdAt: now,
+            updatedAt: now
+          };
+        }
+        const store = loadFallback();
+        const item = { id, title: data.title, content: data.content || "", category: data.category || "general", tags: data.tags || [], isLocal: true, syncStatus, cloudId, createdAt: now, updatedAt: now };
+        store.ideas.unshift(item);
+        saveFallback(store);
+        return item;
+      },
+      upsertIdeaFromCloud(item) {
+        const db = getDatabase();
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const createdAt = item.createdAt || now;
+        const updatedAt = item.updatedAt || now;
+        const tagsJson = JSON.stringify(item.tags || []);
+        if (db) {
+          const existing = db.prepare("SELECT id FROM ideas WHERE id = ? OR cloud_id = ?").get(item.id, item.id);
+          if (existing) {
+            db.prepare(`
+          UPDATE ideas SET title = ?, content = ?, category = ?, tags = ?, sync_status = 'synced', cloud_id = ?, updated_at = ?
+          WHERE id = ?
+        `).run(item.title, item.content || "", item.category || "general", tagsJson, item.id, updatedAt, existing.id);
+            return { id: existing.id, ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+          } else {
+            db.prepare(`
+          INSERT INTO ideas (id, title, content, category, tags, is_local, sync_status, cloud_id, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, 1, 'synced', ?, ?, ?)
+        `).run(item.id, item.title, item.content || "", item.category || "general", tagsJson, item.id, createdAt, updatedAt);
+            return { id: item.id, ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+          }
+        }
+        const store = loadFallback();
+        const idx = store.ideas.findIndex((i) => i.id === item.id || i.cloudId === item.id);
+        const enriched = { ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+        if (idx !== -1) {
+          store.ideas[idx] = { ...store.ideas[idx], ...enriched };
+        } else {
+          store.ideas.unshift(enriched);
+        }
+        saveFallback(store);
+        return enriched;
+      },
+      markIdeaSynced(localId, cloudId) {
+        const db = getDatabase();
+        if (db) {
+          db.prepare(`UPDATE ideas SET sync_status = 'synced', cloud_id = ? WHERE id = ?`).run(cloudId, localId);
+        }
+        const store = loadFallback();
+        const item = store.ideas?.find((i) => i.id === localId);
+        if (item) {
+          item.syncStatus = "synced";
+          item.cloudId = cloudId;
+          saveFallback(store);
+        }
+      },
+      updateIdea(id, updates) {
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const existing = this.getIdea(id);
+        const updated = { ...existing, ...updates, updatedAt: now };
+        const db = getDatabase();
+        if (db) {
+          const stmt = db.prepare(`
+        UPDATE ideas SET title = ?, content = ?, category = ?, tags = ?, updated_at = ? WHERE id = ?
+      `);
+          stmt.run(updated.title, updated.content || "", updated.category || "general", JSON.stringify(updated.tags || []), now, id);
+          return updated;
+        }
+        const store = loadFallback();
+        const idx = store.ideas.findIndex((i) => i.id === id);
+        if (idx !== -1) {
+          store.ideas[idx] = updated;
+          saveFallback(store);
+        }
+        return updated;
+      },
+      deleteIdea(id) {
+        const db = getDatabase();
+        if (db) {
+          const existing = db.prepare("SELECT * FROM ideas WHERE id = ? OR cloud_id = ?").get(id, id);
+          if (existing) {
+            db.prepare("DELETE FROM ideas WHERE id = ?").run(existing.id);
+            db.prepare("INSERT INTO trash (id, kind, title, deleted_at) VALUES (?, ?, ?, ?)").run(
+              existing.id,
+              "idea",
+              existing.title,
+              (/* @__PURE__ */ new Date()).toISOString()
+            );
+          }
+          return { success: true };
+        }
+        const store = loadFallback();
+        const idx = store.ideas.findIndex((i) => i.id === id || i.cloudId === id);
+        if (idx !== -1) {
+          const [deleted] = store.ideas.splice(idx, 1);
+          store.trash.unshift({ id: deleted.id, kind: "idea", title: deleted.title, deletedAt: (/* @__PURE__ */ new Date()).toISOString() });
+          saveFallback(store);
+        }
+        return { success: true };
+      },
+      // ── Goals ──
+      listGoals() {
+        const db = getDatabase();
+        if (db) {
+          const stmt = db.prepare("SELECT * FROM goals ORDER BY updated_at DESC");
+          const rows = stmt.all().map((r2) => ({
+            id: r2.id,
+            title: r2.title,
+            description: r2.description,
+            targetValue: r2.target_value,
+            currentValue: r2.current_value,
+            unit: r2.unit,
+            status: r2.status,
+            isLocal: Boolean(r2.is_local),
+            syncStatus: r2.sync_status || (r2.cloud_id ? "synced" : "unsynced"),
+            cloudId: r2.cloud_id || null,
+            createdAt: r2.created_at,
+            updatedAt: r2.updated_at
+          }));
+          return { items: rows, count: rows.length };
+        }
+        const store = loadFallback();
+        return { items: store.goals || [], count: store.goals?.length || 0 };
+      },
+      getGoal(id) {
+        const db = getDatabase();
+        if (db) {
+          const r2 = db.prepare("SELECT * FROM goals WHERE id = ? OR cloud_id = ?").get(id, id);
+          if (!r2) throw new Error(`Goal not found: ${id}`);
+          return {
+            id: r2.id,
+            title: r2.title,
+            description: r2.description,
+            targetValue: r2.target_value,
+            currentValue: r2.current_value,
+            unit: r2.unit,
+            status: r2.status,
+            isLocal: Boolean(r2.is_local),
+            syncStatus: r2.sync_status || (r2.cloud_id ? "synced" : "unsynced"),
+            cloudId: r2.cloud_id || null,
+            createdAt: r2.created_at,
+            updatedAt: r2.updated_at
+          };
+        }
+        const store = loadFallback();
+        const item = store.goals.find((g2) => g2.id === id || g2.cloudId === id);
+        if (!item) throw new Error(`Goal not found: ${id}`);
+        return item;
+      },
+      createGoal(data) {
+        const id = data.id || generateLocalId("goal");
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const syncStatus = data.syncStatus || "unsynced";
+        const cloudId = data.cloudId || null;
+        const db = getDatabase();
+        if (db) {
+          const stmt = db.prepare(`
+        INSERT INTO goals (id, title, description, target_value, current_value, unit, status, is_local, sync_status, cloud_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+      `);
+          stmt.run(
+            id,
+            data.title,
+            data.description || "",
+            data.targetValue ?? 100,
+            data.currentValue ?? 0,
+            data.unit || "%",
+            data.status || "not_started",
+            syncStatus,
+            cloudId,
+            now,
+            now
+          );
+          return {
+            id,
+            title: data.title,
+            description: data.description || "",
+            targetValue: data.targetValue ?? 100,
+            currentValue: data.currentValue ?? 0,
+            unit: data.unit || "%",
+            status: data.status || "not_started",
+            isLocal: true,
+            syncStatus,
+            cloudId,
+            createdAt: now,
+            updatedAt: now
+          };
+        }
+        const store = loadFallback();
+        const item = { id, title: data.title, description: data.description || "", targetValue: data.targetValue ?? 100, currentValue: data.currentValue ?? 0, unit: data.unit || "%", status: data.status || "not_started", isLocal: true, syncStatus, cloudId, createdAt: now, updatedAt: now };
+        store.goals.unshift(item);
+        saveFallback(store);
+        return item;
+      },
+      upsertGoalFromCloud(item) {
+        const db = getDatabase();
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const createdAt = item.createdAt || now;
+        const updatedAt = item.updatedAt || now;
+        if (db) {
+          const existing = db.prepare("SELECT id FROM goals WHERE id = ? OR cloud_id = ?").get(item.id, item.id);
+          if (existing) {
+            db.prepare(`
+          UPDATE goals SET title = ?, description = ?, target_value = ?, current_value = ?, unit = ?, status = ?, sync_status = 'synced', cloud_id = ?, updated_at = ?
+          WHERE id = ?
+        `).run(
+              item.title,
+              item.description || "",
+              item.targetValue ?? 100,
+              item.currentValue ?? 0,
+              item.unit || "%",
+              item.status || "not_started",
+              item.id,
+              updatedAt,
+              existing.id
+            );
+            return { id: existing.id, ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+          } else {
+            db.prepare(`
+          INSERT INTO goals (id, title, description, target_value, current_value, unit, status, is_local, sync_status, cloud_id, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'synced', ?, ?, ?)
+        `).run(
+              item.id,
+              item.title,
+              item.description || "",
+              item.targetValue ?? 100,
+              item.currentValue ?? 0,
+              item.unit || "%",
+              item.status || "not_started",
+              item.id,
+              createdAt,
+              updatedAt
+            );
+            return { id: item.id, ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+          }
+        }
+        const store = loadFallback();
+        const idx = store.goals.findIndex((g2) => g2.id === item.id || g2.cloudId === item.id);
+        const enriched = { ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+        if (idx !== -1) {
+          store.goals[idx] = { ...store.goals[idx], ...enriched };
+        } else {
+          store.goals.unshift(enriched);
+        }
+        saveFallback(store);
+        return enriched;
+      },
+      markGoalSynced(localId, cloudId) {
+        const db = getDatabase();
+        if (db) {
+          db.prepare(`UPDATE goals SET sync_status = 'synced', cloud_id = ? WHERE id = ?`).run(cloudId, localId);
+        }
+        const store = loadFallback();
+        const item = store.goals?.find((g2) => g2.id === localId);
+        if (item) {
+          item.syncStatus = "synced";
+          item.cloudId = cloudId;
+          saveFallback(store);
+        }
+      },
+      updateGoal(id, updates) {
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const existing = this.getGoal(id);
+        const updated = { ...existing, ...updates, updatedAt: now };
+        const db = getDatabase();
+        if (db) {
+          db.prepare(`
+        UPDATE goals SET title = ?, description = ?, target_value = ?, current_value = ?, unit = ?, status = ?, updated_at = ?
+        WHERE id = ?
+      `).run(
+            updated.title,
+            updated.description || "",
+            updated.targetValue ?? 100,
+            updated.currentValue ?? 0,
+            updated.unit || "%",
+            updated.status || "not_started",
+            now,
+            id
+          );
+          return updated;
+        }
+        const store = loadFallback();
+        const idx = store.goals.findIndex((g2) => g2.id === id);
+        if (idx !== -1) {
+          store.goals[idx] = updated;
+          saveFallback(store);
+        }
+        return updated;
+      },
+      deleteGoal(id) {
+        const db = getDatabase();
+        if (db) {
+          const existing = db.prepare("SELECT * FROM goals WHERE id = ? OR cloud_id = ?").get(id, id);
+          if (existing) {
+            db.prepare("DELETE FROM goals WHERE id = ?").run(existing.id);
+            db.prepare("INSERT INTO trash (id, kind, title, deleted_at) VALUES (?, ?, ?, ?)").run(
+              existing.id,
+              "goal",
+              existing.title,
+              (/* @__PURE__ */ new Date()).toISOString()
+            );
+          }
+          return { success: true };
+        }
+        const store = loadFallback();
+        const idx = store.goals.findIndex((g2) => g2.id === id || g2.cloudId === id);
+        if (idx !== -1) {
+          const [deleted] = store.goals.splice(idx, 1);
+          store.trash.unshift({ id: deleted.id, kind: "goal", title: deleted.title, deletedAt: (/* @__PURE__ */ new Date()).toISOString() });
+          saveFallback(store);
+        }
+        return { success: true };
+      },
+      // ── Vault ──
+      listVault() {
+        const db = getDatabase();
+        if (db) {
+          return db.prepare("SELECT * FROM vault ORDER BY updated_at DESC").all().map((r2) => ({
+            id: r2.id,
+            name: r2.name,
+            username: r2.username,
+            password: r2.password,
+            url: r2.url,
+            notes: r2.notes,
+            isEnv: Boolean(r2.is_env),
+            customFields: r2.custom_fields ? r2.custom_fields.startsWith("{") || r2.custom_fields.startsWith("[") ? JSON.parse(r2.custom_fields) : r2.custom_fields : void 0,
+            itemType: r2.item_type,
+            isLocal: Boolean(r2.is_local),
+            createdAt: r2.created_at,
+            updatedAt: r2.updated_at
+          }));
+        }
+        return loadFallback().vault || [];
+      },
+      getVault(id) {
+        const db = getDatabase();
+        if (db) {
+          const r2 = db.prepare("SELECT * FROM vault WHERE id = ?").get(id);
+          if (!r2) throw new Error(`Secret not found: ${id}`);
+          return {
+            id: r2.id,
+            name: r2.name,
+            username: r2.username,
+            password: r2.password,
+            url: r2.url,
+            notes: r2.notes,
+            isEnv: Boolean(r2.is_env),
+            customFields: r2.custom_fields ? r2.custom_fields.startsWith("{") || r2.custom_fields.startsWith("[") ? JSON.parse(r2.custom_fields) : r2.custom_fields : void 0,
+            itemType: r2.item_type,
+            isLocal: Boolean(r2.is_local),
+            createdAt: r2.created_at,
+            updatedAt: r2.updated_at
+          };
+        }
+        const item = (loadFallback().vault || []).find((v2) => v2.id === id);
+        if (!item) throw new Error(`Secret not found: ${id}`);
+        return item;
+      },
+      createVault(data) {
+        const id = generateLocalId("sec");
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const customFieldsStr = typeof data.customFields === "object" ? JSON.stringify(data.customFields) : data.customFields || "";
+        const db = getDatabase();
+        if (db) {
+          db.prepare(`
+        INSERT INTO vault (id, name, username, password, url, notes, is_env, custom_fields, item_type, is_local, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+      `).run(
+            id,
+            data.name,
+            data.username || "",
+            data.password || "",
+            data.url || "",
+            data.notes || "",
+            data.isEnv ? 1 : 0,
+            customFieldsStr,
+            data.itemType || (data.isEnv ? "env" : "login"),
+            now,
+            now
+          );
+          return { id, ...data, isLocal: true, createdAt: now, updatedAt: now };
+        }
+        const store = loadFallback();
+        const item = { id, ...data, isLocal: true, createdAt: now, updatedAt: now };
+        store.vault.unshift(item);
+        saveFallback(store);
+        return item;
+      },
+      deleteVault(id) {
+        const db = getDatabase();
+        if (db) {
+          const existing = db.prepare("SELECT * FROM vault WHERE id = ?").get(id);
+          if (existing) {
+            db.prepare("DELETE FROM vault WHERE id = ?").run(id);
+            db.prepare("INSERT INTO trash (id, kind, title, deleted_at) VALUES (?, ?, ?, ?)").run(
+              existing.id,
+              "vault",
+              existing.name,
+              (/* @__PURE__ */ new Date()).toISOString()
+            );
+          }
+          return { success: true };
+        }
+        const store = loadFallback();
+        const idx = store.vault.findIndex((v2) => v2.id === id);
+        if (idx !== -1) {
+          const [deleted] = store.vault.splice(idx, 1);
+          store.trash.unshift({ id: deleted.id, kind: "vault", title: deleted.name, deletedAt: (/* @__PURE__ */ new Date()).toISOString() });
+          saveFallback(store);
+        }
+        return { success: true };
+      },
+      // ── TOTP ──
+      listTotp() {
+        const db = getDatabase();
+        if (db) {
+          return db.prepare("SELECT * FROM totp ORDER BY created_at DESC").all().map((r2) => ({
+            id: r2.id,
+            name: r2.name,
+            secret: r2.secret,
+            issuer: r2.issuer,
+            account: r2.account,
+            isLocal: Boolean(r2.is_local),
+            createdAt: r2.created_at
+          }));
+        }
+        return loadFallback().totp || [];
+      },
+      getTotp(id) {
+        const db = getDatabase();
+        if (db) {
+          const r2 = db.prepare("SELECT * FROM totp WHERE id = ?").get(id);
+          if (!r2) throw new Error(`TOTP entry not found: ${id}`);
+          return {
+            id: r2.id,
+            name: r2.name,
+            secret: r2.secret,
+            issuer: r2.issuer,
+            account: r2.account,
+            isLocal: Boolean(r2.is_local),
+            createdAt: r2.created_at
+          };
+        }
+        const item = (loadFallback().totp || []).find((t) => t.id === id);
+        if (!item) throw new Error(`TOTP entry not found: ${id}`);
+        return item;
+      },
+      createTotp(data) {
+        const id = generateLocalId("totp");
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const db = getDatabase();
+        if (db) {
+          db.prepare(`
+        INSERT INTO totp (id, name, secret, issuer, account, is_local, created_at)
+        VALUES (?, ?, ?, ?, ?, 1, ?)
+      `).run(id, data.name, data.secret, data.issuer || "", data.account || "", now);
+          return { id, ...data, isLocal: true, createdAt: now };
+        }
+        const store = loadFallback();
+        const item = { id, ...data, isLocal: true, createdAt: now };
+        store.totp.unshift(item);
+        saveFallback(store);
+        return item;
+      },
+      deleteTotp(id) {
+        const db = getDatabase();
+        if (db) {
+          db.prepare("DELETE FROM totp WHERE id = ?").run(id);
+          return { success: true };
+        }
+        const store = loadFallback();
+        const idx = store.totp.findIndex((t) => t.id === id);
+        if (idx !== -1) {
+          store.totp.splice(idx, 1);
+          saveFallback(store);
+        }
+        return { success: true };
+      },
+      // ── Events ──
+      listEvents() {
+        const db = getDatabase();
+        if (db) {
+          const rows = db.prepare("SELECT * FROM events ORDER BY start_time ASC").all().map((r2) => ({
+            id: r2.id,
+            title: r2.title,
+            startTime: r2.start_time,
+            endTime: r2.end_time,
+            description: r2.description,
+            isLocal: Boolean(r2.is_local),
+            syncStatus: r2.sync_status || (r2.cloud_id ? "synced" : "unsynced"),
+            cloudId: r2.cloud_id || null,
+            createdAt: r2.created_at
+          }));
+          return { items: rows, count: rows.length };
+        }
+        const store = loadFallback();
+        return { items: store.events || [], count: store.events?.length || 0 };
+      },
+      createEvent(data) {
+        const id = data.id || generateLocalId("evt");
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const syncStatus = data.syncStatus || "unsynced";
+        const cloudId = data.cloudId || null;
+        const db = getDatabase();
+        if (db) {
+          db.prepare(`
+        INSERT INTO events (id, title, start_time, end_time, description, is_local, sync_status, cloud_id, created_at)
+        VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)
+      `).run(id, data.title, data.startTime, data.endTime, data.description || "", syncStatus, cloudId, now);
+          return { id, ...data, isLocal: true, syncStatus, cloudId, createdAt: now };
+        }
+        const store = loadFallback();
+        const item = { id, ...data, isLocal: true, syncStatus, cloudId, createdAt: now };
+        store.events.unshift(item);
+        saveFallback(store);
+        return item;
+      },
+      upsertEventFromCloud(item) {
+        const db = getDatabase();
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const createdAt = item.createdAt || now;
+        if (db) {
+          const existing = db.prepare("SELECT id FROM events WHERE id = ? OR cloud_id = ?").get(item.id, item.id);
+          if (existing) {
+            db.prepare(`
+          UPDATE events SET title = ?, start_time = ?, end_time = ?, description = ?, sync_status = 'synced', cloud_id = ?
+          WHERE id = ?
+        `).run(item.title, item.startTime || "", item.endTime || "", item.description || "", item.id, existing.id);
+            return { id: existing.id, ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+          } else {
+            db.prepare(`
+          INSERT INTO events (id, title, start_time, end_time, description, is_local, sync_status, cloud_id, created_at)
+          VALUES (?, ?, ?, ?, ?, 1, 'synced', ?, ?)
+        `).run(item.id, item.title, item.startTime || "", item.endTime || "", item.description || "", item.id, createdAt);
+            return { id: item.id, ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+          }
+        }
+        const store = loadFallback();
+        const idx = (store.events || []).findIndex((e2) => e2.id === item.id || e2.cloudId === item.id);
+        const enriched = { ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+        if (idx !== -1) {
+          store.events[idx] = { ...store.events[idx], ...enriched };
+        } else {
+          (store.events = store.events || []).unshift(enriched);
+        }
+        saveFallback(store);
+        return enriched;
+      },
+      deleteEvent(id) {
+        const db = getDatabase();
+        if (db) {
+          db.prepare("DELETE FROM events WHERE id = ? OR cloud_id = ?").run(id, id);
+          return { success: true };
+        }
+        const store = loadFallback();
+        const idx = store.events.findIndex((e2) => e2.id === id || e2.cloudId === id);
+        if (idx !== -1) {
+          store.events.splice(idx, 1);
+          saveFallback(store);
+        }
+        return { success: true };
+      },
+      // ── Forms ──
+      listForms() {
+        const db = getDatabase();
+        if (db) {
+          const rows = db.prepare("SELECT * FROM forms ORDER BY created_at DESC").all().map((r2) => ({
+            id: r2.id,
+            title: r2.title,
+            description: r2.description,
+            schema: r2.schema ? JSON.parse(r2.schema) : [],
+            isLocal: Boolean(r2.is_local),
+            syncStatus: r2.sync_status || (r2.cloud_id ? "synced" : "unsynced"),
+            cloudId: r2.cloud_id || null,
+            createdAt: r2.created_at
+          }));
+          return { items: rows, count: rows.length };
+        }
+        const store = loadFallback();
+        return { items: store.forms || [], count: store.forms?.length || 0 };
+      },
+      getForm(id) {
+        const db = getDatabase();
+        if (db) {
+          const r2 = db.prepare("SELECT * FROM forms WHERE id = ? OR cloud_id = ?").get(id, id);
+          if (!r2) throw new Error(`Form not found: ${id}`);
+          return {
+            id: r2.id,
+            title: r2.title,
+            description: r2.description,
+            schema: r2.schema ? JSON.parse(r2.schema) : [],
+            isLocal: Boolean(r2.is_local),
+            syncStatus: r2.sync_status || (r2.cloud_id ? "synced" : "unsynced"),
+            cloudId: r2.cloud_id || null,
+            createdAt: r2.created_at
+          };
+        }
+        const item = (loadFallback().forms || []).find((f2) => f2.id === id || f2.cloudId === id);
+        if (!item) throw new Error(`Form not found: ${id}`);
+        return item;
+      },
+      createForm(data) {
+        const id = data.id || generateLocalId("form");
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const syncStatus = data.syncStatus || "unsynced";
+        const cloudId = data.cloudId || null;
+        const db = getDatabase();
+        if (db) {
+          db.prepare(`
+        INSERT INTO forms (id, title, description, schema, is_local, sync_status, cloud_id, created_at)
+        VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+      `).run(id, data.title, data.description || "", JSON.stringify(data.schema || []), syncStatus, cloudId, now);
+          return { id, ...data, isLocal: true, syncStatus, cloudId, createdAt: now };
+        }
+        const store = loadFallback();
+        const item = { id, ...data, isLocal: true, syncStatus, cloudId, createdAt: now };
+        store.forms.unshift(item);
+        saveFallback(store);
+        return item;
+      },
+      upsertFormFromCloud(item) {
+        const db = getDatabase();
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const createdAt = item.createdAt || now;
+        const schemaJson = JSON.stringify(item.schema || []);
+        if (db) {
+          const existing = db.prepare("SELECT id FROM forms WHERE id = ? OR cloud_id = ?").get(item.id, item.id);
+          if (existing) {
+            db.prepare(`
+          UPDATE forms SET title = ?, description = ?, schema = ?, sync_status = 'synced', cloud_id = ?
+          WHERE id = ?
+        `).run(item.title, item.description || "", schemaJson, item.id, existing.id);
+            return { id: existing.id, ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+          } else {
+            db.prepare(`
+          INSERT INTO forms (id, title, description, schema, is_local, sync_status, cloud_id, created_at)
+          VALUES (?, ?, ?, ?, 1, 'synced', ?, ?)
+        `).run(item.id, item.title, item.description || "", schemaJson, item.id, createdAt);
+            return { id: item.id, ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+          }
+        }
+        const store = loadFallback();
+        const idx = (store.forms || []).findIndex((f2) => f2.id === item.id || f2.cloudId === item.id);
+        const enriched = { ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+        if (idx !== -1) {
+          store.forms[idx] = { ...store.forms[idx], ...enriched };
+        } else {
+          (store.forms = store.forms || []).unshift(enriched);
+        }
+        saveFallback(store);
+        return enriched;
+      },
+      deleteForm(id) {
+        const db = getDatabase();
+        if (db) {
+          db.prepare("DELETE FROM forms WHERE id = ? OR cloud_id = ?").run(id, id);
+          return { success: true };
+        }
+        const store = loadFallback();
+        const idx = store.forms.findIndex((f2) => f2.id === id || f2.cloudId === id);
+        if (idx !== -1) {
+          store.forms.splice(idx, 1);
+          saveFallback(store);
+        }
+        return { success: true };
+      },
+      // ── Flows ──
+      listFlows() {
+        const db = getDatabase();
+        if (db) {
+          const rows = db.prepare("SELECT * FROM flows ORDER BY created_at DESC").all().map((r2) => ({
+            id: r2.id,
+            title: r2.title,
+            description: r2.description,
+            status: r2.status,
+            isLocal: Boolean(r2.is_local),
+            syncStatus: r2.sync_status || (r2.cloud_id ? "synced" : "unsynced"),
+            cloudId: r2.cloud_id || null,
+            createdAt: r2.created_at
+          }));
+          return { items: rows, count: rows.length };
+        }
+        const store = loadFallback();
+        return { items: store.flows || [], count: store.flows?.length || 0 };
+      },
+      getFlow(id) {
+        const db = getDatabase();
+        if (db) {
+          const r2 = db.prepare("SELECT * FROM flows WHERE id = ? OR cloud_id = ?").get(id, id);
+          if (!r2) throw new Error(`Flow not found: ${id}`);
+          return {
+            id: r2.id,
+            title: r2.title,
+            description: r2.description,
+            status: r2.status,
+            isLocal: Boolean(r2.is_local),
+            syncStatus: r2.sync_status || (r2.cloud_id ? "synced" : "unsynced"),
+            cloudId: r2.cloud_id || null,
+            createdAt: r2.created_at
+          };
+        }
+        const item = (loadFallback().flows || []).find((f2) => f2.id === id || f2.cloudId === id);
+        if (!item) throw new Error(`Flow not found: ${id}`);
+        return item;
+      },
+      createFlow(data) {
+        const id = data.id || generateLocalId("flow");
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const syncStatus = data.syncStatus || "unsynced";
+        const cloudId = data.cloudId || null;
+        const db = getDatabase();
+        if (db) {
+          db.prepare(`
+        INSERT INTO flows (id, title, description, status, is_local, sync_status, cloud_id, created_at)
+        VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+      `).run(id, data.title, data.description || "", data.status || "draft", syncStatus, cloudId, now);
+          return { id, ...data, isLocal: true, syncStatus, cloudId, createdAt: now };
+        }
+        const store = loadFallback();
+        const item = { id, ...data, isLocal: true, syncStatus, cloudId, createdAt: now };
+        store.flows.unshift(item);
+        saveFallback(store);
+        return item;
+      },
+      upsertFlowFromCloud(item) {
+        const db = getDatabase();
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const createdAt = item.createdAt || now;
+        if (db) {
+          const existing = db.prepare("SELECT id FROM flows WHERE id = ? OR cloud_id = ?").get(item.id, item.id);
+          if (existing) {
+            db.prepare(`
+          UPDATE flows SET title = ?, description = ?, status = ?, sync_status = 'synced', cloud_id = ?
+          WHERE id = ?
+        `).run(item.title, item.description || "", item.status || "draft", item.id, existing.id);
+            return { id: existing.id, ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+          } else {
+            db.prepare(`
+          INSERT INTO flows (id, title, description, status, is_local, sync_status, cloud_id, created_at)
+          VALUES (?, ?, ?, ?, 1, 'synced', ?, ?)
+        `).run(item.id, item.title, item.description || "", item.status || "draft", item.id, createdAt);
+            return { id: item.id, ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+          }
+        }
+        const store = loadFallback();
+        const idx = (store.flows || []).findIndex((f2) => f2.id === item.id || f2.cloudId === item.id);
+        const enriched = { ...item, syncStatus: "synced", cloudId: item.id, isLocal: true };
+        if (idx !== -1) {
+          store.flows[idx] = { ...store.flows[idx], ...enriched };
+        } else {
+          (store.flows = store.flows || []).unshift(enriched);
+        }
+        saveFallback(store);
+        return enriched;
+      },
+      deleteFlow(id) {
+        const db = getDatabase();
+        if (db) {
+          db.prepare("DELETE FROM flows WHERE id = ? OR cloud_id = ?").run(id, id);
+          return { success: true };
+        }
+        const store = loadFallback();
+        const idx = store.flows.findIndex((f2) => f2.id === id || f2.cloudId === id);
+        if (idx !== -1) {
+          store.flows.splice(idx, 1);
+          saveFallback(store);
+        }
+        return { success: true };
+      },
+      // ── Tags ──
+      listTags() {
+        const db = getDatabase();
+        if (db) {
+          const rows = db.prepare("SELECT * FROM tags").all().map((r2) => ({
+            id: r2.id,
+            name: r2.name,
+            color: r2.color,
+            isLocal: Boolean(r2.is_local)
+          }));
+          return { items: rows, count: rows.length };
+        }
+        const store = loadFallback();
+        return { items: store.tags || [], count: store.tags?.length || 0 };
+      },
+      createTag(data) {
+        const id = generateLocalId("tag");
+        const db = getDatabase();
+        if (db) {
+          db.prepare(`
+        INSERT INTO tags (id, name, color, is_local)
+        VALUES (?, ?, ?, 1)
+      `).run(id, data.name, data.color || "#6366F1");
+          return { id, ...data, isLocal: true };
+        }
+        const store = loadFallback();
+        const item = { id, ...data, isLocal: true };
+        store.tags.unshift(item);
+        saveFallback(store);
+        return item;
+      },
+      deleteTag(id) {
+        const db = getDatabase();
+        if (db) {
+          db.prepare("DELETE FROM tags WHERE id = ?").run(id);
+          return { success: true };
+        }
+        const store = loadFallback();
+        const idx = store.tags.findIndex((t) => t.id === id);
+        if (idx !== -1) {
+          store.tags.splice(idx, 1);
+          saveFallback(store);
+        }
+        return { success: true };
+      },
+      // ── Trash ──
+      listTrash() {
+        const db = getDatabase();
+        if (db) {
+          const rows = db.prepare("SELECT * FROM trash ORDER BY deleted_at DESC").all().map((r2) => ({
+            id: r2.id,
+            kind: r2.kind,
+            title: r2.title,
+            deletedAt: r2.deleted_at
+          }));
+          return { items: rows, count: rows.length };
+        }
+        const store = loadFallback();
+        return { items: store.trash || [], count: store.trash?.length || 0 };
+      },
+      restoreTrash(kind, id) {
+        const db = getDatabase();
+        if (db) {
+          db.prepare("DELETE FROM trash WHERE id = ? AND kind = ?").run(id, kind);
+          return { restored: true };
+        }
+        const store = loadFallback();
+        const idx = store.trash.findIndex((t) => t.id === id && t.kind === kind);
+        if (idx !== -1) {
+          store.trash.splice(idx, 1);
+          saveFallback(store);
+        }
+        return { restored: true };
+      },
+      purgeTrash(kind, id) {
+        const db = getDatabase();
+        if (db) {
+          db.prepare("DELETE FROM trash WHERE id = ? AND kind = ?").run(id, kind);
+          return { purged: true };
+        }
+        const store = loadFallback();
+        const idx = store.trash.findIndex((t) => t.id === id && t.kind === kind);
+        if (idx !== -1) {
+          store.trash.splice(idx, 1);
+          saveFallback(store);
+        }
+        return { purged: true };
+      },
+      // ── High Performance SQLite Full-Text / LIKE Search ──
+      search(query) {
+        const q = `%${query.toLowerCase().trim()}%`;
+        const db = getDatabase();
+        if (db) {
+          const results2 = [];
+          try {
+            const ideas2 = db.prepare("SELECT id, title, content, sync_status, cloud_id, is_local FROM ideas WHERE LOWER(title) LIKE ? OR LOWER(content) LIKE ?").all(q, q);
+            for (const i of ideas2) {
+              results2.push({
+                kind: "idea",
+                id: i.id,
+                title: i.title,
+                snippet: i.content?.substring(0, 100),
+                syncStatus: i.sync_status || (i.cloud_id ? "synced" : "unsynced"),
+                cloudId: i.cloud_id || null,
+                isLocal: Boolean(i.is_local)
+              });
+            }
+          } catch {
+          }
+          try {
+            const goals2 = db.prepare("SELECT id, title, description, sync_status, cloud_id, is_local FROM goals WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ?").all(q, q);
+            for (const g2 of goals2) {
+              results2.push({
+                kind: "goal",
+                id: g2.id,
+                title: g2.title,
+                snippet: g2.description?.substring(0, 100),
+                syncStatus: g2.sync_status || (g2.cloud_id ? "synced" : "unsynced"),
+                cloudId: g2.cloud_id || null,
+                isLocal: Boolean(g2.is_local)
+              });
+            }
+          } catch {
+          }
+          try {
+            const secrets = db.prepare("SELECT id, name, sync_status, cloud_id, is_local FROM vault WHERE LOWER(name) LIKE ? OR LOWER(username) LIKE ?").all(q, q);
+            for (const s of secrets) {
+              results2.push({
+                kind: "vault",
+                id: s.id,
+                title: s.name,
+                syncStatus: s.sync_status || (s.cloud_id ? "synced" : "unsynced"),
+                cloudId: s.cloud_id || null,
+                isLocal: Boolean(s.is_local)
+              });
+            }
+          } catch {
+          }
+          try {
+            const events2 = db.prepare("SELECT id, title, description, sync_status, cloud_id, is_local FROM events WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ?").all(q, q);
+            for (const e2 of events2) {
+              results2.push({
+                kind: "event",
+                id: e2.id,
+                title: e2.title,
+                snippet: e2.description?.substring(0, 100),
+                syncStatus: e2.sync_status || (e2.cloud_id ? "synced" : "unsynced"),
+                cloudId: e2.cloud_id || null,
+                isLocal: Boolean(e2.is_local)
+              });
+            }
+          } catch {
+          }
+          try {
+            const forms2 = db.prepare("SELECT id, title, description, sync_status, cloud_id, is_local FROM forms WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ?").all(q, q);
+            for (const f2 of forms2) {
+              results2.push({
+                kind: "form",
+                id: f2.id,
+                title: f2.title,
+                snippet: f2.description?.substring(0, 100),
+                syncStatus: f2.sync_status || (f2.cloud_id ? "synced" : "unsynced"),
+                cloudId: f2.cloud_id || null,
+                isLocal: Boolean(f2.is_local)
+              });
+            }
+          } catch {
+          }
+          try {
+            const flows2 = db.prepare("SELECT id, title, description, sync_status, cloud_id, is_local FROM flows WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ?").all(q, q);
+            for (const fl of flows2) {
+              results2.push({
+                kind: "flow",
+                id: fl.id,
+                title: fl.title,
+                snippet: fl.description?.substring(0, 100),
+                syncStatus: fl.sync_status || (fl.cloud_id ? "synced" : "unsynced"),
+                cloudId: fl.cloud_id || null,
+                isLocal: Boolean(fl.is_local)
+              });
+            }
+          } catch {
+          }
+          return results2;
+        }
+        const store = loadFallback();
+        const results = [];
+        const plainQ = query.toLowerCase().trim();
+        for (const i of store.ideas || []) {
+          if (i.title?.toLowerCase().includes(plainQ) || i.content?.toLowerCase().includes(plainQ)) {
+            results.push({
+              kind: "idea",
+              id: i.id,
+              title: i.title,
+              snippet: i.content?.substring(0, 100),
+              syncStatus: i.syncStatus || "unsynced",
+              cloudId: i.cloudId || null,
+              isLocal: true
+            });
+          }
+        }
+        for (const g2 of store.goals || []) {
+          if (g2.title?.toLowerCase().includes(plainQ) || g2.description?.toLowerCase().includes(plainQ)) {
+            results.push({
+              kind: "goal",
+              id: g2.id,
+              title: g2.title,
+              snippet: g2.description?.substring(0, 100),
+              syncStatus: g2.syncStatus || "unsynced",
+              cloudId: g2.cloudId || null,
+              isLocal: true
+            });
+          }
+        }
+        return results;
+      }
+    };
+  }
+});
+
 // src/local/sync-resolver.ts
 var sync_resolver_exports = {};
 __export(sync_resolver_exports, {
+  bidirectionalSync: () => bidirectionalSync,
   countLocalContainerItems: () => countLocalContainerItems,
   evaluateOfflineAutoSync: () => evaluateOfflineAutoSync,
   handlePostLoginAutoSync: () => handlePostLoginAutoSync,
   listOfflineContainers: () => listOfflineContainers,
   migrateOfflineData: () => migrateOfflineData,
+  pullCloudItemsToLocal: () => pullCloudItemsToLocal,
   pushLocalItemsToCloud: () => pushLocalItemsToCloud
 });
-import * as fs3 from "fs";
-import * as path3 from "path";
+import * as fs4 from "fs";
+import * as path4 from "path";
 import pc2 from "picocolors";
 function countLocalContainerItems(dbPath, fallbackPath) {
   let count = 0;
-  if (fs3.existsSync(dbPath)) {
+  if (fs4.existsSync(dbPath)) {
     try {
       const DatabaseSync = getNativeSqlite();
       if (DatabaseSync) {
@@ -1173,9 +2342,14 @@ function countLocalContainerItems(dbPath, fallbackPath) {
         const tables = ["ideas", "goals", "vault", "totp", "events", "forms", "flows"];
         for (const tbl of tables) {
           try {
-            const row = db.prepare(`SELECT count(*) as c FROM ${tbl}`).get();
+            const row = db.prepare(`SELECT count(*) as c FROM ${tbl} WHERE sync_status != 'migrated' OR sync_status IS NULL`).get();
             count += Number(row?.c || 0);
           } catch {
+            try {
+              const row = db.prepare(`SELECT count(*) as c FROM ${tbl}`).get();
+              count += Number(row?.c || 0);
+            } catch {
+            }
           }
         }
         try {
@@ -1186,9 +2360,9 @@ function countLocalContainerItems(dbPath, fallbackPath) {
     } catch {
     }
   }
-  if (count === 0 && fs3.existsSync(fallbackPath)) {
+  if (count === 0 && fs4.existsSync(fallbackPath)) {
     try {
-      const parsed = JSON.parse(fs3.readFileSync(fallbackPath, "utf-8"));
+      const parsed = JSON.parse(fs4.readFileSync(fallbackPath, "utf-8"));
       for (const k2 of Object.keys(parsed)) {
         if (Array.isArray(parsed[k2])) {
           count += parsed[k2].length;
@@ -1200,8 +2374,8 @@ function countLocalContainerItems(dbPath, fallbackPath) {
   return count;
 }
 function listOfflineContainers(partitionKey = "default") {
-  const partitionDir = path3.join(getConfigDir(), "silos", partitionKey);
-  if (!fs3.existsSync(partitionDir)) {
+  const partitionDir = path4.join(getConfigDir(), "silos", partitionKey);
+  if (!fs4.existsSync(partitionDir)) {
     return [];
   }
   const config2 = loadConfig();
@@ -1214,13 +2388,13 @@ function listOfflineContainers(partitionKey = "default") {
     }
   }
   const defaultSource = config2.defaultSyncSource || DEFAULT_OFFLINE_ACCOUNT;
-  const entries = fs3.readdirSync(partitionDir, { withFileTypes: true });
+  const entries = fs4.readdirSync(partitionDir, { withFileTypes: true });
   const result = [];
   for (const entry of entries) {
     if (entry.isDirectory() && !knownAccountSlugs.has(entry.name)) {
-      const dirPath = path3.join(partitionDir, entry.name);
-      const dbPath = path3.join(dirPath, "local.db");
-      const fallbackPath = path3.join(dirPath, "local-store.json");
+      const dirPath = path4.join(partitionDir, entry.name);
+      const dbPath = path4.join(dirPath, "local.db");
+      const fallbackPath = path4.join(dirPath, "local-store.json");
       const count = countLocalContainerItems(dbPath, fallbackPath);
       result.push({
         name: entry.name,
@@ -1233,12 +2407,12 @@ function listOfflineContainers(partitionKey = "default") {
     }
   }
   if (!result.some((c2) => c2.name === DEFAULT_OFFLINE_ACCOUNT)) {
-    const dirPath = path3.join(partitionDir, DEFAULT_OFFLINE_ACCOUNT);
+    const dirPath = path4.join(partitionDir, DEFAULT_OFFLINE_ACCOUNT);
     result.unshift({
       name: DEFAULT_OFFLINE_ACCOUNT,
       path: dirPath,
-      dbPath: path3.join(dirPath, "local.db"),
-      fallbackPath: path3.join(dirPath, "local-store.json"),
+      dbPath: path4.join(dirPath, "local.db"),
+      fallbackPath: path4.join(dirPath, "local-store.json"),
       itemCount: 0,
       isDefault: defaultSource === DEFAULT_OFFLINE_ACCOUNT
     });
@@ -1299,10 +2473,10 @@ function evaluateOfflineAutoSync(targetServerUrl, targetUserId) {
 }
 function migrateOfflineData(sourceContainer, targetUserId, partitionKey = "default") {
   const targetAccountSlug = getAccountSlug(targetUserId);
-  const sourceDir = path3.join(getConfigDir(), "silos", partitionKey, sourceContainer);
-  const targetDir = path3.join(getConfigDir(), "silos", partitionKey, targetAccountSlug);
-  const sourceDbPath = path3.join(sourceDir, "local.db");
-  const targetDbPath = path3.join(targetDir, "local.db");
+  const sourceDir = path4.join(getConfigDir(), "silos", partitionKey, sourceContainer);
+  const targetDir = path4.join(getConfigDir(), "silos", partitionKey, targetAccountSlug);
+  const sourceDbPath = path4.join(sourceDir, "local.db");
+  const targetDbPath = path4.join(targetDir, "local.db");
   let total = 0;
   let ideas2 = 0;
   let goals2 = 0;
@@ -1310,7 +2484,7 @@ function migrateOfflineData(sourceContainer, targetUserId, partitionKey = "defau
   let forms2 = 0;
   let flows2 = 0;
   const DatabaseSync = getNativeSqlite();
-  if (DatabaseSync && fs3.existsSync(sourceDbPath)) {
+  if (DatabaseSync && fs4.existsSync(sourceDbPath)) {
     try {
       const sourceDb = new DatabaseSync(sourceDbPath);
       const targetDb = getDatabase(targetDbPath);
@@ -1319,74 +2493,95 @@ function migrateOfflineData(sourceContainer, targetUserId, partitionKey = "defau
           const rows = sourceDb.prepare("SELECT * FROM ideas").all();
           for (const r2 of rows) {
             targetDb.prepare(
-              "INSERT OR IGNORE INTO ideas (id, title, content, category, tags, is_local, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)"
-            ).run(r2.id, r2.title, r2.content, r2.category, r2.tags, r2.created_at, r2.updated_at);
+              "INSERT OR IGNORE INTO ideas (id, title, content, category, tags, is_local, sync_status, cloud_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, 'unsynced', ?, ?, ?)"
+            ).run(r2.id, r2.title, r2.content, r2.category, r2.tags, r2.cloud_id || null, r2.created_at, r2.updated_at);
             ideas2++;
             total++;
           }
-          sourceDb.prepare("DELETE FROM ideas").run();
+          try {
+            sourceDb.prepare("UPDATE ideas SET sync_status = 'migrated'").run();
+          } catch {
+          }
         } catch {
         }
         try {
           const rows = sourceDb.prepare("SELECT * FROM goals").all();
           for (const r2 of rows) {
             targetDb.prepare(
-              "INSERT OR IGNORE INTO goals (id, title, description, target_value, current_value, unit, status, is_local, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
-            ).run(r2.id, r2.title, r2.description, r2.target_value, r2.current_value, r2.unit, r2.status, r2.created_at, r2.updated_at);
+              "INSERT OR IGNORE INTO goals (id, title, description, target_value, current_value, unit, status, is_local, sync_status, cloud_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'unsynced', ?, ?, ?)"
+            ).run(r2.id, r2.title, r2.description, r2.target_value, r2.current_value, r2.unit, r2.status, r2.cloud_id || null, r2.created_at, r2.updated_at);
             goals2++;
             total++;
           }
-          sourceDb.prepare("DELETE FROM goals").run();
+          try {
+            sourceDb.prepare("UPDATE goals SET sync_status = 'migrated'").run();
+          } catch {
+          }
         } catch {
         }
         try {
           const rows = sourceDb.prepare("SELECT * FROM events").all();
           for (const r2 of rows) {
-            targetDb.prepare("INSERT OR IGNORE INTO events (id, title, start_time, end_time, description, is_local, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)").run(r2.id, r2.title, r2.start_time, r2.end_time, r2.description, r2.created_at);
+            targetDb.prepare("INSERT OR IGNORE INTO events (id, title, start_time, end_time, description, is_local, sync_status, cloud_id, created_at) VALUES (?, ?, ?, ?, ?, 1, 'unsynced', ?, ?)").run(r2.id, r2.title, r2.start_time, r2.end_time, r2.description, r2.cloud_id || null, r2.created_at);
             events2++;
             total++;
           }
-          sourceDb.prepare("DELETE FROM events").run();
+          try {
+            sourceDb.prepare("UPDATE events SET sync_status = 'migrated'").run();
+          } catch {
+          }
         } catch {
         }
         try {
           const rows = sourceDb.prepare("SELECT * FROM forms").all();
           for (const r2 of rows) {
-            targetDb.prepare("INSERT OR IGNORE INTO forms (id, title, description, schema, is_local, created_at) VALUES (?, ?, ?, ?, 1, ?)").run(r2.id, r2.title, r2.description, r2.schema, r2.created_at);
+            targetDb.prepare("INSERT OR IGNORE INTO forms (id, title, description, schema, is_local, sync_status, cloud_id, created_at) VALUES (?, ?, ?, ?, 1, 'unsynced', ?, ?)").run(r2.id, r2.title, r2.description, r2.schema, r2.cloud_id || null, r2.created_at);
             forms2++;
             total++;
           }
-          sourceDb.prepare("DELETE FROM forms").run();
+          try {
+            sourceDb.prepare("UPDATE forms SET sync_status = 'migrated'").run();
+          } catch {
+          }
         } catch {
         }
         try {
           const rows = sourceDb.prepare("SELECT * FROM flows").all();
           for (const r2 of rows) {
-            targetDb.prepare("INSERT OR IGNORE INTO flows (id, title, description, status, is_local, created_at) VALUES (?, ?, ?, ?, 1, ?)").run(r2.id, r2.title, r2.description, r2.status, r2.created_at);
+            targetDb.prepare("INSERT OR IGNORE INTO flows (id, title, description, status, is_local, sync_status, cloud_id, created_at) VALUES (?, ?, ?, ?, 1, 'unsynced', ?, ?)").run(r2.id, r2.title, r2.description, r2.status, r2.cloud_id || null, r2.created_at);
             flows2++;
             total++;
           }
-          sourceDb.prepare("DELETE FROM flows").run();
+          try {
+            sourceDb.prepare("UPDATE flows SET sync_status = 'migrated'").run();
+          } catch {
+          }
         } catch {
         }
         try {
           const rows = sourceDb.prepare("SELECT * FROM vault").all();
           for (const r2 of rows) {
             targetDb.prepare(
-              "INSERT OR IGNORE INTO vault (id, name, username, password, url, notes, is_env, custom_fields, item_type, is_local, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
-            ).run(r2.id, r2.name, r2.username, r2.password, r2.url, r2.notes, r2.is_env, r2.custom_fields, r2.item_type, r2.created_at, r2.updated_at);
+              "INSERT OR IGNORE INTO vault (id, name, username, password, url, notes, is_env, custom_fields, item_type, is_local, sync_status, cloud_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'unsynced', ?, ?, ?)"
+            ).run(r2.id, r2.name, r2.username, r2.password, r2.url, r2.notes, r2.is_env, r2.custom_fields, r2.item_type, r2.cloud_id || null, r2.created_at, r2.updated_at);
             total++;
           }
-          sourceDb.prepare("DELETE FROM vault").run();
+          try {
+            sourceDb.prepare("UPDATE vault SET sync_status = 'migrated'").run();
+          } catch {
+          }
         } catch {
         }
         try {
           const rows = sourceDb.prepare("SELECT * FROM totp").all();
           for (const r2 of rows) {
-            targetDb.prepare("INSERT OR IGNORE INTO totp (id, name, secret, issuer, account, is_local, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)").run(r2.id, r2.name, r2.secret, r2.issuer, r2.account, r2.created_at);
+            targetDb.prepare("INSERT OR IGNORE INTO totp (id, name, secret, issuer, account, is_local, sync_status, cloud_id, created_at) VALUES (?, ?, ?, ?, ?, 1, 'unsynced', ?, ?)").run(r2.id, r2.name, r2.secret, r2.issuer, r2.account, r2.cloud_id || null, r2.created_at);
             total++;
           }
-          sourceDb.prepare("DELETE FROM totp").run();
+          try {
+            sourceDb.prepare("UPDATE totp SET sync_status = 'migrated'").run();
+          } catch {
+          }
         } catch {
         }
       }
@@ -1394,15 +2589,15 @@ function migrateOfflineData(sourceContainer, targetUserId, partitionKey = "defau
     } catch {
     }
   }
-  const sourceFallback = path3.join(sourceDir, "local-store.json");
-  const targetFallback = path3.join(targetDir, "local-store.json");
-  if (fs3.existsSync(sourceFallback)) {
+  const sourceFallback = path4.join(sourceDir, "local-store.json");
+  const targetFallback = path4.join(targetDir, "local-store.json");
+  if (fs4.existsSync(sourceFallback)) {
     try {
-      const sourceData = JSON.parse(fs3.readFileSync(sourceFallback, "utf-8"));
+      const sourceData = JSON.parse(fs4.readFileSync(sourceFallback, "utf-8"));
       let targetData = { ideas: [], goals: [], events: [], forms: [], flows: [], vault: [], totp: [], tags: [], trash: [] };
-      if (fs3.existsSync(targetFallback)) {
+      if (fs4.existsSync(targetFallback)) {
         try {
-          targetData = JSON.parse(fs3.readFileSync(targetFallback, "utf-8"));
+          targetData = JSON.parse(fs4.readFileSync(targetFallback, "utf-8"));
         } catch {
         }
       }
@@ -1412,14 +2607,19 @@ function migrateOfflineData(sourceContainer, targetUserId, partitionKey = "defau
           const existingIds = new Set(targetData[key].map((x2) => x2.id));
           for (const item of sourceData[key]) {
             if (!existingIds.has(item.id)) {
-              targetData[key].push({ ...item, isLocal: true });
+              targetData[key].push({ ...item, isLocal: true, syncStatus: "unsynced" });
               total++;
             }
           }
         }
       }
-      fs3.writeFileSync(targetFallback, JSON.stringify(targetData, null, 2), { encoding: "utf-8", mode: 384 });
-      fs3.writeFileSync(sourceFallback, JSON.stringify({ ideas: [], goals: [] }, null, 2), { encoding: "utf-8", mode: 384 });
+      fs4.writeFileSync(targetFallback, JSON.stringify(targetData, null, 2), { encoding: "utf-8", mode: 384 });
+      for (const key of Object.keys(sourceData)) {
+        if (Array.isArray(sourceData[key])) {
+          sourceData[key] = sourceData[key].map((item) => ({ ...item, syncStatus: "migrated" }));
+        }
+      }
+      fs4.writeFileSync(sourceFallback, JSON.stringify(sourceData, null, 2), { encoding: "utf-8", mode: 384 });
     } catch {
     }
   }
@@ -1433,37 +2633,108 @@ async function pushLocalItemsToCloud(opts = {}) {
   let pushedGoals = 0;
   if (db) {
     try {
-      const ideas2 = db.prepare("SELECT * FROM ideas WHERE is_local = 1").all();
+      const ideas2 = db.prepare("SELECT * FROM ideas WHERE sync_status = 'unsynced' OR (sync_status IS NULL AND (cloud_id IS NULL OR cloud_id = ''))").all();
       for (const item of ideas2) {
-        const tags2 = item.tags ? JSON.parse(item.tags) : [];
-        if (item.category) tags2.push(`category:${item.category}`);
-        await client.ideas.create({
-          title: item.title,
-          content: item.content,
-          tags: tags2.length > 0 ? tags2 : void 0,
-          workspaceId: opts.workspace
-        });
-        db.prepare("UPDATE ideas SET is_local = 0 WHERE id = ?").run(item.id);
-        pushedIdeas++;
+        try {
+          const tags2 = item.tags ? JSON.parse(item.tags) : [];
+          if (item.category) tags2.push(`category:${item.category}`);
+          const created = await client.ideas.create({
+            title: item.title,
+            content: item.content,
+            tags: tags2.length > 0 ? tags2 : void 0,
+            workspaceId: opts.workspace
+          });
+          db.prepare("UPDATE ideas SET sync_status = 'synced', cloud_id = ?, is_local = 1 WHERE id = ?").run(created.id, item.id);
+          pushedIdeas++;
+        } catch {
+        }
       }
     } catch {
     }
     try {
-      const goals2 = db.prepare("SELECT * FROM goals WHERE is_local = 1").all();
+      const goals2 = db.prepare("SELECT * FROM goals WHERE sync_status = 'unsynced' OR (sync_status IS NULL AND (cloud_id IS NULL OR cloud_id = ''))").all();
       for (const item of goals2) {
-        await client.goals.create({
-          title: item.title,
-          description: item.description,
-          status: item.status || "not_started",
-          workspaceId: opts.workspace
-        });
-        db.prepare("UPDATE goals SET is_local = 0 WHERE id = ?").run(item.id);
-        pushedGoals++;
+        try {
+          const created = await client.goals.create({
+            title: item.title,
+            description: item.description,
+            status: item.status || "not_started",
+            workspaceId: opts.workspace
+          });
+          db.prepare("UPDATE goals SET sync_status = 'synced', cloud_id = ?, is_local = 1 WHERE id = ?").run(created.id, item.id);
+          pushedGoals++;
+        } catch {
+        }
       }
     } catch {
     }
   }
   return { pushedIdeas, pushedGoals };
+}
+async function pullCloudItemsToLocal(opts = {}) {
+  const client = getClient(opts);
+  let pulledIdeas = 0;
+  let pulledGoals = 0;
+  let pulledEvents = 0;
+  let pulledForms = 0;
+  let pulledFlows = 0;
+  try {
+    const res = await client.ideas.list({ limit: 100, workspaceId: opts.workspace });
+    if (res?.items) {
+      for (const item of res.items) {
+        LocalStore.upsertIdeaFromCloud(item);
+        pulledIdeas++;
+      }
+    }
+  } catch {
+  }
+  try {
+    const res = await client.goals.list({ limit: 100, workspaceId: opts.workspace });
+    if (res?.items) {
+      for (const item of res.items) {
+        LocalStore.upsertGoalFromCloud(item);
+        pulledGoals++;
+      }
+    }
+  } catch {
+  }
+  try {
+    const res = await client.events.list({ limit: 100, workspaceId: opts.workspace });
+    if (res?.items) {
+      for (const item of res.items) {
+        LocalStore.upsertEventFromCloud(item);
+        pulledEvents++;
+      }
+    }
+  } catch {
+  }
+  try {
+    const res = await client.forms.list({ limit: 100, workspaceId: opts.workspace });
+    if (res?.items) {
+      for (const item of res.items) {
+        LocalStore.upsertFormFromCloud(item);
+        pulledForms++;
+      }
+    }
+  } catch {
+  }
+  try {
+    const res = await client.flows.list(100);
+    if (res?.items) {
+      for (const item of res.items) {
+        LocalStore.upsertFlowFromCloud(item);
+        pulledFlows++;
+      }
+    }
+  } catch {
+  }
+  const total = pulledIdeas + pulledGoals + pulledEvents + pulledForms + pulledFlows;
+  return { pulledIdeas, pulledGoals, pulledEvents, pulledForms, pulledFlows, total };
+}
+async function bidirectionalSync(opts = {}) {
+  const pushed = await pushLocalItemsToCloud(opts);
+  const pulled = await pullCloudItemsToLocal(opts);
+  return { pushed, pulled };
 }
 async function handlePostLoginAutoSync(serverUrl, userId, token) {
   const verdict = evaluateOfflineAutoSync(serverUrl, userId);
@@ -1471,12 +2742,12 @@ async function handlePostLoginAutoSync(serverUrl, userId, token) {
     try {
       console.log();
       console.log(
-        pc2.cyan(`\u{1F4E6} Found ${verdict.itemCount} offline items in container "${verdict.sourceContainer}". Syncing to your account...`)
+        pc2.cyan(`\u{1F4E6} Found ${verdict.itemCount} offline items in container "${verdict.sourceContainer}". Syncing with your account...`)
       );
       const migrated = migrateOfflineData(verdict.sourceContainer, userId, "default");
-      const pushed = await pushLocalItemsToCloud({ url: serverUrl, token });
+      const syncRes = await bidirectionalSync({ url: serverUrl, token });
       printSuccess(
-        `Successfully synced ${migrated.total} offline local items (${pushed.pushedIdeas} ideas, ${pushed.pushedGoals} goals) to your cloud account.`
+        `Successfully synced ${migrated.total} local items (${syncRes.pushed.pushedIdeas} ideas pushed) and pulled ${syncRes.pulled.total} items from cloud.`
       );
       const config2 = loadConfig();
       if (config2.pendingWarning) {
@@ -1503,6 +2774,7 @@ var init_sync_resolver = __esm({
     init_sqlite();
     init_client2();
     init_formatter();
+    init_store();
   }
 });
 
@@ -2194,776 +3466,45 @@ function clearWorkspaceCommand(opts = {}) {
 // src/commands/ideas.ts
 init_client2();
 init_formatter();
+init_store();
 import pc7 from "picocolors";
-
-// src/local/store.ts
-init_sqlite();
-init_config();
-import * as fs4 from "fs";
-import * as path4 from "path";
-function loadFallback() {
-  try {
-    const env = resolveEnvironment();
-    const fallbackPath = env.siloFallbackPath;
-    if (!fs4.existsSync(fallbackPath)) {
-      return { ideas: [], goals: [], events: [], forms: [], flows: [], vault: [], totp: [], tags: [], trash: [] };
-    }
-    return JSON.parse(fs4.readFileSync(fallbackPath, "utf-8"));
-  } catch {
-    return { ideas: [], goals: [], events: [], forms: [], flows: [], vault: [], totp: [], tags: [], trash: [] };
-  }
-}
-function saveFallback(data) {
-  try {
-    const env = resolveEnvironment();
-    const fallbackPath = env.siloFallbackPath;
-    const dir = path4.dirname(fallbackPath);
-    if (!fs4.existsSync(dir)) {
-      fs4.mkdirSync(dir, { recursive: true });
-    }
-    fs4.writeFileSync(fallbackPath, JSON.stringify(data, null, 2), { encoding: "utf-8", mode: 384 });
-  } catch {
-  }
-}
-var LocalStore = {
-  // ── Ideas ──
-  listIdeas() {
-    const db = getDatabase();
-    if (db) {
-      const stmt = db.prepare("SELECT * FROM ideas ORDER BY updated_at DESC");
-      const rows = stmt.all().map((r2) => ({
-        id: r2.id,
-        title: r2.title,
-        content: r2.content,
-        category: r2.category,
-        tags: r2.tags ? JSON.parse(r2.tags) : [],
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at,
-        updatedAt: r2.updated_at
-      }));
-      return { items: rows, count: rows.length };
-    }
-    const store = loadFallback();
-    return { items: store.ideas || [], count: store.ideas?.length || 0 };
-  },
-  getIdea(id) {
-    const db = getDatabase();
-    if (db) {
-      const stmt = db.prepare("SELECT * FROM ideas WHERE id = ?");
-      const r2 = stmt.get(id);
-      if (!r2) throw new Error(`Idea not found: ${id}`);
-      return {
-        id: r2.id,
-        title: r2.title,
-        content: r2.content,
-        category: r2.category,
-        tags: r2.tags ? JSON.parse(r2.tags) : [],
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at,
-        updatedAt: r2.updated_at
-      };
-    }
-    const store = loadFallback();
-    const item = store.ideas.find((i) => i.id === id);
-    if (!item) throw new Error(`Idea not found: ${id}`);
-    return item;
-  },
-  createIdea(data) {
-    const id = generateLocalId("idea");
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    const db = getDatabase();
-    if (db) {
-      const stmt = db.prepare(`
-        INSERT INTO ideas (id, title, content, category, tags, is_local, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, 1, ?, ?)
-      `);
-      stmt.run(id, data.title, data.content || "", data.category || "general", JSON.stringify(data.tags || []), now, now);
-      return {
-        id,
-        title: data.title,
-        content: data.content || "",
-        category: data.category || "general",
-        tags: data.tags || [],
-        isLocal: true,
-        createdAt: now,
-        updatedAt: now
-      };
-    }
-    const store = loadFallback();
-    const item = { id, title: data.title, content: data.content || "", category: data.category || "general", tags: data.tags || [], isLocal: true, createdAt: now, updatedAt: now };
-    store.ideas.unshift(item);
-    saveFallback(store);
-    return item;
-  },
-  updateIdea(id, updates) {
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    const existing = this.getIdea(id);
-    const updated = { ...existing, ...updates, updatedAt: now };
-    const db = getDatabase();
-    if (db) {
-      const stmt = db.prepare(`
-        UPDATE ideas SET title = ?, content = ?, category = ?, tags = ?, updated_at = ? WHERE id = ?
-      `);
-      stmt.run(updated.title, updated.content || "", updated.category || "general", JSON.stringify(updated.tags || []), now, id);
-      return updated;
-    }
-    const store = loadFallback();
-    const idx = store.ideas.findIndex((i) => i.id === id);
-    if (idx !== -1) {
-      store.ideas[idx] = updated;
-      saveFallback(store);
-    }
-    return updated;
-  },
-  deleteIdea(id) {
-    const db = getDatabase();
-    if (db) {
-      const existing = db.prepare("SELECT * FROM ideas WHERE id = ?").get(id);
-      if (existing) {
-        db.prepare("DELETE FROM ideas WHERE id = ?").run(id);
-        db.prepare("INSERT INTO trash (id, kind, title, deleted_at) VALUES (?, ?, ?, ?)").run(
-          existing.id,
-          "idea",
-          existing.title,
-          (/* @__PURE__ */ new Date()).toISOString()
-        );
-      }
-      return { success: true };
-    }
-    const store = loadFallback();
-    const idx = store.ideas.findIndex((i) => i.id === id);
-    if (idx !== -1) {
-      const [deleted] = store.ideas.splice(idx, 1);
-      store.trash.unshift({ id: deleted.id, kind: "idea", title: deleted.title, deletedAt: (/* @__PURE__ */ new Date()).toISOString() });
-      saveFallback(store);
-    }
-    return { success: true };
-  },
-  // ── Goals ──
-  listGoals() {
-    const db = getDatabase();
-    if (db) {
-      const stmt = db.prepare("SELECT * FROM goals ORDER BY updated_at DESC");
-      const rows = stmt.all().map((r2) => ({
-        id: r2.id,
-        title: r2.title,
-        description: r2.description,
-        targetValue: r2.target_value,
-        currentValue: r2.current_value,
-        unit: r2.unit,
-        status: r2.status,
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at,
-        updatedAt: r2.updated_at
-      }));
-      return { items: rows, count: rows.length };
-    }
-    const store = loadFallback();
-    return { items: store.goals || [], count: store.goals?.length || 0 };
-  },
-  getGoal(id) {
-    const db = getDatabase();
-    if (db) {
-      const r2 = db.prepare("SELECT * FROM goals WHERE id = ?").get(id);
-      if (!r2) throw new Error(`Goal not found: ${id}`);
-      return {
-        id: r2.id,
-        title: r2.title,
-        description: r2.description,
-        targetValue: r2.target_value,
-        currentValue: r2.current_value,
-        unit: r2.unit,
-        status: r2.status,
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at,
-        updatedAt: r2.updated_at
-      };
-    }
-    const store = loadFallback();
-    const item = store.goals.find((g2) => g2.id === id);
-    if (!item) throw new Error(`Goal not found: ${id}`);
-    return item;
-  },
-  createGoal(data) {
-    const id = generateLocalId("goal");
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    const db = getDatabase();
-    if (db) {
-      const stmt = db.prepare(`
-        INSERT INTO goals (id, title, description, target_value, current_value, unit, status, is_local, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
-      `);
-      stmt.run(
-        id,
-        data.title,
-        data.description || "",
-        data.targetValue ?? 100,
-        data.currentValue ?? 0,
-        data.unit || "%",
-        data.status || "not_started",
-        now,
-        now
-      );
-      return {
-        id,
-        title: data.title,
-        description: data.description || "",
-        targetValue: data.targetValue ?? 100,
-        currentValue: data.currentValue ?? 0,
-        unit: data.unit || "%",
-        status: data.status || "not_started",
-        isLocal: true,
-        createdAt: now,
-        updatedAt: now
-      };
-    }
-    const store = loadFallback();
-    const item = { id, title: data.title, description: data.description || "", targetValue: data.targetValue ?? 100, currentValue: data.currentValue ?? 0, unit: data.unit || "%", status: data.status || "not_started", isLocal: true, createdAt: now, updatedAt: now };
-    store.goals.unshift(item);
-    saveFallback(store);
-    return item;
-  },
-  updateGoal(id, updates) {
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    const existing = this.getGoal(id);
-    const updated = { ...existing, ...updates, updatedAt: now };
-    const db = getDatabase();
-    if (db) {
-      db.prepare(`
-        UPDATE goals SET title = ?, description = ?, target_value = ?, current_value = ?, unit = ?, status = ?, updated_at = ?
-        WHERE id = ?
-      `).run(
-        updated.title,
-        updated.description || "",
-        updated.targetValue ?? 100,
-        updated.currentValue ?? 0,
-        updated.unit || "%",
-        updated.status || "not_started",
-        now,
-        id
-      );
-      return updated;
-    }
-    const store = loadFallback();
-    const idx = store.goals.findIndex((g2) => g2.id === id);
-    if (idx !== -1) {
-      store.goals[idx] = updated;
-      saveFallback(store);
-    }
-    return updated;
-  },
-  deleteGoal(id) {
-    const db = getDatabase();
-    if (db) {
-      const existing = db.prepare("SELECT * FROM goals WHERE id = ?").get(id);
-      if (existing) {
-        db.prepare("DELETE FROM goals WHERE id = ?").run(id);
-        db.prepare("INSERT INTO trash (id, kind, title, deleted_at) VALUES (?, ?, ?, ?)").run(
-          existing.id,
-          "goal",
-          existing.title,
-          (/* @__PURE__ */ new Date()).toISOString()
-        );
-      }
-      return { success: true };
-    }
-    const store = loadFallback();
-    const idx = store.goals.findIndex((g2) => g2.id === id);
-    if (idx !== -1) {
-      const [deleted] = store.goals.splice(idx, 1);
-      store.trash.unshift({ id: deleted.id, kind: "goal", title: deleted.title, deletedAt: (/* @__PURE__ */ new Date()).toISOString() });
-      saveFallback(store);
-    }
-    return { success: true };
-  },
-  // ── Vault ──
-  listVault() {
-    const db = getDatabase();
-    if (db) {
-      return db.prepare("SELECT * FROM vault ORDER BY updated_at DESC").all().map((r2) => ({
-        id: r2.id,
-        name: r2.name,
-        username: r2.username,
-        password: r2.password,
-        url: r2.url,
-        notes: r2.notes,
-        isEnv: Boolean(r2.is_env),
-        customFields: r2.custom_fields ? r2.custom_fields.startsWith("{") || r2.custom_fields.startsWith("[") ? JSON.parse(r2.custom_fields) : r2.custom_fields : void 0,
-        itemType: r2.item_type,
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at,
-        updatedAt: r2.updated_at
-      }));
-    }
-    return loadFallback().vault || [];
-  },
-  getVault(id) {
-    const db = getDatabase();
-    if (db) {
-      const r2 = db.prepare("SELECT * FROM vault WHERE id = ?").get(id);
-      if (!r2) throw new Error(`Secret not found: ${id}`);
-      return {
-        id: r2.id,
-        name: r2.name,
-        username: r2.username,
-        password: r2.password,
-        url: r2.url,
-        notes: r2.notes,
-        isEnv: Boolean(r2.is_env),
-        customFields: r2.custom_fields ? r2.custom_fields.startsWith("{") || r2.custom_fields.startsWith("[") ? JSON.parse(r2.custom_fields) : r2.custom_fields : void 0,
-        itemType: r2.item_type,
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at,
-        updatedAt: r2.updated_at
-      };
-    }
-    const item = (loadFallback().vault || []).find((v2) => v2.id === id);
-    if (!item) throw new Error(`Secret not found: ${id}`);
-    return item;
-  },
-  createVault(data) {
-    const id = generateLocalId("sec");
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    const customFieldsStr = typeof data.customFields === "object" ? JSON.stringify(data.customFields) : data.customFields || "";
-    const db = getDatabase();
-    if (db) {
-      db.prepare(`
-        INSERT INTO vault (id, name, username, password, url, notes, is_env, custom_fields, item_type, is_local, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
-      `).run(
-        id,
-        data.name,
-        data.username || "",
-        data.password || "",
-        data.url || "",
-        data.notes || "",
-        data.isEnv ? 1 : 0,
-        customFieldsStr,
-        data.itemType || (data.isEnv ? "env" : "login"),
-        now,
-        now
-      );
-      return { id, ...data, isLocal: true, createdAt: now, updatedAt: now };
-    }
-    const store = loadFallback();
-    const item = { id, ...data, isLocal: true, createdAt: now, updatedAt: now };
-    store.vault.unshift(item);
-    saveFallback(store);
-    return item;
-  },
-  deleteVault(id) {
-    const db = getDatabase();
-    if (db) {
-      const existing = db.prepare("SELECT * FROM vault WHERE id = ?").get(id);
-      if (existing) {
-        db.prepare("DELETE FROM vault WHERE id = ?").run(id);
-        db.prepare("INSERT INTO trash (id, kind, title, deleted_at) VALUES (?, ?, ?, ?)").run(
-          existing.id,
-          "vault",
-          existing.name,
-          (/* @__PURE__ */ new Date()).toISOString()
-        );
-      }
-      return { success: true };
-    }
-    const store = loadFallback();
-    const idx = store.vault.findIndex((v2) => v2.id === id);
-    if (idx !== -1) {
-      const [deleted] = store.vault.splice(idx, 1);
-      store.trash.unshift({ id: deleted.id, kind: "vault", title: deleted.name, deletedAt: (/* @__PURE__ */ new Date()).toISOString() });
-      saveFallback(store);
-    }
-    return { success: true };
-  },
-  // ── TOTP ──
-  listTotp() {
-    const db = getDatabase();
-    if (db) {
-      return db.prepare("SELECT * FROM totp ORDER BY created_at DESC").all().map((r2) => ({
-        id: r2.id,
-        name: r2.name,
-        secret: r2.secret,
-        issuer: r2.issuer,
-        account: r2.account,
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at
-      }));
-    }
-    return loadFallback().totp || [];
-  },
-  getTotp(id) {
-    const db = getDatabase();
-    if (db) {
-      const r2 = db.prepare("SELECT * FROM totp WHERE id = ?").get(id);
-      if (!r2) throw new Error(`TOTP entry not found: ${id}`);
-      return {
-        id: r2.id,
-        name: r2.name,
-        secret: r2.secret,
-        issuer: r2.issuer,
-        account: r2.account,
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at
-      };
-    }
-    const item = (loadFallback().totp || []).find((t) => t.id === id);
-    if (!item) throw new Error(`TOTP entry not found: ${id}`);
-    return item;
-  },
-  createTotp(data) {
-    const id = generateLocalId("totp");
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    const db = getDatabase();
-    if (db) {
-      db.prepare(`
-        INSERT INTO totp (id, name, secret, issuer, account, is_local, created_at)
-        VALUES (?, ?, ?, ?, ?, 1, ?)
-      `).run(id, data.name, data.secret, data.issuer || "", data.account || "", now);
-      return { id, ...data, isLocal: true, createdAt: now };
-    }
-    const store = loadFallback();
-    const item = { id, ...data, isLocal: true, createdAt: now };
-    store.totp.unshift(item);
-    saveFallback(store);
-    return item;
-  },
-  deleteTotp(id) {
-    const db = getDatabase();
-    if (db) {
-      db.prepare("DELETE FROM totp WHERE id = ?").run(id);
-      return { success: true };
-    }
-    const store = loadFallback();
-    const idx = store.totp.findIndex((t) => t.id === id);
-    if (idx !== -1) {
-      store.totp.splice(idx, 1);
-      saveFallback(store);
-    }
-    return { success: true };
-  },
-  // ── Events ──
-  listEvents() {
-    const db = getDatabase();
-    if (db) {
-      const rows = db.prepare("SELECT * FROM events ORDER BY start_time ASC").all().map((r2) => ({
-        id: r2.id,
-        title: r2.title,
-        startTime: r2.start_time,
-        endTime: r2.end_time,
-        description: r2.description,
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at
-      }));
-      return { items: rows, count: rows.length };
-    }
-    const store = loadFallback();
-    return { items: store.events || [], count: store.events?.length || 0 };
-  },
-  createEvent(data) {
-    const id = generateLocalId("evt");
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    const db = getDatabase();
-    if (db) {
-      db.prepare(`
-        INSERT INTO events (id, title, start_time, end_time, description, is_local, created_at)
-        VALUES (?, ?, ?, ?, ?, 1, ?)
-      `).run(id, data.title, data.startTime, data.endTime, data.description || "", now);
-      return { id, ...data, isLocal: true, createdAt: now };
-    }
-    const store = loadFallback();
-    const item = { id, ...data, isLocal: true, createdAt: now };
-    store.events.unshift(item);
-    saveFallback(store);
-    return item;
-  },
-  deleteEvent(id) {
-    const db = getDatabase();
-    if (db) {
-      db.prepare("DELETE FROM events WHERE id = ?").run(id);
-      return { success: true };
-    }
-    const store = loadFallback();
-    const idx = store.events.findIndex((e2) => e2.id === id);
-    if (idx !== -1) {
-      store.events.splice(idx, 1);
-      saveFallback(store);
-    }
-    return { success: true };
-  },
-  // ── Forms ──
-  listForms() {
-    const db = getDatabase();
-    if (db) {
-      const rows = db.prepare("SELECT * FROM forms ORDER BY created_at DESC").all().map((r2) => ({
-        id: r2.id,
-        title: r2.title,
-        description: r2.description,
-        schema: r2.schema ? JSON.parse(r2.schema) : [],
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at
-      }));
-      return { items: rows, count: rows.length };
-    }
-    const store = loadFallback();
-    return { items: store.forms || [], count: store.forms?.length || 0 };
-  },
-  getForm(id) {
-    const db = getDatabase();
-    if (db) {
-      const r2 = db.prepare("SELECT * FROM forms WHERE id = ?").get(id);
-      if (!r2) throw new Error(`Form not found: ${id}`);
-      return {
-        id: r2.id,
-        title: r2.title,
-        description: r2.description,
-        schema: r2.schema ? JSON.parse(r2.schema) : [],
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at
-      };
-    }
-    const item = (loadFallback().forms || []).find((f2) => f2.id === id);
-    if (!item) throw new Error(`Form not found: ${id}`);
-    return item;
-  },
-  createForm(data) {
-    const id = generateLocalId("form");
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    const db = getDatabase();
-    if (db) {
-      db.prepare(`
-        INSERT INTO forms (id, title, description, schema, is_local, created_at)
-        VALUES (?, ?, ?, ?, 1, ?)
-      `).run(id, data.title, data.description || "", JSON.stringify(data.schema || []), now);
-      return { id, ...data, isLocal: true, createdAt: now };
-    }
-    const store = loadFallback();
-    const item = { id, ...data, isLocal: true, createdAt: now };
-    store.forms.unshift(item);
-    saveFallback(store);
-    return item;
-  },
-  deleteForm(id) {
-    const db = getDatabase();
-    if (db) {
-      db.prepare("DELETE FROM forms WHERE id = ?").run(id);
-      return { success: true };
-    }
-    const store = loadFallback();
-    const idx = store.forms.findIndex((f2) => f2.id === id);
-    if (idx !== -1) {
-      store.forms.splice(idx, 1);
-      saveFallback(store);
-    }
-    return { success: true };
-  },
-  // ── Flows ──
-  listFlows() {
-    const db = getDatabase();
-    if (db) {
-      const rows = db.prepare("SELECT * FROM flows ORDER BY created_at DESC").all().map((r2) => ({
-        id: r2.id,
-        title: r2.title,
-        description: r2.description,
-        status: r2.status,
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at
-      }));
-      return { items: rows, count: rows.length };
-    }
-    const store = loadFallback();
-    return { items: store.flows || [], count: store.flows?.length || 0 };
-  },
-  getFlow(id) {
-    const db = getDatabase();
-    if (db) {
-      const r2 = db.prepare("SELECT * FROM flows WHERE id = ?").get(id);
-      if (!r2) throw new Error(`Flow not found: ${id}`);
-      return {
-        id: r2.id,
-        title: r2.title,
-        description: r2.description,
-        status: r2.status,
-        isLocal: Boolean(r2.is_local),
-        createdAt: r2.created_at
-      };
-    }
-    const item = (loadFallback().flows || []).find((f2) => f2.id === id);
-    if (!item) throw new Error(`Flow not found: ${id}`);
-    return item;
-  },
-  createFlow(data) {
-    const id = generateLocalId("flow");
-    const now = (/* @__PURE__ */ new Date()).toISOString();
-    const db = getDatabase();
-    if (db) {
-      db.prepare(`
-        INSERT INTO flows (id, title, description, status, is_local, created_at)
-        VALUES (?, ?, ?, ?, 1, ?)
-      `).run(id, data.title, data.description || "", data.status || "draft", now);
-      return { id, ...data, isLocal: true, createdAt: now };
-    }
-    const store = loadFallback();
-    const item = { id, ...data, isLocal: true, createdAt: now };
-    store.flows.unshift(item);
-    saveFallback(store);
-    return item;
-  },
-  deleteFlow(id) {
-    const db = getDatabase();
-    if (db) {
-      db.prepare("DELETE FROM flows WHERE id = ?").run(id);
-      return { success: true };
-    }
-    const store = loadFallback();
-    const idx = store.flows.findIndex((f2) => f2.id === id);
-    if (idx !== -1) {
-      store.flows.splice(idx, 1);
-      saveFallback(store);
-    }
-    return { success: true };
-  },
-  // ── Tags ──
-  listTags() {
-    const db = getDatabase();
-    if (db) {
-      const rows = db.prepare("SELECT * FROM tags").all().map((r2) => ({
-        id: r2.id,
-        name: r2.name,
-        color: r2.color,
-        isLocal: Boolean(r2.is_local)
-      }));
-      return { items: rows, count: rows.length };
-    }
-    const store = loadFallback();
-    return { items: store.tags || [], count: store.tags?.length || 0 };
-  },
-  createTag(data) {
-    const id = generateLocalId("tag");
-    const db = getDatabase();
-    if (db) {
-      db.prepare(`
-        INSERT INTO tags (id, name, color, is_local)
-        VALUES (?, ?, ?, 1)
-      `).run(id, data.name, data.color || "#6366F1");
-      return { id, ...data, isLocal: true };
-    }
-    const store = loadFallback();
-    const item = { id, ...data, isLocal: true };
-    store.tags.unshift(item);
-    saveFallback(store);
-    return item;
-  },
-  deleteTag(id) {
-    const db = getDatabase();
-    if (db) {
-      db.prepare("DELETE FROM tags WHERE id = ?").run(id);
-      return { success: true };
-    }
-    const store = loadFallback();
-    const idx = store.tags.findIndex((t) => t.id === id);
-    if (idx !== -1) {
-      store.tags.splice(idx, 1);
-      saveFallback(store);
-    }
-    return { success: true };
-  },
-  // ── Trash ──
-  listTrash() {
-    const db = getDatabase();
-    if (db) {
-      const rows = db.prepare("SELECT * FROM trash ORDER BY deleted_at DESC").all().map((r2) => ({
-        id: r2.id,
-        kind: r2.kind,
-        title: r2.title,
-        deletedAt: r2.deleted_at
-      }));
-      return { items: rows, count: rows.length };
-    }
-    const store = loadFallback();
-    return { items: store.trash || [], count: store.trash?.length || 0 };
-  },
-  restoreTrash(kind, id) {
-    const db = getDatabase();
-    if (db) {
-      db.prepare("DELETE FROM trash WHERE id = ? AND kind = ?").run(id, kind);
-      return { restored: true };
-    }
-    const store = loadFallback();
-    const idx = store.trash.findIndex((t) => t.id === id && t.kind === kind);
-    if (idx !== -1) {
-      store.trash.splice(idx, 1);
-      saveFallback(store);
-    }
-    return { restored: true };
-  },
-  purgeTrash(kind, id) {
-    const db = getDatabase();
-    if (db) {
-      db.prepare("DELETE FROM trash WHERE id = ? AND kind = ?").run(id, kind);
-      return { purged: true };
-    }
-    const store = loadFallback();
-    const idx = store.trash.findIndex((t) => t.id === id && t.kind === kind);
-    if (idx !== -1) {
-      store.trash.splice(idx, 1);
-      saveFallback(store);
-    }
-    return { purged: true };
-  },
-  // ── High Performance SQLite Full-Text / LIKE Search ──
-  search(query) {
-    const q = `%${query.toLowerCase().trim()}%`;
-    const db = getDatabase();
-    if (db) {
-      const results2 = [];
-      const ideas2 = db.prepare("SELECT id, title, content FROM ideas WHERE LOWER(title) LIKE ? OR LOWER(content) LIKE ?").all(q, q);
-      for (const i of ideas2) {
-        results2.push({ kind: "idea", id: i.id, title: i.title, snippet: i.content?.substring(0, 100), isLocal: true });
-      }
-      const goals2 = db.prepare("SELECT id, title, description FROM goals WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ?").all(q, q);
-      for (const g2 of goals2) {
-        results2.push({ kind: "goal", id: g2.id, title: g2.title, snippet: g2.description?.substring(0, 100), isLocal: true });
-      }
-      const secrets = db.prepare("SELECT id, name FROM vault WHERE LOWER(name) LIKE ? OR LOWER(username) LIKE ?").all(q, q);
-      for (const s of secrets) {
-        results2.push({ kind: "vault", id: s.id, title: s.name, isLocal: true });
-      }
-      const events2 = db.prepare("SELECT id, title FROM events WHERE LOWER(title) LIKE ?").all(q);
-      for (const e2 of events2) {
-        results2.push({ kind: "event", id: e2.id, title: e2.title, isLocal: true });
-      }
-      return results2;
-    }
-    const store = loadFallback();
-    const results = [];
-    const plainQ = query.toLowerCase().trim();
-    for (const i of store.ideas || []) {
-      if (i.title?.toLowerCase().includes(plainQ) || i.content?.toLowerCase().includes(plainQ)) {
-        results.push({ kind: "idea", id: i.id, title: i.title, snippet: i.content?.substring(0, 100), isLocal: true });
-      }
-    }
-    return results;
-  }
-};
-
-// src/commands/ideas.ts
 async function listIdeasCommand(opts) {
   try {
     const isAuthed = hasAuth(opts);
     const limit = opts.limit ? parseInt(opts.limit, 10) : 25;
-    const res = isAuthed ? await getClient(opts).ideas.list({ limit, workspaceId: opts.workspace }) : LocalStore.listIdeas();
+    if (isAuthed) {
+      try {
+        const client = getClient(opts);
+        const cloudRes = await client.ideas.list({ limit, workspaceId: opts.workspace });
+        if (cloudRes?.items) {
+          for (const item of cloudRes.items) {
+            LocalStore.upsertIdeaFromCloud(item);
+          }
+        }
+      } catch {
+      }
+    }
+    const res = LocalStore.listIdeas();
     if (opts.json) {
       printJson(res);
       return;
     }
-    const rows = (res.items || []).map((n) => ({
-      id: n.id,
-      title: n.title || "(Untitled Idea)",
-      category: n.category || "general",
-      mode: isAuthed ? n.workspaceId || "cloud" : pc7.dim("local"),
-      createdAt: n.createdAt?.substring(0, 10) || ""
-    }));
-    printTable(rows, ["id", "title", "category", "mode", "createdAt"]);
+    const rows = (res.items || []).slice(0, limit).map((n) => {
+      let syncBadge = pc7.yellow("\u25CB unsynced");
+      if (n.syncStatus === "synced") {
+        syncBadge = pc7.green("\u25CF synced");
+      } else if (!isAuthed) {
+        syncBadge = pc7.dim("\u{1F4BB} local");
+      }
+      return {
+        id: n.id,
+        title: n.title || "(Untitled Idea)",
+        category: n.category || "general",
+        sync: syncBadge,
+        updated: (n.updatedAt || n.createdAt)?.substring(0, 10) || ""
+      };
+    });
+    printTable(rows, ["id", "title", "category", "sync", "updated"]);
     if (!isAuthed) {
       console.log(pc7.dim("\u{1F4A1} Local-first mode. Run `kylrix login` to sync ideas with cloud."));
     }
@@ -2975,15 +3516,34 @@ async function listIdeasCommand(opts) {
 async function getIdeaCommand(id, opts) {
   try {
     const isAuthed = hasAuth(opts);
-    const item = isAuthed ? await getClient(opts).ideas.get(id) : LocalStore.getIdea(id);
+    let item;
+    try {
+      item = LocalStore.getIdea(id);
+    } catch {
+      if (isAuthed) {
+        item = await getClient(opts).ideas.get(id);
+        if (item) {
+          item = LocalStore.upsertIdeaFromCloud(item);
+        }
+      }
+    }
+    if (!item) {
+      throw new Error(`Idea not found: ${id}`);
+    }
     if (opts.json) {
       printJson(item);
       return;
     }
+    let syncBadge = pc7.yellow("\u25CB unsynced");
+    if (item.syncStatus === "synced") {
+      syncBadge = pc7.green("\u25CF synced");
+    } else if (!isAuthed) {
+      syncBadge = pc7.dim("\u{1F4BB} local");
+    }
     console.log("\n" + pc7.bold(item.title || "(Untitled Idea)"));
     console.log(pc7.dim("\u2500".repeat(40)));
     console.log(`ID:        ${item.id}`);
-    console.log(`Mode:      ${isAuthed ? "Cloud / " + (item.workspaceId || "personal") : "Local-First"}`);
+    console.log(`Sync:      ${syncBadge}`);
     console.log(`Category:  ${item.category || "general"}`);
     console.log(`Updated:   ${item.updatedAt || item.createdAt || "N/A"}`);
     console.log(pc7.dim("\u2500".repeat(40)));
@@ -3001,22 +3561,35 @@ async function createIdeaCommand(title, opts) {
     if (opts.category) {
       tags2.push(`category:${opts.category}`);
     }
-    const item = isAuthed ? await getClient(opts).ideas.create({
-      title,
-      content: opts.content || "",
-      workspaceId: opts.workspace,
-      tags: tags2.length > 0 ? tags2 : void 0
-    }) : LocalStore.createIdea({
+    const item = LocalStore.createIdea({
       title,
       content: opts.content,
       category: opts.category,
       tags: tags2.length > 0 ? tags2 : void 0
     });
+    let syncStatus = isAuthed ? "unsynced" : "local";
+    if (isAuthed) {
+      try {
+        const client = getClient(opts);
+        const cloudItem = await client.ideas.create({
+          title,
+          content: opts.content || "",
+          workspaceId: opts.workspace,
+          tags: tags2.length > 0 ? tags2 : void 0
+        });
+        LocalStore.markIdeaSynced(item.id, cloudItem.id);
+        item.syncStatus = "synced";
+        item.cloudId = cloudItem.id;
+        syncStatus = "synced";
+      } catch {
+      }
+    }
     if (opts.json) {
       printJson(item);
       return;
     }
-    printSuccess(`Created idea "${pc7.bold(item.title || item.id)}" (ID: ${item.id}) [${isAuthed ? "Cloud" : "Local"}]`);
+    const badge = syncStatus === "synced" ? pc7.green("\u25CF synced") : syncStatus === "unsynced" ? pc7.yellow("\u25CB unsynced") : pc7.dim("\u{1F4BB} local");
+    printSuccess(`Created idea "${pc7.bold(item.title || item.id)}" (ID: ${item.id}) [${badge}]`);
   } catch (err) {
     printError("Failed to create idea", err);
     process.exit(1);
@@ -3025,14 +3598,22 @@ async function createIdeaCommand(title, opts) {
 async function updateIdeaCommand(id, opts) {
   try {
     const isAuthed = hasAuth(opts);
-    const item = isAuthed ? await getClient(opts).ideas.update(id, {
-      title: opts.title,
-      content: opts.content
-    }) : LocalStore.updateIdea(id, {
+    const item = LocalStore.updateIdea(id, {
       title: opts.title,
       content: opts.content,
       category: opts.category
     });
+    if (isAuthed) {
+      try {
+        const targetId = item.cloudId || id;
+        await getClient(opts).ideas.update(targetId, {
+          title: opts.title,
+          content: opts.content
+        });
+        LocalStore.markIdeaSynced(id, targetId);
+      } catch {
+      }
+    }
     if (opts.json) {
       printJson(item);
       return;
@@ -3046,10 +3627,18 @@ async function updateIdeaCommand(id, opts) {
 async function deleteIdeaCommand(id, opts) {
   try {
     const isAuthed = hasAuth(opts);
+    let targetCloudId = null;
+    try {
+      const existing = LocalStore.getIdea(id);
+      targetCloudId = existing.cloudId || null;
+    } catch {
+    }
+    LocalStore.deleteIdea(id);
     if (isAuthed) {
-      await getClient(opts).ideas.delete(id);
-    } else {
-      LocalStore.deleteIdea(id);
+      try {
+        await getClient(opts).ideas.delete(targetCloudId || id);
+      } catch {
+      }
     }
     if (opts.json) {
       printJson({ success: true, id });
@@ -3065,21 +3654,35 @@ async function listArticlesCommand(opts) {
   try {
     const isAuthed = hasAuth(opts);
     const limit = opts.limit ? parseInt(opts.limit, 10) : 25;
-    const res = isAuthed ? await getClient(opts).ideas.articles({ limit, workspaceId: opts.workspace }) : {
-      items: LocalStore.listIdeas().items.filter((i) => i.category === "article"),
-      count: 0
-    };
+    if (isAuthed) {
+      try {
+        const res = await getClient(opts).ideas.articles({ limit, workspaceId: opts.workspace });
+        for (const item of res?.items || []) {
+          LocalStore.upsertIdeaFromCloud(item);
+        }
+      } catch {
+      }
+    }
+    const all = LocalStore.listIdeas().items.filter((i) => i.category === "article");
     if (opts.json) {
-      printJson(res);
+      printJson({ items: all.slice(0, limit), count: all.length });
       return;
     }
-    const rows = (res.items || []).map((n) => ({
-      id: n.id,
-      title: n.title || "(Untitled Article)",
-      mode: isAuthed ? n.workspaceId || "cloud" : pc7.dim("local"),
-      createdAt: n.createdAt?.substring(0, 10) || ""
-    }));
-    printTable(rows, ["id", "title", "mode", "createdAt"]);
+    const rows = all.slice(0, limit).map((n) => {
+      let syncBadge = pc7.yellow("\u25CB unsynced");
+      if (n.syncStatus === "synced") {
+        syncBadge = pc7.green("\u25CF synced");
+      } else if (!isAuthed) {
+        syncBadge = pc7.dim("\u{1F4BB} local");
+      }
+      return {
+        id: n.id,
+        title: n.title || "(Untitled Article)",
+        sync: syncBadge,
+        updated: (n.updatedAt || n.createdAt)?.substring(0, 10) || ""
+      };
+    });
+    printTable(rows, ["id", "title", "sync", "updated"]);
   } catch (err) {
     printError("Failed to list articles", err);
     process.exit(1);
@@ -3089,24 +3692,48 @@ async function listArticlesCommand(opts) {
 // src/commands/goals.ts
 init_client2();
 init_formatter();
+init_store();
 import pc8 from "picocolors";
 async function listGoalsCommand(opts) {
   try {
     const isAuthed = hasAuth(opts);
     const limit = opts.limit ? parseInt(opts.limit, 10) : 25;
-    const res = isAuthed ? await getClient(opts).goals.list({ limit, workspaceId: opts.workspace, status: opts.status }) : LocalStore.listGoals();
+    if (isAuthed) {
+      try {
+        const client = getClient(opts);
+        const cloudRes = await client.goals.list({ limit, workspaceId: opts.workspace, status: opts.status });
+        if (cloudRes?.items) {
+          for (const item of cloudRes.items) {
+            LocalStore.upsertGoalFromCloud(item);
+          }
+        }
+      } catch {
+      }
+    }
+    let items = LocalStore.listGoals().items;
+    if (opts.status) {
+      items = items.filter((g2) => g2.status === opts.status);
+    }
     if (opts.json) {
-      printJson(res);
+      printJson({ items: items.slice(0, limit), count: items.length });
       return;
     }
-    const rows = (res.items || []).map((g2) => ({
-      id: g2.id,
-      title: g2.title || "(Untitled Goal)",
-      status: g2.status || "not_started",
-      progress: `${g2.currentValue ?? 0}/${g2.targetValue ?? 100} ${g2.unit || ""}`.trim(),
-      mode: isAuthed ? g2.workspaceId || "cloud" : pc8.dim("local")
-    }));
-    printTable(rows, ["id", "title", "status", "progress", "mode"]);
+    const rows = items.slice(0, limit).map((g2) => {
+      let syncBadge = pc8.yellow("\u25CB unsynced");
+      if (g2.syncStatus === "synced") {
+        syncBadge = pc8.green("\u25CF synced");
+      } else if (!isAuthed) {
+        syncBadge = pc8.dim("\u{1F4BB} local");
+      }
+      return {
+        id: g2.id,
+        title: g2.title || "(Untitled Goal)",
+        status: g2.status || "not_started",
+        progress: `${g2.currentValue ?? 0}/${g2.targetValue ?? 100} ${g2.unit || ""}`.trim(),
+        sync: syncBadge
+      };
+    });
+    printTable(rows, ["id", "title", "status", "progress", "sync"]);
     if (!isAuthed) {
       console.log(pc8.dim("\u{1F4A1} Local-first mode. Run `kylrix login` to sync goals with cloud."));
     }
@@ -3118,17 +3745,36 @@ async function listGoalsCommand(opts) {
 async function getGoalCommand(id, opts) {
   try {
     const isAuthed = hasAuth(opts);
-    const item = isAuthed ? await getClient(opts).goals.get(id) : LocalStore.getGoal(id);
+    let item;
+    try {
+      item = LocalStore.getGoal(id);
+    } catch {
+      if (isAuthed) {
+        item = await getClient(opts).goals.get(id);
+        if (item) {
+          item = LocalStore.upsertGoalFromCloud(item);
+        }
+      }
+    }
+    if (!item) {
+      throw new Error(`Goal not found: ${id}`);
+    }
     if (opts.json) {
       printJson(item);
       return;
     }
+    let syncBadge = pc8.yellow("\u25CB unsynced");
+    if (item.syncStatus === "synced") {
+      syncBadge = pc8.green("\u25CF synced");
+    } else if (!isAuthed) {
+      syncBadge = pc8.dim("\u{1F4BB} local");
+    }
     console.log("\n" + pc8.bold(item.title || "(Untitled Goal)"));
     console.log(pc8.dim("\u2500".repeat(40)));
     console.log(`ID:        ${item.id}`);
+    console.log(`Sync:      ${syncBadge}`);
     console.log(`Status:    ${item.status || "not_started"}`);
     console.log(`Progress:  ${item.currentValue ?? 0}/${item.targetValue ?? 100} ${item.unit || ""}`);
-    console.log(`Mode:      ${isAuthed ? "Cloud" : "Local-First"}`);
     if (item.description) {
       console.log(pc8.dim("\u2500".repeat(40)));
       console.log(item.description);
@@ -3143,23 +3789,36 @@ async function createGoalCommand(title, opts) {
   try {
     const isAuthed = hasAuth(opts);
     const targetValue = opts.targetValue ? parseFloat(opts.targetValue) : 100;
-    const item = isAuthed ? await getClient(opts).goals.create({
-      title,
-      description: opts.description,
-      status: opts.status || "todo",
-      workspaceId: opts.workspace
-    }) : LocalStore.createGoal({
+    const item = LocalStore.createGoal({
       title,
       description: opts.description,
       targetValue,
       unit: opts.unit,
       status: opts.status
     });
+    let syncStatus = isAuthed ? "unsynced" : "local";
+    if (isAuthed) {
+      try {
+        const client = getClient(opts);
+        const cloudItem = await client.goals.create({
+          title,
+          description: opts.description,
+          status: opts.status || "todo",
+          workspaceId: opts.workspace
+        });
+        LocalStore.markGoalSynced(item.id, cloudItem.id);
+        item.syncStatus = "synced";
+        item.cloudId = cloudItem.id;
+        syncStatus = "synced";
+      } catch {
+      }
+    }
     if (opts.json) {
       printJson(item);
       return;
     }
-    printSuccess(`Created goal "${pc8.bold(item.title || item.id)}" (ID: ${item.id}) [${isAuthed ? "Cloud" : "Local"}]`);
+    const badge = syncStatus === "synced" ? pc8.green("\u25CF synced") : syncStatus === "unsynced" ? pc8.yellow("\u25CB unsynced") : pc8.dim("\u{1F4BB} local");
+    printSuccess(`Created goal "${pc8.bold(item.title || item.id)}" (ID: ${item.id}) [${badge}]`);
   } catch (err) {
     printError("Failed to create goal", err);
     process.exit(1);
@@ -3169,14 +3828,22 @@ async function updateGoalCommand(id, opts) {
   try {
     const isAuthed = hasAuth(opts);
     const currentValue = opts.currentValue !== void 0 ? parseFloat(opts.currentValue) : void 0;
-    const item = isAuthed ? await getClient(opts).goals.update(id, {
-      title: opts.title,
-      status: opts.status
-    }) : LocalStore.updateGoal(id, {
+    const item = LocalStore.updateGoal(id, {
       title: opts.title,
       status: opts.status,
       currentValue
     });
+    if (isAuthed) {
+      try {
+        const targetId = item.cloudId || id;
+        await getClient(opts).goals.update(targetId, {
+          title: opts.title,
+          status: opts.status
+        });
+        LocalStore.markGoalSynced(id, targetId);
+      } catch {
+      }
+    }
     if (opts.json) {
       printJson(item);
       return;
@@ -3190,10 +3857,18 @@ async function updateGoalCommand(id, opts) {
 async function deleteGoalCommand(id, opts) {
   try {
     const isAuthed = hasAuth(opts);
+    let targetCloudId = null;
+    try {
+      const existing = LocalStore.getGoal(id);
+      targetCloudId = existing.cloudId || null;
+    } catch {
+    }
+    LocalStore.deleteGoal(id);
     if (isAuthed) {
-      await getClient(opts).goals.delete(id);
-    } else {
-      LocalStore.deleteGoal(id);
+      try {
+        await getClient(opts).goals.delete(targetCloudId || id);
+      } catch {
+      }
     }
     if (opts.json) {
       printJson({ success: true, id });
@@ -3209,6 +3884,7 @@ async function deleteGoalCommand(id, opts) {
 // src/commands/events.ts
 init_client2();
 init_formatter();
+init_store();
 import pc9 from "picocolors";
 async function listEventsCommand(opts) {
   try {
@@ -3278,6 +3954,7 @@ async function deleteEventCommand(id, opts) {
 // src/commands/forms.ts
 init_client2();
 init_formatter();
+init_store();
 import pc10 from "picocolors";
 async function listFormsCommand(opts) {
   try {
@@ -3363,6 +4040,7 @@ async function deleteFormCommand(id, opts) {
 // src/commands/flows.ts
 init_client2();
 init_formatter();
+init_store();
 import pc11 from "picocolors";
 async function listFlowsCommand(opts) {
   try {
@@ -4110,6 +4788,7 @@ function clearVaultSession() {
 }
 
 // src/commands/vault.ts
+init_store();
 async function unlockVaultCommand(opts) {
   try {
     const isAuthed = hasAuth(opts);
@@ -4349,6 +5028,7 @@ function generateTotp(secret, periodSeconds = 30, digits = 6) {
 }
 
 // src/commands/totp.ts
+init_store();
 async function listTotpCommand(opts) {
   try {
     const isAuthed = hasAuth(opts);
@@ -4554,20 +5234,43 @@ async function deleteAgentSessionCommand(id, opts) {
 // src/commands/search.ts
 init_client2();
 init_formatter();
+init_store();
 import pc17 from "picocolors";
 async function searchCommand(query, opts) {
   try {
     const isAuthed = hasAuth(opts);
     const limit = opts.limit ? parseInt(opts.limit, 10) : 25;
-    const results = isAuthed ? await getClient(opts).search.query(query, {
-      workspaceId: opts.workspace,
-      limit
-    }) : LocalStore.search(query);
+    const localResults = LocalStore.search(query);
+    const allResults = [...localResults];
+    if (isAuthed) {
+      try {
+        const cloudResults = await getClient(opts).search.query(query, {
+          workspaceId: opts.workspace,
+          limit
+        });
+        const existingIds = new Set(allResults.map((r2) => r2.id));
+        const existingCloudIds = new Set(allResults.map((r2) => r2.cloudId).filter(Boolean));
+        for (const cr of cloudResults || []) {
+          if (!existingIds.has(cr.id) && !existingCloudIds.has(cr.id)) {
+            allResults.push({
+              kind: cr.kind,
+              id: cr.id,
+              title: cr.title,
+              snippet: cr.snippet,
+              syncStatus: "synced",
+              cloudId: cr.id,
+              isLocal: false
+            });
+          }
+        }
+      } catch {
+      }
+    }
     if (opts.json) {
-      printJson(results);
+      printJson(allResults.slice(0, limit));
       return;
     }
-    if (!results || results.length === 0) {
+    if (!allResults || allResults.length === 0) {
       console.log(`
 No items matching "${pc17.bold(query)}" found.`);
       return;
@@ -4575,14 +5278,22 @@ No items matching "${pc17.bold(query)}" found.`);
     console.log(`
 Search results for "${pc17.bold(query)}":
 `);
-    const rows = results.map((r2) => ({
-      kind: r2.kind.toUpperCase(),
-      id: r2.id,
-      title: r2.title,
-      snippet: r2.snippet || "",
-      mode: isAuthed ? r2.isLocal ? pc17.dim("local") : "cloud" : pc17.dim("local")
-    }));
-    printTable(rows, ["kind", "id", "title", "snippet", "mode"]);
+    const rows = allResults.slice(0, limit).map((r2) => {
+      let syncBadge = pc17.yellow("\u25CB unsynced");
+      if (r2.syncStatus === "synced" || !r2.isLocal && isAuthed) {
+        syncBadge = pc17.green("\u25CF synced");
+      } else if (!isAuthed) {
+        syncBadge = pc17.dim("\u{1F4BB} local");
+      }
+      return {
+        kind: r2.kind.toUpperCase(),
+        id: r2.id,
+        title: r2.title,
+        snippet: r2.snippet || "",
+        sync: syncBadge
+      };
+    });
+    printTable(rows, ["kind", "id", "title", "snippet", "sync"]);
   } catch (err) {
     printError("Search query failed", err);
     process.exit(1);
@@ -4752,6 +5463,7 @@ async function adminStatusCommand(opts) {
 // src/commands/tags.ts
 init_client2();
 init_formatter();
+init_store();
 import pc21 from "picocolors";
 async function listTagsCommand(opts) {
   try {
@@ -4813,6 +5525,7 @@ async function deleteTagCommand(id, opts) {
 // src/commands/trash.ts
 init_client2();
 init_formatter();
+init_store();
 async function listTrashCommand(opts) {
   try {
     const isAuthed = hasAuth(opts);
@@ -4873,7 +5586,7 @@ import * as os3 from "os";
 import { spawn } from "child_process";
 import pc22 from "picocolors";
 var PACKAGE_NAME = "@kylrix/cli";
-var CURRENT_VERSION = "1.0.6";
+var CURRENT_VERSION = "1.0.7";
 var CACHE_DIR = path6.join(os3.homedir(), ".kylrix");
 var CACHE_FILE = path6.join(CACHE_DIR, "update-cache.json");
 var CHECK_INTERVAL_MS = 12 * 60 * 60 * 1e3;
@@ -5050,7 +5763,6 @@ init_client2();
 init_formatter();
 init_config();
 init_sync_resolver();
-init_sqlite();
 async function syncCommand(opts) {
   if (!hasAuth(opts)) {
     if (opts.json) {
@@ -5070,56 +5782,12 @@ async function syncCommand(opts) {
   } else if (!verdict.canAutoSync && verdict.reason && !opts.json) {
     console.log(pc24.yellow(`\u26A0 Warning: ${verdict.reason}`));
   }
-  const client = getClient(opts);
-  const localIdeas = LocalStore.listIdeas().items;
-  const localGoals = LocalStore.listGoals().items;
   const spinner = L2();
   if (!opts.json) {
-    spinner.start("Syncing local-first data with Kylrix Cloud...");
+    spinner.start("Performing two-way sync with Kylrix Cloud...");
   }
-  let syncedIdeas = 0;
-  let syncedGoals = 0;
-  const DatabaseSync = getNativeSqlite();
-  const db = DatabaseSync ? getDatabase(env.siloDbPath) : null;
   try {
-    for (const idea of localIdeas) {
-      if (idea.isLocal) {
-        const tags2 = [...idea.tags || []];
-        if (idea.category) {
-          tags2.push(`category:${idea.category}`);
-        }
-        await client.ideas.create({
-          title: idea.title,
-          content: idea.content,
-          tags: tags2.length > 0 ? tags2 : void 0,
-          workspaceId: opts.workspace
-        });
-        if (db) {
-          try {
-            db.prepare("UPDATE ideas SET is_local = 0 WHERE id = ?").run(idea.id);
-          } catch {
-          }
-        }
-        syncedIdeas++;
-      }
-    }
-    for (const goal of localGoals) {
-      if (goal.isLocal) {
-        await client.goals.create({
-          title: goal.title,
-          description: goal.description,
-          status: goal.status || "todo",
-          workspaceId: opts.workspace
-        });
-        if (db) {
-          try {
-            db.prepare("UPDATE goals SET is_local = 0 WHERE id = ?").run(goal.id);
-          } catch {
-          }
-        }
-        syncedGoals++;
-      }
-    }
+    const syncRes = await bidirectionalSync(opts);
     if (!opts.json) {
       spinner.stop(pc24.green("Sync complete!"));
     }
@@ -5129,10 +5797,20 @@ async function syncCommand(opts) {
       saveMasterConfig2(config2);
     }
     if (opts.json) {
-      printJson({ synced: true, syncedIdeas, syncedGoals });
+      printJson({
+        synced: true,
+        pushed: syncRes.pushed,
+        pulled: syncRes.pulled
+      });
       return;
     }
-    printSuccess(`Successfully synced ${syncedIdeas} ideas and ${syncedGoals} goals to your cloud workspace.`);
+    const { pushed, pulled } = syncRes;
+    const pushedTotal = pushed.pushedIdeas + pushed.pushedGoals;
+    console.log();
+    printSuccess("Synchronized with Kylrix Cloud:");
+    console.log(pc24.cyan(`  \u2191 Pushed to cloud: ${pushedTotal} items (${pushed.pushedIdeas} ideas, ${pushed.pushedGoals} goals)`));
+    console.log(pc24.green(`  \u2193 Pulled to local: ${pulled.total} items (${pulled.pulledIdeas} ideas, ${pulled.pulledGoals} goals, ${pulled.pulledEvents} events, ${pulled.pulledForms} forms, ${pulled.pulledFlows} flows)`));
+    console.log(pc24.dim("  \u26A1 Local SQLite database is up to date.\n"));
   } catch (err) {
     if (!opts.json) {
       spinner.stop(pc24.red("Sync interrupted"));
@@ -21339,6 +22017,13 @@ async function runStdioMcpServer(opts) {
 }
 
 // src/index.ts
+var origEmit = process.emit;
+process.emit = function(name, data, ...args) {
+  if (name === "warning" && typeof data === "object" && (data?.name === "ExperimentalWarning" || String(data?.message || "").includes("SQLite"))) {
+    return false;
+  }
+  return origEmit.apply(process, [name, data, ...args]);
+};
 scheduleBackgroundUpdateCheck();
 var program = new Command();
 program.name("kylrix").description("Official CLI, Model Context Protocol (MCP) bridge, and sovereign client for Kylrix").version(CURRENT_VERSION);

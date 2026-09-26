@@ -13,24 +13,47 @@ export async function listIdeasCommand(opts: {
   try {
     const isAuthed = hasAuth(opts);
     const limit = opts.limit ? parseInt(opts.limit, 10) : 25;
-    const res = isAuthed
-      ? await getClient(opts).ideas.list({ limit, workspaceId: opts.workspace })
-      : LocalStore.listIdeas();
+
+    // 1. If authed, pull latest ideas from cloud into local SQLite in background
+    if (isAuthed) {
+      try {
+        const client = getClient(opts);
+        const cloudRes = await client.ideas.list({ limit, workspaceId: opts.workspace });
+        if (cloudRes?.items) {
+          for (const item of cloudRes.items) {
+            LocalStore.upsertIdeaFromCloud(item);
+          }
+        }
+      } catch {
+        // Fall back gracefully to existing local SQLite cache
+      }
+    }
+
+    // 2. Read authoritative local store (contains both local + pulled cloud items)
+    const res = LocalStore.listIdeas();
 
     if (opts.json) {
       printJson(res);
       return;
     }
 
-    const rows = (res.items || []).map((n: any) => ({
-      id: n.id,
-      title: n.title || '(Untitled Idea)',
-      category: n.category || 'general',
-      mode: isAuthed ? (n.workspaceId || 'cloud') : pc.dim('local'),
-      createdAt: n.createdAt?.substring(0, 10) || '',
-    }));
+    const rows = (res.items || []).slice(0, limit).map((n: any) => {
+      let syncBadge = pc.yellow('○ unsynced');
+      if (n.syncStatus === 'synced') {
+        syncBadge = pc.green('● synced');
+      } else if (!isAuthed) {
+        syncBadge = pc.dim('💻 local');
+      }
+      return {
+        id: n.id,
+        title: n.title || '(Untitled Idea)',
+        category: n.category || 'general',
+        sync: syncBadge,
+        updated: (n.updatedAt || n.createdAt)?.substring(0, 10) || '',
+      };
+    });
 
-    printTable(rows, ['id', 'title', 'category', 'mode', 'createdAt']);
+    printTable(rows, ['id', 'title', 'category', 'sync', 'updated']);
     if (!isAuthed) {
       console.log(pc.dim('💡 Local-first mode. Run `kylrix login` to sync ideas with cloud.'));
     }
@@ -43,19 +66,39 @@ export async function listIdeasCommand(opts: {
 export async function getIdeaCommand(id: string, opts: { url?: string; token?: string; json?: boolean }) {
   try {
     const isAuthed = hasAuth(opts);
-    const item = isAuthed
-      ? await getClient(opts).ideas.get(id)
-      : LocalStore.getIdea(id);
+    let item: any;
+
+    try {
+      item = LocalStore.getIdea(id);
+    } catch {
+      if (isAuthed) {
+        item = await getClient(opts).ideas.get(id);
+        if (item) {
+          item = LocalStore.upsertIdeaFromCloud(item);
+        }
+      }
+    }
+
+    if (!item) {
+      throw new Error(`Idea not found: ${id}`);
+    }
 
     if (opts.json) {
       printJson(item);
       return;
     }
 
+    let syncBadge = pc.yellow('○ unsynced');
+    if (item.syncStatus === 'synced') {
+      syncBadge = pc.green('● synced');
+    } else if (!isAuthed) {
+      syncBadge = pc.dim('💻 local');
+    }
+
     console.log('\n' + pc.bold(item.title || '(Untitled Idea)'));
     console.log(pc.dim('─'.repeat(40)));
     console.log(`ID:        ${item.id}`);
-    console.log(`Mode:      ${isAuthed ? 'Cloud / ' + (item.workspaceId || 'personal') : 'Local-First'}`);
+    console.log(`Sync:      ${syncBadge}`);
     console.log(`Category:  ${item.category || 'general'}`);
     console.log(`Updated:   ${item.updatedAt || item.createdAt || 'N/A'}`);
     console.log(pc.dim('─'.repeat(40)));
@@ -85,26 +128,49 @@ export async function createIdeaCommand(
     if (opts.category) {
       tags.push(`category:${opts.category}`);
     }
-    const item = isAuthed
-      ? await getClient(opts).ideas.create({
+
+    // 1. Always create locally first (instant local persistence)
+    const item = LocalStore.createIdea({
+      title,
+      content: opts.content,
+      category: opts.category,
+      tags: tags.length > 0 ? tags : undefined,
+    });
+
+    let syncStatus = isAuthed ? 'unsynced' : 'local';
+
+    // 2. If authed, push to cloud immediately
+    if (isAuthed) {
+      try {
+        const client = getClient(opts);
+        const cloudItem = await client.ideas.create({
           title,
           content: opts.content || '',
           workspaceId: opts.workspace,
           tags: tags.length > 0 ? tags : undefined,
-        })
-      : LocalStore.createIdea({
-          title,
-          content: opts.content,
-          category: opts.category,
-          tags: tags.length > 0 ? tags : undefined,
         });
+        LocalStore.markIdeaSynced(item.id, cloudItem.id);
+        item.syncStatus = 'synced';
+        item.cloudId = cloudItem.id;
+        syncStatus = 'synced';
+      } catch {
+        // Keeps local item with syncStatus = 'unsynced' for next sync pass
+      }
+    }
 
     if (opts.json) {
       printJson(item);
       return;
     }
 
-    printSuccess(`Created idea "${pc.bold(item.title || item.id)}" (ID: ${item.id}) [${isAuthed ? 'Cloud' : 'Local'}]`);
+    const badge =
+      syncStatus === 'synced'
+        ? pc.green('● synced')
+        : syncStatus === 'unsynced'
+          ? pc.yellow('○ unsynced')
+          : pc.dim('💻 local');
+
+    printSuccess(`Created idea "${pc.bold(item.title || item.id)}" (ID: ${item.id}) [${badge}]`);
   } catch (err: any) {
     printError('Failed to create idea', err);
     process.exit(1);
@@ -124,16 +190,22 @@ export async function updateIdeaCommand(
 ) {
   try {
     const isAuthed = hasAuth(opts);
-    const item = isAuthed
-      ? await getClient(opts).ideas.update(id, {
+    const item = LocalStore.updateIdea(id, {
+      title: opts.title,
+      content: opts.content,
+      category: opts.category,
+    });
+
+    if (isAuthed) {
+      try {
+        const targetId = item.cloudId || id;
+        await getClient(opts).ideas.update(targetId, {
           title: opts.title,
           content: opts.content,
-        })
-      : LocalStore.updateIdea(id, {
-          title: opts.title,
-          content: opts.content,
-          category: opts.category,
         });
+        LocalStore.markIdeaSynced(id, targetId);
+      } catch {}
+    }
 
     if (opts.json) {
       printJson(item);
@@ -150,10 +222,18 @@ export async function updateIdeaCommand(
 export async function deleteIdeaCommand(id: string, opts: { url?: string; token?: string; json?: boolean }) {
   try {
     const isAuthed = hasAuth(opts);
+    let targetCloudId: string | null = null;
+    try {
+      const existing = LocalStore.getIdea(id);
+      targetCloudId = existing.cloudId || null;
+    } catch {}
+
+    LocalStore.deleteIdea(id);
+
     if (isAuthed) {
-      await getClient(opts).ideas.delete(id);
-    } else {
-      LocalStore.deleteIdea(id);
+      try {
+        await getClient(opts).ideas.delete(targetCloudId || id);
+      } catch {}
     }
 
     if (opts.json) {
@@ -178,26 +258,39 @@ export async function listArticlesCommand(opts: {
   try {
     const isAuthed = hasAuth(opts);
     const limit = opts.limit ? parseInt(opts.limit, 10) : 25;
-    const res = isAuthed
-      ? await getClient(opts).ideas.articles({ limit, workspaceId: opts.workspace })
-      : {
-          items: LocalStore.listIdeas().items.filter((i: any) => i.category === 'article'),
-          count: 0,
-        };
+
+    if (isAuthed) {
+      try {
+        const res = await getClient(opts).ideas.articles({ limit, workspaceId: opts.workspace });
+        for (const item of res?.items || []) {
+          LocalStore.upsertIdeaFromCloud(item);
+        }
+      } catch {}
+    }
+
+    const all = LocalStore.listIdeas().items.filter((i: any) => i.category === 'article');
 
     if (opts.json) {
-      printJson(res);
+      printJson({ items: all.slice(0, limit), count: all.length });
       return;
     }
 
-    const rows = (res.items || []).map((n: any) => ({
-      id: n.id,
-      title: n.title || '(Untitled Article)',
-      mode: isAuthed ? (n.workspaceId || 'cloud') : pc.dim('local'),
-      createdAt: n.createdAt?.substring(0, 10) || '',
-    }));
+    const rows = all.slice(0, limit).map((n: any) => {
+      let syncBadge = pc.yellow('○ unsynced');
+      if (n.syncStatus === 'synced') {
+        syncBadge = pc.green('● synced');
+      } else if (!isAuthed) {
+        syncBadge = pc.dim('💻 local');
+      }
+      return {
+        id: n.id,
+        title: n.title || '(Untitled Article)',
+        sync: syncBadge,
+        updated: (n.updatedAt || n.createdAt)?.substring(0, 10) || '',
+      };
+    });
 
-    printTable(rows, ['id', 'title', 'mode', 'createdAt']);
+    printTable(rows, ['id', 'title', 'sync', 'updated']);
   } catch (err: any) {
     printError('Failed to list articles', err);
     process.exit(1);
