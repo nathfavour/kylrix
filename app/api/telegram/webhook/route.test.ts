@@ -1,7 +1,7 @@
 import { describe, it, vi, beforeEach } from 'vitest';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
-import { POST } from './route';
+import { POST, GET, syncTelegramBot, TELEGRAM_BOT_COMMANDS } from './route';
 import { createSystemClient } from '@/lib/appwrite-admin';
 import { ApiResources } from '@/lib/api/resources';
 
@@ -162,5 +162,48 @@ describe('Telegram Webhook Route Handler - Interactive Menus & 1:1 Parity', () =
     const res = await POST(req);
     assert.equal(res.status, 200);
     assert.ok(ApiResources.createNote.mock.calls.length === 1);
+  });
+
+  it('syncTelegramBot registers commands and sets webhook for https target', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, result: true }),
+    });
+
+    const res = await syncTelegramBot('https://www.kylrix.space');
+    assert.equal(res.success, true);
+    assert.equal(res.commandsSynced, true);
+    assert.equal(res.webhook.configured, true);
+    assert.equal(res.webhook.url, 'https://www.kylrix.space/api/telegram/webhook');
+
+    // Verify calls to setMyCommands and setWebhook
+    const fetchCalls = (global.fetch as any).mock.calls;
+    const cmdCall = fetchCalls.find((call: any[]) => call[0].includes('setMyCommands'));
+    const whCall = fetchCalls.find((call: any[]) => call[0].includes('setWebhook'));
+    assert.ok(cmdCall, 'setMyCommands was called');
+    assert.ok(whCall, 'setWebhook was called');
+  });
+
+  it('GET returns status and command list', async () => {
+    (global.fetch as any).mockImplementation((url: string) => {
+      if (url.includes('getMe')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ ok: true, result: { id: 12345, username: 'KylrixBot' } }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ ok: true, result: { url: 'https://www.kylrix.space/api/telegram/webhook' } }),
+      });
+    });
+
+    const req = new NextRequest('http://localhost:3005/api/telegram/webhook');
+    const res = await GET(req);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.ok, true);
+    assert.equal(data.bot.username, 'KylrixBot');
+    assert.equal(data.commands.length, TELEGRAM_BOT_COMMANDS.length);
   });
 });

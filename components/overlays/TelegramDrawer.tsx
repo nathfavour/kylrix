@@ -10,7 +10,8 @@ import {
   initializeTelegramConnection,
   checkTelegramConnection,
   getTelegramNotificationPreferences,
-  updateTelegramNotificationPreferences} from '@/lib/actions/telegram';
+  updateTelegramNotificationPreferences,
+  syncTelegramBotCommands} from '@/lib/actions/telegram';
 import {
   defaultTelegramNotificationPreferences,
   TELEGRAM_ACTION_LABELS,
@@ -135,7 +136,8 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
 
     try {
       const jwt = await getOrUpdateJWT();
-      const res = await initializeTelegramConnection(jwt, force);
+      const appUrl = typeof window !== 'undefined' ? window.location.origin : undefined;
+      const res = await initializeTelegramConnection(jwt, force, appUrl);
       if (res.success && (res as any).isVerified) {
           setVerifiedUsername((res as any).tgUsername || 'User');
           setLoading(false);
@@ -269,6 +271,8 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
           if (res.success && res.isVerified) {
             setVerifiedUsername(res.tgUsername || 'User');
             setLoading(false);
+            const appUrl = typeof window !== 'undefined' ? window.location.origin : undefined;
+            void syncTelegramBotCommands(jwt, appUrl);
             return;
           }
         } catch (err) {
@@ -558,6 +562,16 @@ export function TelegramDrawer({ open, onClose, onSuccess }: TelegramDrawerProps
                 </p>
               </div>
             </div>
+
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1.5 text-left">
+              <div className="flex items-center gap-1.5 text-white text-xs font-bold font-satoshi">
+                <span>⚡ Two-Way Bot Commands Active</span>
+              </div>
+              <p className="text-white/50 text-[11px] font-medium font-satoshi leading-relaxed">
+                Type <code className="text-[#F59E0B] font-mono font-bold">/</code> or tap the menu button in Telegram to manage your workspace: <code className="text-white/80 font-mono">/notes</code>, <code className="text-white/80 font-mono">/goals</code>, <code className="text-white/80 font-mono">/workspaces</code>, <code className="text-white/80 font-mono">/note</code>, and <code className="text-white/80 font-mono">/goal</code>.
+              </p>
+            </div>
+
             {renderPreferences()}
           </div>
         ) : (

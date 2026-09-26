@@ -14,10 +14,15 @@ import {
  * Stage 1: Initial Connect
  * Generates a pairing code, creates a transient connection row, and returns the deep link.
  */
-export async function initializeTelegramConnection(jwt?: string, forceRegenerate = false) {
+export async function initializeTelegramConnection(
+  jwt?: string,
+  forceRegenerate = false,
+  appUrl?: string
+) {
   // Rigorous runtime validation
   const validatedJwt = JWTSchema.parse(jwt);
   const validatedForce = z.boolean().default(false).parse(forceRegenerate);
+  const validatedAppUrl = typeof appUrl === 'string' ? appUrl.trim() : undefined;
 
   try {
     const { getActor } = await import('./secure-ops');
@@ -62,7 +67,11 @@ export async function initializeTelegramConnection(jwt?: string, forceRegenerate
         const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'KylrixBot';
         const deepLink = `https://t.me/${botUsername}?start=${userId}_${existingDoc.pair_code}`;
         
-        if (process.env.TELEGRAM_BOT_API) {
+        const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_API;
+        if (botToken) {
+          syncTelegramBotCommands(validatedJwt, validatedAppUrl).catch(err =>
+            console.error('[telegram-bot] Failed to sync bot commands/webhook:', err)
+          );
           syncServerTelegramListener().catch(err =>
             console.error('[telegram-bot] Failed to sync listener:', err)
           );
@@ -108,7 +117,11 @@ export async function initializeTelegramConnection(jwt?: string, forceRegenerate
     const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'KylrixBot';
     const deepLink = `https://t.me/${botUsername}?start=${userId}_${pairCode}`;
 
-    if (process.env.TELEGRAM_BOT_API) {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_API;
+    if (botToken) {
+      syncTelegramBotCommands(validatedJwt, validatedAppUrl).catch(err =>
+        console.error('[telegram-bot] Failed to sync bot commands/webhook:', err)
+      );
       syncServerTelegramListener().catch(err =>
         console.error('[telegram-bot] Failed to sync listener:', err)
       );
@@ -144,7 +157,8 @@ export async function checkTelegramConnection(jwt?: string) {
 
     const databases = createSystemTablesDB();
 
-    if (process.env.TELEGRAM_BOT_API) {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_API;
+    if (botToken) {
       syncServerTelegramListener().catch(err =>
         console.error('[telegram-bot] Failed to sync listener:', err)
       );
@@ -225,6 +239,16 @@ export async function updateTelegramNotificationPreferences(
   }
 }
 
+export async function syncTelegramBotCommands(jwt?: string, appUrl?: string) {
+  try {
+    const { syncTelegramBot } = await import('@/app/api/telegram/webhook/route');
+    return await syncTelegramBot(appUrl);
+  } catch (err: any) {
+    console.error('[telegram] Failed to sync bot commands:', err);
+    return { success: false, error: err?.message };
+  }
+}
+
 /**
  * ----------------------------------------------------------------------------
  * BACKGROUND DAEMON POLLER FOR TELEGRAM BOT CONNECTIONS
@@ -245,7 +269,7 @@ async function syncServerTelegramListener(jwt?: string) {
     if (!isAdmin) throw new Error('Forbidden: admin only');
   }
 
-  const botToken = process.env.TELEGRAM_BOT_API;
+  const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_API;
   if (!botToken) {
     return;
   }
@@ -316,6 +340,14 @@ function runPollerLoop(botToken: string) {
         `https://api.telegram.org/bot${botToken}/getUpdates?offset=${lastTelegramUpdateOffset}&timeout=5`
       );
 
+      // If a webhook is active, Telegram rejects getUpdates with HTTP 409 Conflict
+      if (res.status === 409) {
+        console.log('[telegram-bot] Webhook active on Telegram; poller daemon standing down.');
+        isBotPollerRunning = false;
+        pollerTimeout = null;
+        return;
+      }
+
       if (!res.ok) {
         runPollerLoop(botToken);
         return;
@@ -323,60 +355,14 @@ function runPollerLoop(botToken: string) {
 
       const data = await res.json();
       if (data.ok && data.result.length > 0) {
-        const databases = createSystemTablesDB();
+        const { handleTelegramUpdate } = await import('@/app/api/telegram/webhook/route');
 
         for (const update of data.result) {
           lastTelegramUpdateOffset = Math.max(lastTelegramUpdateOffset, update.update_id + 1);
-
-          const message = update.message;
-          if (!message || !message.text) continue;
-
-          const text = message.text.trim();
-          if (text.startsWith('/start ')) {
-            const param = text.slice(7).trim(); // "userId_pairCode"
-            const parts = param.split('_');
-            if (parts.length === 2) {
-              const [userId, pairCode] = parts;
-
-              try {
-                const doc = await databases.getRow(
-                  APPWRITE_CONFIG.DATABASES.CONNECT,
-                  APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
-                  userId
-                );
-
-                if (doc && !doc.is_verified && doc.pair_code === pairCode) {
-                  const createdTime = new Date(doc.$updatedAt || doc.$createdAt).getTime();
-                  const threeMinutesInMs = 3 * 60 * 1000;
-
-                  if (Date.now() - createdTime < threeMinutesInMs) {
-                    const tgUsername = message.from.username || message.from.first_name || 'User';
-                    const chatId = String(message.chat.id);
-
-                    await databases.updateRow(
-                      APPWRITE_CONFIG.DATABASES.CONNECT,
-                      APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
-                      userId,
-                      {
-                        is_verified: true,
-                        tg_username: tgUsername,
-                        tg_chat_id: chatId}
-                    );
-
-                    console.log(`[telegram-bot] Successfully verified Telegram connection for user ${userId} as @${tgUsername}`);
-
-                    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        chat_id: message.chat.id,
-                        text: `🎉 Success! Your Telegram account has been paired with Kylrix as @${tgUsername}. Ephemeral secure notifications will be delivered here instantly!`})});
-                  }
-                }
-              } catch (_docErr) {
-                // Ignore document retrieval errors
-              }
-            }
+          try {
+            await handleTelegramUpdate(update);
+          } catch (updateErr) {
+            console.error('[telegram-bot] Error handling update in poller:', updateErr);
           }
         }
       }

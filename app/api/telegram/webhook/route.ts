@@ -291,11 +291,83 @@ async function renderSettingsMenu(actor: ApiActor) {
   }
 }
 
-export async function POST(req: NextRequest) {
+export const TELEGRAM_BOT_COMMANDS = [
+  { command: 'notes', description: 'View and manage your notes' },
+  { command: 'goals', description: 'View and track your goals' },
+  { command: 'workspaces', description: 'List and switch workspaces' },
+  { command: 'note', description: 'Create note: /note Title | Content' },
+  { command: 'goal', description: 'Create goal: /goal Title' },
+  { command: 'settings', description: 'Notification settings and status' },
+  { command: 'help', description: 'Open dashboard and quick menu' },
+];
+
+export async function syncTelegramBot(appUrl?: string) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_API;
+  if (!botToken) {
+    return { success: false, error: 'Telegram bot token is not configured' };
+  }
+
+  // 1. Sync bot commands with Telegram Bot API
+  let commandsSynced = false;
   try {
-    const body = await req.json().catch(() => null);
-    if (!body) {
-      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    const cmdRes = await fetch(`https://api.telegram.org/bot${botToken}/setMyCommands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commands: TELEGRAM_BOT_COMMANDS }),
+    });
+    const cmdJson = await cmdRes.json().catch(() => ({}));
+    commandsSynced = !!cmdJson.ok;
+    if (!commandsSynced) {
+      console.warn('[telegram-webhook] Failed to setMyCommands:', cmdJson);
+    }
+  } catch (err: any) {
+    console.error('[telegram-webhook] Failed to setMyCommands:', err);
+  }
+
+  // 2. Set webhook if a public HTTPS URL is provided or configured
+  let webhookResult: { configured: boolean; url?: string; error?: string } = { configured: false };
+  const targetUrl = (appUrl || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || '').trim();
+
+  if (targetUrl.startsWith('https://')) {
+    const cleanUrl = targetUrl.replace(/\/+$/, '');
+    const webhookUrl = `${cleanUrl}/api/telegram/webhook`;
+    try {
+      const whRes = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: webhookUrl,
+          allowed_updates: ['message', 'callback_query'],
+          drop_pending_updates: false,
+        }),
+      });
+      const whJson = await whRes.json().catch(() => ({}));
+      if (whJson.ok) {
+        webhookResult = { configured: true, url: webhookUrl };
+      } else {
+        webhookResult = { configured: false, error: whJson.description || 'Failed to set webhook' };
+      }
+    } catch (err: any) {
+      webhookResult = { configured: false, error: err?.message };
+    }
+  }
+
+  return {
+    success: commandsSynced,
+    commandsSynced,
+    webhook: webhookResult,
+  };
+}
+
+export async function handleTelegramUpdate(body: any): Promise<{
+  success: boolean;
+  status?: number;
+  error?: string;
+  message?: string;
+}> {
+  try {
+    if (!body || (!body.message && !body.callback_query)) {
+      return { success: false, status: 400, error: 'Invalid payload or message missing' };
     }
 
     const { databases } = createSystemClient();
@@ -311,26 +383,28 @@ export async function POST(req: NextRequest) {
       await answerCallbackQuery(callbackId);
 
       if (!chatId) {
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
       // Resolve user account
-      const connList = await databases.listRows(
-        APPWRITE_CONFIG.DATABASES.CONNECT,
-        APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
-        [
-          Query.equal('tg_chat_id', chatId.toString()),
-          Query.equal('is_verified', true),
-          Query.limit(1),
-        ]
-      ).catch(() => ({ rows: [] }));
+      const connList = await databases
+        .listRows(
+          APPWRITE_CONFIG.DATABASES.CONNECT,
+          APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
+          [
+            Query.equal('tg_chat_id', chatId.toString()),
+            Query.equal('is_verified', true),
+            Query.limit(1),
+          ]
+        )
+        .catch(() => ({ rows: [] }));
 
       if (connList.rows.length === 0) {
         await sendTelegramMessage(
           chatId,
           '⚠️ <b>Account Not Connected</b>\n\nPlease pair your Telegram in <a href="https://www.kylrix.space/app">Kylrix Settings</a>.'
         );
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
       const userId = connList.rows[0].$id;
@@ -342,41 +416,41 @@ export async function POST(req: NextRequest) {
           '⚡ <b>Kylrix Sovereign Workspace</b>\n\n' +
           'Your decentralized workspace bridge. Choose an option below or send any text for instant quick-capture:';
         await editTelegramMessage(chatId, messageId, text, buildMainMenuMarkup());
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
       if (callbackData === 'menu_notes') {
         const { text, replyMarkup } = await renderNotesMenu(actor);
         await editTelegramMessage(chatId, messageId, text, replyMarkup);
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
       if (callbackData === 'menu_goals') {
         const { text, replyMarkup } = await renderGoalsMenu(actor);
         await editTelegramMessage(chatId, messageId, text, replyMarkup);
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
       if (callbackData === 'menu_workspaces') {
         const { text, replyMarkup } = await renderWorkspacesMenu(actor);
         await editTelegramMessage(chatId, messageId, text, replyMarkup);
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
       if (callbackData === 'menu_settings') {
         const { text, replyMarkup } = await renderSettingsMenu(actor);
         await editTelegramMessage(chatId, messageId, text, replyMarkup);
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
       if (callbackData === 'notes_new_hint') {
         await sendTelegramMessage(
           chatId,
           '💡 <b>Create Note</b>\n\n' +
-          '• Simply type any message to <b>Quick-Capture</b>\n' +
-          '• Or use <code>/note Title | Detailed content</code>'
+            '• Simply type any message to <b>Quick-Capture</b>\n' +
+            '• Or use <code>/note Title | Detailed content</code>'
         );
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
       if (callbackData === 'goals_new_hint') {
@@ -384,7 +458,7 @@ export async function POST(req: NextRequest) {
           chatId,
           '💡 <b>Create Goal</b>\n\nType: <code>/goal Launch Product Feature</code>'
         );
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
       // Read Note
@@ -408,7 +482,7 @@ export async function POST(req: NextRequest) {
         } catch (err: any) {
           await sendTelegramMessage(chatId, `❌ Could not read note: ${escapeHtml(err?.message)}`);
         }
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
       // Delete Note
@@ -427,7 +501,7 @@ export async function POST(req: NextRequest) {
         } catch (err: any) {
           await sendTelegramMessage(chatId, `❌ Delete failed: ${escapeHtml(err?.message)}`);
         }
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
       // Mark Goal Completed
@@ -446,7 +520,7 @@ export async function POST(req: NextRequest) {
         } catch (err: any) {
           await sendTelegramMessage(chatId, `❌ Update failed: ${escapeHtml(err?.message)}`);
         }
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
       // Delete Goal
@@ -465,16 +539,16 @@ export async function POST(req: NextRequest) {
         } catch (err: any) {
           await sendTelegramMessage(chatId, `❌ Delete failed: ${escapeHtml(err?.message)}`);
         }
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
 
-      return NextResponse.json({ success: true });
+      return { success: true };
     }
 
     // ── B. HANDLE INCOMING MESSAGE ──
     const message = body.message;
     if (!message) {
-      return NextResponse.json({ error: 'Message payload missing' }, { status: 400 });
+      return { success: false, status: 400, error: 'Message payload missing' };
     }
 
     const chatId = message.chat?.id;
@@ -482,7 +556,7 @@ export async function POST(req: NextRequest) {
     const tgUsername = message.from?.username || '';
 
     if (!chatId) {
-      return NextResponse.json({ error: 'Chat ID missing' }, { status: 400 });
+      return { success: false, status: 400, error: 'Chat ID missing' };
     }
 
     // 1. Initial Account Pairing Flow (/start [USER_ID]_[PAIR_CODE])
@@ -507,7 +581,7 @@ export async function POST(req: NextRequest) {
           chatId,
           '❌ <b>Pairing Failed</b>\n\nNo active registration request found. Please re-initiate pairing inside the Kylrix web app.'
         );
-        return NextResponse.json({ error: 'Connection record not found' }, { status: 404 });
+        return { success: false, status: 404, error: 'Connection record not found' };
       }
 
       if (doc.is_verified) {
@@ -516,7 +590,7 @@ export async function POST(req: NextRequest) {
           '✅ <b>Already Active</b>\n\nYour account is already linked and verified! Tap below to open your workspace dashboard:',
           buildMainMenuMarkup()
         );
-        return NextResponse.json({ success: true, message: 'Already verified' });
+        return { success: true, message: 'Already verified' };
       }
 
       const deltaSeconds = (Date.now() - new Date(doc.$updatedAt).getTime()) / 1000;
@@ -525,7 +599,7 @@ export async function POST(req: NextRequest) {
           chatId,
           '⏳ <b>Pairing Code Expired</b>\n\nPlease re-initiate pairing in Kylrix Settings to get a fresh 3-minute code.'
         );
-        return NextResponse.json({ error: 'Pairing window expired' }, { status: 400 });
+        return { success: false, status: 400, error: 'Pairing window expired' };
       }
 
       if (doc.pair_code !== pairCode) {
@@ -533,7 +607,7 @@ export async function POST(req: NextRequest) {
           chatId,
           '❌ <b>Pairing Failed</b>\n\nInvalid pairing code. Please double-check your link.'
         );
-        return NextResponse.json({ error: 'Invalid pairing code' }, { status: 400 });
+        return { success: false, status: 400, error: 'Invalid pairing code' };
       }
 
       await databases.updateRow(
@@ -551,35 +625,37 @@ export async function POST(req: NextRequest) {
       await sendTelegramMessage(
         chatId,
         '🎉 <b>Successfully Paired!</b>\n\n' +
-        'Your Telegram account is now securely linked to Kylrix. Everything you type here seamlessly creates, reads, and updates your sovereign notes and goals.\n\n' +
-        'Tap a button below to explore your workspace:',
+          'Your Telegram account is now securely linked to Kylrix. Everything you type here seamlessly creates, reads, and updates your sovereign notes and goals.\n\n' +
+          'Tap a button below to explore your workspace:',
         buildMainMenuMarkup()
       );
 
-      return NextResponse.json({ success: true, message: 'Verification successful' });
+      return { success: true, message: 'Verification successful' };
     }
 
     // 2. Resolve verified user
-    const connList = await databases.listRows(
-      APPWRITE_CONFIG.DATABASES.CONNECT,
-      APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
-      [
-        Query.equal('tg_chat_id', chatId.toString()),
-        Query.equal('is_verified', true),
-        Query.limit(1),
-      ]
-    ).catch(() => ({ rows: [] }));
+    const connList = await databases
+      .listRows(
+        APPWRITE_CONFIG.DATABASES.CONNECT,
+        APPWRITE_CONFIG.TABLES.CONNECT.TELEGRAM_CONNECTIONS,
+        [
+          Query.equal('tg_chat_id', chatId.toString()),
+          Query.equal('is_verified', true),
+          Query.limit(1),
+        ]
+      )
+      .catch(() => ({ rows: [] }));
 
     if (connList.rows.length === 0) {
       await sendTelegramMessage(
         chatId,
         '👋 <b>Welcome to Kylrix Bot!</b>\n\n' +
-        'To connect your account and enable two-way CRUD for notes, tasks, and goals:\n' +
-        '1. Open Kylrix at <a href="https://www.kylrix.space/app">www.kylrix.space</a>\n' +
-        '2. Go to <b>Settings > Connect > Telegram</b>\n' +
-        '3. Tap the pairing link to connect instantly.'
+          'To connect your account and enable two-way CRUD for notes, tasks, and goals:\n' +
+          '1. Open Kylrix at <a href="https://www.kylrix.space/app">www.kylrix.space</a>\n' +
+          '2. Go to <b>Settings > Connect > Telegram</b>\n' +
+          '3. Tap the pairing link to connect instantly.'
       );
-      return NextResponse.json({ success: true, message: 'User not connected' });
+      return { success: true, message: 'User not connected' };
     }
 
     const userId = connList.rows[0].$id;
@@ -591,11 +667,13 @@ export async function POST(req: NextRequest) {
       rawText === '/notes' ||
       rawText === '/note' ||
       rawText === '/ideas' ||
-      rawText === '/idea'
+      rawText === '/idea' ||
+      rawText === '/newnote' ||
+      rawText === '/newidea'
     ) {
       const { text, replyMarkup } = await renderNotesMenu(actor);
       await sendTelegramMessage(chatId, text, replyMarkup);
-      return NextResponse.json({ success: true });
+      return { success: true };
     }
 
     if (
@@ -603,23 +681,25 @@ export async function POST(req: NextRequest) {
       rawText === '/goals' ||
       rawText === '/goal' ||
       rawText === '/tasks' ||
-      rawText === '/task'
+      rawText === '/task' ||
+      rawText === '/newgoal' ||
+      rawText === '/newtask'
     ) {
       const { text, replyMarkup } = await renderGoalsMenu(actor);
       await sendTelegramMessage(chatId, text, replyMarkup);
-      return NextResponse.json({ success: true });
+      return { success: true };
     }
 
     if (rawText === '📂 Workspaces' || rawText === '/workspaces' || rawText === '/workspace') {
       const { text, replyMarkup } = await renderWorkspacesMenu(actor);
       await sendTelegramMessage(chatId, text, replyMarkup);
-      return NextResponse.json({ success: true });
+      return { success: true };
     }
 
     if (rawText === '⚙️ Settings' || rawText === '/settings') {
       const { text, replyMarkup } = await renderSettingsMenu(actor);
       await sendTelegramMessage(chatId, text, replyMarkup);
-      return NextResponse.json({ success: true });
+      return { success: true };
     }
 
     if (rawText === '⚡ Quick Capture') {
@@ -627,17 +707,17 @@ export async function POST(req: NextRequest) {
         chatId,
         '⚡ <b>Quick Capture Mode</b>\n\nSimply send any thought, link, or note text and it will immediately save to your Kylrix account!'
       );
-      return NextResponse.json({ success: true });
+      return { success: true };
     }
 
     if (rawText === '❓ Help' || rawText === '/help' || rawText === '/start' || rawText === '/menu') {
       await sendTelegramMessage(
         chatId,
         '⚡ <b>Kylrix Workspace Dashboard</b>\n\n' +
-        'Tap any menu below to manage your decentralized workspace:',
+          'Tap any menu below to manage your decentralized workspace:',
         buildMainMenuMarkup()
       );
-      return NextResponse.json({ success: true });
+      return { success: true };
     }
 
     // Specific CRUD slash commands
@@ -664,9 +744,9 @@ export async function POST(req: NextRequest) {
         await sendTelegramMessage(
           chatId,
           `✅ <b>Note Created!</b>\n\n` +
-          `<b>Title:</b> ${escapeHtml(newNote.title)}\n` +
-          (content ? `<b>Body:</b> ${escapeHtml(content)}\n` : '') +
-          `<code>ID: ${newNote.id}</code>`,
+            `<b>Title:</b> ${escapeHtml(newNote.title)}\n` +
+            (content ? `<b>Body:</b> ${escapeHtml(content)}\n` : '') +
+            `<code>ID: ${newNote.id}</code>`,
           {
             inline_keyboard: [
               [
@@ -680,22 +760,27 @@ export async function POST(req: NextRequest) {
       } catch (err: any) {
         await sendTelegramMessage(chatId, `❌ Failed to create note: ${escapeHtml(err?.message)}`);
       }
-      return NextResponse.json({ success: true });
+      return { success: true };
     }
 
-    if (rawText.startsWith('/goal ') || rawText.startsWith('/task ')) {
-      const title = rawText.replace(/^\/(goal|task)\s+/, '').trim();
+    if (
+      rawText.startsWith('/goal ') ||
+      rawText.startsWith('/task ') ||
+      rawText.startsWith('/newgoal ') ||
+      rawText.startsWith('/newtask ')
+    ) {
+      const title = rawText.replace(/^\/(goal|task|newgoal|newtask)\s+/, '').trim();
       if (!title) {
         await sendTelegramMessage(chatId, 'Usage: <code>/goal [title]</code>');
-        return NextResponse.json({ success: true });
+        return { success: true };
       }
       try {
         const newGoal = await ApiResources.createGoal(actor, { title, status: 'todo' });
         await sendTelegramMessage(
           chatId,
           `🎯 <b>Goal Logged!</b>\n\n` +
-          `<b>Title:</b> ${escapeHtml(newGoal.title)}\n` +
-          `<code>ID: ${newGoal.id}</code>`,
+            `<b>Title:</b> ${escapeHtml(newGoal.title)}\n` +
+            `<code>ID: ${newGoal.id}</code>`,
           {
             inline_keyboard: [
               [
@@ -709,7 +794,7 @@ export async function POST(req: NextRequest) {
       } catch (err: any) {
         await sendTelegramMessage(chatId, `❌ Failed to create goal: ${escapeHtml(err?.message)}`);
       }
-      return NextResponse.json({ success: true });
+      return { success: true };
     }
 
     // Natural text quick-capture
@@ -724,9 +809,9 @@ export async function POST(req: NextRequest) {
         await sendTelegramMessage(
           chatId,
           `⚡ <b>Quick Note Captured!</b>\n\n` +
-          `<b>Title:</b> ${escapeHtml(quickNote.title)}\n` +
-          `<i>"${escapeHtml(rawText.slice(0, 80))}${rawText.length > 80 ? '...' : ''}"</i>\n\n` +
-          `<code>ID: ${quickNote.id}</code>`,
+            `<b>Title:</b> ${escapeHtml(quickNote.title)}\n` +
+            `<i>"${escapeHtml(rawText.slice(0, 80))}${rawText.length > 80 ? '...' : ''}"</i>\n\n` +
+            `<code>ID: ${quickNote.id}</code>`,
           {
             inline_keyboard: [
               [
@@ -740,7 +825,7 @@ export async function POST(req: NextRequest) {
       } catch (err: any) {
         await sendTelegramMessage(chatId, `❌ Quick capture failed: ${escapeHtml(err?.message)}`);
       }
-      return NextResponse.json({ success: true });
+      return { success: true };
     }
 
     // Fallback unknown
@@ -749,9 +834,60 @@ export async function POST(req: NextRequest) {
       '❓ Unknown command. Tap below to navigate:',
       buildMainMenuMarkup()
     );
-    return NextResponse.json({ success: true });
+    return { success: true };
+  } catch (error: any) {
+    console.error('[telegram-webhook] Exception in update handling:', error);
+    return { success: false, status: 500, error: error?.message || 'Server error' };
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    }
+
+    const result = await handleTelegramUpdate(body);
+    if (!result.success) {
+      return NextResponse.json({ error: result.error || 'Failed to process update' }, { status: result.status || 400 });
+    }
+
+    return NextResponse.json({ success: true, message: result.message }, { status: 200 });
   } catch (error: any) {
     console.error('[telegram-webhook] Exception in webhook execution:', error);
     return NextResponse.json({ error: error?.message || 'Server error' }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_API;
+  if (!botToken) {
+    return NextResponse.json({ ok: false, error: 'Telegram bot token is not configured' }, { status: 503 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const shouldSync = searchParams.get('sync') === 'true';
+
+  let syncResult = null;
+  if (shouldSync) {
+    syncResult = await syncTelegramBot(req.nextUrl.origin);
+  }
+
+  try {
+    const [meRes, whRes] = await Promise.all([
+      fetch(`https://api.telegram.org/bot${botToken}/getMe`).then((r) => r.json()).catch(() => ({ ok: false })),
+      fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`).then((r) => r.json()).catch(() => ({ ok: false })),
+    ]);
+
+    return NextResponse.json({
+      ok: true,
+      bot: meRes.result || null,
+      webhook: whRes.result || null,
+      commands: TELEGRAM_BOT_COMMANDS,
+      synced: syncResult,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ ok: false, error: error?.message }, { status: 500 });
   }
 }
