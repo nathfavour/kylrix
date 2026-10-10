@@ -240,45 +240,47 @@ export function ChatNotificationProvider({ children }: { children: ReactNode }) 
             } catch { /* ignore */ }
         };
 
-        void realtime.subscribe(chatChannels, (response) => {
-            if (response.events.some((e: string) => e.includes('.create'))) {
-                const payload = response.payload as any;
-                if (!payload?.conversationId) return;
+        try {
+            const s = realtime.subscribe(chatChannels, (response) => {
+                if (response.events.some((e: string) => e.includes('.create'))) {
+                    const payload = response.payload as any;
+                    if (!payload?.conversationId) return;
 
-                if (payload.senderId === user.$id) {
-                    replyHistoryCache.current.set(payload.conversationId, true);
-                    return;
-                }
+                    if (payload.senderId === user.$id) {
+                        replyHistoryCache.current.set(payload.conversationId, true);
+                        return;
+                    }
 
-                if (payload.senderId !== user.$id) {
-                    setLastMessage(payload);
-                    setUnreadConversations((prev) => new Set(prev).add(payload.conversationId));
-                    showDynamicIsland(payload);
+                    if (payload.senderId !== user.$id) {
+                        setLastMessage(payload);
+                        setUnreadConversations((prev) => new Set(prev).add(payload.conversationId));
+                        showDynamicIsland(payload);
+                    }
                 }
-            }
-        }).then((s: any) => {
+            });
             if (closed) void closeSub(s);
             else unsubChat = s;
-        });
+        } catch (_e) {}
 
-        void realtime.subscribe(activityChannels, (response) => {
-            if (response.events.some((e: string) => e.includes('.update') || e.includes('.create'))) {
-                const activity = response.payload as any;
-                if (!activity?.customStatus) return;
+        try {
+            const s = realtime.subscribe(activityChannels, (response) => {
+                if (response.events.some((e: string) => e.includes('.update') || e.includes('.create'))) {
+                    const activity = response.payload as any;
+                    if (!activity?.customStatus) return;
 
-                try {
-                    const signal = JSON.parse(activity.customStatus);
-                    if (signal.target === user.$id && signal.type === 'join_request') {
-                        if (Date.now() - signal.ts < 10000) {
-                            showCallNotification(signal, activity.userId);
+                    try {
+                        const signal = JSON.parse(activity.customStatus);
+                        if (signal.target === user.$id && signal.type === 'join_request') {
+                            if (Date.now() - signal.ts < 10000) {
+                                showCallNotification(signal, activity.userId);
+                            }
                         }
-                    }
-                } catch (_e) {}
-            }
-        }).then((s: any) => {
+                    } catch (_e) {}
+                }
+            });
             if (closed) void closeSub(s);
             else unsubActivity = s;
-        });
+        } catch (_e) {}
 
         return () => {
             closed = true;

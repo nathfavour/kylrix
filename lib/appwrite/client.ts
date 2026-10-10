@@ -296,18 +296,41 @@ export const functions = new Functions(client);
 export const locale = new Locale(client);
 export const storage = new Storage(client);
 const originalRealtime = new Realtime(client);
+
+function wrapRealtimeSubscription(rawUnsub: any) {
+    const unsub = typeof rawUnsub === 'function' ? rawUnsub : () => {};
+    (unsub as any).close = unsub;
+    (unsub as any).unsubscribe = unsub;
+
+    const wrapper = () => {
+        try {
+            unsub();
+        } catch {}
+    };
+    wrapper.close = wrapper;
+    wrapper.unsubscribe = wrapper;
+    // Defensive thenable: allows callers expecting a Promise (.then or await) to work seamlessly without throwing
+    wrapper.then = (onFulfilled?: (val: any) => any, onRejected?: (err: any) => any) => {
+        return Promise.resolve(unsub).then(onFulfilled, onRejected);
+    };
+    wrapper.catch = (onRejected?: (err: any) => any) => {
+        return Promise.resolve(unsub).catch(onRejected);
+    };
+    return wrapper;
+}
+
 export const realtime = new Proxy(originalRealtime, {
     get(target, prop, receiver) {
         if (prop === 'subscribe') {
             return (...args: any[]) => {
                 if (isDogfoodSafetyActive()) {
-                    return () => {};
+                    return wrapRealtimeSubscription(() => {});
                 }
                 try {
                     const { partyRealtime } = require('@/lib/realtime/partykit');
-                    return partyRealtime.subscribe(args[0], args[1]);
+                    return wrapRealtimeSubscription(partyRealtime.subscribe(args[0], args[1]));
                 } catch {
-                    return (target as any).subscribe(...args);
+                    return wrapRealtimeSubscription((target as any).subscribe(...args));
                 }
             };
         }

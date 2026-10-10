@@ -513,7 +513,8 @@ export function HangoutsDrawer({
       }
     };
 
-    void realtime.subscribe(channels, (event: any) => {
+    try {
+      sub = realtime.subscribe(channels, (event: any) => {
       const payload = event.payload;
       if (!payload) return;
       const events: string[] = event.events || [];
@@ -599,13 +600,11 @@ export function HangoutsDrawer({
           });
         }
       }
-    }).then((s: any) => {
-      if (closed) {
-        void closeSub(s);
-        return;
-      }
-      sub = s;
     });
+    if (closed) {
+      void closeSub(sub);
+    }
+  } catch (_e) {}
 
     return () => {
       closed = true;
