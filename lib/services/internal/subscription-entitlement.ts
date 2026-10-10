@@ -163,39 +163,7 @@ export async function getVerifiedProEntitlementForUser(userId: string): Promise<
   let ledgerExpiresAt: string | null = null;
   let ledgerSource: SubscriptionEntitlementSource = 'none';
 
-  try {
-    const res = await databases.listRows(NOTE_DB_ID, SUBSCRIPTIONS_TABLE_ID, [
-      Query.equal('userId', userId),
-      Query.equal('status', 'active'),
-      Query.limit(100),
-      Query.select(['$id', 'userId', 'status', 'currentPeriodEnd', 'currentPeriodStart', 'createdAt', 'updatedAt', 'plan']),
-    ]);
-    const rows = (res.rows || []) as SubscriptionRow[];
-    const unexpired = rows.filter((row) => {
-      if (String(row.status || '').toLowerCase() !== 'active') return false;
-      if (!row.currentPeriodEnd) return false;
-      const end = new Date(row.currentPeriodEnd);
-      return !Number.isNaN(end.getTime()) && end > now;
-    });
-
-    if (unexpired.length) {
-      const bestRow = pickBestSubscriptionRow(unexpired);
-      if (bestRow) {
-        ledgerTier = planLabelToUiTier(bestRow.plan);
-        ledgerExpiresAt = bestRow.currentPeriodEnd || null;
-        ledgerSource = 'subscription_row';
-      } else {
-        ledgerTier = maxBillingUiTier(...unexpired.map((row: any) => planLabelToUiTier(row.plan)));
-        const fallbackRow = unexpired[0];
-        ledgerExpiresAt = fallbackRow?.currentPeriodEnd || null;
-        ledgerSource = 'subscription_row';
-      }
-    }
-  } catch {
-    // fall through to Turso / prefs
-  }
-
-  // Check Turso SQLite subscriptions table
+  // 1. Primary: Check Turso SQLite subscriptions table (sub-millisecond fast)
   try {
     const { db } = await import('@/lib/db');
     const { subscriptions: subsTable } = await import('@/lib/db/schema');
@@ -212,14 +180,50 @@ export async function getVerifiedProEntitlementForUser(userId: string): Promise<
           ? (tierUpper as BillingUiTier)
           : 'PRO';
         ledgerTier = maxBillingUiTier(ledgerTier, resTier);
-        if (!ledgerExpiresAt) {
-          ledgerExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        }
+        ledgerExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         ledgerSource = 'subscription_row';
       }
     }
   } catch {
-    // fall through to prefs
+    // fall through
+  }
+
+  // 2. Secondary: If not found in Turso, query Appwrite with 1s timeout race
+  if (ledgerTier === 'FREE') {
+    try {
+      const appwritePromise = databases.listRows(NOTE_DB_ID, SUBSCRIPTIONS_TABLE_ID, [
+        Query.equal('userId', userId),
+        Query.equal('status', 'active'),
+        Query.limit(100),
+        Query.select(['$id', 'userId', 'status', 'currentPeriodEnd', 'currentPeriodStart', 'createdAt', 'updatedAt', 'plan']),
+      ]).catch(() => null);
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000));
+      const res: any = await Promise.race([appwritePromise, timeoutPromise]);
+
+      const rows = (res?.rows || []) as SubscriptionRow[];
+      const unexpired = rows.filter((row) => {
+        if (String(row.status || '').toLowerCase() !== 'active') return false;
+        if (!row.currentPeriodEnd) return false;
+        const end = new Date(row.currentPeriodEnd);
+        return !Number.isNaN(end.getTime()) && end > now;
+      });
+
+      if (unexpired.length) {
+        const bestRow = pickBestSubscriptionRow(unexpired);
+        if (bestRow) {
+          ledgerTier = planLabelToUiTier(bestRow.plan);
+          ledgerExpiresAt = bestRow.currentPeriodEnd || null;
+          ledgerSource = 'subscription_row';
+        } else {
+          ledgerTier = maxBillingUiTier(...unexpired.map((row: any) => planLabelToUiTier(row.plan)));
+          const fallbackRow = unexpired[0];
+          ledgerExpiresAt = fallbackRow?.currentPeriodEnd || null;
+          ledgerSource = 'subscription_row';
+        }
+      }
+    } catch {
+      // fall through
+    }
   }
 
   let prefsTier: BillingUiTier = 'FREE';

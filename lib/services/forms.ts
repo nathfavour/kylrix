@@ -52,6 +52,12 @@ export const FormsService = {
      * Get a form by ID (Public Access Support)
      */
     async getForm(formId: string) {
+        const isDefaultFeedback = formId === '6aae3dab003a7247b90a' || (process.env.NEXT_PUBLIC_FEEDBACK_FORM_ID && formId === process.env.NEXT_PUBLIC_FEEDBACK_FORM_ID);
+        if (isDefaultFeedback) {
+            const { DEFAULT_FEEDBACK_FORM_ROW } = await import('@/constants/forms');
+            return DEFAULT_FEEDBACK_FORM_ROW as unknown as Forms;
+        }
+
         if (typeof window !== 'undefined') {
             const { getPublicFormData } = await import('@/lib/actions/client-ops');
             const doc = await getPublicFormData(formId).catch(() => null);
@@ -60,12 +66,6 @@ export const FormsService = {
             const { getPublicFormDataSecure } = await import('@/lib/actions/secure-ops');
             const doc = await getPublicFormDataSecure(formId).catch(() => null);
             if (doc) return doc as unknown as Forms;
-        }
-
-        const isDefaultFeedback = formId === '6aae3dab003a7247b90a' || (process.env.NEXT_PUBLIC_FEEDBACK_FORM_ID && formId === process.env.NEXT_PUBLIC_FEEDBACK_FORM_ID);
-        if (isDefaultFeedback) {
-            const { DEFAULT_FEEDBACK_FORM_ROW } = await import('@/constants/forms');
-            return DEFAULT_FEEDBACK_FORM_ROW as unknown as Forms;
         }
 
         try {
