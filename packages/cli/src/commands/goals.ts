@@ -12,17 +12,20 @@ export async function listGoalsCommand(opts: {
   json?: boolean;
   limit?: string;
   all?: boolean;
+  page?: string;
 }) {
   try {
     const isAuthed = hasAuth(opts);
     const limit = opts.all || opts.limit === '0' ? 0 : (opts.limit ? parseInt(opts.limit, 10) : 50);
+    const page = opts.page ? Math.max(1, parseInt(opts.page, 10)) : 1;
     let cloudWarning: string | null = null;
 
     // 1. If authed, pull latest goals from cloud into local SQLite in background
     if (isAuthed) {
       try {
         const client = getClient(opts);
-        const cloudRes = await client.goals.list({ limit: limit || 100, workspaceId: opts.workspace, status: opts.status });
+        const fetchLimit = limit > 0 ? Math.max(100, limit * page) : 100;
+        const cloudRes = await client.goals.list({ limit: fetchLimit, workspaceId: opts.workspace, status: opts.status });
         const items = extractItems(cloudRes);
         for (const item of items) {
           LocalStore.upsertGoalFromCloud(item, opts);
@@ -39,10 +42,16 @@ export async function listGoalsCommand(opts: {
     }
 
     const allItems = items || [];
-    const sliced = limit > 0 ? allItems.slice(0, limit) : allItems;
+    const total = allItems.length;
+
+    let sliced = allItems;
+    if (limit > 0) {
+      const offset = (page - 1) * limit;
+      sliced = allItems.slice(offset, offset + limit);
+    }
 
     if (opts.json) {
-      printJson({ items: sliced, count: allItems.length, ...(cloudWarning ? { warning: cloudWarning } : {}) });
+      printJson({ items: sliced, total, count: sliced.length, page, limit, ...(cloudWarning ? { warning: cloudWarning } : {}) });
       return;
     }
 
@@ -63,8 +72,10 @@ export async function listGoalsCommand(opts: {
     });
 
     printTable(rows, ['id', 'title', 'status', 'progress', 'sync']);
-    if (allItems.length > rows.length) {
-      console.log(pc.dim(`\nShowing ${rows.length} of ${allItems.length} goals. Use --limit <number> or --all to view more.`));
+    if (total > sliced.length) {
+      const start = limit > 0 ? (page - 1) * limit + 1 : 1;
+      const end = limit > 0 ? Math.min(page * limit, total) : total;
+      console.log(pc.dim(`\nShowing ${start}–${end} of ${total} goals. Use --page <N> or --all to view more.`));
     }
     if (cloudWarning && allItems.length === 0) {
       console.log(pc.yellow(`\n⚠ Cloud note: ${cloudWarning}`));

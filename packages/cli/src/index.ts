@@ -68,6 +68,13 @@ import {
   deleteVaultCommand,
 } from './commands/vault';
 import {
+  getEnvCommand,
+  pullEnvCommand,
+  runEnvCommand,
+  pushEnvCommand,
+  listEnvsCommand,
+} from './commands/envs';
+import {
   listTotpCommand,
   getTotpCodeCommand,
   createTotpCommand,
@@ -131,6 +138,9 @@ program
   .description('1-Click Web Login / Device Pairing (opens browser and pairs automatically)')
   .option('-u, --url <url>', 'Custom backend base URL (e.g. http://localhost:3005 or https://my-selfhost.example.com)')
   .option('-t, --token <token>', 'Personal Access Token (PAT) or Agent Key')
+  .option('-w, --workspace <id>', 'Target workspace ID to bind immediately')
+  .option('--workspace-key <key>', 'Login directly using a workspace key / PAT')
+  .option('--agent-key <key>', 'Login using an Agent Provisioning Key (kyl_apk_...)')
   .action((cmdOpts) => loginCommand({ ...program.opts(), ...cmdOpts }));
 
 program
@@ -234,6 +244,8 @@ workspaces
   .command('list')
   .description('List all accessible workspaces')
   .option('-l, --limit <number>', 'Number of records to return', '25')
+  .option('-a, --all', 'List all records without limit')
+  .option('--page <number>', 'Page number (default: 1)', '1')
   .action((cmdOpts) => listWorkspacesCommand({ ...program.opts(), ...cmdOpts }));
 
 workspaces
@@ -261,7 +273,8 @@ workspaces
 
 workspaces
   .command('current')
-  .description('Show the currently active workspace')
+  .alias('context')
+  .description('Show the currently active workspace and session context')
   .action((cmdOpts) => currentWorkspaceCommand(cmdOpts));
 
 workspaces
@@ -297,6 +310,7 @@ ideas
   .description('List ideas in active workspace or personal store')
   .option('-l, --limit <number>', 'Number of records (default: 50, 0 for all)', '50')
   .option('-a, --all', 'List all records without limit')
+  .option('--page <number>', 'Page number (default: 1)', '1')
   .action((cmdOpts) => listIdeasCommand({ ...program.opts(), ...cmdOpts }));
 
 ideas
@@ -339,6 +353,7 @@ goals
   .option('-s, --status <status>', 'Filter by status (not_started, in_progress, completed, paused)')
   .option('-l, --limit <number>', 'Limit count (default: 50, 0 for all)', '50')
   .option('-a, --all', 'List all records without limit')
+  .option('--page <number>', 'Page number (default: 1)', '1')
   .action((cmdOpts) => listGoalsCommand({ ...program.opts(), ...cmdOpts }));
 
 goals
@@ -395,6 +410,7 @@ vault
   .description('List credentials and project environment variables')
   .option('-l, --limit <number>', 'Number of records (default: 50, 0 for all)', '50')
   .option('-a, --all', 'List all records without limit')
+  .option('--page <number>', 'Page number (default: 1)', '1')
   .option('--decrypt', 'Decrypt items using unlocked vault session')
   .action((cmdOpts) => listVaultCommand({ ...program.opts(), ...cmdOpts }));
 
@@ -421,6 +437,56 @@ vault
   .command('delete <id>')
   .description('Delete a secret by ID')
   .action((id, cmdOpts) => deleteVaultCommand(id, { ...program.opts(), ...cmdOpts }));
+
+// ── 6. Environment Variables (Sovereign Project Envs) ──
+const envCmd = program.command('env').description('Manage and inject project environment variables');
+
+envCmd
+  .command('get <idOrUrl>')
+  .description('Fetch and display environment variables from a secret ID or public share link')
+  .option('--pure', 'Output pure KEY=VALUE lines without headers')
+  .option('--json', 'Output parsed variables as JSON')
+  .option('--share-key <key>', 'Decryption share key for public link')
+  .action((idOrUrl, cmdOpts) => getEnvCommand(idOrUrl, { ...program.opts(), ...cmdOpts }));
+
+envCmd
+  .command('pull [idOrUrl]')
+  .description('Pull environment variables directly into a local .env file')
+  .option('-f, --file <filepath>', 'Target output file path', '.env')
+  .option('--append', 'Append new variables without overwriting existing entries')
+  .option('--share-key <key>', 'Decryption share key for public link')
+  .action((idOrUrl, cmdOpts) => pullEnvCommand(idOrUrl, { ...program.opts(), ...cmdOpts }));
+
+envCmd
+  .command('run <idOrUrl> [command...]')
+  .description('Inject environment variables from a secret or public link and execute a command')
+  .option('--share-key <key>', 'Decryption share key for public link')
+  .allowUnknownOption()
+  .action((idOrUrl, commandArgs, cmdOpts) => {
+    // If commandArgs is empty or passed after --
+    const rawArgs = process.argv.slice(process.argv.indexOf('run') + 2);
+    const argsToRun = rawArgs.includes('--')
+      ? rawArgs.slice(rawArgs.indexOf('--') + 1)
+      : commandArgs && commandArgs.length > 0
+      ? commandArgs
+      : rawArgs.filter((a) => !a.startsWith('-') && a !== idOrUrl);
+    return runEnvCommand(idOrUrl, argsToRun, { ...program.opts(), ...cmdOpts });
+  });
+
+envCmd
+  .command('push <name>')
+  .description('Push a local .env file into an encrypted vault secret')
+  .option('-f, --file <filepath>', 'Source .env file path', '.env')
+  .option('--public', 'Mark secret as publicly accessible via share link')
+  .action((name, cmdOpts) => pushEnvCommand(name, { ...program.opts(), ...cmdOpts, isPublic: cmdOpts.public }));
+
+envCmd
+  .command('list')
+  .description('List all project environment variable bundles in the active workspace')
+  .option('-l, --limit <number>', 'Number of records (default: 50, 0 for all)', '50')
+  .option('-a, --all', 'List all records without limit')
+  .option('--page <number>', 'Page number (default: 1)', '1')
+  .action((cmdOpts) => listEnvsCommand({ ...program.opts(), ...cmdOpts }));
 
 // ── 6. TOTP 2FA Authenticator ──
 const totp = program.command('totp').alias('2fa').description('Sovereign 2FA TOTP Authenticator');

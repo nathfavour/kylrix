@@ -21,28 +21,70 @@ function tryOpenBrowser(url: string) {
   exec(`${start} "${url}"`, () => {});
 }
 
-export async function loginCommand(opts: { url?: string; token?: string }) {
+export async function loginCommand(opts: {
+  url?: string;
+  token?: string;
+  workspace?: string;
+  workspaceKey?: string;
+  agentKey?: string;
+}) {
   const env = resolveEnvironment(opts);
+  const effectiveToken = opts.token || opts.workspaceKey || opts.agentKey;
 
-  if (opts.token) {
-    const client = getClient({ url: env.apiUrl, token: opts.token });
+  if (effectiveToken) {
+    const client = getClient({ url: env.apiUrl, token: effectiveToken });
     try {
       const profile = await client.auth.me();
+      let contextLevel = 'Account Context (Full Workspace Access)';
+      let isJailedWorkspace = false;
+      let detectedWorkspaceId = opts.workspace;
+
+      if (effectiveToken.startsWith('kyl_wpat_')) {
+        contextLevel = 'Workspace Jailed PAT';
+        isJailedWorkspace = true;
+      } else if (effectiveToken.startsWith('kyl_apk_')) {
+        contextLevel = 'Agent Provisioning Key (Multi-Workspace Spawning)';
+      } else if (effectiveToken.startsWith('kyl_apat_')) {
+        contextLevel = 'Agent Workspace PAT';
+        isJailedWorkspace = true;
+      } else if (effectiveToken.startsWith('kyl_pat_')) {
+        contextLevel = 'Personal Account PAT';
+      }
+
+      // Check token info if available
+      try {
+        const tokenInfo = await client.auth.tokenInfo();
+        if (tokenInfo.workspaceId) {
+          detectedWorkspaceId = tokenInfo.workspaceId;
+        }
+        if (tokenInfo.category === 'workspace_pat') {
+          contextLevel = 'Workspace Jailed PAT';
+          isJailedWorkspace = true;
+        }
+      } catch {}
+
       saveConfig(
         {
           apiUrl: env.apiUrl,
-          token: opts.token,
+          token: effectiveToken,
           userId: profile.id,
           email: profile.email,
           tier: profile.tier,
+          workspaceId: detectedWorkspaceId,
         },
         env.apiUrl
       );
       printSuccess(`Logged in as ${pc.bold(profile.email || profile.id)}`);
+      printInfo(`Context:   ${pc.magenta(contextLevel)}`);
+      if (detectedWorkspaceId) {
+        printInfo(`Workspace: ${pc.green(detectedWorkspaceId)}${isJailedWorkspace ? pc.yellow(' (jailed)') : ''}`);
+      } else {
+        printInfo(`Workspace: ${pc.dim('Personal Virtual Workspace (account level)')}`);
+      }
       printInfo(`Server:    ${pc.cyan(env.apiUrl)}`);
       printInfo(`Partition: ${pc.yellow(env.partitionKey)}`);
       printInfo(`Data Silo: ${pc.dim(env.siloDir)}`);
-      await handlePostLoginAutoSync(env.apiUrl, profile.id, opts.token);
+      await handlePostLoginAutoSync(env.apiUrl, profile.id, effectiveToken);
       return;
     } catch (err: any) {
       printError('Invalid token provided', err);
@@ -188,13 +230,23 @@ export async function whoamiCommand(opts: { url?: string; token?: string; json?:
     console.log(`  ${pc.dim('User ID:')}      ${pc.bold(profile.id)}`);
     console.log(`  ${pc.dim('Email:')}        ${profile.email || 'N/A'}`);
     console.log(`  ${pc.dim('Tier:')}         ${pc.cyan(profile.tier || 'FREE')}`);
+
+    let contextType = 'Account Context (Can switch to all workspaces)';
+    if (env.token?.startsWith('kyl_wpat_')) contextType = 'Workspace Jailed PAT';
+    else if (env.token?.startsWith('kyl_apk_')) contextType = 'Agent Provisioning Key';
+    else if (env.token?.startsWith('kyl_apat_')) contextType = 'Agent Workspace PAT';
+    else if (env.token?.startsWith('kyl_pat_')) contextType = 'Personal PAT (Account Level)';
+
+    console.log(`  ${pc.dim('Context:')}      ${pc.magenta(contextType)}`);
+    if (env.workspaceId) {
+      console.log(`  ${pc.dim('Workspace:')}    ${pc.green(env.workspaceId)}`);
+    } else {
+      console.log(`  ${pc.dim('Workspace:')}    ${pc.dim('Personal Virtual Workspace (all account items)')}`);
+    }
     console.log(`  ${pc.dim('API URL:')}      ${pc.cyan(env.apiUrl)}`);
     console.log(`  ${pc.dim('Partition:')}    ${pc.yellow(env.partitionKey)}`);
     console.log(`  ${pc.dim('Data Silo:')}    ${pc.dim(env.siloDir)}`);
     console.log(`  ${pc.dim('Scopes:')}       ${profile.scopes?.join(', ') || 'all'}`);
-    if (env.workspaceId) {
-      console.log(`  ${pc.dim('Workspace:')}    ${pc.green(env.workspaceId)}`);
-    }
     console.log();
   } catch (err: any) {
     printError('Failed to fetch profile', err);

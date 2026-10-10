@@ -58,6 +58,24 @@ async function handle(req: NextRequest, ctx: { params: Promise<{ path?: string[]
     }
   }
 
+  // Public / Shared Notes (Unauthenticated Zero-Auth)
+  // GET /api/v1/notes/public/:id or GET /api/v1/public/notes/:id
+  if (
+    (path[0] === 'notes' && path[1] === 'public' && path[2]) ||
+    (path[0] === 'public' && path[1] === 'notes' && path[2])
+  ) {
+    const noteId = path[2];
+    try {
+      const { ApiResources } = await import('@/lib/api/resources');
+      const result = await ApiResources.getPublicNote(noteId);
+      const { jsonOk } = await import('@/lib/api/guard');
+      return jsonOk(result);
+    } catch (err: any) {
+      const status = err?.status || (err?.message?.includes('not found') ? 404 : 400);
+      return Response.json({ error: err?.message || 'Failed to resolve public note' }, { status });
+    }
+  }
+
   return withApiGuard(req, (actor) => dispatchV1(req, path, actor));
 }
 

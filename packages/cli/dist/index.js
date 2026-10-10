@@ -87,18 +87,18 @@ var init_pairing_client = __esm({
             };
           }
           if (res.status === 428 || json2?.error?.code === "authorization_pending") {
-            await new Promise((resolve2) => setTimeout(resolve2, interval));
+            await new Promise((resolve3) => setTimeout(resolve3, interval));
             continue;
           }
           if (res.status === 429 || json2?.error?.code === "slow_down" || json2?.error === "edge_rate_limited" || json2?.error === "rate_limit_exceeded") {
             const retryHeader = res.headers?.get?.("retry-after");
             const retrySec = Number(retryHeader || json2?.retry_after || 5);
             const delay = Math.max(retrySec * 1e3, interval + 2e3);
-            await new Promise((resolve2) => setTimeout(resolve2, delay));
+            await new Promise((resolve3) => setTimeout(resolve3, delay));
             continue;
           }
           if (res.status >= 500 && res.status < 600) {
-            await new Promise((resolve2) => setTimeout(resolve2, interval));
+            await new Promise((resolve3) => setTimeout(resolve3, interval));
             continue;
           }
           throw new Error(json2?.error?.message || `Pairing rejected or failed: HTTP ${res.status}`);
@@ -171,8 +171,8 @@ var init_client = __esm({
       getBaseUrl() {
         return this.baseUrl;
       }
-      async request(method, path8, options = {}) {
-        const cleanPath = path8.startsWith("/") ? path8 : `/${path8}`;
+      async request(method, path9, options = {}) {
+        const cleanPath = path9.startsWith("/") ? path9 : `/${path9}`;
         const url2 = new URL(`${this.baseUrl}${cleanPath}`);
         if (options.query) {
           for (const [key, val] of Object.entries(options.query)) {
@@ -3290,19 +3290,29 @@ async function pullCloudItemsToLocal(opts = {}) {
   return { pulledIdeas, pulledGoals, pulledEvents, pulledForms, pulledFlows, total };
 }
 async function bidirectionalSync(opts = {}) {
+  const env = resolveEnvironment(opts);
+  const userTier = (env.tier || "").toUpperCase();
+  if (userTier === "FREE") {
+    throw new Error("Free accounts operate 100% offline and do not sync to cloud. Cloud sync requires Kylrix Pro.");
+  }
   const pushed = await pushLocalItemsToCloud(opts);
   const pulled = await pullCloudItemsToLocal(opts);
   return { pushed, pulled };
 }
 async function handlePostLoginAutoSync(serverUrl, userId, token) {
-  const verdict = evaluateOfflineAutoSync(serverUrl, userId);
-  if (verdict.canAutoSync && verdict.sourceContainer && verdict.itemCount > 0) {
+  const env = resolveEnvironment({ url: serverUrl, token });
+  const userTier = (env.tier || "").toUpperCase();
+  if (userTier === "FREE") {
+    return;
+  }
+  const verdict2 = evaluateOfflineAutoSync(serverUrl, userId);
+  if (verdict2.canAutoSync && verdict2.sourceContainer && verdict2.itemCount > 0) {
     try {
       console.log();
       console.log(
-        pc2.cyan(`\u{1F4E6} Found ${verdict.itemCount} offline items in container "${verdict.sourceContainer}". Syncing with your account...`)
+        pc2.cyan(`\u{1F4E6} Found ${verdict2.itemCount} offline items in container "${verdict2.sourceContainer}". Syncing with your account...`)
       );
-      const migrated = migrateOfflineData(verdict.sourceContainer, userId, "default");
+      const migrated = migrateOfflineData(verdict2.sourceContainer, userId, "default");
       const syncRes = await bidirectionalSync({ url: serverUrl, token });
       printSuccess(
         `Successfully synced ${migrated.total} local items (${syncRes.pushed.pushedIdeas} ideas pushed) and pulled ${syncRes.pulled.total} items from cloud.`
@@ -3314,14 +3324,14 @@ async function handlePostLoginAutoSync(serverUrl, userId, token) {
       }
     } catch (err) {
       console.warn(pc2.yellow(`\u26A0 Note: Automatic offline sync could not complete: ${err.message}`));
-      console.log(pc2.dim(`Run \`kylrix accounts sync-offline ${verdict.sourceContainer}\` to retry.`));
+      console.log(pc2.dim(`Run \`kylrix accounts sync-offline ${verdict2.sourceContainer}\` to retry.`));
     }
-  } else if (!verdict.canAutoSync && verdict.reason) {
+  } else if (!verdict2.canAutoSync && verdict2.reason) {
     const config2 = loadConfig();
-    config2.pendingWarning = verdict.reason;
+    config2.pendingWarning = verdict2.reason;
     saveMasterConfig2(config2);
     console.log();
-    console.log(pc2.yellow(`\u26A0 Warning: ${verdict.reason}`));
+    console.log(pc2.yellow(`\u26A0 Warning: ${verdict2.reason}`));
     console.log(pc2.dim("Run `kylrix accounts sync-source` or `kylrix accounts sync-offline` to resolve.\n"));
   }
 }
@@ -3409,25 +3419,58 @@ function tryOpenBrowser(url2) {
 }
 async function loginCommand(opts) {
   const env = resolveEnvironment(opts);
-  if (opts.token) {
-    const client = getClient({ url: env.apiUrl, token: opts.token });
+  const effectiveToken = opts.token || opts.workspaceKey || opts.agentKey;
+  if (effectiveToken) {
+    const client = getClient({ url: env.apiUrl, token: effectiveToken });
     try {
       const profile = await client.auth.me();
+      let contextLevel = "Account Context (Full Workspace Access)";
+      let isJailedWorkspace = false;
+      let detectedWorkspaceId = opts.workspace;
+      if (effectiveToken.startsWith("kyl_wpat_")) {
+        contextLevel = "Workspace Jailed PAT";
+        isJailedWorkspace = true;
+      } else if (effectiveToken.startsWith("kyl_apk_")) {
+        contextLevel = "Agent Provisioning Key (Multi-Workspace Spawning)";
+      } else if (effectiveToken.startsWith("kyl_apat_")) {
+        contextLevel = "Agent Workspace PAT";
+        isJailedWorkspace = true;
+      } else if (effectiveToken.startsWith("kyl_pat_")) {
+        contextLevel = "Personal Account PAT";
+      }
+      try {
+        const tokenInfo = await client.auth.tokenInfo();
+        if (tokenInfo.workspaceId) {
+          detectedWorkspaceId = tokenInfo.workspaceId;
+        }
+        if (tokenInfo.category === "workspace_pat") {
+          contextLevel = "Workspace Jailed PAT";
+          isJailedWorkspace = true;
+        }
+      } catch {
+      }
       saveConfig(
         {
           apiUrl: env.apiUrl,
-          token: opts.token,
+          token: effectiveToken,
           userId: profile.id,
           email: profile.email,
-          tier: profile.tier
+          tier: profile.tier,
+          workspaceId: detectedWorkspaceId
         },
         env.apiUrl
       );
       printSuccess(`Logged in as ${pc3.bold(profile.email || profile.id)}`);
+      printInfo(`Context:   ${pc3.magenta(contextLevel)}`);
+      if (detectedWorkspaceId) {
+        printInfo(`Workspace: ${pc3.green(detectedWorkspaceId)}${isJailedWorkspace ? pc3.yellow(" (jailed)") : ""}`);
+      } else {
+        printInfo(`Workspace: ${pc3.dim("Personal Virtual Workspace (account level)")}`);
+      }
       printInfo(`Server:    ${pc3.cyan(env.apiUrl)}`);
       printInfo(`Partition: ${pc3.yellow(env.partitionKey)}`);
       printInfo(`Data Silo: ${pc3.dim(env.siloDir)}`);
-      await handlePostLoginAutoSync(env.apiUrl, profile.id, opts.token);
+      await handlePostLoginAutoSync(env.apiUrl, profile.id, effectiveToken);
       return;
     } catch (err) {
       printError("Invalid token provided", err);
@@ -3550,13 +3593,21 @@ async function whoamiCommand(opts) {
     console.log(`  ${pc3.dim("User ID:")}      ${pc3.bold(profile.id)}`);
     console.log(`  ${pc3.dim("Email:")}        ${profile.email || "N/A"}`);
     console.log(`  ${pc3.dim("Tier:")}         ${pc3.cyan(profile.tier || "FREE")}`);
+    let contextType = "Account Context (Can switch to all workspaces)";
+    if (env.token?.startsWith("kyl_wpat_")) contextType = "Workspace Jailed PAT";
+    else if (env.token?.startsWith("kyl_apk_")) contextType = "Agent Provisioning Key";
+    else if (env.token?.startsWith("kyl_apat_")) contextType = "Agent Workspace PAT";
+    else if (env.token?.startsWith("kyl_pat_")) contextType = "Personal PAT (Account Level)";
+    console.log(`  ${pc3.dim("Context:")}      ${pc3.magenta(contextType)}`);
+    if (env.workspaceId) {
+      console.log(`  ${pc3.dim("Workspace:")}    ${pc3.green(env.workspaceId)}`);
+    } else {
+      console.log(`  ${pc3.dim("Workspace:")}    ${pc3.dim("Personal Virtual Workspace (all account items)")}`);
+    }
     console.log(`  ${pc3.dim("API URL:")}      ${pc3.cyan(env.apiUrl)}`);
     console.log(`  ${pc3.dim("Partition:")}    ${pc3.yellow(env.partitionKey)}`);
     console.log(`  ${pc3.dim("Data Silo:")}    ${pc3.dim(env.siloDir)}`);
     console.log(`  ${pc3.dim("Scopes:")}       ${profile.scopes?.join(", ") || "all"}`);
-    if (env.workspaceId) {
-      console.log(`  ${pc3.dim("Workspace:")}    ${pc3.green(env.workspaceId)}`);
-    }
     console.log();
   } catch (err) {
     printError("Failed to fetch profile", err);
@@ -3929,14 +3980,23 @@ import pc6 from "picocolors";
 async function listWorkspacesCommand(opts) {
   try {
     const client = requireAuthClient(opts);
-    const limit = opts.limit ? parseInt(opts.limit, 10) : 25;
-    const res = await client.workspaces.list(limit);
+    const limit = opts.all || opts.limit === "0" ? 0 : opts.limit ? parseInt(opts.limit, 10) : 25;
+    const page = opts.page ? Math.max(1, parseInt(opts.page, 10)) : 1;
+    const fetchLimit = limit > 0 ? Math.max(100, limit * page) : 100;
+    const res = await client.workspaces.list(fetchLimit);
     const activeWs = loadConfig().workspaceId;
+    const allItems = res.items || [];
+    const total = allItems.length;
+    let sliced = allItems;
+    if (limit > 0) {
+      const offset = (page - 1) * limit;
+      sliced = allItems.slice(offset, offset + limit);
+    }
     if (opts.json) {
-      printJson(res);
+      printJson({ items: sliced, total, page, limit });
       return;
     }
-    const rows = (res.items || []).map((w2) => ({
+    const rows = sliced.map((w2) => ({
       active: w2.id === activeWs ? pc6.green("\u2714") : "",
       id: w2.id,
       name: w2.name,
@@ -3945,6 +4005,12 @@ async function listWorkspacesCommand(opts) {
       createdAt: w2.createdAt?.substring(0, 10) || ""
     }));
     printTable(rows, ["active", "id", "name", "isAgentic", "description", "createdAt"]);
+    if (total > sliced.length) {
+      const start = limit > 0 ? (page - 1) * limit + 1 : 1;
+      const end = limit > 0 ? Math.min(page * limit, total) : total;
+      console.log(pc6.dim(`
+Showing ${start}\u2013${end} of ${total} workspaces. Use --page <N> or --all to view more.`));
+    }
   } catch (err) {
     printError("Failed to list workspaces", err);
     process.exit(1);
@@ -4004,7 +4070,12 @@ async function deleteWorkspaceCommand(id, opts) {
 }
 async function switchWorkspaceCommand(idOrName, opts) {
   const target = idOrName?.trim();
-  if (!target || ["clear", "personal", "default", "none", "reset", "0"].includes(target.toLowerCase())) {
+  if (!target || ["clear", "personal", "default", "none", "reset", "0", "account"].includes(target.toLowerCase())) {
+    const env = resolveEnvironment(opts);
+    if (env.token?.startsWith("kyl_wpat_")) {
+      printError("Cannot switch to account-level context: current session is authenticated with a workspace-jailed token.");
+      process.exit(1);
+    }
     clearWorkspaceCommand(opts);
     return;
   }
@@ -4360,11 +4431,13 @@ async function listIdeasCommand(opts) {
   try {
     const isAuthed = hasAuth(opts);
     const limit = opts.all || opts.limit === "0" ? 0 : opts.limit ? parseInt(opts.limit, 10) : 50;
+    const page = opts.page ? Math.max(1, parseInt(opts.page, 10)) : 1;
     let cloudWarning = null;
     if (isAuthed) {
       try {
         const client = getClient(opts);
-        const cloudRes = await client.ideas.list({ limit: limit || 100, workspaceId: opts.workspace });
+        const fetchLimit = limit > 0 ? Math.max(100, limit * page) : 100;
+        const cloudRes = await client.ideas.list({ limit: fetchLimit, workspaceId: opts.workspace });
         const items = extractItems(cloudRes);
         for (const item of items) {
           LocalStore.upsertIdeaFromCloud(item, opts);
@@ -4374,12 +4447,17 @@ async function listIdeasCommand(opts) {
       }
     }
     const res = LocalStore.listIdeas(opts);
+    const allItems = res.items || [];
+    const total = allItems.length;
+    let sliced = allItems;
+    if (limit > 0) {
+      const offset = (page - 1) * limit;
+      sliced = allItems.slice(offset, offset + limit);
+    }
     if (opts.json) {
-      printJson({ items: res.items, count: res.count, ...cloudWarning ? { warning: cloudWarning } : {} });
+      printJson({ items: sliced, total, count: sliced.length, page, limit, ...cloudWarning ? { warning: cloudWarning } : {} });
       return;
     }
-    const allItems = res.items || [];
-    const sliced = limit > 0 ? allItems.slice(0, limit) : allItems;
     const rows = sliced.map((n) => {
       let syncBadge = pc8.yellow("\u25CB unsynced");
       if (n.syncStatus === "synced") {
@@ -4396,9 +4474,11 @@ async function listIdeasCommand(opts) {
       };
     });
     printTable(rows, ["id", "title", "category", "sync", "updated"]);
-    if (allItems.length > rows.length) {
+    if (total > sliced.length) {
+      const start = limit > 0 ? (page - 1) * limit + 1 : 1;
+      const end = limit > 0 ? Math.min(page * limit, total) : total;
       console.log(pc8.dim(`
-Showing ${rows.length} of ${allItems.length} ideas. Use --limit <number> or --all to view more.`));
+Showing ${start}\u2013${end} of ${total} ideas. Use --page <N> or --all to view more.`));
     }
     if (cloudWarning && allItems.length === 0) {
       console.log(pc8.yellow(`
@@ -4599,11 +4679,13 @@ async function listGoalsCommand(opts) {
   try {
     const isAuthed = hasAuth(opts);
     const limit = opts.all || opts.limit === "0" ? 0 : opts.limit ? parseInt(opts.limit, 10) : 50;
+    const page = opts.page ? Math.max(1, parseInt(opts.page, 10)) : 1;
     let cloudWarning = null;
     if (isAuthed) {
       try {
         const client = getClient(opts);
-        const cloudRes = await client.goals.list({ limit: limit || 100, workspaceId: opts.workspace, status: opts.status });
+        const fetchLimit = limit > 0 ? Math.max(100, limit * page) : 100;
+        const cloudRes = await client.goals.list({ limit: fetchLimit, workspaceId: opts.workspace, status: opts.status });
         const items2 = extractItems(cloudRes);
         for (const item of items2) {
           LocalStore.upsertGoalFromCloud(item, opts);
@@ -4617,9 +4699,14 @@ async function listGoalsCommand(opts) {
       items = items.filter((g2) => g2.status === opts.status);
     }
     const allItems = items || [];
-    const sliced = limit > 0 ? allItems.slice(0, limit) : allItems;
+    const total = allItems.length;
+    let sliced = allItems;
+    if (limit > 0) {
+      const offset = (page - 1) * limit;
+      sliced = allItems.slice(offset, offset + limit);
+    }
     if (opts.json) {
-      printJson({ items: sliced, count: allItems.length, ...cloudWarning ? { warning: cloudWarning } : {} });
+      printJson({ items: sliced, total, count: sliced.length, page, limit, ...cloudWarning ? { warning: cloudWarning } : {} });
       return;
     }
     const rows = sliced.map((g2) => {
@@ -4638,9 +4725,11 @@ async function listGoalsCommand(opts) {
       };
     });
     printTable(rows, ["id", "title", "status", "progress", "sync"]);
-    if (allItems.length > rows.length) {
+    if (total > sliced.length) {
+      const start = limit > 0 ? (page - 1) * limit + 1 : 1;
+      const end = limit > 0 ? Math.min(page * limit, total) : total;
       console.log(pc9.dim(`
-Showing ${rows.length} of ${allItems.length} goals. Use --limit <number> or --all to view more.`));
+Showing ${start}\u2013${end} of ${total} goals. Use --page <N> or --all to view more.`));
     }
     if (cloudWarning && allItems.length === 0) {
       console.log(pc9.yellow(`
@@ -5862,19 +5951,26 @@ async function listVaultCommand(opts) {
   try {
     const isAuthed = hasAuth(opts);
     const limit = opts.all || opts.limit === "0" ? 0 : opts.limit ? parseInt(opts.limit, 10) : 50;
+    const page = opts.page ? Math.max(1, parseInt(opts.page, 10)) : 1;
     const session = opts.decrypt ? getVaultSession() : null;
     if (opts.decrypt && !session && isAuthed) {
       printWarning("Vault is locked. Run `kylrix vault unlock` first or run without `--decrypt`.");
     }
+    const fetchLimit = limit > 0 ? Math.max(100, limit * page) : 100;
     const items = isAuthed ? await getClient(opts).vault.list({
-      limit: limit || 100,
+      limit: fetchLimit,
       workspaceId: opts.workspace,
       mek: session?.mekHex
     }) : LocalStore.listVault();
     const allItems = items || [];
-    const sliced = limit > 0 ? allItems.slice(0, limit) : allItems;
+    const total = allItems.length;
+    let sliced = allItems;
+    if (limit > 0) {
+      const offset = (page - 1) * limit;
+      sliced = allItems.slice(offset, offset + limit);
+    }
     if (opts.json) {
-      printJson(sliced);
+      printJson({ items: sliced, total, count: sliced.length, page, limit });
       return;
     }
     const rows = sliced.map((v3) => ({
@@ -5886,9 +5982,11 @@ async function listVaultCommand(opts) {
       updatedAt: v3.updatedAt?.substring(0, 10) || ""
     }));
     printTable(rows, ["id", "name", "type", "username", "mode", "updatedAt"]);
-    if (allItems.length > rows.length) {
+    if (total > sliced.length) {
+      const start = limit > 0 ? (page - 1) * limit + 1 : 1;
+      const end = limit > 0 ? Math.min(page * limit, total) : total;
       console.log(pc15.dim(`
-Showing ${rows.length} of ${allItems.length} vault items. Use --limit <number> or --all to view more.`));
+Showing ${start}\u2013${end} of ${total} vault items. Use --page <N> or --all to view more.`));
     }
     if (!isAuthed) {
       console.log(pc15.dim("\u{1F4A1} Local-first mode. Run `kylrix login` to sync secrets with cloud."));
@@ -5992,10 +6090,319 @@ async function deleteVaultCommand(id, opts) {
   }
 }
 
+// src/commands/envs.ts
+init_client2();
+init_config();
+init_formatter();
+import * as fs8 from "fs";
+import * as path7 from "path";
+import { spawn } from "child_process";
+import pc16 from "picocolors";
+init_store();
+function parseEnvContent(raw) {
+  const result = {};
+  if (!raw) return result;
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed === "object" && parsed !== null) {
+        for (const [k2, v3] of Object.entries(parsed)) {
+          result[k2] = typeof v3 === "string" ? v3 : JSON.stringify(v3);
+        }
+        return result;
+      }
+    } catch {
+    }
+  }
+  const lines = raw.split(/\r?\n/);
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (!trimmedLine || trimmedLine.startsWith("#")) continue;
+    const eqIndex = trimmedLine.indexOf("=");
+    if (eqIndex === -1) continue;
+    const key = trimmedLine.slice(0, eqIndex).trim();
+    let val = trimmedLine.slice(eqIndex + 1).trim();
+    if (val.startsWith('"') && val.endsWith('"') || val.startsWith("'") && val.endsWith("'")) {
+      val = val.slice(1, -1);
+    }
+    if (key) {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+function formatEnvLines(vars, pure = true) {
+  const lines = [];
+  if (!pure) {
+    lines.push("# Generated by Kylrix CLI");
+    lines.push(`# Timestamp: ${(/* @__PURE__ */ new Date()).toISOString()}`);
+    lines.push("");
+  }
+  for (const [k2, v3] of Object.entries(vars)) {
+    const needsQuote = v3.includes(" ") || v3.includes("\n") || v3.includes('"') || v3.includes("#") || v3.length === 0;
+    const escaped = v3.replace(/"/g, '\\"');
+    lines.push(needsQuote ? `${k2}="${escaped}"` : `${k2}=${v3}`);
+  }
+  return lines.join("\n");
+}
+async function resolveEnvSource(idOrUrl, opts = {}) {
+  let target = idOrUrl.trim();
+  let extractedKey = opts.shareKey || null;
+  if (target.includes("/vault/public/")) {
+    const parts = target.split("/vault/public/")[1].split(/[#\/?]/);
+    target = parts[0];
+    if (parts[1] && !extractedKey) extractedKey = parts[1];
+  } else if (target.includes("/public/vault/")) {
+    const parts = target.split("/public/vault/")[1].split(/[#\/?]/);
+    target = parts[0];
+    if (parts[1] && !extractedKey) extractedKey = parts[1];
+  } else if (target.includes("#")) {
+    const [idPart, keyPart] = target.split("#");
+    target = idPart;
+    if (keyPart && !extractedKey) extractedKey = keyPart;
+  }
+  const env = resolveEnvironment(opts);
+  const isAuthed = hasAuth(opts);
+  if (extractedKey || target.startsWith("http")) {
+    try {
+      const publicEndpoint = `${env.apiUrl}/api/v1/vault/public/${encodeURIComponent(target)}`;
+      const query = new URLSearchParams({ format: "env" });
+      if (extractedKey) query.set("shareKey", extractedKey);
+      const resp = await fetch(`${publicEndpoint}?${query.toString()}`, {
+        headers: { Accept: "application/json" }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const payload = data.data || data;
+        const text = payload.envText || payload.customFields || payload.password || "";
+        return {
+          id: payload.id || target,
+          name: payload.name || "Public Vault Secret",
+          isPublic: true,
+          variables: parseEnvContent(text),
+          rawText: text
+        };
+      }
+    } catch {
+    }
+  }
+  if (isAuthed) {
+    try {
+      const session = opts.decrypt !== false ? getVaultSession() : null;
+      const client = getClient(opts);
+      const res = await client.vault.get(target, {
+        mek: session?.mekHex,
+        format: "env"
+      });
+      const text = res.envText || (typeof res.customFields === "string" ? res.customFields : JSON.stringify(res.customFields || {})) || res.password || "";
+      return {
+        id: res.id || target,
+        name: res.name || target,
+        isPublic: Boolean(res.isPublic),
+        variables: parseEnvContent(text),
+        rawText: text
+      };
+    } catch (cloudErr) {
+    }
+  }
+  try {
+    const local = LocalStore.getVault(target);
+    if (local) {
+      const text = local.customFields ? typeof local.customFields === "string" ? local.customFields : JSON.stringify(local.customFields) : local.password || "";
+      return {
+        id: local.id,
+        name: local.name,
+        isPublic: false,
+        variables: parseEnvContent(text),
+        rawText: text
+      };
+    }
+  } catch {
+  }
+  throw new Error(`Could not resolve environment secret "${idOrUrl}". Verify the secret ID, public link, or run \`kylrix vault unlock\`.`);
+}
+async function getEnvCommand(idOrUrl, opts) {
+  try {
+    const resolved = await resolveEnvSource(idOrUrl, opts);
+    if (opts.json) {
+      printJson(resolved.variables);
+      return;
+    }
+    if (opts.pure) {
+      console.log(formatEnvLines(resolved.variables, true));
+      return;
+    }
+    console.log("\n" + pc16.bold(resolved.name || "Environment Variables"));
+    console.log(pc16.dim("\u2500".repeat(45)));
+    console.log(`Secret ID: ${pc16.cyan(resolved.id || idOrUrl)}`);
+    console.log(`Access:    ${resolved.isPublic ? pc16.green("Public / Shared") : pc16.yellow("Vault Protected")}`);
+    console.log(`Variables: ${Object.keys(resolved.variables).length} found`);
+    console.log(pc16.dim("\u2500".repeat(45)));
+    console.log(formatEnvLines(resolved.variables, false));
+    console.log();
+  } catch (err) {
+    printError(`Failed to get env "${idOrUrl}"`, err);
+    process.exit(1);
+  }
+}
+async function pullEnvCommand(idOrUrl, opts = {}) {
+  try {
+    const targetFile = path7.resolve(process.cwd(), opts.file || ".env");
+    let varsToPull = {};
+    let secretName = "Active Environment";
+    if (idOrUrl) {
+      const resolved = await resolveEnvSource(idOrUrl, opts);
+      varsToPull = resolved.variables;
+      secretName = resolved.name || idOrUrl;
+    } else {
+      const isAuthed = hasAuth(opts);
+      const items = isAuthed ? await getClient(opts).vault.list({ limit: 100 }) : LocalStore.listVault();
+      const envItems = (items || []).filter((v3) => v3.isEnv || v3.itemType === "env");
+      if (envItems.length === 0) {
+        throw new Error("No environment secrets found in the current workspace. Provide a secret ID or public share link.");
+      }
+      for (const item of envItems) {
+        try {
+          const res = await resolveEnvSource(item.id, opts);
+          Object.assign(varsToPull, res.variables);
+        } catch {
+        }
+      }
+    }
+    const keyCount = Object.keys(varsToPull).length;
+    if (keyCount === 0) {
+      printWarning("No environment variables found in specified secret.");
+      return;
+    }
+    let existingVars = {};
+    if (fs8.existsSync(targetFile) && opts.append) {
+      const existingRaw = fs8.readFileSync(targetFile, "utf-8");
+      existingVars = parseEnvContent(existingRaw);
+    }
+    const merged = { ...existingVars, ...varsToPull };
+    const content = formatEnvLines(merged, false) + "\n";
+    fs8.writeFileSync(targetFile, content, { encoding: "utf-8", mode: 384 });
+    if (opts.json) {
+      printJson({
+        file: targetFile,
+        count: keyCount,
+        keys: Object.keys(varsToPull)
+      });
+      return;
+    }
+    printSuccess(`Pulled ${keyCount} environment variable(s) from "${pc16.bold(secretName)}" into ${pc16.cyan(path7.relative(process.cwd(), targetFile) || targetFile)}`);
+    console.log(pc16.dim(`Keys loaded: ${Object.keys(varsToPull).join(", ")}`));
+  } catch (err) {
+    printError("Failed to pull environment variables", err);
+    process.exit(1);
+  }
+}
+async function runEnvCommand(idOrUrl, commandArgs, opts) {
+  try {
+    if (!commandArgs || commandArgs.length === 0) {
+      printError("Missing command to execute. Usage: `kylrix env run <id-or-url> -- <command...>`");
+      process.exit(1);
+    }
+    const resolved = await resolveEnvSource(idOrUrl, opts);
+    const varCount = Object.keys(resolved.variables).length;
+    console.log(pc16.dim(`\u26A1 Loaded ${varCount} environment variable(s) from "${resolved.name || idOrUrl}" into process memory`));
+    const childEnv = { ...process.env, ...resolved.variables };
+    const [bin, ...args] = commandArgs;
+    const child = spawn(bin, args, {
+      stdio: "inherit",
+      env: childEnv,
+      shell: true
+    });
+    child.on("exit", (code, signal) => {
+      if (signal) {
+        process.kill(process.pid, signal);
+      } else {
+        process.exit(code ?? 0);
+      }
+    });
+  } catch (err) {
+    printError(`Failed to run command with env "${idOrUrl}"`, err);
+    process.exit(1);
+  }
+}
+async function pushEnvCommand(name, opts) {
+  try {
+    const filePath = path7.resolve(process.cwd(), opts.file || ".env");
+    if (!fs8.existsSync(filePath)) {
+      throw new Error(`Environment file not found: ${filePath}`);
+    }
+    const content = fs8.readFileSync(filePath, "utf-8");
+    const parsed = parseEnvContent(content);
+    const keyCount = Object.keys(parsed).length;
+    if (keyCount === 0) {
+      printWarning(`Warning: ${filePath} contains no environment variables.`);
+    }
+    const isAuthed = hasAuth(opts);
+    const session = getVaultSession();
+    const payload = {
+      name,
+      customFields: content,
+      isEnv: true,
+      itemType: "env",
+      isPublic: Boolean(opts.isPublic)
+    };
+    const item = isAuthed ? await getClient(opts).vault.create(payload, {
+      mek: session?.mekHex,
+      workspaceId: opts.workspace
+    }) : LocalStore.createVault(payload);
+    if (opts.json) {
+      printJson(item);
+      return;
+    }
+    printSuccess(`Pushed ${keyCount} environment variable(s) from ${pc16.dim(opts.file || ".env")} to secret "${pc16.bold(item.name || item.id)}" (ID: ${pc16.cyan(item.id)}) [${isAuthed ? "Cloud" : "Local"}]`);
+  } catch (err) {
+    printError("Failed to push environment variables to vault", err);
+    process.exit(1);
+  }
+}
+async function listEnvsCommand(opts) {
+  try {
+    const isAuthed = hasAuth(opts);
+    const limit = opts.all || opts.limit === "0" ? 0 : opts.limit ? parseInt(opts.limit, 10) : 50;
+    const page = opts.page ? Math.max(1, parseInt(opts.page, 10)) : 1;
+    const allItems = isAuthed ? await getClient(opts).vault.list({ limit: 100, workspaceId: opts.workspace }) : LocalStore.listVault();
+    const envItems = (allItems || []).filter((v3) => v3.isEnv || v3.itemType === "env");
+    const total = envItems.length;
+    let sliced = envItems;
+    if (limit > 0) {
+      const offset = (page - 1) * limit;
+      sliced = envItems.slice(offset, offset + limit);
+    }
+    if (opts.json) {
+      printJson({ items: sliced, total, page, limit });
+      return;
+    }
+    const rows = sliced.map((v3) => ({
+      id: v3.id,
+      name: v3.name,
+      variables: v3.customFields ? Object.keys(parseEnvContent(typeof v3.customFields === "string" ? v3.customFields : JSON.stringify(v3.customFields))).length : "-",
+      access: v3.isPublic ? pc16.green("public") : pc16.dim("private"),
+      mode: isAuthed ? v3.workspaceId || "cloud" : pc16.dim("local"),
+      updatedAt: v3.updatedAt?.substring(0, 10) || ""
+    }));
+    printTable(rows, ["id", "name", "variables", "access", "mode", "updatedAt"]);
+    if (total > sliced.length) {
+      const start = limit > 0 ? (page - 1) * limit + 1 : 1;
+      const end = limit > 0 ? Math.min(page * limit, total) : total;
+      console.log(pc16.dim(`
+Showing ${start}\u2013${end} of ${total} environment secret sets. Use --page <N> or --all to view more.`));
+    }
+  } catch (err) {
+    printError("Failed to list environment secrets", err);
+    process.exit(1);
+  }
+}
+
 // src/commands/totp.ts
 init_client2();
 init_formatter();
-import pc16 from "picocolors";
+import pc17 from "picocolors";
 
 // src/crypto/totp.ts
 import * as crypto from "crypto";
@@ -6049,13 +6456,13 @@ async function listTotpCommand(opts) {
       return;
     }
     const rows = (items || []).map((t) => {
-      let codeDisplay = pc16.dim("locked");
+      let codeDisplay = pc17.dim("locked");
       if (t.secret) {
         try {
           const { code, remainingSeconds } = generateTotp(t.secret);
-          codeDisplay = `${pc16.bold(pc16.green(code))} (${remainingSeconds}s)`;
+          codeDisplay = `${pc17.bold(pc17.green(code))} (${remainingSeconds}s)`;
         } catch {
-          codeDisplay = pc16.red("invalid secret");
+          codeDisplay = pc17.red("invalid secret");
         }
       }
       return {
@@ -6064,12 +6471,12 @@ async function listTotpCommand(opts) {
         issuer: t.issuer || "",
         account: t.account || "",
         code: codeDisplay,
-        mode: isAuthed ? t.workspaceId || "cloud" : pc16.dim("local")
+        mode: isAuthed ? t.workspaceId || "cloud" : pc17.dim("local")
       };
     });
     printTable(rows, ["id", "name", "issuer", "account", "code", "mode"]);
     if (isAuthed && !session) {
-      console.log(pc16.dim("\nTip: Run `kylrix vault unlock` to show live 2FA verification codes."));
+      console.log(pc17.dim("\nTip: Run `kylrix vault unlock` to show live 2FA verification codes."));
     }
   } catch (err) {
     printError("Failed to list TOTP entries", err);
@@ -6090,7 +6497,7 @@ async function getTotpCodeCommand(id, opts) {
       return;
     }
     console.log(`
-  ${pc16.bold(item.name || item.issuer || "2FA Code")}: ${pc16.bold(pc16.green(code))} (${remainingSeconds}s remaining)
+  ${pc17.bold(item.name || item.issuer || "2FA Code")}: ${pc17.bold(pc17.green(code))} (${remainingSeconds}s remaining)
 `);
   } catch (err) {
     printError(`Failed to generate TOTP code for "${id}"`, err);
@@ -6115,7 +6522,7 @@ async function createTotpCommand(name, opts) {
       printJson(item);
       return;
     }
-    printSuccess(`Created TOTP seed "${pc16.bold(item.name || item.id)}" (ID: ${item.id}) [${isAuthed ? "Cloud" : "Local"}]`);
+    printSuccess(`Created TOTP seed "${pc17.bold(item.name || item.id)}" (ID: ${item.id}) [${isAuthed ? "Cloud" : "Local"}]`);
   } catch (err) {
     printError("Failed to create TOTP entry", err);
     process.exit(1);
@@ -6143,7 +6550,7 @@ async function deleteTotpCommand(id, opts) {
 // src/commands/agents.ts
 init_client2();
 init_formatter();
-import pc17 from "picocolors";
+import pc18 from "picocolors";
 async function listAgentSessionsCommand(opts) {
   try {
     const client = requireAuthClient(opts);
@@ -6179,21 +6586,21 @@ async function getAgentSessionCommand(id, opts) {
       printJson(item);
       return;
     }
-    console.log("\n" + pc17.bold(item.title || "(Untitled Agent Session)"));
-    console.log(pc17.dim("\u2500".repeat(40)));
+    console.log("\n" + pc18.bold(item.title || "(Untitled Agent Session)"));
+    console.log(pc18.dim("\u2500".repeat(40)));
     console.log(`ID:        ${item.id}`);
     console.log(`Harness:   ${item.harness || "gemini"}`);
     console.log(`Status:    ${item.status || "idle"}`);
     console.log(`Workspace: ${item.workspaceId || "personal"}`);
     console.log(`Updated:   ${item.updatedAt || item.createdAt || "N/A"}`);
     if (item.prompt) {
-      console.log(pc17.dim("\u2500".repeat(40)));
-      console.log(pc17.bold("Prompt:"));
+      console.log(pc18.dim("\u2500".repeat(40)));
+      console.log(pc18.bold("Prompt:"));
       console.log(item.prompt);
     }
     if (item.transcript) {
-      console.log(pc17.dim("\u2500".repeat(40)));
-      console.log(pc17.bold("Transcript:"));
+      console.log(pc18.dim("\u2500".repeat(40)));
+      console.log(pc18.bold("Transcript:"));
       console.log(typeof item.transcript === "string" ? item.transcript : JSON.stringify(item.transcript, null, 2));
     }
     console.log();
@@ -6215,7 +6622,7 @@ async function startAgentSessionCommand(title, opts) {
       printJson(item);
       return;
     }
-    printSuccess(`Started agent session "${pc17.bold(item.title || item.id)}" (ID: ${item.id})`);
+    printSuccess(`Started agent session "${pc18.bold(item.title || item.id)}" (ID: ${item.id})`);
   } catch (err) {
     printError("Failed to start agent session", err);
     process.exit(1);
@@ -6240,7 +6647,7 @@ async function deleteAgentSessionCommand(id, opts) {
 init_client2();
 init_formatter();
 init_store();
-import pc18 from "picocolors";
+import pc19 from "picocolors";
 async function searchCommand(query, opts) {
   try {
     const isAuthed = hasAuth(opts);
@@ -6278,18 +6685,18 @@ async function searchCommand(query, opts) {
     }
     if (!allResults || allResults.length === 0) {
       console.log(`
-No items matching "${pc18.bold(query)}" found.`);
+No items matching "${pc19.bold(query)}" found.`);
       return;
     }
     console.log(`
-Search results for "${pc18.bold(query)}":
+Search results for "${pc19.bold(query)}":
 `);
     const rows = sliced.map((r2) => {
-      let syncBadge = pc18.yellow("\u25CB unsynced");
+      let syncBadge = pc19.yellow("\u25CB unsynced");
       if (r2.syncStatus === "synced" || !r2.isLocal && isAuthed) {
-        syncBadge = pc18.green("\u25CF synced");
+        syncBadge = pc19.green("\u25CF synced");
       } else if (!isAuthed) {
-        syncBadge = pc18.dim("\u{1F4BB} local");
+        syncBadge = pc19.dim("\u{1F4BB} local");
       }
       return {
         kind: r2.kind.toUpperCase(),
@@ -6301,7 +6708,7 @@ Search results for "${pc18.bold(query)}":
     });
     printTable(rows, ["kind", "id", "title", "snippet", "sync"]);
     if (allResults.length > rows.length) {
-      console.log(pc18.dim(`
+      console.log(pc19.dim(`
 Showing ${rows.length} of ${allResults.length} results. Use --limit <number> or --all to view more.`));
     }
   } catch (err) {
@@ -6314,7 +6721,7 @@ Showing ${rows.length} of ${allResults.length} results. Use --limit <number> or 
 init_client2();
 init_config();
 init_formatter();
-import pc19 from "picocolors";
+import pc20 from "picocolors";
 async function shareCommand(kind, id, opts) {
   try {
     const client = requireAuthClient(opts);
@@ -6335,10 +6742,10 @@ async function shareCommand(kind, id, opts) {
       });
       return;
     }
-    console.log("\n" + pc19.bold("Resource Share Link:"));
+    console.log("\n" + pc20.bold("Resource Share Link:"));
     console.log(`  Kind: ${kind}`);
     console.log(`  ID:   ${id}`);
-    console.log(`  URL:  ${pc19.underline(pc19.cyan(shareUrl))}`);
+    console.log(`  URL:  ${pc20.underline(pc20.cyan(shareUrl))}`);
     console.log(`  Collaborator Cap: ${profile.quotas?.maxCollaboratorsPerResource || 8} users`);
     console.log();
   } catch (err) {
@@ -6350,7 +6757,7 @@ async function shareCommand(kind, id, opts) {
 // src/commands/billing.ts
 init_client2();
 init_formatter();
-import pc20 from "picocolors";
+import pc21 from "picocolors";
 async function billingStatusCommand(opts) {
   try {
     const client = requireAuthClient(opts);
@@ -6359,9 +6766,9 @@ async function billingStatusCommand(opts) {
       printJson(status);
       return;
     }
-    console.log("\n" + pc20.bold("Subscription & Billing:"));
-    console.log(`  Tier:             ${pc20.bold(pc20.cyan(status.tier || "FREE"))}`);
-    console.log(`  Pro Active:       ${status.isPro ? pc20.green("Yes") : "No"}`);
+    console.log("\n" + pc21.bold("Subscription & Billing:"));
+    console.log(`  Tier:             ${pc21.bold(pc21.cyan(status.tier || "FREE"))}`);
+    console.log(`  Pro Active:       ${status.isPro ? pc21.green("Yes") : "No"}`);
     if (status.expiresAt) {
       console.log(`  Expires At:       ${status.expiresAt}`);
     }
@@ -6406,13 +6813,13 @@ async function checkoutBillingCommand(planId, opts) {
       return;
     }
     if (res.depositAddress) {
-      console.log("\n" + pc20.bold(pc20.green("Direct On-Chain Crypto Deposit Address Generated:")));
-      console.log(`  Address: ${pc20.bold(res.depositAddress)}`);
+      console.log("\n" + pc21.bold(pc21.green("Direct On-Chain Crypto Deposit Address Generated:")));
+      console.log(`  Address: ${pc21.bold(res.depositAddress)}`);
       console.log(`  Amount:  ${res.cryptoAmount || ""} ${res.ticker || ""}`);
       console.log(`  QR Code: ${res.qrCodeUrl || "N/A"}`);
     } else if (res.checkoutUrl) {
-      console.log("\n" + pc20.bold("Hosted Checkout Session:"));
-      console.log(`  Open: ${pc20.underline(pc20.cyan(res.checkoutUrl))}`);
+      console.log("\n" + pc21.bold("Hosted Checkout Session:"));
+      console.log(`  Open: ${pc21.underline(pc21.cyan(res.checkoutUrl))}`);
     }
     console.log();
   } catch (err) {
@@ -6428,7 +6835,7 @@ async function claimCouponCommand(couponId, opts) {
       printJson(res);
       return;
     }
-    printSuccess(`Redeemed coupon "${pc20.bold(couponId)}" successfully!`);
+    printSuccess(`Redeemed coupon "${pc21.bold(couponId)}" successfully!`);
   } catch (err) {
     printError(`Failed to redeem coupon "${couponId}"`, err);
     process.exit(1);
@@ -6438,7 +6845,7 @@ async function claimCouponCommand(couponId, opts) {
 // src/commands/admin.ts
 init_client2();
 init_formatter();
-import pc21 from "picocolors";
+import pc22 from "picocolors";
 async function adminStatusCommand(opts) {
   try {
     const client = requireAuthClient(opts);
@@ -6456,13 +6863,13 @@ async function adminStatusCommand(opts) {
       });
       return;
     }
-    console.log("\n" + pc21.bold("Kylrix Instance & Admin Verification:"));
-    console.log(`  Admin Status:     ${isAdmin ? pc21.green(pc21.bold("AUTHORIZED ADMIN")) : pc21.yellow("Standard User")}`);
+    console.log("\n" + pc22.bold("Kylrix Instance & Admin Verification:"));
+    console.log(`  Admin Status:     ${isAdmin ? pc22.green(pc22.bold("AUTHORIZED ADMIN")) : pc22.yellow("Standard User")}`);
     console.log(`  Actor User ID:    ${profile.id}`);
     console.log(`  Identity Email:   ${profile.email || "N/A"}`);
     console.log(`  Account Tier:     ${profile.tier}`);
     console.log(`  Token Scopes:     ${profile.scopes?.join(", ") || "*"}`);
-    console.log(`  Edge Shield:      ${pc21.green("Active (Bot & Burst Protected)")}`);
+    console.log(`  Edge Shield:      ${pc22.green("Active (Bot & Burst Protected)")}`);
     console.log();
   } catch (err) {
     printError("Failed to verify admin status", err);
@@ -6474,7 +6881,7 @@ async function adminStatusCommand(opts) {
 init_client2();
 init_formatter();
 init_store();
-import pc22 from "picocolors";
+import pc23 from "picocolors";
 async function listTagsCommand(opts) {
   try {
     const isAuthed = hasAuth(opts);
@@ -6487,7 +6894,7 @@ async function listTagsCommand(opts) {
       id: t.id,
       name: t.name,
       color: t.color || "",
-      mode: isAuthed ? "cloud" : pc22.dim("local")
+      mode: isAuthed ? "cloud" : pc23.dim("local")
     }));
     printTable(rows, ["id", "name", "color", "mode"]);
   } catch (err) {
@@ -6507,7 +6914,7 @@ async function createTagCommand(name, opts) {
       printJson(item);
       return;
     }
-    printSuccess(`Created tag "${pc22.bold(item.name)}" (ID: ${item.id}) [${isAuthed ? "Cloud" : "Local"}]`);
+    printSuccess(`Created tag "${pc23.bold(item.name)}" (ID: ${item.id}) [${isAuthed ? "Cloud" : "Local"}]`);
   } catch (err) {
     printError("Failed to create tag", err);
     process.exit(1);
@@ -6587,18 +6994,18 @@ async function purgeTrashCommand(kind, id, opts) {
 }
 
 // src/commands/update.ts
-import pc24 from "picocolors";
+import pc25 from "picocolors";
 
 // src/updater/index.ts
-import * as fs8 from "fs";
-import * as path7 from "path";
+import * as fs9 from "fs";
+import * as path8 from "path";
 import * as os4 from "os";
-import { spawn } from "child_process";
-import pc23 from "picocolors";
+import { spawn as spawn2 } from "child_process";
+import pc24 from "picocolors";
 var PACKAGE_NAME = "@kylrix/cli";
-var CURRENT_VERSION = "1.0.17";
-var CACHE_DIR = path7.join(os4.homedir(), ".kylrix");
-var CACHE_FILE = path7.join(CACHE_DIR, "update-cache.json");
+var CURRENT_VERSION = "1.0.18";
+var CACHE_DIR = path8.join(os4.homedir(), ".kylrix");
+var CACHE_FILE = path8.join(CACHE_DIR, "update-cache.json");
 var CHECK_INTERVAL_MS = 12 * 60 * 60 * 1e3;
 function compareSemver(v1, v22) {
   const clean1 = v1.replace(/^v/, "").split("-")[0];
@@ -6631,8 +7038,8 @@ async function fetchLatestVersion(timeoutMs = 2500) {
 }
 function readCachedUpdate() {
   try {
-    if (!fs8.existsSync(CACHE_FILE)) return null;
-    const raw = fs8.readFileSync(CACHE_FILE, "utf-8");
+    if (!fs9.existsSync(CACHE_FILE)) return null;
+    const raw = fs9.readFileSync(CACHE_FILE, "utf-8");
     return JSON.parse(raw);
   } catch {
     return null;
@@ -6640,14 +7047,14 @@ function readCachedUpdate() {
 }
 function writeCachedUpdate(latestVersion) {
   try {
-    if (!fs8.existsSync(CACHE_DIR)) {
-      fs8.mkdirSync(CACHE_DIR, { recursive: true });
+    if (!fs9.existsSync(CACHE_DIR)) {
+      fs9.mkdirSync(CACHE_DIR, { recursive: true });
     }
     const cache = {
       latestVersion,
       lastChecked: Date.now()
     };
-    fs8.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), { encoding: "utf-8", mode: 384 });
+    fs9.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), { encoding: "utf-8", mode: 384 });
   } catch {
   }
 }
@@ -6670,12 +7077,12 @@ async function executeUpgrade(targetVersion = "latest", opts = {}) {
     bun: ["add", "-g", `${PACKAGE_NAME}@${targetVersion}`]
   };
   const args = installArgs[pm] || installArgs.npm;
-  return new Promise((resolve2, reject) => {
-    const child = spawn(pm, args, { stdio: opts.silent ? "ignore" : "inherit" });
+  return new Promise((resolve3, reject) => {
+    const child = spawn2(pm, args, { stdio: opts.silent ? "ignore" : "inherit" });
     child.on("close", (code) => {
       if (code === 0) {
         writeCachedUpdate(targetVersion === "latest" ? CURRENT_VERSION : targetVersion);
-        resolve2();
+        resolve3();
       } else {
         reject(new Error(`Command "${pm} ${args.join(" ")}" exited with code ${code}`));
       }
@@ -6698,10 +7105,10 @@ async function checkAndAutoUpdateOnRun() {
     if (!latest || compareSemver(latest, CURRENT_VERSION) <= 0) {
       return false;
     }
-    console.error(pc23.cyan(`\u26A1 Auto-updating ${PACKAGE_NAME} (${pc23.dim(`v${CURRENT_VERSION}`)} \u2192 ${pc23.green(pc23.bold(`v${latest}`))})...`));
+    console.error(pc24.cyan(`\u26A1 Auto-updating ${PACKAGE_NAME} (${pc24.dim(`v${CURRENT_VERSION}`)} \u2192 ${pc24.green(pc24.bold(`v${latest}`))})...`));
     await executeUpgrade(latest, { silent: true });
     writeCachedUpdate(latest);
-    console.error(pc23.green(`\u2714 Upgraded to v${latest}! Relaunching...`));
+    console.error(pc24.green(`\u2714 Upgraded to v${latest}! Relaunching...`));
     const { spawnSync } = await import("child_process");
     const child = spawnSync(process.argv[0], process.argv.slice(1), {
       stdio: "inherit",
@@ -6718,14 +7125,14 @@ async function checkAndAutoUpdateOnRun() {
 }
 function printUpdateBanner(latest) {
   const boxWidth = 58;
-  const title = `Update available! ${pc23.dim(CURRENT_VERSION)} \u2192 ${pc23.green(pc23.bold(latest))}`;
+  const title = `Update available! ${pc24.dim(CURRENT_VERSION)} \u2192 ${pc24.green(pc24.bold(latest))}`;
   const pm = detectPackageManager();
   const cmd = pm === "pnpm" ? `pnpm add -g ${PACKAGE_NAME}` : `npm i -g ${PACKAGE_NAME}`;
-  const hint = `Run ${pc23.cyan("kylrix update")} or ${pc23.cyan(cmd)}`;
-  console.error("\n" + pc23.yellow("\u250C" + "\u2500".repeat(boxWidth) + "\u2510"));
-  console.error(pc23.yellow("\u2502") + "  " + title.padEnd(boxWidth + 12) + pc23.yellow("\u2502"));
-  console.error(pc23.yellow("\u2502") + "  " + hint.padEnd(boxWidth + 10) + pc23.yellow("\u2502"));
-  console.error(pc23.yellow("\u2514" + "\u2500".repeat(boxWidth) + "\u2518") + "\n");
+  const hint = `Run ${pc24.cyan("kylrix update")} or ${pc24.cyan(cmd)}`;
+  console.error("\n" + pc24.yellow("\u250C" + "\u2500".repeat(boxWidth) + "\u2510"));
+  console.error(pc24.yellow("\u2502") + "  " + title.padEnd(boxWidth + 12) + pc24.yellow("\u2502"));
+  console.error(pc24.yellow("\u2502") + "  " + hint.padEnd(boxWidth + 10) + pc24.yellow("\u2502"));
+  console.error(pc24.yellow("\u2514" + "\u2500".repeat(boxWidth) + "\u2518") + "\n");
 }
 function scheduleBackgroundUpdateCheck() {
   const argv = process.argv;
@@ -6769,28 +7176,28 @@ async function updateCommand(opts) {
     });
     return;
   }
-  we(pc24.bgCyan(pc24.black(" Kylrix CLI Updater ")));
+  we(pc25.bgCyan(pc25.black(" Kylrix CLI Updater ")));
   v2.step("Checking for updates on npm registry...");
   const latest = await fetchLatestVersion(5e3);
   if (!latest) {
     v2.warn("Could not reach npm registry or version not published yet.");
-    fe(pc24.dim("Please check your network connection and try again."));
+    fe(pc25.dim("Please check your network connection and try again."));
     return;
   }
   const hasUpdate = compareSemver(latest, CURRENT_VERSION) > 0;
   if (!hasUpdate && !opts.force) {
-    v2.success(pc24.green(`You are already running the latest version (v${CURRENT_VERSION})!`));
+    v2.success(pc25.green(`You are already running the latest version (v${CURRENT_VERSION})!`));
     writeCachedUpdate(CURRENT_VERSION);
-    fe(pc24.dim("No update required."));
+    fe(pc25.dim("No update required."));
     return;
   }
   v2.info(
-    hasUpdate ? `New version available: ${pc24.dim(`v${CURRENT_VERSION}`)} \u2192 ${pc24.green(pc24.bold(`v${latest}`))}` : `Re-installing v${CURRENT_VERSION}...`
+    hasUpdate ? `New version available: ${pc25.dim(`v${CURRENT_VERSION}`)} \u2192 ${pc25.green(pc25.bold(`v${latest}`))}` : `Re-installing v${CURRENT_VERSION}...`
   );
   try {
     await executeUpgrade(latest);
     writeCachedUpdate(latest);
-    fe(pc24.green(`\u2714 ${PACKAGE_NAME} is now up to date (v${latest})!`));
+    fe(pc25.green(`\u2714 ${PACKAGE_NAME} is now up to date (v${latest})!`));
   } catch (err) {
     printError("Update failed", err);
     process.exit(1);
@@ -6798,7 +7205,7 @@ async function updateCommand(opts) {
 }
 
 // src/commands/sync.ts
-import pc25 from "picocolors";
+import pc26 from "picocolors";
 init_client2();
 init_formatter();
 init_config();
@@ -6808,19 +7215,31 @@ async function syncCommand(opts) {
     if (opts.json) {
       printJson({ synced: false, error: "Authentication required to sync local items to cloud" });
     } else {
-      console.log(pc25.yellow("\u26A0 Not logged in. Run `kylrix login` first to sync your local data to cloud."));
+      console.log(pc26.yellow("\u26A0 Not logged in. Run `kylrix login` first to sync your local data to cloud."));
     }
     return;
   }
   const env = resolveEnvironment(opts);
-  const verdict = evaluateOfflineAutoSync(env.apiUrl, env.userId);
+  const userTier = (env.tier || "").toUpperCase();
+  if (userTier === "FREE") {
+    if (opts.json) {
+      printJson({
+        synced: false,
+        error: "Free accounts operate 100% offline and do not sync to cloud. Cloud sync requires Kylrix Pro."
+      });
+    } else {
+      console.log(pc26.yellow("\u26A0 Free accounts operate 100% locally and do not sync to cloud."));
+      console.log(pc26.dim("Upgrade to Kylrix Pro or earn Contributor Pro via merged PRs for encrypted cloud sync."));
+    }
+    return;
+  }
   if (verdict.canAutoSync && verdict.sourceContainer && verdict.itemCount > 0) {
     if (!opts.json) {
-      console.log(pc25.dim(`Migrating ${verdict.itemCount} items from offline container "${verdict.sourceContainer}" to active account...`));
+      console.log(pc26.dim(`Migrating ${verdict.itemCount} items from offline container "${verdict.sourceContainer}" to active account...`));
     }
     migrateOfflineData(verdict.sourceContainer, env.userId, "default");
   } else if (!verdict.canAutoSync && verdict.reason && !opts.json) {
-    console.log(pc25.yellow(`\u26A0 Warning: ${verdict.reason}`));
+    console.log(pc26.yellow(`\u26A0 Warning: ${verdict.reason}`));
   }
   const spinner = L2();
   if (!opts.json) {
@@ -6829,7 +7248,7 @@ async function syncCommand(opts) {
   try {
     const syncRes = await bidirectionalSync(opts);
     if (!opts.json) {
-      spinner.stop(pc25.green("Sync complete!"));
+      spinner.stop(pc26.green("Sync complete!"));
     }
     const config2 = loadConfig();
     if (config2.pendingWarning) {
@@ -6849,15 +7268,15 @@ async function syncCommand(opts) {
     console.log();
     printSuccess("Synchronized with Kylrix Cloud:");
     console.log(
-      pc25.cyan(
+      pc26.cyan(
         `  \u2191 Pushed to cloud: ${pushedTotal} items (${pushed.pushedIdeas} ideas, ${pushed.pushedGoals} goals, ${pushed.pushedEvents || 0} events, ${pushed.pushedForms || 0} forms, ${pushed.pushedFlows || 0} flows)`
       )
     );
-    console.log(pc25.green(`  \u2193 Pulled to local: ${pulled.total} items (${pulled.pulledIdeas} ideas, ${pulled.pulledGoals} goals, ${pulled.pulledEvents} events, ${pulled.pulledForms} forms, ${pulled.pulledFlows} flows)`));
-    console.log(pc25.dim("  \u26A1 Local SQLite database is up to date.\n"));
+    console.log(pc26.green(`  \u2193 Pulled to local: ${pulled.total} items (${pulled.pulledIdeas} ideas, ${pulled.pulledGoals} goals, ${pulled.pulledEvents} events, ${pulled.pulledForms} forms, ${pulled.pulledFlows} flows)`));
+    console.log(pc26.dim("  \u26A1 Local SQLite database is up to date.\n"));
   } catch (err) {
     if (!opts.json) {
-      spinner.stop(pc25.red("Sync interrupted"));
+      spinner.stop(pc26.red("Sync interrupted"));
     }
     printError("Sync failed", err);
     process.exit(1);
@@ -7731,10 +8150,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path8) {
-  if (!path8)
+function getElementAtPath(obj, path9) {
+  if (!path9)
     return obj;
-  return path8.reduce((acc, key) => acc?.[key], obj);
+  return path9.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -8143,11 +8562,11 @@ function explicitlyAborted(x2, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path8, issues) {
+function prefixIssues(path9, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path8);
+    iss.path.unshift(path9);
     return iss;
   });
 }
@@ -8294,16 +8713,16 @@ function flattenError(error51, mapper = (issue2) => issue2.message) {
 }
 function formatError(error51, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error52, path8 = []) => {
+  const processError = (error52, path9 = []) => {
     for (const issue2 of error52.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path8, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path9, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path8, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path8, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
       } else {
-        const fullpath = [...path8, ...issue2.path];
+        const fullpath = [...path9, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -8330,17 +8749,17 @@ function formatError(error51, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error51, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error52, path8 = []) => {
+  const processError = (error52, path9 = []) => {
     var _a3, _b;
     for (const issue2 of error52.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path8, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path9, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path8, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path8, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
       } else {
-        const fullpath = [...path8, ...issue2.path];
+        const fullpath = [...path9, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -8372,8 +8791,8 @@ function treeifyError(error51, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path8 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path8) {
+  const path9 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path9) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -21065,13 +21484,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path8 = ref.slice(1).split("/").filter(Boolean);
-  if (path8.length === 0) {
+  const path9 = ref.slice(1).split("/").filter(Boolean);
+  if (path9.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path8[0] === defsKey) {
-    const key = path8[1];
+  if (path9[0] === defsKey) {
+    const key = path9[1];
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -23080,15 +23499,15 @@ program.hook("preAction", (_thisCommand, actionCommand) => {
     const { loadConfig: loadConfig2 } = (init_config(), __toCommonJS(config_exports));
     const config2 = loadConfig2();
     if (config2.pendingWarning) {
-      const pc26 = __require("picocolors");
-      console.warn(pc26.yellow(`
+      const pc27 = __require("picocolors");
+      console.warn(pc27.yellow(`
 \u26A0 Warning: ${config2.pendingWarning}
 `));
     }
   } catch {
   }
 });
-program.command("login").description("1-Click Web Login / Device Pairing (opens browser and pairs automatically)").option("-u, --url <url>", "Custom backend base URL (e.g. http://localhost:3005 or https://my-selfhost.example.com)").option("-t, --token <token>", "Personal Access Token (PAT) or Agent Key").action((cmdOpts) => loginCommand({ ...program.opts(), ...cmdOpts }));
+program.command("login").description("1-Click Web Login / Device Pairing (opens browser and pairs automatically)").option("-u, --url <url>", "Custom backend base URL (e.g. http://localhost:3005 or https://my-selfhost.example.com)").option("-t, --token <token>", "Personal Access Token (PAT) or Agent Key").option("-w, --workspace <id>", "Target workspace ID to bind immediately").option("--workspace-key <key>", "Login directly using a workspace key / PAT").option("--agent-key <key>", "Login using an Agent Provisioning Key (kyl_apk_...)").action((cmdOpts) => loginCommand({ ...program.opts(), ...cmdOpts }));
 program.command("pair").description("Authenticate using RFC 8628 browser device pairing code").option("-u, --url <url>", "Custom backend base URL").action((cmdOpts) => pairCommand({ ...program.opts(), ...cmdOpts }));
 program.command("whoami").alias("me").description("Display currently authenticated identity, scopes, and session status").action((cmdOpts) => whoamiCommand({ ...program.opts(), ...cmdOpts }));
 program.command("logout").description("Log out and remove stored local authentication credentials").option("--all", "Log out all accounts on the current server base URI").option("--purge", "Purge all server base URIs, account profiles, and local sessions").option("-u, --url <url>", "Target server base URL").action(async (cmdOpts) => await logoutCommand({ ...program.opts(), ...cmdOpts }));
@@ -23106,24 +23525,24 @@ server.command("current").description("Show currently active server base URI and
 server.command("add <url>").description("Register a server base URI").action((url2) => addServerCommand(url2));
 server.command("remove <url>").alias("rm").description("Remove a server base URI and its accounts").action((url2) => removeServerCommand(url2));
 var workspaces = program.command("workspaces").alias("ws").description("Manage Kylrix workspaces");
-workspaces.command("list").description("List all accessible workspaces").option("-l, --limit <number>", "Number of records to return", "25").action((cmdOpts) => listWorkspacesCommand({ ...program.opts(), ...cmdOpts }));
+workspaces.command("list").description("List all accessible workspaces").option("-l, --limit <number>", "Number of records to return", "25").option("-a, --all", "List all records without limit").option("--page <number>", "Page number (default: 1)", "1").action((cmdOpts) => listWorkspacesCommand({ ...program.opts(), ...cmdOpts }));
 workspaces.command("get <id>").description("Get workspace details by ID").action((id, cmdOpts) => getWorkspaceCommand(id, { ...program.opts(), ...cmdOpts }));
 workspaces.command("create <name>").description("Create a new workspace").option("-d, --description <text>", "Workspace description").option("--agentic", "Flag workspace as agentic environment").action((name, cmdOpts) => createWorkspaceCommand(name, { ...program.opts(), ...cmdOpts }));
 workspaces.command("delete <id>").description("Delete a workspace by ID").action((id, cmdOpts) => deleteWorkspaceCommand(id, { ...program.opts(), ...cmdOpts }));
 workspaces.command("switch <id>").alias("use").description("Set the default active workspace for all subsequent CLI commands").action((id, cmdOpts) => switchWorkspaceCommand(id, { ...program.opts(), ...cmdOpts }));
-workspaces.command("current").description("Show the currently active workspace").action((cmdOpts) => currentWorkspaceCommand(cmdOpts));
+workspaces.command("current").alias("context").description("Show the currently active workspace and session context").action((cmdOpts) => currentWorkspaceCommand(cmdOpts));
 workspaces.command("clear").alias("unuse").description("Reset active workspace back to Personal Virtual Workspace").action((cmdOpts) => clearWorkspaceCommand(cmdOpts));
 program.command("connect").description("Autonomously detect or connect external coding tools (Claude, Cursor, Antigravity, Windsurf, Codex, Kiro)").option("-c, --client <name>", "Tool client name (claude, cursor, antigravity, windsurf, codex, kiro, vscode)").option("-d, --directory <dir>", "Target project directory (defaults to current working directory)").option("-w, --workspace <id>", "Optionally link connected tool to a specific workspace ID").option("-p, --project <id>", "Alias for --workspace").option("--context <text>", "Initial contextual memory or notes to seed for this directory").option("--detect", "Force scan and display installed coding tools").action((cmdOpts) => connectCommand({ ...program.opts(), ...cmdOpts }));
 program.command("connect-status").alias("tools").description("Inspect connected coding tools, directory contexts, and cross-tool synthesized knowledge").option("-d, --directory <dir>", "Target directory filter").action((cmdOpts) => connectStatusCommand({ ...program.opts(), ...cmdOpts }));
 var ideas = program.command("ideas").alias("idea").description("Manage sovereign ideas");
-ideas.command("list").description("List ideas in active workspace or personal store").option("-l, --limit <number>", "Number of records (default: 50, 0 for all)", "50").option("-a, --all", "List all records without limit").action((cmdOpts) => listIdeasCommand({ ...program.opts(), ...cmdOpts }));
+ideas.command("list").description("List ideas in active workspace or personal store").option("-l, --limit <number>", "Number of records (default: 50, 0 for all)", "50").option("-a, --all", "List all records without limit").option("--page <number>", "Page number (default: 1)", "1").action((cmdOpts) => listIdeasCommand({ ...program.opts(), ...cmdOpts }));
 ideas.command("get <id>").description("Get full idea content and metadata").action((id, cmdOpts) => getIdeaCommand(id, { ...program.opts(), ...cmdOpts }));
 ideas.command("create <title>").description("Create a new idea").option("-c, --content <text>", "Idea body content").option("--category <category>", "Idea category", "general").option("--tags <tags>", "Comma-separated tag list").action((title, cmdOpts) => createIdeaCommand(title, { ...program.opts(), ...cmdOpts }));
 ideas.command("update <id>").description("Update an existing idea").option("--title <title>", "New idea title").option("-c, --content <text>", "New content").option("--category <category>", "New category").action((id, cmdOpts) => updateIdeaCommand(id, { ...program.opts(), ...cmdOpts }));
 ideas.command("delete <id>").description("Delete an idea by ID").action((id, cmdOpts) => deleteIdeaCommand(id, { ...program.opts(), ...cmdOpts }));
 ideas.command("articles").description("List long-form articles").action((cmdOpts) => listArticlesCommand({ ...program.opts(), ...cmdOpts }));
 var goals = program.command("goals").alias("g").description("Track goals, objectives, and habits");
-goals.command("list").description("List goals").option("-s, --status <status>", "Filter by status (not_started, in_progress, completed, paused)").option("-l, --limit <number>", "Limit count (default: 50, 0 for all)", "50").option("-a, --all", "List all records without limit").action((cmdOpts) => listGoalsCommand({ ...program.opts(), ...cmdOpts }));
+goals.command("list").description("List goals").option("-s, --status <status>", "Filter by status (not_started, in_progress, completed, paused)").option("-l, --limit <number>", "Limit count (default: 50, 0 for all)", "50").option("-a, --all", "List all records without limit").option("--page <number>", "Page number (default: 1)", "1").action((cmdOpts) => listGoalsCommand({ ...program.opts(), ...cmdOpts }));
 goals.command("get <id>").description("Get goal details").action((id, cmdOpts) => getGoalCommand(id, { ...program.opts(), ...cmdOpts }));
 goals.command("create <title>").description("Create a new goal").option("-d, --description <text>", "Description").option("--target <value>", "Target numeric value", "100").option("--unit <unit>", "Unit (%, days, hours, etc.)", "%").option("--status <status>", "Status", "not_started").action((title, cmdOpts) => createGoalCommand(title, { ...program.opts(), ...cmdOpts }));
 goals.command("update <id>").description("Update goal status or numeric progress").option("--title <title>", "New goal title").option("--status <status>", "New status").option("--progress <currentValue>", "Current numeric progress").action(
@@ -23134,10 +23553,20 @@ var vault = program.command("vault").alias("secrets").description("Secure encryp
 vault.command("unlock").description("Unlock vault Master Encryption Key (MEK) for temporary session").option("-p, --password <password>", "Master Password").option("--expiry <minutes>", "Session expiry in minutes", "60").action((cmdOpts) => unlockVaultCommand({ ...program.opts(), ...cmdOpts }));
 vault.command("lock").description("Lock vault and immediately purge in-memory / session encryption keys").action((cmdOpts) => lockVaultCommand({ ...program.opts(), ...cmdOpts }));
 vault.command("status").description("Check whether the vault is locked or unlocked").action((cmdOpts) => statusVaultCommand({ ...program.opts(), ...cmdOpts }));
-vault.command("list").description("List credentials and project environment variables").option("-l, --limit <number>", "Number of records (default: 50, 0 for all)", "50").option("-a, --all", "List all records without limit").option("--decrypt", "Decrypt items using unlocked vault session").action((cmdOpts) => listVaultCommand({ ...program.opts(), ...cmdOpts }));
+vault.command("list").description("List credentials and project environment variables").option("-l, --limit <number>", "Number of records (default: 50, 0 for all)", "50").option("-a, --all", "List all records without limit").option("--page <number>", "Page number (default: 1)", "1").option("--decrypt", "Decrypt items using unlocked vault session").action((cmdOpts) => listVaultCommand({ ...program.opts(), ...cmdOpts }));
 vault.command("get <id>").description("Get a secret or environment variable set").option("--decrypt", "Decrypt payload").option("--format <format>", "Output format (json, env)").option("--pure", "Output pure dotenv plaintext without headers").action((id, cmdOpts) => getVaultCommand(id, { ...program.opts(), ...cmdOpts }));
 vault.command("create <name>").description("Create an encrypted secret or project .env").option("-u, --username <username>", "Username / login identifier").option("-p, --password <password>", "Password or secret token").option("--service-url <url>", "Service URL").option("--env-file <filepath>", "Import environment variables directly from a file").option("--is-env", "Mark as project environment variables set").option("--notes <notes>", "Secret notes").action((name, cmdOpts) => createVaultCommand(name, { ...program.opts(), ...cmdOpts }));
 vault.command("delete <id>").description("Delete a secret by ID").action((id, cmdOpts) => deleteVaultCommand(id, { ...program.opts(), ...cmdOpts }));
+var envCmd = program.command("env").description("Manage and inject project environment variables");
+envCmd.command("get <idOrUrl>").description("Fetch and display environment variables from a secret ID or public share link").option("--pure", "Output pure KEY=VALUE lines without headers").option("--json", "Output parsed variables as JSON").option("--share-key <key>", "Decryption share key for public link").action((idOrUrl, cmdOpts) => getEnvCommand(idOrUrl, { ...program.opts(), ...cmdOpts }));
+envCmd.command("pull [idOrUrl]").description("Pull environment variables directly into a local .env file").option("-f, --file <filepath>", "Target output file path", ".env").option("--append", "Append new variables without overwriting existing entries").option("--share-key <key>", "Decryption share key for public link").action((idOrUrl, cmdOpts) => pullEnvCommand(idOrUrl, { ...program.opts(), ...cmdOpts }));
+envCmd.command("run <idOrUrl> [command...]").description("Inject environment variables from a secret or public link and execute a command").option("--share-key <key>", "Decryption share key for public link").allowUnknownOption().action((idOrUrl, commandArgs, cmdOpts) => {
+  const rawArgs = process.argv.slice(process.argv.indexOf("run") + 2);
+  const argsToRun = rawArgs.includes("--") ? rawArgs.slice(rawArgs.indexOf("--") + 1) : commandArgs && commandArgs.length > 0 ? commandArgs : rawArgs.filter((a2) => !a2.startsWith("-") && a2 !== idOrUrl);
+  return runEnvCommand(idOrUrl, argsToRun, { ...program.opts(), ...cmdOpts });
+});
+envCmd.command("push <name>").description("Push a local .env file into an encrypted vault secret").option("-f, --file <filepath>", "Source .env file path", ".env").option("--public", "Mark secret as publicly accessible via share link").action((name, cmdOpts) => pushEnvCommand(name, { ...program.opts(), ...cmdOpts, isPublic: cmdOpts.public }));
+envCmd.command("list").description("List all project environment variable bundles in the active workspace").option("-l, --limit <number>", "Number of records (default: 50, 0 for all)", "50").option("-a, --all", "List all records without limit").option("--page <number>", "Page number (default: 1)", "1").action((cmdOpts) => listEnvsCommand({ ...program.opts(), ...cmdOpts }));
 var totp = program.command("totp").alias("2fa").description("Sovereign 2FA TOTP Authenticator");
 totp.command("list").description("List 2FA TOTP accounts and live verification codes").action((cmdOpts) => listTotpCommand({ ...program.opts(), ...cmdOpts }));
 totp.command("code <id>").description("Generate the current 6-digit 2FA code for an account").option("--pure", "Output raw 6-digit number only (for pipes/scripts)").action((id, cmdOpts) => getTotpCodeCommand(id, { ...program.opts(), ...cmdOpts }));

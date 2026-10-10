@@ -1,21 +1,39 @@
 import pc from 'picocolors';
 import { requireAuthClient } from '../client';
-import { loadConfig, saveConfig } from '../config';
+import { loadConfig, saveConfig, resolveEnvironment } from '../config';
 import { printError, printJson, printSuccess, printTable } from '../formatter';
 
-export async function listWorkspacesCommand(opts: { url?: string; token?: string; json?: boolean; limit?: string }) {
+export async function listWorkspacesCommand(opts: {
+  url?: string;
+  token?: string;
+  json?: boolean;
+  limit?: string;
+  all?: boolean;
+  page?: string;
+}) {
   try {
     const client = requireAuthClient(opts);
-    const limit = opts.limit ? parseInt(opts.limit, 10) : 25;
-    const res = await client.workspaces.list(limit);
+    const limit = opts.all || opts.limit === '0' ? 0 : (opts.limit ? parseInt(opts.limit, 10) : 25);
+    const page = opts.page ? Math.max(1, parseInt(opts.page, 10)) : 1;
+    const fetchLimit = limit > 0 ? Math.max(100, limit * page) : 100;
+    const res = await client.workspaces.list(fetchLimit);
     const activeWs = loadConfig().workspaceId;
 
+    const allItems = res.items || [];
+    const total = allItems.length;
+
+    let sliced = allItems;
+    if (limit > 0) {
+      const offset = (page - 1) * limit;
+      sliced = allItems.slice(offset, offset + limit);
+    }
+
     if (opts.json) {
-      printJson(res);
+      printJson({ items: sliced, total, page, limit });
       return;
     }
 
-    const rows = (res.items || []).map((w) => ({
+    const rows = sliced.map((w) => ({
       active: w.id === activeWs ? pc.green('✔') : '',
       id: w.id,
       name: w.name,
@@ -25,6 +43,12 @@ export async function listWorkspacesCommand(opts: { url?: string; token?: string
     }));
 
     printTable(rows, ['active', 'id', 'name', 'isAgentic', 'description', 'createdAt']);
+
+    if (total > sliced.length) {
+      const start = limit > 0 ? (page - 1) * limit + 1 : 1;
+      const end = limit > 0 ? Math.min(page * limit, total) : total;
+      console.log(pc.dim(`\nShowing ${start}–${end} of ${total} workspaces. Use --page <N> or --all to view more.`));
+    }
   } catch (err: any) {
     printError('Failed to list workspaces', err);
     process.exit(1);
@@ -96,7 +120,12 @@ export async function deleteWorkspaceCommand(id: string, opts: { url?: string; t
 
 export async function switchWorkspaceCommand(idOrName: string, opts: { url?: string; token?: string; json?: boolean }) {
   const target = idOrName?.trim();
-  if (!target || ['clear', 'personal', 'default', 'none', 'reset', '0'].includes(target.toLowerCase())) {
+  if (!target || ['clear', 'personal', 'default', 'none', 'reset', '0', 'account'].includes(target.toLowerCase())) {
+    const env = resolveEnvironment(opts);
+    if (env.token?.startsWith('kyl_wpat_')) {
+      printError('Cannot switch to account-level context: current session is authenticated with a workspace-jailed token.');
+      process.exit(1);
+    }
     clearWorkspaceCommand(opts);
     return;
   }

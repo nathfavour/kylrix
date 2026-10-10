@@ -101,29 +101,39 @@ export async function listVaultCommand(opts: {
   decrypt?: boolean;
   json?: boolean;
   limit?: string;
+  all?: boolean;
+  page?: string;
 }) {
   try {
     const isAuthed = hasAuth(opts);
     const limit = (opts as any).all || opts.limit === '0' ? 0 : (opts.limit ? parseInt(opts.limit, 10) : 50);
+    const page = opts.page ? Math.max(1, parseInt(opts.page, 10)) : 1;
     const session = opts.decrypt ? getVaultSession() : null;
 
     if (opts.decrypt && !session && isAuthed) {
       printWarning('Vault is locked. Run `kylrix vault unlock` first or run without `--decrypt`.');
     }
 
+    const fetchLimit = limit > 0 ? Math.max(100, limit * page) : 100;
     const items = isAuthed
       ? await getClient(opts).vault.list({
-          limit: limit || 100,
+          limit: fetchLimit,
           workspaceId: opts.workspace,
           mek: session?.mekHex,
         })
       : LocalStore.listVault();
 
     const allItems = items || [];
-    const sliced = limit > 0 ? allItems.slice(0, limit) : allItems;
+    const total = allItems.length;
+
+    let sliced = allItems;
+    if (limit > 0) {
+      const offset = (page - 1) * limit;
+      sliced = allItems.slice(offset, offset + limit);
+    }
 
     if (opts.json) {
-      printJson(sliced);
+      printJson({ items: sliced, total, count: sliced.length, page, limit });
       return;
     }
 
@@ -137,8 +147,10 @@ export async function listVaultCommand(opts: {
     }));
 
     printTable(rows, ['id', 'name', 'type', 'username', 'mode', 'updatedAt']);
-    if (allItems.length > rows.length) {
-      console.log(pc.dim(`\nShowing ${rows.length} of ${allItems.length} vault items. Use --limit <number> or --all to view more.`));
+    if (total > sliced.length) {
+      const start = limit > 0 ? (page - 1) * limit + 1 : 1;
+      const end = limit > 0 ? Math.min(page * limit, total) : total;
+      console.log(pc.dim(`\nShowing ${start}–${end} of ${total} vault items. Use --page <N> or --all to view more.`));
     }
     if (!isAuthed) {
       console.log(pc.dim('💡 Local-first mode. Run `kylrix login` to sync secrets with cloud.'));

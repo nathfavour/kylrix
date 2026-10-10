@@ -218,7 +218,7 @@ async function renderNotesMenu(actor: ApiActor, chatId?: string | number) {
     } catch {}
 
     if (notes.length === 0) {
-      const res = await ApiResources.listNotes(actor, 6).catch(() => []);
+      const res = await ApiResources.listNotes(actor, 50).catch(() => []);
       notes = extractItems(res);
     }
 
@@ -231,8 +231,8 @@ async function renderNotesMenu(actor: ApiActor, chatId?: string | number) {
     if (filtered.length === 0) {
       text += '<i>No ideas found in this workspace. Send any message to quick-capture, or use /idea [title]!</i>\n';
     } else {
-      text += 'Your latest ideas:\n\n';
-      filtered.slice(0, 6).forEach((n, idx) => {
+      text += `Your ideas (${filtered.length} total):\n\n`;
+      filtered.slice(0, 20).forEach((n, idx) => {
         const preview = n.content ? n.content.replace(/\n/g, ' ').slice(0, 50) : 'Empty body';
         text += `${idx + 1}. <b>${escapeHtml(n.title || 'Untitled Idea')}</b>\n`;
         text += `   <i>"${escapeHtml(preview)}"</i>\n`;
@@ -278,7 +278,7 @@ async function renderGoalsMenu(actor: ApiActor, chatId?: string | number) {
     } catch {}
 
     if (goals.length === 0) {
-      const res = await ApiResources.listGoals(actor, 6).catch(() => []);
+      const res = await ApiResources.listGoals(actor, 50).catch(() => []);
       goals = extractItems(res);
     }
 
@@ -291,8 +291,8 @@ async function renderGoalsMenu(actor: ApiActor, chatId?: string | number) {
     if (filtered.length === 0) {
       text += '<i>No active goals found. Create one with /goal [title]!</i>\n';
     } else {
-      text += 'Your current goals:\n\n';
-      filtered.slice(0, 6).forEach((g, idx) => {
+      text += `Your goals (${filtered.length} total):\n\n`;
+      filtered.slice(0, 20).forEach((g, idx) => {
         const isDone = g.status === 'completed';
         const icon = isDone ? '✅' : '⏳';
         text += `${idx + 1}. ${icon} <b>${escapeHtml(g.title)}</b>\n`;

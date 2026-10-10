@@ -706,6 +706,11 @@ export async function pullCloudItemsToLocal(opts: { url?: string; token?: string
  * and pulls remote cloud items down into local SQLite.
  */
 export async function bidirectionalSync(opts: { url?: string; token?: string; workspace?: string } = {}) {
+  const env = resolveEnvironment(opts);
+  const userTier = (env.tier || '').toUpperCase();
+  if (userTier === 'FREE') {
+    throw new Error('Free accounts operate 100% offline and do not sync to cloud. Cloud sync requires Kylrix Pro.');
+  }
   const pushed = await pushLocalItemsToCloud(opts);
   const pulled = await pullCloudItemsToLocal(opts);
   return { pushed, pulled };
@@ -713,11 +718,16 @@ export async function bidirectionalSync(opts: { url?: string; token?: string; wo
 
 /**
  * Handles automatic offline data synchronization when a user logs in:
- * 1. Checks eligibility.
- * 2. If eligible, migrates offline items into the account and performs bidirectional sync.
- * 3. If ineligible with warnings, saves pending warning.
+ * 1. Checks eligibility and subscription tier.
+ * 2. If eligible and on Pro/Paid, migrates offline items and performs bidirectional sync.
+ * 3. Free tier accounts stay purely offline without cloud push.
  */
 export async function handlePostLoginAutoSync(serverUrl: string, userId: string, token?: string) {
+  const env = resolveEnvironment({ url: serverUrl, token });
+  const userTier = (env.tier || '').toUpperCase();
+  if (userTier === 'FREE') {
+    return;
+  }
   const verdict = evaluateOfflineAutoSync(serverUrl, userId);
 
   if (verdict.canAutoSync && verdict.sourceContainer && verdict.itemCount > 0) {

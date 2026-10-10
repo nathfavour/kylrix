@@ -16,9 +16,19 @@ export async function syncCommand(opts: { url?: string; token?: string; workspac
   }
 
   const env = resolveEnvironment(opts);
-
-  // Check if active account is missing local data but an offline container has items
-  const verdict = evaluateOfflineAutoSync(env.apiUrl, env.userId);
+  const userTier = (env.tier || '').toUpperCase();
+  if (userTier === 'FREE') {
+    if (opts.json) {
+      printJson({
+        synced: false,
+        error: 'Free accounts operate 100% offline and do not sync to cloud. Cloud sync requires Kylrix Pro.',
+      });
+    } else {
+      console.log(pc.yellow('⚠ Free accounts operate 100% locally and do not sync to cloud.'));
+      console.log(pc.dim('Upgrade to Kylrix Pro or earn Contributor Pro via merged PRs for encrypted cloud sync.'));
+    }
+    return;
+  }
   if (verdict.canAutoSync && verdict.sourceContainer && verdict.itemCount > 0) {
     if (!opts.json) {
       console.log(pc.dim(`Migrating ${verdict.itemCount} items from offline container "${verdict.sourceContainer}" to active account...`));

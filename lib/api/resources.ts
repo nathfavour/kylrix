@@ -121,8 +121,12 @@ async function assertOwnedNote(tables: SystemTablesPort, actor: ApiActor, id: st
   const row = (await tables
     .getRow({ databaseId: DB, tableId: NOTES, rowId: id })
     .catch(() => null)) as any;
-  if (!row || row.userId !== actor.userId) notFound('Note not found');
-  await assertObjectInWorkspace(tables, actor, 'note', id, row);
+  if (!row || (row.userId !== actor.userId && !row.isPublic && !row.isGuest && !row.isPublished)) {
+    notFound('Note not found');
+  }
+  if (row.userId === actor.userId) {
+    await assertObjectInWorkspace(tables, actor, 'note', id, row);
+  }
   return row;
 }
 
@@ -130,8 +134,12 @@ async function assertOwnedGoal(tables: SystemTablesPort, actor: ApiActor, id: st
   const row = (await tables
     .getRow({ databaseId: FLOW_DB, tableId: TASKS, rowId: id })
     .catch(() => null)) as any;
-  if (!row || row.userId !== actor.userId) notFound('Goal not found');
-  await assertObjectInWorkspace(tables, actor, 'goal', id, row);
+  if (!row || (row.userId !== actor.userId && !row.isPublic && !row.isGuest)) {
+    notFound('Goal not found');
+  }
+  if (row.userId === actor.userId) {
+    await assertObjectInWorkspace(tables, actor, 'goal', id, row);
+  }
   return row;
 }
 
@@ -502,6 +510,17 @@ export const ApiResources = {
     requireScope(actor, 'notes:read');
     const tables = systemTables();
     const row = await assertOwnedNote(tables, actor, id);
+    return shapeNote(row);
+  },
+
+  async getPublicNote(id: string) {
+    const tables = systemTables();
+    const row = (await tables
+      .getRow({ databaseId: DB, tableId: NOTES, rowId: id })
+      .catch(() => null)) as any;
+    if (!row || (!row.isPublic && !row.isGuest && !row.isPublished)) {
+      notFound('Note not found or is not shared publicly');
+    }
     return shapeNote(row);
   },
 
@@ -3873,6 +3892,7 @@ export const ApiResources = {
   },
 
   async syncHandshake(actor: ApiActor) {
+    await assertPaidActor(actor, 'Cloud synchronization requires a paid Kylrix Pro plan.');
     const { isSelfHostedDeployment, isKylrixCloud } = await import('@/lib/deployment/surface');
     const tables = systemTables();
     let keychainCount = 0;
@@ -3904,6 +3924,7 @@ export const ApiResources = {
   },
 
   async syncAccount(actor: ApiActor, body: Record<string, unknown>) {
+    await assertPaidActor(actor, 'Cloud synchronization requires a paid Kylrix Pro plan.');
     const { createSystemClient, createSystemTablesDB } = await import('@/lib/appwrite-admin');
     const { isSelfHostedDeployment, isKylrixCloud } = await import('@/lib/deployment/surface');
 

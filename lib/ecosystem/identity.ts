@@ -9,7 +9,7 @@ import { databases, CONNECT_DATABASE_ID, CONNECT_TABLE_ID_USERS, Query } from '.
  * Searches for users across the entire ecosystem via the global directory.
  * Supports email, username, and display name.
  */
-export async function searchGlobalUsers(query: string, limit = 10) {
+export async function searchGlobalUsers(query: string, limit = 10, callerUserId?: string) {
     const cleaned = query.trim().replace(/^@/, '');
     if (!query || cleaned.length < 1) return [];
 
@@ -17,7 +17,7 @@ export async function searchGlobalUsers(query: string, limit = 10) {
     if (isEmailQuery) {
         try {
             const { searchGlobalUsersSecure } = await import('@/lib/actions/secure-ops');
-            const rows = await searchGlobalUsersSecure(cleaned, limit);
+            const rows = await searchGlobalUsersSecure(cleaned, limit, callerUserId);
             return rows.map((doc: any) => ({
                 id: doc.$id || doc.id || doc.userId,
                 userId: doc.userId || doc.$id || doc.id,

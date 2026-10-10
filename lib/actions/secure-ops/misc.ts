@@ -931,9 +931,20 @@ export async function batchTrashFormSubmissionsSecure(
   return JSON.parse(JSON.stringify({ success: true, count: ids.length }));
 }
 
-export async function searchGlobalUsersSecure(query: string, limit = 10) {
+export async function searchGlobalUsersSecure(query: string, limit = 10, callerUserId?: string) {
   const cleaned = String(query || '').trim().replace(/^@/, '');
   if (!cleaned) return [];
+
+  // Free plans are reactive-only and strictly prohibited from searching the directory user list
+  if (callerUserId) {
+    try {
+      const { hasPaidKylrixPlanServer } = await import('@/lib/services/internal/subscription-entitlement');
+      const isPaid = await hasPaidKylrixPlanServer(callerUserId).catch(() => false);
+      if (!isPaid) {
+        return [];
+      }
+    } catch {}
+  }
 
   const tables = createSystemTablesDB();
   const databaseId = APPWRITE_CONFIG.DATABASES.CHAT;

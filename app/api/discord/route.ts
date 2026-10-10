@@ -1466,14 +1466,14 @@ export async function POST(req: NextRequest) {
 
     // B. Ideas Menu
     if (customId === 'btn_notes' || customId === 'btn_ideas' || selectedValue === 'val_notes' || selectedValue === 'val_ideas') {
-      const notesRes = await ApiResources.listNotes(actor, 5).catch(() => []);
+      const notesRes = await ApiResources.listNotes(actor, 25).catch(() => []);
       const data = buildNotesEmbed(extractItems(notesRes), isLinked);
       return NextResponse.json({ type: 7, data });
     }
 
     // C. Goals Menu
     if (customId === 'btn_goals' || selectedValue === 'val_goals') {
-      const goalsRes = await ApiResources.listGoals(actor, 6).catch(() => []);
+      const goalsRes = await ApiResources.listGoals(actor, 25).catch(() => []);
       const data = buildGoalsEmbed(extractItems(goalsRes), isLinked);
       return NextResponse.json({ type: 7, data });
     }
@@ -1975,7 +1975,7 @@ export async function POST(req: NextRequest) {
 
       case 'notes':
       case 'ideas': {
-        const notesRes = await ApiResources.listNotes(actor, 5).catch(() => []);
+        const notesRes = await ApiResources.listNotes(actor, 25).catch(() => []);
         const data = buildIdeasEmbed(extractItems(notesRes), isLinked);
         return NextResponse.json({ type: 4, data });
       }
