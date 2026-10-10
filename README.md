@@ -39,7 +39,8 @@
 
 - **Automatic Activation**: Sign in with GitHub on your account. Merged PRs are detected automatically.
 - **Perks**: Free Pro tier, high-priority feature request triage (considered directly for [`TODO.md`](TODO.md) / [`ROADMAP.md`](ROADMAP.md)), and the Contributor Crown badge on your public profile (`/u/username`).
-- **Start Here**: Pick an issue from [**`TODO.md`**](TODO.md) or see [**`CONTRIBUTING.md`**](CONTRIBUTING.md).
+- **Open Contribution Policy**: You are **not required** to work strictly on items listed in [`TODO.md`](TODO.md) or [`ROADMAP.md`](ROADMAP.md) — feel free to submit a fix, enhancement, or feature for whatever you want. Before starting, it is advised to check open PRs to avoid duplicate effort. Choosing a high-priority task from [`TODO.md`](TODO.md) or [`ROADMAP.md`](ROADMAP.md) increases your chances of getting your PR reviewed and merged quickly.
+- **Start Here**: See [**`CONTRIBUTING.md`**](CONTRIBUTING.md) and pick an issue or open a PR.
 
 ---
 
