@@ -74,6 +74,9 @@ export const twoFactor = sqliteTable('two_factor', {
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
+  verified: integer('verified', { mode: 'boolean' }).default(true),
+  failedVerificationCount: integer('failed_verification_count').default(0),
+  lockedUntil: integer('locked_until', { mode: 'timestamp' }),
 });
 
 export const passkey = sqliteTable('passkey', {
