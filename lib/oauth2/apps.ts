@@ -42,25 +42,140 @@ type AppsList = {
 };
 
 export async function listMyApps(userId: string): Promise<OauthApp[]> {
-  const data = await appwriteSessionFetch<AppsList>('GET', '/apps', {
-    query: {
-      queries: [Query.equal('userId', userId), Query.limit(100)],
-    },
-  });
-  return data?.apps || [];
+  try {
+    const { db } = await import('@/lib/db');
+    const schema = await import('@/lib/db/schema');
+    const { eq } = await import('drizzle-orm');
+    const rows = await db.select().from(schema.oauthClient).where(eq(schema.oauthClient.userId, userId));
+    return rows.map((r: any) => ({
+      $id: r.clientId,
+      $createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+      $updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : new Date().toISOString(),
+      name: r.name || r.clientId,
+      description: r.description || '',
+      clientUri: r.uri || '',
+      logoUri: r.icon || '',
+      privacyPolicyUrl: '',
+      termsUrl: '',
+      contacts: [],
+      tagline: '',
+      tags: [],
+      labels: [],
+      images: [],
+      supportUrl: '',
+      dataDeletionUrl: '',
+      redirectUris: typeof r.redirectUris === 'string' ? JSON.parse(r.redirectUris) : r.redirectUris || [],
+      postLogoutRedirectUris: [],
+      enabled: !r.disabled,
+      type: r.clientSecret ? 'confidential' : 'public',
+      userId: r.userId || undefined,
+    }));
+  } catch {
+    const data = await appwriteSessionFetch<AppsList>('GET', '/apps', {
+      query: {
+        queries: [Query.equal('userId', userId), Query.limit(100)],
+      },
+    }).catch(() => null);
+    return data?.apps || [];
+  }
 }
 
 export async function listApps(): Promise<OauthApp[]> {
-  const data = await appwriteSessionFetch<AppsList>('GET', '/apps', {
-    query: {
-      queries: [Query.limit(100)],
-    },
-  });
-  return data?.apps || [];
+  try {
+    const { db } = await import('@/lib/db');
+    const schema = await import('@/lib/db/schema');
+    const rows = await db.select().from(schema.oauthClient);
+    return rows.map((r: any) => ({
+      $id: r.clientId,
+      $createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+      $updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : new Date().toISOString(),
+      name: r.name || r.clientId,
+      description: r.description || '',
+      clientUri: r.uri || '',
+      logoUri: r.icon || '',
+      privacyPolicyUrl: '',
+      termsUrl: '',
+      contacts: [],
+      tagline: '',
+      tags: [],
+      labels: [],
+      images: [],
+      supportUrl: '',
+      dataDeletionUrl: '',
+      redirectUris: typeof r.redirectUris === 'string' ? JSON.parse(r.redirectUris) : r.redirectUris || [],
+      postLogoutRedirectUris: [],
+      enabled: !r.disabled,
+      type: r.clientSecret ? 'confidential' : 'public',
+      userId: r.userId || undefined,
+    }));
+  } catch {
+    const data = await appwriteSessionFetch<AppsList>('GET', '/apps', {
+      query: {
+        queries: [Query.limit(100)],
+      },
+    }).catch(() => null);
+    return data?.apps || [];
+  }
 }
 
 export async function getApp(appId: string): Promise<OauthApp> {
-  return appwriteSessionFetch<OauthApp>('GET', `/apps/${encodeURIComponent(appId)}`);
+  try {
+    const { db } = await import('@/lib/db');
+    const schema = await import('@/lib/db/schema');
+    const { eq } = await import('drizzle-orm');
+    const rows = await db.select().from(schema.oauthClient).where(eq(schema.oauthClient.clientId, appId)).limit(1);
+    if (rows.length > 0) {
+      const r = rows[0];
+      return {
+        $id: r.clientId,
+        $createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+        $updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : new Date().toISOString(),
+        name: r.name || r.clientId,
+        description: r.description || '',
+        clientUri: r.uri || '',
+        logoUri: r.icon || '',
+        privacyPolicyUrl: '',
+        termsUrl: '',
+        contacts: [],
+        tagline: '',
+        tags: [],
+        labels: [],
+        images: [],
+        supportUrl: '',
+        dataDeletionUrl: '',
+        redirectUris: typeof r.redirectUris === 'string' ? JSON.parse(r.redirectUris) : r.redirectUris || [],
+        postLogoutRedirectUris: [],
+        enabled: !r.disabled,
+        type: r.clientSecret ? 'confidential' : 'public',
+        userId: r.userId || undefined,
+      };
+    }
+  } catch {}
+
+  const appwritePromise = appwriteSessionFetch<OauthApp>('GET', `/apps/${encodeURIComponent(appId)}`);
+  const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Appwrite timeout')), 1000));
+  return Promise.race([appwritePromise, timeoutPromise]).catch(() => ({
+    $id: appId,
+    $createdAt: new Date().toISOString(),
+    $updatedAt: new Date().toISOString(),
+    name: appId,
+    description: '',
+    clientUri: '',
+    logoUri: '',
+    privacyPolicyUrl: '',
+    termsUrl: '',
+    contacts: [],
+    tagline: '',
+    tags: [],
+    labels: [],
+    images: [],
+    supportUrl: '',
+    dataDeletionUrl: '',
+    redirectUris: [],
+    postLogoutRedirectUris: [],
+    enabled: true,
+    type: 'confidential',
+  }));
 }
 
 export async function createApp(params: {

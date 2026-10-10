@@ -732,30 +732,32 @@ export async function getCurrentUser(force = false): Promise<any | null> {
             }
         } catch {}
 
-        // 2. Secondary check: Appwrite account session
-        try {
-            const user = await withNetworkTimeout(account.get());
-            if (user) {
-                const forcedAt = Date.now();
-                currentUserCache = { 
-                    user, 
-                    expiresAt: Date.now() + CURRENT_USER_CACHE_TTL,
-                    lastForcedAt: forcedAt
-                };
-                writeCurrentUserSnapshot(user, forcedAt);
-                setKylrixPulse(user);
-                emitCurrentUserChange(user);
-                return user;
-            }
-        } catch (error: any) {
-            const isStrictUnauthorized =
-                typeof navigator !== 'undefined' &&
-                navigator.onLine &&
-                (error?.code === 401 || error?.type === 'user_unauthorized' || error?.code === 'user_unauthorized');
+        // 2. Secondary check: Appwrite account session (only if Appwrite session cookie exists)
+        if (typeof document !== 'undefined' && document.cookie.includes('a_session_')) {
+            try {
+                const user = await withNetworkTimeout(account.get(), 1500);
+                if (user) {
+                    const forcedAt = Date.now();
+                    currentUserCache = {
+                        user,
+                        expiresAt: Date.now() + CURRENT_USER_CACHE_TTL,
+                        lastForcedAt: forcedAt
+                    };
+                    writeCurrentUserSnapshot(user, forcedAt);
+                    setKylrixPulse(user);
+                    emitCurrentUserChange(user);
+                    return user;
+                }
+            } catch (error: any) {
+                const isStrictUnauthorized =
+                    typeof navigator !== 'undefined' &&
+                    navigator.onLine &&
+                    (error?.code === 401 || error?.type === 'user_unauthorized' || error?.code === 'user_unauthorized');
 
-            if (isStrictUnauthorized) {
-                currentUserCache = null;
-                return null;
+                if (isStrictUnauthorized) {
+                    currentUserCache = null;
+                    return null;
+                }
             }
         }
 

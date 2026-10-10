@@ -35,6 +35,35 @@ const {
 export async function getPublicFormDataSecure(formId: string) {
   let row: any = null;
 
+  // 0. Instant return for built-in feedback form
+  const isDefaultFeedbackForm = formId === DEFAULT_FEEDBACK_FORM_ID || (process.env.NEXT_PUBLIC_FEEDBACK_FORM_ID && formId === process.env.NEXT_PUBLIC_FEEDBACK_FORM_ID);
+  if (isDefaultFeedbackForm) {
+    row = { ...DEFAULT_FEEDBACK_FORM_ROW, $id: formId, id: formId };
+    // Non-blocking Turso seeding
+    void (async () => {
+      try {
+        const { db } = await import('@/lib/db');
+        const schema = await import('@/lib/db/schema');
+        await db.insert(schema.forms).values({
+          id: formId,
+          userId: 'system',
+          title: DEFAULT_FEEDBACK_FORM_ROW.title,
+          description: DEFAULT_FEEDBACK_FORM_ROW.description,
+          schema: DEFAULT_FEEDBACK_FORM_ROW.schema,
+          settings: DEFAULT_FEEDBACK_FORM_ROW.settings,
+          status: 'published',
+          visibility: 'public',
+          isPublic: true,
+          isGuest: true,
+          isWorkspace: false,
+          createdAt: DEFAULT_FEEDBACK_FORM_ROW.$createdAt,
+          updatedAt: DEFAULT_FEEDBACK_FORM_ROW.$updatedAt,
+        }).onConflictDoNothing().catch(() => {});
+      } catch {}
+    })();
+    return JSON.parse(JSON.stringify(row));
+  }
+
   // 1. Check Turso first
   try {
     const { db } = await import('@/lib/db');
@@ -64,34 +93,6 @@ export async function getPublicFormDataSecure(formId: string) {
       };
     }
   } catch {}
-
-  // 2. Default Built-in Feedback Form Seeding
-  const isDefaultFeedbackForm = formId === DEFAULT_FEEDBACK_FORM_ID || (process.env.NEXT_PUBLIC_FEEDBACK_FORM_ID && formId === process.env.NEXT_PUBLIC_FEEDBACK_FORM_ID);
-  if (!row && isDefaultFeedbackForm) {
-    row = { ...DEFAULT_FEEDBACK_FORM_ROW, $id: formId, id: formId };
-    // Non-blocking Turso seeding
-    void (async () => {
-      try {
-        const { db } = await import('@/lib/db');
-        const schema = await import('@/lib/db/schema');
-        await db.insert(schema.forms).values({
-          id: formId,
-          userId: 'system',
-          title: DEFAULT_FEEDBACK_FORM_ROW.title,
-          description: DEFAULT_FEEDBACK_FORM_ROW.description,
-          schema: DEFAULT_FEEDBACK_FORM_ROW.schema,
-          settings: DEFAULT_FEEDBACK_FORM_ROW.settings,
-          status: 'published',
-          visibility: 'public',
-          isPublic: true,
-          isGuest: true,
-          isWorkspace: false,
-          createdAt: DEFAULT_FEEDBACK_FORM_ROW.$createdAt,
-          updatedAt: DEFAULT_FEEDBACK_FORM_ROW.$updatedAt,
-        }).onConflictDoNothing().catch(() => {});
-      } catch {}
-    })();
-  }
 
   // 3. Fallback to Appwrite with timeout race
   if (!row) {
