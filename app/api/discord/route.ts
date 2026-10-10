@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse as BaseNextResponse } from 'next/server';
+import { NextRequest, NextResponse as NextServerResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { ApiResources } from '@/lib/api/resources';
@@ -22,26 +22,31 @@ const interactionContext = new AsyncLocalStorage<DiscordInteractionContext>();
  * into type 4 (CHANNEL_MESSAGE_WITH_SOURCE) with flags: 64 whenever the source message is not ephemeral,
  * completely preventing user notes/goals/ideas/sessions from ever leaking into public Discord channels.
  */
-const NextResponse = {
-  ...BaseNextResponse,
-  json: (body: any, init?: any) => {
-    if (body && typeof body === 'object' && (body.type === 4 || body.type === 7)) {
-      let type = body.type;
-      let data = body.data;
-      if (data) {
-        data = { ...data, flags: (data.flags || 0) | 64 };
-      } else {
-        data = { flags: 64 };
-      }
-      const ctx = interactionContext.getStore();
-      if (type === 7 && ctx && !ctx.isExistingEphemeral) {
-        type = 4;
-      }
-      return BaseNextResponse.json({ ...body, type, data }, init);
-    }
-    return BaseNextResponse.json(body, init);
+const NextResponse = Object.assign(
+  function NextResponse(...args: ConstructorParameters<typeof NextServerResponse>) {
+    return new NextServerResponse(...args);
   },
-};
+  NextServerResponse,
+  {
+    json: (body: any, init?: any) => {
+      if (body && typeof body === 'object' && (body.type === 4 || body.type === 7)) {
+        let type = body.type;
+        let data = body.data;
+        if (data) {
+          data = { ...data, flags: (data.flags || 0) | 64 };
+        } else {
+          data = { flags: 64 };
+        }
+        const ctx = interactionContext.getStore();
+        if (type === 7 && ctx && !ctx.isExistingEphemeral) {
+          type = 4;
+        }
+        return NextServerResponse.json({ ...body, type, data }, init);
+      }
+      return NextServerResponse.json(body, init);
+    },
+  }
+);
 
 /**
  * Validates Discord interaction Ed25519 signature via Node native crypto.
