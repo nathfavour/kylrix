@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse as BaseNextResponse } from 'next/server';
 import crypto from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { ApiResources } from '@/lib/api/resources';
 import type { ApiActor } from '@/lib/api/guard';
 import { PairingService } from '@/lib/services/pairing';
@@ -7,6 +8,40 @@ import { PatService } from '@/lib/services/pats';
 import { createSystemTablesDB } from '@/lib/appwrite-admin';
 import { APPWRITE_CONFIG } from '@/lib/appwrite/config';
 import { ID, Query } from 'node-appwrite';
+
+interface DiscordInteractionContext {
+  isExistingEphemeral: boolean;
+}
+
+const interactionContext = new AsyncLocalStorage<DiscordInteractionContext>();
+
+/**
+ * Hard-Ephemeral Response Proxy:
+ * Enforces Discord MessageFlags.EPHEMERAL (64) on all interaction responses (types 4 and 7).
+ * Retroactively secures messages in public channels by automatically converting type 7 (UPDATE_MESSAGE)
+ * into type 4 (CHANNEL_MESSAGE_WITH_SOURCE) with flags: 64 whenever the source message is not ephemeral,
+ * completely preventing user notes/goals/ideas/sessions from ever leaking into public Discord channels.
+ */
+const NextResponse = {
+  ...BaseNextResponse,
+  json: (body: any, init?: any) => {
+    if (body && typeof body === 'object' && (body.type === 4 || body.type === 7)) {
+      let type = body.type;
+      let data = body.data;
+      if (data) {
+        data = { ...data, flags: (data.flags || 0) | 64 };
+      } else {
+        data = { flags: 64 };
+      }
+      const ctx = interactionContext.getStore();
+      if (type === 7 && ctx && !ctx.isExistingEphemeral) {
+        type = 4;
+      }
+      return BaseNextResponse.json({ ...body, type, data }, init);
+    }
+    return BaseNextResponse.json(body, init);
+  },
+};
 
 /**
  * Validates Discord interaction Ed25519 signature via Node native crypto.
@@ -481,6 +516,36 @@ export async function linkDiscordUserAccount(
 ): Promise<void> {
   discordUserCache.set(callerId, { userId, linkedAt: Date.now(), userName: callerName });
 
+  // 1. Persist to Turso oauthConsent
+  try {
+    const { db } = await import('@/lib/db');
+    const schema = await import('@/lib/db/schema');
+    const { eq, and } = await import('drizzle-orm');
+
+    await db
+      .delete(schema.oauthConsent)
+      .where(
+        and(
+          eq(schema.oauthConsent.clientId, 'discord_account'),
+          eq(schema.oauthConsent.referenceId, callerId)
+        )
+      )
+      .catch(() => null);
+
+    await db.insert(schema.oauthConsent).values({
+      id: `consent_discord_${callerId}`,
+      clientId: 'discord_account',
+      userId,
+      referenceId: callerId,
+      scopes: ['*'],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  } catch (err: any) {
+    console.error('[discord-link] Failed to persist link in Turso:', err?.message);
+  }
+
+  // 2. Legacy Appwrite persistence
   try {
     const tables = createSystemTablesDB();
     const existing = await tables.listRows({
@@ -536,7 +601,30 @@ export async function linkDiscordUserAccount(
 
 export async function unlinkDiscordUserAccount(callerId: string): Promise<void> {
   discordUserCache.delete(callerId);
+  discordActiveWorkspaceCache.delete(callerId);
 
+  // 1. Delete from Turso oauthConsent
+  try {
+    const { db } = await import('@/lib/db');
+    const schema = await import('@/lib/db/schema');
+    const { eq, and, or } = await import('drizzle-orm');
+
+    await db
+      .delete(schema.oauthConsent)
+      .where(
+        and(
+          eq(schema.oauthConsent.clientId, 'discord_account'),
+          or(
+            eq(schema.oauthConsent.referenceId, callerId),
+            eq(schema.oauthConsent.userId, callerId)
+          )
+        )
+      );
+  } catch (err: any) {
+    console.error('[discord-unlink] Failed to delete Turso oauthConsent:', err?.message);
+  }
+
+  // 2. Legacy Appwrite cleanup
   try {
     const tables = createSystemTablesDB();
     const existing = await tables.listRows({
@@ -1450,8 +1538,28 @@ export async function POST(req: NextRequest) {
   const callerName = user.global_name || user.username || 'User';
   const callerId = user.id || 'default_user';
 
-  // Resolve linked actor
-  const { actor, isLinked } = await resolveActorForDiscordUser(callerId, callerName);
+  const isExistingEphemeral = Boolean((payload.message?.flags ?? 0) & 64);
+
+  return interactionContext.run({ isExistingEphemeral }, async () => {
+    // Cross-user interaction guard: prevent other users in a channel from clicking another user's session
+    if (payload.type === 3) {
+      const invokingUser =
+        payload.message?.interaction_metadata?.user?.id ||
+        payload.message?.interaction?.user?.id;
+
+      if (invokingUser && invokingUser !== callerId) {
+        return NextResponse.json({
+          type: 4,
+          data: {
+            content: "❌ You cannot interact with another user's Kylrix session. Type `/menu` to open your own private session.",
+            flags: 64,
+          },
+        });
+      }
+    }
+
+    // Resolve linked actor
+    const { actor, isLinked } = await resolveActorForDiscordUser(callerId, callerName);
 
   // ── 3. TYPE 3: MESSAGE_COMPONENT (Interactive Select Menus & Buttons) ──
   if (payload.type === 3) {
@@ -1466,6 +1574,14 @@ export async function POST(req: NextRequest) {
 
     // B. Ideas Menu
     if (customId === 'btn_notes' || customId === 'btn_ideas' || selectedValue === 'val_notes' || selectedValue === 'val_ideas') {
+      if (!isLinked) {
+        return NextResponse.json({
+          type: 4,
+          data: {
+            content: '🔒 You are not connected to a Kylrix account. Use `/menu` or `/pair` to link your account to view your ideas.',
+          },
+        });
+      }
       const notesRes = await ApiResources.listNotes(actor, 25).catch(() => []);
       const data = buildNotesEmbed(extractItems(notesRes), isLinked);
       return NextResponse.json({ type: 7, data });
@@ -1473,6 +1589,14 @@ export async function POST(req: NextRequest) {
 
     // C. Goals Menu
     if (customId === 'btn_goals' || selectedValue === 'val_goals') {
+      if (!isLinked) {
+        return NextResponse.json({
+          type: 4,
+          data: {
+            content: '🔒 You are not connected to a Kylrix account. Use `/menu` or `/pair` to link your account to view your goals.',
+          },
+        });
+      }
       const goalsRes = await ApiResources.listGoals(actor, 25).catch(() => []);
       const data = buildGoalsEmbed(extractItems(goalsRes), isLinked);
       return NextResponse.json({ type: 7, data });
@@ -1975,6 +2099,14 @@ export async function POST(req: NextRequest) {
 
       case 'notes':
       case 'ideas': {
+        if (!isLinked) {
+          return NextResponse.json({
+            type: 4,
+            data: {
+              content: '🔒 You are not connected to a Kylrix account. Use `/menu` or `/pair` to link your account to view your ideas.',
+            },
+          });
+        }
         const notesRes = await ApiResources.listNotes(actor, 25).catch(() => []);
         const data = buildIdeasEmbed(extractItems(notesRes), isLinked);
         return NextResponse.json({ type: 4, data });
@@ -1982,6 +2114,14 @@ export async function POST(req: NextRequest) {
 
       case 'note':
       case 'idea': {
+        if (!isLinked) {
+          return NextResponse.json({
+            type: 4,
+            data: {
+              content: '🔒 You are not connected to a Kylrix account. Use `/menu` or `/pair` to link your account to create ideas.',
+            },
+          });
+        }
         const title = getOption('title') || 'Quick Idea';
         const content = getOption('content') || '';
         try {
@@ -2256,12 +2396,28 @@ export async function POST(req: NextRequest) {
       }
 
       case 'goals': {
+        if (!isLinked) {
+          return NextResponse.json({
+            type: 4,
+            data: {
+              content: '🔒 You are not connected to a Kylrix account. Use `/menu` or `/pair` to link your account to view your goals.',
+            },
+          });
+        }
         const goalsRes = await ApiResources.listGoals(actor, 6).catch(() => []);
         const data = buildGoalsEmbed(extractItems(goalsRes), isLinked);
         return NextResponse.json({ type: 4, data });
       }
 
       case 'goal': {
+        if (!isLinked) {
+          return NextResponse.json({
+            type: 4,
+            data: {
+              content: '🔒 You are not connected to a Kylrix account. Use `/menu` or `/pair` to link your account to create goals.',
+            },
+          });
+        }
         const title = getOption('title') || 'New Goal';
         const activeWs = getDiscordActiveWorkspace(callerId);
         try {
@@ -2474,6 +2630,14 @@ export async function POST(req: NextRequest) {
 
       case 'workspace':
       case 'workspaces': {
+        if (!isLinked) {
+          return NextResponse.json({
+            type: 4,
+            data: {
+              content: '🔒 You are not connected to a Kylrix account. Use `/menu` or `/pair` to link your account to view or manage workspaces.',
+            },
+          });
+        }
         const action = String(getOption('action') || 'list').toLowerCase();
         const nameOrId = String(getOption('name') || '').trim();
 
@@ -2838,6 +3002,14 @@ export async function POST(req: NextRequest) {
             data: { content: '❌ Search keyword is required: `/search query: <keyword>`' },
           });
         }
+        if (!isLinked) {
+          return NextResponse.json({
+            type: 4,
+            data: {
+              content: '🔒 You are not connected to a Kylrix account. Use `/menu` or `/pair` to link your account before searching your goals and notes.',
+            },
+          });
+        }
         try {
           const qLower = query.toLowerCase();
           const [notesRes, goalsRes] = await Promise.all([
@@ -3143,6 +3315,7 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, status: 'ready', timestamp: new Date().toISOString() });
+  });
 }
 
 export async function GET(req: NextRequest) {
