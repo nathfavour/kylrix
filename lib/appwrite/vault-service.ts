@@ -2248,7 +2248,7 @@ export class VaultService {
   static async bulkCreateCredentials(
     credentials: Omit<Credentials, "$id" | "$createdAt" | "$updatedAt">[]): Promise<Credentials[]> {
     return await Promise.all(
-      credentials.map((cred) => this.createCredential(cred)));
+      credentials.map((cred) => this.createCredential(cred as CredentialsCreate)));
   }
 
   static async exportUserData(

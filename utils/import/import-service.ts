@@ -1,6 +1,6 @@
 import { createFolder, AppwriteService } from "@/lib/appwrite";
 import { VaultService } from "@/lib/appwrite/vault-service";
-import type { Credentials, TotpSecrets, Folders } from "@/lib/appwrite/types";
+import type { Credentials, TotpSecrets, Folders, FoldersCreate } from "@/lib/appwrite/types";
 import type { BitwardenExport } from "./bitwarden-types";
 import {
   analyzeBitwardenExport,
@@ -569,7 +569,7 @@ export class ImportService {
         if (existingFoldersMap && existingFoldersMap.has(folderName)) {
             folderId = existingFoldersMap.get(folderName)!;
         } else {
-            const createdFolder = await createFolder(folder);
+            const createdFolder = await createFolder(folder as FoldersCreate);
             folderId = createdFolder.$id;
             // Update map for subsequent lookups
             if (existingFoldersMap) existingFoldersMap.set(folderName, folderId);

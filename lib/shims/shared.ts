@@ -144,7 +144,7 @@ export class Account {
   async createMfaRecoveryCodes(): Promise<{ recoveryCodes: string[] }> { return { recoveryCodes: [] }; }
   async updateMFA(_params: boolean | { mfa: boolean }): Promise<any> { return null; }
   async createMfaAuthenticator(_params: string | { type: any }): Promise<any> { return { secret: '', uri: '' }; }
-  async updateMfaAuthenticator(_params: string | { type: any }, _otp?: string): Promise<any> { return {}; }
+  async updateMfaAuthenticator(_params: string | { type: any; otp?: string }, _otp?: string): Promise<any> { return {}; }
   async deleteMfaAuthenticator(_params: string | { type: any }, ..._args: any[]): Promise<void> { return; }
 }
 

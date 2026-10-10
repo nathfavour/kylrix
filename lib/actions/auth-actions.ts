@@ -442,7 +442,7 @@ export async function verifyPasskeyLoginAction(
       return {
         success: true,
         verified: true,
-        token: token.phrase || token.secret,
+        token: (token as any).phrase || token.secret,
         userId: row.userId,
         wrappedKey: row.wrappedKey,
         fallbackSeed};
